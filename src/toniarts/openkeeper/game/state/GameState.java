@@ -45,9 +45,9 @@ import toniarts.openkeeper.game.logic.MovementThread;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
-import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
-import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -81,9 +81,9 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
-    private CreatureTriggerState creatureTriggerState;
-    private ObjectTriggerState objectTriggerState;
-    private DoorTriggerState doorTriggerState;
+    private CreatureTriggerLogicController creatureTriggerState;
+    private ObjectTriggerLogicController objectTriggerState;
+    private DoorTriggerLogicController doorTriggerState;
     private PartyTriggerLogicController partyTriggerState;
     //private ActionPointState actionPointState;
     private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
@@ -546,15 +546,15 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.levelScore = levelScore;
     }
 
-    public CreatureTriggerState getCreatureTriggerState() {
+    public CreatureTriggerLogicController getCreatureTriggerState() {
         return creatureTriggerState;
     }
 
-    public ObjectTriggerState getObjectTriggerState() {
+    public ObjectTriggerLogicController getObjectTriggerState() {
         return objectTriggerState;
     }
 
-    public DoorTriggerState getDoorTriggerState() {
+    public DoorTriggerLogicController getDoorTriggerState() {
         return doorTriggerState;
     }
 

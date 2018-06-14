@@ -16,28 +16,31 @@
  */
 package toniarts.openkeeper.game.trigger.door;
 
-import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.door.IDoorController;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
-import toniarts.openkeeper.world.door.DoorControl;
 
 /**
  *
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorTriggerControl extends AbstractThingTriggerControl<DoorControl> {
+public class DoorTriggerControl extends AbstractThingTriggerControl<IDoorController> {
 
-    private static final Logger logger = Logger.getLogger(DoorTriggerControl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(DoorTriggerControl.class.getName());
 
-    public DoorTriggerControl() { // empty serialization constructor
-        super();
-    }
-
-    public DoorTriggerControl(final AppStateManager stateManager, int triggerId) {
-        super(stateManager, triggerId);
+    public DoorTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+            final ICreaturesController creaturesController, final int triggerId, final short playerId,
+            final PlayerService playerService) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
     @Override
@@ -45,7 +48,7 @@ public class DoorTriggerControl extends AbstractThingTriggerControl<DoorControl>
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case DOOR_DESTROYED:
-                return instanceControl.getState() == DoorControl.DoorState.DESTROYED;
+                return instanceControl.isDestroyed();
             default:
                 return super.isActive(trigger);
         }

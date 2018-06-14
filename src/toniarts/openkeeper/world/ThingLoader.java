@@ -33,9 +33,9 @@ import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
-import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
-import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -162,7 +162,7 @@ public class ThingLoader {
      * @param partyTriggerState
      * @return the things node
      */
-    public Node loadAll(CreatureTriggerState creatureTriggerState, ObjectTriggerState objectTriggerState, DoorTriggerState doorTriggerState, PartyTriggerLogicController partyTriggerState) {
+    public Node loadAll(CreatureTriggerLogicController creatureTriggerState, ObjectTriggerLogicController objectTriggerState, DoorTriggerLogicController doorTriggerState, PartyTriggerLogicController partyTriggerState) {
 
         // Load the thing
         for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
@@ -187,7 +187,7 @@ public class ThingLoader {
                         triggerId = ((Thing.KeeperCreature) obj).getTriggerId();
                     }
                     if (triggerId != 0) {
-                        creatureTriggerState.setThing(triggerId, creatureControl);
+                        //creatureTriggerState.setThing(triggerId, creatureControl);
                     }
                 } else if (obj instanceof Thing.Object) {
 
@@ -199,7 +199,7 @@ public class ThingLoader {
 
                     // Trigger
                     if (objectThing.getTriggerId() != 0) {
-                        objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
+                        //objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
                     }
 
                     notifyOnObjectAdded(objectControl);
@@ -213,7 +213,7 @@ public class ThingLoader {
 
                     // Trigger
                     if (doorThing.getTriggerId() != 0) {
-                        doorTriggerState.setThing(doorThing.getTriggerId(), null);
+                        //doorTriggerState.setThing(doorThing.getTriggerId(), null);
                     }
                 } else if (obj instanceof Thing.Trap) {
 

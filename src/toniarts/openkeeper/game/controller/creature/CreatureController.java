@@ -31,6 +31,7 @@ import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
@@ -554,6 +555,63 @@ public class CreatureController implements ICreatureController {
     public boolean isDead() {
         // TODO
         return false;
+    }
+
+    @Override
+    public boolean isImprisoned() {
+        // TODO
+        return false;
+    }
+
+    @Override
+    public boolean isTortured() {
+        // TODO
+        return false;
+    }
+
+    @Override
+    public boolean isStunned() {
+        // TODO
+        return false;
+    }
+
+    @Override
+    public int getHealth() {
+        Health health = entityData.getComponent(entityId, Health.class);
+        return health.health;
+    }
+
+    @Override
+    public int getMaxHealth() {
+        Health health = entityData.getComponent(entityId, Health.class);
+        return health.maxHealth;
+    }
+
+    @Override
+    public int getLevel() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.level;
+    }
+
+    @Override
+    public boolean isPickedUp() {
+        // TODO
+        return false;
+    }
+
+    @Override
+    public void attachPortalGem() {
+        // TODO
+    }
+
+    @Override
+    public void setObjectiveTargetPlayerId(short playerId) {
+        // TODO
+    }
+
+    @Override
+    public void setPlayerObjective(Object object) {
+        // TODO
     }
 
     @Override

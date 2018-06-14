@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 
 /**
@@ -25,7 +26,7 @@ import toniarts.openkeeper.game.controller.player.PlayerSpell;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IObjectsController {
+public interface IObjectsController extends IEntityWrapper<IObjectController> {
 
     EntityId loadObject(short objectId, short ownerId, int x, int y);
 

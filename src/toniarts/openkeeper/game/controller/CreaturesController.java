@@ -146,7 +146,7 @@ public class CreaturesController implements ICreaturesController {
             level = keeperCreature.getLevel();
             ownerId = keeperCreature.getPlayerId();
         }
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId, false);
+        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId != 0 ? triggerId : null, false);
     }
 
     @Override

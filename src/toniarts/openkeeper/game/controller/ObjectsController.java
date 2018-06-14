@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -30,6 +31,8 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.controller.object.IObjectController;
+import toniarts.openkeeper.game.controller.object.ObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
@@ -58,7 +61,7 @@ public class ObjectsController implements IObjectsController {
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
 
-    private static final Logger logger = Logger.getLogger(ObjectsController.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ObjectsController.class.getName());
 
     public ObjectsController() {
         // For serialization
@@ -89,14 +92,14 @@ public class ObjectsController implements IObjectsController {
                     loadObject(objectThing);
                 }
             } catch (Exception ex) {
-                logger.log(Level.WARNING, "Could not load Thing.", ex);
+                LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
     }
 
     private void loadObject(Thing.Object objectThing) {
         loadObject(objectThing.getObjectId(), objectThing.getPlayerId(), objectThing.getPosX(), objectThing.getPosY(),
-                0, objectThing.getMoneyAmount(), objectThing.getKeeperSpellId(), objectThing.getTriggerId(), null);
+                0, objectThing.getMoneyAmount(), objectThing.getKeeperSpellId(), objectThing.getTriggerId() != 0 ? objectThing.getTriggerId() : null, null);
     }
 
     @Override
@@ -131,6 +134,11 @@ public class ObjectsController implements IObjectsController {
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
             entityData.setComponent(entity, new Spellbook(spellId));
+        }
+        if (obj.getHp() > 0) {
+            entityData.setComponent(entity, new Health(objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_HEALTH_REGENERATION_PER_SECOND).getValue() : 0,
+                    objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp(),
+                    objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp()));
         }
 
         // Trigger
@@ -167,6 +175,20 @@ public class ObjectsController implements IObjectsController {
     @Override
     public EntityData getEntityData() {
         return entityData;
+    }
+
+    @Override
+    public IObjectController createController(EntityId entityId) {
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        if (objectComponent == null) {
+            throw new RuntimeException("Entity " + entityId + " doesn't represent a object!");
+        }
+        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId));
+    }
+
+    @Override
+    public boolean isValidEntity(EntityId entityId) {
+        return entityData.getComponent(entityId, ObjectComponent.class) != null;
     }
 
 }

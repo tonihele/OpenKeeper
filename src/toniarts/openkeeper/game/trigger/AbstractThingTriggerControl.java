@@ -16,10 +16,14 @@
  */
 package toniarts.openkeeper.game.trigger;
 
-import toniarts.openkeeper.game.trigger.player.PlayerTriggerControl;
-import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
-import toniarts.openkeeper.world.control.IInteractiveControl;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.game.trigger.player.PlayerTriggerControl;
 
 /**
  * A base trigger control for Things, they seem to be very similar
@@ -27,17 +31,19 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
  * @param <T> the thing control type
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractThingTriggerControl<T extends IInteractiveControl> extends PlayerTriggerControl {
+public abstract class AbstractThingTriggerControl<T> extends PlayerTriggerControl {
 
     protected T instanceControl;
-    private static final Logger logger = Logger.getLogger(AbstractThingTriggerControl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AbstractThingTriggerControl.class.getName());
 
     public AbstractThingTriggerControl() { // empty serialization constructor
         super();
     }
 
-    public AbstractThingTriggerControl(final AppStateManager stateManager, int triggerId) {
-        //super(stateManager, triggerId);
+    public AbstractThingTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+            final ICreaturesController creaturesController, final int triggerId, final short playerId,
+            final PlayerService playerService) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
     /**
@@ -47,6 +53,5 @@ public abstract class AbstractThingTriggerControl<T extends IInteractiveControl>
      */
     protected void setThing(T thingInstance) {
         instanceControl = thingInstance;
-        super.setPlayer(instanceControl.getOwnerId());
     }
 }

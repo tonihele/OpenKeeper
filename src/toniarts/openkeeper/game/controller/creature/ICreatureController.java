@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
+ * Controls creature entities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -146,5 +147,25 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
     public void setObjective(Object objective);
 
     public boolean isDead();
+
+    public boolean isImprisoned();
+
+    public boolean isTortured();
+
+    public boolean isStunned();
+
+    public int getHealth();
+
+    public int getMaxHealth();
+
+    public int getLevel();
+
+    public boolean isPickedUp();
+
+    public void attachPortalGem();
+
+    public void setObjectiveTargetPlayerId(short playerId);
+
+    public void setPlayerObjective(Object object);
 
 }

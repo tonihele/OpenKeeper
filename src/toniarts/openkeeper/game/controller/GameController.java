@@ -51,9 +51,9 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.actionpoint.ActionPointTriggerLogicController;
-import toniarts.openkeeper.game.trigger.creature.CreatureTriggerState;
-import toniarts.openkeeper.game.trigger.door.DoorTriggerState;
-import toniarts.openkeeper.game.trigger.object.ObjectTriggerState;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
+import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
+import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -91,9 +91,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private GameLogicManager gameAnimationThread;
     private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
-    private CreatureTriggerState creatureTriggerState;
-    private ObjectTriggerState objectTriggerState;
-    private DoorTriggerState doorTriggerState;
+    private CreatureTriggerLogicController creatureTriggerState;
+    private ObjectTriggerLogicController objectTriggerState;
+    private DoorTriggerLogicController doorTriggerState;
     private PartyTriggerLogicController partyTriggerState;
     private ActionPointTriggerLogicController actionPointController;
     private PlayerTriggerLogicController playerTriggerLogicController;
@@ -202,12 +202,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
         // The triggers
         partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
-        creatureTriggerState = new CreatureTriggerState(true);
-        //creatureTriggerState.initialize(stateManager, app);
-        objectTriggerState = new ObjectTriggerState(true);
-        //objectTriggerState.initialize(stateManager, app);
-        doorTriggerState = new DoorTriggerState(true);
-        //doorTriggerState.initialize(stateManager, app);
+        creatureTriggerState = new CreatureTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData);
+        objectTriggerState = new ObjectTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData, gameWorldController.getObjectsController());
+        doorTriggerState = new DoorTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData, gameWorldController.getDoorsController());
         actionPointController = new ActionPointTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), positionSystem);
         playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
 
@@ -391,15 +388,15 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
 
         if (creatureTriggerState != null) {
-            creatureTriggerState.update(tpf);
+            creatureTriggerState.processTick(tpf, gameTime);
         }
 
         if (objectTriggerState != null) {
-            objectTriggerState.update(tpf);
+            objectTriggerState.processTick(tpf, gameTime);
         }
 
         if (doorTriggerState != null) {
-            doorTriggerState.update(tpf);
+            doorTriggerState.processTick(tpf, gameTime);
         }
 
         if (actionPointController != null) {
@@ -532,15 +529,15 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         this.levelScore = levelScore;
     }
 
-    public CreatureTriggerState getCreatureTriggerState() {
+    public CreatureTriggerLogicController getCreatureTriggerState() {
         return creatureTriggerState;
     }
 
-    public ObjectTriggerState getObjectTriggerState() {
+    public ObjectTriggerLogicController getObjectTriggerState() {
         return objectTriggerState;
     }
 
-    public DoorTriggerState getDoorTriggerState() {
+    public DoorTriggerLogicController getDoorTriggerState() {
         return doorTriggerState;
     }
 
