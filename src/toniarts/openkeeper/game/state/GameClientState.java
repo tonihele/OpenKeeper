@@ -21,6 +21,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
+import java.awt.Point;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -476,6 +477,11 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onZoomViewToPoint(Vector3f point) {
             playerState.zoomToPoint(point);
+        }
+
+        @Override
+        public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+            playerMapViewState.onTileFlash(points, enabled, keeperId);
         }
 
     }

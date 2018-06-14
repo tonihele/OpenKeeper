@@ -236,6 +236,11 @@ public class GameServerState extends AbstractAppState {
         public void onTilesChange(List<MapTile> updatedTiles) {
             gameService.updateTiles(updatedTiles);
         }
+
+        @Override
+        public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+            gameService.flashTiles(points, enabled, keeperId);
+        }
     }
 
     /**

@@ -318,14 +318,14 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case FLASH_ACTION_POINT: // AP part
 //                if (playerId == playerState.getPlayerId()) {
-//                    ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-//                    int time = trigger.getUserData("value", int.class);
-//                    available = trigger.getUserData("available", short.class) != 0;
-//                    if (available && time != 0) {
-//                        ap.addControl(new FlashControl(time));
-//                    } else if (!available) {
-//                        ap.removeControl(FlashControl.class);
-//                    }
+                ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+                time = trigger.getUserData("value", int.class);
+                available = trigger.getUserData("available", short.class) != 0;
+                if (available) {
+                    mapController.flashTiles(ap.getPoints(), playerId, time);
+                } else {
+                    mapController.unFlashTiles(ap.getPoints(), playerId);
+                }
 //                    ap.getParent().getWorldState().flashTile(available, ap.getPoints());
 //                }
                 break;

@@ -231,6 +231,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Create the game loops ready to start
         // Game logic
         gameLogicThread = new GameLogicManager(positionSystem,
+                gameWorldController.getMapController(),
                 this,
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),

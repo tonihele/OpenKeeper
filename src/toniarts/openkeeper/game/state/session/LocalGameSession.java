@@ -212,6 +212,15 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void flashTiles(List<Point> points, boolean enabled, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onTileFlash(points, enabled, playerId);
+            }
+        }
+    }
+
+    @Override
     public void loadComplete() {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onLoadComplete(PLAYER_ID);

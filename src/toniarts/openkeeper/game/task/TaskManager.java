@@ -111,6 +111,11 @@ public class TaskManager implements ITaskManager {
                     scanTerrainTasks(tile, true, true);
                 }
             }
+
+            @Override
+            public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+                // Not interested
+            }
         });
 
         // Get notified by object tasks

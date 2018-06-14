@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.listener;
 
 import com.jme3.network.service.rmi.Asynchronous;
+import java.awt.Point;
 import java.util.List;
 import toniarts.openkeeper.game.map.MapTile;
 
@@ -34,5 +35,15 @@ public interface MapListener {
      */
     @Asynchronous
     public void onTilesChange(List<MapTile> updatedTiles);
+
+    /**
+     * Map tile should flash
+     *
+     * @param points   the list of map coordinates that should flash
+     * @param enabled  flash on / off
+     * @param keeperId the keeper ID to who these tiles should flash to
+     */
+    @Asynchronous
+    public void onTileFlash(List<Point> points, boolean enabled, short keeperId);
 
 }

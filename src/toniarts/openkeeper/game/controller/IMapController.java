@@ -15,6 +15,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapInformation;
 
 /**
@@ -22,7 +23,7 @@ import toniarts.openkeeper.game.map.IMapInformation;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IMapController extends IMapInformation {
+public interface IMapController extends IMapInformation, IGameLogicUpdatable {
 
     /**
      * Set some tiles selected/undelected
@@ -150,5 +151,22 @@ public interface IMapController extends IMapInformation {
      * @param playerId the new tile owner
      */
     void alterTerrain(Point pos, short terrainId, short playerId);
+
+    /**
+     * Set specified tiles flashing for certain period of time
+     *
+     * @param points the points to flash
+     * @param playerId the player whose flashing will be affected
+     * @param time   the time to flash
+     */
+    public void flashTiles(List<Point> points, short playerId, int time);
+
+    /**
+     * Set tile flashing off for specified tiles
+     *
+     * @param points the points to unflash
+     * @param playerId the player whose flashing will be affected
+     */
+    public void unFlashTiles(List<Point> points, short playerId);
 
 }

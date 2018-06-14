@@ -367,5 +367,12 @@ public class GameClientService extends AbstractClientService
                 l.onZoomViewToPoint(point);
             }
         }
+
+        @Override
+        public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onTileFlash(points, enabled, keeperId);
+            }
+        }
     }
 }

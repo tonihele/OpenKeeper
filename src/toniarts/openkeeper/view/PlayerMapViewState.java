@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
+import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.listener.RoomListener;
@@ -67,7 +68,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private float lastUpdate = 0;
     private final IMapInformation mapClientService;
 //    private final GameState gameState;
-//    private final FlashTileControl flashTileControl;
+    private final FlashTileViewState flashTileControl;
 
     private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
 
@@ -96,6 +97,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         };
         worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
+
+        this.flashTileControl = new FlashTileViewState(mapLoader);
     }
 
     @Override
@@ -106,6 +109,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Effects
         this.stateManager.attach(effectManager);
+
+        // Tile flash state
+        this.stateManager.attach(flashTileControl);
 
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
@@ -119,6 +125,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             app.getRootNode().detachChild(worldNode);
             worldNode = null;
         }
+
+        // Tile flash state
+        this.stateManager.detach(flashTileControl);
 
         // Effects
         this.stateManager.detach(effectManager);
@@ -198,6 +207,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             actionQueue.add(new TileAction(Action.SOLD, tile));
         }
     }
+
+    @Override
+    public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+        flashTileControl.attach(points, enabled);
+    }
+
 
 //
 //    /**

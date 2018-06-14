@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityData;
+import java.awt.Point;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
@@ -60,5 +61,15 @@ public interface GameSessionService extends PlayerListener, PlayerService {
      */
     @Asynchronous
     public void updateTiles(List<MapTile> updatedTiles);
+
+    /**
+     * Map tiles should be set flashing
+     *
+     * @param points   the points that should be set flashing
+     * @param enabled  flashing on or off
+     * @param keeperId the keeper whose tiles are involved
+     */
+    @Asynchronous
+    public void flashTiles(List<Point> points, boolean enabled, short keeperId);
 
 }

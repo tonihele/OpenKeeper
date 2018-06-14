@@ -31,7 +31,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.map.FlashTileControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -49,7 +51,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class MapController implements Savable, IMapController {
+public final class MapController extends Container implements Savable, IMapController {
 
     private MapData mapData;
     private KwdFile kwdFile;
@@ -693,22 +695,6 @@ public final class MapController implements Savable, IMapController {
         }
     }
 
-    private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
-        return gameSettings.get(variable).getValue();
-    }
-
-    @Override
-    public void write(JmeExporter ex) throws IOException {
-        OutputCapsule out = ex.getCapsule(this);
-        out.write(mapData, "mapData", null);
-    }
-
-    @Override
-    public void read(JmeImporter im) throws IOException {
-        InputCapsule in = im.getCapsule(this);
-        mapData = (MapData) in.readSavable("mapData", null);
-    }
-
     @Override
     public void alterTerrain(Point pos, short terrainId, short playerId) {
         MapTile tile = getMapData().getTile(pos.x, pos.y);
@@ -728,4 +714,84 @@ public final class MapController implements Savable, IMapController {
         notifyTileChange(tile);
     }
 
+    private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
+        return gameSettings.get(variable).getValue();
+    }
+
+    @Override
+    public void flashTiles(List<Point> points, short playerId, int time) {
+        List<Point> tilesToUpdate = new ArrayList<>(points.size());
+
+        // Mark the tiles as being flashed
+        for (Point point : points) {
+            if (!getMapData().getTile(point).isFlashed(playerId)) {
+                getMapData().getTile(point).setFlashed(true, playerId);
+                tilesToUpdate.add(point);
+            }
+        }
+
+        // Set a control that will turn them off at some point if they are timed
+        if (time > 0) {
+            addControl(new FlashTileControl(points, playerId, time));
+        }
+
+        // Notify listeners
+        if (!tilesToUpdate.isEmpty()) {
+        for (MapListener mapListener : listeners.getArray()) {
+            mapListener.onTileFlash(tilesToUpdate, true, playerId);
+            }
+        }
+    }
+
+    @Override
+    public void unFlashTiles(List<Point> points, short playerId) {
+        List<Point> tilesToUpdate = new ArrayList<>(points.size());
+
+        // Mark the tiles as being unflashed
+        // Hmm, we don't really keep track, so it is entirely possible that we still have a flash control for given tile
+        // But technically it shouldn't matter, as it will just eventually set the flashing false and die out
+        for (Point point : points) {
+            if (getMapData().getTile(point).isFlashed(playerId)) {
+                getMapData().getTile(point).setFlashed(false, playerId);
+                tilesToUpdate.add(point);
+            }
+        }
+
+        // Notify listeners
+        if (!tilesToUpdate.isEmpty()) {
+        for (MapListener mapListener : listeners.getArray()) {
+            mapListener.onTileFlash(tilesToUpdate, false, playerId);
+            }
+        }
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+    }
+
+    @Override
+    public void processTick(float tpf, double gameTime) {
+        this.update(tpf);
+    }
+
+    @Override
+    public void write(JmeExporter ex) throws IOException {
+        super.write(ex);
+
+        OutputCapsule out = ex.getCapsule(this);
+        out.write(mapData, "mapData", null);
+    }
+
+    @Override
+    public void read(JmeImporter im) throws IOException {
+        super.read(im);
+
+        InputCapsule in = im.getCapsule(this);
+        mapData = (MapData) in.readSavable("mapData", null);
+    }
 }

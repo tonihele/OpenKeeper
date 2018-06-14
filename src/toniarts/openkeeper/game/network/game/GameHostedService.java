@@ -297,6 +297,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
+    public void flashTiles(List<Point> points, boolean enabled, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onTileFlash(points, enabled, playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
     public boolean isInTransition() {
         for (boolean inTransition : playersInTransition.values()) {
             if (inTransition) {
@@ -621,6 +631,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onZoomViewToPoint(Vector3f point) {
             getCallback().onZoomViewToPoint(point);
+        }
+
+        @Override
+        public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+            getCallback().onTileFlash(points, enabled, keeperId);
         }
 
     }

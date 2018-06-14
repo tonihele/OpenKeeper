@@ -665,12 +665,11 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     public void flashTile(boolean enabled, List<Point> points) {
+        for (Point p : points) {
+            getMapData().getTile(p.x, p.y).setFlashed(enabled, playerId);
+        }
 
-//        for (Point p : points) {
-//            mapData.getTile(p.x, p.y).setFlashed(enabled);
-//        }
-//
-//        updateTiles(points.toArray(new Point[points.size()]));
+        updateTiles(points.toArray(new Point[points.size()]));
     }
 
     /**
