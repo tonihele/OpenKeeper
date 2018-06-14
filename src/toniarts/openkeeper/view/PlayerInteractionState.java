@@ -106,7 +106,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private Label tooltip;
     private KeeperHandState keeperHandState;
 
-    private static final Logger logger = Logger.getLogger(PlayerInteractionState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerInteractionState.class.getName());
 
     public PlayerInteractionState(Player player, KwdFile kwdFile, EntityData entityData) {
         this.player = player;
@@ -131,7 +131,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.tooltip = psc.getTooltip();
 
         // Init the keeper hand
-        keeperHandState = new KeeperHandState((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND), kwdFile, entityData, player.getPlayerId());
+        keeperHandState = new KeeperHandState((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND), kwdFile, entityData, player.getPlayerId()) {
+
+            @Override
+            protected void updateCursor() {
+                PlayerInteractionState.this.updateCursor();
+            }
+
+        };
         this.stateManager.attach(keeperHandState);
 
         // Init handler
@@ -228,7 +235,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         //gameClientState.setEnd(true);
                         break;
                     default:
-                        logger.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
+                        LOGGER.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
                 }
             }
         };

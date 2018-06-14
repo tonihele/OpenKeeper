@@ -63,7 +63,7 @@ import toniarts.openkeeper.world.animation.AnimationLoader;
  *
  * @author ArchDemon
  */
-public class KeeperHandState extends AbstractAppState {
+public abstract class KeeperHandState extends AbstractAppState {
 
     private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{
         "/Global/GuiHD/Slap_1.mp2",
@@ -138,6 +138,7 @@ public class KeeperHandState extends AbstractAppState {
     public void update(float tpf) {
         if (inHandLoader.update()) {
             updateHand();
+            updateCursor();
         }
     }
 
@@ -259,6 +260,8 @@ public class KeeperHandState extends AbstractAppState {
             AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
         }
     }
+
+    protected abstract void updateCursor();
 
     private class InHandLoaderCreatureModelContainer extends EntityContainer<KeeperHandItem> {
 
