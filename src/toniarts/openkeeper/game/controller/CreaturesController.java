@@ -126,6 +126,13 @@ public class CreaturesController implements ICreaturesController {
                 LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
+        for (Thing.DeadBody creature : kwdFile.getThings(Thing.DeadBody.class)) {
+            try {
+                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+            }
+        }
         for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
             try {
                 heroParties.put(heroParty.getId(), heroParty);
@@ -160,6 +167,9 @@ public class CreaturesController implements ICreaturesController {
             healthPercentage = keeperCreature.getInitialHealth();
             level = keeperCreature.getLevel();
             ownerId = keeperCreature.getPlayerId();
+        } else if (creature instanceof Thing.DeadBody) {
+            Thing.DeadBody deadBody = (Thing.DeadBody) creature;
+            ownerId = deadBody.getPlayerId();
         }
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId != 0 ? triggerId : null, false);
     }
@@ -202,7 +212,12 @@ public class CreaturesController implements ICreaturesController {
         setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent);
 
         entityData.setComponent(entity, creatureComponent);
-        entityData.setComponent(entity, healthComponent);
+        if (healthComponent != null) {
+            entityData.setComponent(entity, healthComponent);
+        }
+        if (sensesComponent != null) {
+            entityData.setComponent(entity, sensesComponent);
+        }
         entityData.setComponent(entity, new Owner(ownerId));
         entityData.setComponent(entity, goldComponent);
 
@@ -226,7 +241,7 @@ public class CreaturesController implements ICreaturesController {
         }
 
         // Visuals
-        entityData.setComponent(entity, new CreatureViewState(creatureId, entrance ? Creature.AnimationType.ENTRANCE : Creature.AnimationType.IDLE_1));
+        entityData.setComponent(entity, new CreatureViewState(creatureId, entrance ? Creature.AnimationType.ENTRANCE : healthComponent != null ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.DEATH_POSE));
 
         return entity;
     }
