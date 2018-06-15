@@ -2981,7 +2981,11 @@ public final class KwdFile {
      * @return things list of things you want
      */
     public <T extends Thing> List<T> getThings(Class<T> thingClass) {
-        return (List<T>) thingsByType.get(thingClass);
+        List<T> result = (List<T>) thingsByType.get(thingClass);
+        if (result == null) {
+            result = Collections.emptyList();
+        }
+        return result;
     }
 
     /**
