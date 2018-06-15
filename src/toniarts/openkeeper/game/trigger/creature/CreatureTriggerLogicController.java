@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.trigger.creature;
 
 import com.simsilica.es.EntityData;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Trigger;
@@ -31,6 +30,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerLogicController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
@@ -43,41 +43,38 @@ public class CreatureTriggerLogicController extends AbstractThingTriggerLogicCon
 
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
-        super(initTriggers(levelInfo.getLevelData().getThings(), gameController, levelInfo, gameTimer, mapController,
+        super(initTriggers(levelInfo.getLevelData(), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(CreatureComponent.class, Trigger.class),
                 creaturesController);
     }
 
-    private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(List<Thing> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+    private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(KwdFile kwdFile, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Integer, AbstractThingTriggerControl<ICreatureController>> creatureTriggers = new HashMap<>();
-        for (Thing thing : things) {
-            if (thing instanceof Thing.GoodCreature) {
-                Thing.GoodCreature creature = (Thing.GoodCreature) thing;
+        for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
+            if (creature.getTriggerId() != 0) {
+                creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService));
+            }
+        }
+        for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
+            if (creature.getTriggerId() != 0) {
+                creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, creature.getTriggerId(), creature.getPlayerId(), playerService));
+            }
+        }
+        for (Thing.NeutralCreature creature : kwdFile.getThings(Thing.NeutralCreature.class)) {
+            if (creature.getTriggerId() != 0) {
+                creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, creature.getTriggerId(), Player.NEUTRAL_PLAYER_ID, playerService));
+            }
+        }
+        for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
+            for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
                 if (creature.getTriggerId() != 0) {
                     creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
                             creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService));
-                }
-            } else if (thing instanceof Thing.KeeperCreature) {
-                Thing.KeeperCreature creature = (Thing.KeeperCreature) thing;
-                if (creature.getTriggerId() != 0) {
-                    creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                            creaturesController, creature.getTriggerId(), creature.getPlayerId(), playerService));
-                }
-            } else if (thing instanceof Thing.NeutralCreature) {
-                Thing.NeutralCreature creature = (Thing.NeutralCreature) thing;
-                if (creature.getTriggerId() != 0) {
-                    creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                            creaturesController, creature.getTriggerId(), Player.NEUTRAL_PLAYER_ID, playerService));
-                }
-            } else if (thing instanceof Thing.HeroParty) {
-                Thing.HeroParty heroParty = (Thing.HeroParty) thing;
-                for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
-                    if (creature.getTriggerId() != 0) {
-                        creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                                creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService));
-                    }
                 }
             }
         }

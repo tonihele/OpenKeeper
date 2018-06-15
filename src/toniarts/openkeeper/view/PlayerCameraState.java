@@ -165,9 +165,9 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         GameClientState gs = this.stateManager.getState(GameClientState.class);
         Thing.Camera result = null;
 
-        for (Thing thing : gs.getLevelData().getThings()) {
-            if (thing instanceof Thing.Camera && ((Thing.Camera) thing).getId() == Thing.Camera.ID_GAME) {
-                result = (Thing.Camera) thing;
+        for (Thing.Camera thing : gs.getLevelData().getThings(Thing.Camera.class)) {
+            if (thing.getId() == Thing.Camera.ID_GAME) {
+                result = thing;
                 break;
             }
         }

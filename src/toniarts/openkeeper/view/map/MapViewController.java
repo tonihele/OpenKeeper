@@ -128,11 +128,9 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // Go through the fixed rooms and construct them
         // We might not need the room list on the client ever, we can draw them without
-        for (Thing thing : kwdFile.getThings()) {
-            if (thing instanceof Thing.Room) {
-                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-                handleRoom(p, kwdFile.getRoomByTerrain(getMapData().getTile(p).getTerrainId()), (Thing.Room) thing);
-            }
+        for (Thing.Room room : kwdFile.getThings(Thing.Room.class)) {
+            Point p = new Point(room.getPosX(), room.getPosY());
+            handleRoom(p, kwdFile.getRoomByTerrain(getMapData().getTile(p).getTerrainId()), room);
         }
 
         // Go through the map

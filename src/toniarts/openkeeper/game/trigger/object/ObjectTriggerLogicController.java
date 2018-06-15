@@ -44,22 +44,19 @@ public class ObjectTriggerLogicController extends AbstractThingTriggerLogicContr
     public ObjectTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
             final IObjectsController objectsController) {
-        super(initTriggers(levelInfo.getLevelData().getThings(), gameController, levelInfo, gameTimer, mapController,
+        super(initTriggers(levelInfo.getLevelData().getThings(Thing.Object.class), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(ObjectComponent.class, Trigger.class),
                 objectsController);
     }
 
-    private static Map<Integer, AbstractThingTriggerControl<IObjectController>> initTriggers(List<Thing> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+    private static Map<Integer, AbstractThingTriggerControl<IObjectController>> initTriggers(List<Thing.Object> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Integer, AbstractThingTriggerControl<IObjectController>> objectTriggers = new HashMap<>();
-        for (Thing thing : things) {
-            if (thing instanceof Thing.Object) {
-                Thing.Object object = (Thing.Object) thing;
-                if (object.getTriggerId() != 0) {
-                    objectTriggers.put(object.getTriggerId(), new ObjectTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                            creaturesController, object.getTriggerId(), object.getPlayerId(), playerService));
-                }
+        for (Thing.Object object : things) {
+            if (object.getTriggerId() != 0) {
+                objectTriggers.put(object.getTriggerId(), new ObjectTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, object.getTriggerId(), object.getPlayerId(), playerService));
             }
         }
         return objectTriggers;

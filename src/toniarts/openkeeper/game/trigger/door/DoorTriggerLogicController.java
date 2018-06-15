@@ -44,22 +44,19 @@ public class DoorTriggerLogicController extends AbstractThingTriggerLogicControl
     public DoorTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
             final IDoorsController doorsController) {
-        super(initTriggers(levelInfo.getLevelData().getThings(), gameController, levelInfo, gameTimer, mapController,
+        super(initTriggers(levelInfo.getLevelData().getThings(Thing.Door.class), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(DoorComponent.class, Trigger.class),
                 doorsController);
     }
 
-    private static Map<Integer, AbstractThingTriggerControl<IDoorController>> initTriggers(List<Thing> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+    private static Map<Integer, AbstractThingTriggerControl<IDoorController>> initTriggers(List<Thing.Door> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Integer, AbstractThingTriggerControl<IDoorController>> doorTriggers = new HashMap<>();
-        for (Thing thing : things) {
-            if (thing instanceof Thing.Door) {
-                Thing.Door door = (Thing.Door) thing;
-                if (door.getTriggerId() != 0) {
-                    doorTriggers.put(door.getTriggerId(), new DoorTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                            creaturesController, door.getTriggerId(), door.getPlayerId(), playerService));
-                }
+        for (Thing.Door door : things) {
+            if (door.getTriggerId() != 0) {
+                doorTriggers.put(door.getTriggerId(), new DoorTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, door.getTriggerId(), door.getPlayerId(), playerService));
             }
         }
         return doorTriggers;

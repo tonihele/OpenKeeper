@@ -84,13 +84,9 @@ public class ObjectsController implements IObjectsController {
     }
 
     private void loadObjects() {
-        for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
+        for (Thing.Object object : kwdFile.getThings(Thing.Object.class)) {
             try {
-                if (obj instanceof Thing.Object) {
-
-                    Thing.Object objectThing = (Thing.Object) obj;
-                    loadObject(objectThing);
-                }
+                loadObject(object);
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
             }

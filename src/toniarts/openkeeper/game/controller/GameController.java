@@ -323,13 +323,10 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     }
 
     private void loadActionPoints() {
-        for (Thing thing : getLevelData().getThings()) {
-            if (thing instanceof Thing.ActionPoint) {
-                Thing.ActionPoint temp = (Thing.ActionPoint) thing;
-                ActionPoint ap = new ActionPoint(temp);
+        for (Thing.ActionPoint thing : getLevelData().getThings(Thing.ActionPoint.class)) {
+            ActionPoint ap = new ActionPoint(thing);
                 actionPointsById.put(ap.getId(), ap);
-                actionPoints.add(ap);
-            }
+            actionPoints.add(ap);
         }
     }
 

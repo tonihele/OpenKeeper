@@ -82,13 +82,9 @@ public class DoorsController implements IDoorsController {
     }
 
     private void loadDoors() {
-        for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
+        for (Thing.Door door : kwdFile.getThings(Thing.Door.class)) {
             try {
-                if (obj instanceof Thing.Door) {
-
-                    Thing.Door doorThing = (Thing.Door) obj;
-                    loadDoor(doorThing);
-                }
+                loadDoor(door);
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
             }

@@ -94,7 +94,7 @@ public final class KwdFile {
     private Map<Integer, EffectElement> effectElements;
     private Map<Integer, Effect> effects;
     private Map<Short, KeeperSpell> keeperSpells;
-    private List<Thing> things;
+    private Map<Class<? extends Thing>, List<? extends Thing>> thingsByType;
     private Map<Short, Shot> shots;
     private Map<Integer, Trigger> triggers;
     // Variables
@@ -1855,9 +1855,9 @@ public final class KwdFile {
     private void readThings(KwdHeader header, RandomAccessFile file) throws IOException {
 
         // Read the requested Things file
-        if (things == null) {
+        if (thingsByType == null) {
             logger.info("Reading things!");
-            things = new ArrayList<>(header.getItemCount());
+            thingsByType = new HashMap<>(12);
         } else {
             logger.warning("Overrides things!");
         }
@@ -1888,6 +1888,8 @@ public final class KwdFile {
                     ((Thing.Object) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Object) thing).setObjectId((short) file.readUnsignedByte());
                     ((Thing.Object) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.Object) thing);
                     break;
                 }
                 case 195: {
@@ -1901,6 +1903,8 @@ public final class KwdFile {
                     ((Thing.Trap) thing).setTrapId((short) file.readUnsignedByte());
                     ((Thing.Trap) thing).setPlayerId((short) file.readUnsignedByte());
                     ((Thing.Trap) thing).setUnknown2((short) file.readUnsignedByte());
+
+                    addThing((Thing.Trap) thing);
                     break;
                 }
                 case 196: {
@@ -1919,6 +1923,8 @@ public final class KwdFile {
                         unknown2[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.Door) thing).setUnknown2(unknown2);
+
+                    addThing((Thing.Door) thing);
                     break;
                 }
                 case 197: {
@@ -1936,6 +1942,8 @@ public final class KwdFile {
                     ((ActionPoint) thing).setNextWaypointId((short) file.readUnsignedByte());
 
                     ((ActionPoint) thing).setName(ConversionUtils.readString(file, 32).trim());
+
+                    addThing((Thing.ActionPoint) thing);
                     break;
                 }
                 case 198: {
@@ -1952,6 +1960,8 @@ public final class KwdFile {
                     ((NeutralCreature) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((NeutralCreature) thing).setCreatureId((short) file.readUnsignedByte());
                     ((NeutralCreature) thing).setUnknown1((short) file.readUnsignedByte());
+
+                    addThing((Thing.NeutralCreature) thing);
                     break;
                 }
                 case 199: {
@@ -1976,6 +1986,8 @@ public final class KwdFile {
                     }
                     ((GoodCreature) thing).setUnknown1(unknown1);
                     ((GoodCreature) thing).setFlags2(ConversionUtils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag2.class));
+
+                    addThing((Thing.GoodCreature) thing);
                     break;
                 }
                 case 200: {
@@ -1993,6 +2005,8 @@ public final class KwdFile {
                     ((KeeperCreature) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((KeeperCreature) thing).setCreatureId((short) file.readUnsignedByte());
                     ((KeeperCreature) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.KeeperCreature) thing);
                     break;
                 }
                 case 201: {
@@ -2033,6 +2047,8 @@ public final class KwdFile {
                         }
                     }
                     ((HeroParty) thing).setHeroPartyMembers(heroPartyMembers);
+
+                    addThing((Thing.HeroParty) thing);
                     break;
                 }
                 case 202: {
@@ -2045,6 +2061,8 @@ public final class KwdFile {
                     ((Thing.DeadBody) thing).setGoldHeld(ConversionUtils.readUnsignedShort(file));
                     ((Thing.DeadBody) thing).setCreatureId((short) file.readUnsignedByte());
                     ((Thing.DeadBody) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.DeadBody) thing);
                     break;
                 }
                 case 203: {
@@ -2072,6 +2090,8 @@ public final class KwdFile {
                         pad[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.EffectGenerator) thing).setPad(pad);
+
+                    addThing((Thing.EffectGenerator) thing);
                     break;
                 }
                 case 204: {
@@ -2087,6 +2107,8 @@ public final class KwdFile {
                     ((Thing.Room) thing).setInitialHealth(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Room) thing).setRoomType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Thing.Room.RoomType.class));
                     ((Thing.Room) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.Room) thing);
                     break;
                 }
                 case 205: {
@@ -2117,6 +2139,8 @@ public final class KwdFile {
                     ((Thing.Camera) thing).setAngleRoll(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setAnglePitch(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setId((short) ConversionUtils.readUnsignedShort(file));
+
+                    addThing((Thing.Camera) thing);
                     break;
                 }
                 default: {
@@ -2127,12 +2151,18 @@ public final class KwdFile {
                 }
             }
 
-            // Add to the list
-            things.add(thing);
-
             // Check file offset
             checkOffset(thingTag[1], file, offset);
         }
+    }
+
+    private <T extends Thing> void addThing(T thing) {
+        List<T> thingList = (List<T>) thingsByType.get(thing.getClass());
+        if (thingList == null) {
+            thingList = new ArrayList<>();
+            thingsByType.put(thing.getClass(), thingList);
+        }
+        thingList.add(thing);
     }
 
     /**
@@ -2944,12 +2974,14 @@ public final class KwdFile {
     }
 
     /**
-     * Get list of things
+     * Get list of things by certain type
      *
-     * @return things
+     * @param <T>        the instance type of the things you want
+     * @param thingClass the class of things you want
+     * @return things list of things you want
      */
-    public List<Thing> getThings() {
-        return things;
+    public <T extends Thing> List<T> getThings(Class<T> thingClass) {
+        return (List<T>) thingsByType.get(thingClass);
     }
 
     /**

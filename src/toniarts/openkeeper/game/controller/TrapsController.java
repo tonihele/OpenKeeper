@@ -73,13 +73,9 @@ public class TrapsController implements ITrapsController {
     }
 
     private void loadTraps() {
-        for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
+        for (Thing.Trap trap : kwdFile.getThings(Thing.Trap.class)) {
             try {
-                if (obj instanceof Thing.Trap) {
-
-                    Thing.Trap trapThing = (Thing.Trap) obj;
-                    loadTrap(trapThing);
-                }
+                loadTrap(trap);
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
             }

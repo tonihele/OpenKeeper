@@ -156,7 +156,7 @@ public class ThingLoader {
      * Load all the initial things from the level KWD file
      *
      * @param creatureTriggerState the creature trigger state to assign the
-     * created creatures to triggers
+     *                             created creatures to triggers
      * @param objectTriggerState
      * @param doorTriggerState
      * @param partyTriggerState
@@ -165,67 +165,75 @@ public class ThingLoader {
     public Node loadAll(CreatureTriggerLogicController creatureTriggerState, ObjectTriggerLogicController objectTriggerState, DoorTriggerLogicController doorTriggerState, PartyTriggerLogicController partyTriggerState) {
 
         // Load the thing
-        for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
-            try {
-                if (obj instanceof Thing.HeroParty) {
-                    Thing.HeroParty partyThing = (Thing.HeroParty) obj;
-                    Party party = new Party(partyThing);
-                    if (partyThing.getTriggerId() != 0) {
+        try {
+            for (Thing.HeroParty obj : kwdFile.getThings(Thing.HeroParty.class)) {
+
+                Thing.HeroParty partyThing = (Thing.HeroParty) obj;
+                Party party = new Party(partyThing);
+                if (partyThing.getTriggerId() != 0) {
 //                        partyTriggerState.addParty(partyThing.getTriggerId(), party);
-                    }
-                    creatureParties.put(party.getId(), party);
-                } else if (obj instanceof Thing.Creature) {
-                    CreatureControl creatureControl = spawnCreature((Thing.Creature) obj, null, null);
-
-                    // Also add to the creature trigger control
-                    int triggerId = 0;
-                    if (obj instanceof Thing.GoodCreature) {
-                        triggerId = ((Thing.GoodCreature) obj).getTriggerId();
-                    } else if (obj instanceof Thing.NeutralCreature) {
-                        triggerId = ((Thing.NeutralCreature) obj).getTriggerId();
-                    } else if (obj instanceof Thing.KeeperCreature) {
-                        triggerId = ((Thing.KeeperCreature) obj).getTriggerId();
-                    }
-                    if (triggerId != 0) {
-                        //creatureTriggerState.setThing(triggerId, creatureControl);
-                    }
-                } else if (obj instanceof Thing.Object) {
-
-                    Thing.Object objectThing = (Thing.Object) obj;
-                    Spatial object = objectLoader.load(assetManager, objectThing);
-                    ObjectControl objectControl = object.getControl(ObjectControl.class);
-                    objects.add(objectControl);
-                    nodeObjects.attachChild(object);
-
-                    // Trigger
-                    if (objectThing.getTriggerId() != 0) {
-                        //objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
-                    }
-
-                    notifyOnObjectAdded(objectControl);
-                } else if (obj instanceof Thing.Door) {
-
-                    Thing.Door doorThing = (Thing.Door) obj;
-                    Spatial door = doorLoader.load(assetManager, doorThing);
-                    DoorControl doorControl = door.getControl(DoorControl.class);
-                    doors.put(new Point(doorThing.getPosX(), doorThing.getPosY()), doorControl);
-                    nodeDoors.attachChild(door);
-
-                    // Trigger
-                    if (doorThing.getTriggerId() != 0) {
-                        //doorTriggerState.setThing(doorThing.getTriggerId(), null);
-                    }
-                } else if (obj instanceof Thing.Trap) {
-
-                    Thing.Trap trapThing = (Thing.Trap) obj;
-                    Spatial trap = trapLoader.load(assetManager, trapThing);
-                    TrapControl trapControl = trap.getControl(TrapControl.class);
-                    traps.put(new Point(trapThing.getPosX(), trapThing.getPosY()), trapControl);
-                    nodeTraps.attachChild(trap);
                 }
-            } catch (Exception ex) {
-                logger.log(Level.WARNING, "Could not load Thing.", ex);
+                creatureParties.put(party.getId(), party);
             }
+            for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
+                CreatureControl creatureControl = spawnCreature(creature, null, null);
+
+                // Also add to the creature trigger control
+                if (creature.getTriggerId() != 0) {
+                    //creatureTriggerState.setThing(creature.getTriggerId(), creatureControl);
+                }
+            }
+            for (Thing.NeutralCreature creature : kwdFile.getThings(Thing.NeutralCreature.class)) {
+                CreatureControl creatureControl = spawnCreature(creature, null, null);
+
+                // Also add to the creature trigger control
+                if (creature.getTriggerId() != 0) {
+                    //creatureTriggerState.setThing(creature.getTriggerId(), creatureControl);
+                }
+            }
+            for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
+                CreatureControl creatureControl = spawnCreature(creature, null, null);
+
+                // Also add to the creature trigger control
+                if (creature.getTriggerId() != 0) {
+                    //creatureTriggerState.setThing(creature.getTriggerId(), creatureControl);
+                }
+            }
+            for (Thing.Object objectThing : kwdFile.getThings(Thing.Object.class)) {
+
+                Spatial object = objectLoader.load(assetManager, objectThing);
+                ObjectControl objectControl = object.getControl(ObjectControl.class);
+                objects.add(objectControl);
+                nodeObjects.attachChild(object);
+
+                // Trigger
+                if (objectThing.getTriggerId() != 0) {
+                    //objectTriggerState.setThing(objectThing.getTriggerId(), objectControl);
+                }
+
+                notifyOnObjectAdded(objectControl);
+            }
+            for (Thing.Door doorThing : kwdFile.getThings(Thing.Door.class)) {
+
+                Spatial door = doorLoader.load(assetManager, doorThing);
+                DoorControl doorControl = door.getControl(DoorControl.class);
+                doors.put(new Point(doorThing.getPosX(), doorThing.getPosY()), doorControl);
+                nodeDoors.attachChild(door);
+
+                // Trigger
+                if (doorThing.getTriggerId() != 0) {
+                    //doorTriggerState.setThing(doorThing.getTriggerId(), null);
+                }
+            }
+            for (Thing.Trap trapThing : kwdFile.getThings(Thing.Trap.class)) {
+
+                Spatial trap = trapLoader.load(assetManager, trapThing);
+                TrapControl trapControl = trap.getControl(TrapControl.class);
+                traps.put(new Point(trapThing.getPosX(), trapThing.getPosY()), trapControl);
+                nodeTraps.attachChild(trap);
+            }
+        } catch (Exception ex) {
+            logger.log(Level.WARNING, "Could not load Thing.", ex);
         }
 
         root.attachChild(nodeCreatures);
@@ -238,11 +246,12 @@ public class ThingLoader {
     /**
      * Spawn a creature
      *
-     * @param cr creature data
+     * @param cr       creature data
      * @param position the position to spawn to, may be {@code null}
-     * @param app if the app is set, the creature is attached in the next render
-     * loop, may be {@code null}. <strong>You need this parameter if calling
-     * from outside the render loop!</strong>
+     * @param app      if the app is set, the creature is attached in the next
+     *                 render
+     *                 loop, may be {@code null}. <strong>You need this parameter if calling
+     *                 from outside the render loop!</strong>
      * @return the actual spawned creature
      */
     public CreatureControl spawnCreature(Thing.Creature cr, Vector2f position, Application app) {
@@ -254,14 +263,16 @@ public class ThingLoader {
      * Spawn a creature
      *
      * @param creatureId the creature ID to generate
-     * @param playerId the owner
-     * @param level the creature level
-     * @param position the position to spawn to, may be {@code null}
-     * @param entrance whether this an enrance for the creature (coming out of a
-     * portal)
-     * @param app if the app is set, the creature is attached in the next render
-     * loop, may be {@code null}. <strong>You need this parameter if calling
-     * from outside the render loop!</strong>
+     * @param playerId   the owner
+     * @param level      the creature level
+     * @param position   the position to spawn to, may be {@code null}
+     * @param entrance   whether this an enrance for the creature (coming out of
+     *                   a
+     *                   portal)
+     * @param app        if the app is set, the creature is attached in the next
+     *                   render
+     *                   loop, may be {@code null}. <strong>You need this parameter if calling
+     *                   from outside the render loop!</strong>
      * @return the actual spawned creature
      */
     public CreatureControl spawnCreature(short creatureId, short playerId, short level, Vector2f position, boolean entrance, Application app) {
@@ -311,10 +322,10 @@ public class ThingLoader {
     /**
      * Add room type gold, does not add the object to the object registry
      *
-     * @param p the point to add
-     * @param playerId the player id, the owner
+     * @param p             the point to add
+     * @param playerId      the player id, the owner
      * @param initialAmount the amount of gold
-     * @param maxAmount the max gold amount
+     * @param maxAmount     the max gold amount
      * @return the gold object
      */
     @Nullable
@@ -333,8 +344,8 @@ public class ThingLoader {
     /**
      * Add loose type gold
      *
-     * @param coordinates coordinated inside the tile
-     * @param playerId the player id, the owner
+     * @param coordinates   coordinated inside the tile
+     * @param playerId      the player id, the owner
      * @param initialAmount the amount of gold
      * @return the gold object
      */
@@ -359,7 +370,7 @@ public class ThingLoader {
     /**
      * Add an object, does not add the object to the object registry
      *
-     * @param p the point to add
+     * @param p        the point to add
      * @param objectId the object id
      * @param playerId the player id, the owner
      * @return the object contol
@@ -374,8 +385,8 @@ public class ThingLoader {
     /**
      * Add an object, does not add the object to the object registry
      *
-     * @param p the point to add
-     * @param spell the spell
+     * @param p        the point to add
+     * @param spell    the spell
      * @param playerId the player id, the owner
      * @return the object contol
      */
@@ -410,7 +421,7 @@ public class ThingLoader {
      * If you want to get notified about the creature changes
      *
      * @param playerId the player id of which creatures you want to assign the
-     * listener to
+     *                 listener to
      * @param listener the listener
      */
     public void addListener(short playerId, CreatureListener listener) {

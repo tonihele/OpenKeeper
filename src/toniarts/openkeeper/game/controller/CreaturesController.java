@@ -105,18 +105,33 @@ public class CreaturesController implements ICreaturesController {
     }
 
     private void loadCreatures() {
-        for (toniarts.openkeeper.tools.convert.map.Thing obj : kwdFile.getThings()) {
+        for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
             try {
-                if (obj instanceof Thing.Creature) {
-                    Thing.Creature creature = (Thing.Creature) obj;
-                    spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
-                } else if (obj instanceof Thing.HeroParty) {
-                    Thing.HeroParty partyThing = (Thing.HeroParty) obj;
-                    heroParties.put(partyThing.getId(), partyThing);
-                    creaturePartiesByPartyId.put(partyThing.getId(), new PartyController(partyThing));
-                }
+                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + obj + "!", ex);
+                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+            }
+        }
+        for (Thing.NeutralCreature creature : kwdFile.getThings(Thing.NeutralCreature.class)) {
+            try {
+                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+            }
+        }
+        for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
+            try {
+                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+            }
+        }
+        for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
+            try {
+                heroParties.put(heroParty.getId(), heroParty);
+                creaturePartiesByPartyId.put(heroParty.getId(), new PartyController(heroParty));
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Could not load Thing " + heroParty + "!", ex);
             }
         }
     }
