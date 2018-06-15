@@ -76,6 +76,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private IObjectsController objectsController;
     private ICreaturesController creaturesController;
     private IDoorsController doorsController;
+    private ITrapsController trapsController;
     private final Map<Short, IPlayerController> playerControllers;
     private final SortedMap<Short, Keeper> players;
     private final IGameTimer gameTimer;
@@ -109,6 +110,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // Load the doors
         doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController);
+
+        // Load the traps
+        trapsController = new TrapsController(kwdFile, entityData, gameSettings);
 
         // Setup player stuff
         initPlayerMoney();
@@ -639,6 +643,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     public IObjectsController getObjectsController() {
         return objectsController;
+    }
+
+    public ITrapsController getTrapsController() {
+        return trapsController;
     }
 
 }

@@ -21,31 +21,31 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
- * Loads up object
+ * Loads up traps
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectLoader implements ILoader<ObjectViewState> {
+public class TrapLoader implements ILoader<TrapViewState> {
 
     private final KwdFile kwdFile;
-    private static final Logger LOGGER = Logger.getLogger(ObjectLoader.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TrapLoader.class.getName());
 
-    public ObjectLoader(KwdFile kwdFile) {
+    public TrapLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 
     @Override
-    public Spatial load(AssetManager assetManager, ObjectViewState object) {
+    public Spatial load(AssetManager assetManager, TrapViewState trap) {
         try {
-            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, kwdFile.getObject(object.objectId).getMeshResource().getName());
+            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, kwdFile.getTrapById(trap.trapId).getMeshResource().getName());
             return nodeObject;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load object " + object + "!", e);
+            LOGGER.log(Level.SEVERE, "Failed to load trap " + trap + "!", e);
         }
         return null;
     }

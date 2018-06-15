@@ -27,7 +27,6 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
-import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -157,7 +156,7 @@ public class DoorsController implements IDoorsController {
 
     @Override
     public boolean isValidEntity(EntityId entityId) {
-        return entityData.getComponent(entityId, ObjectComponent.class) != null;
+        return entityData.getComponent(entityId, DoorComponent.class) != null;
     }
 
 }

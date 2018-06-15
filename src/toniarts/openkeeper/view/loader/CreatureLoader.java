@@ -33,7 +33,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public class CreatureLoader implements ILoader<CreatureViewState> {
 
     private final KwdFile kwdFile;
-    private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(CreatureLoader.class.getName());
 
     public CreatureLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -46,7 +46,7 @@ public class CreatureLoader implements ILoader<CreatureViewState> {
             Node creatureRoot = new Node(creature.getName());
             return creatureRoot;
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to load creature " + creatureViewState + "!", e);
+            LOGGER.log(Level.SEVERE, "Failed to load creature " + creatureViewState + "!", e);
         }
         return null;
     }

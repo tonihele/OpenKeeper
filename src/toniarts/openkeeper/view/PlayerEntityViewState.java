@@ -29,17 +29,23 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.loader.CreatureLoader;
+import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
+import toniarts.openkeeper.view.loader.TrapLoader;
 
 /**
  * A state that handles the showing of entities
@@ -61,11 +67,15 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Node nodeTraps;
     private final ObjectModelContainer objectModelContainer;
     private final CreatureModelContainer creatureModelContainer;
+    private final DoorModelContainer doorModelContainer;
+    private final TrapModelContainer trapModelContainer;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
+    private final ILoader<DoorViewState> doorLoader;
+    private final ILoader<TrapViewState> trapLoader;
 
-    private static final Logger logger = Logger.getLogger(PlayerEntityViewState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
     public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId) {
         this.kwdFile = kwdFile;
@@ -75,6 +85,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
         creatureLoader = new CreatureLoader(kwdFile);
+        doorLoader = new DoorLoader(kwdFile);
+        trapLoader = new TrapLoader(kwdFile);
 
         // Create the scene graph
         root = new Node("Things");
@@ -90,6 +102,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         // Create the model "listener"
         objectModelContainer = new ObjectModelContainer(entityData);
         creatureModelContainer = new CreatureModelContainer(entityData);
+        doorModelContainer = new DoorModelContainer(entityData);
+        trapModelContainer = new TrapModelContainer(entityData);
     }
 
     @Override
@@ -104,6 +118,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         // Start loading stuff (maybe we should do this earlier...)
         objectModelContainer.start();
         creatureModelContainer.start();
+        doorModelContainer.start();
+        trapModelContainer.start();
     }
 
     @Override
@@ -112,6 +128,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         // Update the models
         objectModelContainer.update();
         creatureModelContainer.update();
+        doorModelContainer.update();
+        trapModelContainer.update();
     }
 
     @Override
@@ -121,6 +139,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         app.getRootNode().detachChild(root);
         objectModelContainer.stop();
         creatureModelContainer.stop();
+        doorModelContainer.stop();
+        trapModelContainer.stop();
 
         super.cleanup();
     }
@@ -143,19 +163,20 @@ public class PlayerEntityViewState extends AbstractAppState {
         // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
         // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
         // Also maybe would be nice to batch up room pillars like before
-        Spatial placeHolder = new Node("Wat"); // FIXME: Yeah...
-        Spatial result = placeHolder;
+        Spatial result = null;
         ObjectViewState objectViewState = e.get(ObjectViewState.class);
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState.state, assetManager);
                 result.addControl(control);
-            } else {
-                result = placeHolder;
+
+                result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
             }
         }
-        result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        if (result == null) {
+            result = new Node("Wat"); // FIXME: Yeah...
+        }
         nodeObjects.attachChild(result);
         return result;
     }
@@ -169,19 +190,72 @@ public class PlayerEntityViewState extends AbstractAppState {
         // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
         // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
         // Also maybe would be nice to batch up room pillars like before
-        Spatial result = new Node("Wat"); // FIXME: Yeah...
+        Spatial result = null;
         CreatureViewState creatureViewState = e.get(CreatureViewState.class);
         if (creatureViewState != null) {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
-            EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
-            result.addControl(control);
-            nodeCreatures.attachChild(result);
+            if (result != null) {
+                EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
+                result.addControl(control);
+            }
         }
+        if (result == null) {
+            result = new Node("Wat"); // FIXME: Yeah...
+        }
+        nodeCreatures.attachChild(result);
         return result;
     }
 
-    private void updateModelAnimation(Spatial object, Entity e) {
+    private Spatial createDoorModel(Entity e) {
+
+        // We can only draw the few basic types, maybe we can do it like this
+        // Kinda cludge perhaps, but doors can have traps, but if a door is found from the entity, draw it as a door
+        // Otherwise make an object type thingie
+        // Also the syncing, I don't know do we need a "listener" for all these classes then...
+        // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
+        // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
+        // Also maybe would be nice to batch up room pillars like before
+        Spatial result = null;
+        DoorViewState doorViewState = e.get(DoorViewState.class);
+        if (doorViewState != null) {
+            Door door = kwdFile.getDoorById(doorViewState.doorId);
+            result = doorLoader.load(assetManager, doorViewState);
+            //EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
+            //result.addControl(control);
+        }
+        if (result == null) {
+            result = new Node("Wat"); // FIXME: Yeah...
+        }
+        nodeDoors.attachChild(result);
+        return result;
+    }
+
+    private Spatial createTrapModel(Entity e) {
+
+        // We can only draw the few basic types, maybe we can do it like this
+        // Kinda cludge perhaps, but doors can have traps, but if a door is found from the entity, draw it as a door
+        // Otherwise make an object type thingie
+        // Also the syncing, I don't know do we need a "listener" for all these classes then...
+        // TODO: object & gold amount are now separate, how to display the different amounts of gold, the model index?
+        // The server doesn't need to know it, physics are based on different things I assume, never in the server we load assets
+        // Also maybe would be nice to batch up room pillars like before
+        Spatial result = null;
+        TrapViewState trapViewState = e.get(TrapViewState.class);
+        if (trapViewState != null) {
+            Trap trap = kwdFile.getTrapById(trapViewState.trapId);
+            result = trapLoader.load(assetManager, trapViewState);
+            //EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
+            //result.addControl(control);
+        }
+        if (result == null) {
+            result = new Node("Wat"); // FIXME: Yeah...
+        }
+        nodeTraps.attachChild(result);
+        return result;
+    }
+
+    private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
         object.getControl(IEntityViewControl.class).setTargetAnimation(viewState.state);
     }
@@ -207,7 +281,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected Spatial addObject(Entity e) {
-            logger.log(Level.FINEST, "ObjectModelContainer.addObject({0})", e);
+            LOGGER.log(Level.FINEST, "ObjectModelContainer.addObject({0})", e);
             Spatial result = createObjectModel(e);
             updateObject(result, e);
             return result;
@@ -215,7 +289,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            logger.log(Level.FINEST, "ObjectModelContainer.updateObject({0})", e);
+            LOGGER.log(Level.FINEST, "ObjectModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             ObjectViewState objectViewState = e.get(ObjectViewState.class);
             object.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -239,7 +313,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected Spatial addObject(Entity e) {
-            logger.log(Level.FINEST, "CreatureModelContainer.addObject({0})", e);
+            LOGGER.log(Level.FINEST, "CreatureModelContainer.addObject({0})", e);
             Spatial result = createCreatureModel(e);
             updateObject(result, e);
             return result;
@@ -247,9 +321,9 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            logger.log(Level.FINEST, "CreatureModelContainer.updateObject({0})", e);
+            LOGGER.log(Level.FINEST, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
-            updateModelAnimation(object, e);
+            updateCreatureModelAnimation(object, e);
         }
 
         @Override
@@ -257,5 +331,65 @@ public class PlayerEntityViewState extends AbstractAppState {
             removeModel(object, e);
         }
 
+    }
+
+    /**
+     * Contains the static doors...
+     */
+    private class DoorModelContainer extends EntityContainer<Spatial> {
+
+        public DoorModelContainer(EntityData ed) {
+            super(ed, Position.class, DoorViewState.class); // Stuff with position is on the map
+        }
+
+        @Override
+        protected Spatial addObject(Entity e) {
+            LOGGER.log(Level.FINEST, "DoorModelContainer.addObject({0})", e);
+            Spatial result = createDoorModel(e);
+            updateObject(result, e);
+            return result;
+        }
+
+        @Override
+        protected void updateObject(Spatial object, Entity e) {
+            LOGGER.log(Level.FINEST, "DoorModelContainer.updateObject({0})", e);
+            updateModelPosition(object, e); // LOL, but ok
+            //updateModelAnimation(object, e);
+        }
+
+        @Override
+        protected void removeObject(Spatial object, Entity e) {
+            removeModel(object, e);
+        }
+    }
+
+    /**
+     * Contains the static traps...
+     */
+    private class TrapModelContainer extends EntityContainer<Spatial> {
+
+        public TrapModelContainer(EntityData ed) {
+            super(ed, Position.class, TrapViewState.class); // Stuff with position is on the map
+        }
+
+        @Override
+        protected Spatial addObject(Entity e) {
+            LOGGER.log(Level.FINEST, "TrapModelContainer.addObject({0})", e);
+            Spatial result = createTrapModel(e);
+            updateObject(result, e);
+            return result;
+        }
+
+        @Override
+        protected void updateObject(Spatial object, Entity e) {
+            LOGGER.log(Level.FINEST, "TrapModelContainer.updateObject({0})", e);
+            updateModelPosition(object, e);
+            //updateModelAnimation(object, e);
+        }
+
+        @Override
+        protected void removeObject(Spatial object, Entity e) {
+            removeModel(object, e);
+        }
     }
 }
