@@ -89,14 +89,14 @@ public class GameClientState extends AbstractPauseAwareState {
      * @param players players participating in this game
      * @param gameClientService client services
      */
-    public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService) {
+    public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app) {
         this.kwdFile = level;
         // this.gameService = gameService;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
 
         // Create the loading state
-        loadingState = createLoadingState(players);
+        loadingState = createLoadingState(players, app);
 
         // Add the listener
         gameClientService.addGameSessionListener(gameSessionListener);
@@ -172,7 +172,7 @@ public class GameClientState extends AbstractPauseAwareState {
         return true;
     }
 
-    private IPlayerLoadingProgress createLoadingState(List<ClientInfo> players) {
+    private IPlayerLoadingProgress createLoadingState(List<ClientInfo> players, Main app) {
 
         // See if multiplayer or not
         boolean multiplayer = false;
@@ -190,7 +190,7 @@ public class GameClientState extends AbstractPauseAwareState {
         // Create the appropriate loaging screen
         IPlayerLoadingProgress loader;
         if (multiplayer) {
-            loader = new MultiplayerLoadingState(stateManager) {
+            loader = new MultiplayerLoadingState(app) {
 
                 @Override
                 public Void onLoad() {
@@ -205,7 +205,7 @@ public class GameClientState extends AbstractPauseAwareState {
                 }
             };
         } else {
-            loader = new SingleBarLoadingState(stateManager) {
+            loader = new SingleBarLoadingState(app) {
 
                 @Override
                 public Void onLoad() {

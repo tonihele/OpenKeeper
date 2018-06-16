@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import static java.util.stream.Collectors.toList;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.state.ConnectionState;
 import toniarts.openkeeper.game.state.GameClientState;
@@ -41,7 +42,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class LobbyState extends AbstractAppState {
 
-    private Application app;
+    private Main app;
     private AppStateManager stateManager;
     private final boolean online;
     private final LobbyService lobbyService;
@@ -74,7 +75,7 @@ public class LobbyState extends AbstractAppState {
     @Override
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
-        this.app = app;
+        this.app = (Main) app;
         this.stateManager = stateManager;
 
         renderThread = Thread.currentThread();
@@ -161,7 +162,7 @@ public class LobbyState extends AbstractAppState {
         }
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, players.stream().filter(c -> c.getId() == lobbyClientService.getPlayerId()).findFirst().get().getKeeper().getId(), players, gameClientService);
+        GameClientState gameClientState = new GameClientState(kwdFile, players.stream().filter(c -> c.getId() == lobbyClientService.getPlayerId()).findFirst().get().getKeeper().getId(), players, gameClientService, app);
         stateManager.attach(gameClientState);
 
         // The game server

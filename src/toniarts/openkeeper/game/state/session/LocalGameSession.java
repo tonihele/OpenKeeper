@@ -64,8 +64,8 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
      */
-    public static void CreateLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager) {
-        CreateLocalGame(kwdFile, stateManager, campaign);
+    public static void CreateLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
+        CreateLocalGame(kwdFile, stateManager, campaign, app);
     }
 
     /**
@@ -77,7 +77,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param stateManager state manager instance for setting up the game
      * @throws java.io.IOException Problem with the map file
      */
-    public static void CreateLocalGame(String level, boolean campaign, AppStateManager stateManager) throws IOException {
+    public static void CreateLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
 
         // Try to load the file
         String mapFile = ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd");
@@ -87,10 +87,10 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         }
         KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), file);
 
-        CreateLocalGame(kwdFile, stateManager, campaign);
+        CreateLocalGame(kwdFile, stateManager, campaign, app);
     }
 
-    private static void CreateLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign) {
+    private static void CreateLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app) {
 
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
@@ -101,7 +101,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         clientInfo.setReady(true);
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, Arrays.asList(clientInfo), gameSession);
+        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, Arrays.asList(clientInfo), gameSession, app);
         stateManager.attach(gameClientState);
 
         // The game server
