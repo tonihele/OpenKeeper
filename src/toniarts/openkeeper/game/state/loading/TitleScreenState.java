@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.game.state.loading;
 
-import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.texture.Texture;
 import java.util.Locale;
+import toniarts.openkeeper.Main;
 
 /**
  * Loading screen state without any progression
@@ -28,8 +28,8 @@ import java.util.Locale;
  */
 public abstract class TitleScreenState extends LoadingState {
 
-    public TitleScreenState(AppStateManager stateManager) {
-        super(stateManager);
+    public TitleScreenState(final Main app) {
+        super(app);
     }
 
     @Override

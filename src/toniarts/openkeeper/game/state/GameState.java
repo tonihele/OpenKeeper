@@ -152,7 +152,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.stateManager = stateManager;
 
         // Set up the loading screen
-        SingleBarLoadingState loader = new SingleBarLoadingState(stateManager) {
+        SingleBarLoadingState loader = new SingleBarLoadingState(this.app) {
 
             @Override
             public Void onLoad() {
@@ -319,9 +319,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             public void onLoadComplete() {
 
                 // Prewarm the whole scene
-                app.enqueue(() -> {
-                    GameState.this.app.getRenderManager().preloadScene(rootNode);
-                });
+                GameState.this.app.getRenderManager().preloadScene(rootNode);
 
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);

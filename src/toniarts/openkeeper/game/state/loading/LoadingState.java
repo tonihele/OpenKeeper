@@ -54,8 +54,8 @@ public abstract class LoadingState extends AbstractAppState {
 
     private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
 
-    public LoadingState(final AppStateManager stateManager) {
-        this.stateManager = stateManager;
+    public LoadingState(final Main app) {
+        this.app = app;
         loadingThread.start();
     }
 
@@ -172,8 +172,7 @@ public abstract class LoadingState extends AbstractAppState {
     abstract public Void onLoad();
 
     /**
-     * Called when loading is complete. <b>Do NOT</b> manipulate the scene from
-     * here!
+     * Called when loading is complete. Called in render thread.
      */
     abstract public void onLoadComplete();
 
@@ -192,11 +191,17 @@ public abstract class LoadingState extends AbstractAppState {
                 LOGGER.log(Level.SEVERE, "Failed to load!", ex);
             }
 
-            // Finally call the completion
-            onLoadComplete();
+            // Enqueue to the render thread
+            // 1. It is safe
+            // 2. Things will start on render, not when app is minimized etc (depends on settings of course but in principle)
+            app.enqueue(() -> {
 
-            // Detach us
-            stateManager.detach(LoadingState.this);
+                // Finally call the completion
+                onLoadComplete();
+
+                // Detach us
+                app.getStateManager().detach(LoadingState.this);
+            });
         }
 
     }
