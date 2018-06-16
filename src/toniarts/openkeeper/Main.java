@@ -90,8 +90,8 @@ public class Main extends SimpleApplication {
     public final static String TITLE = "OpenKeeper";
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
-    private static final Object lock = new Object();
-    private static final Logger logger = Logger.getLogger(Main.class.getName());
+    private static final Object LOCK = new Object();
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static Map<String, String> params;
     private static boolean debug;
     private NiftyJmeDisplay niftyDisplay;
@@ -116,7 +116,7 @@ public class Main extends SimpleApplication {
         if (checkSetup(app)) {
             app.start();
         } else {
-            logger.warning("Application setup not complete!!");
+            LOGGER.warning("Application setup not complete!!");
         }
     }
 
@@ -164,7 +164,7 @@ public class Main extends SimpleApplication {
 
         // First and foremost, the folder
         if (!PathUtils.checkDkFolder(getDkIIFolder())) {
-            logger.info("Dungeon Keeper II folder not found or valid! Prompting user!");
+            LOGGER.info("Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
             // Let the user select
@@ -183,7 +183,7 @@ public class Main extends SimpleApplication {
 
         // If the folder is ok, check the conversion
         if (folderOk && (AssetsConverter.conversionNeeded(Main.getSettings()))) {
-            logger.info("Need to convert the assets!");
+            LOGGER.info("Need to convert the assets!");
             saveSetup = true;
 
             // Convert
@@ -276,12 +276,12 @@ public class Main extends SimpleApplication {
         Thread t = new Thread() {
             @Override
             public void run() {
-                synchronized (lock) {
+                synchronized (LOCK) {
                     while (frame.isVisible()) {
                         try {
-                            lock.wait();
+                            LOCK.wait();
                         } catch (InterruptedException e) {
-                            logger.warning("Lock interrupted!");
+                            LOGGER.warning("Lock interrupted!");
                         }
                     }
                 }
@@ -298,9 +298,9 @@ public class Main extends SimpleApplication {
                     return; // You shall not pass!
                 }
 
-                synchronized (lock) {
+                synchronized (LOCK) {
                     frame.dispose();
-                    lock.notify();
+                    LOCK.notify();
                 }
             }
         });
@@ -321,7 +321,8 @@ public class Main extends SimpleApplication {
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
         // Initiate the title screen
-        TitleScreenState gameLoader = new TitleScreenState(stateManager) {
+        TitleScreenState gameLoader = new TitleScreenState(this) {
+
             @Override
             public Void onLoad() {
                 try {
@@ -338,7 +339,7 @@ public class Main extends SimpleApplication {
 
                     // Allow people to take screenshots
                     ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
-                    stateManager.attach(screenShotState);
+                    getStateManager().attach(screenShotState);
 
                     // Recording video
                     if (params.containsKey("record")) {
@@ -354,7 +355,7 @@ public class Main extends SimpleApplication {
                         folder = PathUtils.fixFilePath(folder).concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
                         recorder.setFile(new File(folder));
 
-                        stateManager.attach(recorder);
+                        getStateManager().attach(recorder);
                     }
 
                     // Nifty
@@ -381,8 +382,8 @@ public class Main extends SimpleApplication {
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
                     PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false, Main.this);
 
-                    stateManager.attach(mainMenuState);
-                    stateManager.attach(playerState);
+                    getStateManager().attach(mainMenuState);
+                    getStateManager().attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
@@ -399,7 +400,7 @@ public class Main extends SimpleApplication {
                 } catch (InterruptedException ex) {
                     // Doesn't matter
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Failed to load the game!", e);
+                    LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
                     app.stop();
                 }
                 return null;
@@ -478,7 +479,7 @@ public class Main extends SimpleApplication {
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper24.png")),
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper16.png"))};
         } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Failed to load the application icons!", ex);
+            LOGGER.log(Level.SEVERE, "Failed to load the application icons!", ex);
         }
         return null;
     }
@@ -505,7 +506,7 @@ public class Main extends SimpleApplication {
                 // Continue to save the settings
                 Settings.getInstance().save();
             } catch (IOException ex) {
-                logger.log(Level.WARNING, "Can not save the settings!", ex);
+                LOGGER.log(Level.WARNING, "Can not save the settings!", ex);
             }
 
         } catch (Exception e) {
@@ -548,7 +549,7 @@ public class Main extends SimpleApplication {
             ClassLoader loader = new URLClassLoader(urls);
             return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader, new UTF8Control());
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
+            LOGGER.log(Level.SEVERE, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
         }
 
         // Works only from the IDE
@@ -573,9 +574,7 @@ public class Main extends SimpleApplication {
         } else {
 
             // Enable the start menu
-            enqueue(() -> {
-                stateManager.getState(MainMenuState.class).setEnabled(true);
-            });
+            stateManager.getState(MainMenuState.class).setEnabled(true);
         }
     }
 
@@ -618,7 +617,7 @@ public class Main extends SimpleApplication {
                 };
                 stateManager.attach(movieState);
             } catch (Exception e) {
-                logger.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
+                LOGGER.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
 
                 // Continue with the movie list
                 playMovie(introSequence);

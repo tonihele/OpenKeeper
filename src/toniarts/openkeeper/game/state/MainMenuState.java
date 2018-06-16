@@ -82,7 +82,7 @@ public class MainMenuState extends AbstractAppState {
     protected AppStateManager stateManager;
     protected InputManager inputManager;
     //private ViewPort viewPort;
-    private MainMenuScreenController screen;
+    private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
     protected AudioNode levelBriefing;
@@ -93,7 +93,7 @@ public class MainMenuState extends AbstractAppState {
     protected MapSelector mapSelector;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
-    private static final Logger logger = Logger.getLogger(MainMenuState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MainMenuState.class.getName());
 
     /**
      * (c) Construct a MainMenuState, you should only have one of these. Disable
@@ -131,12 +131,14 @@ public class MainMenuState extends AbstractAppState {
             loadingScreen.setProgress(0.25f);
         }
         AssetUtils.prewarmAssets(kwdFile, assetManager, app);
-        // load 3D Front end sound
+
+        // Load 3D Front end sound
         SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         menuNode = new Node("Main menu");
         menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null, new ObjectLoader(kwdFile, null)) {
+
             @Override
             protected void updateProgress(float progress) {
                 if (loadingScreen != null) {
@@ -210,9 +212,10 @@ public class MainMenuState extends AbstractAppState {
     private void initializeMainMenu() {
 
         // Set the processors & scene
+        MainMenuState.this.app.setViewProcessors();
+        rootNode.attachChild(menuNode);
+
         app.enqueue(() -> {
-            MainMenuState.this.app.setViewProcessors();
-            rootNode.attachChild(menuNode);
 
             // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
             MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
@@ -243,7 +246,8 @@ public class MainMenuState extends AbstractAppState {
             if (menuNode == null) {
 
                 // Set up the loading screen
-                SingleBarLoadingState loader = new SingleBarLoadingState(stateManager) {
+                SingleBarLoadingState loader = new SingleBarLoadingState(this.app) {
+
                     @Override
                     public Void onLoad() {
                         loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);
@@ -296,7 +300,7 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().setSetting(Setting.GAME_NAME, game);
             Main.getUserSettings().save();
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+            LOGGER.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
         }
     }
 
@@ -325,7 +329,7 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().save();
 
         } catch (IOException ex) {
-            logger.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+            LOGGER.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
         }
     }
 
@@ -359,7 +363,7 @@ public class MainMenuState extends AbstractAppState {
         if (chatService != null) {
             chatService.sendMessage(text);
         } else {
-            logger.warning("Connection not initialized!");
+            LOGGER.warning("Connection not initialized!");
         }
     }
 
@@ -399,7 +403,7 @@ public class MainMenuState extends AbstractAppState {
             // Create the level state
             LocalGameSession.CreateLocalGame(selectedLevel.getKwdFile(), true, stateManager);
         } else {
-            logger.log(Level.WARNING, "Unknown type of Level {0}", type);
+            LOGGER.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
         }
 
@@ -423,7 +427,7 @@ public class MainMenuState extends AbstractAppState {
             stateManager.attach(movieState);
             inputManager.setCursorVisible(false);
         } catch (Exception e) {
-            logger.log(java.util.logging.Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
+            LOGGER.log(java.util.logging.Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
         }
     }
 
@@ -542,7 +546,7 @@ public class MainMenuState extends AbstractAppState {
             try {
                 AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
-                logger.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
+                LOGGER.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
             }
         }
