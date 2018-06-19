@@ -63,15 +63,15 @@ public class MapTile implements Savable {
     public MapTile(Tile tile, Terrain terrain, int x, int y, int index) {
         this.p = new Point(x, y);
         this.index = index;
-
+        this.bridgeTerrainType = tile.getFlag();
         this.terrainId = tile.getTerrainId();
         this.ownerId = tile.getPlayerId();
 
         // The water/lava under the bridge is set only when there is an actual bridge, but we might as well set it here, it doesn't change
         if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
-            bridgeTerrainType = BridgeTerrainType.LAVA;
-        } else {
-            bridgeTerrainType = BridgeTerrainType.WATER;
+            this.bridgeTerrainType = BridgeTerrainType.LAVA;
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
+            this.bridgeTerrainType = BridgeTerrainType.WATER;
         }
 
         // Set attributes
