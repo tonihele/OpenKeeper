@@ -139,7 +139,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
             if (!possibleCreatures.isEmpty()) {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
+                creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), true);
                 spawned = true;
             }
         }
@@ -206,6 +206,10 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
 
     }
 
+    /**
+     * In DK 2 it is not possible to place spawn points in game, but but we
+     * don't know that
+     */
     private class EntranceListener implements RoomListener {
 
         private final short playerId;
