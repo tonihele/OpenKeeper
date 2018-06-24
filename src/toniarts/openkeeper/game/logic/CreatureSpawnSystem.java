@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import com.jme3.app.Application;
-import com.jme3.app.state.AbstractAppState;
+import com.jme3.math.Vector2f;
+import com.jme3.util.SafeArrayList;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,9 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -37,70 +41,44 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  * Handles creatures spawning, from Portals, Dungeon Hearts...
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSpawnLogicState extends AbstractAppState implements IGameLogicUpdatable {
+public class CreatureSpawnSystem implements IGameLogicUpdatable {
 
-    private final ThingLoader thingLoader;
-    private final int minimunImpCount;
+    private final ICreaturesController creaturesController;
+    private final int minimumImpCount;
     private final int entranceCoolDownTime;
     private final int initialPortalCapacity;
     private final int additionalPortalCapacity;
     private final int freeImpCoolDownTime;
-    private final Map<IPlayerController, Map<IRoomController, Float>> entranceSpawnTimes;
+    private final Map<Short, IPlayerController> playerControllersById;
+    private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final KwdFile kwdFile;
 
-    public CreatureSpawnLogicState(ThingLoader thingLoader, Collection<IPlayerController> playerControllers, GameState gameState) {
-        this.thingLoader = thingLoader;
+    public CreatureSpawnSystem(ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
+            IMapController mapController) {
+        this.creaturesController = creaturesController;
 
         // We need the game state just for the variables
-        entranceCoolDownTime = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS);
-        minimunImpCount = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD);
-        initialPortalCapacity = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL);
-        additionalPortalCapacity = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL);
-        freeImpCoolDownTime = (int) gameState.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS);
-        kwdFile = gameState.getLevelData();
+        entranceCoolDownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS).getValue();
+        minimumImpCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue();
+        initialPortalCapacity = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL).getValue();
+        additionalPortalCapacity = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL).getValue();
+        freeImpCoolDownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS).getValue();
+        kwdFile = levelInfo.getLevelData();
 
-        // Create entrance counters for all players
-        entranceSpawnTimes = new HashMap<>(playerControllers.size());
+        // Populate entrance list
+        playerControllersById = new HashMap<>(playerControllers.size(), 1f);
         for (IPlayerController player : playerControllers) {
-            entranceSpawnTimes.put(player, new HashMap<>());
-        }
-    }
+            playerControllersById.put(player.getKeeper().getId(), player);
 
-    @Override
-    public void processTick(float tpf, double gameTime) {
-
-        // FIXME: really should use the listeners, I think this just produces unnecessary garbage
-        // Maintain the players entrance registry
-        for (Entry<IPlayerController, Map<IRoomController, Float>> keeperRoomTimes : entranceSpawnTimes.entrySet()) {
-
-            // Remove the obsolete ones & advance timers
-            Iterator<Entry<IRoomController, Float>> roomTimesIter = keeperRoomTimes.getValue().entrySet().iterator();
-            while (roomTimesIter.hasNext()) {
-                Entry<IRoomController, Float> entry = roomTimesIter.next();
-                if (entry.getKey().getRoomInstance().isDestroyed() || entry.getKey().getRoomInstance().getOwnerId() != keeperRoomTimes.getKey().getKeeper().getId()) {
-                    roomTimesIter.remove();
-                } else {
-                    // TODO: Should we advance the timer if the entrances are not open?
-                    if (entry.getValue() + tpf <= Float.MAX_VALUE) {
-                        entry.setValue(entry.getValue() + tpf);
-                    }
-
-                    evaluateAndSpawnCreature(keeperRoomTimes.getKey(), entry.getKey());
-                }
-            }
-
-            // Add new ones
-            for (Entry<Room, Set<IRoomController>> keeperRooms : keeperRoomTimes.getKey().getRoomControl().getTypes().entrySet()) {
+            // Add initial rooms
+            for (Entry<Room, Set<IRoomController>> keeperRooms : player.getRoomControl().getTypes().entrySet()) {
 
                 // See that should we add
                 for (IRoomController genericRoom : keeperRooms.getValue()) {
@@ -109,29 +87,40 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
                     if (!(genericRoom instanceof ICreatureEntrance)) {
                         break;
                     }
-
-                    if (!keeperRoomTimes.getValue().containsKey(genericRoom)) {
-                        keeperRoomTimes.getValue().put(genericRoom, Float.MAX_VALUE);
-
-                        evaluateAndSpawnCreature(keeperRoomTimes.getKey(), genericRoom);
-                    }
+                    entrances.add((ICreatureEntrance) genericRoom);
                 }
             }
-        }
 
+            // Add room listener to get notified of the changes
+            // They should be quite rare vs the rate in which we iterate on each tick
+            mapController.addListener(player.getKeeper().getId(), new EntranceListener(player.getKeeper().getId()));
+
+            // TODO: also get notified about the evicted and newly introduced creatures
+            // Maybe store these under the keeper etc.? For saving purposes
+            // The logic classes shouldn't have anything to save
+        }
     }
 
-    private void evaluateAndSpawnCreature(IPlayerController player, IRoomController room) {
-        float spawnTime = entranceSpawnTimes.get(player).get(room);
+    @Override
+    public void processTick(float tpf, double gameTime) {
+        for (ICreatureEntrance entrance : entrances) {
+            evaluateAndSpawnCreature(entrance, gameTime);
+        }
+    }
+
+    private void evaluateAndSpawnCreature(ICreatureEntrance entrance, double gameTime) {
+        double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
+        IPlayerController player = playerControllersById.get(entrance.getRoomInstance().getOwnerId());
         boolean spawned = false;
-        if (spawnTime >= freeImpCoolDownTime && isDungeonHeart(room)) {
-            if (player.getCreatureControl().getImpCount() < minimunImpCount) {
+        if (timeSinceLastSpawn >= freeImpCoolDownTime && entrance.isDungeonHeart()) {
+            if (player.getCreatureControl().getImpCount() < minimumImpCount) {
 
                 // Spawn imp
-//                ((ICreatureEntrance) room).spawnCreature(kwdFile.getImp().getCreatureId(), thingLoader);
+                Point entranceCoordinate = entrance.getEntranceCoordinate();
+                creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
                 spawned = true;
             }
-        } else if (spawnTime >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5)
+        } else if (timeSinceLastSpawn >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5)
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
             // Evaluate what creature can we spawn
@@ -149,7 +138,8 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
             // Spawn random?
             if (!possibleCreatures.isEmpty()) {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
-//                ((ICreatureEntrance) room).spawnCreature(creatureId, thingLoader);
+                Point entranceCoordinate = entrance.getEntranceCoordinate();
+                creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
                 spawned = true;
             }
         }
@@ -157,20 +147,8 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
         if (spawned) {
 
             // Reset spawn time
-            entranceSpawnTimes.get(player).put(room, 0f);
+            entrance.onSpawn(gameTime);
         }
-    }
-
-    private boolean isDungeonHeart(IRoomController room) {
-        return room.isDungeonHeart();
-    }
-
-    public static CreatureControl spawnCreature(short creatureId, short playerId, short level,
-            Application app, ThingLoader thingLoader, Point tile, boolean entrance) {
-
-        // Spawn the creature
-        return thingLoader.spawnCreature(creatureId, playerId, level,
-                WorldUtils.pointToVector2f(tile), entrance, app);
     }
 
     private boolean isCreatureLimitReached(IPlayerController player) {
@@ -220,12 +198,54 @@ public class CreatureSpawnLogicState extends AbstractAppState implements IGameLo
 
     @Override
     public void start() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
     }
 
     @Override
     public void stop() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
+    }
+
+    private class EntranceListener implements RoomListener {
+
+        private final short playerId;
+
+        public EntranceListener(short playerId) {
+            this.playerId = playerId;
+        }
+
+        @Override
+        public void onBuild(IRoomController room) {
+            addRoom(room);
+        }
+
+        @Override
+        public void onCaptured(IRoomController room) {
+            //addRoom(room);
+        }
+
+        @Override
+        public void onCapturedByEnemy(IRoomController room) {
+            //removeRoom(room);
+        }
+
+        @Override
+        public void onSold(IRoomController room) {
+            removeRoom(room);
+        }
+
+        private void addRoom(IRoomController room) {
+            if (room instanceof ICreatureEntrance) {
+                entrances.add((ICreatureEntrance) room);
+            }
+        }
+
+        private void removeRoom(IRoomController room) {
+            if (room instanceof ICreatureEntrance) {
+                entrances.remove((ICreatureEntrance) room);
+            }
+        }
+
     }
 
 }

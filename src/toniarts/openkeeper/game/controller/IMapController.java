@@ -15,6 +15,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapInformation;
 
@@ -48,6 +49,22 @@ public interface IMapController extends IMapInformation, IGameLogicUpdatable {
      * @param listener the listener
      */
     public void removeListener(MapListener listener);
+
+    /**
+     * If you want to get notified about room changes
+     *
+     * @param playerId whose room changes you want to listen
+     * @param listener the listener
+     */
+    public void addListener(short playerId, RoomListener listener);
+
+    /**
+     * Stop listening to room updates
+     *
+     * @param playerId whose room changes you want to listen
+     * @param listener the listener
+     */
+    public void removeListener(short playerId, RoomListener listener);
 
     /**
      * Get all the room controllers. FIXME: At least with the current design,

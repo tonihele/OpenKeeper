@@ -175,11 +175,11 @@ public class CreaturesController implements ICreaturesController {
     }
 
     @Override
-    public EntityId spawnCreature(short creatureId, short playerId, short level, Vector2f position, boolean entrance) {
+    public EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, boolean entrance) {
         return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, entrance);
     }
 
-    private EntityId loadCreature(short creatureId, short ownerId, short level, float x, float y, float rotation, Integer healthPercentage, int money, Integer triggerId, boolean entrance) {
+    private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money, Integer triggerId, boolean entrance) {
         Creature creature = kwdFile.getCreature(creatureId);
         EntityId entity = entityData.createEntity();
 

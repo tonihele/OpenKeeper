@@ -50,7 +50,7 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * portal)
      * @return the actual spawned creature
      */
-    EntityId spawnCreature(short creatureId, short playerId, short level, Vector2f position, boolean entrance);
+    EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, boolean entrance);
 
     /**
      * Spawn a hero party

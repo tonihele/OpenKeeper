@@ -236,6 +236,7 @@ public abstract class AbstractRoomController implements IRoomController {
     @Override
     public void destroy() {
         destroyed = true;
+        roomInstance.setDestroyed(destroyed);
 
         // Destroy the controls
         for (IRoomObjectControl control : objectControls.values()) {
@@ -345,6 +346,12 @@ public abstract class AbstractRoomController implements IRoomController {
     @Override
     public boolean isDungeonHeart() {
         return false;
+    }
+
+    @Override
+    public void captured(short playerId) {
+        // Nothing, hmm, should we move some logic here from the MapController
+        roomInstance.setOwnerId(playerId);
     }
 
     /**

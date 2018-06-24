@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
@@ -398,11 +397,12 @@ public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance 
     @Override
     public CreatureControl spawnCreature(short creatureId, short level, Application app, ThingLoader thingLoader) {
 
-        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
-                roomInstance.getOwnerId(), level, app, thingLoader, getEntranceCoordinate(), true);
-        attractedCreatures.add(creature);
-
-        return creature;
+//        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
+//                roomInstance.getOwnerId(), level, app, thingLoader, getEntranceCoordinate(), true);
+//        attractedCreatures.add(creature);
+//
+//        return creature;
+        return null;
     }
 
     @Override

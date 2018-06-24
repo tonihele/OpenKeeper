@@ -38,6 +38,7 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
     public static final short OBJECT_BIG_STEPS_ID = 88;
     public static final short OBJECT_PLUG_ID = 96;
 
+    private double lastSpawnTime = Double.MIN_VALUE;
     private final List<Point> spawnPoints = new ArrayList<>(16);
 
     public FiveByFiveRotatedController(toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController,
@@ -110,6 +111,22 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
 
         // FIXME: Is it random truly or just one corner??
         return Utils.getRandomItem(spawnPoints);
+    }
+
+    @Override
+    public double getLastSpawnTime() {
+        return lastSpawnTime;
+    }
+
+    @Override
+    public void onSpawn(double time) {
+        this.lastSpawnTime = time;
+    }
+
+    @Override
+    public void captured(short playerId) {
+        super.captured(playerId);
+        lastSpawnTime = Double.MIN_VALUE;
     }
 
 }

@@ -95,6 +95,9 @@ public interface IRoomController {
      */
     public boolean isDungeonHeart();
 
+    /**
+     * Notify and mark the room as destroyed
+     */
     public void destroy();
 
     /**
@@ -104,6 +107,12 @@ public interface IRoomController {
      * @return is the room destroyed
      */
     public boolean isDestroyed();
+
+    /**
+     * Signal that the room has been captured
+     * @param playerId the new owner ID
+     */
+    public void captured(short playerId);
 
     public boolean isFullCapacity();
 

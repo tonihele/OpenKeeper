@@ -23,7 +23,7 @@ import java.awt.Point;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ICreatureEntrance {
+public interface ICreatureEntrance extends IRoomController {
 
     /**
      * Get the coordinate for the creature to spawn on this entrance
@@ -31,6 +31,20 @@ public interface ICreatureEntrance {
      * @return the coordinate
      */
     public Point getEntranceCoordinate();
+
+    /**
+     * Get time when the last creature was spawn from this room
+     *
+     * @return last creature spawn time, in game time
+     */
+    public double getLastSpawnTime();
+
+    /**
+     * Notifies that a creature was spawn from this room
+     *
+     * @param time the time the creature was spawn
+     */
+    public void onSpawn(double time);
 
     /**
      * Get creautures attracted on this entrance

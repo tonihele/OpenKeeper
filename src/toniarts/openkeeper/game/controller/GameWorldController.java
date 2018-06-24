@@ -157,12 +157,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         Map<Short, List<IRoomController>> playerRooms = mapController.getRoomControllers().stream().collect(Collectors.groupingBy(entry -> entry.getRoomInstance().getOwnerId()));
         for (Keeper player : players.values()) {
             List<IRoomController> rooms = playerRooms.get(player.getId());
+            IPlayerController playerController = playerControllers.get(player.getId());
             if (rooms != null) {
-                playerControllers.get(player.getId()).getRoomControl().init(rooms);
+                playerController.getRoomControl().init(rooms);
             }
 
             // Add the listener
-            //addListener(player.getId(), player.getRoomControl());
+            mapController.addListener(player.getId(), playerController.getRoomControl());
         }
     }
 
@@ -555,7 +556,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     }
 
     /**
-     * If you want to get notified about player actiosns
+     * If you want to get notified about player actions
      *
      * @param listener the listener
      */

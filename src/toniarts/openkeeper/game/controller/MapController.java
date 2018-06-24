@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.controller.map.FlashTileControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -59,7 +60,8 @@ public final class MapController extends Container implements Savable, IMapContr
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
     private final Map<RoomInstance, IRoomController> roomControllers = new HashMap<>();
-    private final SafeArrayList<MapListener> listeners = new SafeArrayList<>(MapListener.class);
+    private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
+    private final Map<Short, SafeArrayList<RoomListener>> roomListeners = new HashMap<>();
 
     public MapController() {
         // For serialization
@@ -68,9 +70,9 @@ public final class MapController extends Container implements Savable, IMapContr
     /**
      * Load map data from a KWD file straight (new game)
      *
-     * @param kwdFile the KWD file
+     * @param kwdFile           the KWD file
      * @param objectsController objects controller
-     * @param gameSettings the game settings
+     * @param gameSettings      the game settings
      */
     public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
@@ -85,8 +87,8 @@ public final class MapController extends Container implements Savable, IMapContr
     /**
      * Instantiate a map controller from map data (loaded game)
      *
-     * @param mapData the map data
-     * @param kwdFile the KWD file
+     * @param mapData      the map data
+     * @param kwdFile      the KWD file
      * @param gameSettings the game settings
      */
     public MapController(MapData mapData, KwdFile kwdFile, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
@@ -129,13 +131,22 @@ public final class MapController extends Container implements Savable, IMapContr
         IRoomController roomController = RoomControllerFactory.constructRoom(roomInstance, objectsController, gameSettings);
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
+
+        // TODO: A bit of a design problem here
+        /**
+         * Unclear responsibilities between the world and map controller.
+         * Also a result of how we handle the building and selling by
+         * destroying rooms.
+         * But at least keep anyone who is listening intact
+         */
+        notifyOnBuild(roomController.getRoomInstance().getOwnerId(), roomController);
     }
 
     /**
      * Find the room starting from a certain point, rooms are never diagonally
      * attached
      *
-     * @param p starting point
+     * @param p            starting point
      * @param roomInstance the room instance
      */
     private void findRoom(Point p, RoomInstance roomInstance) {
@@ -181,24 +192,65 @@ public final class MapController extends Container implements Savable, IMapContr
         this.kwdFile = kwdFile;
     }
 
-    /**
-     * If you want to get notified about tile changes
-     *
-     * @param listener the listener
-     */
     @Override
     public void addListener(MapListener listener) {
-        listeners.add(listener);
+        mapListeners.add(listener);
     }
 
-    /**
-     * Stop listening to map updates
-     *
-     * @param listener the listener
-     */
     @Override
     public void removeListener(MapListener listener) {
+        mapListeners.remove(listener);
+    }
+
+    @Override
+    public void removeListener(short playerId, RoomListener listener) {
+        SafeArrayList<RoomListener> listeners = roomListeners.get(playerId);
+        if (listeners == null) {
+            return;
+        }
         listeners.remove(listener);
+    }
+
+    @Override
+    public void addListener(short playerId, RoomListener listener) {
+        SafeArrayList<RoomListener> listeners = roomListeners.get(playerId);
+        if (listeners == null) {
+            listeners = new SafeArrayList<>(RoomListener.class);
+        }
+        listeners.add(listener);
+        roomListeners.put(playerId, listeners);
+    }
+
+    private void notifyOnBuild(short playerId, IRoomController room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onBuild(room);
+            }
+        }
+    }
+
+    private void notifyOnCaptured(short playerId, IRoomController room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onCaptured(room);
+            }
+        }
+    }
+
+    private void notifyOnCapturedByEnemy(short playerId, IRoomController room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onCapturedByEnemy(room);
+            }
+        }
+    }
+
+    private void notifyOnSold(short playerId, IRoomController room) {
+        if (roomListeners != null && roomListeners.containsKey(playerId)) {
+            for (RoomListener listener : roomListeners.get(playerId)) {
+                listener.onSold(room);
+            }
+        }
     }
 
     @Override
@@ -337,7 +389,7 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     private void notifyTileChange(List<MapTile> updatedTiles) {
-        for (MapListener mapListener : listeners.getArray()) {
+        for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onTilesChange(updatedTiles);
         }
     }
@@ -379,6 +431,15 @@ public final class MapController extends Container implements Savable, IMapContr
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
             }
+
+            // TODO: A bit of a design problem here
+            /**
+             * Unclear responsibilities between the world and map controller.
+             * Also a result of how we handle the building and selling by
+             * destroying rooms.
+             * But at least keep anyone who is listening intact
+             */
+            notifyOnSold(roomController.getRoomInstance().getOwnerId(), roomController);
         }
     }
 
@@ -386,7 +447,7 @@ public final class MapController extends Container implements Savable, IMapContr
      * Get rooms by function.<br> FIXME: Should the player have ready lists?
      *
      * @param objectType the function
-     * @param playerId the player id, can be null
+     * @param playerId   the player id, can be null
      * @return list of rooms that match the criteria
      */
     @Override
@@ -488,6 +549,7 @@ public final class MapController extends Container implements Savable, IMapContr
                     damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
                 }
             } else if (tile.getGold() > 0) {
+
                 // This is how I believe the gold mining works, it is not health damage we do, it is substracting gold
                 // The mined tiles leave no loot, the loot is left by the imps if there is no place to store the gold
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
@@ -550,7 +612,7 @@ public final class MapController extends Container implements Savable, IMapContr
     /**
      * Heal a tile
      *
-     * @param point the point
+     * @param point    the point
      * @param playerId the player applying the healing
      */
     @Override
@@ -612,7 +674,7 @@ public final class MapController extends Container implements Savable, IMapContr
     /**
      * Damage a room
      *
-     * @param point tile coordinate
+     * @param point    tile coordinate
      * @param playerId for the player
      */
     private void damageRoom(Point point, short playerId) {
@@ -657,9 +719,10 @@ public final class MapController extends Container implements Savable, IMapContr
                 }
 
                 // Notify
-//                GenericRoom genericRoom = mapLoader.getRoomActuals().get(room);
-//                notifyOnCapturedByEnemy(owner, genericRoom);
-//                notifyOnCaptured(playerId, genericRoom);
+                IRoomController roomController = getRoomController(room);
+                roomController.captured(playerId);
+                notifyOnCapturedByEnemy(owner, roomController);
+                notifyOnCaptured(playerId, roomController);
                 break;
             }
         }
@@ -737,8 +800,8 @@ public final class MapController extends Container implements Savable, IMapContr
 
         // Notify listeners
         if (!tilesToUpdate.isEmpty()) {
-        for (MapListener mapListener : listeners.getArray()) {
-            mapListener.onTileFlash(tilesToUpdate, true, playerId);
+            for (MapListener mapListener : mapListeners.getArray()) {
+                mapListener.onTileFlash(tilesToUpdate, true, playerId);
             }
         }
     }
@@ -759,8 +822,8 @@ public final class MapController extends Container implements Savable, IMapContr
 
         // Notify listeners
         if (!tilesToUpdate.isEmpty()) {
-        for (MapListener mapListener : listeners.getArray()) {
-            mapListener.onTileFlash(tilesToUpdate, false, playerId);
+            for (MapListener mapListener : mapListeners.getArray()) {
+                mapListener.onTileFlash(tilesToUpdate, false, playerId);
             }
         }
     }

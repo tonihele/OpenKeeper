@@ -27,6 +27,8 @@ import toniarts.openkeeper.game.controller.IObjectsController;
  */
 public class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
+    private double lastSpawnTime = Double.MIN_VALUE;
+
     public ThreeByThreeController(RoomInstance roomInstance, IObjectsController objectsController) {
         super(roomInstance, objectsController);
     }
@@ -44,4 +46,19 @@ public class ThreeByThreeController extends AbstractRoomController implements IC
         return roomInstance.getCenter();
     }
 
+    @Override
+    public double getLastSpawnTime() {
+        return lastSpawnTime;
+    }
+
+    @Override
+    public void onSpawn(double time) {
+        this.lastSpawnTime = time;
+    }
+
+    @Override
+    public void captured(short playerId) {
+        super.captured(playerId);
+        lastSpawnTime = Double.MIN_VALUE;
+    }
 }
