@@ -94,21 +94,23 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
             // Add room listener to get notified of the changes
             // They should be quite rare vs the rate in which we iterate on each tick
             mapController.addListener(player.getKeeper().getId(), new EntranceListener(player.getKeeper().getId()));
-
-            // TODO: also get notified about the evicted and newly introduced creatures
-            // Maybe store these under the keeper etc.? For saving purposes
-            // The logic classes shouldn't have anything to save
         }
     }
 
     @Override
     public void processTick(float tpf, double gameTime) {
-        for (ICreatureEntrance entrance : entrances) {
+        for (ICreatureEntrance entrance : entrances.getArray()) {
             evaluateAndSpawnCreature(entrance, gameTime);
         }
     }
 
     private void evaluateAndSpawnCreature(ICreatureEntrance entrance, double gameTime) {
+
+        // TODO: we should have a listener for destroy that we can remove the room
+        if (entrance.isDestroyed()) {
+            return;
+        }
+
         double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
         IPlayerController player = playerControllersById.get(entrance.getRoomInstance().getOwnerId());
         boolean spawned = false;
@@ -136,6 +138,9 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
             }
 
             // Spawn random?
+            // TODO: also get notified about the evicted and newly introduced creatures
+            // Maybe store these under the keeper etc.? For saving purposes
+            // The logic classes shouldn't have anything to save
             if (!possibleCreatures.isEmpty()) {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
@@ -187,7 +192,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
         return true;
     }
 
-    private boolean isCreatureAvailableFromPool(Creature creature, IPlayerController player, Map<Integer, CreaturePool> pool) {
+    private static boolean isCreatureAvailableFromPool(Creature creature, IPlayerController player, Map<Integer, CreaturePool> pool) {
         CreaturePool creaturePool = pool.get(Short.valueOf(creature.getCreatureId()).intValue());
         if (creaturePool != null) {
             int creatures = player.getCreatureControl().getTypeCount(creature);
