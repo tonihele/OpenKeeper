@@ -42,4 +42,9 @@ public class DoorViewState implements EntityComponent {
         this.open = open;
     }
 
+    @Override
+    public String toString() {
+        return "DoorViewState{" + "doorId=" + doorId + ", locked=" + locked + ", bluebrint=" + bluebrint + ", open=" + open + '}';
+    }
+
 }

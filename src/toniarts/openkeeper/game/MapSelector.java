@@ -194,5 +194,9 @@ public class MapSelector {
             return mapName;
         }
 
+        @Override
+        public String toString() {
+            return mapName;
+        }
     }
 }
