@@ -320,6 +320,9 @@ public class Main extends SimpleApplication {
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
+        // Init nifty while in render thread so it will get initialized before it is updated, otherwise we might hit a rare race-condition
+        Nifty nifty = getNifty();
+
         // Initiate the title screen
         TitleScreenState gameLoader = new TitleScreenState(this) {
 
@@ -359,7 +362,6 @@ public class Main extends SimpleApplication {
                     }
 
                     // Nifty
-                    Nifty nifty = getNifty();
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
                     setupNiftyResourceBundles(nifty);
