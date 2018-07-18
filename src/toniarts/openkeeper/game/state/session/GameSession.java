@@ -130,4 +130,10 @@ public interface GameSession {
     @Asynchronous
     public void resumeGame();
 
+    /**
+     * We quit!
+     */
+    @Asynchronous
+    public void exitGame();
+
 }

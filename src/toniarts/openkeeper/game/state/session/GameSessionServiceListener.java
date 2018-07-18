@@ -114,4 +114,12 @@ public interface GameSessionServiceListener {
     @Asynchronous
     public void onResumeRequest(short playerId);
 
+    /**
+     * Player has exited the game
+     *
+     * @param playerId the player who quits the game
+     */
+    @Asynchronous
+    public void onExitGame(short playerId);
+
 }

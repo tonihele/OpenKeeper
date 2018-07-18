@@ -87,6 +87,7 @@ public class GameClientState extends AbstractPauseAwareState {
      * @param playerId our player ID
      * @param players players participating in this game
      * @param gameClientService client services
+     * @param app the main application
      */
     public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app) {
         this.kwdFile = level;
@@ -147,6 +148,9 @@ public class GameClientState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
+
+        // Signal our exit
+        gameClientService.exitGame();
 
         // Detach
         detach();

@@ -387,7 +387,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     public void quitToMainMenu() {
 
         // Disable us, detach game and enable start
-        stateManager.getState(GameState.class).detach();
+        stateManager.getState(GameClientState.class).detach();
         setEnabled(false);
         stateManager.getState(MainMenuState.class).setEnabled(true);
     }

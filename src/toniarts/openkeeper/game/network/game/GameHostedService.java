@@ -558,6 +558,13 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
+        public void exitGame() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onExitGame(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public EntityData getEntityData() {
             return null; // Cached on client...
         }

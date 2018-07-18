@@ -192,6 +192,11 @@ public class GameClientService extends AbstractClientService
         getDelegate().resumeGame();
     }
 
+    @Override
+    public void exitGame() {
+        getDelegate().exitGame();
+    }
+
     private class ClientMessageListener implements MessageListener<Client> {
 
         public ClientMessageListener() {

@@ -323,6 +323,13 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void exitGame() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onExitGame(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void updateTiles(List<MapTile> updatedTiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onTilesChange(updatedTiles);

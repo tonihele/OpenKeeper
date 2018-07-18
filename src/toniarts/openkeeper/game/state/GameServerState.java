@@ -228,6 +228,12 @@ public class GameServerState extends AbstractAppState {
             // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
             gameController.resumeGame();
         }
+
+        @Override
+        public void onExitGame(short playerId) {
+            // TODO: Close the server and game only when everybody has left
+            stateManager.detach(GameServerState.this);
+        }
     }
 
     /**
