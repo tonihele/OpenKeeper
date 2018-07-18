@@ -160,9 +160,14 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void pauseMenu() {
-        boolean paused = !state.isPaused();
-        // Pause state
-        state.setPaused(paused);
+
+        // Pause or resume state
+        state.setPaused(!state.isPaused());
+    }
+
+    @Override
+    public void onPaused(boolean paused) {
+
         // Set the menuButton
         Element menuButton = nifty.getScreen(HUD_SCREEN_ID).findElementById("menuButton");
         if (paused) {

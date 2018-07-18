@@ -89,7 +89,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     private boolean transitionEnd = true;
     private PlayerScreenController screen;
 
-    private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
     public PlayerState(int playerId, Main app) {
         this.playerId = (short) playerId;
@@ -354,21 +354,34 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     public void setPaused(boolean paused) {
+
+        // Pause / unpause
+        // TODO: We should give the client to these states to self register to the client service listener...
+        // But PlayerState is persistent.. I don't want to have the reference here
+        if (paused) {
+            stateManager.getState(GameClientState.class).getGameClientService().pauseGame();
+        } else {
+            stateManager.getState(GameClientState.class).getGameClientService().resumeGame();
+        }
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
+    public void onPaused(boolean paused) {
+
         // Pause state
         this.paused = paused;
 
-        // Pause / unpause
-        stateManager.getState(GameState.class).setEnabled(!paused);
+        // Delegate to the screen
+        screen.onPaused(paused);
 
         for (AbstractPauseAwareState state : appStates) {
             if (state.isPauseable()) {
                 state.setEnabled(!paused);
             }
         }
-    }
-
-    public boolean isPaused() {
-        return paused;
     }
 
     public void quitToMainMenu() {

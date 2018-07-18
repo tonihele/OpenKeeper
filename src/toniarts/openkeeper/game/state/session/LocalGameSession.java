@@ -212,6 +212,17 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void setGamePaused(boolean paused) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            if (paused) {
+                listener.onGamePaused();
+            } else {
+                listener.onGameResumed();
+            }
+        }
+    }
+
+    @Override
     public void flashTiles(List<Point> points, boolean enabled, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {

@@ -218,12 +218,15 @@ public class GameServerState extends AbstractAppState {
 
         @Override
         public void onPauseRequest(short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
+            gameController.pauseGame();
+
         }
 
         @Override
         public void onResumeRequest(short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
+            gameController.resumeGame();
         }
     }
 

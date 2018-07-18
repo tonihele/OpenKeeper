@@ -67,7 +67,6 @@ public class GameClientState extends AbstractPauseAwareState {
     private final Object loadingObject = new Object();
     private volatile boolean gameStarted = false;
 
-    //private final GameSessionService gameService;
     private final Short playerId;
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
@@ -91,7 +90,6 @@ public class GameClientState extends AbstractPauseAwareState {
      */
     public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app) {
         this.kwdFile = level;
-        // this.gameService = gameService;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
 
@@ -123,8 +121,6 @@ public class GameClientState extends AbstractPauseAwareState {
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-
-//        stateManager.getState(WorldState.class).setEnabled(enabled);
     }
 
     private void detachRelatedAppStates() {
@@ -156,15 +152,6 @@ public class GameClientState extends AbstractPauseAwareState {
         detach();
 
         super.cleanup();
-    }
-
-    @Override
-    public void update(float tpf) {
-        super.update(tpf);
-//        if (actionPointState != null) {
-//            actionPointState.updateControls(tpf);
-//        }
-//        timeTaken += tpf;
     }
 
     @Override
@@ -413,12 +400,16 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onGamePaused() {
-            playerState.setPaused(true);
+            app.enqueue(() -> {
+                playerState.onPaused(true);
+            });
         }
 
         @Override
         public void onGameResumed() {
-            playerState.setPaused(false);
+            app.enqueue(() -> {
+                playerState.onPaused(false);
+            });
         }
 
         @Override

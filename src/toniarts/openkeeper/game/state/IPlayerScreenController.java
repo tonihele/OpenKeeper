@@ -40,6 +40,8 @@ public interface IPlayerScreenController extends ScreenController {
 
     public void pauseMenu();
 
+    public void onPaused(boolean paused);
+
     public void pauseMenuNavigate(String menu, String backMenu,
             String confirmationTitle, String confirmMethod);
 
@@ -52,7 +54,6 @@ public interface IPlayerScreenController extends ScreenController {
     public void workersAmount(String uiState);
 
     // TODO move method to own controller or in parameter
-
     public void zoomToImp(String state);
 
     public void pickUpImp(String state);

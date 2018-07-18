@@ -327,7 +327,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private void loadActionPoints() {
         for (Thing.ActionPoint thing : getLevelData().getThings(Thing.ActionPoint.class)) {
             ActionPoint ap = new ActionPoint(thing);
-                actionPointsById.put(ap.getId(), ap);
+            actionPointsById.put(ap.getId(), ap);
             actionPoints.add(ap);
         }
     }
@@ -353,6 +353,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         if (gameLogicLoop != null) {
             gameLogicLoop.pause();
         }
+        playerService.setGamePaused(true);
     }
 
     @Override
@@ -366,6 +367,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         if (steeringCalculatorLoop != null) {
             steeringCalculatorLoop.resume();
         }
+        playerService.setGamePaused(false);
     }
 
     @Override

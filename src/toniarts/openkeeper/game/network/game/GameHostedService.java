@@ -297,6 +297,17 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
+    public void setGamePaused(boolean paused) {
+        for (GameSessionImpl gameSession : players.values()) {
+            if (paused) {
+                gameSession.onGamePaused();
+            } else {
+                gameSession.onGameResumed();
+            }
+        }
+    }
+
+    @Override
     public void flashTiles(List<Point> points, boolean enabled, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -315,7 +326,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
         return false;
     }
-
 
     @Override
     public void onAdded(PlayerSpell spell) {
