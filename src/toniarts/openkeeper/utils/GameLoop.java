@@ -147,7 +147,6 @@ public class GameLoop {
             gameLoopManager.start();
 
             long lastTime = System.nanoTime();
-            gameLoop:
             while (go.get()) {
 
                 // Check pause
@@ -159,11 +158,11 @@ public class GameLoop {
                             try {
                                 pauseFlag.wait();
                                 lastTime = System.nanoTime();
-                                continue gameLoop;
                             } catch (InterruptedException e) {
                                 throw new RuntimeException("Interrupted sleeping", e);
                             }
                         }
+                        continue;
                     }
                 }
 
