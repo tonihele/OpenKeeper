@@ -134,6 +134,7 @@ public class GameLoop {
 
         public void close() {
             go.set(false);
+            GameLoop.this.resume();
             try {
                 join();
             } catch (InterruptedException e) {
@@ -146,6 +147,7 @@ public class GameLoop {
             gameLoopManager.start();
 
             long lastTime = System.nanoTime();
+            gameLoop:
             while (go.get()) {
 
                 // Check pause
@@ -157,6 +159,7 @@ public class GameLoop {
                             try {
                                 pauseFlag.wait();
                                 lastTime = System.nanoTime();
+                                continue gameLoop;
                             } catch (InterruptedException e) {
                                 throw new RuntimeException("Interrupted sleeping", e);
                             }
