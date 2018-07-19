@@ -194,7 +194,11 @@ public class GameClientService extends AbstractClientService
 
     @Override
     public void exitGame() {
-        getDelegate().exitGame();
+
+        // Connection might already be lost
+        if (getClient().isConnected()) {
+            getDelegate().exitGame();
+        }
     }
 
     private class ClientMessageListener implements MessageListener<Client> {
