@@ -133,7 +133,6 @@ public interface GameSession {
     /**
      * We quit!
      */
-    @Asynchronous
     public void exitGame();
 
 }

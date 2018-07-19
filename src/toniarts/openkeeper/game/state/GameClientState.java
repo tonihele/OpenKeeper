@@ -149,8 +149,12 @@ public class GameClientState extends AbstractPauseAwareState {
     @Override
     public void cleanup() {
 
-        // Signal our exit
+        // Signal our exit & close all the connections
         gameClientService.exitGame();
+        ConnectionState cs = stateManager.getState(ConnectionState.class);
+        if (cs != null) {
+            cs.disconnect();
+        }
 
         // Detach
         detach();

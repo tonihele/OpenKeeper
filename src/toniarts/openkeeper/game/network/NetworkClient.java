@@ -23,7 +23,6 @@ import com.jme3.network.service.ClientService;
 import com.jme3.network.service.rmi.RmiClientService;
 import com.jme3.network.service.rpc.RpcClientService;
 import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
 import com.simsilica.es.client.RemoteEntityData;
 import com.simsilica.ethereal.EtherealClient;
@@ -48,10 +47,9 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
  */
 public class NetworkClient implements ChatSession {
 
-    private Client client;
+    private final Client client;
 
     private RemoteEntityData ed;
-    private EntityId entity;
 
     private final long frameDelay = 200 * 1000000L; // 200 ms
     private long renderTime;
@@ -171,7 +169,7 @@ public class NetworkClient implements ChatSession {
 
     protected void onMessagePlayerInfo(MessagePlayerInfo msg) {
         logger.log(Level.INFO, "Network: player info {0}", msg);
-        entity = msg.getEntityId();
+        //entity = msg.getEntityId();
     }
 
     protected void onMessageServerInfo(MessageServerInfo msg) {
