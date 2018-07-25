@@ -994,6 +994,10 @@ public class PlayerScreenController implements IPlayerScreenController {
         return cb;
     }
 
+    /**
+     * Simple class to handle the population, methods and updates of the
+     * creature cards and worker amounts
+     */
     private static class CreatureCardManager {
 
         private final KwdFile kwdFile;
@@ -1003,7 +1007,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         private final Element creaturePanel;
         private final WorkerAmountControl workerAmountControl;
         private final Screen hud;
-        final Map<Creature, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
+        private final Map<Creature, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
 
         public CreatureCardManager(KwdFile kwdFile, EntityData entityData, Nifty nifty, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
             this.kwdFile = kwdFile;

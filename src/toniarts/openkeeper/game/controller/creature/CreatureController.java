@@ -72,11 +72,14 @@ public class CreatureController implements ICreatureController {
         this.creature = creature;
         this.stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(this) {
 
-            public void setCurrentState(CreatureState currentState) {
-                this.currentState = currentState;
+            @Override
+            public void changeState(CreatureState newState) {
+                super.changeState(newState);
+
+                this.currentState = newState;
 
                 // Also change our state component
-                entityData.setComponent(entityId, new CreatureAi(currentState, creature.getId()));
+                entityData.setComponent(entityId, new CreatureAi(newState, creature.getId()));
             }
 
         };
