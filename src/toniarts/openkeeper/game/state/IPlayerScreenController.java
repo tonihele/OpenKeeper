@@ -65,4 +65,12 @@ public interface IPlayerScreenController extends ScreenController {
     public void quitToMainMenu();
 
     public void quitToOS();
+
+    /**
+     *
+     * @param tpf
+     */
+    public void update(float tpf);
+
+    public void cleanup();
 }

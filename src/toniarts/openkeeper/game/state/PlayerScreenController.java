@@ -23,6 +23,11 @@ import com.jme3.asset.TextureKey;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
@@ -50,12 +55,21 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.gui.nifty.CreatureCardControl;
@@ -72,6 +86,7 @@ import toniarts.openkeeper.tools.convert.map.CreatureSpell;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
@@ -94,6 +109,9 @@ public class PlayerScreenController implements IPlayerScreenController {
     public static final String CINEMATIC_SCREEN_ID = "cinematic";
     public static final String SCREEN_EMPTY_ID = "empty";
 
+    public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
+    public float lastUpdate = 0;
+
     private final PlayerState state;
     private Nifty nifty;
     private Screen screen;
@@ -102,6 +120,8 @@ public class PlayerScreenController implements IPlayerScreenController {
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
+    private EntityData entityData;
+    private CreatureCardManager creatureCardManager;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
     private static final Logger LOGGER = Logger.getLogger(PlayerScreenController.class.getName());
@@ -109,6 +129,26 @@ public class PlayerScreenController implements IPlayerScreenController {
     public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;
         this.nifty = nifty;
+    }
+
+    @Override
+    public void update(float tpf) {
+        lastUpdate += tpf;
+
+        if (lastUpdate >= SCREEN_UPDATE_INTERVAL) {
+            if (creatureCardManager != null) {
+                creatureCardManager.update(tpf);
+            }
+            lastUpdate = 0;
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        if (creatureCardManager != null) {
+            creatureCardManager.cleanup();
+            creatureCardManager = null;
+        }
     }
 
     @Override
@@ -350,7 +390,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                     // Init the HUD items
                     initHud = false;
-                    initHudItems(state.assetManager);
+                    initHudItems(state.assetManager, entityData);
                 }
 
                 break;
@@ -437,7 +477,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         updateSelectedItem(state.getInteractionState());
     }
 
-    protected void initHud(String resource) {
+    protected void initHud(String resource, EntityData entityData) {
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
         // Load the level dictionary
@@ -452,6 +492,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
         // Load the HUD
         initHud = true;
+        this.entityData = entityData;
 
         nifty.gotoScreen(PlayerScreenController.HUD_SCREEN_ID);
 
@@ -535,7 +576,7 @@ public class PlayerScreenController implements IPlayerScreenController {
      * Initializes the HUD items, such as buildings, spells etc. to level
      * initials
      */
-    private void initHudItems(AssetManager assetManager) {
+    private void initHudItems(AssetManager assetManager, EntityData entityData) {
         Screen hud = nifty.getScreen(HUD_SCREEN_ID);
 
         // Stretch the background image (height-wise) on the background image panel
@@ -586,6 +627,8 @@ public class PlayerScreenController implements IPlayerScreenController {
         Element creatureTab = hud.findElementById("tab-creature");
         final Element creaturePanel = creatureTab.findElementById("tab-creature-content");
         removeAllChildElements(creaturePanel);
+        creatureCardManager = new CreatureCardManager(state.getKwdFile(), entityData, nifty, creaturePanel,
+                creatureTab.findControl("tab-workers", WorkerAmountControl.class), hud, state.getPlayer().getId());
 //        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
 //            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
 //        }
@@ -889,20 +932,6 @@ public class PlayerScreenController implements IPlayerScreenController {
         };
     }
 
-    private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
-        ControlBuilder cb = new ControlBuilder("creature") {
-            {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                        + File.separator + creature.getPortraitResource().getName() + ".png"));
-                parameter("creatureId", Integer.toString(creature.getCreatureId()));
-                id("creature_" + creature.getCreatureId());
-            }
-        };
-        Element element = cb.build(nifty, hud, parent);
-
-        return element.getControl(CreatureCardControl.class);
-    }
-
     private ControlBuilder createRoomIcon(final Room room) {
         String name = Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
@@ -963,6 +992,189 @@ public class PlayerScreenController implements IPlayerScreenController {
             }
         };
         return cb;
+    }
+
+    private static class CreatureCardManager {
+
+        private final KwdFile kwdFile;
+        private final EntityData entityData;
+        private final Nifty nifty;
+        private final EntitySet playerCreatureEntities;
+        private final Element creaturePanel;
+        private final WorkerAmountControl workerAmountControl;
+        private final Screen hud;
+        final Map<Creature, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
+
+        public CreatureCardManager(KwdFile kwdFile, EntityData entityData, Nifty nifty, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
+            this.kwdFile = kwdFile;
+            this.entityData = entityData;
+            this.nifty = nifty;
+            this.creaturePanel = creaturePanel;
+            this.workerAmountControl = workerAmountControl;
+            this.hud = hud;
+            playerCreatureEntities = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", playerId), CreatureComponent.class, Health.class, CreatureAi.class, Owner.class);
+            processAddedPlayerCreatureEntities(playerCreatureEntities);
+        }
+
+        public void update(float tpf) {
+            if (playerCreatureEntities.applyChanges()) {
+                processAddedPlayerCreatureEntities(playerCreatureEntities.getAddedEntities());
+                processDeletedPlayerCreatureEntities(playerCreatureEntities.getRemovedEntities());
+                processChangedPlayerCreatureEntities(playerCreatureEntities.getChangedEntities());
+            }
+        }
+
+        public void cleanup() {
+            playerCreatureEntities.release();
+        }
+
+        private void processAddedPlayerCreatureEntities(Set<Entity> entities) {
+            Set<Creature> modifiedCreatures = new LinkedHashSet<>();
+            for (Entity entity : entities) {
+
+                // Add to the list
+                Creature creature = kwdFile.getCreature(entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId);
+                Set<EntityId> creatureSet = creaturesByTypes.get(creature);
+                if (creatureSet == null) {
+                    creatureSet = new LinkedHashSet<>();
+                    creaturesByTypes.put(creature, creatureSet);
+                }
+                creatureSet.add(entity.getId());
+                modifiedCreatures.add(creature);
+            }
+
+            // Update the creature cards
+            for (Creature creature : modifiedCreatures) {
+
+                // Imps
+                if (creature == kwdFile.getImp()) {
+                    updateWorkerStatistics();
+                    continue;
+                }
+
+                // Create the actual card
+                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreatureId(),
+                        CreatureCardControl.class);
+                if (card == null) {
+                    card = createPlayerCreatureIcon(creature, hud, creaturePanel);// Create
+                }
+                card.setTotal(calculateTotal(creature));
+            }
+        }
+
+        private void processDeletedPlayerCreatureEntities(Set<Entity> entities) {
+            Set<Creature> modifiedCreatures = new LinkedHashSet<>();
+            for (Entity entity : entities) {
+
+                // Remove from the list
+                Creature creature = kwdFile.getCreature(entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId);
+                Set<EntityId> creatureSet = creaturesByTypes.get(creature);
+                if (creatureSet != null) {
+                    creatureSet.remove(entity.getId());
+                    modifiedCreatures.add(creature);
+                }
+            }
+
+            // Update the creature cards
+            for (Creature creature : modifiedCreatures) {
+
+                // Imps
+                if (creature == kwdFile.getImp()) {
+                    updateWorkerStatistics();
+                    continue;
+                }
+
+                int realTotal = creaturesByTypes.get(creature).size();
+                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreatureId(),
+                        CreatureCardControl.class);
+                card.setTotal(calculateTotal(creature));
+                if (realTotal == 0) {
+                    card.getElement().markForRemoval(); // Remove
+                }
+            }
+        }
+
+        private void processChangedPlayerCreatureEntities(Set<Entity> entities) {
+            Set<Creature> modifiedCreatures = new LinkedHashSet<>();
+            for (Entity entity : entities) {
+                Creature creature = kwdFile.getCreature(entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId);
+                modifiedCreatures.add(creature);
+            }
+
+            // Update the creature cards
+            for (Creature creature : modifiedCreatures) {
+
+                // Imps
+                if (creature == kwdFile.getImp()) {
+                    updateWorkerStatistics();
+                    continue;
+                }
+
+                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreatureId(),
+                        CreatureCardControl.class);
+                card.setTotal(calculateTotal(creature));
+            }
+        }
+
+        private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
+            ControlBuilder cb = new ControlBuilder("creature") {
+                {
+                    filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                            + File.separator + creature.getPortraitResource().getName() + ".png"));
+                    parameter("creatureId", Integer.toString(creature.getCreatureId()));
+                    id("creature_" + creature.getCreatureId());
+                }
+            };
+            Element element = cb.build(nifty, hud, parent);
+
+            return element.getControl(CreatureCardControl.class);
+        }
+
+        private int calculateTotal(Creature creature) {
+            int total = 0;
+            Set<EntityId> creatureSet = creaturesByTypes.get(creature);
+            if (creatureSet != null) {
+                for (EntityId entityId : creatureSet) {
+                    if (entityData.getComponent(entityId, CreatureAi.class).creatureState != CreatureState.PICKED_UP) {
+                        total++;
+                    }
+                }
+            }
+            return total;
+        }
+
+        private void updateWorkerStatistics() {
+
+            // Calculate
+            int impTotal = 0;
+            int impIdle = 0;
+            int impFighting = 0;
+            int impBusy = 0;
+
+            Set<EntityId> imps = creaturesByTypes.get(kwdFile.getImp());
+            for (EntityId entityId : imps) {
+                CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+                if (creatureAi.creatureState == CreatureState.PICKED_UP
+                        || creatureAi.creatureState == CreatureState.DEAD) {
+                    continue;
+                }
+                if (creatureAi.creatureState == CreatureState.IDLE) {
+                    impIdle++;
+                } else if (creatureAi.creatureState == CreatureState.FIGHT) {
+                    impFighting++;
+                } else {
+                    impBusy++;
+                }
+                impTotal++;
+            }
+
+            // Set the amounts
+            workerAmountControl.setBusy(impBusy);
+            workerAmountControl.setFight(impFighting);
+            workerAmountControl.setIdle(impIdle);
+            workerAmountControl.setTotal(impTotal);
+        }
+
     }
 
     private class GameMenu {

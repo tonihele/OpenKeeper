@@ -135,7 +135,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
             // Get the game state
             final GameClientState gameState = stateManager.getState(GameClientState.class);
-            screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile());
+            screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile(), entityData);
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
@@ -214,8 +214,14 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             stateManager.detach(stateManager.getState(ConsoleState.class));
 
             appStates.clear();
+            screen.cleanup();
             screen.goToScreen(PlayerScreenController.SCREEN_EMPTY_ID);
         }
+    }
+
+    @Override
+    public void update(float tpf) {
+        screen.update(tpf);
     }
 
     public KwdFile getKwdFile() {
