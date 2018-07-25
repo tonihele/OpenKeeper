@@ -76,8 +76,6 @@ public class CreatureController implements ICreatureController {
             public void changeState(CreatureState newState) {
                 super.changeState(newState);
 
-                this.currentState = newState;
-
                 // Also change our state component
                 entityData.setComponent(entityId, new CreatureAi(newState, creature.getId()));
             }
