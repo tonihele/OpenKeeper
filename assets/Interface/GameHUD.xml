@@ -312,9 +312,9 @@
                                      image="Textures/GUI/Tabs/t-creatures.png"
                                      active="Textures/GUI/Icons/selected-creature.png"
                                      hintText="${menu.2153}" tooltip="${menu.2154}">
-                                <panel childLayout="horizontal" align="left">
+                                <panel childLayout="horizontal" align="left" id="tab-creature-container">
                                     <!--The worker amount & status-->
-                                    <control name="workerAmount" id="tab-workers" />
+                                    <!--                                    <control name="workerAmount" id="tab-workers" />-->
                                     <!--The tab contents scroll-->
                                     <control name="tabScroll" />
                                     <!--The =, shown for creatures-->

@@ -17,25 +17,20 @@
 package toniarts.openkeeper.gui.nifty;
 
 import de.lessvoid.nifty.Nifty;
-import de.lessvoid.nifty.NiftyMethodInvoker;
-import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
-import de.lessvoid.nifty.input.NiftyMouseInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import de.lessvoid.nifty.screen.ScreenController;
-import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.gui.nifty.WorkerAmountControl.State;
 
 /**
  *
  * @author archdemon
  */
-public class CreatureCardControl extends AbstractController {
+public class CreatureCardControl extends AbstractCreatureCardControl {
 
-    private String creatureId;
+    private short creatureId;
     private Nifty nifty;
     private Element element;
     private Screen screen;
@@ -58,7 +53,7 @@ public class CreatureCardControl extends AbstractController {
         this.screen = screen;
         this.element = element;
 
-        this.creatureId = parameter.get("creatureId");
+        this.creatureId = Short.parseShort(parameter.get("creatureId"));
 
         total = this.element.findNiftyControl("#total", Label.class);
         idle = this.element.findNiftyControl("#idle", Label.class);
@@ -72,7 +67,18 @@ public class CreatureCardControl extends AbstractController {
     }
 
     @Override
+    public Element getElement() {
+
+        // Hmm somewhere along the line we do something funny, the element is not bind in the super..
+        return element;
+    }
+
+    @Override
     public void onStartScreen() {
+        initState();
+    }
+
+    private void initState() {
         for (Element tab : element.findElementById("#tab-creature-card").getChildren()) {
             String id = tab.getId();
             if (id != null && id.endsWith("#tab-" + state.toString().toLowerCase())) {
@@ -90,23 +96,7 @@ public class CreatureCardControl extends AbstractController {
 
     public void setState(State state) {
         this.state = state;
-        onStartScreen();
-    }
-
-    public void zoomTo(String uiState) {
-        // FIXME very bad
-        ScreenController sc = screen.getScreenController();
-        if (sc instanceof PlayerScreenController) {
-            ((PlayerScreenController) sc).zoomToCreature(creatureId, uiState);
-        }
-    }
-
-    public void pickUp(String uiState) {
-        // FIXME very bad
-        ScreenController sc = screen.getScreenController();
-        if (sc instanceof PlayerScreenController) {
-            ((PlayerScreenController) sc).pickUpCreature(creatureId, uiState);
-        }
+        initState();
     }
 
     public void setTotal(int value) {
@@ -143,6 +133,11 @@ public class CreatureCardControl extends AbstractController {
 
     public void setAngry(int value) {
         angry.setText(Integer.toString(value));
+    }
+
+    @Override
+    public short getCreatureId() {
+        return creatureId;
     }
 
 }

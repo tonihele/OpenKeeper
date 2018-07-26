@@ -212,6 +212,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         camera.setLookAt(spatial.getWorldTranslation());
     }
 
+    public void setCameraLookAt(Vector3f position) {
+        camera.setLookAt(position);
+    }
+
     public void doTransition(int sweepFileId, final ActionPoint point) {
         this.doTransition(sweepFileId, WorldUtils.ActionPointToVector3f(point), null);
     }

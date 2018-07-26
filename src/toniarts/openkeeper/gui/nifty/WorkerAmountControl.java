@@ -17,7 +17,6 @@
 package toniarts.openkeeper.gui.nifty;
 
 import de.lessvoid.nifty.Nifty;
-import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
@@ -29,7 +28,7 @@ import de.lessvoid.nifty.screen.Screen;
  *
  * @author archdemon
  */
-public class WorkerAmountControl extends AbstractController {
+public class WorkerAmountControl extends AbstractCreatureCardControl {
 
     public enum State {
         TOTAL(0),
@@ -48,6 +47,7 @@ public class WorkerAmountControl extends AbstractController {
         }
     }
 
+    private short creatureId;
     private Nifty nifty;
     private Element element;
     private Screen screen;
@@ -64,6 +64,8 @@ public class WorkerAmountControl extends AbstractController {
         this.screen = screen;
         this.element = element;
 
+        this.creatureId = Short.parseShort(parameter.get("creatureId"));
+
         total = this.element.findNiftyControl("#workerTotal", Label.class);
         idle = this.element.findNiftyControl("#workerIdle", Label.class);
         busy = this.element.findNiftyControl("#workerBusy", Label.class);
@@ -72,6 +74,10 @@ public class WorkerAmountControl extends AbstractController {
 
     @Override
     public void onStartScreen() {
+        initState();
+    }
+
+    private void initState() {
         Element e = element.findElementById("#t-creature_panel");
         String fileName = String.format("Textures/GUI/Tabs/t-creature_panel-%s.png", state.getValue());
 
@@ -86,7 +92,7 @@ public class WorkerAmountControl extends AbstractController {
 
     public void setState(State state) {
         this.state = state;
-        onStartScreen();
+        initState();
     }
 
     public void setTotal(int value) {
@@ -110,6 +116,11 @@ public class WorkerAmountControl extends AbstractController {
         setIdle(idle);
         setBusy(busy);
         setFight(fight);
+    }
+
+    @Override
+    public short getCreatureId() {
+        return creatureId;
     }
 
 }

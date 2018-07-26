@@ -22,15 +22,16 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
-import toniarts.openkeeper.game.controller.player.PlayerCreatureControl.CreatureUIState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
@@ -53,6 +54,7 @@ import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
 import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -423,27 +425,29 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         }
     }
 
-    public void zoomToCreature(short creatureId, CreatureUIState uiState) {
-        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
-        CreatureControl creatureControl = getCreatureControl().getNextCreature(creature, uiState);
-
-        zoomToCreature(creatureControl);
+    /**
+     * Zoom to entity
+     *
+     * @param entityId the entity d to zoom to
+     */
+    public void zoomToEntity(EntityId entityId) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (position != null) {
+            cameraState.setCameraLookAt(position.position);
+        }
     }
 
     /**
-     * Zoom to given creature
+     * Pick up an entity
      *
-     * @param creature creature to zoom to
+     * @param entityId entity
      */
-    public void zoomToCreature(CreatureControl creature) {
-        cameraState.setCameraLookAt(creature.getSpatial());
-    }
+    public void pickUpEntity(EntityId entityId) {
 
-    void pickUpCreature(short creatureId, CreatureUIState uiState) {
-        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
-        CreatureControl creatureControl = getCreatureControl().getCreature(creature, uiState);
-
-        //interactionState.pickupObject(creatureControl);
+        // TODO: We should really have some sort of static etc. service that we can just ask these for entityId, not to pass a view controller
+        // They can be used with convenience methods from the view controller yes, but so that all will have access, shared with game logic, so the rules are the same (canPickup etc.)
+        interactionState.pickupObject(new EntityViewControl(entityId, entityData, app, null, assetManager) {
+        });
     }
 
     public short getPlayerId() {
