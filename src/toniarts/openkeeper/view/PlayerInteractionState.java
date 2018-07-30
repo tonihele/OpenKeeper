@@ -39,8 +39,6 @@ import com.simsilica.es.EntityData;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
-import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -54,7 +52,6 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -224,12 +221,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                        gameClientState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
                         break;
                     case LEVEL_MAX:
-                        Map<Creature, Set<CreatureControl>> creatureMap = stateManager.getState(PlayerState.class).getCreatureControl().getAllCreatures();
-                        creatureMap.values().stream().forEach((creatureControlSet) -> {
-                            creatureControlSet.stream().forEach((creatureControl) -> {
-                                creatureControl.levelMax();
-                            });
-                        });
+//d
                         break;
                     case WIN_LEVEL:
                         //gameClientState.setEnd(true);

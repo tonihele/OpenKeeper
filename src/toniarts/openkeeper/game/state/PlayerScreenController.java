@@ -1028,7 +1028,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
             this.workerAmountControl.addListener(creatureCardEventListener);
 
-            playerCreatureEntities = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", playerId), CreatureComponent.class, Health.class, CreatureAi.class, Owner.class);
+            playerCreatureEntities = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", playerId), CreatureComponent.class, Health.class, Owner.class);
             processAddedPlayerCreatureEntities(playerCreatureEntities);
         }
 
@@ -1155,7 +1155,8 @@ public class PlayerScreenController implements IPlayerScreenController {
             Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
             if (creatureSet != null) {
                 for (EntityId entityId : creatureSet) {
-                    if (entityData.getComponent(entityId, CreatureAi.class).creatureState != CreatureState.PICKED_UP) {
+                    CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+                    if (creatureAi == null || entityData.getComponent(entityId, CreatureAi.class).creatureState != CreatureState.PICKED_UP) {
                         total++;
                     }
                 }
@@ -1174,13 +1175,13 @@ public class PlayerScreenController implements IPlayerScreenController {
             Set<EntityId> imps = creaturesByTypes.get(kwdFile.getImp().getCreatureId());
             for (EntityId entityId : imps) {
                 CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-                if (creatureAi.creatureState == CreatureState.PICKED_UP
-                        || creatureAi.creatureState == CreatureState.DEAD) {
+                if (creatureAi != null && (creatureAi.creatureState == CreatureState.PICKED_UP
+                        || creatureAi.creatureState == CreatureState.DEAD)) {
                     continue;
                 }
-                if (creatureAi.creatureState == CreatureState.IDLE) {
+                if (creatureAi != null && creatureAi.creatureState == CreatureState.IDLE) {
                     impIdle++;
-                } else if (creatureAi.creatureState == CreatureState.FIGHT) {
+                } else if (creatureAi != null && creatureAi.creatureState == CreatureState.FIGHT) {
                     impFighting++;
                 } else {
                     impBusy++;

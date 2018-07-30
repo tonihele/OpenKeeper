@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -46,12 +47,12 @@ public class PlayerController implements IPlayerController {
     private final PlayerHandControl handControl;
     private final PlayerStatsControl statsControl;
 
-    public PlayerController(Keeper keeper, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public PlayerController(Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
 
         // Create the actual controllers
         goldControl = new PlayerGoldControl(keeper);
-        creatureControl = new PlayerCreatureControl(keeper);
+        creatureControl = new PlayerCreatureControl(keeper, imp);
         roomControl = new PlayerRoomControl(keeper);
         spellControl = new PlayerSpellControl(keeper);
         statsControl = new PlayerStatsControl();

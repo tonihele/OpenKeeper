@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
+import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -230,6 +231,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Game logic
         gameLogicThread = new GameLogicManager(positionSystem,
                 gameWorldController.getMapController(),
+                new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
                 this,
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
@@ -269,7 +271,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
             // Init
             if (keeper != null) {
-                PlayerController playerController = new PlayerController(keeper, entityData, gameSettings);
+                PlayerController playerController = new PlayerController(keeper, kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
                 // Spells are all available for research unless otherwise stated

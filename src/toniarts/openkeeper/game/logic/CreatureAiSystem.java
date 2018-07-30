@@ -38,7 +38,6 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
  */
 public class CreatureAiSystem implements IGameLogicUpdatable {
 
-    private final EntityData entityData;
     private final EntitySet creatureEntities;
 
     private final SafeArrayList<ICreatureController> creatureControllers;
@@ -46,7 +45,6 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     private final ICreaturesController creaturesController;
 
     public CreatureAiSystem(EntityData entityData, ICreaturesController creaturesController) {
-        this.entityData = entityData;
         this.creaturesController = creaturesController;
 
         creatureEntities = entityData.getEntities(CreatureAi.class);
