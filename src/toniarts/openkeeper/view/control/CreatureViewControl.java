@@ -16,10 +16,11 @@
  */
 package toniarts.openkeeper.view.control;
 
-import com.google.common.base.Objects;
 import com.jme3.asset.AssetManager;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.Objects;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -37,19 +38,18 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
     }
 
     @Override
-    protected void controlUpdate(float tpf) {
-        super.controlUpdate(tpf);
+    public void setSpatial(Spatial spatial) {
+        super.setSpatial(spatial);
 
-        if (!isAnimationPlaying && targetAnimation != null) {
-            playAnimation(targetAnimation);
+        // Play the starting animation
+        if (spatial != null && currentAnimation != null) {
+            playAnimation(currentAnimation);
         }
     }
 
     @Override
-    public void onAnimationStop() {
-        super.onAnimationStop();
-
-        playAnimation(targetAnimation);
+    public boolean isStopAnimation() {
+        return super.isStopAnimation() || currentAnimation != Creature.AnimationType.WALK;
     }
 
     private void playAnimation(Creature.AnimationType animation) {
@@ -63,7 +63,7 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
         super.setTargetAnimation(state);
 
         // Play immediately
-        if (!Objects.equal(currentAnimation, targetAnimation)) {
+        if (!Objects.equals(currentAnimation, targetAnimation)) {
             playAnimation(state);
         }
     }
@@ -81,6 +81,11 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
     @Override
     public CursorFactory.CursorType getInHandCursor() {
         return CursorFactory.CursorType.HOLD_THING;
+    }
+
+    @Override
+    protected ArtResource getAnimationData(Creature.AnimationType state) {
+        return getDataObject().getAnimation(state);
     }
 
 }

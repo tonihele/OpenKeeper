@@ -80,13 +80,22 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                         case STUNNED:
                             targetState = Creature.AnimationType.STUNNED;
                             break;
+                        case FALLEN:
+                            targetState = Creature.AnimationType.FALLBACK;
+                            break;
+                        case GETTING_UP:
+                            targetState = Creature.AnimationType.GET_UP;
+                            break;
+                        case ENTERING_DUNGEON:
+                            targetState = Creature.AnimationType.ENTRANCE;
+                            break;
                     }
                 }
             }
 
             // Change!
             if (currentState != targetState) {
-                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, targetState));
+                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, gameTime, targetState));
             }
         }
     }

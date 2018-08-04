@@ -19,9 +19,11 @@ package toniarts.openkeeper.game.controller.door;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.tools.convert.map.Door;
 
 /**
+ * Controller for door type entities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -39,7 +41,8 @@ public class DoorController implements IDoorController {
 
     @Override
     public boolean isDestroyed() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Health health = entityData.getComponent(entityId, Health.class);
+        return (health == null || health.health == 0);
     }
 
 

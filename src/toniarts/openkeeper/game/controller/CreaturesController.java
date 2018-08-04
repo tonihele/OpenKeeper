@@ -28,7 +28,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.CreatureEntrance;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
@@ -45,7 +44,6 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -171,7 +169,7 @@ public class CreaturesController implements ICreaturesController {
             Thing.DeadBody deadBody = (Thing.DeadBody) creature;
             ownerId = deadBody.getPlayerId();
         }
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId != 0 ? triggerId : null, false);
+        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId != null && triggerId != 0 ? triggerId : null, false);
     }
 
     @Override
@@ -196,18 +194,10 @@ public class CreaturesController implements ICreaturesController {
         creatureComponent.level = level;
         creatureComponent.creatureId = creatureId;
         creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
+        creatureComponent.stunDuration = creature.getAttributes().getStunDuration();
 
-        // If we are entering, we don't get the AI component yet
-        if (entrance) {
-            ArtResource entranceAnimation = creature.getAnimation(Creature.AnimationType.ENTRANCE);
-            int frames = entranceAnimation.getData("frames");
-            int fps = entranceAnimation.getData("fps");
-            entityData.setComponent(entity, new CreatureEntrance(frames / (float) fps, gameTimer.getGameTime()));
-        } else {
-            entityData.setComponent(entity, new CreatureAi(CreatureState.IDLE, creatureId));
-        }
+        entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE, creatureId));
 
-        //creatureComponent.creatureState = (entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE);
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent);
 
@@ -241,7 +231,7 @@ public class CreaturesController implements ICreaturesController {
         }
 
         // Visuals
-        entityData.setComponent(entity, new CreatureViewState(creatureId, entrance ? Creature.AnimationType.ENTRANCE : healthComponent != null ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.DEATH_POSE));
+        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), entrance ? Creature.AnimationType.ENTRANCE : healthComponent != null ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.DEATH_POSE));
 
         return entity;
     }
@@ -335,7 +325,7 @@ public class CreaturesController implements ICreaturesController {
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
-        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameWorldController, gameController.getTaskManager());
+        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameWorldController, gameController.getTaskManager(), gameTimer);
     }
 
     @Override

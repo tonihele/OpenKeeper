@@ -24,9 +24,11 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.world.MapLoader;
 
 /**
- * Handles creature falling (dropped from hand)
+ * Handles creature falling (dropped from hand). In the future maybe all these
+ * would be handled by a physics thingie?
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -52,15 +54,17 @@ public class CreatureFallSystem implements IGameLogicUpdatable {
         for (Entity entity : fallEntities) {
             Position position = entity.get(Position.class);
             Position newPosition = new Position(position.rotation, position.position);
-            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, 1);
+            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, MapLoader.FLOOR_HEIGHT);
             entity.set(newPosition);
-            if (newPosition.position.y == 1) {
+            if (newPosition.position.y == MapLoader.FLOOR_HEIGHT) {
 
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
 
-                // TODO: the state, depending on the landing
-                entityData.setComponent(entity.getId(), new CreatureAi(CreatureState.IDLE, entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId));
+                // The state, depending on the landing
+                // TODO: Torture, prisoner, evict?
+                CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+                entityData.setComponent(entity.getId(), new CreatureAi(gameTime, creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
             }
         }
     }

@@ -38,7 +38,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.CreatureEntrance;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -122,7 +121,6 @@ public class NetworkServer {
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
             Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
-            Serializer.registerClass(CreatureEntrance.class, new FieldSerializer());
             Serializer.registerClass(CreatureFall.class, new FieldSerializer());
             Serializer.registerClass(DoorComponent.class, new FieldSerializer());
             Serializer.registerClass(DoorViewState.class, new FieldSerializer());

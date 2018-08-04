@@ -52,4 +52,9 @@ public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.
         return CursorFactory.CursorType.HOLD_THING;
     }
 
+    @Override
+    protected ArtResource getAnimationData(GameObject.State state) {
+        return getDataObject().getMeshResource();
+    }
+
 }

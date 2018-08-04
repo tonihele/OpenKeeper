@@ -70,7 +70,9 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
             short ownerId = entity.get(Owner.class).ownerId;
             short creatureId = entity.get(CreatureComponent.class).creatureId;
             ownersByEntityId.put(entity.getId(), ownerId);
-            creatureControls.get(ownerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(creatureId));
+            if (creatureControls.containsKey(ownerId)) {
+                creatureControls.get(ownerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(creatureId));
+            }
         }
     }
 
@@ -79,7 +81,9 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
             short ownerId = entity.get(Owner.class).ownerId;
             short creatureId = entity.get(CreatureComponent.class).creatureId;
             ownersByEntityId.remove(entity.getId());
-            creatureControls.get(ownerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(creatureId));
+            if (creatureControls.containsKey(ownerId)) {
+                creatureControls.get(ownerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(creatureId));
+            }
         }
     }
 
@@ -89,8 +93,12 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
             short creatureId = entity.get(CreatureComponent.class).creatureId;
             short oldOwnerId = ownersByEntityId.put(entity.getId(), newOwnerId);
             if (newOwnerId != oldOwnerId) {
-                creatureControls.get(newOwnerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(creatureId));
-                creatureControls.get(oldOwnerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(creatureId));
+                if (creatureControls.containsKey(newOwnerId)) {
+                    creatureControls.get(newOwnerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(creatureId));
+                }
+                if (creatureControls.containsKey(oldOwnerId)) {
+                    creatureControls.get(oldOwnerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(creatureId));
+                }
             }
         }
     }

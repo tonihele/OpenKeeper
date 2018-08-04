@@ -70,6 +70,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
@@ -1155,8 +1156,8 @@ public class PlayerScreenController implements IPlayerScreenController {
             Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
             if (creatureSet != null) {
                 for (EntityId entityId : creatureSet) {
-                    CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-                    if (creatureAi == null || entityData.getComponent(entityId, CreatureAi.class).creatureState != CreatureState.PICKED_UP) {
+                    Position position = entityData.getComponent(entityId, Position.class);
+                    if (position != null) {
                         total++;
                     }
                 }
@@ -1256,9 +1257,9 @@ public class PlayerScreenController implements IPlayerScreenController {
                 }
 
                 CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-                if (creatureAi.creatureState == CreatureState.IDLE) {
+                if (creatureAi != null && creatureAi.creatureState == CreatureState.IDLE) {
                     return state == CreatureUIState.IDLE;
-                } else if (creatureAi.creatureState == CreatureState.FIGHT) {
+                } else if (creatureAi != null && creatureAi.creatureState == CreatureState.FIGHT) {
                     return state == CreatureUIState.FIGHT;
                 } else {
                     return state == CreatureUIState.BUSY;

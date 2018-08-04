@@ -311,7 +311,9 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
         }
 
         @Override
@@ -503,7 +505,7 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
-    }, DRAGGED;
+    }, DRAGGED {
 
     @Override
     public void enter(ICreatureController entity) {
@@ -513,6 +515,52 @@ public enum CreatureState implements State<ICreatureController> {
     @Override
     public void update(ICreatureController entity) {
 
+    }
+
+    @Override
+    public void exit(ICreatureController entity) {
+
+    }
+
+    @Override
+    public boolean onMessage(ICreatureController entity, Telegram telegram) {
+        return true;
+        }
+    }, FALLEN {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(GETTING_UP);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, GETTING_UP;
+
+    @Override
+    public void enter(ICreatureController entity) {
+
+    }
+
+    @Override
+    public void update(ICreatureController entity) {
+        if (entity.isStateTimeExceeded()) {
+            entity.getStateMachine().changeState(IDLE);
+        }
     }
 
     @Override

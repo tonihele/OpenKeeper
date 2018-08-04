@@ -43,7 +43,13 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.utils.Utils;
 
 /**
- * Handles creatures spawning, from Portals, Dungeon Hearts...
+ * Handles creatures spawning, from Portals, Dungeon Hearts...<br>
+ * It is confirmed behavior in the original game that multiple portals that have
+ * the same counter value will spawn creatures at the same time. Even one could
+ * think that since the creature count goes up, we wouldn't be able to spawn
+ * more than one creature at the time as the cooldown requirement increases. We
+ * replicate this behavior 100% since we actually count the creatures once per
+ * tick.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

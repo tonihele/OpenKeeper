@@ -49,6 +49,7 @@ public class CreatureComponent implements EntityComponent {
     public int posessionManaCost;
     public float meleeRecharge;
     public int efficiencyPercentage;
+    public float stunDuration;
     public boolean worker;
     public short creatureId;
 

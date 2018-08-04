@@ -28,14 +28,16 @@ import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 public class CreatureViewState implements EntityComponent {
 
     public short creatureId;
+    public double stateStartTime;
     public AnimationType state; // TODO: Proper enum, not this
 
     public CreatureViewState() {
         // For serialization
     }
 
-    public CreatureViewState(short creatureId, AnimationType state) {
+    public CreatureViewState(short creatureId, double stateStartTime, AnimationType state) {
         this.creatureId = creatureId;
+        this.stateStartTime = stateStartTime;
         this.state = state;
     }
 

@@ -204,6 +204,8 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         return data;
     }
 
+    protected abstract ArtResource getAnimationData(S state);
+
     @Override
     public int hashCode() {
         int hash = 7;

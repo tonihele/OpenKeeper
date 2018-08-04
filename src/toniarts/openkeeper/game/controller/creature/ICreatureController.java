@@ -168,4 +168,13 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void setPlayerObjective(Object object);
 
+    /**
+     * Evaluates the time spent in current state and compares it to the
+     * creatures target time in a state. The target time would be set by either
+     * animation or level variable
+     *
+     * @return {@code true} if state should be changed
+     */
+    public boolean isStateTimeExceeded();
+
 }

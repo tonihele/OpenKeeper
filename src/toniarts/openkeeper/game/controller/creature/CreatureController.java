@@ -36,11 +36,13 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -56,6 +58,7 @@ public class CreatureController implements ICreatureController {
     private final EntityData entityData;
     private final IGameWorldController gameWorldController;
     private final ITaskManager taskManager;
+    private final IGameTimer gameTimer;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -64,12 +67,14 @@ public class CreatureController implements ICreatureController {
     private boolean taskStarted = false;
     private float motionless = 0;
 
-    public CreatureController(EntityId entityId, EntityData entityData, Creature creature, IGameWorldController gameWorldController, ITaskManager taskManager) {
+    public CreatureController(EntityId entityId, EntityData entityData, Creature creature, IGameWorldController gameWorldController,
+            ITaskManager taskManager, IGameTimer gameTimer) {
         this.entityId = entityId;
         this.entityData = entityData;
         this.gameWorldController = gameWorldController;
         this.taskManager = taskManager;
         this.creature = creature;
+        this.gameTimer = gameTimer;
         this.stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(this) {
 
             @Override
@@ -77,7 +82,7 @@ public class CreatureController implements ICreatureController {
                 super.changeState(newState);
 
                 // Also change our state component
-                entityData.setComponent(entityId, new CreatureAi(newState, creature.getId()));
+                entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), newState, creature.getId()));
             }
 
         };
@@ -383,7 +388,7 @@ public class CreatureController implements ICreatureController {
     }
 
     private void initState() {
-        stateMachine.changeState(CreatureState.IDLE);
+        stateMachine.changeState(entityData.getComponent(entityId, CreatureAi.class).creatureState);
     }
 
     @Override
@@ -613,6 +618,36 @@ public class CreatureController implements ICreatureController {
     @Override
     public void setPlayerObjective(Object object) {
         // TODO
+    }
+
+    @Override
+    public boolean isStateTimeExceeded() {
+        double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
+
+        switch (stateMachine.getCurrentState()) {
+            case STUNNED: {
+                // Hmm, this might actually be the level variable, the stun seems to be the time fallen when dropped
+                return timeSpent >= entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+            }
+            case FALLEN: {
+                return timeSpent >= entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+            }
+            case GETTING_UP: {
+                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.GET_UP);
+            }
+            case ENTERING_DUNGEON: {
+                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
+            }
+        }
+        return false;
+    }
+
+    private static double getAnimationTime(Creature creature, Creature.AnimationType animation) {
+        // TODO: we could cache and calculate these for all centrally, also include the starting and ending animation
+        ArtResource animationResource = creature.getAnimation(animation);
+        int frames = animationResource.getData("frames");
+        int fps = animationResource.getData("fps");
+        return frames / (double) fps;
     }
 
     @Override
