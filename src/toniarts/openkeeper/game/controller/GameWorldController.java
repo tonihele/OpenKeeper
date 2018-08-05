@@ -40,7 +40,10 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
@@ -589,10 +592,8 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void pickUp(EntityId entity, short playerId) {
-
-        // TODO: Verify that can we do this or not
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (!playerHandControl.isFull()) {
+        if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
             playerHandControl.push(entity);
 
             // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
@@ -603,16 +604,39 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
     }
 
+    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData) {
+        // TODO: Somewhere common shared static, can share the rules with the UI client
+
+        // Check if picked up already
+        InHand inHand = entityData.getComponent(entityId, InHand.class);
+        if (inHand != null) {
+            return false;
+        }
+
+        // The owner only
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId != playerId) {
+            return false;
+        }
+
+        // Is it iteractable?
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (interaction == null) {
+            return false;
+        }
+
+        // TODO: Was it so that it can be only picked up from own land?
+        return interaction.pickUppable;
+    }
+
     @Override
     public void interact(EntityId entity, short playerId) {
     }
 
     @Override
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-
-        // TODO: Verify that can we do this or not
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (playerHandControl.peek() == entity) {
+        if (playerHandControl.peek() == entity && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
             playerHandControl.pop();
 
             // Stuff drop differently
@@ -632,6 +656,39 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 entityData.setComponent(entity, new Position(0, pos));
             }
         }
+    }
+
+    private boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, MapTile tile) {
+        // TODO: Somewhere common shared static, can share the rules with the UI client
+
+        if (tile == null) {
+            return false;
+        }
+
+        // Check if picked up in the first place
+        InHand inHand = entityData.getComponent(entityId, InHand.class);
+        if (inHand == null) {
+            return false;
+        }
+
+        // The owner only
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId != playerId) {
+            return false;
+        }
+
+        // Is it iteractable?
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (interaction == null) {
+            return false;
+        }
+
+        // Own land rule
+        if (!interaction.canBeDroppedOnAnyLand && tile.getOwnerId() != playerId) {
+            return false;
+        }
+
+        return true;
     }
 
     public ICreaturesController getCreaturesController() {
