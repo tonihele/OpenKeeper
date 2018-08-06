@@ -177,11 +177,7 @@ public class AnimationLoader {
                         }
                     });
                     AnimChannel channel = animControl.createChannel();
-                    if (resource.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
-                        channel.setLoopMode(LoopMode.DontLoop);
-                    } else {
-                        setLoopModeOnChannel(spat, channel);
-                    }
+                    setLoopModeOnChannel(spat, channel);
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, e.getMessage());
