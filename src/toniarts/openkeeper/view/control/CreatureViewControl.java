@@ -42,28 +42,28 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
         super.setSpatial(spatial);
 
         // Play the starting animation
-        if (spatial != null && currentAnimation != null) {
-            playAnimation(currentAnimation);
+        if (spatial != null && currentState != null) {
+            playAnimation(currentState);
         }
     }
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || currentAnimation != Creature.AnimationType.WALK;
+        return super.isStopAnimation() || currentState != Creature.AnimationType.WALK;
     }
 
     private void playAnimation(Creature.AnimationType animation) {
         AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
         isAnimationPlaying = true;
-        currentAnimation = animation;
+        currentState = animation;
     }
 
     @Override
-    public void setTargetAnimation(Creature.AnimationType state) {
-        super.setTargetAnimation(state);
+    public void setTargetState(Creature.AnimationType state) {
+        super.setTargetState(state);
 
         // Play immediately
-        if (!Objects.equals(currentAnimation, targetAnimation)) {
+        if (!Objects.equals(currentState, targetState)) {
             playAnimation(state);
         }
     }

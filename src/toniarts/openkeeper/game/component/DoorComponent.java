@@ -26,13 +26,17 @@ import com.simsilica.es.EntityComponent;
 public class DoorComponent implements EntityComponent {
 
     public short doorId;
+    public boolean locked;
+    public boolean blueprint;
 
     public DoorComponent() {
         // For serialization
     }
 
-    public DoorComponent(short doorId) {
+    public DoorComponent(short doorId, boolean locked, boolean blueprint) {
         this.doorId = doorId;
+        this.locked = locked;
+        this.blueprint = blueprint;
     }
 
 }

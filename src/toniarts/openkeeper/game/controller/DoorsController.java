@@ -97,7 +97,7 @@ public class DoorsController implements IDoorsController {
 
     private EntityId loadDoor(int x, int y, short doorId, short ownerId, Integer triggerId, boolean locked, boolean blueprint) {
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new DoorComponent(doorId));
+        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint));
         entityData.setComponent(entity, new Owner(ownerId));
 
         // Move to the center of the tile

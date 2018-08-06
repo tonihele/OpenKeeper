@@ -186,7 +186,7 @@ public interface IEntityViewControl<T, S> extends Control {
      */
     public EntityId getEntityId();
 
-    public void setTargetAnimation(S state);
+    public void setTargetState(S state);
 
     public T getDataObject();
 

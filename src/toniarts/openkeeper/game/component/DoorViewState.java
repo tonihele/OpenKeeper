@@ -28,23 +28,23 @@ public class DoorViewState implements EntityComponent {
 
     public short doorId;
     public boolean locked;
-    public boolean bluebrint;
+    public boolean blueprint;
     public boolean open;
 
     public DoorViewState() {
         // For serialization
     }
 
-    public DoorViewState(short doorId, boolean locked, boolean bluebrint, boolean open) {
+    public DoorViewState(short doorId, boolean locked, boolean blueprint, boolean open) {
         this.doorId = doorId;
         this.locked = locked;
-        this.bluebrint = bluebrint;
+        this.blueprint = blueprint;
         this.open = open;
     }
 
     @Override
     public String toString() {
-        return "DoorViewState{" + "doorId=" + doorId + ", locked=" + locked + ", bluebrint=" + bluebrint + ", open=" + open + '}';
+        return "DoorViewState{" + "doorId=" + doorId + ", locked=" + locked + ", blueprint=" + blueprint + ", open=" + open + '}';
     }
 
 }

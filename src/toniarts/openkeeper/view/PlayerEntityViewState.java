@@ -38,6 +38,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.view.control.CreatureViewControl;
+import toniarts.openkeeper.view.control.DoorViewControl;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
@@ -221,8 +222,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (doorViewState != null) {
             Door door = kwdFile.getDoorById(doorViewState.doorId);
             result = doorLoader.load(assetManager, doorViewState);
-            //EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
-            //result.addControl(control);
+            EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, kwdFile.getObject(door.getKeyObjectId()));
+            result.addControl(control);
         }
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
@@ -257,7 +258,12 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
-        object.getControl(IEntityViewControl.class).setTargetAnimation(viewState.state);
+        object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
+    }
+
+    private void updateDoorModelState(Spatial object, Entity e) {
+        DoorViewState viewState = e.get(DoorViewState.class);
+        object.getControl(DoorViewControl.class).setTargetState(viewState);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -354,7 +360,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             LOGGER.log(Level.FINEST, "DoorModelContainer.updateObject({0})", e);
             updateModelPosition(object, e); // LOL, but ok
-            //updateModelAnimation(object, e);
+            updateDoorModelState(object, e);
         }
 
         @Override

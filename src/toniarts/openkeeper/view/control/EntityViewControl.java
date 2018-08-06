@@ -38,7 +38,7 @@ import toniarts.openkeeper.world.animation.AnimationControl;
  * General entity controller, a bridge between entities and view
  *
  * @param <T> The type of the entity
- * @param <S> The animation type
+ * @param <S> The view state, or animation type
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class EntityViewControl<T, S> extends AbstractControl implements IEntityViewControl<T, S>, AnimationControl {
@@ -46,18 +46,18 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     private final EntityId entityId;
     private final EntityData entityData;
     private final T data;
-    protected S currentAnimation;
-    protected S targetAnimation;
+    protected S currentState;
+    protected S targetState;
     protected final AssetManager assetManager;
     protected boolean isAnimationPlaying = false;
 
     private boolean active = false;
 
-    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S animation, AssetManager assetManager) {
+    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager) {
         this.entityId = entityId;
         this.entityData = entityData;
-        this.currentAnimation = animation;
-        this.targetAnimation = animation;
+        this.currentState = state;
+        this.targetState = state;
         this.assetManager = assetManager;
         this.data = data;
     }
@@ -180,7 +180,6 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public void onAnimationStop() {
-        currentAnimation = null;
         isAnimationPlaying = false;
     }
 
@@ -191,12 +190,12 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public boolean isStopAnimation() {
-        return targetAnimation == null || targetAnimation != currentAnimation;
+        return targetState == null || targetState != currentState;
     }
 
     @Override
-    public void setTargetAnimation(S state) {
-        this.targetAnimation = (S) state;
+    public void setTargetState(S state) {
+        this.targetState = (S) state;
     }
 
     @Override
