@@ -67,4 +67,35 @@ public interface IEntityPositionLookup {
 
     <T> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz);
 
+    /**
+     * Checks if a tile in given location is blocked for player's entity (a.k.a.
+     * can creature go through / to the tile)
+     *
+     * @param p the map point
+     * @param playerId the player ID of which entity is wanting to know
+     * @return true if the tile is blocked
+     */
+    boolean isTileBlocked(Point p, short playerId);
+
+    /**
+     * Checks if a tile in given location is blocked for player's entity (a.k.a.
+     * can creature go through / to the tile)
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @param playerId the player ID of which entity is wanting to know
+     * @return true if the tile is blocked
+     */
+    boolean isTileBlocked(int x, int y, short playerId);
+
+    /**
+     * Checks if a tile in given location is blocked for player's entity (a.k.a.
+     * can creature go through / to the tile)
+     *
+     * @param mapTile the map tile
+     * @param playerId the player ID of which entity is wanting to know
+     * @return true if the tile is blocked
+     */
+    boolean isTileBlocked(MapTile mapTile, short playerId);
+
 }

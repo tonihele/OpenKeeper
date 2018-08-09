@@ -17,9 +17,9 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -34,8 +34,8 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
     private final ICreatureController creature;
     private boolean executed = false;
 
-    public CarryCreatureToLairTask(final IGameWorldController gameWorldController, final IMapController mapController, ICreatureController creature, short playerId) {
-        super(gameWorldController, mapController, creature.getLairLocation().x, creature.getLairLocation().y, playerId);
+    public CarryCreatureToLairTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
+        super(navigationService, mapController, creature.getLairLocation().x, creature.getLairLocation().y, playerId);
         this.creature = creature;
     }
 

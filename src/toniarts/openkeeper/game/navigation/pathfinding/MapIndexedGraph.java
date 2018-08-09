@@ -21,9 +21,9 @@ import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.MapTile;
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.DEFAULT_COST;
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.WATER_COST;
@@ -37,13 +37,14 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 public class MapIndexedGraph implements IndexedGraph<MapTile> {
 
     private final IMapController mapController;
-    private final IGameWorldController gameWorldController;
+    private final IEntityPositionLookup entityPositionLookup;
     private final int nodeCount;
     private INavigable pathFindable;
 
-    public MapIndexedGraph(IGameWorldController gameWorldController, IMapController mapController) {
+    public MapIndexedGraph(IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         this.mapController = mapController;
-        this.gameWorldController = gameWorldController;
+        this.entityPositionLookup = entityPositionLookup;
+
         nodeCount = mapController.getMapData().getHeight() * mapController.getMapData().getWidth();
     }
 
@@ -102,7 +103,7 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
         // Valid coordinate
         MapTile tile = mapController.getMapData().getTile(x, y);
         if (tile != null) {
-            Float cost = getCost(pathFindable, startTile, tile, gameWorldController, mapController, false);
+            Float cost = getCost(pathFindable, startTile, tile, mapController, entityPositionLookup, false);
             if (cost != null) {
                 connections.add(new DefaultConnection<MapTile>(startTile, tile) {
 
@@ -125,25 +126,22 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
      * @param from the tile we are traversing from, always the adjacent tile
      * which we know already being accessible
      * @param to the tile we are travelling to
-     * @param gameWorldController the game world controller
      * @param mapController the map controller
+     * @param entityPositionLookup entity position lookup
      * @see #DEFAULT_COST
      * @see #WATER_COST
      * @return {@code null} if the to tile is not accessible
      */
-    protected static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IGameWorldController gameWorldController, final IMapController mapController) {
-        return getCost(navigable, from, to, gameWorldController, mapController, true);
+    protected static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IMapController mapController,
+            IEntityPositionLookup entityPositionLookup) {
+        return getCost(navigable, from, to, mapController, entityPositionLookup, true);
     }
 
-    private static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IGameWorldController gameWorldController, final IMapController mapController, boolean checkDiagonal) {
+    private static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IMapController mapController,
+            IEntityPositionLookup entityPositionLookup, boolean checkDiagonal) {
         Terrain terrain = mapController.getTerrain(to);
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
-            // Check for doors etc.
-//            DoorControl doorControl = worldState.getThingLoader().getDoor(to.getLocation());
-//            if (doorControl != null && !doorControl.isPassable(getOwnerId())) {
-//                return null;
-//            }
             // We can never squeeze through obstacles, even if able to move diagonally
             if (checkDiagonal && from != null && from.getX() != to.getX() && from.getY() != to.getY()) {
                 if (!navigable.canMoveDiagonally()) {
@@ -154,15 +152,20 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
                 boolean hasConnection = false;
                 MapTile hiCorner = mapController.getMapData().getTile(Math.max(from.getX(), to.getX()), Math.max(from.getY(), to.getY()));
                 MapTile loCorner = mapController.getMapData().getTile(Math.min(from.getX(), to.getX()), Math.min(from.getY(), to.getY()));
-                if (hiCorner != null && getCost(navigable, from, hiCorner, gameWorldController, mapController, false) != null) {
+                if (hiCorner != null && getCost(navigable, from, hiCorner, mapController, entityPositionLookup, false) != null) {
                     hasConnection = true;
-                } else if (loCorner != null && getCost(navigable, from, loCorner, gameWorldController, mapController, false) != null) {
+                } else if (loCorner != null && getCost(navigable, from, loCorner, mapController, entityPositionLookup, false) != null) {
                     hasConnection = true;
                 }
 
                 if (!hasConnection) {
                     return null;
                 }
+            }
+
+            // Check for doors etc.
+            if (entityPositionLookup.isTileBlocked(to, navigable.getOwnerId())) {
+                return null;
             }
 
             // Check terrain

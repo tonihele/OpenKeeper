@@ -22,9 +22,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -36,14 +36,14 @@ import toniarts.openkeeper.utils.WorldUtils;
 public abstract class AbstractTask implements Task {
 
     private final Date taskCreated;
-    protected final IGameWorldController gameWorldController;
+    protected final INavigationService navigationService;
     protected final IMapController mapController;
     private final Map<ICreatureController, Float> assignees = new HashMap<>();
     private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
 
-    public AbstractTask(final IGameWorldController gameWorldController, final IMapController mapController) {
+    public AbstractTask(final INavigationService navigationService, final IMapController mapController) {
         this.taskCreated = new Date();
-        this.gameWorldController = gameWorldController;
+        this.navigationService = navigationService;
         this.mapController = mapController;
     }
 
@@ -133,7 +133,7 @@ public abstract class AbstractTask implements Task {
         Point targetTile = WorldUtils.vectorToPoint(target);
         boolean hasAccessibleNeighbour = false;
         for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), targetTile, false)) {
-            if (gameWorldController.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(targetTile), creature)) {
+            if (navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(targetTile), creature)) {
                 hasAccessibleNeighbour = true;
                 break; // At least one accessible point
             }
@@ -143,7 +143,7 @@ public abstract class AbstractTask implements Task {
         }
 
         // Path find
-        return (gameWorldController.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
+        return (navigationService.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
     }
 
     @Override

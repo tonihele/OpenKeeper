@@ -37,8 +37,8 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
@@ -56,7 +56,7 @@ public class CreatureController implements ICreatureController {
 
     private final EntityId entityId;
     private final EntityData entityData;
-    private final IGameWorldController gameWorldController;
+    private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
@@ -67,11 +67,11 @@ public class CreatureController implements ICreatureController {
     private boolean taskStarted = false;
     private float motionless = 0;
 
-    public CreatureController(EntityId entityId, EntityData entityData, Creature creature, IGameWorldController gameWorldController,
+    public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer) {
         this.entityId = entityId;
         this.entityData = entityData;
-        this.gameWorldController = gameWorldController;
+        this.navigationService = navigationService;
         this.taskManager = taskManager;
         this.creature = creature;
         this.gameTimer = gameTimer;
@@ -109,9 +109,9 @@ public class CreatureController implements ICreatureController {
         final Owner owner = entityData.getComponent(entityId, Owner.class);
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
-            Point destination = gameWorldController.findRandomAccessibleTile(start, 10, this);
+            Point destination = navigationService.findRandomAccessibleTile(start, 10, this);
             if (destination != null) {
-                GraphPath<MapTile> path = gameWorldController.findPath(start, destination, this);
+                GraphPath<MapTile> path = navigationService.findPath(start, destination, this);
                 entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
             }
         }
@@ -260,7 +260,7 @@ public class CreatureController implements ICreatureController {
 
         if (loc != null) {
             Point destination = WorldUtils.vectorToPoint(loc);
-            GraphPath<MapTile> path = gameWorldController.findPath(getCreatureCoordinates(), destination, this);
+            GraphPath<MapTile> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
             entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
         }
     }

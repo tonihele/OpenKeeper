@@ -300,6 +300,12 @@ public class MapTile implements Savable {
     }
 
     @Override
+    public String toString() {
+        return "MapTile{ownerId=" + ownerId + ", p=" + p + '}';
+    }
+
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;

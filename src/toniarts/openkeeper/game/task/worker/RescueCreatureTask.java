@@ -18,9 +18,9 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.util.Objects;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -34,8 +34,8 @@ public class RescueCreatureTask extends AbstractTileTask {
 
     private final ICreatureController creature;
 
-    public RescueCreatureTask(final IGameWorldController gameWorldController, final IMapController mapController, ICreatureController creature, short playerId) {
-        super(gameWorldController, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
+    public RescueCreatureTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
+        super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
         this.creature = creature;
     }
 
@@ -69,7 +69,7 @@ public class RescueCreatureTask extends AbstractTileTask {
         //creature.setHaulable(this.creature);
 
         // Assign carry to lair
-        CarryCreatureToLairTask task = new CarryCreatureToLairTask(gameWorldController, mapController, this.creature, playerId);
+        CarryCreatureToLairTask task = new CarryCreatureToLairTask(navigationService, mapController, this.creature, playerId);
         task.assign(creature, true);
     }
 

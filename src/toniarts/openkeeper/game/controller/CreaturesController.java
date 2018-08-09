@@ -74,7 +74,6 @@ public class CreaturesController implements ICreaturesController {
      */
     private final Map<Short, Thing.HeroParty> heroParties = new HashMap<>();
     private final IGameTimer gameTimer;
-    private final IGameWorldController gameWorldController;
     private final IGameController gameController;
 
     private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
@@ -86,16 +85,14 @@ public class CreaturesController implements ICreaturesController {
      * @param entityData the entity controller
      * @param gameSettings the game settings
      * @param gameTimer
-     * @param gameWorldController
      * @param gameController
      */
     public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
-            IGameWorldController gameWorldController, IGameController gameController) {
+            IGameController gameController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
-        this.gameWorldController = gameWorldController;
         this.gameController = gameController;
 
         // Load creatures
@@ -325,7 +322,7 @@ public class CreaturesController implements ICreaturesController {
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
-        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameWorldController, gameController.getTaskManager(), gameTimer);
+        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer);
     }
 
     @Override

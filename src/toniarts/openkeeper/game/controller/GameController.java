@@ -49,6 +49,8 @@ import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.NavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -107,6 +109,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private int levelScore = 0;
     private boolean campaign;
     private GameWorldController gameWorldController;
+    private INavigationService navigationService;
 
     private GameResult gameResult = null;
     private Float timeLimit = null;
@@ -203,6 +206,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
         PositionSystem positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController());
 
+        // Navigation
+        navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
+
         // The triggers
         partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
         creatureTriggerState = new CreatureTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData);
@@ -212,7 +218,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
 
         // Initialize tasks
-        taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), playerControllers.values());
+        taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), navigationService, playerControllers.values());
 
         // Trigger data
         for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
@@ -617,6 +623,11 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     @Override
     public List<ActionPoint> getActionPoints() {
         return actionPoints;
+    }
+
+    @Override
+    public INavigationService getNavigationService() {
+        return navigationService;
     }
 
 }

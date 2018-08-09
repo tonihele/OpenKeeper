@@ -17,11 +17,11 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -36,8 +36,8 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
 
     private boolean executed = false;
 
-    public CarryEnemyCreatureToPrison(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
-        super(gameWorldController, mapController, x, y, playerId, room, taskManager);
+    public CarryEnemyCreatureToPrison(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
+        super(navigationService, mapController, x, y, playerId, room, taskManager);
     }
 
     @Override

@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**
  * Claim a room
@@ -27,8 +27,8 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
  */
 public class ClaimRoomTask extends ClaimTileTask {
 
-    public ClaimRoomTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId) {
-        super(gameWorldController, mapController, x, y, playerId);
+    public ClaimRoomTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
+        super(navigationService, mapController, x, y, playerId);
     }
 
     @Override

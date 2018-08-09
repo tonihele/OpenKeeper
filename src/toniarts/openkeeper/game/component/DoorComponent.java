@@ -39,4 +39,8 @@ public class DoorComponent implements EntityComponent {
         this.blueprint = blueprint;
     }
 
+    @Override
+    public String toString() {
+        return "DoorComponent{" + "doorId=" + doorId + ", locked=" + locked + ", blueprint=" + blueprint + '}';
+    }
 }

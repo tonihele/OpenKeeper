@@ -22,6 +22,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -33,10 +34,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
+    private final IGameWorldController gameWorldController;
     private boolean executed = false;
 
-    public CarryGoldToTreasuryTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId, IRoomController room) {
-        super(gameWorldController, mapController, x, y, playerId, room);
+    public CarryGoldToTreasuryTask(final INavigationService navigationService, final IMapController mapController,
+            int x, int y, short playerId, final IRoomController room, final IGameWorldController gameWorldController) {
+        super(navigationService, mapController, x, y, playerId, room);
+        this.gameWorldController = gameWorldController;
     }
 
     @Override

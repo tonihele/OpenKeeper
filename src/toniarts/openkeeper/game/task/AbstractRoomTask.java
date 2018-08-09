@@ -16,12 +16,12 @@
  */
 package toniarts.openkeeper.game.task;
 
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**
  * A base of a task that involves a room
@@ -32,8 +32,8 @@ public abstract class AbstractRoomTask extends AbstractTileTask {
 
     private final IRoomController room;
 
-    public AbstractRoomTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId, IRoomController room) {
-        super(gameWorldController, mapController, x, y, playerId);
+    public AbstractRoomTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room) {
+        super(navigationService, mapController, x, y, playerId);
 
         this.room = room;
     }

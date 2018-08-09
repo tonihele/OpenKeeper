@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
@@ -70,14 +71,17 @@ public class TaskManager implements ITaskManager {
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
+    private final INavigationService navigationService;
     private final Map<Short, Set<AbstractTask>> taskQueues;
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
-    public TaskManager(IGameWorldController gameWorldController, IMapController mapController, Collection<IPlayerController> players) {
+    public TaskManager(IGameWorldController gameWorldController, IMapController mapController, INavigationService navigationService,
+            Collection<IPlayerController> players) {
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
+        this.navigationService = navigationService;
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -208,23 +212,23 @@ public class TaskManager implements ITaskManager {
 
             // Dig
             if (mapController.isSelected(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new DigTileTask(gameWorldController, mapController, tile.getX(), tile.getY(), entry.getKey());
+                AbstractTask task = new DigTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim wall
             else if (mapController.isClaimableWall(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new ClaimWallTileTask(gameWorldController, mapController, tile.getX(), tile.getY(), entry.getKey());
+                AbstractTask task = new ClaimWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim
             else if (mapController.isClaimableTile(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new ClaimTileTask(gameWorldController, mapController, tile.getX(), tile.getY(), entry.getKey());
+                AbstractTask task = new ClaimTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Repair wall
             else if (mapController.isRepairableWall(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new RepairWallTileTask(gameWorldController, mapController, tile.getX(), tile.getY(), entry.getKey());
+                AbstractTask task = new RepairWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim room
             else if (mapController.isClaimableRoom(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new ClaimRoomTask(gameWorldController, mapController, tile.getX(), tile.getY(), entry.getKey());
+                AbstractTask task = new ClaimRoomTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             }
         }
@@ -344,7 +348,7 @@ public class TaskManager implements ITaskManager {
             // Assign
             if (!coordinates.isEmpty()) {
                 Point target = Utils.getRandomItem(coordinates);
-                GraphPath<MapTile> path = gameWorldController.findPath(creature.getCreatureCoordinates(), target, creature);
+                GraphPath<MapTile> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task
@@ -390,16 +394,16 @@ public class TaskManager implements ITaskManager {
     private AbstractTask getRoomTask(ObjectType objectType, Point target, ICreatureController creature, IRoomController room) {
         switch (objectType) {
             case GOLD: {
-                return new CarryGoldToTreasuryTask(gameWorldController, mapController, target.x, target.y, creature.getOwnerId(), room);
+                return new CarryGoldToTreasuryTask(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR: {
-                return new ClaimLair(gameWorldController, mapController, target.x, target.y, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case RESEARCHER: {
-                return new ResearchSpells(gameWorldController, mapController, target.x, target.y, creature.getOwnerId(), room, this);
+                return new ResearchSpells(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case PRISONER: {
-                return new CarryEnemyCreatureToPrison(gameWorldController, mapController, target.x, target.y, creature.getOwnerId(), room, this);
+                return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
         }
         return null;
@@ -436,7 +440,7 @@ public class TaskManager implements ITaskManager {
     }
 
     private AbstractTask getObjectTask(ObjectControl objectControl, short playerId) {
-        return new FetchObjectTask(gameWorldController, mapController, objectControl, playerId);
+        return new FetchObjectTask(navigationService, mapController, objectControl, playerId);
     }
 
     @Override
@@ -461,7 +465,7 @@ public class TaskManager implements ITaskManager {
 
     @Override
     public boolean assignSleepTask(ICreatureController creature) {
-        GoToSleep task = new GoToSleep(gameWorldController, mapController, creature);
+        GoToSleep task = new GoToSleep(navigationService, mapController, creature);
         if (task.isReachable(creature)) {
             task.assign(creature, true);
             return true;

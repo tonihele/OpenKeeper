@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
-import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
@@ -53,17 +51,12 @@ import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
-import toniarts.openkeeper.game.navigation.pathfinding.MapDistance;
-import toniarts.openkeeper.game.navigation.pathfinding.MapIndexedGraph;
-import toniarts.openkeeper.game.navigation.pathfinding.MapPathFinder;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -83,9 +76,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private final Map<Short, IPlayerController> playerControllers;
     private final SortedMap<Short, Keeper> players;
     private final IGameTimer gameTimer;
-    private MapIndexedGraph pathFindingMap;
-    private MapPathFinder pathFinder;
-    private MapDistance heuristic;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -106,7 +96,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings);
 
         // Load creatures
-        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, this, gameController);
+        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController);
 
         // Load the map
         mapController = new MapController(kwdFile, objectsController, gameSettings);
@@ -120,17 +110,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         // Setup player stuff
         initPlayerMoney();
         initPlayerRooms();
-
-        // Init path finding
-        initPathFinding();
-    }
-
-    private void initPathFinding() {
-
-        // For path finding
-        pathFindingMap = new MapIndexedGraph(this, mapController);
-        pathFinder = new MapPathFinder(pathFindingMap, false);
-        heuristic = new MapDistance();
     }
 
     private void initPlayerMoney() {
@@ -507,55 +486,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     @Override
     public IMapController getMapController() {
         return mapController;
-    }
-
-    @Override
-    public Point findRandomAccessibleTile(Point start, int radius, INavigable navigable) {
-        Set<Point> tiles = new HashSet<>(radius * radius - 1);
-
-        // Start growing the circle, always testing the tile
-        getAccessibleNeighbours(getMapController().getMapData().getTile(start.x, start.y), radius, navigable, tiles);
-        tiles.remove(start);
-
-        // Take a random point
-        if (!tiles.isEmpty()) {
-            return Utils.getRandomItem(new ArrayList<Point>(tiles));
-        }
-        return null;
-    }
-
-    private void getAccessibleNeighbours(MapTile startTile, int radius, INavigable navigable, Set<Point> tiles) {
-        if (radius > 0) {
-            for (int y = startTile.getY() - 1; y <= startTile.getY() + 1; y++) {
-                for (int x = startTile.getX() - 1; x <= startTile.getX() + 1; x++) {
-
-                    // If this is good, add and get neighbours
-                    MapTile tile = getMapController().getMapData().getTile(x, y);
-                    if (tile != null && !tiles.contains(tile.getLocation()) && isAccessible(startTile, tile, navigable)) {
-                        tiles.add(tile.getLocation());
-                        getAccessibleNeighbours(tile, radius - 1, navigable, tiles);
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public GraphPath<MapTile> findPath(Point start, Point end, INavigable navigable) {
-        pathFindingMap.setPathFindable(navigable);
-        GraphPath<MapTile> outPath = new DefaultGraphPath<>();
-        MapTile startTile = getMapController().getMapData().getTile(start.x, start.y);
-        MapTile endTile = getMapController().getMapData().getTile(end.x, end.y);
-        if (startTile != null && endTile != null && pathFinder.searchNodePath(startTile, endTile, heuristic, outPath)) {
-            return outPath;
-        }
-        return null;
-    }
-
-    @Override
-    public boolean isAccessible(MapTile from, MapTile to, INavigable navigable) {
-        Float cost = navigable.getCost(from, to, this, getMapController());
-        return cost != null;
     }
 
     /**

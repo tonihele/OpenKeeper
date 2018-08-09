@@ -17,9 +17,9 @@
 package toniarts.openkeeper.game.task.objective;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -34,8 +34,8 @@ public class KillPlayer extends AbstractObjectiveTask {
     protected final short targetPlayerId;
     protected final ICreatureController creature;
 
-    public KillPlayer(final IGameWorldController gameWorldController, final IMapController mapController, short targetPlayerId, ICreatureController creature) {
-        super(gameWorldController, mapController, 0, 0 /*worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y*/, creature.getOwnerId());
+    public KillPlayer(final INavigationService navigationService, final IMapController mapController, short targetPlayerId, ICreatureController creature) {
+        super(navigationService, mapController, 0, 0 /*worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).x, worldState.getGameState().getPlayer(targetPlayerId).getRoomControl().getDungeonHeart().getRoomInstance().getCoordinates().get(0).y*/, creature.getOwnerId());
 
         this.targetPlayerId = targetPlayerId;
         this.creature = creature;

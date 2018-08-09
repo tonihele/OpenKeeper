@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
@@ -43,13 +44,16 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
 
+    private final EntityData entityData;
     private final IMapController mapController;
     private final EntitySet positionedEntities;
     private final Map<MapTile, Set<EntityId>> entitiesByMapTile = new HashMap<>();
+    private final Map<MapTile, Set<EntityId>> obstaclesByMapTile = new HashMap<>();
     private final Map<EntityId, MapTile> mapTilesByEntities = new HashMap<>();
     private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
     public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController) {
+        this.entityData = entityData;
         this.mapController = mapController;
         entityWrappers.put(ICreatureController.class, creaturesController);
 
@@ -82,13 +86,33 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
                 // Moved
                 mapTilesByEntities.put(entity.getId(), currentMapTile);
                 entitiesByMapTile.get(previousMapTile).remove(entity.getId());
-                Set<EntityId> entitiesInTile = entitiesByMapTile.get(currentMapTile);
-                if (entitiesInTile == null) {
-                    entitiesInTile = new HashSet<>();
+
+                // Obstacles
+                if (obstaclesByMapTile.containsKey(previousMapTile)) {
+                    obstaclesByMapTile.get(previousMapTile).remove(entity.getId());
                 }
-                entitiesInTile.add(entity.getId());
-                entitiesByMapTile.put(currentMapTile, entitiesInTile);
+
+                addEntityToTile(currentMapTile, entity);
             }
+        }
+    }
+
+    private void addEntityToTile(MapTile mapTile, Entity entity) {
+        Set<EntityId> entitiesInTile = entitiesByMapTile.get(mapTile);
+        if (entitiesInTile == null) {
+            entitiesInTile = new HashSet<>();
+        }
+        entitiesInTile.add(entity.getId());
+        entitiesByMapTile.put(mapTile, entitiesInTile);
+
+        // Obstacles
+        if (isObstacle(entityData, entity.getId())) {
+            Set<EntityId> obstaclesInTile = entitiesByMapTile.get(mapTile);
+            if (obstaclesInTile == null) {
+                obstaclesInTile = new HashSet<>();
+            }
+            obstaclesInTile.add(entity.getId());
+            obstaclesByMapTile.put(mapTile, obstaclesInTile);
         }
     }
 
@@ -98,6 +122,9 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         for (Entity entity : entities) {
             MapTile mapTile = mapTilesByEntities.remove(entity.getId());
             entitiesByMapTile.get(mapTile).remove(entity.getId());
+            if (obstaclesByMapTile.containsKey(mapTile)) {
+                obstaclesByMapTile.get(mapTile).remove(entity.getId());
+            }
         }
     }
 
@@ -108,12 +135,8 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
             Point p = WorldUtils.vectorToPoint(entity.get(Position.class).position);
             MapTile mapTile = mapController.getMapData().getTile(p);
             mapTilesByEntities.put(entity.getId(), mapTile);
-            Set<EntityId> entitiesInTile = entitiesByMapTile.get(mapTile);
-            if (entitiesInTile == null) {
-                entitiesInTile = new HashSet<>();
-            }
-            entitiesInTile.add(entity.getId());
-            entitiesByMapTile.put(mapTile, entitiesInTile);
+
+            addEntityToTile(mapTile, entity);
         }
     }
 
@@ -186,6 +209,46 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         positionedEntities.release();
         entitiesByMapTile.clear();
         mapTilesByEntities.clear();
+    }
+
+    private static boolean isObstacle(EntityData entityData, EntityId id) {
+
+        // Objects have solid obstacle property, but that in my opinion doesn't block the whole tile
+        // More of a physics thingie that...
+        // So only doors here now...
+        DoorComponent doorComponent = entityData.getComponent(id, DoorComponent.class);
+        if (doorComponent != null) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean isTileBlocked(Point p, short playerId) {
+        MapTile mapTile = mapController.getMapData().getTile(p);
+        return isTileBlocked(mapTile, playerId);
+    }
+
+    @Override
+    public boolean isTileBlocked(int x, int y, short playerId) {
+        MapTile mapTile = mapController.getMapData().getTile(x, y);
+        return isTileBlocked(mapTile, playerId);
+    }
+
+    @Override
+    public boolean isTileBlocked(MapTile mapTile, short playerId) {
+        Set<EntityId> entityIds = obstaclesByMapTile.get(mapTile);
+        if (entityIds != null) {
+            for (EntityId entityId : entityIds) {
+                DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+                if (doorComponent != null) {
+                    return doorComponent.locked;
+                }
+            }
+        }
+
+        return false;
     }
 
 }

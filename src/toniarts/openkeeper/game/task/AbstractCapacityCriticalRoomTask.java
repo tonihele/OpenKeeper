@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.game.task;
 
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**
  * A base class for tasks that we should keep track off
@@ -30,8 +30,8 @@ public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask 
 
     protected final TaskManager taskManager;
 
-    public AbstractCapacityCriticalRoomTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
-        super(gameWorldController, mapController, x, y, playerId, room);
+    public AbstractCapacityCriticalRoomTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
+        super(navigationService, mapController, x, y, playerId, room);
 
         this.taskManager = taskManager;
     }

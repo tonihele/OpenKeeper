@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.game.navigation.pathfinding;
 
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.MapTile;
 
 /**
@@ -42,14 +42,15 @@ public interface INavigable {
      * @param from the tile we are traversing from, always the adjacent tile
      * which we know already being accessible
      * @param to the tile we are travelling to
-     * @param gameWorldController the game world controller
      * @param mapController the map controller
+     * @param entityPositionLookup the entity lookup
      * @see #DEFAULT_COST
      * @see #WATER_COST
      * @return {@code null} if the to tile is not accessible
      */
-    default public Float getCost(final MapTile from, final MapTile to, final IGameWorldController gameWorldController, final IMapController mapController) {
-        return MapIndexedGraph.getCost(this, from, to, gameWorldController, mapController);
+    default public Float getCost(final MapTile from, final MapTile to, final IMapController mapController,
+            final IEntityPositionLookup entityPositionLookup) {
+        return MapIndexedGraph.getCost(this, from, to, mapController, entityPositionLookup);
     }
 
     /**

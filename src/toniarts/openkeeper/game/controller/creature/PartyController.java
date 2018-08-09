@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -225,8 +225,8 @@ public class PartyController implements INavigable, IPartyController {
     }
 
     @Override
-    public Float getCost(MapTile from, MapTile to, IGameWorldController gameWorldController, IMapController mapController) {
-        Float cost = INavigable.super.getCost(from, to, gameWorldController, mapController);
+    public Float getCost(MapTile from, MapTile to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
+        Float cost = INavigable.super.getCost(from, to, mapController, entityPositionLookup);
         if (cost == null) {
 
             // No path by ordinary means, but we might want to tunnel or smash our way through obstacles

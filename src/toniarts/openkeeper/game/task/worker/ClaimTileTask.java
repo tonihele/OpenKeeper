@@ -17,9 +17,9 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -31,8 +31,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ClaimTileTask extends AbstractTileTask {
 
-    public ClaimTileTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId) {
-        super(gameWorldController, mapController, x, y, playerId);
+    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
+        super(navigationService, mapController, x, y, playerId);
     }
 
     @Override

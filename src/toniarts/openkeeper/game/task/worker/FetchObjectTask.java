@@ -18,11 +18,11 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.util.Objects;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -37,8 +37,8 @@ public class FetchObjectTask extends AbstractTileTask {
 
     private final ObjectControl object;
 
-    public FetchObjectTask(final IGameWorldController gameWorldController, final IMapController mapController, ObjectControl object, short playerId) {
-        super(gameWorldController, mapController, object.getObjectCoordinates().x, object.getObjectCoordinates().y, playerId);
+    public FetchObjectTask(final INavigationService navigationService, final IMapController mapController, ObjectControl object, short playerId) {
+        super(navigationService, mapController, object.getObjectCoordinates().x, object.getObjectCoordinates().y, playerId);
         this.object = object;
     }
 

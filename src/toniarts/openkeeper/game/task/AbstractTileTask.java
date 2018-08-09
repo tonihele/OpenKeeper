@@ -18,8 +18,8 @@ package toniarts.openkeeper.game.task;
 
 import java.awt.Point;
 import java.util.Objects;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**
  * Abstract base class for tasks pointing at terrain tiles
@@ -31,8 +31,8 @@ public abstract class AbstractTileTask extends AbstractTask {
     private final Point location;
     protected final short playerId;
 
-    public AbstractTileTask(final IGameWorldController gameWorldController, final IMapController mapController, final int x, final int y, final short playerId) {
-        super(gameWorldController, mapController);
+    public AbstractTileTask(final INavigationService navigationService, final IMapController mapController, final int x, final int y, final short playerId) {
+        super(navigationService, mapController);
         location = new Point(x, y);
         this.playerId = playerId;
     }

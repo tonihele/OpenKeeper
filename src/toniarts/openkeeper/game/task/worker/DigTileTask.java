@@ -18,10 +18,10 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.awt.Point;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -33,8 +33,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class DigTileTask extends AbstractTileTask {
 
-    public DigTileTask(final IGameWorldController gameWorldController, final IMapController mapController, int x, int y, short playerId) {
-        super(gameWorldController, mapController, x, y, playerId);
+    public DigTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
+        super(navigationService, mapController, x, y, playerId);
     }
 
     @Override
@@ -50,7 +50,7 @@ public class DigTileTask extends AbstractTileTask {
         // TODO: entity's location?
         for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
             for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
-                if (gameWorldController.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
+                if (navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
 
                     // TODO: intelligent coordinates?
                     Vector2f target = new Vector2f(p.x, p.y);
