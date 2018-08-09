@@ -532,9 +532,10 @@ public class AssetUtils {
                     Material material = ((Geometry) spatial).getMaterial();
                     if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
                         material.setColor("Ambient", highlightColor);
-                        material.setBoolean("UseMaterialColors", enabled);
                     } else {
                         material.setColor("Color", highlightColor);
+                    }
+                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
                         material.setBoolean("UseMaterialColors", enabled);
                     }
                 } catch (Exception e) {
