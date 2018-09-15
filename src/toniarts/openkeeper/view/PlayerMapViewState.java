@@ -22,11 +22,8 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import java.awt.Point;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -53,7 +50,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final MapViewController mapLoader;
 //    private final ThingLoader thingLoader;
     private final KwdFile kwdFile;
-    private AssetManager assetManager;
+    private final AssetManager assetManager;
     private Node worldNode;
 //    private final MapIndexedGraph pathFindingMap;
 //    private final MapPathFinder pathFinder;
@@ -63,7 +60,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final EffectManagerState effectManager;
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
-    private final Queue<TileAction> actionQueue = new ConcurrentLinkedDeque<>();
     private static final float TICK = 1.250f; // FIXME: no, settings
     private float lastUpdate = 0;
     private final IMapInformation mapClientService;
@@ -157,15 +153,15 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         }
 
         // Maybe like an additional update or something so that we know the tick
-        lastUpdate += tpf;
-        if (lastUpdate > TICK) {
-            lastUpdate = 0;
-            TileAction action = actionQueue.poll();
-            if (action != null) {
-                mapClientService.setTiles(Arrays.asList(new MapTile[]{action.tile}));
-                mapLoader.updateTiles(action.tile.getLocation());
-            }
-        }
+//        lastUpdate += tpf;
+//        if (lastUpdate > TICK) {
+//            lastUpdate = 0;
+//            TileAction action = actionQueue.poll();
+//            if (action != null) {
+//                mapClientService.setTiles(Arrays.asList(new MapTile[]{action.tile}));
+//                mapLoader.updateTiles(action.tile.getLocation());
+//            }
+//        }
 //        flashTileControl.update(tpf);
     }
 
@@ -196,16 +192,23 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onBuild(short keeperId, List<MapTile> tiles) {
-        for (MapTile tile : tiles) {
-            actionQueue.add(new TileAction(Action.BUILD, tile));
+        mapClientService.setTiles(tiles);
+        Point[] updatableTiles = new Point[tiles.size()];
+        for (int i = 0; i < tiles.size(); i++) {
+            updatableTiles[i] = tiles.get(i).getLocation();
         }
+
+        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
+        app.enqueue(() -> {
+            mapLoader.updateTiles(updatableTiles);
+        });
     }
 
     @Override
     public void onSold(short keeperId, List<MapTile> tiles) {
-        for (MapTile tile : tiles) {
-            actionQueue.add(new TileAction(Action.SOLD, tile));
-        }
+
+        // For now there is no difference between buying and selling
+        onBuild(keeperId, tiles);
     }
 
     @Override
