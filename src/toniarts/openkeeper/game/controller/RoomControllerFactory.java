@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.NormalRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
+import toniarts.openkeeper.game.controller.room.TreasuryController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -90,8 +91,8 @@ public final class RoomControllerFactory {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
 //                    return new TortureChamber(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Treasury")) {
-//                    return new Treasury(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                } else if (roomName.equalsIgnoreCase("Treasury")) {
+                    return new TreasuryController(roomInstance, objectsController, gameSettings);
                 } else if (roomName.equalsIgnoreCase("Hatchery")) {
                     return new HatcheryController(roomInstance, objectsController);
                 }

@@ -120,7 +120,9 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         // Get the old gold
         Map<Point, Integer> storedGoldList = new HashMap<>(objectsByCoordinate.size());
         for (Entry<Point, Collection<EntityId>> entry : objectsByCoordinate.entrySet()) {
-            storedGoldList.put(entry.getKey(), objectsController.getEntityData().getComponent(entry.getValue().iterator().next(), Gold.class).gold);
+            for (EntityId entityId : entry.getValue()) {
+                storedGoldList.put(entry.getKey(), objectsController.getEntityData().getComponent(entityId, Gold.class).gold);
+            }
         }
 
         // Delete all gold

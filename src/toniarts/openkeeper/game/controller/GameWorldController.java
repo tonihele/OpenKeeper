@@ -23,6 +23,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -41,6 +42,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
@@ -351,6 +353,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     // Update the merged room
                     mapController.getRoomController(instance).construct();
                 } else {
+                    removeRoomInstance(instance);
                     mapController.removeRoomInstances(instance);
                 }
 
@@ -386,11 +389,15 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private void attachLooseGoldToRoom(IRoomController roomController, RoomInstance instance) {
         if (roomController.canStoreGold()) {
             synchronized (goldLock) {
-                for (Entity entity : entityData.getEntities(Gold.class, Position.class)) {
+                for (Entity entity : entityData.getEntities(Gold.class, Position.class, ObjectComponent.class)) {
+                    // TODO: how do we detect loose gold and differentiate it from room gold?
+                    // Room component probably needed, for now, use the object id
+                    ObjectComponent objectComponent = entityData.getComponent(entity.getId(), ObjectComponent.class);
                     Position position = entityData.getComponent(entity.getId(), Position.class);
-                    if (instance.hasCoordinate(WorldUtils.vectorToPoint(position.position))) {
+                    if (objectComponent.objectId == ObjectsController.OBJECT_GOLD_ID && instance.hasCoordinate(WorldUtils.vectorToPoint(position.position))) {
                         Gold gold = entityData.getComponent(entity.getId(), Gold.class);
                         int goldLeft = (int) roomController.getObjectControl(ObjectType.GOLD).addItem(gold.gold, WorldUtils.vectorToPoint(position.position));
+                        playerControllers.get(instance.getOwnerId()).getGoldControl().addGold(gold.gold - goldLeft);
                         if (goldLeft == 0) {
                             entityData.removeEntity(entity.getId());
                         } else {
@@ -408,6 +415,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         Set<Point> updatableTiles = new HashSet<>();
         Set<RoomInstance> soldInstances = new HashSet<>();
         List<Point> roomCoordinates = new ArrayList<>();
+        List<Map.Entry<Point, Integer>> moneyToReturnByPoint = new ArrayList<>();
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
             for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
 
@@ -430,19 +438,14 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
                         tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
                     } else // Water or lava
-                     if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-                            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-                        } else {
-                            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-                        }
-
-                    // Give money back
-                    int goldLeft = addGold(playerId, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100)));
-                    if (goldLeft > 0) {
-
-                        // Add loose gold to this tile
-                        objectsController.addLooseGold(playerId, p.x, p.y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                    if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+                    } else {
+                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
                     }
+
+                    // Money back
+                    moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<Point, Integer>(p, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
                 }
 
                 // Get the instance
@@ -451,12 +454,18 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             }
         }
 
+        // See if we did anything at all
+        if (soldTiles.isEmpty()) {
+            return;
+        }
+
         // Remove the sold instances (will be regenerated) and add them to updatable
         for (RoomInstance roomInstance : soldInstances) {
             for (Point p : roomInstance.getCoordinates()) {
                 updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
             roomCoordinates.addAll(roomInstance.getCoordinates());
+            removeRoomInstance(roomInstance);
         }
         mapController.removeRoomInstances(soldInstances.toArray(new RoomInstance[soldInstances.size()]));
 
@@ -474,8 +483,38 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             }
         }
 
+        // Finally we have all the rooms and such, return the revenue to the player
+        // Do it this point to avoid placing the profit to the actual room we were selling
+        synchronized (goldLock) {
+            for (Map.Entry<Point, Integer> moneyToReturn : moneyToReturnByPoint) {
+                int goldLeft = addGold(playerId, moneyToReturn.getValue());
+                if (goldLeft > 0) {
+
+                    // Add loose gold to this tile
+                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                }
+            }
+        }
+
         // Notify
         notifyOnSold(playerId, soldTiles);
+    }
+
+    /**
+     * Mainly deals with gold removal when room is removed
+     *
+     * @param roomInstance the room to delete
+     */
+    private void removeRoomInstance(RoomInstance roomInstance) {
+
+        // Gold
+        substractGoldCapacityFromPlayer(roomInstance);
+        IRoomController roomController = mapController.getRoomController(roomInstance);
+        if (roomController.canStoreGold()) {
+            RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
+            PlayerGoldControl playerGoldControl = playerControllers.get(roomInstance.getOwnerId()).getGoldControl();
+            playerGoldControl.subGold(roomGoldControl.getCurrentCapacity());
+        }
     }
 
     @Override

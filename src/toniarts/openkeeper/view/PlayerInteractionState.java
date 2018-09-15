@@ -188,23 +188,23 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
 
             private boolean isPlayerAffordToBuild(Player player, Room room) {
-//                int playerMoney = getWorldHandler().getGameState().getPlayer(player.getPlayerId()).getGoldControl().getGold();
-//                if (playerMoney == 0) {
-//                    return false;
-//                }
-//                int buildablePlots = 0;
-//                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(getWorldHandler().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
-//                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(getWorldHandler().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-//                        if (getWorldHandler().isBuildable(x, y, player, room)) {
-//                            buildablePlots++;
-//                        }
-//
-//                        // See the gold amount
-//                        if (playerMoney < buildablePlots * room.getCost()) {
-//                            return false;
-//                        }
-//                    }
-//                }
+                int playerMoney = gameClientState.getPlayer(player.getPlayerId()).getGold();
+                if (playerMoney == 0) {
+                    return false;
+                }
+                int buildablePlots = 0;
+                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
+                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
+                        if (gameClientState.getMapClientService().isBuildable(x, y, player.getPlayerId(), room.getId())) {
+                            buildablePlots++;
+                        }
+
+                        // See the gold amount
+                        if (playerMoney < buildablePlots * room.getCost()) {
+                            return false;
+                        }
+                    }
+                }
                 return true;
             }
         };
