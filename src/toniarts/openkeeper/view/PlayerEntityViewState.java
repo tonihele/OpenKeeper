@@ -42,6 +42,7 @@ import toniarts.openkeeper.view.control.DoorViewControl;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -246,8 +247,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (trapViewState != null) {
             Trap trap = kwdFile.getTrapById(trapViewState.trapId);
             result = trapLoader.load(assetManager, trapViewState);
-            //EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
-            //result.addControl(control);
+            EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager);
+            result.addControl(control);
         }
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...

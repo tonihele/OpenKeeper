@@ -27,14 +27,14 @@ import com.simsilica.es.EntityComponent;
 public class TrapViewState implements EntityComponent {
 
     public short trapId;
-    public boolean bluebrint;
+    public boolean blueprint;
 
     public TrapViewState() {
         // For serialization
     }
 
-    public TrapViewState(short trapId, boolean bluebrint) {
+    public TrapViewState(short trapId, boolean blueprint) {
         this.trapId = trapId;
-        this.bluebrint = bluebrint;
+        this.blueprint = blueprint;
     }
 }

@@ -83,7 +83,7 @@ public class TrapsController implements ITrapsController {
     }
 
     private EntityId loadTrap(Thing.Trap trap) {
-        return loadTrap(trap.getPosX(), trap.getPosY(), trap.getTrapId(), trap.getPlayerId(), false);
+        return loadTrap(trap.getPosX(), trap.getPosY(), trap.getTrapId(), trap.getPlayerId(), trap.getNumberOfShots() == 0);
     }
 
     private EntityId loadTrap(int x, int y, short trapId, short ownerId, boolean blueprint) {
