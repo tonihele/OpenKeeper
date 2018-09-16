@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -61,6 +62,7 @@ import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -116,6 +118,7 @@ public class NetworkServer {
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
             Serializer.registerClass(CreatureState.class, new EnumSerializer());
+            Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());
 
             // Our entity components
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
@@ -136,6 +139,7 @@ public class NetworkServer {
             Serializer.registerClass(Owner.class, new FieldSerializer());
             Serializer.registerClass(Party.class, new FieldSerializer());
             Serializer.registerClass(Position.class, new FieldSerializer());
+            Serializer.registerClass(RoomStorage.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());

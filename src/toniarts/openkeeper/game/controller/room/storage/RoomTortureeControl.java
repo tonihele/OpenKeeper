@@ -55,6 +55,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
+        setRoomStorageToItem(torturee);
         return torturee;
     }
 

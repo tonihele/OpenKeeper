@@ -84,6 +84,14 @@ public interface IMapController extends IMapInformation, IGameLogicUpdatable {
     public RoomInstance getRoomInstanceByCoordinates(Point p);
 
     /**
+     * Get room controller by coordinates
+     *
+     * @param p the coordinates
+     * @return the room controller in the coordinates, if any
+     */
+    public IRoomController getRoomControllerByCoordinates(Point p);
+
+    /**
      * Get a room controller by a room instance. FIXME: At least with the
      * current design, the clients do not have this data, so either separate
      * interface or design controllers so that they share data

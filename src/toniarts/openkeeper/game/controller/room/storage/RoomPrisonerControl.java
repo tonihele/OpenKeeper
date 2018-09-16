@@ -50,6 +50,7 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId creature, Point p) {
+        setRoomStorageToItem(creature);
         return creature;
     }
 

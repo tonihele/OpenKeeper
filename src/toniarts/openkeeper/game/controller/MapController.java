@@ -405,6 +405,16 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
+    public IRoomController getRoomControllerByCoordinates(Point p) {
+        RoomInstance roomInstance = roomCoordinates.get(p);
+        if (roomInstance != null) {
+            return getRoomController(roomInstance);
+        }
+
+        return null;
+    }
+
+    @Override
     public IRoomController getRoomController(RoomInstance roomInstance) {
         return roomControllers.get(roomInstance);
     }

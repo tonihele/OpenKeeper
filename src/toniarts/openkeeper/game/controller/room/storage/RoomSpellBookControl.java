@@ -82,7 +82,7 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
         }
         spellBooks.add(object);
         objectsByCoordinate.put(p, spellBooks);
-        //object.setRoomObjectControl(this);
+        setRoomStorageToItem(object);
         storedSpellBooks++;
         return null;
     }

@@ -45,14 +45,17 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -303,11 +306,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // See that can we afford the building
         Room room = kwdFile.getRoomById(roomId);
-        int cost = instancePlots.size() * room.getCost();
-        if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
-            return;
+        synchronized (goldLock) {
+            int cost = instancePlots.size() * room.getCost();
+            if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
+                return;
+            }
+            substractGold(cost, playerId);
         }
-        substractGold(cost, playerId);
 
         // Build
         List<MapTile> buildTiles = new ArrayList<>(instancePlots.size());
@@ -389,12 +394,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private void attachLooseGoldToRoom(IRoomController roomController, RoomInstance instance) {
         if (roomController.canStoreGold()) {
             synchronized (goldLock) {
-                for (Entity entity : entityData.getEntities(Gold.class, Position.class, ObjectComponent.class)) {
-                    // TODO: how do we detect loose gold and differentiate it from room gold?
-                    // Room component probably needed, for now, use the object id
-                    ObjectComponent objectComponent = entityData.getComponent(entity.getId(), ObjectComponent.class);
+                for (Entity entity : entityData.getEntities(Gold.class, Position.class, ObjectComponent.class, RoomStorage.class)) {
                     Position position = entityData.getComponent(entity.getId(), Position.class);
-                    if (objectComponent.objectId == ObjectsController.OBJECT_GOLD_ID && instance.hasCoordinate(WorldUtils.vectorToPoint(position.position))) {
+                    if (instance.hasCoordinate(WorldUtils.vectorToPoint(position.position))) {
                         Gold gold = entityData.getComponent(entity.getId(), Gold.class);
                         int goldLeft = (int) roomController.getObjectControl(ObjectType.GOLD).addItem(gold.gold, WorldUtils.vectorToPoint(position.position));
                         playerControllers.get(instance.getOwnerId()).getGoldControl().addGold(gold.gold - goldLeft);
@@ -445,7 +447,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     }
 
                     // Money back
-                    moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<Point, Integer>(p, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
+                    moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
                 }
 
                 // Get the instance
@@ -567,9 +569,26 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
             // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
             // And also no need to create a system for this which saves resources
+            Position position = entityData.getComponent(entity, Position.class);
             entityData.removeComponent(entity, Position.class);
             entityData.removeComponent(entity, CreatureAi.class);
             entityData.removeComponent(entity, Navigation.class);
+
+            // TODO: Should we some sort of room component and notify the room handlers instead?
+            // Handle stored stuff
+            RoomStorage roomStorage = entityData.getComponent(entity, RoomStorage.class);
+            IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
+            if (roomController != null && roomStorage != null) {
+                IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
+                roomObjectControl.removeItem(entity);
+
+                // If it was gold... substract it from the player
+                if (roomStorage.objectType == ObjectType.GOLD) {
+                    synchronized (goldLock) {
+                        playerControllers.get(playerId).getGoldControl().subGold(entityData.getComponent(entity, Gold.class).gold);
+                    }
+                }
+            }
         }
     }
 
@@ -609,8 +628,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             playerHandControl.pop();
 
             // Stuff drop differently
+            IRoomController roomController = mapController.getRoomControllerByCoordinates(tile.getLocation());
             if (entityData.getComponent(entity, CreatureComponent.class) != null) {
 
+                // TODO: Torture and prisoning
                 // Add position
                 // Maybe in the future the physics deal with this and we just need to detect that we are airborne
                 Vector3f pos = new Vector3f(coordinates.x, 2, coordinates.y);
@@ -620,9 +641,28 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 entityData.setComponent(entity, new CreatureFall());
             } else {
 
-                // TODO: handle giving item to creature & dropping to room
-                Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
-                entityData.setComponent(entity, new Position(0, pos));
+                // TODO: handle giving item to creature
+                // See if it is gold added to a room
+                ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+                if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+                    Gold gold = entityData.getComponent(entity, Gold.class);
+                    if (roomController != null && roomController.canStoreGold()) {
+                        int leftOverGold = addGold(playerId, tile, gold.gold);
+
+                        // TODO: if I remember correctly... DK II drops left overs as loose gold next to the treasury
+                        if (leftOverGold > 0) {
+                            objectsController.addLooseGold(playerId, tile.x, tile.y, leftOverGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                        }
+                    } else {
+                        EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, gold.gold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                        Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
+                        entityData.setComponent(newGold, new Position(0, pos));
+                    }
+                    entityData.removeEntity(entity);
+                } else {
+                    Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
+                    entityData.setComponent(entity, new Position(0, pos));
+                }
             }
         }
     }

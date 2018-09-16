@@ -55,6 +55,7 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
 
     @Override
     public EntityId addItem(EntityId researcher, Point p) {
+        setRoomStorageToItem(researcher);
         return researcher;
     }
 

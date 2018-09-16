@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 
@@ -87,7 +88,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
      */
     @Override
     public void removeItem(EntityId object) {
-        //object.setRoomObjectControl(null);
+        objectsController.getEntityData().removeComponent(object, RoomStorage.class);
         for (Collection<EntityId> objects : objectsByCoordinate.values()) {
             if (objects.remove(object)) {
                 break;
@@ -142,6 +143,10 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
             }
         }
         return coordinates;
+    }
+
+    protected void setRoomStorageToItem(EntityId entityId) {
+        objectsController.getEntityData().setComponent(entityId, new RoomStorage(getObjectType()));
     }
 
 }
