@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room;
 
 import java.util.Map;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -30,7 +31,7 @@ public class TreasuryController extends NormalRoomController {
 
     private final Integer goldPerTile;
 
-    public TreasuryController(toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController,
+    public TreasuryController(RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         super(roomInstance, objectsController);
         goldPerTile = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_TREASURY_TILE).getValue();

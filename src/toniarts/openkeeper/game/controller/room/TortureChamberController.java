@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2017 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,34 +16,28 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
-import toniarts.openkeeper.world.room.*;
-import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.object.ObjectLoader;
-import toniarts.openkeeper.world.room.control.RoomLairControl;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
+
 
 /**
- * The lair
+ * Torture chamber
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Lair extends Normal {
+public class TortureChamberController extends NormalRoomController {
 
-    public Lair(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
-        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+    public TortureChamberController(RoomInstance roomInstance, IObjectsController objectsController) {
+        super(roomInstance, objectsController);
 
-        addObjectControl(new RoomLairControl(this) {
+        addObjectControl(new RoomTortureeControl(this, objectsController) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return roomInstance.getCoordinates().size();
+                return getFurnitureCount();
             }
         });
     }
 
-    @Override
-    protected boolean hasPillars() {
-        return false;
-    }
 }

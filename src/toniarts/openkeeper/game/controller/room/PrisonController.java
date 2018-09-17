@@ -22,7 +22,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
 
 /**
  * TODO: not completed
@@ -36,8 +38,23 @@ public class PrisonController extends DoubleQuadController {
 
     private Point door;
 
-    public PrisonController(toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
+    public PrisonController(RoomInstance roomInstance, IObjectsController objectsController) {
         super(roomInstance, objectsController);
+
+        addObjectControl(new RoomPrisonerControl(this, objectsController) {
+            @Override
+            protected Collection<Point> getCoordinates() {
+
+                // Only the innards of prison can hold objects
+                return PrisonController.this.getInsideCoordinates();
+            }
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return getCoordinates().size();
+            }
+
+        });
     }
 
     @Override

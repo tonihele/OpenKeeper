@@ -26,9 +26,11 @@ import toniarts.openkeeper.game.controller.room.DoubleQuadController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.NormalRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
+import toniarts.openkeeper.game.controller.room.TortureChamberController;
 import toniarts.openkeeper.game.controller.room.TreasuryController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -40,7 +42,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  */
 public final class RoomControllerFactory {
 
-    private static final Logger logger = Logger.getLogger(RoomControllerFactory.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RoomControllerFactory.class.getName());
 
     private RoomControllerFactory() {
         // Nope
@@ -74,14 +76,14 @@ public final class RoomControllerFactory {
                 return new FiveByFiveRotatedController(roomInstance, objectsController, gameSettings);
 
             case NORMAL:
-//                if (roomName.equalsIgnoreCase("Lair")) {
-//                    return new Lair(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                if (roomName.equalsIgnoreCase("Lair")) {
+                    return new LairController(roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Library")) {
 //                    return new Library(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Training Room")) {
 //                    return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else
-                if (roomName.equalsIgnoreCase("Work Shop")) {
+               } else if (roomName.equalsIgnoreCase("Work Shop")) {
                     return new WorkshopController(roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Guard Room")) {
 //                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
@@ -89,8 +91,8 @@ public final class RoomControllerFactory {
                     return new CasinoController(roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Graveyard")) {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
-//                    return new TortureChamber(assetManager, roomInstance, objectLoader, worldState, effectManager);
+                } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
+                    return new TortureChamberController(roomInstance, objectsController);
                 } else if (roomName.equalsIgnoreCase("Treasury")) {
                     return new TreasuryController(roomInstance, objectsController, gameSettings);
                 } else if (roomName.equalsIgnoreCase("Hatchery")) {
@@ -118,7 +120,7 @@ public final class RoomControllerFactory {
             default:
 
                 // TODO
-                logger.log(Level.WARNING, "Room {0} not exist", roomName);
+                LOGGER.log(Level.WARNING, "Room {0} not exist", roomName);
                 return new NormalRoomController(roomInstance, objectsController);
         }
     }
