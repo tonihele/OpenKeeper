@@ -38,6 +38,8 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
@@ -623,6 +625,21 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void interact(EntityId entity, short playerId) {
+        if (canInteract(entity, playerId, entityData)) {
+
+            // Doors
+            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+            if (doorComponent != null) {
+                if (!doorComponent.blueprint) {
+                    entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
+                    DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
+                    if (doorViewState != null) {
+                        entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
+                    }
+                }
+                return;
+            }
+        }
     }
 
     @Override
@@ -671,7 +688,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
     }
 
-    private boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, MapTile tile) {
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, MapTile tile) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         if (tile == null) {
@@ -735,6 +752,23 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     public ITrapsController getTrapsController() {
         return trapsController;
+    }
+
+    private static boolean canInteract(EntityId entityId, short playerId, EntityData entityData) {
+
+        // The owner only
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId != playerId) {
+            return false;
+        }
+
+        // Is it iteractable?
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (interaction == null) {
+            return false;
+        }
+
+        return true;
     }
 
 }
