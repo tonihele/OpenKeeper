@@ -113,6 +113,15 @@ public interface GameSession {
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity);
 
     /**
+     * Get gold... Rather instantly pick up a lump sum of gold deducted from
+     * your account
+     *
+     * @param amount amount of gold to get
+     */
+    @Asynchronous
+    public void getGold(int amount);
+
+    /**
      * Signals that any UI transition has ended
      */
     @Asynchronous

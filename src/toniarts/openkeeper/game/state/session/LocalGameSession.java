@@ -296,6 +296,13 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void getGold(int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onGetGold(amount, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void transitionEnd() {
         playerInTransition = false;
         for (GameSessionServiceListener listener : serverListeners.getArray()) {

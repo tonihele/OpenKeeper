@@ -234,6 +234,11 @@ public class GameServerState extends AbstractAppState {
             // TODO: Close the server and game only when everybody has left
             stateManager.detach(GameServerState.this);
         }
+
+        @Override
+        public void onGetGold(int amount, short playerId) {
+            gameWorldController.getGold(amount, playerId);
+        }
     }
 
     /**

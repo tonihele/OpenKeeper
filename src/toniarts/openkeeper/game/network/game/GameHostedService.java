@@ -536,6 +536,13 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
+        public void getGold(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onGetGold(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void transitionEnd() {
             playersInTransition.put(clientInfo, false);
             for (GameSessionServiceListener listener : serverListeners.getArray()) {

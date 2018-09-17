@@ -91,6 +91,15 @@ public interface GameSessionServiceListener {
     public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId);
 
     /**
+     * Player wants to make a withdrawal of funds
+     *
+     * @param amount the amount requested
+     * @param playerId who requested
+     */
+    @Asynchronous
+    public void onGetGold(int amount, short playerId);
+
+    /**
      * Player UI transition has ended
      *
      * @param playerId the player whose transition ended

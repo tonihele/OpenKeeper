@@ -565,28 +565,32 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public void pickUp(EntityId entity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
-            playerHandControl.push(entity);
+            putToKeeperHand(playerHandControl, entity, playerId);
+        }
+    }
 
-            // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
-            // And also no need to create a system for this which saves resources
-            Position position = entityData.getComponent(entity, Position.class);
-            entityData.removeComponent(entity, Position.class);
-            entityData.removeComponent(entity, CreatureAi.class);
-            entityData.removeComponent(entity, Navigation.class);
+    private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
+        playerHandControl.push(entity);
 
-            // TODO: Should we some sort of room component and notify the room handlers instead?
-            // Handle stored stuff
-            RoomStorage roomStorage = entityData.getComponent(entity, RoomStorage.class);
-            IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
-            if (roomController != null && roomStorage != null) {
-                IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
-                roomObjectControl.removeItem(entity);
+        // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
+        // And also no need to create a system for this which saves resources
+        Position position = entityData.getComponent(entity, Position.class);
+        entityData.removeComponent(entity, Position.class);
+        entityData.removeComponent(entity, CreatureAi.class);
+        entityData.removeComponent(entity, Navigation.class);
 
-                // If it was gold... substract it from the player
-                if (roomStorage.objectType == ObjectType.GOLD) {
-                    synchronized (goldLock) {
-                        playerControllers.get(playerId).getGoldControl().subGold(entityData.getComponent(entity, Gold.class).gold);
-                    }
+        // TODO: Should we some sort of room component and notify the room handlers instead?
+        // Handle stored stuff
+        RoomStorage roomStorage = entityData.getComponent(entity, RoomStorage.class);
+        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
+        if (roomController != null && roomStorage != null) {
+            IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
+            roomObjectControl.removeItem(entity);
+
+            // If it was gold... substract it from the player
+            if (roomStorage.objectType == ObjectType.GOLD) {
+                synchronized (goldLock) {
+                    playerControllers.get(playerId).getGoldControl().subGold(entityData.getComponent(entity, Gold.class).gold);
                 }
             }
         }
@@ -698,6 +702,23 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         return true;
+    }
+
+    @Override
+    public void getGold(int amount, short playerId) {
+        int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue();
+        int realAmount = Math.min(amount, maxGold);
+        PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
+        if (!playerHandControl.isFull()) {
+            synchronized (goldLock) {
+                int leftOverRequest = substractGold(realAmount, playerId);
+                realAmount -= leftOverRequest;
+                if (realAmount > 0) {
+                    EntityId goldEntity = objectsController.addLooseGold(playerId, 0, 0, realAmount, maxGold);
+                    putToKeeperHand(playerHandControl, goldEntity, playerId);
+                }
+            }
+        }
     }
 
     public ICreaturesController getCreaturesController() {

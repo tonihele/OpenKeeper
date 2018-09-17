@@ -178,6 +178,11 @@ public class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void getGold(int amount) {
+        getDelegate().getGold(amount);
+    }
+
+    @Override
     public void transitionEnd() {
         getDelegate().transitionEnd();
     }

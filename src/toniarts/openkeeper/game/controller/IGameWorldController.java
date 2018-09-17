@@ -131,4 +131,12 @@ public interface IGameWorldController {
      * @param playerId the player dropping this entity
      */
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId);
+
+    /**
+     * Get gold, substract the amount of gold and places it to the keeper's hand
+     *
+     * @param amount amount of gold to get
+     * @param playerId the player who is getting the gold
+     */
+    public void getGold(int amount, short playerId);
 }

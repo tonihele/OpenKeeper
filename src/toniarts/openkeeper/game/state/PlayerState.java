@@ -23,7 +23,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +58,6 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -485,16 +483,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     protected void grabGold(int amount) {
         if (!interactionState.isKeeperHandFull()) {
-            WorldState ws = stateManager.getState(WorldState.class);
-            int left = ws.substractGoldFromPlayer(amount, playerId);
-            int goldSubstracted = amount - left;
-
-            // FIXME: questionable way of creating gold
-            GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0),
-                    playerId, goldSubstracted, goldSubstracted);
-            if (goc != null) {
-                //interactionState.pickupObject(goc);
-            }
+            stateManager.getState(GameClientState.class).getGameClientService().getGold(amount);
         }
     }
 
