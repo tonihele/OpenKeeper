@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
-import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
@@ -73,7 +72,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class GameWorldController implements IGameWorldController, IPlayerActions {
 
-    public final Object goldLock = new Object();
+    /**
+     * When dealing with gold... We currently better lock it. Logic stuff
+     * happens in single thread. But player actions are prosessed in real time
+     * by possibly other threads. We must not lose any gold from the world.
+     */
+    public static final Object GOLD_LOCK = new Object();
+
     private final KwdFile kwdFile;
     private final EntityData entityData;
     private IObjectsController objectsController;
@@ -166,7 +171,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
      */
     @Override
     public int addGold(short playerId, int sum) {
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
             return addGold(playerId, null, sum);
         }
     }
@@ -183,7 +188,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     @Override
     public int addGold(short playerId, Point p, int sum) {
 
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
 
             // Gold to specified point/room
             int moneyLeft = sum;
@@ -229,7 +234,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     @Override
     public int substractGold(int amount, short playerId) {
 
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
 
             // See if the player has any gold even
             Keeper keeper = players.get(playerId);
@@ -265,7 +270,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     }
 
     private void substractGoldCapacityFromPlayer(RoomInstance instance) {
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
             IRoomController roomController = mapController.getRoomController(instance);
             if (roomController.canStoreGold()) {
                 RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
@@ -276,7 +281,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     }
 
     private void addGoldCapacityToPlayer(RoomInstance instance) {
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
             IRoomController roomController = mapController.getRoomController(instance);
             if (roomController.canStoreGold()) {
                 RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
@@ -308,7 +313,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // See that can we afford the building
         Room room = kwdFile.getRoomById(roomId);
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
             int cost = instancePlots.size() * room.getCost();
             if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
                 return;
@@ -386,31 +391,8 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
 
-        // Add any loose gold to the building
-        attachLooseGoldToRoom(mapController.getRoomController(instance), instance);
-
         // Notify the build
         notifyOnBuild(playerId, buildTiles);
-    }
-
-    private void attachLooseGoldToRoom(IRoomController roomController, RoomInstance instance) {
-        if (roomController.canStoreGold()) {
-            synchronized (goldLock) {
-                for (Entity entity : entityData.getEntities(Gold.class, Position.class, ObjectComponent.class, RoomStorage.class)) {
-                    Position position = entityData.getComponent(entity.getId(), Position.class);
-                    if (instance.hasCoordinate(WorldUtils.vectorToPoint(position.position))) {
-                        Gold gold = entityData.getComponent(entity.getId(), Gold.class);
-                        int goldLeft = (int) roomController.getObjectControl(ObjectType.GOLD).addItem(gold.gold, WorldUtils.vectorToPoint(position.position));
-                        playerControllers.get(instance.getOwnerId()).getGoldControl().addGold(gold.gold - goldLeft);
-                        if (goldLeft == 0) {
-                            entityData.removeEntity(entity.getId());
-                        } else {
-                            gold.gold = goldLeft;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     @Override
@@ -483,13 +465,12 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             if (instance != null && !newInstances.contains(instance)) {
                 newInstances.add(instance);
                 addGoldCapacityToPlayer(instance);
-                attachLooseGoldToRoom(mapController.getRoomController(instance), instance);
             }
         }
 
         // Finally we have all the rooms and such, return the revenue to the player
         // Do it this point to avoid placing the profit to the actual room we were selling
-        synchronized (goldLock) {
+        synchronized (GOLD_LOCK) {
             for (Map.Entry<Point, Integer> moneyToReturn : moneyToReturnByPoint) {
                 int goldLeft = addGold(playerId, moneyToReturn.getValue());
                 if (goldLeft > 0) {
@@ -591,7 +572,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
             // If it was gold... substract it from the player
             if (roomStorage.objectType == ObjectType.GOLD) {
-                synchronized (goldLock) {
+                synchronized (GOLD_LOCK) {
                     playerControllers.get(playerId).getGoldControl().subGold(entityData.getComponent(entity, Gold.class).gold);
                 }
             }
@@ -727,7 +708,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         int realAmount = Math.min(amount, maxGold);
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         if (!playerHandControl.isFull()) {
-            synchronized (goldLock) {
+            synchronized (GOLD_LOCK) {
                 int leftOverRequest = substractGold(realAmount, playerId);
                 realAmount -= leftOverRequest;
                 if (realAmount > 0) {

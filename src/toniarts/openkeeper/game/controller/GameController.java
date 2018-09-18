@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.logic.LooseGoldSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
@@ -244,7 +245,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
                 new CreatureViewSystem(entityData),
-                new DoorViewSystem(entityData, positionSystem));
+                new DoorViewSystem(entityData, positionSystem),
+                new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
         // Animation systems
