@@ -78,6 +78,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
         roomCount++;
         if (dungeonHeart == null && room.isDungeonHeart()) {
             dungeonHeart = room;
+            keeper.setDungeonHeartLocation(room.getRoomInstance().getCenter());
         }
     }
 

@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -413,15 +414,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     public void zoomToDungeon() {
-        MapLoader mapLoader = stateManager.getState(WorldState.class).getMapLoader();
-        for (Map.Entry<RoomInstance, GenericRoom> en : mapLoader.getRoomActuals().entrySet()) {
-            RoomInstance key = en.getKey();
-            GenericRoom value = en.getValue();
-            if (value.isDungeonHeart() && key.getOwnerId() == playerId) {
-                cameraState.setCameraLookAt(key.getCenter());
-                break;
-            }
-        }
+        cameraState.setCameraLookAt(new Point(stateManager.getState(GameClientState.class).getPlayer(playerId).getDungeonHeartLocation()));
     }
 
     /**

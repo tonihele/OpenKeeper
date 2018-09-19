@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.data;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +40,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     private int manaGain;
     private int manaLoose;
     private int maxMana;
+    private Point dungeonHeartLocation;
     private final List<Short> availableRooms = new ArrayList<>();
     private final List<Short> availableSpells = new ArrayList<>();
     private final List<Short> availableCreatures = new ArrayList<>();
@@ -197,6 +199,14 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public void setMaxMana(int maxMana) {
         this.maxMana = maxMana;
+    }
+
+    public Point getDungeonHeartLocation() {
+        return dungeonHeartLocation;
+    }
+
+    public void setDungeonHeartLocation(Point dungeonHeartLocation) {
+        this.dungeonHeartLocation = dungeonHeartLocation;
     }
 
     public List<Short> getAvailableRooms() {
