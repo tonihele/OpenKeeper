@@ -19,26 +19,21 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple health component, essentially without this, you are dead
+ * Creatures mood... Looking at the evidence I suspect that this is an int value
+ * that caps to 10000
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Health implements EntityComponent {
+public class CreatureMood implements EntityComponent {
 
-    public int ownLandHealthIncrease;
-    public int health;
-    public int maxHealth;
-    public boolean unconscious;
+    public int moodValue;
 
-    public Health() {
+    public CreatureMood() {
         // For serialization
     }
 
-    public Health(int ownLandHealthIncrease, int health, int maxHealth, boolean unconscious) {
-        this.ownLandHealthIncrease = ownLandHealthIncrease;
-        this.health = health;
-        this.maxHealth = maxHealth;
-        this.unconscious = unconscious;
+    public CreatureMood(int moodValue) {
+        this.moodValue = moodValue;
     }
 
 }

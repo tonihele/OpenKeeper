@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 public class CreatureAi implements EntityComponent {
 
     public double stateStartTime;
-    public CreatureState creatureState;
+    private int creatureState;
     public short creatureId;
 
     public CreatureAi() {
@@ -35,8 +35,18 @@ public class CreatureAi implements EntityComponent {
 
     public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId) {
         this.stateStartTime = stateStartTime;
-        this.creatureState = creatureState;
+        this.creatureState = creatureState.ordinal();
         this.creatureId = creatureId;
+    }
+
+    public final CreatureState getCreatureState() {
+
+        /**
+         * The creature state enum is not final class, so FieldSerializer wont
+         * serialize it. Easiest for us now is just to emulate the serialization
+         * like this
+         */
+        return CreatureState.class.getEnumConstants()[creatureState];
     }
 
 }

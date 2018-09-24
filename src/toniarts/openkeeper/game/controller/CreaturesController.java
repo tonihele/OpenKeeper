@@ -28,7 +28,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureEfficiency;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
@@ -37,6 +41,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -179,7 +184,7 @@ public class CreaturesController implements ICreaturesController {
         EntityId entity = entityData.createEntity();
 
         // Create health, unless dead body
-        Health healthComponent = healthPercentage != null ? new Health(0, healthPercentage, 100) : null;
+        Health healthComponent = healthPercentage != null ? new Health(0, healthPercentage, 100, false) : null;
 
         Gold goldComponent = new Gold(money, 0);
         Senses sensesComponent = healthComponent != null ? new Senses(creature.getAttributes().getDistanceCanHear(), creature.getAttributes().getDistanceCanSee()) : null;
@@ -193,20 +198,37 @@ public class CreaturesController implements ICreaturesController {
         creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
         creatureComponent.stunDuration = creature.getAttributes().getStunDuration();
 
+        // Threat
+        Threat threatComponent = new Threat();
+
+        // Fearless
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
+            entityData.setComponent(entity, new Fearless(null));
+        }
+
         entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE, creatureId));
 
         // Set every attribute by the level of the created creature
-        setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent);
+        setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent, threatComponent);
 
         entityData.setComponent(entity, creatureComponent);
         if (healthComponent != null) {
             entityData.setComponent(entity, healthComponent);
+        } else {
+            entityData.setComponent(entity, new Death(gameTimer.getGameTime()));
         }
         if (sensesComponent != null) {
             entityData.setComponent(entity, sensesComponent);
         }
         entityData.setComponent(entity, new Owner(ownerId));
         entityData.setComponent(entity, goldComponent);
+        entityData.setComponent(entity, threatComponent);
+
+        // I guess the initial efficiency is 80%
+        entityData.setComponent(entity, new CreatureEfficiency(80));
+
+        // I guess the initial mood is 10000
+        entityData.setComponent(entity, new CreatureMood(10000));
 
         // Position
         // FIXME: no floor height
@@ -233,7 +255,7 @@ public class CreaturesController implements ICreaturesController {
         return entity;
     }
 
-    private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent) {
+    private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent) {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureComponent.level);
         Creature.Attributes attributes = creature.getAttributes();
@@ -245,7 +267,7 @@ public class CreaturesController implements ICreaturesController {
             healthComponent.ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
         }
         creatureComponent.fear = attributes.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
-        creatureComponent.threat = attributes.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
+        threatComponent.threat = attributes.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
         creatureComponent.pay = attributes.getPay() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.PAY).getValue() : 100) / 100);
         goldComponent.maxGold = attributes.getMaxGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MAX_GOLD_HELD).getValue() : 100) / 100);
         creatureComponent.hungerFill = attributes.getHungerFill() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS).getValue() : 100) / 100);

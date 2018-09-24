@@ -19,26 +19,20 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple health component, essentially without this, you are dead
+ * Entity efficiency, for working etc.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Health implements EntityComponent {
+public class CreatureEfficiency implements EntityComponent {
 
-    public int ownLandHealthIncrease;
-    public int health;
-    public int maxHealth;
-    public boolean unconscious;
+    public int efficiencyPercentage;
 
-    public Health() {
+    public CreatureEfficiency() {
         // For serialization
     }
 
-    public Health(int ownLandHealthIncrease, int health, int maxHealth, boolean unconscious) {
-        this.ownLandHealthIncrease = ownLandHealthIncrease;
-        this.health = health;
-        this.maxHealth = maxHealth;
-        this.unconscious = unconscious;
+    public CreatureEfficiency(int efficiencyPercentage) {
+        this.efficiencyPercentage = efficiencyPercentage;
     }
 
 }

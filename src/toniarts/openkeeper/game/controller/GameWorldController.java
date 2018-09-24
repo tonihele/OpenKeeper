@@ -37,9 +37,11 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Navigation;
@@ -601,7 +603,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // TODO: Was it so that it can be only picked up from own land?
-        return interaction.pickUppable;
+        return interaction.pickUppable && !isEntityIncapacitated(entityId, entityData);
     }
 
     @Override
@@ -618,6 +620,14 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                         entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
                     }
                 }
+                return;
+            }
+
+            // Creatures (slapping)
+            // TODO: Slap limit
+            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+            if (creatureComponent != null) {
+                entityData.setComponent(entity, new CreatureSlapped(gameTimer.getGameTime()));
                 return;
             }
         }
@@ -719,22 +729,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
     }
 
-    public ICreaturesController getCreaturesController() {
-        return creaturesController;
-    }
-
-    public IDoorsController getDoorsController() {
-        return doorsController;
-    }
-
-    public IObjectsController getObjectsController() {
-        return objectsController;
-    }
-
-    public ITrapsController getTrapsController() {
-        return trapsController;
-    }
-
     private static boolean canInteract(EntityId entityId, short playerId, EntityData entityData) {
 
         // The owner only
@@ -749,7 +743,32 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             return false;
         }
 
-        return true;
+        return !isEntityIncapacitated(entityId, entityData);
+    }
+
+    private static boolean isEntityIncapacitated(EntityId entityId, EntityData entityData) {
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (health == null || health.unconscious) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public ICreaturesController getCreaturesController() {
+        return creaturesController;
+    }
+
+    public IDoorsController getDoorsController() {
+        return doorsController;
+    }
+
+    public IObjectsController getObjectsController() {
+        return objectsController;
+    }
+
+    public ITrapsController getTrapsController() {
+        return trapsController;
     }
 
 }

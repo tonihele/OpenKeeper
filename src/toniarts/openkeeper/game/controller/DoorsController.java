@@ -116,7 +116,7 @@ public class DoorsController implements IDoorsController {
         }
 
         // Health
-        entityData.setComponent(entity, new Health(door.getHealthGain(), door.getHealth(), door.getHealth()));
+        entityData.setComponent(entity, new Health(door.getHealthGain(), door.getHealth(), door.getHealth(), false));
 
         // Trigger
         if (triggerId != null) {

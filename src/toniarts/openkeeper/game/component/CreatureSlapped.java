@@ -19,26 +19,22 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple health component, essentially without this, you are dead
+ * Tagging component for something that has been slapped by the keeper. TODO:
+ * Also objects can be slapped, but the mechanism needs some studying, for now
+ * it is just easy to target the effect to creatures
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Health implements EntityComponent {
+public class CreatureSlapped implements EntityComponent {
 
-    public int ownLandHealthIncrease;
-    public int health;
-    public int maxHealth;
-    public boolean unconscious;
+    public double startTime;
 
-    public Health() {
+    public CreatureSlapped() {
         // For serialization
     }
 
-    public Health(int ownLandHealthIncrease, int health, int maxHealth, boolean unconscious) {
-        this.ownLandHealthIncrease = ownLandHealthIncrease;
-        this.health = health;
-        this.maxHealth = maxHealth;
-        this.unconscious = unconscious;
+    public CreatureSlapped(double startTime) {
+        this.startTime = startTime;
     }
 
 }

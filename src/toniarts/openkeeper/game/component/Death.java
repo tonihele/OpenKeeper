@@ -19,26 +19,21 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple health component, essentially without this, you are dead
+ * Tagging component for something that has been deaded by death. Allows to
+ * clean up corpses at some time and playing death animations etc.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Health implements EntityComponent {
+public class Death implements EntityComponent {
 
-    public int ownLandHealthIncrease;
-    public int health;
-    public int maxHealth;
-    public boolean unconscious;
+    public double startTime;
 
-    public Health() {
+    public Death() {
         // For serialization
     }
 
-    public Health(int ownLandHealthIncrease, int health, int maxHealth, boolean unconscious) {
-        this.ownLandHealthIncrease = ownLandHealthIncrease;
-        this.health = health;
-        this.maxHealth = maxHealth;
-        this.unconscious = unconscious;
+    public Death(double startTime) {
+        this.startTime = startTime;
     }
 
 }

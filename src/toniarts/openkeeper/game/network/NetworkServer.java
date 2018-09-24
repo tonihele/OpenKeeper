@@ -38,10 +38,15 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -57,11 +62,11 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Spellbook;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.ViewType;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
@@ -117,16 +122,22 @@ public class NetworkServer {
             Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
-            Serializer.registerClass(CreatureState.class, new EnumSerializer());
+            //Serializer.registerClass(CreatureState.class, new EnumSerializer());
             Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());
+            Serializer.registerClass(ViewType.class, new EnumSerializer());
 
             // Our entity components
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
-            Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
+            Serializer.registerClass(CreatureEfficiency.class, new FieldSerializer());
             Serializer.registerClass(CreatureFall.class, new FieldSerializer());
+            Serializer.registerClass(CreatureMood.class, new FieldSerializer());
+            Serializer.registerClass(CreatureSlapped.class, new FieldSerializer());
+            Serializer.registerClass(CreatureViewState.class, new FieldSerializer());
+            Serializer.registerClass(Death.class, new FieldSerializer());
             Serializer.registerClass(DoorComponent.class, new FieldSerializer());
             Serializer.registerClass(DoorViewState.class, new FieldSerializer());
+            Serializer.registerClass(Fearless.class, new FieldSerializer());
             Serializer.registerClass(Gold.class, new FieldSerializer());
             Serializer.registerClass(Health.class, new FieldSerializer());
             Serializer.registerClass(InHand.class, new FieldSerializer());
@@ -142,10 +153,10 @@ public class NetworkServer {
             Serializer.registerClass(RoomStorage.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
+            Serializer.registerClass(Threat.class, new FieldSerializer());
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
-            Serializer.registerClass(ViewType.class, new EnumSerializer());
         }
     }
 
@@ -204,6 +215,10 @@ public class NetworkServer {
             }
 
             server.close();
+
+            // FIXME: Really, I'm sure this is not meant to be
+            // https://hub.jmonkeyengine.org/t/solved-for-now-serializer-locked-error-what-does-it-mean-version-jme-3-1/33671
+            Serializer.setReadOnly(false);
         }
     }
 

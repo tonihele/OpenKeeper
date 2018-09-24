@@ -388,7 +388,7 @@ public class CreatureController implements ICreatureController {
     }
 
     private void initState() {
-        stateMachine.changeState(entityData.getComponent(entityId, CreatureAi.class).creatureState);
+        stateMachine.changeState(entityData.getComponent(entityId, CreatureAi.class).getCreatureState());
     }
 
     @Override

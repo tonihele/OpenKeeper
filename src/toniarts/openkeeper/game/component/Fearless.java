@@ -19,26 +19,20 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple health component, essentially without this, you are dead
+ * Tags an entity to be fearless, either by a brief moment in time or by nature
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Health implements EntityComponent {
+public class Fearless implements EntityComponent {
 
-    public int ownLandHealthIncrease;
-    public int health;
-    public int maxHealth;
-    public boolean unconscious;
+    public Double startTime;
 
-    public Health() {
+    public Fearless() {
         // For serialization
     }
 
-    public Health(int ownLandHealthIncrease, int health, int maxHealth, boolean unconscious) {
-        this.ownLandHealthIncrease = ownLandHealthIncrease;
-        this.health = health;
-        this.maxHealth = maxHealth;
-        this.unconscious = unconscious;
+    public Fearless(Double startTime) {
+        this.startTime = startTime;
     }
 
 }

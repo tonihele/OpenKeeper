@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -70,10 +72,14 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
             Creature.AnimationType targetState = currentState;
             if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
+            } else if (entityData.getComponent(entityId, Death.class) != null) {
+                targetState = Creature.AnimationType.DIE;
+            } else if (entityData.getComponent(entityId, Health.class) != null && entityData.getComponent(entityId, Health.class).unconscious) {
+                targetState = Creature.AnimationType.DIE;
             } else {
                 CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                 if (aiState != null) {
-                    switch (aiState.creatureState) {
+                    switch (aiState.getCreatureState()) {
                         case IDLE:
                             targetState = Creature.AnimationType.IDLE_1;
                             break;

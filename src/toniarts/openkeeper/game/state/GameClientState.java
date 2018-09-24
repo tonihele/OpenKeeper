@@ -93,6 +93,7 @@ public class GameClientState extends AbstractPauseAwareState {
         this.kwdFile = level;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
+        this.app = (Main) app;
 
         // Create the loading state
         loadingState = createLoadingState(players, app);
@@ -106,7 +107,6 @@ public class GameClientState extends AbstractPauseAwareState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
-        this.app = (Main) app;
         this.stateManager = stateManager;
 
         // Attach the loading state finally
@@ -287,7 +287,7 @@ public class GameClientState extends AbstractPauseAwareState {
             }
             mapClientService = new MapController(mapData, kwdFile);
             playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId);
-            playerMapViewState = new PlayerMapViewState(kwdFile, app.getAssetManager(), mapClientService, playerId) {
+            playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), mapClientService, playerId) {
 
                 private float lastProgress = 0;
 

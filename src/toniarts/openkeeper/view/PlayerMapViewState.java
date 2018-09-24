@@ -68,7 +68,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
 
-    public PlayerMapViewState(final KwdFile kwdFile, final AssetManager assetManager, IMapInformation mapClientService, short playerId) {
+    public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, IMapInformation mapClientService, short playerId) {
+        this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;

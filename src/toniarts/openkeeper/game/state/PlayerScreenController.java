@@ -1014,6 +1014,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         private final Element creaturePanel;
         private final WorkerAmountControl workerAmountControl;
         private final Screen hud;
+        private final Map<EntityId, Short> creatureIdsByEntityIds = new HashMap<>();
         private final Map<Short, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
         private final Map<Short, CreatureCardControl> creatureCardControls = new HashMap<>();
         private final CreatureCardEventListener creatureCardEventListener = new EventListener();
@@ -1051,6 +1052,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                 // Add to the list
                 short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
+                creatureIdsByEntityIds.put(entity.getId(), creatureId);
                 Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
                 if (creatureSet == null) {
                     creatureSet = new LinkedHashSet<>();
@@ -1084,7 +1086,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             for (Entity entity : entities) {
 
                 // Remove from the list
-                short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
+                short creatureId = creatureIdsByEntityIds.remove(entity.getId());
                 Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
                 if (creatureSet != null) {
                     creatureSet.remove(entity.getId());
@@ -1116,7 +1118,9 @@ public class PlayerScreenController implements IPlayerScreenController {
             Set<Short> modifiedCreatures = new LinkedHashSet<>();
             for (Entity entity : entities) {
                 short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
+                short oldCreatureId = creatureIdsByEntityIds.put(entity.getId(), creatureId);
                 modifiedCreatures.add(creatureId);
+                modifiedCreatures.add(oldCreatureId);
             }
 
             // Update the creature cards
@@ -1176,13 +1180,13 @@ public class PlayerScreenController implements IPlayerScreenController {
             Set<EntityId> imps = creaturesByTypes.get(kwdFile.getImp().getCreatureId());
             for (EntityId entityId : imps) {
                 CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-                if (creatureAi != null && (creatureAi.creatureState == CreatureState.PICKED_UP
-                        || creatureAi.creatureState == CreatureState.DEAD)) {
+                if (creatureAi != null && (creatureAi.getCreatureState() == CreatureState.PICKED_UP
+                        || creatureAi.getCreatureState() == CreatureState.DEAD)) {
                     continue;
                 }
-                if (creatureAi != null && creatureAi.creatureState == CreatureState.IDLE) {
+                if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
                     impIdle++;
-                } else if (creatureAi != null && creatureAi.creatureState == CreatureState.FIGHT) {
+                } else if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FIGHT) {
                     impFighting++;
                 } else {
                     impBusy++;
@@ -1257,9 +1261,9 @@ public class PlayerScreenController implements IPlayerScreenController {
                 }
 
                 CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-                if (creatureAi != null && creatureAi.creatureState == CreatureState.IDLE) {
+                if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
                     return state == CreatureUIState.IDLE;
-                } else if (creatureAi != null && creatureAi.creatureState == CreatureState.FIGHT) {
+                } else if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FIGHT) {
                     return state == CreatureUIState.FIGHT;
                 } else {
                     return state == CreatureUIState.BUSY;
