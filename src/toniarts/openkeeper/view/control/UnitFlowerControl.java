@@ -383,7 +383,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
             if (seconds != null) {
                 aufc.show(seconds);
             } else {
-            aufc.show();
+                aufc.show();
             }
         }
     }

@@ -76,6 +76,8 @@ public class HealthSystem implements IGameLogicUpdatable {
             processAddedEntities(healthEntities.getAddedEntities());
 
             processDeletedEntities(healthEntities.getRemovedEntities());
+
+            processChangedEntities(healthEntities.getChangedEntities(), gameTime);
         }
 
         // Bring death to those unfortunate and increase the health of the fortunate
@@ -114,9 +116,8 @@ public class HealthSystem implements IGameLogicUpdatable {
                         timeOnOwnLandByEntityId.put(entityId, gameTime);
                     } else if (gameTime - lastTimeOnOwnLand >= 1) {
 
-                        // Increase health and reset timer
+                        // Increase health
                         entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, Math.max(health.health + health.ownLandHealthIncrease, health.maxHealth), health.maxHealth, false));
-                        timeOnOwnLandByEntityId.put(entityId, gameTime);
                     }
                 } else {
 
@@ -148,6 +149,15 @@ public class HealthSystem implements IGameLogicUpdatable {
             entityIds.remove(index);
             timeOnOwnLandByEntityId.remove(entity.getId());
             timeUnconsciousByEntityId.remove(entity.getId());
+        }
+    }
+
+    private void processChangedEntities(Set<Entity> entities, double gameTime) {
+        for (Entity entity : entities) {
+
+            // If the health is changed (either by us or damage)...
+            // Reset the health regen counter
+            timeOnOwnLandByEntityId.replace(entity.getId(), null);
         }
     }
 
