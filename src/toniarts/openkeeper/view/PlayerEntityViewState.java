@@ -37,6 +37,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.DoorViewControl;
 import toniarts.openkeeper.view.control.EntityViewControl;
@@ -200,6 +201,9 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (result != null) {
                 EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
                 result.addControl(control);
+
+                CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
+                result.addControl(flowerControl);
             }
         }
         if (result == null) {

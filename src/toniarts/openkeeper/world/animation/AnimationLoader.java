@@ -29,7 +29,6 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.control.UnitFlowerControl;
 
 /**
  * Static helpers to handle animations in our basic scene objects
@@ -278,7 +277,7 @@ public class AnimationLoader {
     }
 
     private static void hideAllNodes(Node root) {
-        UnitFlowerControl aufc = root.getControl(UnitFlowerControl.class);
+        //UnitFlowerControl aufc = root.getControl(UnitFlowerControl.class);
         for (Spatial child : root.getChildren()) {
 
             // Don't hide the unit flower

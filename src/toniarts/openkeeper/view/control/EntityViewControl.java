@@ -124,7 +124,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public void onHover(short playerId) {
-
+        UnitFlowerControl.showUnitFlower(this, null);
     }
 
     @Override
