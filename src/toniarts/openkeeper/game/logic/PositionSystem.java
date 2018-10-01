@@ -218,7 +218,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         // More of a physics thingie that...
         // So only doors here now...
         DoorComponent doorComponent = entityData.getComponent(id, DoorComponent.class);
-        if (doorComponent != null) {
+        if (doorComponent != null && !doorComponent.blueprint) {
             return true;
         }
 
