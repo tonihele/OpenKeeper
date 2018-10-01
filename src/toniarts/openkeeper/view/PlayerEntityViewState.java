@@ -39,10 +39,12 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
+import toniarts.openkeeper.view.control.DoorFlowerControl;
 import toniarts.openkeeper.view.control.DoorViewControl;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
@@ -229,6 +231,9 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = doorLoader.load(assetManager, doorViewState);
             EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, kwdFile.getObject(door.getKeyObjectId()));
             result.addControl(control);
+
+            DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
+            result.addControl(flowerControl);
         }
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
@@ -253,6 +258,9 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = trapLoader.load(assetManager, trapViewState);
             EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager);
             result.addControl(control);
+
+            TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);
+            result.addControl(flowerControl);
         }
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...

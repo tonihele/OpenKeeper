@@ -87,6 +87,13 @@ public class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
     }
 
     @Override
+    public void onHover(short playerId) {
+        if (!currentState.blueprint) {
+            super.onHover(playerId);
+        }
+    }
+
+    @Override
     public void onHoverEnd(short playerId) {
         super.onHoverEnd(playerId);
 

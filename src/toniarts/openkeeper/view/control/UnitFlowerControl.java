@@ -100,7 +100,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     protected int getHealthMax() {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null) {
-            return 100;
+            return 0;
         }
         return health.maxHealth;
     }
@@ -172,7 +172,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     @Override
-    public T getDataObject() {
+    public final T getDataObject() {
         return data;
     }
 
@@ -211,6 +211,12 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
             // If already showing, just extend the time
             targetTimeVisible = timeVisible + period;
         } else if (!isEnabled()) {
+
+            // If no health, assume that we should not be visible, ever
+            Health health = entityData.getComponent(entityId, Health.class);
+            if (health == null) {
+                return;
+            }
 
             // Reset counter and create the graphics
             timeVisible = 0;

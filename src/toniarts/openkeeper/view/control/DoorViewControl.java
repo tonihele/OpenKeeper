@@ -114,6 +114,13 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
     }
 
     @Override
+    public void onHover(short playerId) {
+        if (!currentState.blueprint) {
+            super.onHover(playerId);
+        }
+    }
+
+    @Override
     public void onHoverEnd(short playerId) {
         super.onHoverEnd(playerId);
 
