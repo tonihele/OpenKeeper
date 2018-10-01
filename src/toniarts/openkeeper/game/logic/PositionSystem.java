@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
@@ -243,7 +244,11 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
             for (EntityId entityId : entityIds) {
                 DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
                 if (doorComponent != null) {
-                    return doorComponent.locked;
+                    if (doorComponent.locked) {
+                        return true;
+                    }
+                    Owner owner = entityData.getComponent(entityId, Owner.class);
+                    return owner == null || owner.ownerId != playerId;
                 }
             }
         }
