@@ -24,7 +24,6 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Gold;
@@ -37,7 +36,6 @@ import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * A simple state to scan the loose gold inside treasuries. The loose gold is
@@ -51,21 +49,22 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final SafeArrayList<EntityId> looseGoldEntityIds;
-    private final Map<EntityId, Point> looseGoldEntityLocations;
     private final IMapController mapController;
     private final Map<Short, IPlayerController> playerControllers;
+    private final IEntityPositionLookup entityPositionLookup;
 
-    public LooseGoldSystem(EntityData entityData, IMapController mapController, Map<Short, IPlayerController> playerControllers) {
+    public LooseGoldSystem(EntityData entityData, IMapController mapController, Map<Short, IPlayerController> playerControllers,
+            IEntityPositionLookup entityPositionLookup) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.playerControllers = playerControllers;
+        this.entityPositionLookup = entityPositionLookup;
 
         // TODO: Figure out a better way to flag loose gold
         looseGoldEntities = entityData.getEntities(
                 new FieldFilter(ObjectComponent.class, "objectId", ObjectsController.OBJECT_GOLD_ID),
                 ObjectComponent.class, Gold.class, Position.class);
         looseGoldEntityIds = new SafeArrayList<>(EntityId.class);
-        looseGoldEntityLocations = new HashMap<>();
         processAddedEntities(looseGoldEntities);
     }
 
@@ -79,12 +78,11 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
 
             processDeletedEntities(looseGoldEntities.getRemovedEntities());
 
-            processChangedEntities(looseGoldEntities.getChangedEntities());
         }
 
         // Attach loose gold to rooms
         for (EntityId entityId : looseGoldEntityIds.getArray()) {
-            Point point = looseGoldEntityLocations.get(entityId);
+            Point point = entityPositionLookup.getEntityLocation(entityId).getLocation();
             IRoomController roomController = mapController.getRoomControllerByCoordinates(point);
             if (roomController != null && roomController.canStoreGold() && !roomController.isFullCapacity()) {
                 short ownerId = roomController.getRoomInstance().getOwnerId();
@@ -108,7 +106,6 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(looseGoldEntityIds, entity.getId());
             looseGoldEntityIds.add(~index, entity.getId());
-            looseGoldEntityLocations.put(entity.getId(), WorldUtils.vectorToPoint(entity.get(Position.class).position));
         }
     }
 
@@ -116,15 +113,9 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(looseGoldEntityIds, entity.getId());
             looseGoldEntityIds.remove(index);
-            looseGoldEntityLocations.remove(entity.getId());
         }
     }
 
-    private void processChangedEntities(Set<Entity> entities) {
-        for (Entity entity : entities) {
-            looseGoldEntityLocations.put(entity.getId(), WorldUtils.vectorToPoint(entity.get(Position.class).position));
-        }
-    }
 
     @Override
     public void start() {
@@ -135,7 +126,6 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
     public void stop() {
         looseGoldEntities.release();
         looseGoldEntityIds.clear();
-        looseGoldEntityLocations.clear();
     }
 
 }

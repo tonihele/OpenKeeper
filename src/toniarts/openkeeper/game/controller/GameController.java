@@ -252,7 +252,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
-                new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers));
+                new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem));
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
         // Animation systems
