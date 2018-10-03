@@ -394,6 +394,17 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);
 
+        // Time limit is a special timer, it just ticks towards 0 if it is set
+        if (timeLimit != null) {
+            timeLimit -= tpf;
+
+            // We rest on zero
+            if (timeLimit < 0) {
+                timeLimit = 0f;
+            }
+        }
+
+        // Advance game timers
         for (GameTimer timer : timers.getArray()) {
             timer.update(tpf);
         }
@@ -426,7 +437,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             playerTriggerLogicController.processTick(tpf, gameTime);
         }
 
-        if (timeLimit != null && gameTime > timeLimit) {
+        if (timeLimit != null && timeLimit <= 0) {
             //TODO:
             throw new RuntimeException("Level time limit exceeded!");
         }

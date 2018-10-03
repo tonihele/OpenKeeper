@@ -148,7 +148,13 @@ public class TriggerControl extends Control {
                 break;
 
             case TIMER:
-                target = (int) levelInfo.getTimer((Short) trigger.getUserData("targetId")).getTime();
+                targetId = (short) trigger.getUserData("targetId");
+                if (targetId == TIME_LIMIT_TIMER_ID) {
+                    target = (levelInfo.getTimeLimit() != null ? levelInfo.getTimeLimit().intValue() : 0);
+                } else {
+                    target = (int) levelInfo.getTimer(targetId).getTime();
+                }
+
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
