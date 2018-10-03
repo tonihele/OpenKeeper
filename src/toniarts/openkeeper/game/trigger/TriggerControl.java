@@ -252,6 +252,16 @@ public class TriggerControl extends Control {
                 }
                 break;
 
+            case SET_TIME_LIMIT:
+                timerId = trigger.getUserData("timerId", short.class);
+                if (timerId == TIME_LIMIT_TIMER_ID) {
+                    value = trigger.getUserData("value", int.class);
+                    levelInfo.setTimeLimit(value);
+                } else {
+                    LOGGER.warning("Only level time limit supported!");
+                }
+                break;
+
             case CREATE_HERO_PARTY:
                 ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
                 short partyId = trigger.getUserData("partyId", short.class);
