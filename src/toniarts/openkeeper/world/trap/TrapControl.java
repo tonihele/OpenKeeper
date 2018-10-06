@@ -24,13 +24,13 @@ import java.io.File;
 import java.util.ResourceBundle;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
@@ -58,7 +58,6 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
     private final TileData tile;
     private TrapState state = TrapState.NORMAL;
     private int health;
-    private final static ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
 
     public TrapControl(TileData tile, @Nonnull Trap trap, WorldState worldState, AssetManager assetManager) {
         this(tile, trap, worldState, assetManager, false);
@@ -75,7 +74,7 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
         if (blueprint) {
             state = TrapState.BLUEPRINT;
         }
-        name = BUNDLE.getString(Integer.toString(trap.getNameStringId()));
+        name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
     }
 
     @Override
@@ -97,9 +96,10 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public String getTooltip(short playerId) {
+        ResourceBundle bundle = Utils.getMainTextResourceBundle();
         if (trap.getFlags().contains(Trap.TrapFlag.GUARD_POST)) {
             if (playerId == getOwnerId()) {
-                return BUNDLE.getString("2538");
+                return bundle.getString("2538");
             } else {
                 return name;
             }
@@ -108,12 +108,12 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
         // Regular traps
         String tooltip;
         if (playerId == getOwnerId()) {
-            tooltip = BUNDLE.getString("2534").replaceFirst("%68", name)
+            tooltip = bundle.getString("2534").replaceFirst("%68", name)
                     .replaceFirst("%25", Integer.toString(trap.getManaUsage()))
                     .replaceFirst("%26", Integer.toString(trap.getManaCostToFire()))
-                    .replaceFirst("%72", trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED) ? BUNDLE.getString("2514") : BUNDLE.getString("2513")); // This is not entirely true if you compare to original, see Fear trap
+                    .replaceFirst("%72", trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED) ? bundle.getString("2514") : bundle.getString("2513")); // This is not entirely true if you compare to original, see Fear trap
         } else {
-            tooltip = BUNDLE.getString("2542");
+            tooltip = bundle.getString("2542");
         }
 
         return tooltip.replaceFirst("%37%", Integer.toString(getHealthPercentage()));

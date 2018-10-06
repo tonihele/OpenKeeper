@@ -23,7 +23,6 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -31,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.animation.AnimationControl;
@@ -66,7 +65,6 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     private int health;
     private boolean animating = false;
     private DoorState animatedState = DoorState.CLOSED;
-    private final static ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
 
     public DoorControl(TileData tile, Door door, GameObject lockObject, Trap doorTrap, WorldState worldState, AssetManager assetManager) {
         this(tile, door, lockObject, doorTrap, worldState, assetManager, false, false);
@@ -86,7 +84,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
         if (blueprint) {
             state = DoorState.BLUEPRINT;
         }
-        name = BUNDLE.getString(Integer.toString(door.getNameStringId()));
+        name = Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
     }
 
     @Override
@@ -126,28 +124,29 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
     @Override
     public String getTooltip(short playerId) {
         String tooltip;
+        ResourceBundle bundle = Utils.getMainTextResourceBundle();
         if (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
             if (state == DoorState.BLUEPRINT) {
-                tooltip = BUNDLE.getString("2512");
+                tooltip = bundle.getString("2512");
                 tooltip = tooltip.replaceFirst("%68", name);
             } else {
-                tooltip = BUNDLE.getString("2536");
+                tooltip = bundle.getString("2536");
             }
         } else if (playerId == getOwnerId()) {
             switch (state) {
                 case BLUEPRINT: {
-                    tooltip = BUNDLE.getString("2512");
+                    tooltip = bundle.getString("2512");
                     break;
                 }
                 default: {
-                    tooltip = BUNDLE.getString("2532");
-                    tooltip = tooltip.replaceFirst("%72", locked ? BUNDLE.getString("2516") : BUNDLE.getString("2515"));
+                    tooltip = bundle.getString("2532");
+                    tooltip = tooltip.replaceFirst("%72", locked ? bundle.getString("2516") : bundle.getString("2515"));
                     break;
                 }
             }
             tooltip = tooltip.replaceFirst("%68", name);
         } else {
-            tooltip = BUNDLE.getString("2540");
+            tooltip = bundle.getString("2540");
         }
         return tooltip.replaceFirst("%37%", Integer.toString(getHealthPercentage()));
     }
