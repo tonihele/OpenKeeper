@@ -29,8 +29,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
@@ -79,8 +77,7 @@ public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance 
 
         });
         // override Jelly
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-        tooltip = bundle.getString(TOOLTIP_STRING_ID);
+        tooltip = Utils.getMainTextResourceBundle().getString(TOOLTIP_STRING_ID);
     }
 
     protected int getGoldPerTile() {

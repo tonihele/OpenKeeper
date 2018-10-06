@@ -22,12 +22,11 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -57,7 +56,6 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
     protected RoomObjectControl roomObjectControl;
     private CreatureControl creature;
     protected short pickedUpBy;
-    protected final ResourceBundle bundle;
 
     public ObjectControl(TileData tile, GameObject object, WorldState worldState) {
         super();
@@ -67,8 +65,7 @@ public class ObjectControl extends HighlightControl implements IInteractiveContr
         this.tile = tile;
 
         // Strings
-        bundle = Main.getResourceBundle("Interface/Texts/Text");
-        tooltip = bundle.getString(Integer.toString(object.getTooltipStringId()));
+        tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(object.getTooltipStringId()));
     }
 
     @Override

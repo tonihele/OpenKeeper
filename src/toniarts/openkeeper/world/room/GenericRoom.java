@@ -27,15 +27,14 @@ import java.awt.Point;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.Set;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -125,10 +124,9 @@ public abstract class GenericRoom {
         SoundsLoader.load(roomInstance.getRoom().getSoundCategory());
 
         // Strings
-        ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
-        tooltip = bundle.getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
+        tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(roomInstance.getRoom().getTooltipStringId()));
         if (notOwnedTooltip == null) {
-            notOwnedTooltip = bundle.getString("2471");
+            notOwnedTooltip = Utils.getMainTextResourceBundle().getString("2471");
         }
     }
 

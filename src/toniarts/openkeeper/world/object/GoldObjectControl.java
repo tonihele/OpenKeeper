@@ -22,6 +22,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -53,8 +54,8 @@ public class GoldObjectControl extends ObjectControl {
         this.maxGold = maxGold;
 
         // Tooltips
-        tooltipLooseGold = bundle.getString("2544");
-        tooltipGold = bundle.getString("2543");
+        tooltipLooseGold = Utils.getMainTextResourceBundle().getString("2544");
+        tooltipGold = Utils.getMainTextResourceBundle().getString("2543");
     }
 
     @Override

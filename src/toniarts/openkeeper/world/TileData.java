@@ -21,12 +21,11 @@ import com.jme3.scene.Node;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
@@ -49,7 +48,6 @@ public final class TileData extends Tile {
     private final List<CreatureControl> creatures = new ArrayList<>();
     private Node sideNode;
     private Node topNode;
-    private final static ResourceBundle bundle = Main.getResourceBundle("Interface/Texts/Text");
 
     protected TileData(KwdFile kwdFile, Tile tile, Terrain terrain, int x, int y, int index) {
         this.p = new Point(x, y);
@@ -188,7 +186,7 @@ public final class TileData extends Tile {
     }
 
     public String getTooltip() {
-        return bundle.getString(Integer.toString(getTerrain().getTooltipStringId()))
+        return Utils.getMainTextResourceBundle().getString(Integer.toString(getTerrain().getTooltipStringId()))
                 .replaceAll("%37%", Integer.toString(getHealthPercent()))
                 .replaceAll("%66", Integer.toString(terrain.getManaGain()))
                 .replaceAll("%67", Integer.toString(gold));
