@@ -68,6 +68,7 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -1179,11 +1180,12 @@ public class PlayerScreenController implements IPlayerScreenController {
 
             Set<EntityId> imps = creaturesByTypes.get(kwdFile.getImp().getCreatureId());
             for (EntityId entityId : imps) {
-                CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-                if (creatureAi != null && (creatureAi.getCreatureState() == CreatureState.PICKED_UP
-                        || creatureAi.getCreatureState() == CreatureState.DEAD)) {
+                if (entityData.getComponent(entityId, Position.class) == null
+                        || entityData.getComponent(entityId, Death.class) != null) {
                     continue;
                 }
+
+                CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
                 if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
                     impIdle++;
                 } else if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FIGHT) {
@@ -1242,7 +1244,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 do {
                     EntityId creature = creatureList.get(index);
                     index++;
-                    if (isCreatureState(creature, state)) {
+                    if (isCreatureState(creature, state) && entityData.getComponent(creature, Position.class) != null) {
                         selectionIndices.put(creatureId, index);
                         selectedCreature = creature;
                         break;

@@ -100,7 +100,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     protected int getHealthMax() {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null) {
-            return 0;
+            return 100;
         }
         return health.maxHealth;
     }
@@ -113,7 +113,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     protected int getHealthCurrent() {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null) {
-            return 100;
+            return 0;
         }
         return health.health;
     }
