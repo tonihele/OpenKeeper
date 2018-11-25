@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -92,6 +93,11 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
 
         // Set the dragged state
         //creature.setHaulable(null);
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CARRY_CREATURE_TO_JAIL;
     }
 
 }

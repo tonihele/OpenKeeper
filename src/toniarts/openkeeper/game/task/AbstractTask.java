@@ -17,10 +17,12 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -35,6 +37,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class AbstractTask implements Task {
 
+    private static final AtomicLong ID_GENENERATOR = new AtomicLong();
+
+    private final long id;
     private final Date taskCreated;
     protected final INavigationService navigationService;
     protected final IMapController mapController;
@@ -45,6 +50,12 @@ public abstract class AbstractTask implements Task {
         this.taskCreated = new Date();
         this.navigationService = navigationService;
         this.mapController = mapController;
+        this.id = ID_GENENERATOR.getAndIncrement();
+    }
+
+    @Override
+    public long getId() {
+        return id;
     }
 
     /**
@@ -168,4 +179,8 @@ public abstract class AbstractTask implements Task {
         return !isValid(null);
     }
 
+    @Override
+    public EntityId getTaskTarget() {
+        return null;
+    }
 }

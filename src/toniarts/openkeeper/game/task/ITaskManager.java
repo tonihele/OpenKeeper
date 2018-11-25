@@ -90,4 +90,12 @@ public interface ITaskManager {
      */
     boolean isTaskAvailable(ICreatureController creature, Creature.JobType jobType);
 
+    /**
+     * Get a task by its ID
+     *
+     * @param taskId ID of the task
+     * @return the task
+     */
+    Task getTaskById(long taskId);
+
 }

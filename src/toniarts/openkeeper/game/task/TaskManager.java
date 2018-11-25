@@ -17,6 +17,11 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +37,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -40,6 +51,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -47,6 +59,7 @@ import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
+import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
@@ -55,6 +68,7 @@ import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
+import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -67,20 +81,29 @@ import toniarts.openkeeper.world.object.ObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskManager implements ITaskManager {
+public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
+    private final ICreaturesController creaturesController;
     private final INavigationService navigationService;
-    private final Map<Short, Set<AbstractTask>> taskQueues;
+    private final EntityData entityData;
+    private final EntitySet taskEntities;
+    private final EntitySet unconsciousEntities;
+    private final EntitySet corpseEntities;
+    private final Map<Short, Set<Task>> taskQueues;
+    private final Map<Long, Task> tasksByIds = new HashMap<>();
+    private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
-    public TaskManager(IGameWorldController gameWorldController, IMapController mapController, INavigationService navigationService,
+    public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController, ICreaturesController creaturesController, INavigationService navigationService,
             Collection<IPlayerController> players) {
+        this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
+        this.creaturesController = creaturesController;
         this.navigationService = navigationService;
 
         // Set the players
@@ -102,6 +125,116 @@ public class TaskManager implements ITaskManager {
 
         // Add task listeners
         addListeners(players);
+
+        // Listen to entities having a task, for cleanup purposes
+        taskEntities = entityData.getEntities(TaskComponent.class);
+        processAddedTasks(taskEntities);
+
+        // Listen to rescue/capture missions
+        unconsciousEntities = entityData.getEntities(new FieldFilter(Health.class, "unconscious", true), CreatureComponent.class, Health.class, Owner.class);
+        processAddedUnconsciousEntities(unconsciousEntities);
+
+        // Listen to corpse robbing missions
+        corpseEntities = entityData.getEntities(CreatureComponent.class, Death.class);
+        processAddedCorpseEntities(corpseEntities);
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+        taskEntities.release();
+        unconsciousEntities.release();
+        corpseEntities.release();
+    }
+
+    @Override
+    public void processTick(float tpf, double gameTime) {
+        if (taskEntities.applyChanges()) {
+            processAddedTasks(taskEntities.getAddedEntities());
+            processDeletedTasks(taskEntities.getRemovedEntities());
+            processChangedTasks(taskEntities.getChangedEntities());
+        }
+        if (unconsciousEntities.applyChanges()) {
+            processAddedUnconsciousEntities(taskEntities.getAddedEntities());
+            processDeletedUnconsciousEntities(taskEntities.getRemovedEntities());
+        }
+        if (corpseEntities.applyChanges()) {
+            processAddedCorpseEntities(taskEntities.getAddedEntities());
+            processDeletedCorpseEntities(taskEntities.getRemovedEntities());
+        }
+    }
+
+    private void processAddedTasks(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            long taskId = entity.get(TaskComponent.class).taskId;
+            tasksIdsByEntities.put(entity.getId(), taskId);
+        }
+    }
+
+    private void processDeletedTasks(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            Long taskId = tasksIdsByEntities.remove(entity.getId());
+            Task task = tasksByIds.get(taskId);
+            if (task != null) {
+                task.unassign(creaturesController.createController(entity.getId()));
+                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
+                    //tasksByIds.remove(taskId);
+                }
+            }
+        }
+    }
+
+    private void processChangedTasks(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            long taskId = entity.get(TaskComponent.class).taskId;
+            Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            Task task = tasksByIds.get(oldTaskId);
+            if (task != null) {
+                task.unassign(creaturesController.createController(entity.getId()));
+                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
+                    //tasksByIds.remove(taskId);
+                }
+            }
+        }
+    }
+
+    private void processAddedUnconsciousEntities(Set<Entity> entities) {
+
+        // Add rescue mission for the own troops and capture for the enemy
+        for (Entity entity : entities) {
+            Owner owner = entity.get(Owner.class);
+            for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
+
+                Task task;
+                if (entry.getKey() == owner.ownerId) {
+
+                    // Rescue
+                    task = new RescueCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
+                } else {
+
+                    // Capture
+                    task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
+                }
+                entry.getValue().add(task);
+                tasksByIds.put(task.getId(), task);
+            }
+        }
+    }
+
+    private void processDeletedUnconsciousEntities(Set<Entity> entities) {
+        // TODO:
+    }
+
+    private void processAddedCorpseEntities(Set<Entity> entities) {
+        // TODO:
+    }
+
+    private void processDeletedCorpseEntities(Set<Entity> entities) {
+        // TODO:
     }
 
     private void addListeners(Collection<IPlayerController> players) {
@@ -140,41 +273,6 @@ public class TaskManager implements ITaskManager {
 //                }
 //            }
 //        });
-        // Get notified by fallen comrades and enemies
-        // TODO: Entityset listener
-//        for (Keeper keeper : players) {
-//            this.worldState.getThingLoader().addListener(keeper.getId(), new CreatureListener() {
-//                @Override
-//                public void onSpawn(ICreatureController creature) {
-//
-//                }
-//
-//                @Override
-//                public void onStateChange(ICreatureController creature, CreatureState newState, CreatureState oldState) {
-//                    if (newState == CreatureState.UNCONSCIOUS) {
-//
-//                        // Add rescue mission for the own troops and capture for the enemy
-//                        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-//                            if (entry.getKey() == creature.getOwnerId()) {
-//
-//                                // Rescue
-//                                entry.getValue().add(new RescueCreatureTask(worldState, creature, entry.getKey()));
-//                            } else {
-//
-//                                // Capture
-//                                entry.getValue().add(new CaptureEnemyCreatureTask(worldState, creature, entry.getKey()));
-//                            }
-//                        }
-//                    }
-//                }
-//
-//                @Override
-//                public void onDie(ICreatureController creature) {
-//                    // TODO: Rob the corpses
-//                }
-//
-//            });
-//        }
     }
 
     private void scanInitialTasks() {
@@ -194,41 +292,45 @@ public class TaskManager implements ITaskManager {
     }
 
     private void scanTerrainTasks(final MapTile tile, final boolean checkNeighbours, final boolean deleteObsolete) {
-        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+        for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
             // Scan existing tasks that are they valid, should be only one tile task per tile?
             if (deleteObsolete) {
-                Iterator<AbstractTask> iter = entry.getValue().iterator();
+                Iterator<Task> iter = entry.getValue().iterator();
                 while (iter.hasNext()) {
-                    AbstractTask task = iter.next();
+                    Task task = iter.next();
                     if (task instanceof AbstractTileTask) {
                         AbstractTileTask tileTask = (AbstractTileTask) task;
                         if (tileTask.isRemovable()) {
                             iter.remove();
+                            if (tileTask.getAssigneeCount() == 0) {
+                                //tasksByIds.remove(task.getId());
+                            }
                         }
                     }
                 }
             }
 
+            // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
             // Dig
             if (mapController.isSelected(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new DigTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+                Task task = new DigTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim wall
             else if (mapController.isClaimableWall(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new ClaimWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+                Task task = new ClaimWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim
             else if (mapController.isClaimableTile(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new ClaimTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+                Task task = new ClaimTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Repair wall
             else if (mapController.isRepairableWall(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new RepairWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+                Task task = new RepairWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim room
             else if (mapController.isClaimableRoom(tile.getX(), tile.getY(), entry.getKey())) {
-                AbstractTask task = new ClaimRoomTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+                Task task = new ClaimRoomTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             }
         }
@@ -244,7 +346,7 @@ public class TaskManager implements ITaskManager {
     @Override
     public boolean assignTask(ICreatureController creature, boolean byDistance) {
 
-        Set<AbstractTask> taskQueue = taskQueues.get(creature.getOwnerId());
+        Set<Task> taskQueue = taskQueues.get(creature.getOwnerId());
         if (taskQueue == null) {
             return false;
 //            throw new IllegalArgumentException("This task manager instance is not for the given player!");
@@ -252,11 +354,11 @@ public class TaskManager implements ITaskManager {
 
         // Sort by distance & priority
         final Point currentLocation = creature.getCreatureCoordinates();
-        List<AbstractTask> prioritisedTaskQueue = new ArrayList<>(taskQueue);
-        Collections.sort(prioritisedTaskQueue, new Comparator<AbstractTask>() {
+        List<Task> prioritisedTaskQueue = new ArrayList<>(taskQueue);
+        Collections.sort(prioritisedTaskQueue, new Comparator<Task>() {
 
             @Override
-            public int compare(AbstractTask t, AbstractTask t1) {
+            public int compare(Task t, Task t1) {
                 int result = Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
                 if (result == 0) {
 
@@ -269,7 +371,7 @@ public class TaskManager implements ITaskManager {
         });
 
         // Take the first available task from the sorted queue
-        for (AbstractTask task : prioritisedTaskQueue) {
+        for (Task task : prioritisedTaskQueue) {
             if (task.canAssign(creature)) {
 
                 // Assign to first task
@@ -281,10 +383,11 @@ public class TaskManager implements ITaskManager {
         return false;
     }
 
-    private void addTask(short playerId, AbstractTask task) {
-        Set<AbstractTask> tasks = taskQueues.get(playerId);
+    private void addTask(short playerId, Task task) {
+        Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
             tasks.add(task);
+            tasksByIds.put(task.getId(), task);
             LOGGER.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
         } else {
             LOGGER.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
@@ -352,7 +455,7 @@ public class TaskManager implements ITaskManager {
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task
-                    AbstractTask task = getRoomTask(objectType, target, creature, room);
+                    Task task = getRoomTask(objectType, target, creature, room);
 
                     // See if really assign
                     if (!assign) {
@@ -367,6 +470,7 @@ public class TaskManager implements ITaskManager {
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
                     return true;
                 }
             }
@@ -414,6 +518,9 @@ public class TaskManager implements ITaskManager {
         taskPoints.remove(task.getTaskLocation());
         if (taskPoints.isEmpty()) {
             roomTasks.remove(task.getRoom());
+            if (task.getAssigneeCount() == 0) {
+                //tasksByIds.remove(task.getId(), task);
+            }
         }
     }
 
@@ -434,6 +541,7 @@ public class TaskManager implements ITaskManager {
         // Assign
         if (task != null) {
             task.getTask().assign(creature, true);
+            tasksByIds.put(task.getId(), task);
             return true;
         }
         return false;
@@ -468,9 +576,15 @@ public class TaskManager implements ITaskManager {
         GoToSleep task = new GoToSleep(navigationService, mapController, creature);
         if (task.isReachable(creature)) {
             task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
             return true;
         }
         return false;
+    }
+
+    @Override
+    public Task getTaskById(long taskId) {
+        return tasksByIds.get(taskId);
     }
 
 }

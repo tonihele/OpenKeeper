@@ -20,6 +20,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
@@ -57,7 +58,11 @@ public class RepairWallTileTask extends DigTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        //worldState.applyClaimTile(getTaskLocation(), playerId);
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+
+            mapController.applyClaimTile(getTaskLocation(), playerId);
+        }
     }
 
     @Override
@@ -69,6 +74,11 @@ public class RepairWallTileTask extends DigTileTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Reinforce.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.REPAIR_WALL;
     }
 
 }

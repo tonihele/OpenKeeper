@@ -117,7 +117,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
     private GameResult gameResult = null;
     private Float timeLimit = null;
-    private ITaskManager taskManager;
+    private TaskManager taskManager;
 
     private static final Logger LOGGER = Logger.getLogger(GameController.class.getName());
 
@@ -222,7 +222,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
 
         // Initialize tasks
-        taskManager = new TaskManager(gameWorldController, gameWorldController.getMapController(), navigationService, playerControllers.values());
+        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values());
 
         // Trigger data
         for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
@@ -252,7 +252,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
-                new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem));
+                new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
+                taskManager);
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
         // Animation systems

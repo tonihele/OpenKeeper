@@ -44,7 +44,7 @@ import toniarts.openkeeper.world.animation.AnimationControl;
 public abstract class EntityViewControl<T, S> extends AbstractControl implements IEntityViewControl<T, S>, AnimationControl {
 
     private final EntityId entityId;
-    private final EntityData entityData;
+    protected final EntityData entityData;
     private final T data;
     protected S currentState;
     protected S targetState;

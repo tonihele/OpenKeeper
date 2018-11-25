@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -85,5 +86,10 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Rest.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CLAIM_LAIR;
     }
 }

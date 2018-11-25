@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -563,6 +564,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
         entityData.removeComponent(entity, Navigation.class);
+        entityData.removeComponent(entity, TaskComponent.class);
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff

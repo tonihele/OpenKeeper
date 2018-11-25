@@ -21,6 +21,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -75,6 +76,11 @@ public class ClaimTileTask extends AbstractTileTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Claim.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CLAIM_TILE;
     }
 
 }

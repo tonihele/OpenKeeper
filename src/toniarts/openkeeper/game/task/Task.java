@@ -17,16 +17,25 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Date;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
+ * Represents a task to be carried out by entities in the game world
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface Task {
+
+    /**
+     * Tasks are identified by their ID inside the task manager
+     *
+     * @return the task unique ID
+     */
+    long getId();
 
     /**
      * Assing an entity to the task
@@ -97,7 +106,7 @@ public interface Task {
     /**
      * The task icon for unit flowers
      *
-     * @return the path t the icon
+     * @return the path to the icon
      */
     String getTaskIcon();
 
@@ -107,6 +116,13 @@ public interface Task {
      * @return the task location
      */
     Point getTaskLocation();
+
+    /**
+     * Task target, if the task is related to an entity
+     *
+     * @return the task target entity
+     */
+    EntityId getTaskTarget();
 
     /**
      * Get the task tooltip
@@ -154,5 +170,12 @@ public interface Task {
      * @return should the task be removed
      */
     boolean isRemovable();
+
+    /**
+     * Specifies the type of the task
+     *
+     * @return type of task
+     */
+    TaskType getTaskType();
 
 }

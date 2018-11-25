@@ -17,11 +17,13 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -81,6 +83,16 @@ public class RescueCreatureTask extends AbstractTileTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Take_Crate.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.RESCUE_CREATURE;
+    }
+
+    @Override
+    public EntityId getTaskTarget() {
+        return creature.getEntityId();
     }
 
     @Override

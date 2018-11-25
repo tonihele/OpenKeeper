@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.task.worker;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 
 /**
  * Claim a room
@@ -44,6 +45,11 @@ public class ClaimRoomTask extends ClaimTileTask {
     @Override
     protected String getStringId() {
         return "2602";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CLAIM_ROOM;
     }
 
 }

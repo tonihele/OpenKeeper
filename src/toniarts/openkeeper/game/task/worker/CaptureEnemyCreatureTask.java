@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -24,6 +25,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -92,6 +94,16 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
             }
         }
         return true;
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CAPTURE_ENEMY_CREATURE;
+    }
+
+    @Override
+    public EntityId getTaskTarget() {
+        return creature.getEntityId();
     }
 
     @Override

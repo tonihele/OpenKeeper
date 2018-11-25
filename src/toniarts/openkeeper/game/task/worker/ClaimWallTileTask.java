@@ -20,6 +20,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
@@ -80,6 +81,11 @@ public class ClaimWallTileTask extends DigTileTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Reinforce.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CLAIM_WALL;
     }
 
 }

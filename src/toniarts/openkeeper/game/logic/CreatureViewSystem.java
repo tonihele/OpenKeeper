@@ -29,6 +29,9 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -68,34 +71,22 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
 
             // Determine what animation to show
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
+            TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+            Health health = entityData.getComponent(entityId, Health.class);
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DIE;
-            } else if (entityData.getComponent(entityId, Health.class) != null && entityData.getComponent(entityId, Health.class).unconscious) {
+            } else if (health != null && health.unconscious) {
                 targetState = Creature.AnimationType.DIE;
+            } else if (taskComponent != null) {
+                targetState = getAnimation(taskComponent.taskType);
             } else {
                 CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                 if (aiState != null) {
-                    switch (aiState.getCreatureState()) {
-                        case IDLE:
-                            targetState = Creature.AnimationType.IDLE_1;
-                            break;
-                        case STUNNED:
-                            targetState = Creature.AnimationType.STUNNED;
-                            break;
-                        case FALLEN:
-                            targetState = Creature.AnimationType.FALLBACK;
-                            break;
-                        case GETTING_UP:
-                            targetState = Creature.AnimationType.GET_UP;
-                            break;
-                        case ENTERING_DUNGEON:
-                            targetState = Creature.AnimationType.ENTRANCE;
-                            break;
-                    }
+                    targetState = getAnimation(aiState.getCreatureState());
                 }
             }
 
@@ -129,6 +120,38 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
     public void stop() {
         creatureViewEntities.release();
         creatureEntities.clear();
+    }
+
+    private static Creature.AnimationType getAnimation(CreatureState creatureState) {
+        switch (creatureState) {
+            case IDLE:
+                return Creature.AnimationType.IDLE_1;
+            case STUNNED:
+                return Creature.AnimationType.STUNNED;
+            case FALLEN:
+                return Creature.AnimationType.FALLBACK;
+            case GETTING_UP:
+                return Creature.AnimationType.GET_UP;
+            case ENTERING_DUNGEON:
+                return Creature.AnimationType.ENTRANCE;
+            default:
+                return null;
+        }
+    }
+
+    private static Creature.AnimationType getAnimation(TaskType taskType) {
+        switch (taskType) {
+            case CLAIM_ROOM:
+            case CLAIM_TILE:
+                return Creature.AnimationType.EATING;
+            case REPAIR_WALL:
+            case CLAIM_WALL:
+                return Creature.AnimationType.SLEEPING;
+            case DIG_TILE:
+                return Creature.AnimationType.MELEE_ATTACK;
+            default:
+                return null;
+        }
     }
 
 }

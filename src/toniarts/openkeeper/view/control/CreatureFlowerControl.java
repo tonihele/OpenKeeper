@@ -23,6 +23,8 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -100,10 +102,10 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                     return "Textures/GUI/moods/SJ-Fighting.png";
                 }
                 case WORK: {
-                    //String icon = creatureControl.getAssignedTask().getTaskIcon();
-//                    if (icon != null) {
-//                        return icon;
-//                    }
+                    TaskComponent taskComponent = getEntityData().getComponent(getEntityId(), TaskComponent.class);
+                    if (taskComponent != null) {
+                        return getTaskIcon(taskComponent.taskType);
+                    }
                     break;
                 }
                 case FLEE: {
@@ -136,6 +138,34 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
         // Level icon if nothing is found
         return "Textures/GUI/moods/SL-" + String.format("%02d", creatureComponent.level) + ".png";
+    }
+
+    private static String getTaskIcon(TaskType taskType) {
+        switch (taskType) {
+            case CARRY_CREATURE_TO_LAIR:
+            case CAPTURE_ENEMY_CREATURE:
+            case CARRY_CREATURE_TO_JAIL:
+            case RESCUE_CREATURE:
+                return "Textures/GUI/moods/SJ-Take_Crate.png";
+            case CARRY_GOLD_TO_TREASURY:
+                return "Textures/GUI/moods/SJ-Take_Gold.png";
+            case CLAIM_TILE:
+            case CLAIM_ROOM:
+            case FETCH_OBJECT:
+                return "Textures/GUI/moods/SJ-Claim.png";
+            case REPAIR_WALL:
+            case CLAIM_WALL:
+                return "Textures/GUI/moods/SJ-Reinforce.png";
+            case DIG_TILE:
+                return "Textures/GUI/moods/SJ-Dig.png";
+            case CLAIM_LAIR:
+            case GO_TO_SLEEP:
+                return "Textures/GUI/moods/SJ-Rest.png";
+            case RESEARCH_SPELL:
+                return "Textures/GUI/moods/SJ-Library.png";
+            default:
+                return null;
+        }
     }
 
     @Override

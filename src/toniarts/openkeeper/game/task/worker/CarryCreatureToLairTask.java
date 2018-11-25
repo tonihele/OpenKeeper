@@ -17,10 +17,12 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -81,6 +83,16 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
 
         // Set the dragged state
         //creature.setHaulable(null);
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CARRY_CREATURE_TO_LAIR;
+    }
+
+    @Override
+    public EntityId getTaskTarget() {
+        return creature.getEntityId();
     }
 
 }

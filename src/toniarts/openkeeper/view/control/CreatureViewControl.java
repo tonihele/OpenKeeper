@@ -21,6 +21,8 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -49,7 +51,7 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || currentState != Creature.AnimationType.WALK;
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && !isWorkAnimation());
     }
 
     private void playAnimation(Creature.AnimationType animation) {
@@ -86,6 +88,14 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
         return getDataObject().getAnimation(state);
+    }
+
+    private boolean isWorkAnimation() {
+        CreatureAi creatureAi = entityData.getComponent(getEntityId(), CreatureAi.class);
+        if (creatureAi != null) {
+            return creatureAi.getCreatureState() == CreatureState.WORK;
+        }
+        return false;
     }
 
 }

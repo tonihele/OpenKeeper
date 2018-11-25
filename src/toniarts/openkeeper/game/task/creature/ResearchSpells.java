@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -85,4 +86,10 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Library.png";
     }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.RESEARCH_SPELL;
+    }
+
 }

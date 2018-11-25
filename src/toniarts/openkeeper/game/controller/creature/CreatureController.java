@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -62,7 +63,6 @@ public class CreatureController implements ICreatureController {
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
-    private Task assignedTask;
     private float taskDuration = 0.0f;
     private boolean taskStarted = false;
     private float motionless = 0;
@@ -95,10 +95,11 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void unassingCurrentTask() {
+        Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
             assignedTask.unassign(this);
+            entityData.removeComponent(entityId, TaskComponent.class);
         }
-        assignedTask = null;
         taskStarted = false;
     }
 
@@ -222,7 +223,7 @@ public class CreatureController implements ICreatureController {
     public void executeAssignedTask() {
         taskStarted = true;
         if (isAssignedTaskValid()) {
-            assignedTask.executeTask(this, taskDuration);
+            getAssignedTask().executeTask(this, taskDuration);
         }
     }
 
@@ -255,18 +256,22 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void navigateToAssignedTask() {
-        Vector2f loc = assignedTask.getTarget(this);
-        //workNavigationRequired = false;
+        Task assignedTask = getAssignedTask();
+        if (assignedTask != null) {
+            Vector2f loc = assignedTask.getTarget(this);
+            //workNavigationRequired = false;
 
-        if (loc != null) {
-            Point destination = WorldUtils.vectorToPoint(loc);
-            GraphPath<MapTile> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
-            entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
+            if (loc != null) {
+                Point destination = WorldUtils.vectorToPoint(loc);
+                GraphPath<MapTile> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
+                entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
+            }
         }
     }
 
     @Override
     public boolean isAtAssignedTaskTarget() {
+        Task assignedTask = getAssignedTask();
         return (assignedTask != null && assignedTask.getTarget(this) != null
                 //&& !workNavigationRequired
                 && isStopped()
@@ -291,6 +296,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isAssignedTaskValid() {
+        Task assignedTask = getAssignedTask();
         return (assignedTask != null && assignedTask.isValid(this));
     }
 
@@ -329,7 +335,11 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public Task getAssignedTask() {
-        return assignedTask;
+        TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (taskComponent != null) {
+            return taskManager.getTaskById(taskComponent.taskId);
+        }
+        return null;
     }
 
     @Override
@@ -520,9 +530,9 @@ public class CreatureController implements ICreatureController {
         // Unassign previous task
         unassingCurrentTask();
 
-        assignedTask = task;
         taskDuration = 0.0f;
         //workNavigationRequired = true;
+        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType()));
     }
 
     @Override

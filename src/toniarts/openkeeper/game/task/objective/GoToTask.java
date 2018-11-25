@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -64,6 +65,11 @@ public class GoToTask extends AbstractObjectiveTask {
     @Override
     public String getTaskIcon() {
         return null;
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.GO_TO_LOCATION;
     }
 
 }

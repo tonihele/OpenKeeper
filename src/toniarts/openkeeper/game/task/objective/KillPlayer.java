@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -124,6 +125,11 @@ public class KillPlayer extends AbstractObjectiveTask {
 //                i++;
 //            }
 //        }
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.KILL_PLAYER;
     }
 
 }

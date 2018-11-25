@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -97,6 +98,11 @@ public class FetchObjectTask extends AbstractTileTask {
     @Override
     public boolean isRemovable() {
         return object.getState() != ObjectControl.ObjectState.NORMAL;
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.FETCH_OBJECT;
     }
 
     @Override

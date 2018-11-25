@@ -751,7 +751,7 @@ public final class MapController extends Container implements Savable, IMapContr
 
     public boolean applyHealing(MapTile tile, int healing) {
         tile.setHealth((int) Math.min(tile.getMaxHealth(), (long) tile.getHealth() + healing));
-        return (tile.getMaxHealth() == tile.getMaxHealth());
+        return tile.isAtFullHealth();
     }
 
     private void changeTerrain(MapTile tile, short terrainId) {

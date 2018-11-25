@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -83,6 +84,11 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Take_Gold.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CARRY_GOLD_TO_TREASURY;
     }
 
 }
