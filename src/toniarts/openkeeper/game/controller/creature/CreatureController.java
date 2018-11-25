@@ -79,10 +79,11 @@ public class CreatureController implements ICreatureController {
 
             @Override
             public void changeState(CreatureState newState) {
-                super.changeState(newState);
 
                 // Also change our state component
                 entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), newState, creature.getId()));
+
+                super.changeState(newState);
             }
 
         };
