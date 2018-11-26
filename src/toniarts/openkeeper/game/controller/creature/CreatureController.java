@@ -75,18 +75,7 @@ public class CreatureController implements ICreatureController {
         this.taskManager = taskManager;
         this.creature = creature;
         this.gameTimer = gameTimer;
-        this.stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(this) {
-
-            @Override
-            public void changeState(CreatureState newState) {
-
-                // Also change our state component
-                entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), newState, creature.getId()));
-
-                super.changeState(newState);
-            }
-
-        };
+        this.stateMachine = new DefaultStateMachine<>(this);
     }
 
     @Override
@@ -468,6 +457,12 @@ public class CreatureController implements ICreatureController {
         }
 
         stateMachine.update();
+
+        // Also change our state component
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId()));
+        }
     }
 
     @Override
