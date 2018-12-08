@@ -26,6 +26,8 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
@@ -35,8 +37,9 @@ import toniarts.openkeeper.world.animation.AnimationLoader;
  */
 public class CreatureViewControl extends EntityViewControl<Creature, Creature.AnimationType> {
 
-    public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation, AssetManager assetManager) {
-        super(entityId, entityData, data, animation, assetManager);
+    public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
+            AssetManager assetManager, TextParser textParser) {
+        super(entityId, entityData, data, animation, assetManager, textParser);
     }
 
     @Override
@@ -48,6 +51,19 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
             playAnimation(currentState);
         }
     }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String tooltip;
+        if (getOwnerId() == playerId) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2841");
+        } else {
+            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
+        }
+
+        return textParser.parseText(tooltip, getEntityId(), getDataObject());
+    }
+
 
     @Override
     public boolean isStopAnimation() {

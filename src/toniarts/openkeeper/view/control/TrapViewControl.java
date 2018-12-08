@@ -21,11 +21,14 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
+import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.text.TextParser;
 
 /**
  * View control that is intended specifically for traps
@@ -36,8 +39,9 @@ public class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
 
     private boolean initialized = false;
 
-    public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState, AssetManager assetManager) {
-        super(entityId, entityData, data, viewState, assetManager);
+    public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState,
+            AssetManager assetManager, TextParser textParser) {
+        super(entityId, entityData, data, viewState, assetManager, textParser);
     }
 
     @Override
@@ -50,6 +54,31 @@ public class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
             initialized = true;
         }
     }
+
+    @Override
+    public String getTooltip(short playerId) {
+        ResourceBundle bundle = Utils.getMainTextResourceBundle();
+        Trap trap = getDataObject();
+        String tooltip;
+        if (trap.getFlags().contains(Trap.TrapFlag.GUARD_POST)) {
+            if (playerId == getOwnerId()) {
+                tooltip = bundle.getString("2538");
+            } else {
+                tooltip = bundle.getString(Integer.toString(trap.getNameStringId()));
+            }
+        } else {
+
+            // Regular traps
+            if (playerId == getOwnerId()) {
+                tooltip = bundle.getString("2534");
+            } else {
+                tooltip = bundle.getString("2542");
+            }
+        }
+
+        return textParser.parseText(tooltip, getEntityId(), trap);
+    }
+
 
     @Override
     public boolean isStopAnimation() {

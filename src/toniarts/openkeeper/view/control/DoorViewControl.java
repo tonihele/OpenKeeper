@@ -22,12 +22,15 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
+import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
@@ -42,8 +45,8 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
     private boolean initialized = false;
 
     public DoorViewControl(EntityId entityId, EntityData entityData, Door data, DoorViewState viewState, AssetManager assetManager,
-            GameObject lockObject) {
-        super(entityId, entityData, data, viewState, assetManager);
+            TextParser textParser, GameObject lockObject) {
+        super(entityId, entityData, data, viewState, assetManager, textParser);
 
         this.lockObject = lockObject;
     }
@@ -58,6 +61,30 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
             initialized = true;
         }
     }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String tooltip;
+        ResourceBundle bundle = Utils.getMainTextResourceBundle();
+        Door door = getDataObject();
+        if (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            if (currentState.blueprint) {
+                tooltip = bundle.getString("2512");
+            } else {
+                tooltip = bundle.getString("2536");
+            }
+        } else if (playerId == getOwnerId()) {
+            if (currentState.blueprint) {
+                tooltip = bundle.getString("2512");
+            } else {
+                tooltip = bundle.getString("2532");
+            }
+        } else {
+            tooltip = bundle.getString("2540");
+        }
+        return textParser.parseText(tooltip, getEntityId(), getDataObject());
+    }
+
 
     @Override
     public boolean isStopAnimation() {

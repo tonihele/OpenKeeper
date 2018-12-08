@@ -275,11 +275,11 @@ public abstract class KeeperHandState extends AbstractAppState {
             InHand inHand = entityData.getComponent(e.getId(), InHand.class);
             switch (inHand.type) {
                 case CREATURE: {
-                    viewControl = new CreatureViewControl(e.getId(), entityData, kwdFile.getCreature(inHand.id), Creature.AnimationType.IN_HAND, assetManager);
+                    viewControl = new CreatureViewControl(e.getId(), entityData, kwdFile.getCreature(inHand.id), Creature.AnimationType.IN_HAND, assetManager, null);
                     break;
                 }
                 case OBJECT: {
-                    viewControl = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(inHand.id), GameObject.State.BEING_DROPPED, assetManager);
+                    viewControl = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(inHand.id), GameObject.State.BEING_DROPPED, assetManager, null);
                     break;
                 }
                 default:

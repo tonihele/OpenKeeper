@@ -44,6 +44,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
@@ -55,13 +56,16 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
+import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
@@ -86,6 +90,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final Player player;
     private final KwdFile kwdFile;
     private final EntityData entityData;
+    private final IMapInformation mapInformation;
+    private final TextParser textParser;
     private SelectionHandler selectionHandler;
     private Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private InteractionState interactionState = new InteractionState();
@@ -105,10 +111,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private static final Logger LOGGER = Logger.getLogger(PlayerInteractionState.class.getName());
 
-    public PlayerInteractionState(Player player, KwdFile kwdFile, EntityData entityData) {
+    public PlayerInteractionState(Player player, KwdFile kwdFile, EntityData entityData,
+            IMapInformation mapInformation, TextParser textParser) {
         this.player = player;
         this.kwdFile = kwdFile;
         this.entityData = entityData;
+        this.mapInformation = mapInformation;
+        this.textParser = textParser;
 
         // The input
         initializeInput();
@@ -385,19 +394,21 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         } else if (isOnMap) {
 
             // Tile tooltip then
-//            p = selectionHandler.getPointedTileIndex();
-//            TileData tile = getWorldHandler().getMapData().getTile(p);
-//            if (tile != null) {
-//                if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-//                    RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) p.x, (int) p.y));
-//                    GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
-//                    tooltip.setText(room.getTooltip(player.getPlayerId()));
-//                } else {
-//                    tooltip.setText(tile.getTooltip());
-//                }
-//            } else {
-            tooltip.setText("");
-//            }
+            p = selectionHandler.getPointedTileIndex();
+            MapTile tile = mapInformation.getMapData().getTile(p);
+            if (tile != null) {
+                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                    //RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) p.x, (int) p.y));
+                    //GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
+                    //tooltip.setText(room.getTooltip(player.getPlayerId()));
+                    tooltip.setText("");
+                } else {
+                    tooltip.setText(textParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
+                }
+            } else {
+                tooltip.setText("");
+            }
         }
 
         // If debug, show tile coordinate

@@ -32,6 +32,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
+import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.world.animation.AnimationControl;
 
 /**
@@ -49,17 +50,19 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     protected S currentState;
     protected S targetState;
     protected final AssetManager assetManager;
+    protected final TextParser textParser;
     protected boolean isAnimationPlaying = false;
 
     private boolean active = false;
 
-    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager) {
+    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, TextParser textParser) {
         this.entityId = entityId;
         this.entityData = entityData;
         this.currentState = state;
         this.targetState = state;
         this.assetManager = assetManager;
         this.data = data;
+        this.textParser = textParser;
     }
 
     @Override

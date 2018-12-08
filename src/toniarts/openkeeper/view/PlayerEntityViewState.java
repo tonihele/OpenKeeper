@@ -51,6 +51,7 @@ import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
+import toniarts.openkeeper.view.text.TextParser;
 
 /**
  * A state that handles the showing of entities
@@ -65,6 +66,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final AssetManager assetManager;
     private final EntityData entityData;
 
+    private final TextParser textParser;
     private final Node root;
     private final Node nodeCreatures;
     private final Node nodeObjects;
@@ -82,10 +84,11 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
-    public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId) {
+    public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.entityData = entityData;
+        this.textParser = textParser;
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
@@ -173,7 +176,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState.state, assetManager);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState.state, assetManager, textParser);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -201,7 +204,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager);
+                EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser);
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
@@ -229,7 +232,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (doorViewState != null) {
             Door door = kwdFile.getDoorById(doorViewState.doorId);
             result = doorLoader.load(assetManager, doorViewState);
-            EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, kwdFile.getObject(door.getKeyObjectId()));
+            EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, textParser, kwdFile.getObject(door.getKeyObjectId()));
             result.addControl(control);
 
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
@@ -256,7 +259,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (trapViewState != null) {
             Trap trap = kwdFile.getTrapById(trapViewState.trapId);
             result = trapLoader.load(assetManager, trapViewState);
-            EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager);
+            EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager, textParser);
             result.addControl(control);
 
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);

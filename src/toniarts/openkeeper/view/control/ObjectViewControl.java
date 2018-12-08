@@ -22,6 +22,8 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.text.TextParser;
 
 /**
  * View control that is intended specifically for objects
@@ -30,8 +32,26 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
  */
 public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.State> {
 
-    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, GameObject.State state, AssetManager assetManager) {
-        super(entityId, entityData, data, state, assetManager);
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, GameObject.State state,
+            AssetManager assetManager, TextParser textParser) {
+        super(entityId, entityData, data, state, assetManager, textParser);
+    }
+
+    @Override
+    public String getTooltip(short playerId) {
+        String tooltip;
+        if (getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+
+            // TODO: better separation between loose and room gold
+            if (getDataObject().getObjectId() == 1) {
+                tooltip = Utils.getMainTextResourceBundle().getString("2544");
+            } else {
+                tooltip = Utils.getMainTextResourceBundle().getString("2543");
+            }
+        } else {
+            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
+        }
+        return textParser.parseText(tooltip, getEntityId(), getDataObject());
     }
 
     @Override

@@ -176,7 +176,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             appStates.add(possessionState);
 
             cameraState = new PlayerCameraState(player);
-            interactionState = new PlayerInteractionState(player, kwdFile, entityData) {
+            interactionState = new PlayerInteractionState(player, kwdFile, entityData, gameState.getMapClientService(), gameState.getTextParser()) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState) {
                     PlayerState.this.screen.updateSelectedItem(interactionState);
@@ -438,7 +438,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
         // TODO: We should really have some sort of static etc. service that we can just ask these for entityId, not to pass a view controller
         // They can be used with convenience methods from the view controller yes, but so that all will have access, shared with game logic, so the rules are the same (canPickup etc.)
-        interactionState.pickupObject(new EntityViewControl(entityId, entityData, app, null, assetManager) {
+        interactionState.pickupObject(new EntityViewControl(entityId, entityData, app, null, assetManager, null) {
             @Override
             protected ArtResource getAnimationData(Object state) {
                 throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

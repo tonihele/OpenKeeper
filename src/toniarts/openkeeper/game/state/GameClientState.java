@@ -49,6 +49,8 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.TextParserService;
 
 /**
  * The game client state
@@ -77,6 +79,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
     private SoundState soundState;
+    private TextParser textParser;
 
     private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
 
@@ -274,6 +277,15 @@ public class GameClientState extends AbstractPauseAwareState {
         return kwdFile.getVariables().get(variable).getValue();
     }
 
+    /**
+     * Gets a text parser that can fill up the parameters in translations
+     *
+     * @return a text parser
+     */
+    public TextParser getTextParser() {
+        return textParser;
+    }
+
     private class GameSessionListenerImpl implements GameSessionListener {
 
         @Override
@@ -286,7 +298,8 @@ public class GameClientState extends AbstractPauseAwareState {
                 GameClientState.this.players.put(keeper.getId(), keeper);
             }
             mapClientService = new MapController(mapData, kwdFile);
-            playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId);
+            textParser = new TextParserService(gameClientService.getEntityData(), mapClientService);
+            playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser);
             playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), mapClientService, playerId) {
 
                 private float lastProgress = 0;
