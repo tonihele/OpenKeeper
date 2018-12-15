@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
@@ -82,7 +83,13 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
 
         // Attach loose gold to rooms
         for (EntityId entityId : looseGoldEntityIds.getArray()) {
-            Point point = entityPositionLookup.getEntityLocation(entityId).getLocation();
+            MapTile mapTile = entityPositionLookup.getEntityLocation(entityId);
+            if (mapTile == null) {
+
+                // No position yet, we get it next time
+                continue;
+            }
+            Point point = mapTile.getLocation();
             IRoomController roomController = mapController.getRoomControllerByCoordinates(point);
             if (roomController != null && roomController.canStoreGold() && !roomController.isFullCapacity()) {
                 short ownerId = roomController.getRoomInstance().getOwnerId();
