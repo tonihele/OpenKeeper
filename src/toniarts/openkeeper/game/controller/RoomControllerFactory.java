@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.TortureChamberController;
 import toniarts.openkeeper.game.controller.room.TreasuryController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
@@ -48,14 +49,14 @@ public final class RoomControllerFactory {
         // Nope
     }
 
-    public static IRoomController constructRoom(RoomInstance roomInstance, IObjectsController objectsController,
+    public static IRoomController constructRoom(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
 
         String roomName = roomInstance.getRoom().getName();
 
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
-                return new ThreeByThreeController(roomInstance, objectsController);
+                return new ThreeByThreeController(kwdFile, roomInstance, objectsController);
 
             case HERO_GATE:
             //return new HeroGateConstructor(assetManager, roomInstance);
@@ -64,7 +65,7 @@ public final class RoomControllerFactory {
             case HERO_GATE_2_BY_2:
                 //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
                 //        case HERO_GATE_3_BY_1:
-                return new NormalRoomController(roomInstance, objectsController) {
+                return new NormalRoomController(kwdFile, roomInstance, objectsController) {
                     @Override
                     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
                         return false;
@@ -73,32 +74,32 @@ public final class RoomControllerFactory {
                 };
             //return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
             case _5_BY_5_ROTATED:
-                return new FiveByFiveRotatedController(roomInstance, objectsController, gameSettings);
+                return new FiveByFiveRotatedController(kwdFile, roomInstance, objectsController, gameSettings);
 
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
-                    return new LairController(roomInstance, objectsController);
+                    return new LairController(kwdFile, roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Library")) {
 //                    return new Library(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else if (roomName.equalsIgnoreCase("Training Room")) {
 //                    return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else
                } else if (roomName.equalsIgnoreCase("Work Shop")) {
-                    return new WorkshopController(roomInstance, objectsController);
+                    return new WorkshopController(kwdFile, roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Guard Room")) {
 //                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Casino")) {
-                    return new CasinoController(roomInstance, objectsController);
+                    return new CasinoController(kwdFile, roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Graveyard")) {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
-                    return new TortureChamberController(roomInstance, objectsController);
+                    return new TortureChamberController(kwdFile, roomInstance, objectsController);
                 } else if (roomName.equalsIgnoreCase("Treasury")) {
-                    return new TreasuryController(roomInstance, objectsController, gameSettings);
+                    return new TreasuryController(kwdFile, roomInstance, objectsController, gameSettings);
                 } else if (roomName.equalsIgnoreCase("Hatchery")) {
-                    return new HatcheryController(roomInstance, objectsController);
+                    return new HatcheryController(kwdFile, roomInstance, objectsController);
                 }
-                return new NormalRoomController(roomInstance, objectsController);
+                return new NormalRoomController(kwdFile, roomInstance, objectsController);
 
 //            case QUAD:
 //                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
@@ -108,20 +109,20 @@ public final class RoomControllerFactory {
 //
             case DOUBLE_QUAD:
                 if (roomName.equalsIgnoreCase("Prison")) {
-                    return new PrisonController(roomInstance, objectsController);
+                    return new PrisonController(kwdFile, roomInstance, objectsController);
                 } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-                    return new CombatPitController(roomInstance, objectsController);
+                    return new CombatPitController(kwdFile, roomInstance, objectsController);
                 }
 //                } else if (roomName.equalsIgnoreCase("Temple")) {
 //                    return new Temple(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                }
 //                // TODO use quad construction for different rooms
-                return new DoubleQuadController(roomInstance, objectsController);
+                return new DoubleQuadController(kwdFile, roomInstance, objectsController);
             default:
 
                 // TODO
                 LOGGER.log(Level.WARNING, "Room {0} not exist", roomName);
-                return new NormalRoomController(roomInstance, objectsController);
+                return new NormalRoomController(kwdFile, roomInstance, objectsController);
         }
     }
 }

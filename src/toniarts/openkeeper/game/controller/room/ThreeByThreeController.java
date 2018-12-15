@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Portal is the only one I think
@@ -29,8 +30,8 @@ public class ThreeByThreeController extends AbstractRoomController implements IC
 
     private double lastSpawnTime = Double.MIN_VALUE;
 
-    public ThreeByThreeController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public ThreeByThreeController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
     }
 
     @Override

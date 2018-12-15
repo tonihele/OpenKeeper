@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
@@ -206,6 +207,11 @@ public class CreaturesController implements ICreaturesController {
             entityData.setComponent(entity, new Fearless(null));
         }
 
+        // Need for sleep
+        if (creature.getAttributes().getTimeSleep() > 0) {
+            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
+        }
+
         entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE, creatureId));
 
         // Set every attribute by the level of the created creature
@@ -344,7 +350,7 @@ public class CreaturesController implements ICreaturesController {
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
-        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer);
+        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings);
     }
 
     @Override

@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * The lair
@@ -27,10 +28,10 @@ import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
  */
 public class LairController extends NormalRoomController {
 
-    public LairController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public LairController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomLairControl(this, objectsController) {
+        addObjectControl(new RoomLairControl(kwdFile, this, objectsController) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

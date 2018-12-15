@@ -168,6 +168,8 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void setPlayerObjective(Object object);
 
+    public void setCreatureLair(EntityId lairId);
+
     /**
      * Evaluates the time spent in current state and compares it to the
      * creatures target time in a state. The target time would be set by either
@@ -176,5 +178,16 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      * @return {@code true} if state should be changed
      */
     public boolean isStateTimeExceeded();
+
+    /**
+     * Get percentage of health
+     *
+     * @return human formatted percentage
+     */
+    default int getHealthPercentage() {
+        return (int) ((getHealth() * 100.0f) / getMaxHealth());
+    }
+
+    public void sleep();
 
 }

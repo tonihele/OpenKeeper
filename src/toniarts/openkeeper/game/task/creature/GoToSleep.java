@@ -57,7 +57,7 @@ public class GoToSleep extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        //creature.sleep();
+        creature.sleep();
 
         // This is a one timer
         executed = true;

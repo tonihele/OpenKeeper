@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 
 /**
@@ -28,8 +29,8 @@ import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
  */
 public class TortureChamberController extends NormalRoomController {
 
-    public TortureChamberController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public TortureChamberController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
 
         addObjectControl(new RoomTortureeControl(this, objectsController) {
 

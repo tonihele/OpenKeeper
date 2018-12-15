@@ -27,6 +27,7 @@ import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
@@ -65,6 +66,7 @@ public abstract class AbstractRoomController implements IRoomController {
         ISOLATED;
     }
 
+    protected final KwdFile kwdFile;
     protected final RoomInstance roomInstance;
     private ObjectType defaultObjectType;
     private final Map<ObjectType, IRoomObjectControl> objectControls = new HashMap<>();
@@ -76,7 +78,8 @@ public abstract class AbstractRoomController implements IRoomController {
     private final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
 
-    public AbstractRoomController(RoomInstance roomInstance, IObjectsController objectsController) {
+    public AbstractRoomController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        this.kwdFile = kwdFile;
         this.roomInstance = roomInstance;
         this.objectsController = objectsController;
         if (hasPillars()) {

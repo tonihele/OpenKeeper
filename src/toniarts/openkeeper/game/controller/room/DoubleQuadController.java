@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  *
@@ -26,8 +27,8 @@ import toniarts.openkeeper.game.controller.IObjectsController;
  */
 public class DoubleQuadController extends NormalRoomController {
 
-    public DoubleQuadController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public DoubleQuadController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
     }
 
     @Override

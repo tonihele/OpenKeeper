@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room;
 
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * The hatchery
@@ -26,8 +27,8 @@ import toniarts.openkeeper.game.controller.IObjectsController;
  */
 public class HatcheryController extends NormalRoomController {
 
-    public HatcheryController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
     }
 
     @Override

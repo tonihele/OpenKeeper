@@ -128,7 +128,7 @@ public final class MapController extends Container implements Savable, IMapContr
         findRoom(p, roomInstance);
 
         // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(roomInstance, objectsController, gameSettings);
+        IRoomController roomController = RoomControllerFactory.constructRoom(kwdFile, roomInstance, objectsController, gameSettings);
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
 

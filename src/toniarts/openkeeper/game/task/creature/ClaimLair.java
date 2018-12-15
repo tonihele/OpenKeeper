@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -70,9 +71,10 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
         // Create a lair
         IRoomObjectControl control = getRoomObjectControl();
-//        if ((int) control.addItem(1, getTaskLocation(), worldState.getThingLoader(), creature) == 0) {
-//            creature.setCreatureLair((ObjectControl) control.getItems(getTaskLocation()).iterator().next());
-//        }
+        EntityId lairId = (EntityId) control.addItem(creature.getEntityId(), getTaskLocation());
+        if (lairId != null) {
+            creature.setCreatureLair(lairId);
+        }
 
         // This is a one timer
         executed = true;

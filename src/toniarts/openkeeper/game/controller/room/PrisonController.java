@@ -25,6 +25,7 @@ import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * TODO: not completed
@@ -38,8 +39,8 @@ public class PrisonController extends DoubleQuadController {
 
     private Point door;
 
-    public PrisonController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public PrisonController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
 
         addObjectControl(new RoomPrisonerControl(this, objectsController) {
             @Override

@@ -20,9 +20,12 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Controls creature lairs in a room
@@ -31,10 +34,12 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
  */
 public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId> {
 
+    private final KwdFile kwdFile;
     private int lairs = 0;
 
-    public RoomLairControl(IRoomController parent, IObjectsController objectsController) {
+    public RoomLairControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController) {
         super(parent, objectsController);
+        this.kwdFile = kwdFile;
     }
 
     @Override
@@ -55,7 +60,9 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         }
 
         // FIXME: KWD stuff should not be used anymore in this level, all data must be in in-game objects
-        EntityId object = objectsController.loadObject((short) 5, (short) 0, p.x, p.y);
+        Owner owner = objectsController.getEntityData().getComponent(creature, Owner.class);
+        CreatureComponent creatureComponent = objectsController.getEntityData().getComponent(creature, CreatureComponent.class);
+        EntityId object = objectsController.loadObject(kwdFile.getCreature(creatureComponent.creatureId).getLairObjectId(), owner.ownerId, p.x, p.y);
         if (objects == null) {
             objects = new ArrayList<>(1);
         }

@@ -27,9 +27,12 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureRecuperating;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Mobile;
@@ -38,6 +41,8 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
+import static toniarts.openkeeper.game.controller.creature.CreatureState.RECUPERATING;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
@@ -45,6 +50,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -60,6 +66,7 @@ public class CreatureController implements ICreatureController {
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
+    private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -68,13 +75,14 @@ public class CreatureController implements ICreatureController {
     private float motionless = 0;
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
-            ITaskManager taskManager, IGameTimer gameTimer) {
+            ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityId = entityId;
         this.entityData = entityData;
         this.navigationService = navigationService;
         this.taskManager = taskManager;
         this.creature = creature;
         this.gameTimer = gameTimer;
+        this.gameSettings = gameSettings;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -133,32 +141,34 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean needsLair() {
-        // TODO:
-        return false;
+        return entityData.getComponent(entityId, CreatureSleep.class) != null;
     }
 
     @Override
     public boolean hasLair() {
-        // TODO:
-        return false;
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        return creatureSleep != null && creatureSleep.lairObjectId != null && entityData.getEntity(creatureSleep.lairObjectId, Position.class) != null;
     }
 
     @Override
     public boolean findLair() {
-        // TODO:
-        return false;
+        return taskManager.assignClosestRoomTask(this, AbstractRoomController.ObjectType.LAIR);
     }
 
     @Override
     public boolean isNeedForSleep() {
-        // TODO:
-        return false;
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        return creatureSleep != null && needsLair() && (gameTimer.getGameTime() - creatureSleep.lastSleepTime >= creature.getAttributes().getTimeAwake()
+                || isNeedForRecuperating());
+    }
+
+    private boolean isNeedForRecuperating() {
+        return gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue() >= getHealthPercentage();
     }
 
     @Override
     public boolean goToSleep() {
-        // TODO:
-        return false;
+        return taskManager.assignSleepTask(this);
     }
 
     @Override
@@ -249,12 +259,14 @@ public class CreatureController implements ICreatureController {
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
             Vector2f loc = assignedTask.getTarget(this);
-            //workNavigationRequired = false;
+            if (!isNear(loc)) {
+                //workNavigationRequired = false;
 
-            if (loc != null) {
-                Point destination = WorldUtils.vectorToPoint(loc);
-                GraphPath<MapTile> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
-                entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
+                if (loc != null) {
+                    Point destination = WorldUtils.vectorToPoint(loc);
+                    GraphPath<MapTile> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
+                    entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
+                }
             }
         }
     }
@@ -361,14 +373,21 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isEnoughSleep() {
-        // TODO:
-        return true;
+        double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
+        if (timeSpent >= creature.getAttributes().getTimeSleep()) {
+
+            // Hmm, I don't know if this is the right place to do this, but works for now
+            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, gameTimer.getGameTime(), creatureSleep.sleepStartTime));
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean isFullHealth() {
-        // TODO:
-        return true;
+        Health health = entityData.getComponent(entityId, Health.class);
+        return health.health == health.maxHealth;
     }
 
     @Override
@@ -502,7 +521,14 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public Point getLairLocation() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        if (creatureSleep != null && creatureSleep.lairObjectId != null) {
+            Position position = entityData.getComponent(creatureSleep.lairObjectId, Position.class);
+            if (position != null) {
+                return WorldUtils.vectorToPoint(position.position);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -624,6 +650,24 @@ public class CreatureController implements ICreatureController {
     @Override
     public void setPlayerObjective(Object object) {
         // TODO
+    }
+
+    @Override
+    public void setCreatureLair(EntityId lairId) {
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        entityData.setComponent(entityId, new CreatureSleep(lairId, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+    }
+
+    @Override
+    public void sleep() {
+        entityData.setComponent(entityId, new CreatureRecuperating(gameTimer.getGameTime(), gameTimer.getGameTime()));
+        if (isNeedForRecuperating()) {
+            stateMachine.changeState(RECUPERATING);
+        } else {
+            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, creatureSleep.lastSleepTime, gameTimer.getGameTime()));
+            stateMachine.changeState(CreatureState.SLEEPING);
+        }
     }
 
     @Override

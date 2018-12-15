@@ -188,6 +188,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // Check validity
+            // If we have some pocket money left, we should return it to treasury
+            if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+
             // Check arrival
             if (entity.isAtAssignedTaskTarget()) {
 
@@ -202,12 +208,6 @@ public enum CreatureState implements State<ICreatureController> {
                 }
             } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
-            }
-
-            // Check validity
-            // If we have some pocket money left, we should return it to treasury
-            if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
-                entity.getStateMachine().changeState(IDLE);
             }
         }
 

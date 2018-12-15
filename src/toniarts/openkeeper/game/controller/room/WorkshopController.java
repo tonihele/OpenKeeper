@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.room.WallSection;
 
 /**
@@ -34,8 +35,8 @@ import toniarts.openkeeper.world.room.WallSection;
  */
 public class WorkshopController extends NormalRoomController {
 
-    public WorkshopController(RoomInstance roomInstance, IObjectsController objectsController) {
-        super(roomInstance, objectsController);
+    public WorkshopController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(kwdFile, roomInstance, objectsController);
     }
 
     @Override
