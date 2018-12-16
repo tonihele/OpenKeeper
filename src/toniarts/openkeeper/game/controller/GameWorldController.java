@@ -37,6 +37,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -565,6 +566,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         entityData.removeComponent(entity, CreatureAi.class);
         entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, TaskComponent.class);
+        entityData.removeComponent(entity, CreatureRecuperating.class);
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
