@@ -95,5 +95,5 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     @Override
     ICreatureController createController(EntityId entityId);
-    
+
 }

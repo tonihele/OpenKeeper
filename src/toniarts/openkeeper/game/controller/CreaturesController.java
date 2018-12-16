@@ -20,10 +20,12 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -79,6 +81,14 @@ public class CreaturesController implements ICreaturesController {
      * These are the map defined parties
      */
     private final Map<Short, Thing.HeroParty> heroParties = new HashMap<>();
+    /**
+     * I don't know how to design this perfectly in the entity world, we have
+     * the state machine running inside an CreatureController. That is probably
+     * wrong (should be inside a system instead). But while it is in there, we
+     * should share the instances for it to function properly.<br>
+     * The value needs to be weak reference also since it references the key
+     */
+    private final Map<EntityId, WeakReference<ICreatureController>> creatureControllersByEntityId = new WeakHashMap<>();
     private final IGameTimer gameTimer;
     private final IGameController gameController;
 
@@ -350,7 +360,9 @@ public class CreaturesController implements ICreaturesController {
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
-        return new CreatureController(entityId, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings);
+        return creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
+            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings));
+        }).get();
     }
 
     @Override

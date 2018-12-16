@@ -78,7 +78,7 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
             if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
-                targetState = Creature.AnimationType.DIE;
+                targetState = Creature.AnimationType.DEATH_POSE;
             } else if (health != null && health.unconscious) {
                 targetState = Creature.AnimationType.DIE;
             } else if (taskComponent != null) {

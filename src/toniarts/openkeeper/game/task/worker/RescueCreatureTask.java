@@ -17,12 +17,15 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
+import java.awt.Point;
 import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -35,15 +38,26 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class RescueCreatureTask extends AbstractTileTask {
 
     private final ICreatureController creature;
+    private final TaskManager taskManager;
 
-    public RescueCreatureTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
+    public RescueCreatureTask(final TaskManager taskManager, final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
         super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
         this.creature = creature;
+        this.taskManager = taskManager;
     }
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
+    }
+
+    @Override
+    public Point getTaskLocation() {
+        Vector3f pos = creature.getPosition();
+        if (pos != null) {
+            return WorldUtils.vectorToPoint(creature.getPosition());
+        }
+        return null;
     }
 
     @Override
@@ -68,10 +82,11 @@ public class RescueCreatureTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        //creature.setHaulable(this.creature);
+        this.creature.setHaulable(creature);
 
         // Assign carry to lair
         CarryCreatureToLairTask task = new CarryCreatureToLairTask(navigationService, mapController, this.creature, playerId);
+        taskManager.addTask(playerId, task);
         task.assign(creature, true);
     }
 

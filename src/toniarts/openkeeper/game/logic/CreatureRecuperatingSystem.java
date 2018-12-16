@@ -64,7 +64,7 @@ public class CreatureRecuperatingSystem implements IGameLogicUpdatable {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
-                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth, health.unconscious));
+                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth, false));
             }
 
             // TODO: mood

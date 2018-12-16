@@ -32,6 +32,8 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -52,15 +54,18 @@ public class HealthSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
+    private final ICreaturesController creaturesController;
     private final int timeToDeath;
     private final Map<EntityId, Double> timeOnOwnLandByEntityId = new HashMap<>();
     private final Map<EntityId, Double> timeUnconsciousByEntityId = new HashMap<>();
 
     public HealthSystem(EntityData entityData, KwdFile kwdFile, IEntityPositionLookup entityPositionLookup,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            ICreaturesController creaturesController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
+        this.creaturesController = creaturesController;
         entityIds = new SafeArrayList<>(EntityId.class);
 
         timeToDeath = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
@@ -99,7 +104,8 @@ public class HealthSystem implements IGameLogicUpdatable {
                 CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
                 if (creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
                     entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, 0, health.maxHealth, true));
-                    entityData.removeComponent(entityId, CreatureAi.class);
+                    //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
+                    creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
                     entityData.removeComponent(entityId, Navigation.class);
                     timeUnconsciousByEntityId.put(entityId, gameTime);
                 } else {

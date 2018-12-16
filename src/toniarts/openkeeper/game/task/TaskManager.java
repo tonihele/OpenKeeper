@@ -159,12 +159,12 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             processChangedTasks(taskEntities.getChangedEntities());
         }
         if (unconsciousEntities.applyChanges()) {
-            processAddedUnconsciousEntities(taskEntities.getAddedEntities());
-            processDeletedUnconsciousEntities(taskEntities.getRemovedEntities());
+            processAddedUnconsciousEntities(unconsciousEntities.getAddedEntities());
+            processDeletedUnconsciousEntities(unconsciousEntities.getRemovedEntities());
         }
         if (corpseEntities.applyChanges()) {
-            processAddedCorpseEntities(taskEntities.getAddedEntities());
-            processDeletedCorpseEntities(taskEntities.getRemovedEntities());
+            processAddedCorpseEntities(corpseEntities.getAddedEntities());
+            processDeletedCorpseEntities(corpseEntities.getRemovedEntities());
         }
     }
 
@@ -213,7 +213,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 if (entry.getKey() == owner.ownerId) {
 
                     // Rescue
-                    task = new RescueCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
+                    task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
                 } else {
 
                     // Capture
@@ -383,7 +383,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return false;
     }
 
-    private void addTask(short playerId, Task task) {
+    public void addTask(short playerId, Task task) {
         Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
             tasks.add(task);
@@ -492,6 +492,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private static int calculateDistance(Point currentPosition, Point p) {
+        if (currentPosition == null || p == null) {
+            return Short.MAX_VALUE; // With the points added, int max value would overflow
+        }
         return Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y);
     }
 

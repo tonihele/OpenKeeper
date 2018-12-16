@@ -63,7 +63,7 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        //this.creature.sleepUntilHealed();
+        this.creature.sleep();
         executed = true;
     }
 
@@ -82,7 +82,7 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
         super.unassign(creature);
 
         // Set the dragged state
-        //creature.setHaulable(null);
+        this.creature.setHaulable(null);
     }
 
     @Override

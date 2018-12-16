@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.logic.DeathSystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
+import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.LooseGoldSystem;
@@ -214,6 +215,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
+        // Initialize tasks
+        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values());
+
         // The triggers
         partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
         creatureTriggerState = new CreatureTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData);
@@ -221,9 +225,6 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         doorTriggerState = new DoorTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData, gameWorldController.getDoorsController());
         actionPointController = new ActionPointTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), positionSystem);
         playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
-
-        // Initialize tasks
-        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values());
 
         // Trigger data
         for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
@@ -244,7 +245,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameLogicThread = new GameLogicManager(positionSystem,
                 gameWorldController.getMapController(),
                 new CreatureSlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
-                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings),
+                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController()),
                 new CreatureRecuperatingSystem(entityData, gameSettings),
                 new DeathSystem(entityData, gameSettings, gameWorldController.getObjectsController()),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
@@ -255,6 +256,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
+                new HaulingSystem(entityData),
                 taskManager);
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 

@@ -34,14 +34,15 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import static toniarts.openkeeper.game.controller.creature.CreatureState.RECUPERATING;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -413,7 +414,10 @@ public class CreatureController implements ICreatureController {
     @Override
     public Vector3f getPosition() {
         Position position = entityData.getComponent(entityId, Position.class);
-        return position.position;
+        if (position != null) {
+            return position.position;
+        }
+        return null;
     }
 
     @Override
@@ -452,6 +456,14 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void processTick(float tpf, double gameTime) {
+
+        /**
+         * Hmm, I'm not sure how to do this, this is not ideal either, how to
+         * control the state machine outside the controller. Should it be
+         * allowed and should we just check that the current state matches the
+         * state in the entity component
+         */
+        //CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         if (stateMachine.getCurrentState() == null) {
             initState();
         }
@@ -533,12 +545,16 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isDragged() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return entityData.getComponent(entityId, HauledBy.class) != null;
     }
 
     @Override
     public boolean isUnconscious() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (health != null) {
+            return health.unconscious;
+        }
+        return false;
     }
 
     @Override
@@ -591,8 +607,8 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isDead() {
-        // TODO
-        return false;
+        Health health = entityData.getComponent(entityId, Health.class);
+        return health == null;
     }
 
     @Override
@@ -609,8 +625,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isStunned() {
-        // TODO
-        return false;
+        return stateMachine.isInState(CreatureState.STUNNED);
     }
 
     @Override
@@ -633,8 +648,8 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isPickedUp() {
-        // TODO
-        return false;
+        InHand inHand = entityData.getComponent(entityId, InHand.class);
+        return inHand != null;
     }
 
     @Override
@@ -662,11 +677,22 @@ public class CreatureController implements ICreatureController {
     public void sleep() {
         entityData.setComponent(entityId, new CreatureRecuperating(gameTimer.getGameTime(), gameTimer.getGameTime()));
         if (isNeedForRecuperating()) {
-            stateMachine.changeState(RECUPERATING);
+            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.RECUPERATING, creature.getCreatureId()));
+            stateMachine.changeState(CreatureState.RECUPERATING);
         } else {
             CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
             entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, creatureSleep.lastSleepTime, gameTimer.getGameTime()));
+            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.SLEEPING, creature.getCreatureId()));
             stateMachine.changeState(CreatureState.SLEEPING);
+        }
+    }
+
+    @Override
+    public void setHaulable(ICreatureController creature) {
+        if (creature != null) {
+            entityData.setComponent(entityId, new HauledBy(creature.getEntityId()));
+        } else {
+            entityData.removeComponent(entityId, HauledBy.class);
         }
     }
 

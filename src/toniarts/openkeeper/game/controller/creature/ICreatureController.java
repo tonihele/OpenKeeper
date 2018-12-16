@@ -190,4 +190,11 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void sleep();
 
+    /**
+     * Assigns the given creature haul us
+     *
+     * @param creature the creature hauling us
+     */
+    public void setHaulable(ICreatureController creature);
+
 }
