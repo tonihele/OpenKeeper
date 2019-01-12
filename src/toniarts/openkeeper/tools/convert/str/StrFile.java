@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -42,17 +41,17 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 public class StrFile {
 
     private static final String STR_HEADER_IDENTIFIER = "BFST";
-    private static final String CODEPAGE_HEADER_IDENTIFIER = "BFMU";
     private static final int STR_HEADER_SIZE = 12;
     // Codepage chunk types
     private static final int CHUNK_TYPE_END = 0;
     private static final int CHUNK_TYPE_STRING = 1;
     private static final int CHUNK_TYPE_PARAM = 2;
     //
-    private static final Logger logger = Logger.getLogger(StrFile.class.getName());
-    private final CharBuffer codePage;
+    private final MbToUniFile codePage;
     private final int fileId;
     private final LinkedHashMap<Integer, String> entries;
+
+    private static final Logger LOGGER = Logger.getLogger(StrFile.class.getName());
 
     /**
      * Constructs a new STR file reader<br>
@@ -72,7 +71,7 @@ public class StrFile {
      * @param codePage the code page
      * @param file the str file to read
      */
-    public StrFile(CharBuffer codePage, File file) {
+    public StrFile(MbToUniFile codePage, File file) {
         this.codePage = codePage;
 
         // Read the file
@@ -110,7 +109,7 @@ public class StrFile {
                 byte[] data = new byte[dataLength];
                 int dataRead = rawStr.read(data);
                 if (dataRead < dataLength) {
-                    logger.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, dataRead});
+                    LOGGER.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, dataRead});
                 }
 
                 // Encode the string
@@ -135,33 +134,10 @@ public class StrFile {
      * @return code page as char buffer
      * @throws RuntimeException may fail miserably
      */
-    private static CharBuffer readCodePage(File file) throws RuntimeException {
+    private static MbToUniFile readCodePage(File file) throws RuntimeException {
 
         // We also need the codepage, assume it is in the same directory
-        final File mbToUniFile = new File(file.getParent().concat(File.separator).concat("MBToUni.dat"));
-        try (RandomAccessFile rawCodepage = new RandomAccessFile(mbToUniFile, "r")) {
-            CharBuffer buffer;
-
-            // Check the header
-            byte[] header = new byte[4];
-            rawCodepage.read(header);
-            if (!CODEPAGE_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
-                throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
-            }
-            rawCodepage.skipBytes(2); // Don't know what is here
-            byte[] data = new byte[(int) (rawCodepage.length() - rawCodepage.getFilePointer())];
-            rawCodepage.read(data);
-
-            // Put the code page to byte buffer for fast access, it is a small file
-            ByteBuffer buf = ByteBuffer.wrap(data).asReadOnlyBuffer();
-            buf.order(ByteOrder.LITTLE_ENDIAN);
-            buffer = buf.asCharBuffer();
-            return buffer;
-        } catch (IOException e) {
-
-            // Fug
-            throw new RuntimeException("Failed to read the file " + mbToUniFile + "!", e);
-        }
+        return new MbToUniFile(new File(file.getParent().concat(File.separator).concat("MBToUni.dat")));
     }
 
     /**
@@ -188,7 +164,7 @@ public class StrFile {
             switch (chunkType) {
                 case CHUNK_TYPE_END: { // End
                     if (chunkLength != 0) {
-                        logger.severe("End chunk has non-zero length!");
+                        LOGGER.severe("End chunk has non-zero length!");
                         return null;
                     }
                     break;
@@ -205,18 +181,18 @@ public class StrFile {
                 }
                 case CHUNK_TYPE_STRING: { // String
                     if (chunkLength > byteBuffer.remaining()) {
-                        logger.severe("Chunk length exceeds the remaining bytes length!");
+                        LOGGER.severe("Chunk length exceeds the remaining bytes length!");
                         return null;
                     }
 
                     // Decode the chunk
                     byte[] chunk = new byte[chunkLength];
                     byteBuffer.get(chunk);
-                    buffer.append(decodeChunk(chunk));
+                    buffer.append(decodeChunk(ByteBuffer.wrap(chunk)));
                     break;
                 }
                 default: {
-                    logger.severe("Invalid chunk type!");
+                    LOGGER.severe("Invalid chunk type!");
                     return null;
                 }
             }
@@ -237,26 +213,18 @@ public class StrFile {
      * @param chunk chuck data
      * @return decoded string
      */
-    private String decodeChunk(final byte[] chunk) {
+    private String decodeChunk(final ByteBuffer chunk) {
 
         // Go through each byte
-        StringBuilder buffer = new StringBuilder(chunk.length);
-        int codePageIndex = 0;
-        for (byte b : chunk) {
-            short chr = ConversionUtils.toUnsignedByte(b);
-            char character;
-            if (chr == 0xff) {
-                codePageIndex += 254;
-                continue;
+        StringBuilder buffer = new StringBuilder(chunk.limit());
+        while (chunk.hasRemaining()) {
+            int codePageIndex = ConversionUtils.toUnsignedByte(chunk.get()) - 1;
+            if (codePageIndex >= codePage.getThreshold()) {
+                codePageIndex = (codePageIndex * 255) - codePage.getThreshold() * 254 + ConversionUtils.toUnsignedByte(chunk.get()) - 1;
             }
 
             // Read the character from the code page
-            codePageIndex += chr;
-            if (codePageIndex < codePage.limit()) {
-                character = codePage.charAt(codePageIndex);
-            } else {
-                character = '_';
-            }
+            char character = codePage.getCharacter(codePageIndex);
 
             // Escapes
             if (character == '%') {
@@ -277,9 +245,6 @@ public class StrFile {
 
             // Add the character to the buffer
             buffer.append(character);
-
-            // Reset
-            codePageIndex = 0;
         }
 
         // Return the decoded string
@@ -311,7 +276,7 @@ public class StrFile {
      *
      * @return the code page
      */
-    public CharBuffer getCodePage() {
+    public MbToUniFile getCodePage() {
         return codePage;
     }
 }
