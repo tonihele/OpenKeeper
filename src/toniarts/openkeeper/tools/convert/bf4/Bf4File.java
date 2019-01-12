@@ -53,7 +53,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
     private int glyphCount = 0;
     private int avgWidth = 0;
     private static final int BITS_PER_PIXEL = 4;
-    private static final IndexColorModel cm;
+    private static final IndexColorModel COLOR_MODEL;
 
     static {
 
@@ -62,7 +62,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
         for (int c = 0; c < 16; c++) {
             levels[c] = (byte) ((c + 1) * 16 - 1);
         }
-        cm = new IndexColorModel(BITS_PER_PIXEL, 16, levels, levels, levels, 0);
+        COLOR_MODEL = new IndexColorModel(BITS_PER_PIXEL, 16, levels, levels, levels, 0);
     }
 
     /**
@@ -117,12 +117,12 @@ public class Bf4File implements Iterable<Bf4Entry> {
      */
     private Bf4Entry readFontEntry(RandomAccessFile rawBf4) throws IOException {
         Bf4Entry entry = new Bf4Entry();
-        
+
         entry.setCharacter(ConversionUtils.readStringUtf16(rawBf4, 1).charAt(0));
         entry.setUnknown1(ConversionUtils.readUnsignedShort(rawBf4));
         entry.setDataSize(ConversionUtils.readInteger(rawBf4));
         entry.setTotalSize(ConversionUtils.readUnsignedInteger(rawBf4));
-        entry.setFlag(ConversionUtils.parseFlagValue(rawBf4.readUnsignedByte(), FontEntryFlag.class));
+        entry.setFlag(ConversionUtils.parseEnum(rawBf4.readUnsignedByte(), FontEntryFlag.class));
         entry.setUnknown2(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
         entry.setUnknown3(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
         entry.setUnknown4(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
@@ -131,7 +131,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
         entry.setOffsetX(rawBf4.readByte());
         entry.setOffsetY(rawBf4.readByte());
         entry.setOuterWidth(ConversionUtils.readShort(rawBf4));
-        
+
         byte[] bytes;
         if (entry.getWidth() > 0 && entry.getHeight() > 0) {
             bytes = new byte[entry.getDataSize()];
@@ -153,9 +153,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * image has 16 color indexed grayscale palette, with 0 being totally
      * transparent. 4-bits per pixel.
      *
-     * @param width width of the image
-     * @param height height of the image
-     * @param flag decoding/encoding flags
+     * @param entry the font entry
      * @param bytes tha data payload
      * @return image
      */
@@ -168,17 +166,16 @@ public class Bf4File implements Iterable<Bf4Entry> {
 
         // Create the image
         WritableRaster raster = Raster.createWritableRaster(sampleModel, null);
-        BufferedImage bi = new BufferedImage(cm, raster, false, null);
+        BufferedImage bi = new BufferedImage(COLOR_MODEL, raster, false, null);
         byte[] data = (byte[]) ((DataBufferByte) raster.getDataBuffer()).getData();
 
         // Compressions, the compressions might be applied in sequence, so just apply the decompressions one by one
         byte[] decodedBytes = new byte[Math.max(entry.getDataSize(), data.length)];
         System.arraycopy(bytes, 0, decodedBytes, 0, bytes.length);
-        if (entry.getFlag().contains(FontEntryFlag.RLE4_DATA)) {
+        if (entry.getFlag() == FontEntryFlag.RLE4_DATA) {
             decodeRLE4(decodedBytes);
-        }
-        if (entry.getFlag().contains(FontEntryFlag.UNKNOWN)) {
-            throw new RuntimeException("The font uses unknown encoding!");
+        } else if (entry.getFlag() == FontEntryFlag.ONE_BIT_MONOCHROME) {
+            decodeOneBit(decodedBytes, entry);
         }
 
         // Our images have no padding bits at the end of scanline strides, so write line by line if width is odd
@@ -201,6 +198,32 @@ public class Bf4File implements Iterable<Bf4Entry> {
         }
 
         return bi;
+    }
+
+    /**
+     * Decodes a one bit image to a 4-bit image, well, converts
+     *
+     * @param data data buffer, contains the compressed data, and target for the
+     * decompressed data
+     * @param entry the font entry
+     * @throws IOException
+     */
+    private void decodeOneBit(byte[] data, final Bf4Entry entry) throws IOException {
+        byte[] values = new byte[data.length];
+        System.arraycopy(data, 0, values, 0, data.length);
+        MemoryCacheImageInputStream iis = new MemoryCacheImageInputStream(new ByteArrayInputStream(values));
+        iis.setByteOrder(ByteOrder.LITTLE_ENDIAN);
+        FourBitWriter writer = new FourBitWriter(data);
+        for (int y = 0; y < entry.getHeight(); y++) {
+            for (int x = 0; x < entry.getWidth(); x++) {
+                int bit = (int) iis.readBits(1);
+                if (bit == 1) {
+                    writer.write(255);
+                } else {
+                    writer.write(0);
+                }
+            }
+        }
     }
 
     /**
@@ -296,11 +319,13 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * @return the color model
      */
     public static IndexColorModel getCm() {
-        return cm;
+        return COLOR_MODEL;
     }
 
     /**
      * Get the char count
+     *
+     * @return the number of characters
      */
     public int getCount() {
         return entries.size();
