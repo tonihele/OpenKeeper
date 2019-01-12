@@ -17,8 +17,7 @@
 package toniarts.openkeeper.tools.convert.bf4;
 
 import java.awt.image.BufferedImage;
-import java.util.EnumSet;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * BF4 entry a.k.a. FontEntry
@@ -30,26 +29,28 @@ public class Bf4Entry implements Comparable<Bf4Entry> {
     /**
      * Describes the encoding methods used in the font image
      */
-    public enum FontEntryFlag implements IFlagEnum {
+    public enum FontEntryFlag implements IValueEnum {
 
+        NONE(0),
         RLE4_DATA(0x0001),
-        UNKNOWN(0x0002);
-        private final long flagValue;
+        ONE_BIT_MONOCHROME(0x0002);
 
-        private FontEntryFlag(long flagValue) {
-            this.flagValue = flagValue;
+        private FontEntryFlag(int value) {
+            this.value = value;
         }
 
         @Override
-        public long getFlagValue() {
-            return flagValue;
+        public int getValue() {
+            return value;
         }
+
+        private final int value;
     };
     private Character character;
     private int unknown1;
     private int dataSize;
     private int totalSize;
-    private EnumSet<FontEntryFlag> flag;
+    private FontEntryFlag flag;
     private short unknown2;
     private short unknown3;
     private short unknown4;
@@ -92,11 +93,11 @@ public class Bf4Entry implements Comparable<Bf4Entry> {
         this.totalSize = totalSize;
     }
 
-    public EnumSet<FontEntryFlag> getFlag() {
+    public FontEntryFlag getFlag() {
         return flag;
     }
 
-    protected void setFlag(EnumSet<FontEntryFlag> flag) {
+    protected void setFlag(FontEntryFlag flag) {
         this.flag = flag;
     }
 
