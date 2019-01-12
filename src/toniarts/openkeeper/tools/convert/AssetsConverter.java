@@ -32,7 +32,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.nio.CharBuffer;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -66,6 +65,7 @@ import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.spr.SprFile;
+import toniarts.openkeeper.tools.convert.str.MbToUniFile;
 import toniarts.openkeeper.tools.convert.str.StrFile;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
@@ -96,7 +96,7 @@ public abstract class AssetsConverter {
         MODELS(6),
         MOUSE_CURSORS(4),
         MUSIC_AND_SOUNDS(4),
-        INTERFACE_TEXTS(2),
+        INTERFACE_TEXTS(3),
         PATHS(4),
         HI_SCORES(2),
         FONTS(3),
@@ -594,7 +594,7 @@ public abstract class AssetsConverter {
         new File(destination).mkdirs(); // Ensure that the folder exists
         int i = 0;
         int total = srtFiles.size();
-        CharBuffer codePage = null;
+        MbToUniFile codePage = null;
         for (File file : srtFiles) {
             updateStatus(i, total, ConvertProcess.INTERFACE_TEXTS);
             i++;
