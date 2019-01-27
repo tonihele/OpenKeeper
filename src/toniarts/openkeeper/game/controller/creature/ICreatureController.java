@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.task.Task;
@@ -167,7 +168,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void setObjectiveTargetPlayerId(short playerId);
 
-    public void setPlayerObjective(Object object);
+    public void setPlayerObjective(ObjectiveType objective);
 
     public void setCreatureLair(EntityId lairId);
 

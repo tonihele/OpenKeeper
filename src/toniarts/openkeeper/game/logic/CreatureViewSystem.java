@@ -150,7 +150,7 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
             case DIG_TILE:
                 return Creature.AnimationType.MELEE_ATTACK;
             default:
-                return null;
+                return Creature.AnimationType.STAND_STILL;
         }
     }
 

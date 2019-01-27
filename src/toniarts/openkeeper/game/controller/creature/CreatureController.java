@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
@@ -40,11 +39,15 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PlayerObjective;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
@@ -663,7 +666,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void attachPortalGem() {
-        // TODO
+        entityData.setComponent(entityId, new PortalGem());
     }
 
     @Override
@@ -673,8 +676,12 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public void setPlayerObjective(Object object) {
-        // TODO
+    public void setPlayerObjective(ObjectiveType objective) {
+        if (objective == null) {
+            entityData.removeComponent(entityId, PlayerObjective.class);
+        } else {
+            entityData.setComponent(entityId, new PlayerObjective(objective));
+        }
     }
 
     @Override

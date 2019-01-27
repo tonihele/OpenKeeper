@@ -412,7 +412,7 @@ public class PlayerTriggerControl extends TriggerControl {
         }
     }
 
-    private Keeper getPlayer() {
+    protected Keeper getPlayer() {
         return super.getPlayer(playerId);
     }
 

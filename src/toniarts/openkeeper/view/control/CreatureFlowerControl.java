@@ -23,6 +23,8 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.PlayerObjective;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -41,6 +43,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     private static final float CHANGE_STATUS_INTERVAL = 0.5f;
     private static final float REDRAW_INTERVAL = 0.1f;
+
     private float timeCurrentStatusVisible = 0;
     private float timeCurrentVisible = 0;
     private Status currentStatus = Status.LEVEL;
@@ -104,7 +107,10 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 case WORK: {
                     TaskComponent taskComponent = getEntityData().getComponent(getEntityId(), TaskComponent.class);
                     if (taskComponent != null) {
-                        return getTaskIcon(taskComponent.taskType);
+                        String icon = getTaskIcon(taskComponent.taskType);
+                        if (icon != null) {
+                            return icon;
+                        }
                     }
                     break;
                 }
@@ -186,21 +192,23 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected String getObjectiveIcon() {
-//        if (creatureControl.getPlayerObjective() != null) {
-//            switch (creatureControl.getPlayerObjective()) {
-//                case CONVERT:
-//                case IMPRISON:
-//                    return "Textures/GUI/moods/Imprison.png";
-//                case KILL:
-//
-//                    // Hmm, is this so...?
-//                    if (creatureControl.isPortalGem()) {
-//                        return "Textures/GUI/moods/Objective.png";
-//                    } else {
-//                        return "Textures/GUI/moods/Objective-2.png";
-//                    }
-//            }
-//        }
+        PlayerObjective playerObjective = getEntityData().getComponent(getEntityId(), PlayerObjective.class);
+        if (playerObjective != null && playerObjective.objective != null) {
+            switch (playerObjective.objective) {
+                case CONVERT:
+                case IMPRISON:
+                    return "Textures/GUI/moods/Imprison.png";
+                case KILL:
+
+                    // Hmm, is this so...?
+                    PortalGem portalGem = getEntityData().getComponent(getEntityId(), PortalGem.class);
+                    if (portalGem != null) {
+                        return "Textures/GUI/moods/Objective.png";
+                    } else {
+                        return "Textures/GUI/moods/Objective-2.png";
+                    }
+            }
+        }
         return null;
     }
 

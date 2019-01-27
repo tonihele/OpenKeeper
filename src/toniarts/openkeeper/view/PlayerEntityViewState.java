@@ -65,6 +65,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
+    private final short playerId;
 
     private final TextParser textParser;
     private final Node root;
@@ -88,6 +89,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.entityData = entityData;
+        this.playerId = playerId;
         this.textParser = textParser;
 
         // Init the loaders

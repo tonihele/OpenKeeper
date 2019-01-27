@@ -61,6 +61,8 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.PlayerObjective;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Senses;
@@ -73,6 +75,7 @@ import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
@@ -126,6 +129,7 @@ public class NetworkServer {
             Serializer.registerClass(Point.class, new FieldSerializer());
             Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
             Serializer.registerClass(Thing.HeroParty.Objective.class, new EnumSerializer());
+            Serializer.registerClass(ObjectiveType.class, new EnumSerializer());
             Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
@@ -160,6 +164,8 @@ public class NetworkServer {
             Serializer.registerClass(Objective.class, new FieldSerializer());
             Serializer.registerClass(Owner.class, new FieldSerializer());
             Serializer.registerClass(Party.class, new FieldSerializer());
+            Serializer.registerClass(PlayerObjective.class, new FieldSerializer());
+            Serializer.registerClass(PortalGem.class, new FieldSerializer());
             Serializer.registerClass(Position.class, new FieldSerializer());
             Serializer.registerClass(RoomStorage.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
