@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.CreatureObjective;
+import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
@@ -132,13 +132,13 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean hasObjective() {
-        CreatureObjective creatureObjective = entityData.getComponent(entityId, CreatureObjective.class);
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         return (creatureObjective != null && creatureObjective.objective != null);
     }
 
     @Override
     public boolean followObjective() {
-        return taskManager.assignObjectiveTask(this, entityData.getComponent(entityId, CreatureObjective.class).objective);
+        return taskManager.assignObjectiveTask(this, entityData.getComponent(entityId, Objective.class).objective);
     }
 
     @Override
@@ -586,7 +586,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public int getObjectiveTargetActionPointId() {
-        CreatureObjective creatureObjective = entityData.getComponent(entityId, CreatureObjective.class);
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         if (creatureObjective != null) {
             return creatureObjective.actionPointId;
         }
@@ -595,13 +595,13 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void setObjectiveTargetActionPointId(int actionPointId) {
-        CreatureObjective creatureObjective = entityData.getComponent(entityId, CreatureObjective.class);
-        entityData.setComponent(entityId, new CreatureObjective((creatureObjective != null ? creatureObjective.objective : null), (creatureObjective != null ? creatureObjective.objectiveTargetPlayerId : 0), actionPointId));
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
+        entityData.setComponent(entityId, new Objective((creatureObjective != null ? creatureObjective.objective : null), (creatureObjective != null ? creatureObjective.objectiveTargetPlayerId : 0), actionPointId));
     }
 
     @Override
     public Thing.HeroParty.Objective getObjective() {
-        CreatureObjective creatureObjective = entityData.getComponent(entityId, CreatureObjective.class);
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         if (creatureObjective != null) {
             return creatureObjective.objective;
         }
@@ -610,8 +610,8 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void setObjective(Thing.HeroParty.Objective objective) {
-        CreatureObjective creatureObjective = entityData.getComponent(entityId, CreatureObjective.class);
-        entityData.setComponent(entityId, new CreatureObjective(objective, (creatureObjective != null ? creatureObjective.objectiveTargetPlayerId : 0), (creatureObjective != null ? creatureObjective.actionPointId : 0)));
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
+        entityData.setComponent(entityId, new Objective(objective, (creatureObjective != null ? creatureObjective.objectiveTargetPlayerId : 0), (creatureObjective != null ? creatureObjective.actionPointId : 0)));
     }
 
     @Override
@@ -668,8 +668,8 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void setObjectiveTargetPlayerId(short playerId) {
-        CreatureObjective creatureObjective = entityData.getComponent(entityId, CreatureObjective.class);
-        entityData.setComponent(entityId, new CreatureObjective((creatureObjective != null ? creatureObjective.objective : null), playerId, (creatureObjective != null ? creatureObjective.actionPointId : 0)));
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
+        entityData.setComponent(entityId, new Objective((creatureObjective != null ? creatureObjective.objective : null), playerId, (creatureObjective != null ? creatureObjective.actionPointId : 0)));
     }
 
     @Override

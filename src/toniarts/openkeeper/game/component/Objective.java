@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,14 +20,24 @@ import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
- * An entity with a mission
+ * A entity with a mission
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class Objective implements EntityComponent {
 
-    public short objectiveTargetPlayerId;
     public Thing.HeroParty.Objective objective;
-    public int objectiveTargetActionPointId;
+    public short objectiveTargetPlayerId;
+    public int actionPointId;
+
+    public Objective() {
+        // For serialization
+    }
+
+    public Objective(Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int actionPointId) {
+        this.objective = objective;
+        this.objectiveTargetPlayerId = objectiveTargetPlayerId;
+        this.actionPointId = actionPointId;
+    }
 
 }

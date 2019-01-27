@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
-import toniarts.openkeeper.game.component.CreatureObjective;
+import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
@@ -266,7 +266,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Objective
         if (objective != null) {
-            entityData.setComponent(entity, new CreatureObjective(objective, objectiveTargetPlayerId, objectiveTargetActionPointId));
+            entityData.setComponent(entity, new Objective(objective, objectiveTargetPlayerId, objectiveTargetActionPointId));
         }
 
         // Trigger

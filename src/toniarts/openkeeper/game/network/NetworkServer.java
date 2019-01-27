@@ -41,7 +41,6 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureMood;
-import toniarts.openkeeper.game.component.CreatureObjective;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -141,7 +140,6 @@ public class NetworkServer {
             Serializer.registerClass(CreatureEfficiency.class, new FieldSerializer());
             Serializer.registerClass(CreatureFall.class, new FieldSerializer());
             Serializer.registerClass(CreatureMood.class, new FieldSerializer());
-            Serializer.registerClass(CreatureObjective.class, new FieldSerializer());
             Serializer.registerClass(CreatureRecuperating.class, new FieldSerializer());
             Serializer.registerClass(CreatureSlapped.class, new FieldSerializer());
             Serializer.registerClass(CreatureSleep.class, new FieldSerializer());
