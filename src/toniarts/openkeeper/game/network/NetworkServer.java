@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureObjective;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -85,6 +86,7 @@ import toniarts.openkeeper.game.network.session.AccountHostedService;
 import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
@@ -124,6 +126,7 @@ public class NetworkServer {
             Serializer.registerClass(Vector2.class, new FieldSerializer());
             Serializer.registerClass(Point.class, new FieldSerializer());
             Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
+            Serializer.registerClass(Thing.HeroParty.Objective.class, new EnumSerializer());
             Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
@@ -138,6 +141,7 @@ public class NetworkServer {
             Serializer.registerClass(CreatureEfficiency.class, new FieldSerializer());
             Serializer.registerClass(CreatureFall.class, new FieldSerializer());
             Serializer.registerClass(CreatureMood.class, new FieldSerializer());
+            Serializer.registerClass(CreatureObjective.class, new FieldSerializer());
             Serializer.registerClass(CreatureRecuperating.class, new FieldSerializer());
             Serializer.registerClass(CreatureSlapped.class, new FieldSerializer());
             Serializer.registerClass(CreatureSleep.class, new FieldSerializer());

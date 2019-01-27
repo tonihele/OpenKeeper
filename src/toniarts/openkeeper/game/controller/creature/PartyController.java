@@ -167,7 +167,7 @@ public class PartyController implements INavigable, IPartyController {
                 leader = Utils.getRandomItem(leaderCandidates);
 
                 // Swap duties
-                leader.setObjectiveTargetActionPoint(creature.getObjectiveTargetActionPoint());
+                leader.setObjectiveTargetActionPointId(creature.getObjectiveTargetActionPointId());
                 leader.setObjective(creature.getObjective());
             }
         }

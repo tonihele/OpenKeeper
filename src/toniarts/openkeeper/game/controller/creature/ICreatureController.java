@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  * Controls creature entities
@@ -138,13 +139,13 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void addGold(int amount);
 
-    public Object getObjectiveTargetActionPoint();
+    public int getObjectiveTargetActionPointId();
 
-    public void setObjectiveTargetActionPoint(Object actionPoint);
+    public void setObjectiveTargetActionPointId(int actionPointId);
 
-    public Object getObjective();
+    public Thing.HeroParty.Objective getObjective();
 
-    public void setObjective(Object objective);
+    public void setObjective(Thing.HeroParty.Objective objective);
 
     public boolean isDead();
 

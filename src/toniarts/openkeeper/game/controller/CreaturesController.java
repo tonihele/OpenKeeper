@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureObjective;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
@@ -160,12 +161,18 @@ public class CreaturesController implements ICreaturesController {
         short ownerId = 0;
         Integer healthPercentage = null;
         short level = 1;
+        Thing.HeroParty.Objective objective = null;
+        short objectiveTargetPlayerId = 0;
+        int objectiveTargetActionPointId = 0;
         if (creature instanceof Thing.GoodCreature) {
             Thing.GoodCreature goodCreature = (Thing.GoodCreature) creature;
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
             level = goodCreature.getLevel();
             ownerId = Player.GOOD_PLAYER_ID;
+            objective = goodCreature.getObjective();
+            objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
+            objectiveTargetActionPointId = goodCreature.getObjectiveTargetActionPointId();
         } else if (creature instanceof Thing.NeutralCreature) {
             Thing.NeutralCreature neutralCreature = (Thing.NeutralCreature) creature;
             triggerId = neutralCreature.getTriggerId();
@@ -182,15 +189,17 @@ public class CreaturesController implements ICreaturesController {
             Thing.DeadBody deadBody = (Thing.DeadBody) creature;
             ownerId = deadBody.getPlayerId();
         }
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(), triggerId != null && triggerId != 0 ? triggerId : null, false);
+        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+                triggerId != null && triggerId != 0 ? triggerId : null, false, objective, objectiveTargetPlayerId, objectiveTargetActionPointId);
     }
 
     @Override
     public EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, boolean entrance) {
-        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, entrance);
+        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, entrance, null, (short) 0, 0);
     }
 
-    private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money, Integer triggerId, boolean entrance) {
+    private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money,
+            Integer triggerId, boolean entrance, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId) {
         Creature creature = kwdFile.getCreature(creatureId);
         EntityId entity = entityData.createEntity();
 
@@ -254,6 +263,11 @@ public class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new Mobile(creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY),
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER),
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA), creatureComponent.speed));
+
+        // Objective
+        if (objective != null) {
+            entityData.setComponent(entity, new CreatureObjective(objective, objectiveTargetPlayerId, objectiveTargetActionPointId));
+        }
 
         // Trigger
         if (triggerId != null) {

@@ -20,6 +20,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  * Send to action point task
@@ -42,7 +43,7 @@ public class SendToActionPoint extends GoToTask {
         if (!executed && creature != null) {
 
             // Check that the objectives are still the same
-            //return Thing.HeroParty.Objective.SEND_TO_ACTION_POINT.equals(creature.getObjective()) && actionPoint.equals(creature.getObjectiveTargetActionPoint());
+            return Thing.HeroParty.Objective.SEND_TO_ACTION_POINT.equals(creature.getObjective()) && actionPoint.getId() == creature.getObjectiveTargetActionPointId();
         }
         return !executed;
     }
@@ -55,7 +56,7 @@ public class SendToActionPoint extends GoToTask {
         if (actionPoint.getNextWaypointId() != 0) {
 
             // Assign new objective
-            //creature.setObjectiveTargetActionPoint(worldState.getGameState().getActionPointState().getActionPoint(actionPoint.getNextWaypointId()));
+            creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
         }
     }
 

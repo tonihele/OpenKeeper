@@ -190,7 +190,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
                 // Assign to creature
                 if (instanceControl != null) {
                     if (apId != 0) {
-//                        instanceControl.setObjectiveTargetActionPoint(getActionPoint(apId));
+                        instanceControl.setObjectiveTargetActionPointId(apId);
                     }
                     instanceControl.setObjectiveTargetPlayerId(playerId);
                     instanceControl.setObjective(jobType);

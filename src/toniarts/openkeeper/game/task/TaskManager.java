@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -59,6 +60,7 @@ import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
+import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
@@ -87,6 +89,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final IGameWorldController gameWorldController;
     private final ICreaturesController creaturesController;
     private final INavigationService navigationService;
+    private final ILevelInfo levelInfo;
     private final EntityData entityData;
     private final EntitySet taskEntities;
     private final EntitySet unconsciousEntities;
@@ -99,12 +102,13 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController, ICreaturesController creaturesController, INavigationService navigationService,
-            Collection<IPlayerController> players) {
+            Collection<IPlayerController> players, ILevelInfo levelInfo) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
         this.creaturesController = creaturesController;
         this.navigationService = navigationService;
+        this.levelInfo = levelInfo;
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -532,7 +536,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
-                //task = new SendToActionPoint(gameWorldController, mapController, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
+                task = new SendToActionPoint(navigationService, mapController, levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId()), creature.getOwnerId());
                 break;
             }
             case KILL_PLAYER: {
