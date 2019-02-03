@@ -135,7 +135,7 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
             case ENTERING_DUNGEON:
                 return Creature.AnimationType.ENTRANCE;
             default:
-                return null;
+                return Creature.AnimationType.STAND_STILL;
         }
     }
 

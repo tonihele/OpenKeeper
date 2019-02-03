@@ -47,11 +47,12 @@ public enum CreatureState implements State<ICreatureController> {
         private boolean findStuffToDo(ICreatureController entity) {
 
             // See if we should just follow
-//            if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
-//                entity.setFollowTarget(entity.getParty().getPartyLeader());
-//                entity.getStateMachine().changeState(CreatureState.FOLLOW);
-//                return true;
-//            }
+            if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
+                entity.setFollowTarget(entity.getParty().getPartyLeader().getEntityId());
+                entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                return true;
+            }
+
             // See if we have an objective
             if (entity.hasObjective() && entity.followObjective()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
@@ -237,13 +238,13 @@ public enum CreatureState implements State<ICreatureController> {
             }
 
             // If we have reached the target, stop and fight!
-            if (entity.isWithinAttackDistance(attackTarget)) {
+            if (entity.isWithinAttackDistance(attackTarget.getEntityId())) {
 
                 // Attack!!
                 entity.stop();
-                entity.executeAttack(attackTarget);
+                entity.executeAttack(attackTarget.getEntityId());
             } else if (entity.isStopped()) {
-                entity.navigateToAttackTarget(attackTarget);
+                entity.navigateToAttackTarget(attackTarget.getEntityId());
             }
         }
 
@@ -285,8 +286,8 @@ public enum CreatureState implements State<ICreatureController> {
             }
 
             // Don't let the target wander too far off
-            if (entity.isStopped() && entity.getDistanceToCreature(entity.getFollowTarget()) > 2.5f) {
-                entity.navigateToRandomPointAroundTarget(entity.getFollowTarget(), 2);
+            if (entity.isStopped() && entity.getDistanceToCreature(entity.getFollowTarget().getEntityId()) > 2.5f) {
+                entity.navigateToRandomPointAroundTarget(entity.getFollowTarget().getEntityId(), 2);
             }
         }
 

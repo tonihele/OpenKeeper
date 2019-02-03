@@ -40,7 +40,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void navigateToRandomPoint();
 
-    public Object getParty();
+    public IPartyController getParty();
 
     public StateMachine<ICreatureController, CreatureState> getStateMachine();
 
@@ -82,21 +82,21 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public ICreatureController getAttackTarget();
 
-    public boolean isWithinAttackDistance(ICreatureController attackTarget);
+    public boolean isWithinAttackDistance(EntityId attackTarget);
 
     public void stopCreature();
 
-    public void executeAttack(ICreatureController attackTarget);
+    public void executeAttack(EntityId attackTarget);
 
-    public void navigateToAttackTarget(ICreatureController attackTarget);
+    public void navigateToAttackTarget(EntityId attackTarget);
 
     public ICreatureController getFollowTarget();
 
     public Task getAssignedTask();
 
-    public float getDistanceToCreature(ICreatureController followTarget);
+    public float getDistanceToCreature(EntityId target);
 
-    public void navigateToRandomPointAroundTarget(ICreatureController followTarget, int i);
+    public void navigateToRandomPointAroundTarget(EntityId target, int radius);
 
     public void resetFollowTarget();
 
@@ -198,5 +198,12 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      * @param creature the creature hauling us
      */
     public void setHaulable(ICreatureController creature);
+
+    /**
+     * Set a target for us to follow
+     *
+     * @param target target to follow
+     */
+    public void setFollowTarget(EntityId target);
 
 }

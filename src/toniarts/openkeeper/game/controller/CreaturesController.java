@@ -32,7 +32,6 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
-import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
@@ -41,6 +40,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
@@ -337,14 +337,13 @@ public class CreaturesController implements ICreaturesController {
             LOGGER.log(Level.FINE, "Re-spawning party {0}!", partyId);
         }
         partyController.setType(partyType);
+        partyController.create();
         for (Thing.GoodCreature creature : partyController.getMembers()) {
             EntityId entityId = spawnCreature(creature, position);
             entityData.setComponent(entityId, new Party(partyController.getId()));
 
             partyController.addMemberInstance(creature, createController(entityId));
         }
-        partyController.create();
-
         creaturePartiesByPartyId.put(partyId, partyController);
 
         // TODO: Hmm, should we clean these up...
@@ -375,7 +374,7 @@ public class CreaturesController implements ICreaturesController {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
         return creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
-            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings));
+            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this));
         }).get();
     }
 

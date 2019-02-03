@@ -29,10 +29,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
@@ -41,10 +44,12 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.ObjectiveType;
@@ -73,6 +78,7 @@ public class CreatureController implements ICreatureController {
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
+    private final ICreaturesController creaturesController;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -80,8 +86,11 @@ public class CreatureController implements ICreatureController {
     private boolean taskStarted = false;
     private float motionless = 0;
 
+    private static final Logger LOGGER = Logger.getLogger(CreatureController.class.getName());
+
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
-            ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            ICreaturesController creaturesController) {
         this.entityId = entityId;
         this.entityData = entityData;
         this.navigationService = navigationService;
@@ -89,6 +98,7 @@ public class CreatureController implements ICreatureController {
         this.creature = creature;
         this.gameTimer = gameTimer;
         this.gameSettings = gameSettings;
+        this.creaturesController = creaturesController;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -123,8 +133,11 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public Object getParty() {
-        // TODO:
+    public IPartyController getParty() {
+        Party party = entityData.getComponent(entityId, Party.class);
+        if (party != null) {
+            return creaturesController.getPartyById(party.partyId);
+        }
         return null;
     }
 
@@ -269,11 +282,20 @@ public class CreatureController implements ICreatureController {
 
                 if (loc != null) {
                     Point destination = WorldUtils.vectorToPoint(loc);
-                    GraphPath<MapTile> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
-                    entityData.setComponent(entityId, new Navigation(destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, SteeringUtils.pathToList(path)));
+                    createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
                 }
             }
         }
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
+        GraphPath<MapTile> path = navigationService.findPath(currentLocation, destination, this);
+        if (path == null) {
+            LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getCreatureCoordinates(), destination});
+            return true;
+        }
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
+        return false;
     }
 
     @Override
@@ -314,7 +336,7 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public boolean isWithinAttackDistance(ICreatureController attackTarget) {
+    public boolean isWithinAttackDistance(EntityId attackTarget) {
         // TODO:
         return false;
     }
@@ -325,18 +347,21 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public void executeAttack(ICreatureController attackTarget) {
+    public void executeAttack(EntityId attackTarget) {
         // TODO:
     }
 
     @Override
-    public void navigateToAttackTarget(ICreatureController attackTarget) {
+    public void navigateToAttackTarget(EntityId attackTarget) {
         // TODO:
     }
 
     @Override
     public ICreatureController getFollowTarget() {
-        // TODO:
+        FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
+        if (followTarget != null && entityData.getComponent(followTarget.entityId, Position.class) != null) {
+            return creaturesController.createController(followTarget.entityId);
+        }
         return null;
     }
 
@@ -350,19 +375,47 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public float getDistanceToCreature(ICreatureController followTarget) {
-        // TODO:
-        return 0f;
+    public float getDistanceToCreature(EntityId target) {
+
+        // FIXME: now just direct distance, should be perhaps real distance that the creature needs to traverse to reach the target
+        Position targetPosition = entityData.getComponent(target, Position.class);
+        Vector3f ourPosition = getPosition();
+        if (targetPosition == null || ourPosition == null) {
+            return Float.MAX_VALUE;
+        }
+        return ourPosition.distance(targetPosition.position);
     }
 
     @Override
-    public void navigateToRandomPointAroundTarget(ICreatureController followTarget, int i) {
-        // TODO:
+    public void navigateToRandomPointAroundTarget(EntityId target, int radius) {
+        Position targetPosition = entityData.getComponent(target, Position.class);
+        if (targetPosition != null) {
+
+            // To keep up with the target, see if it has a target it is navigating to
+            Point destination;
+            Navigation targetNavigation = entityData.getComponent(target, Navigation.class);
+            if (targetNavigation != null) {
+                destination = targetNavigation.target;
+            } else {
+                destination = WorldUtils.vectorToPoint(targetPosition.position);
+            }
+
+            Point p = navigationService.findRandomAccessibleTile(destination, radius, this);
+            Point ourPosition = getCreatureCoordinates();
+            if (p != null && p != ourPosition) {
+                createNavigation(ourPosition, p, null);
+            }
+        }
+    }
+
+    @Override
+    public void setFollowTarget(EntityId target) {
+        entityData.setComponent(entityId, new FollowTarget(target));
     }
 
     @Override
     public void resetFollowTarget() {
-        // TODO:
+        entityData.removeComponent(entityId, FollowTarget.class);
     }
 
     @Override
@@ -584,7 +637,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public void stopCreature() {
-        //TODO:
+        entityData.removeComponent(entityId, Navigation.class);
     }
 
     @Override
