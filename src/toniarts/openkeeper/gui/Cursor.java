@@ -114,7 +114,7 @@ public class Cursor extends JmeCursor {
 
             case ABGR8:
                 int abgr = data.getInt();
-                result = ((abgr & 255) << 24) | (abgr >> 8);
+                result = ((abgr & 255) << 24) | (abgr >>> 8);
                 break;
 
             default:
