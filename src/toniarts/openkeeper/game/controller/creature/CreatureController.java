@@ -160,7 +160,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean needsLair() {
-        return entityData.getComponent(entityId, CreatureSleep.class) != null;
+        return getOwnerId() >= Player.KEEPER1_ID && entityData.getComponent(entityId, CreatureSleep.class) != null;
     }
 
     @Override
