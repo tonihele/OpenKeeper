@@ -25,4 +25,6 @@ public interface IDoorController {
 
     public boolean isDestroyed();
 
+    public short getOwnerId();
+
 }

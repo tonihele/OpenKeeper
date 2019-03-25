@@ -20,6 +20,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.tools.convert.map.Door;
 
 /**
@@ -45,6 +46,11 @@ public class DoorController implements IDoorController {
         return (health == null || health.health == 0);
     }
 
+    @Override
+    public short getOwnerId() {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        return owner.ownerId;
+    }
 
     @Override
     public int hashCode() {

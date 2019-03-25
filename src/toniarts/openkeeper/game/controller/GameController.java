@@ -210,7 +210,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, players, playerControllers, this);
         gameWorldController.createNewGame(this);
 
-        PositionSystem positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController());
+        PositionSystem positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController());
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);

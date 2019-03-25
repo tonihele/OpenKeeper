@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -232,19 +233,20 @@ public class PartyController implements IPartyController {
             Terrain terrain = mapController.getTerrain(to);
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isWorkersAvailable()) {
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
-                    return 1.5f; // Dig our selves in
+                    return 5f; // Dig our selves in
                 }
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
-                    return 2.5f; // It seems that everybody can attack reinforced walls i.e. ?
+                    return 6f; // It seems that everybody can attack reinforced walls i.e. ?
                 }
             }
 
             // Check if any obstacles lies in our path, we can smash through enemy doors but not our own locked doors
             // FIXME: now just doors
-//            DoorControl doorControl = worldState.getThingLoader().getDoor(to.getLocation());
-//            if (doorControl != null && doorControl.getOwnerId() != getOwnerId()) {
-//                return 1.5f;
-//            }
+            for (IDoorController doorController : entityPositionLookup.getEntityTypesInLocation(to, IDoorController.class)) {
+                if (doorController.getOwnerId() != getOwnerId()) {
+                    return 3f;
+                }
+            }
         }
         return cost;
     }

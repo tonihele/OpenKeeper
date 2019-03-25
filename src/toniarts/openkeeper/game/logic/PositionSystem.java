@@ -32,9 +32,11 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -53,10 +55,11 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     private final Map<EntityId, MapTile> mapTilesByEntities = new HashMap<>();
     private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
-    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController) {
+    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController) {
         this.entityData = entityData;
         this.mapController = mapController;
         entityWrappers.put(ICreatureController.class, creaturesController);
+        entityWrappers.put(IDoorController.class, doorsController);
 
         positionedEntities = entityData.getEntities(Position.class);
         processAddedEntities(positionedEntities);
