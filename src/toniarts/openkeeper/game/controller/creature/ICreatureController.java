@@ -168,6 +168,8 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public void setObjectiveTargetPlayerId(short playerId);
 
+    public short getObjectiveTargetPlayerId();
+
     public void setPlayerObjective(ObjectiveType objective);
 
     public void setCreatureLair(EntityId lairId);
@@ -205,5 +207,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      * @param target target to follow
      */
     public void setFollowTarget(EntityId target);
+
+    public boolean shouldNavigateToFollowTarget();
 
 }

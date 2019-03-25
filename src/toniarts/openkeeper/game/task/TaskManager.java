@@ -60,6 +60,7 @@ import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
+import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
@@ -540,14 +541,14 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 break;
             }
             case KILL_PLAYER: {
-                //task = new KillPlayer(gameWorldController, mapController, creature.getObjectiveTargetPlayerId(), creature);
+                task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
                 break;
             }
         }
 
         // Assign
-        if (task != null) {
-            task.getTask().assign(creature, true);
+        if (task != null && task.getCurrentTask() != null) {
+            task.getCurrentTask().assign(creature, true);
             tasksByIds.put(task.getId(), task);
             return true;
         }
@@ -591,7 +592,14 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public Task getTaskById(long taskId) {
-        return tasksByIds.get(taskId);
+        Task task = tasksByIds.get(taskId);
+
+        // For nested task, return the actual task
+        if (task != null && task instanceof AbstractObjectiveTask) {
+            return ((AbstractObjectiveTask) task).getCurrentTask();
+        }
+
+        return task;
     }
 
 }

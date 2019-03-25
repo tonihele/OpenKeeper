@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -40,7 +39,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author ArchDemon
  */
-public class PartyController implements INavigable, IPartyController {
+public class PartyController implements IPartyController {
 
     private static final AtomicLong PARTY_ID_GENERATOR = new AtomicLong(1);
 
@@ -226,17 +225,17 @@ public class PartyController implements INavigable, IPartyController {
 
     @Override
     public Float getCost(MapTile from, MapTile to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
-        Float cost = INavigable.super.getCost(from, to, mapController, entityPositionLookup);
+        Float cost = IPartyController.super.getCost(from, to, mapController, entityPositionLookup);
         if (cost == null) {
 
             // No path by ordinary means, but we might want to tunnel or smash our way through obstacles
             Terrain terrain = mapController.getTerrain(to);
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isWorkersAvailable()) {
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
-                    return 1.0f; // Dig our selves in
+                    return 1.5f; // Dig our selves in
                 }
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
-                    return 2.0f; // It seems that everybody can attack reinforced walls i.e. ?
+                    return 2.5f; // It seems that everybody can attack reinforced walls i.e. ?
                 }
             }
 

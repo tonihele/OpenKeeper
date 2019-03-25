@@ -103,7 +103,7 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
         // Valid coordinate
         MapTile tile = mapController.getMapData().getTile(x, y);
         if (tile != null) {
-            Float cost = getCost(pathFindable, startTile, tile, mapController, entityPositionLookup, false);
+            Float cost = pathFindable.getCost(tile, tile, mapController, entityPositionLookup);
             if (cost != null) {
                 connections.add(new DefaultConnection<MapTile>(startTile, tile) {
 

@@ -18,6 +18,10 @@ package toniarts.openkeeper.game.controller.creature;
 
 import java.util.Collection;
 import java.util.Set;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
@@ -25,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IPartyController {
+public interface IPartyController extends INavigable {
 
     /**
      * Get the party members, as real instances, if the party has been created
@@ -92,5 +96,11 @@ public interface IPartyController {
      * Marks the party as created
      */
     void create();
+
+    @Override
+    default public Float getCost(MapTile from, MapTile to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
+        return INavigable.super.getCost(from, to, mapController, entityPositionLookup);
+    }
+
 
 }

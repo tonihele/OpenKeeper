@@ -60,6 +60,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -252,7 +253,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean dropGoldToTreasury() {
-        if (getGold() > 0 && isWorker()) {
+        if (getGold() > 0 && getOwnerId() >= Player.KEEPER1_ID && isWorker()) {
             if (taskManager.assignGoldToTreasuryTask(this)) {
                 navigateToAssignedTask();
                 return true;
@@ -363,6 +364,11 @@ public class CreatureController implements ICreatureController {
             return creaturesController.createController(followTarget.entityId);
         }
         return null;
+    }
+
+    @Override
+    public boolean shouldNavigateToFollowTarget() {
+        return (isStopped() && getDistanceToCreature(getFollowTarget().getEntityId()) > 1.5f) || (getDistanceToCreature(getFollowTarget().getEntityId()) > 2.5f);
     }
 
     @Override
@@ -726,6 +732,16 @@ public class CreatureController implements ICreatureController {
     public void setObjectiveTargetPlayerId(short playerId) {
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         entityData.setComponent(entityId, new Objective((creatureObjective != null ? creatureObjective.objective : null), playerId, (creatureObjective != null ? creatureObjective.actionPointId : 0)));
+    }
+
+    @Override
+    public short getObjectiveTargetPlayerId() {
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
+        if (creatureObjective != null) {
+            return creatureObjective.objectiveTargetPlayerId;
+        }
+
+        return -1;
     }
 
     @Override

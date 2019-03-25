@@ -32,12 +32,14 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
+public class ObjectiveTaskDecorator implements ObjectiveTask {
 
+    private final long taskId;
     private final Task task;
     private final Deque<ObjectiveTask> taskQueue = new ArrayDeque<>();
 
-    public ObjectiveTaskDecorator(Task task) {
+    public ObjectiveTaskDecorator(long originalTaskId, Task task) {
+        this.taskId = originalTaskId;
         this.task = task;
     }
 
@@ -57,15 +59,15 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
         task.assign(creature, false);
 
         // Override the assign
-//        creature.setAssignedTask(this);
+        creature.setAssignedTask(this);
         if (isWorkerPartyTask() && creature.getParty() != null) {
 
             // Assign to all workers
-//            for (CreatureControl c : creature.getParty().getActualMembers()) {
-//                if (!c.equals(creature) && c.isWorker() && task.canAssign(c)) {
-//                    task.assign(c, true);
-//                }
-//            }
+            for (ICreatureController c : creature.getParty().getActualMembers()) {
+                if (!c.equals(creature) && c.isWorker() && task.canAssign(c)) {
+                    task.assign(c, true);
+                }
+            }
         }
     }
 
@@ -156,7 +158,7 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
 
     @Override
     public long getId() {
-        return task.getId();
+        return taskId;
     }
 
 }

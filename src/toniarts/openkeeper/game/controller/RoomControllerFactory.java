@@ -65,13 +65,7 @@ public final class RoomControllerFactory {
             case HERO_GATE_2_BY_2:
                 //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
                 //        case HERO_GATE_3_BY_1:
-                return new NormalRoomController(kwdFile, roomInstance, objectsController) {
-                    @Override
-                    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
-                        return false;
-                    }
-
-                };
+                return new NormalRoomController(kwdFile, roomInstance, objectsController);
             //return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
             case _5_BY_5_ROTATED:
                 return new FiveByFiveRotatedController(kwdFile, roomInstance, objectsController, gameSettings);
