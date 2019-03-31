@@ -33,8 +33,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
@@ -684,14 +686,14 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isImprisoned() {
-        // TODO
-        return false;
+        CreatureImprisoned imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class);
+        return imprisoned == null;
     }
 
     @Override
     public boolean isTortured() {
-        // TODO
-        return false;
+        CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
+        return tortured == null;
     }
 
     @Override

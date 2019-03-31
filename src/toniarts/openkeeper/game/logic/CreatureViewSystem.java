@@ -134,6 +134,12 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                 return Creature.AnimationType.GET_UP;
             case ENTERING_DUNGEON:
                 return Creature.AnimationType.ENTRANCE;
+            case IMPRISONED:
+                return Creature.AnimationType.ANGRY;
+            case TORTURED:
+                return Creature.AnimationType.TORTURED_WHEEL; // hmmm....
+            case SLEEPING:
+                return Creature.AnimationType.SLEEPING;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }

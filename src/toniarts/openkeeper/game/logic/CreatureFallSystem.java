@@ -62,7 +62,6 @@ public class CreatureFallSystem implements IGameLogicUpdatable {
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
 
                 // The state, depending on the landing
-                // TODO: Torture, prisoner, evict?
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
                 entityData.setComponent(entity.getId(), new CreatureAi(gameTime, creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
             }

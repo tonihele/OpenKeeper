@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.awt.Point;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,8 +32,10 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
@@ -53,12 +56,15 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -92,6 +98,7 @@ public class CreaturesController implements ICreaturesController {
     private final Map<EntityId, WeakReference<ICreatureController>> creatureControllersByEntityId = new WeakHashMap<>();
     private final IGameTimer gameTimer;
     private final IGameController gameController;
+    private final IMapController mapController;
 
     private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
@@ -103,14 +110,16 @@ public class CreaturesController implements ICreaturesController {
      * @param gameSettings the game settings
      * @param gameTimer
      * @param gameController
+     * @param mapController
      */
     public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
-            IGameController gameController) {
+            IGameController gameController, IMapController mapController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.gameController = gameController;
+        this.mapController = mapController;
 
         // Load creatures
         loadCreatures();
@@ -231,7 +240,8 @@ public class CreaturesController implements ICreaturesController {
             entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
         }
 
-        entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), entrance ? CreatureState.ENTERING_DUNGEON : CreatureState.IDLE, creatureId));
+        CreatureState creatureState = entrance ? CreatureState.ENTERING_DUNGEON : getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
+        entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
 
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent, threatComponent);
@@ -280,9 +290,47 @@ public class CreaturesController implements ICreaturesController {
         }
 
         // Visuals
-        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), entrance ? Creature.AnimationType.ENTRANCE : healthComponent != null ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.DEATH_POSE));
+        Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
+        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
         return entity;
+    }
+
+    private Creature.AnimationType getStartingAnimation(Health healthComponent, CreatureState creatureState) {
+        if (healthComponent == null) {
+            return Creature.AnimationType.DEATH_POSE;
+        }
+        if (creatureState == CreatureState.ENTERING_DUNGEON) {
+            return Creature.AnimationType.ENTRANCE;
+        }
+        if (creatureState == CreatureState.TORTURED) {
+            return Creature.AnimationType.TORTURED_CHAIR;
+        }
+        if (creatureState == CreatureState.IMPRISONED) {
+            return Creature.AnimationType.ANGRY;
+        }
+
+        return Creature.AnimationType.IDLE_1;
+    }
+
+    private CreatureState getCreatureStateByMapLocation(Point location, short ownerId, EntityId entityId) {
+        IRoomController room = mapController.getRoomControllerByCoordinates(location);
+        if (room != null && room.getRoomInstance().getOwnerId() != ownerId) {
+
+            // See if tortured or imprisoned
+            // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
+            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+                room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
+                entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
+                return CreatureState.IMPRISONED;
+            }
+            if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
+                room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
+                entityData.setComponent(entityId, new CreatureTortured(gameTimer.getGameTime(), gameTimer.getGameTime()));
+                return CreatureState.TORTURED;
+            }
+        }
+        return CreatureState.IDLE;
     }
 
     private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent) {
