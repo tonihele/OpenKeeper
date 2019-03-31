@@ -348,7 +348,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case ROTATE_AROUND_ACTION_POINT: // AP part
 //                if (playerId == playerState.getPlayerId()) {
-                ap = levelInfo.getActionPoint(trigger.getUserData("targetId", short.class));
+                ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
                 boolean isRelative = trigger.getUserData("available", short.class) == 0;
                 int angle = trigger.getUserData("angle", int.class);
                 time = trigger.getUserData("time", int.class);
