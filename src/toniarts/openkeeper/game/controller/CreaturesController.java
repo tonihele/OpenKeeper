@@ -341,7 +341,7 @@ public class CreaturesController implements ICreaturesController {
         if (healthComponent != null) {
             int prevMaxHealth = healthComponent.maxHealth;
             healthComponent.maxHealth = attributes.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
-            healthComponent.health += Math.abs(healthComponent.maxHealth - prevMaxHealth); // Abs for some weird level configs :)
+            healthComponent.health = healthComponent.maxHealth * healthComponent.health / prevMaxHealth;
             healthComponent.ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
         }
         creatureComponent.fear = attributes.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
