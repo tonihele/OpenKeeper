@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
+import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -687,13 +688,13 @@ public class CreatureController implements ICreatureController {
     @Override
     public boolean isImprisoned() {
         CreatureImprisoned imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class);
-        return imprisoned == null;
+        return imprisoned != null;
     }
 
     @Override
     public boolean isTortured() {
         CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
-        return tortured == null;
+        return tortured != null;
     }
 
     @Override
@@ -725,6 +726,17 @@ public class CreatureController implements ICreatureController {
         return inHand != null;
     }
 
+    @Override
+    public boolean isSlapped() {
+        CreatureSlapped creatureSlapped = entityData.getComponent(entityId, CreatureSlapped.class);
+        return creatureSlapped != null;
+    }
+
+    @Override
+    public boolean isPortalGemInPosession() {
+        PortalGem portalGem = entityData.getComponent(entityId, PortalGem.class);
+        return portalGem != null;
+    }
     @Override
     public void attachPortalGem() {
         entityData.setComponent(entityId, new PortalGem());

@@ -210,4 +210,8 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean shouldNavigateToFollowTarget();
 
+    public boolean isSlapped();
+
+    public boolean isPortalGemInPosession();
+
 }

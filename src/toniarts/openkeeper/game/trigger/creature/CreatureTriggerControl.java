@@ -63,6 +63,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
                 }
                 return false;
             case CREATURE_SLAPPED:
+                if (instanceControl != null) {
+                    return instanceControl.isSlapped();
+                }
                 return false;
             case CREATURE_ATTACKED:
                 if (instanceControl != null) {
@@ -122,6 +125,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
             case CREATURE_HUNGER_SATED:
                 return false;
             case CREATURE_PICKS_UP_PORTAL_GEM:
+                if (instanceControl != null) {
+                    return instanceControl.isPortalGemInPosession();
+                }
                 return false;
             case CREATURE_SACKED:
                 return false;
