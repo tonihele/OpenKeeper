@@ -241,7 +241,7 @@ public enum CreatureState implements State<ICreatureController> {
             if (entity.isWithinAttackDistance(attackTarget.getEntityId())) {
 
                 // Attack!!
-                entity.stop();
+                entity.stopCreature();
                 entity.executeAttack(attackTarget.getEntityId());
             } else if (entity.isStopped()) {
                 entity.navigateToAttackTarget(attackTarget.getEntityId());
@@ -294,7 +294,7 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
             entity.resetFollowTarget();
-            entity.stop();
+            entity.stopCreature();
         }
 
         @Override
@@ -378,7 +378,7 @@ public enum CreatureState implements State<ICreatureController> {
     }, UNCONSCIOUS {
         @Override
         public void enter(ICreatureController entity) {
-            entity.stop();
+            entity.stopCreature();
             entity.unassingCurrentTask();
         }
 
@@ -550,27 +550,51 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
-    }, GETTING_UP;
+    }, GETTING_UP {
 
-    @Override
-    public void enter(ICreatureController entity) {
+        @Override
+            public void enter(ICreatureController entity) {
 
-    }
+            }
 
-    @Override
-    public void update(ICreatureController entity) {
-        if (entity.isStateTimeExceeded()) {
-            entity.getStateMachine().changeState(IDLE);
-        }
-    }
+            @Override
+            public void update(ICreatureController entity) {
+                if (entity.isStateTimeExceeded()) {
+                    entity.getStateMachine().changeState(IDLE);
+                }
+            }
 
-    @Override
-    public void exit(ICreatureController entity) {
+            @Override
+            public void exit(ICreatureController entity) {
 
-    }
+            }
 
-    @Override
-    public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            @Override
+            public boolean onMessage(ICreatureController entity, Telegram telegram) {
         return true;
+        }
+    }, MELEE_ATTACK {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(FIGHT);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
     }
 }

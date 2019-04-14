@@ -31,6 +31,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
@@ -38,6 +39,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -55,6 +57,8 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     private final Map<EntityId, MapTile> mapTilesByEntities = new HashMap<>();
     private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
+    private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new HashMap<>();
+
     public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController) {
         this.entityData = entityData;
         this.mapController = mapController;
@@ -67,6 +71,10 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public void processTick(float tpf, double gameTime) {
+
+        // This is just a cache for a tick
+        sensedEntitiesByEntity.clear();
+
         if (positionedEntities.applyChanges()) {
 
             processAddedEntities(positionedEntities.getAddedEntities());
@@ -257,6 +265,45 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         }
 
         return false;
+    }
+
+    @Override
+    public Set<EntityId> getSensedEntities(EntityId entityId) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (senses == null) {
+            return Collections.emptySet();
+        }
+
+        return sensedEntitiesByEntity.computeIfAbsent(entityId, (id) -> {
+            Set<EntityId> sensedEntities = new HashSet<>();
+
+            // Get creatures we sense
+            MapTile tile = getEntityLocation(id);
+            // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
+            // https://github.com/tonihele/OpenKeeper/issues/261
+            if (tile != null) {
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
+            }
+
+            // Remove us, the caller
+            sensedEntities.remove(id);
+
+            return sensedEntities;
+        });
+    }
+
+    private void addSensedEntities(MapTile tile, int range, Set<EntityId> sensedEntities) {
+        if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || range-- < 0) {
+            return;
+        }
+
+        sensedEntities.addAll(getEntitiesInLocation(tile));
+
+        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, sensedEntities);
     }
 
 }

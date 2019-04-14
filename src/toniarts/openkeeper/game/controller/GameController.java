@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.LooseGoldSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
@@ -118,6 +119,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private boolean campaign;
     private GameWorldController gameWorldController;
     private INavigationService navigationService;
+    private PositionSystem positionSystem;
 
     private GameResult gameResult = null;
     private Float timeLimit = null;
@@ -210,9 +212,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
         // The world
         gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, players, playerControllers, this);
-        gameWorldController.createNewGame(this);
+        gameWorldController.createNewGame(this, this);
 
-        PositionSystem positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController());
+        positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController());
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
@@ -656,6 +658,11 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     @Override
     public INavigationService getNavigationService() {
         return navigationService;
+    }
+
+    @Override
+    public IEntityPositionLookup getEntityLookupService() {
+        return positionSystem;
     }
 
 }

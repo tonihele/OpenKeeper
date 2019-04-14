@@ -31,7 +31,6 @@ public class CreatureComponent implements EntityComponent {
     public int experience;
     public float height;
     public int fear;
-    public int meleeDamage;
     public int pay;
     public int maxGoldHeld;
     public int hungerFill;
@@ -46,7 +45,6 @@ public class CreatureComponent implements EntityComponent {
     public float runSpeed;
     public float tortureTimeToConvert;
     public int posessionManaCost;
-    public float meleeRecharge;
     public float stunDuration;
     public boolean worker;
     public short creatureId;

@@ -110,7 +110,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         this.players = players;
     }
 
-    public void createNewGame(IGameController gameController) {
+    public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
 
         // Load objects
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings);
@@ -119,7 +119,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         mapController = new MapController(kwdFile, objectsController, gameSettings);
 
         // Load creatures
-        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController);
+        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
 
         // Load the doors
         doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController);

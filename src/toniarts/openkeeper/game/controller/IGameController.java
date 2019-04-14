@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import java.util.Collection;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
 
@@ -65,5 +66,7 @@ public interface IGameController {
     void endGame(short playerId, boolean win);
 
     public INavigationService getNavigationService();
+
+    public IEntityPositionLookup getEntityLookupService();
 
 }

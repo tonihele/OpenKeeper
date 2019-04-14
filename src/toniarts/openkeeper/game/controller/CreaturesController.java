@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -99,6 +100,7 @@ public class CreaturesController implements ICreaturesController {
     private final IGameTimer gameTimer;
     private final IGameController gameController;
     private final IMapController mapController;
+    private final ILevelInfo levelInfo;
 
     private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
@@ -113,13 +115,14 @@ public class CreaturesController implements ICreaturesController {
      * @param mapController
      */
     public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
-            IGameController gameController, IMapController mapController) {
+            IGameController gameController, IMapController mapController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.gameController = gameController;
         this.mapController = mapController;
+        this.levelInfo = levelInfo;
 
         // Load creatures
         loadCreatures();
@@ -217,6 +220,7 @@ public class CreaturesController implements ICreaturesController {
 
         Gold goldComponent = new Gold(money, 0);
         Senses sensesComponent = healthComponent != null ? new Senses(creature.getAttributes().getDistanceCanHear(), creature.getAttributes().getDistanceCanSee()) : null;
+        CreatureMeleeAttack creatureMeleeAttack = new CreatureMeleeAttack(creature.getMeleeAttackType().getValue(), creature.getMeleeDamage(), creature.getMeleeRecharge(), creature.getMeleeRange());
 
         // The creature itself
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -244,7 +248,7 @@ public class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
 
         // Set every attribute by the level of the created creature
-        setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent, threatComponent);
+        setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack);
 
         entityData.setComponent(entity, creatureComponent);
         if (healthComponent != null) {
@@ -258,6 +262,9 @@ public class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new Owner(ownerId));
         entityData.setComponent(entity, goldComponent);
         entityData.setComponent(entity, threatComponent);
+
+        // Melee attack
+        entityData.setComponent(entity, creatureMeleeAttack);
 
         // I guess the initial efficiency is 80%
         entityData.setComponent(entity, new CreatureEfficiency(80));
@@ -333,7 +340,7 @@ public class CreaturesController implements ICreaturesController {
         return CreatureState.IDLE;
     }
 
-    private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent) {
+    private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack) {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureComponent.level);
         Creature.Attributes attributes = creature.getAttributes();
@@ -364,8 +371,8 @@ public class CreaturesController implements ICreaturesController {
             sensesComponent.distanceCanHear = attributes.getDistanceCanHear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES).getValue() : 100) / 100);
         }
         goldComponent.gold = attributes.getInitialGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.INITIAL_GOLD_HELD).getValue() : 100) / 100);
-        creatureComponent.meleeDamage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
-        creatureComponent.meleeRecharge = creature.getMeleeRecharge() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS).getValue() : 100) / 100);
+        creatureMeleeAttack.damage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
+        creatureMeleeAttack.rechargeTime = creature.getMeleeRecharge() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS).getValue() : 100) / 100);
 
         // FIXME: We should know when we run and when we walk and set the speed
         // Steering
@@ -422,7 +429,7 @@ public class CreaturesController implements ICreaturesController {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
         return creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
-            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this));
+            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo));
         }).get();
     }
 

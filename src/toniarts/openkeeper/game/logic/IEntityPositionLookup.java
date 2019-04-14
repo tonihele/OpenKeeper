@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.List;
+import java.util.Set;
 import toniarts.openkeeper.game.map.MapTile;
 
 /**
@@ -97,5 +98,14 @@ public interface IEntityPositionLookup {
      * @return true if the tile is blocked
      */
     boolean isTileBlocked(MapTile mapTile, short playerId);
+
+    /**
+     * Gets all the entities around given entity that you see or hear at this
+     * given moment
+     *
+     * @param entityId you, the entitty
+     * @return set of entities you see or hear
+     */
+    Set<EntityId> getSensedEntities(EntityId entityId);
 
 }

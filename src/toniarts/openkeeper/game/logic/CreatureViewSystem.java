@@ -140,6 +140,8 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                 return Creature.AnimationType.TORTURED_WHEEL; // hmmm....
             case SLEEPING:
                 return Creature.AnimationType.SLEEPING;
+            case MELEE_ATTACK:
+                return Creature.AnimationType.MELEE_ATTACK;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }

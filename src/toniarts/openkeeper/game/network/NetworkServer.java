@@ -36,11 +36,13 @@ import java.awt.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSlapped;
@@ -142,11 +144,13 @@ public class NetworkServer {
             Serializer.registerClass(TaskType.class, new EnumSerializer());
 
             // Our entity components
+            Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
             Serializer.registerClass(CreatureEfficiency.class, new FieldSerializer());
             Serializer.registerClass(CreatureFall.class, new FieldSerializer());
             Serializer.registerClass(CreatureImprisoned.class, new FieldSerializer());
+            Serializer.registerClass(CreatureMeleeAttack.class, new FieldSerializer());
             Serializer.registerClass(CreatureMood.class, new FieldSerializer());
             Serializer.registerClass(CreatureRecuperating.class, new FieldSerializer());
             Serializer.registerClass(CreatureSlapped.class, new FieldSerializer());

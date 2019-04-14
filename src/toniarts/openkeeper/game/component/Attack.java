@@ -19,22 +19,23 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Tags creature is being tortured (not the kinky kind)
+ * Abstract base for an attack, melee, shot, creature spell...
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureTortured implements EntityComponent {
+public abstract class Attack implements EntityComponent {
 
-    public double startTime;
-    public double healthCheckTime;
+    public Double attactStartTime;
+    public float rechargeTime;
+    public float range;
 
-    public CreatureTortured() {
+    public Attack() {
         // For serialization
     }
 
-    public CreatureTortured(double startTime, double healthCheckTime) {
-        this.startTime = startTime;
-        this.healthCheckTime = healthCheckTime;
+    public Attack(float rechargeTime, float range) {
+        this.rechargeTime = rechargeTime;
+        this.range = range;
     }
 
 }
