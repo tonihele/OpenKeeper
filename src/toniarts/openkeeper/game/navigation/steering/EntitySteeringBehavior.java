@@ -27,10 +27,19 @@ import com.badlogic.gdx.math.Vector2;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EntitySteeringBehavior extends PrioritySteering<Vector2> {
+public class EntitySteeringBehavior extends PrioritySteering<Vector2> implements Comparable<EntitySteeringBehavior> {
+
+    private final ISteerableEntity steerableEntity;
 
     public EntitySteeringBehavior(ISteerableEntity owner) {
         super(owner);
+
+        this.steerableEntity = owner;
+    }
+
+    @Override
+    public int compareTo(EntitySteeringBehavior o) {
+        return steerableEntity.compareTo(o.steerableEntity);
     }
 
 }

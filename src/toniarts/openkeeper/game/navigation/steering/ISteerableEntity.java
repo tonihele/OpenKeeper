@@ -18,12 +18,15 @@ package toniarts.openkeeper.game.navigation.steering;
 
 import com.badlogic.gdx.ai.steer.Steerable;
 import com.badlogic.gdx.math.Vector2;
+import com.simsilica.es.EntityId;
 
 /**
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ISteerableEntity extends Steerable<Vector2> {
+public interface ISteerableEntity extends Steerable<Vector2>, Comparable<ISteerableEntity> {
+
+    public EntityId getEntityId();
 
     public void setAngularVelocity(float angularVelocity);
 

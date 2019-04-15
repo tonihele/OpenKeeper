@@ -23,6 +23,8 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.awt.Point;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +50,10 @@ public class MovementSystem implements IGameLogicUpdatable {
     private final Map<ISteerableEntity, EntitySteeringBehavior> steeringBehaviorsBySteerableEntity = new HashMap<>();
     private final Map<EntitySteeringBehavior, ISteerableEntity> steerableEntitiesBySteeringBehavior = new HashMap<>();
     private final Map<EntitySteeringBehavior, EntityId> entityIdsBySteeringBehavior = new HashMap<>();
+
+    // For tracking the changes in navigation itself, for now it might be enough to just see that if the target has been changed
+    private final Map<EntityId, Point> targetPointsByEntityId = new HashMap<>();
+
     /**
      * This is for saving in object creation
      */
@@ -98,44 +104,62 @@ public class MovementSystem implements IGameLogicUpdatable {
 
     private void processAddedEntities(Set<Entity> addedEntities) {
         for (Entity entity : addedEntities) {
-            Mobile mobile = entity.get(Mobile.class);
-            Navigation navigation = entity.get(Navigation.class);
-            Position position = entity.get(Position.class);
-            ISteerableEntity steerableEntity = new SteerableEntity(mobile.maxSpeed, 0.25f, position.position.x, position.position.z, position.rotation);
-            EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target);
-
-            if (steeringBehavior == null) {
-
-                // The fug, can't navigate, are we there already??
-                entityData.removeComponent(entity.getId(), Navigation.class);
-                return;
-            }
-
-            steerableEntitiesByEntityId.put(entity.getId(), steerableEntity);
-            steeringBehaviorsBySteerableEntity.put(steerableEntity, steeringBehavior);
-            steerableEntitiesBySteeringBehavior.put(steeringBehavior, steerableEntity);
-            steeringBehaviors.add(steeringBehavior);
-            steeringOutputsBySteeringBehaviors.put(steeringBehavior, new SteeringAcceleration<>(new Vector2()));
-            entityIdsBySteeringBehavior.put(steeringBehavior, entity.getId());
+            addEntity(entity);
         }
+    }
+
+    private void addEntity(Entity entity) {
+        Mobile mobile = entity.get(Mobile.class);
+        Navigation navigation = entity.get(Navigation.class);
+        Position position = entity.get(Position.class);
+        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, 0.25f, position.position.x, position.position.z, position.rotation);
+        EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target);
+        if (steeringBehavior == null) {
+
+            // The fug, can't navigate, are we there already??
+            entityData.removeComponent(entity.getId(), Navigation.class);
+            return;
+        }
+        steerableEntitiesByEntityId.put(entity.getId(), steerableEntity);
+        steeringBehaviorsBySteerableEntity.put(steerableEntity, steeringBehavior);
+        steerableEntitiesBySteeringBehavior.put(steeringBehavior, steerableEntity);
+        int index = Collections.binarySearch(steeringBehaviors, steeringBehavior);
+        steeringBehaviors.add(~index, steeringBehavior);
+        steeringOutputsBySteeringBehaviors.put(steeringBehavior, new SteeringAcceleration<>(new Vector2()));
+        entityIdsBySteeringBehavior.put(steeringBehavior, entity.getId());
+        targetPointsByEntityId.put(entity.getId(), navigation.target);
     }
 
     private void processDeletedEntities(Set<Entity> removedEntities) {
         for (Entity entity : removedEntities) {
-            ISteerableEntity steerableEntity = steerableEntitiesByEntityId.remove(entity.getId());
-            EntitySteeringBehavior steeringBehavior = steeringBehaviorsBySteerableEntity.remove(steerableEntity);
-            steerableEntitiesBySteeringBehavior.remove(steeringBehavior);
-            steeringBehaviors.remove(steeringBehavior);
-            steeringOutputsBySteeringBehaviors.remove(steeringBehavior);
-            entityIdsBySteeringBehavior.remove(steeringBehavior);
+            deleteEntity(entity);
         }
+    }
+
+    private void deleteEntity(Entity entity) {
+        ISteerableEntity steerableEntity = steerableEntitiesByEntityId.remove(entity.getId());
+        EntitySteeringBehavior steeringBehavior = steeringBehaviorsBySteerableEntity.remove(steerableEntity);
+        steerableEntitiesBySteeringBehavior.remove(steeringBehavior);
+        int index = Collections.binarySearch(steeringBehaviors, steeringBehavior);
+        steeringBehaviors.remove(index);
+        steeringOutputsBySteeringBehaviors.remove(steeringBehavior);
+        entityIdsBySteeringBehavior.remove(steeringBehavior);
+        targetPointsByEntityId.remove(entity.getId());
     }
 
     private void processChangedEntities(Set<Entity> changedEntities) {
         for (Entity entity : changedEntities) {
 
-            // We are only prepared for the changes in Mobile, not the Navigation itself
-            // Nor the position, the position is managed by us only
+            // Dirty trick to try to see if the navigation has changed
+            Navigation navigation = entity.get(Navigation.class);
+            if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))) {
+                deleteEntity(entity);
+                addEntity(entity);
+                continue;
+            }
+
+            // We are only prepared for the changes in Mobile
+            // Not the position, the position is managed by us only
             Mobile mobile = entity.get(Mobile.class);
 
             ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
@@ -199,6 +223,7 @@ public class MovementSystem implements IGameLogicUpdatable {
         steeringBehaviorsBySteerableEntity.clear();
         steeringOutputsBySteeringBehaviors.clear();
         entityIdsBySteeringBehavior.clear();
+        targetPointsByEntityId.clear();
     }
 
 }

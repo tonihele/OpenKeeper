@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.navigation.steering;
 
 import com.badlogic.gdx.ai.utils.Location;
 import com.badlogic.gdx.math.Vector2;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.world.creature.steering.CreatureLocation;
 
 /**
@@ -28,6 +29,7 @@ import toniarts.openkeeper.world.creature.steering.CreatureLocation;
  */
 public class SteerableEntity implements ISteerableEntity {
 
+    private final EntityId entityId;
     private final Vector2 position = new Vector2();
     private float orientation = 0;
     private final Vector2 linearVelocity = new Vector2();
@@ -40,7 +42,8 @@ public class SteerableEntity implements ISteerableEntity {
     private float zeroLinearSpeedThreshold = 0.01f;
     private final float boundingRadius;
 
-    public SteerableEntity(float maxSpeed, float boundingRadius, float xPos, float yPos, float orientation) {
+    public SteerableEntity(EntityId entityId, float maxSpeed, float boundingRadius, float xPos, float yPos, float orientation) {
+        this.entityId = entityId;
         this.boundingRadius = boundingRadius;
         this.maxLinearSpeed = maxSpeed;
         // FIXME how calculate acceleration? mass & maxLinearSpeed?
@@ -160,6 +163,16 @@ public class SteerableEntity implements ISteerableEntity {
     @Override
     public void setZeroLinearSpeedThreshold(float value) {
         this.zeroLinearSpeedThreshold = value;
+    }
+
+    @Override
+    public EntityId getEntityId() {
+        return entityId;
+    }
+
+    @Override
+    public int compareTo(ISteerableEntity o) {
+        return entityId.compareTo(o.getEntityId());
     }
 
 }
