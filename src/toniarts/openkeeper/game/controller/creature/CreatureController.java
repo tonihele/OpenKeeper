@@ -302,7 +302,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean findLair() {
-        return taskManager.assignClosestRoomTask(this, AbstractRoomController.ObjectType.LAIR);
+        return taskManager.assignClosestRoomTask(this, AbstractRoomController.ObjectType.LAIR, null);
     }
 
     @Override
@@ -1127,6 +1127,16 @@ public class CreatureController implements ICreatureController {
         }
 
         return false;
+    }
+
+    @Override
+    public void imprison() {
+
+        // Return health to 20%
+        Health health = entityData.getComponent(entityId, Health.class);
+        entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, (int) Math.floor(health.maxHealth * 0.2f), health.maxHealth, false));
+        entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
+        stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
     @Override

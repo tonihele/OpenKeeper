@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -37,10 +38,12 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class CaptureEnemyCreatureTask extends AbstractTileTask {
 
     private final ICreatureController creature;
+    private final ITaskManager taskManager;
 
-    public CaptureEnemyCreatureTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
+    public CaptureEnemyCreatureTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId, ITaskManager taskManager) {
         super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
         this.creature = creature;
+        this.taskManager = taskManager;
     }
 
     @Override
@@ -72,9 +75,9 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Assign carry to prison
-//        if (worldState.getTaskManager().assignClosestRoomTask(creature, GenericRoom.ObjectType.PRISONER)) {
-//            creature.setHaulable(this.creature);
-//        }
+        if (taskManager.assignClosestRoomTask(creature, ObjectType.PRISONER, this.creature.getEntityId())) {
+            this.creature.setHaulable(creature);
+        }
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -33,9 +34,11 @@ public interface ITaskManager {
      *
      * @param creature the creature to assign to
      * @param objectType the type of room service
+     * @param target the entity target, i.e. creature or object you might be
+     * hauling
      * @return true if the task was assigned
      */
-    boolean assignClosestRoomTask(ICreatureController creature, AbstractRoomController.ObjectType objectType);
+    boolean assignClosestRoomTask(ICreatureController creature, AbstractRoomController.ObjectType objectType, EntityId target);
 
     /**
      * Assigns gold to treasury task to the given creature

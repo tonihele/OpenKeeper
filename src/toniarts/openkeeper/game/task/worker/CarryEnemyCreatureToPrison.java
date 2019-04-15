@@ -35,10 +35,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask {
 
+    private final ICreatureController creature;
     private boolean executed = false;
 
-    public CarryEnemyCreatureToPrison(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
+    public CarryEnemyCreatureToPrison(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
+            TaskManager taskManager, ICreatureController creature) {
         super(navigationService, mapController, x, y, playerId, room, taskManager);
+        this.creature = creature;
     }
 
     @Override
@@ -66,9 +69,7 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-
-        // A bit dirty but it is always a creature we are hauling
-        //((CreatureControl) creature.getHaulable()).imprison();
+        this.creature.imprison();
         executed = true;
     }
 
@@ -92,7 +93,7 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
         super.unassign(creature);
 
         // Set the dragged state
-        //creature.setHaulable(null);
+        this.creature.setHaulable(null);
     }
 
     @Override

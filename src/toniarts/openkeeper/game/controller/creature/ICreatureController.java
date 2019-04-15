@@ -214,4 +214,10 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean isPortalGemInPosession();
 
+    /**
+     * When a creature is hauled to prison, call this to properly seal the enemy
+     * to the prison
+     */
+    public void imprison();
+
 }

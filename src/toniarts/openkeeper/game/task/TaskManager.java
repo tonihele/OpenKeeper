@@ -222,7 +222,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 } else {
 
                     // Capture
-                    task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
+                    task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
                 }
                 entry.getValue().add(task);
                 tasksByIds.put(task.getId(), task);
@@ -405,14 +405,14 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // See if the creature's player lacks of gold
         IPlayerController player = playerControllers.get(creature.getOwnerId());
         if (!player.getGoldControl().isFullCapacity()) {
-            return assignClosestRoomTask(creature, ObjectType.GOLD);
+            return assignClosestRoomTask(creature, ObjectType.GOLD, null);
         }
         return false;
     }
 
     @Override
-    public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType) {
-        return assignClosestRoomTask(creature, objectType, true);
+    public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId target) {
+        return assignClosestRoomTask(creature, objectType, target, true);
     }
 
     /**
@@ -425,7 +425,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * test
      * @return true if the task was assigned
      */
-    private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, boolean assign) {
+    private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
@@ -460,7 +460,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task
-                    Task task = getRoomTask(objectType, target, creature, room);
+                    Task task = getRoomTask(objectType, target, targetEntity, creature, room);
 
                     // See if really assign
                     if (!assign) {
@@ -503,7 +503,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y);
     }
 
-    private AbstractTask getRoomTask(ObjectType objectType, Point target, ICreatureController creature, IRoomController room) {
+    private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
             case GOLD: {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, gameWorldController);
@@ -515,7 +515,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new ResearchSpells(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case PRISONER: {
-                return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
+                return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
         }
         return null;
@@ -572,7 +572,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private boolean assignTask(ICreatureController creature, Creature.JobType jobType, boolean assign) {
         switch (jobType) {
             case RESEARCH: {
-                return assignClosestRoomTask(creature, ObjectType.RESEARCHER, assign);
+                return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
             }
             default:
                 return false;
