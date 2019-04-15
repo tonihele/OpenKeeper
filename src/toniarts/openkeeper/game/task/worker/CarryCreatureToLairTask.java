@@ -48,7 +48,7 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return !executed && this.creature.hasLair() && this.creature.isDragged();
+        return !executed && this.creature.hasLair() && this.creature.isDragged() && !this.creature.isDead();
     }
 
     @Override
