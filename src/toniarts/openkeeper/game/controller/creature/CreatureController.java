@@ -563,8 +563,14 @@ public class CreatureController implements ICreatureController {
         Vector3f targetPosition = getPosition(entityData, attackTarget);
         if (targetPosition != null) {
 
-            // Just now simply go where the target currently is
+            // Check if we are already going there
             Point destination = WorldUtils.vectorToPoint(targetPosition);
+            Navigation currentNavigation = entityData.getComponent(entityId, Navigation.class);
+            if (currentNavigation != null && currentNavigation.target.equals(destination)) {
+                return;
+            }
+
+            // Just now simply go where the target currently is
             Point ourPosition = getCreatureCoordinates();
             if (destination != null && !destination.equals(ourPosition)) {
                 createNavigation(ourPosition, destination, null);

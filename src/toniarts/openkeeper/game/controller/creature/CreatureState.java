@@ -243,7 +243,7 @@ public enum CreatureState implements State<ICreatureController> {
                 // Attack!!
                 entity.stopCreature();
                 entity.executeAttack(attackTarget.getEntityId());
-            } else if (entity.isStopped()) {
+            } else {
                 entity.navigateToAttackTarget(attackTarget.getEntityId());
             }
         }
