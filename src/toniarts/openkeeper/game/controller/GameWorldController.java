@@ -665,7 +665,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     @Override
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (playerHandControl.peek() == entity && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
             playerHandControl.pop();
 
             // Stuff drop differently
