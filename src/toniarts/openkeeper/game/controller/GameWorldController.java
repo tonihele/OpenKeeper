@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -43,7 +44,9 @@ import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
@@ -571,6 +574,11 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, TaskComponent.class);
         entityData.removeComponent(entity, CreatureRecuperating.class);
+        entityData.removeComponent(entity, CreatureTortured.class);
+        entityData.removeComponent(entity, CreatureImprisoned.class);
+        entityData.removeComponent(entity, AttackTarget.class);
+        entityData.removeComponent(entity, FollowTarget.class);
+        entityData.removeComponent(entity, HauledBy.class);
 
         // Since we keep reference on the creature controller classes... nullify the state machine
         // TODO: kinda hack?
