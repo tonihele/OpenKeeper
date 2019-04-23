@@ -149,9 +149,17 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
                 }
 
                 // Get the 2 neighbouring tiles (corners kinda)
+                /*
+                Consider cases like:
+                [1,1][ h ]
+                [ l ][2,2]
+                   and
+                [ h ][2,1]
+                [1,2][ l ]
+                 */
                 boolean hasConnection = false;
-                MapTile hiCorner = mapController.getMapData().getTile(Math.max(from.getX(), to.getX()), Math.max(from.getY(), to.getY()));
-                MapTile loCorner = mapController.getMapData().getTile(Math.min(from.getX(), to.getX()), Math.min(from.getY(), to.getY()));
+                MapTile hiCorner = mapController.getMapData().getTile(from.getLocation().y < to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y < to.getLocation().y ? from.getLocation().y : to.getLocation().y);
+                MapTile loCorner = mapController.getMapData().getTile(from.getLocation().y > to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y > to.getLocation().y ? from.getLocation().y : to.getLocation().y);
                 if (hiCorner != null && getCost(navigable, from, hiCorner, mapController, entityPositionLookup, false) != null) {
                     hasConnection = true;
                 } else if (loCorner != null && getCost(navigable, from, loCorner, mapController, entityPositionLookup, false) != null) {
