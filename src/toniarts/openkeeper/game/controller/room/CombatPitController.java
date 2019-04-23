@@ -42,7 +42,7 @@ public class CombatPitController extends DoubleQuadController {
         door = null;
         for (Point p : roomInstance.getCoordinates()) {
 
-            // Figure out which peace by seeing the neighbours
+            // Figure out which piece by seeing the neighbours
             boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
             boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
             boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));

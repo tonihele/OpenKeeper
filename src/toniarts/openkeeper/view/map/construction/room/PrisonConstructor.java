@@ -40,7 +40,6 @@ public class PrisonConstructor extends DoubleQuadConstructor {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        //Point start = roomInstance.getCoordinates().get(0);
 
         boolean door = false;
         for (Point p : roomInstance.getCoordinates()) {
