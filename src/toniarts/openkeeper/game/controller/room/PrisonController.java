@@ -17,10 +17,8 @@
 package toniarts.openkeeper.game.controller.room;
 
 import java.awt.Point;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -38,6 +36,7 @@ public class PrisonController extends DoubleQuadController {
     private static final short OBJECT_DOORBAR_ID = 116;
 
     private Point door;
+    private Set<Point> insideCoordinates;
 
     public PrisonController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(kwdFile, roomInstance, objectsController);
@@ -47,7 +46,7 @@ public class PrisonController extends DoubleQuadController {
             protected Collection<Point> getCoordinates() {
 
                 // Only the innards of prison can hold objects
-                return PrisonController.this.getInsideCoordinates();
+                return insideCoordinates;
             }
 
             @Override
@@ -92,16 +91,15 @@ public class PrisonController extends DoubleQuadController {
         if (door != null && fromX != null && fromY != null) {
 
             // Path finding
-            Set<Point> insides = new HashSet<>(getInsideCoordinates());
             Point from = new Point(fromX, fromY);
             Point to = new Point(toX, toY);
-            if (insides.contains(to) && insides.contains(from)) {
+            if (insideCoordinates.contains(to) && insideCoordinates.contains(from)) {
                 return true; // Inside the prison == free movement
-            } else if (insides.contains(from) && to.equals(door)) {
+            } else if (insideCoordinates.contains(from) && to.equals(door)) {
                 return true; // From inside also through the door
-            } else if (insides.contains(to) && from.equals(door)) {
+            } else if (insideCoordinates.contains(to) && from.equals(door)) {
                 return true; // Path finding, from outside
-            } else if (!insides.contains(to) && !insides.contains(from)) {
+            } else if (!insideCoordinates.contains(to) && !insideCoordinates.contains(from)) {
                 return true; // Outside the prison == free movement
             }
             return false;
@@ -112,11 +110,18 @@ public class PrisonController extends DoubleQuadController {
         return super.isTileAccessible(fromX, fromY, toX, toY);
     }
 
-    private Collection<Point> getInsideCoordinates() {
-        boolean[][] matrix = roomInstance.getCoordinatesAsMatrix();
-        List<Point> coordinates = new ArrayList<>();
-        for (int x = 1; x < matrix.length - 1; x++) {
-            for (int y = 1; y < matrix[x].length - 1; y++) {
+    @Override
+    protected void setupCoordinates() {
+        super.setupCoordinates();
+
+        insideCoordinates = getInsideCoordinates();
+    }
+
+
+    private Set<Point> getInsideCoordinates() {
+        Set<Point> coordinates = new HashSet<>();
+        for (int x = 1; x < map.length - 1; x++) {
+            for (int y = 1; y < map[x].length - 1; y++) {
                 boolean N = hasSameTile(map, x, y + 1);
                 boolean NE = hasSameTile(map, x - 1, y + 1);
                 boolean E = hasSameTile(map, x - 1, y);
