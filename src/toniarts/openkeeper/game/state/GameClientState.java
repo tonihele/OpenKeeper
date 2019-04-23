@@ -319,11 +319,14 @@ public class GameClientState extends AbstractPauseAwareState {
             };
             soundState = new SoundState(kwdFile);
 
-            // Prewarm the whole scene
-            app.getRenderManager().preloadScene(app.getRootNode());
+            app.enqueue(() -> {
 
-            // Signal our readiness
-            gameClientService.loadComplete();
+                // Prewarm the whole scene
+                app.getRenderManager().preloadScene(app.getRootNode());
+
+                // Signal our readiness
+                gameClientService.loadComplete();
+            });
         }
 
         @Override
