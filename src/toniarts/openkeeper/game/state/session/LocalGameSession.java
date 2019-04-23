@@ -212,6 +212,24 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void zoomViewToEntity(EntityId entityId, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onZoomViewToEntity(entityId);
+            }
+        }
+    }
+
+    @Override
+    public void showUnitFlower(EntityId entityId, int interval, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onShowUnitFlower(entityId, interval);
+            }
+        }
+    }
+
+    @Override
     public void setGamePaused(boolean paused) {
         for (GameSessionListener listener : listeners.getArray()) {
             if (paused) {

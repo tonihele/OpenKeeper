@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
@@ -101,10 +102,27 @@ public interface PlayerService {
     public void zoomViewToPoint(Vector3f point, short playerId);
 
     /**
+     * Zoom camera to a entity
+     *
+     * @param entityId the entity to zoom to
+     * @param playerId the player ID whose camera should be moved
+     */
+    public void zoomViewToEntity(EntityId entityId, short playerId);
+
+    /**
      * Sets the game as paused
      *
      * @param paused true is paused
      */
     public void setGamePaused(boolean paused);
+
+    /**
+     * Show unit flower of an entity
+     *
+     * @param entityId the entity of which flower to show
+     * @param interval show for how many seconds
+     * @param playerId the player ID who should see the flower
+     */
+    public void showUnitFlower(EntityId entityId, int interval, short playerId);
 
 }

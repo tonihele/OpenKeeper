@@ -297,6 +297,27 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
+    public void zoomViewToEntity(EntityId entityId, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onZoomViewToEntity(entityId);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void showUnitFlower(EntityId entityId, int interval, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onShowUnitFlower(entityId, interval);
+                break;
+            }
+        }
+    }
+
+
+    @Override
     public void setGamePaused(boolean paused) {
         for (GameSessionImpl gameSession : players.values()) {
             if (paused) {
@@ -660,6 +681,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
             getCallback().onTileFlash(points, enabled, keeperId);
+        }
+
+        @Override
+        public void onZoomViewToEntity(EntityId entityId) {
+            getCallback().onZoomViewToEntity(entityId);
+        }
+
+        @Override
+        public void onShowUnitFlower(EntityId entityId, int interval) {
+            getCallback().onShowUnitFlower(entityId, interval);
         }
 
     }

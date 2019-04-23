@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector3f;
 import com.jme3.network.service.rmi.Asynchronous;
+import com.simsilica.es.EntityId;
 import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -115,5 +116,11 @@ public interface GameSessionListener extends MapListener, PlayerListener {
 
     @Asynchronous
     public void onZoomViewToPoint(Vector3f point);
+
+    @Asynchronous
+    public void onZoomViewToEntity(EntityId entityId);
+
+    @Asynchronous
+    public void onShowUnitFlower(EntityId entityId, int interval);
 
 }

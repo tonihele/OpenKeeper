@@ -388,5 +388,19 @@ public class GameClientService extends AbstractClientService
                 l.onTileFlash(points, enabled, keeperId);
             }
         }
+
+        @Override
+        public void onZoomViewToEntity(EntityId entityId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onZoomViewToEntity(entityId);
+            }
+        }
+
+        @Override
+        public void onShowUnitFlower(EntityId entityId, int interval) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onShowUnitFlower(entityId, interval);
+            }
+        }
     }
 }

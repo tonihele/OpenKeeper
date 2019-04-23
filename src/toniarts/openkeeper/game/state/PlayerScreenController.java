@@ -327,7 +327,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void zoomToEntity(EntityId entityId) {
-        state.zoomToEntity(entityId);
+        state.zoomToEntity(entityId, false);
     }
 
     @Override

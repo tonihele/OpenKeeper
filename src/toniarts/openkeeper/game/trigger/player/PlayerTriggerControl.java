@@ -450,4 +450,9 @@ public class PlayerTriggerControl extends TriggerControl {
             playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
         }
     }
+
+    protected PlayerService getPlayerService() {
+        return playerService;
+    }
+
 }

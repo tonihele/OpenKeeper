@@ -165,9 +165,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
 
             case SHOW_HEALTH_FLOWER:
                 if (instanceControl != null) {
-//                    stateManager.getApplication().enqueue(() -> {
-//                        instanceControl.showUnitFlower(trigger.getUserData("value", Integer.class));
-//                    });
+                    getPlayerService().showUnitFlower(instanceControl.getEntityId(), trigger.getUserData("value", Integer.class), getPlayer().getId());
                 }
                 break;
 
@@ -184,7 +182,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
 
             case ZOOM_TO:
                 if (instanceControl != null) {
-//                    stateManager.getState(PlayerState.class).zoomToCreature(instanceControl);
+                    getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
                 }
                 break;
 

@@ -25,6 +25,9 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -43,6 +46,7 @@ import toniarts.openkeeper.view.control.DoorFlowerControl;
 import toniarts.openkeeper.view.control.DoorViewControl;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
@@ -82,6 +86,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final ILoader<CreatureViewState> creatureLoader;
     private final ILoader<DoorViewState> doorLoader;
     private final ILoader<TrapViewState> trapLoader;
+
+    private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
 
     private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
@@ -211,6 +217,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
                 result.addControl(flowerControl);
+
+                flowerControls.put(e.getId(), flowerControl);
             }
         }
         if (result == null) {
@@ -239,6 +247,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
             result.addControl(flowerControl);
+
+            flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
@@ -266,6 +276,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);
             result.addControl(flowerControl);
+
+            flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
@@ -292,6 +304,17 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
+
+        flowerControls.remove(e.getId());
+    }
+
+    public void showUnitFlower(EntityId entityId, int interval) {
+
+        // FIXME: We may not yet have the entity as visible, is this a problem?
+        IUnitFlowerControl flowerControl = flowerControls.get(entityId);
+        if (flowerControl != null) {
+            flowerControl.show(interval);
+        }
     }
 
     /**
