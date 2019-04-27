@@ -16,8 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
+import com.simsilica.es.Entity;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
 
@@ -28,12 +27,12 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class TrapTextParser extends EntityTextParser<Trap> {
 
-    public TrapTextParser(EntityData entityData) {
-        super(entityData);
+    public TrapTextParser() {
+        super();
     }
 
     @Override
-    protected String getReplacement(int index, EntityId entityId, Trap trap) {
+    protected String getReplacement(int index, Entity entity, Trap trap) {
         switch (index) {
             case 68:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
@@ -45,7 +44,7 @@ public class TrapTextParser extends EntityTextParser<Trap> {
                 return trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED) ? Utils.getMainTextResourceBundle().getString("2514") : Utils.getMainTextResourceBundle().getString("2513"); // This is not entirely true if you compare to original, see Fear trap
         }
 
-        return super.getReplacement(index, entityId, trap);
+        return super.getReplacement(index, entity, trap);
     }
 
 

@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityId;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityComponent;
+import java.util.Collection;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -30,14 +32,16 @@ import toniarts.openkeeper.tools.convert.map.Trap;
  */
 public interface TextParser {
 
-    String parseText(String text, EntityId entityId, Creature creature);
+    String parseText(String text, Entity entity, Creature creature);
 
-    String parseText(String text, EntityId entityId, Trap trap);
+    String parseText(String text, Entity entity, Trap trap);
 
-    String parseText(String text, EntityId entityId, Door door);
+    String parseText(String text, Entity entity, Door door);
 
-    String parseText(String text, EntityId entityId, GameObject gameObject);
+    String parseText(String text, Entity entity, GameObject gameObject);
 
     String parseText(String text, MapTile mapTile);
+
+    Collection<Class<? extends EntityComponent>> getWatchedComponents();
 
 }

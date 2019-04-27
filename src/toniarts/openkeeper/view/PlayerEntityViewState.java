@@ -88,6 +88,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final ILoader<TrapViewState> trapLoader;
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
+    private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
 
     private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
@@ -158,6 +159,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.stop();
         trapModelContainer.stop();
 
+        for (IEntityViewControl entityViewControl : entityViewControls.values()) {
+            entityViewControl.cleanup();
+        }
+
         super.cleanup();
     }
 
@@ -188,6 +193,8 @@ public class PlayerEntityViewState extends AbstractAppState {
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+
+                entityViewControls.put(e.getId(), control);
             }
         }
         if (result == null) {
@@ -218,6 +225,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
                 result.addControl(flowerControl);
 
+                entityViewControls.put(e.getId(), control);
                 flowerControls.put(e.getId(), flowerControl);
             }
         }
@@ -248,6 +256,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
             result.addControl(flowerControl);
 
+            entityViewControls.put(e.getId(), control);
             flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
@@ -277,6 +286,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);
             result.addControl(flowerControl);
 
+            entityViewControls.put(e.getId(), control);
             flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
@@ -305,6 +315,10 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
 
+        IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());
+        if (entityViewControl != null) {
+            entityViewControl.cleanup();
+        }
         flowerControls.remove(e.getId());
     }
 

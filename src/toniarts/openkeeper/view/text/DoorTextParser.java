@@ -16,8 +16,9 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityComponent;
+import java.util.Collection;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.utils.Utils;
@@ -29,25 +30,33 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class DoorTextParser extends EntityTextParser<Door> {
 
-    public DoorTextParser(EntityData entityData) {
-        super(entityData);
+    public DoorTextParser() {
+        super();
     }
 
     @Override
-    protected String getReplacement(int index, EntityId entityId, Door door) {
+    protected String getReplacement(int index, Entity entity, Door door) {
         switch (index) {
             case 68:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
             case 72:
-                DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+                DoorComponent doorComponent = entity.get(DoorComponent.class);
                 if (doorComponent != null) {
                     return doorComponent.locked ? Utils.getMainTextResourceBundle().getString("2516") : Utils.getMainTextResourceBundle().getString("2515");
                 }
                 return "";
         }
 
-        return super.getReplacement(index, entityId, door);
+        return super.getReplacement(index, entity, door);
     }
 
+    @Override
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
+
+        components.add(DoorComponent.class);
+
+        return components;
+    }
 
 }

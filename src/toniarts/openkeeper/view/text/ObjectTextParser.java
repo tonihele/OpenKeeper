@@ -16,8 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
+import com.simsilica.es.Entity;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
@@ -27,13 +26,13 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
  */
 public class ObjectTextParser extends EntityTextParser<GameObject> {
 
-    public ObjectTextParser(EntityData entityData) {
-        super(entityData);
+    public ObjectTextParser() {
+        super();
     }
 
     @Override
-    protected String getReplacement(int index, EntityId entityId, GameObject gameObject) {
-        return super.getReplacement(index, entityId, gameObject);
+    protected String getReplacement(int index, Entity entity, GameObject gameObject) {
+        return super.getReplacement(index, entity, gameObject);
     }
 
 

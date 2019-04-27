@@ -51,7 +51,7 @@ public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.
         } else {
             tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
         }
-        return textParser.parseText(tooltip, getEntityId(), getDataObject());
+        return textParser.parseText(tooltip, getEntity(), getDataObject());
     }
 
     @Override

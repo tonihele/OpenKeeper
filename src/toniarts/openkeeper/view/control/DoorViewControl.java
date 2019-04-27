@@ -82,7 +82,7 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
         } else {
             tooltip = bundle.getString("2540");
         }
-        return textParser.parseText(tooltip, getEntityId(), getDataObject());
+        return textParser.parseText(tooltip, getEntity(), getDataObject());
     }
 
 

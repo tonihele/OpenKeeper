@@ -299,7 +299,7 @@ public class GameClientState extends AbstractPauseAwareState {
                 GameClientState.this.players.put(keeper.getId(), keeper);
             }
             mapClientService = new MapController(mapData, kwdFile);
-            textParser = new TextParserService(gameClientService.getEntityData(), mapClientService);
+            textParser = new TextParserService(mapClientService);
             playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser);
             playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), mapClientService, playerId) {
 

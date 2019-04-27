@@ -16,8 +16,9 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityComponent;
+import java.util.Collection;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -37,17 +38,17 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
 
     private final IMapInformation mapInformation;
 
-    public CreatureTextParser(EntityData entityData, IMapInformation mapInformation) {
-        super(entityData);
+    public CreatureTextParser(IMapInformation mapInformation) {
+        super();
 
         this.mapInformation = mapInformation;
     }
 
     @Override
-    protected String getReplacement(int index, EntityId entityId, Creature creature) {
+    protected String getReplacement(int index, Entity entity, Creature creature) {
         switch (index) {
             case 29:
-                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
                 if (creatureComponent != null) {
                     return creatureComponent.name;
                 }
@@ -55,39 +56,39 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
             case 30:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(creature.getNameStringId()));
             case 31:
-                CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+                CreatureAi creatureAi = entity.get(CreatureAi.class);
                 if (creatureAi != null) {
-                    return getStatusText(entityData, entityId, creatureAi, mapInformation);
+                    return getStatusText(entity, creatureAi, mapInformation);
                 }
                 return "";
             case 32:
                 // FIXME
                 return "";
             case 33:
-                CreatureMood creatureMood = entityData.getComponent(entityId, CreatureMood.class);
+                CreatureMood creatureMood = entity.get(CreatureMood.class);
                 if (creatureMood != null) {
                     return Integer.toString(creatureMood.moodValue);
                 }
                 return "";
             case 74:
-                CreatureEfficiency creatureEfficiency = entityData.getComponent(entityId, CreatureEfficiency.class);
+                CreatureEfficiency creatureEfficiency = entity.get(CreatureEfficiency.class);
                 if (creatureEfficiency != null) {
                     return Integer.toString(creatureEfficiency.efficiencyPercentage);
                 }
                 return "";
         }
 
-        return super.getReplacement(index, entityId, creature);
+        return super.getReplacement(index, entity, creature);
     }
 
-    private static String getStatusText(EntityData entityData, EntityId entityId, CreatureAi creatureAi,
+    private static String getStatusText(Entity entity, CreatureAi creatureAi,
             IMapInformation mapInformation) {
         switch (creatureAi.getCreatureState()) {
             case IDLE: {
                 return Utils.getMainTextResourceBundle().getString("2599");
             }
             case WORK: {
-                TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+                TaskComponent taskComponent = entity.get(TaskComponent.class);
                 if (taskComponent != null) {
                     return getTaskTooltip(taskComponent, mapInformation);
                 }
@@ -169,6 +170,19 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
         }
 
         return "";
+    }
+
+    @Override
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
+
+        components.add(TaskComponent.class);
+        components.add(CreatureComponent.class);
+        components.add(CreatureAi.class);
+        components.add(CreatureMood.class);
+        components.add(CreatureEfficiency.class);
+
+        return components;
     }
 
 }

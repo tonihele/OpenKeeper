@@ -76,7 +76,7 @@ public class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
             }
         }
 
-        return textParser.parseText(tooltip, getEntityId(), trap);
+        return textParser.parseText(tooltip, getEntity(), trap);
     }
 
 

@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityComponent;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.utils.TextUtils;
@@ -30,28 +33,25 @@ import toniarts.openkeeper.utils.TextUtils;
  */
 public abstract class EntityTextParser<T> {
 
-    protected final EntityData entityData;
-
-    public EntityTextParser(EntityData entityData) {
-        this.entityData = entityData;
+    public EntityTextParser() {
     }
 
-    public String parseText(String text, EntityId entityId, T dataObject) {
+    public String parseText(String text, Entity entity, T dataObject) {
         return TextUtils.parseText(text, (index) -> {
-            return getReplacement(index, entityId, dataObject);
+            return getReplacement(index, entity, dataObject);
         });
     }
     
-    protected String getReplacement(int index, EntityId entityId, T dataObject) {
+    protected String getReplacement(int index, Entity entity, T dataObject) {
         switch (index) {
             case 37:
-                Health health = entityData.getComponent(entityId, Health.class);
+                Health health = entity.get(Health.class);
                 if (health != null) {
                     return Integer.toString((int) (health.health / health.maxHealth * 100f));
                 }
                 return "";
             case 73:
-                Gold gold = entityData.getComponent(entityId, Gold.class);
+                Gold gold = entity.get(Gold.class);
                 if (gold != null) {
                     return Integer.toString(gold.gold);
                 }
@@ -59,6 +59,13 @@ public abstract class EntityTextParser<T> {
         }
 
         return "Parameter " + index + " not implemented!";
+    }
+
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        List<Class<? extends EntityComponent>> components = new ArrayList<>();
+        components.add(Health.class);
+        components.add(Gold.class);
+        return components;
     }
 
 }

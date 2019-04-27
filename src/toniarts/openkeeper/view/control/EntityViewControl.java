@@ -21,9 +21,18 @@ import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.control.AbstractControl;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.WatchedEntity;
+import com.simsilica.es.base.DefaultWatchedEntity;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.map.MapTile;
@@ -45,7 +54,7 @@ import toniarts.openkeeper.world.animation.AnimationControl;
 public abstract class EntityViewControl<T, S> extends AbstractControl implements IEntityViewControl<T, S>, AnimationControl {
 
     private final EntityId entityId;
-    protected final EntityData entityData;
+    private final WatchedEntity entity;
     private final T data;
     protected S currentState;
     protected S targetState;
@@ -53,21 +62,58 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     protected final TextParser textParser;
     protected boolean isAnimationPlaying = false;
 
+    private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Interaction.class, Owner.class);
+
     private boolean active = false;
 
     public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, TextParser textParser) {
         this.entityId = entityId;
-        this.entityData = entityData;
         this.currentState = state;
         this.targetState = state;
         this.assetManager = assetManager;
         this.data = data;
         this.textParser = textParser;
+
+        // Subscribe to the entity changes
+        entity = new DefaultWatchedEntity(entityData, entityId, compileWatchedComponents());
+    }
+
+    /**
+     * Get the entity for this control. It has all the up to date components
+     * attached. To control what components are included, add the wanted
+     * components with the {@link #getWatchedComponents() } method.
+     *
+     * @return
+     */
+    protected final Entity getEntity() {
+        return entity;
+    }
+
+    private Class<EntityComponent>[] compileWatchedComponents() {
+        Set<Class<? extends EntityComponent>> components = new HashSet<>();
+        components.addAll(WATCHED_COMPONENTS);
+        if (textParser != null) {
+            components.addAll(textParser.getWatchedComponents());
+        }
+        components.addAll(getWatchedComponents());
+
+        return components.toArray(new Class[components.size()]);
+    }
+
+    /**
+     * Override this to give out the components needed to watch for. By default
+     * a mutable list is returned so you can just ourright add your stuff here.
+     * No need to worry about duplicates.
+     *
+     * @return list of components needed from the entity
+     */
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        return new ArrayList<>();
     }
 
     @Override
     protected void controlUpdate(float tpf) {
-
+        entity.applyChanges();
     }
 
     @Override
@@ -82,7 +128,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public boolean isPickable(short playerId) {
-        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        Interaction interaction = entity.get(Interaction.class);
         if (interaction == null) {
             return false;
         }
@@ -91,7 +137,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public boolean isInteractable(short playerId) {
-        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        Interaction interaction = entity.get(Interaction.class);
         if (interaction == null) {
             return false;
         }
@@ -149,7 +195,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public short getOwnerId() {
-        return entityData.getComponent(entityId, Owner.class).ownerId;
+        return entity.get(Owner.class).ownerId;
     }
 
     @Override
@@ -164,7 +210,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public boolean isSlappable(short playerId) {
-        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        Interaction interaction = entity.get(Interaction.class);
         if (interaction == null) {
             return false;
         }
@@ -207,6 +253,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     protected abstract ArtResource getAnimationData(S state);
+
+    @Override
+    public void cleanup() {
+        entity.release();
+    }
 
     @Override
     public int hashCode() {

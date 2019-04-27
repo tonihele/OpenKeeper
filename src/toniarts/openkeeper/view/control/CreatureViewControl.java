@@ -18,8 +18,10 @@ package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.Collection;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -43,6 +45,13 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
     }
 
     @Override
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
+        components.add(CreatureAi.class);
+        return components;
+    }
+
+    @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
 
@@ -61,7 +70,7 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
             tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
         }
 
-        return textParser.parseText(tooltip, getEntityId(), getDataObject());
+        return textParser.parseText(tooltip, getEntity(), getDataObject());
     }
 
 
@@ -107,7 +116,7 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
     }
 
     private boolean isWorkAnimation() {
-        CreatureAi creatureAi = entityData.getComponent(getEntityId(), CreatureAi.class);
+        CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
             return creatureAi.getCreatureState() == CreatureState.WORK;
         }
