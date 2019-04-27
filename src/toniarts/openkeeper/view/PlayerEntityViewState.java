@@ -162,6 +162,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         for (IEntityViewControl entityViewControl : entityViewControls.values()) {
             entityViewControl.cleanup();
         }
+        for (IUnitFlowerControl flowerControl : flowerControls.values()) {
+            flowerControl.cleanup();
+        }
 
         super.cleanup();
     }
@@ -319,7 +322,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (entityViewControl != null) {
             entityViewControl.cleanup();
         }
-        flowerControls.remove(e.getId());
+        IUnitFlowerControl unitFlowerControl = flowerControls.remove(e.getId());
+        if (unitFlowerControl != null) {
+            unitFlowerControl.cleanup();
+        }
     }
 
     public void showUnitFlower(EntityId entityId, int interval) {

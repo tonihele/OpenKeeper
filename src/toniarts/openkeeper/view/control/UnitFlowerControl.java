@@ -33,11 +33,20 @@ import com.jme3.scene.control.BillboardControl;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.WatchedEntity;
+import com.simsilica.es.base.DefaultWatchedEntity;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -57,6 +66,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
 
     private static final float DISPLAY_SECONDS = 2.5f;
     private static final Logger LOGGER = Logger.getLogger(UnitFlowerControl.class.getName());
+    private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Health.class, Owner.class);
 
     private float targetTimeVisible = DISPLAY_SECONDS;
     private float timeVisible = 0;
@@ -65,18 +75,51 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     private boolean updateRequired = false;
     private Material material;
     private final EntityId entityId;
-    private final EntityData entityData;
+    private final WatchedEntity entity;
     private final AssetManager assetManager;
     private final T data;
 
     public UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
         super();
         this.entityId = entityId;
-        this.entityData = entityData;
         this.data = data;
         this.assetManager = assetManager;
+
+        // Subscribe to the entity changes
+        entity = new DefaultWatchedEntity(entityData, entityId, compileWatchedComponents());
+
         enabled = false;
         setAlignment(Alignment.Screen);
+    }
+
+    /**
+     * Get the entity for this control. It has all the up to date components
+     * attached. To control what components are included, add the wanted
+     * components with the {@link #getWatchedComponents() } method.
+     *
+     * @return
+     */
+    protected final Entity getEntity() {
+        return entity;
+    }
+
+    private Class<EntityComponent>[] compileWatchedComponents() {
+        Set<Class<? extends EntityComponent>> components = new HashSet<>();
+        components.addAll(WATCHED_COMPONENTS);
+        components.addAll(getWatchedComponents());
+
+        return components.toArray(new Class[components.size()]);
+    }
+
+    /**
+     * Override this to give out the components needed to watch for. By default
+     * a mutable list is returned so you can just ourright add your stuff here.
+     * No need to worry about duplicates.
+     *
+     * @return list of components needed from the entity
+     */
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        return new ArrayList<>();
     }
 
     /**
@@ -85,7 +128,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
      * @return the unit player id
      */
     protected short getOwnerId() {
-        Owner owner = entityData.getComponent(entityId, Owner.class);
+        Owner owner = entity.get(Owner.class);
         if (owner == null) {
             return 0;
         }
@@ -98,7 +141,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
      * @return max health
      */
     protected int getHealthMax() {
-        Health health = entityData.getComponent(entityId, Health.class);
+        Health health = entity.get(Health.class);
         if (health == null) {
             return 100;
         }
@@ -111,7 +154,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
      * @return unit current health
      */
     protected int getHealthCurrent() {
-        Health health = entityData.getComponent(entityId, Health.class);
+        Health health = entity.get(Health.class);
         if (health == null) {
             return 0;
         }
@@ -176,10 +219,6 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         return data;
     }
 
-    protected EntityData getEntityData() {
-        return entityData;
-    }
-
     /**
      * On update loop, only when we are showing
      *
@@ -213,7 +252,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         } else if (!isEnabled()) {
 
             // If no health, assume that we should not be visible, ever
-            Health health = entityData.getComponent(entityId, Health.class);
+            Health health = entity.get(Health.class);
             if (health == null) {
                 return;
             }
@@ -245,6 +284,8 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     @Override
     protected final void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+
+        entity.applyChanges();
 
         timeVisible += tpf;
         if (timeVisible >= targetTimeVisible) {
@@ -404,6 +445,11 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         if (aufc != null) {
             aufc.hide();
         }
+    }
+
+    @Override
+    public void cleanup() {
+        entity.release();
     }
 
 }

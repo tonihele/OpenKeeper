@@ -17,10 +17,12 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.util.Collection;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.PlayerObjective;
@@ -53,8 +55,19 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     }
 
     @Override
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
+        components.add(CreatureAi.class);
+        components.add(CreatureComponent.class);
+        components.add(TaskComponent.class);
+        components.add(PlayerObjective.class);
+        components.add(PortalGem.class);
+        return components;
+    }
+
+    @Override
     protected float getHeight() {
-        CreatureComponent creatureComponent = getEntityData().getComponent(getEntityId(), CreatureComponent.class);
+        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
         if (creatureComponent == null) {
             return 0;
         }
@@ -97,7 +110,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected String getCenterIcon() {
-        CreatureAi creatureAi = getEntityData().getComponent(getEntityId(), CreatureAi.class);
+        CreatureAi creatureAi = getEntity().get(CreatureAi.class);
 
         if (currentStatus == Status.STATUS && creatureAi != null) {
             switch (creatureAi.getCreatureState()) {
@@ -106,7 +119,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                     return "Textures/GUI/moods/SJ-Fighting.png";
                 }
                 case WORK: {
-                    TaskComponent taskComponent = getEntityData().getComponent(getEntityId(), TaskComponent.class);
+                    TaskComponent taskComponent = getEntity().get(TaskComponent.class);
                     if (taskComponent != null) {
                         String icon = getTaskIcon(taskComponent.taskType);
                         if (icon != null) {
@@ -138,7 +151,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             }
         }
 
-        CreatureComponent creatureComponent = getEntityData().getComponent(getEntityId(), CreatureComponent.class);
+        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
         if (creatureComponent == null) {
             return null;
         }
@@ -177,7 +190,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected void onTextureGenerated(Graphics2D g) {
-        CreatureComponent creatureComponent = getEntityData().getComponent(getEntityId(), CreatureComponent.class);
+        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
         if (creatureComponent == null) {
             return;
         }
@@ -193,7 +206,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected String getObjectiveIcon() {
-        PlayerObjective playerObjective = getEntityData().getComponent(getEntityId(), PlayerObjective.class);
+        PlayerObjective playerObjective = getEntity().get(PlayerObjective.class);
         if (playerObjective != null && playerObjective.objective != null) {
             switch (playerObjective.objective) {
                 case CONVERT:
@@ -202,7 +215,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 case KILL:
 
                     // Hmm, is this so...?
-                    PortalGem portalGem = getEntityData().getComponent(getEntityId(), PortalGem.class);
+                    PortalGem portalGem = getEntity().get(PortalGem.class);
                     if (portalGem != null) {
                         return "Textures/GUI/moods/Objective.png";
                     } else {

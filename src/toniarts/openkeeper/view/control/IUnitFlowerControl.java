@@ -53,4 +53,5 @@ public interface IUnitFlowerControl<T> extends Control {
      */
     void show(float period);
 
+    void cleanup();
 }
