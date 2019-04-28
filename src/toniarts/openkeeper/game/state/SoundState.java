@@ -71,9 +71,10 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     /**
-     * Plays mentor speeches for the current level
+     * Plays mentor speeches for the current level. The speech will be put to a
+     * queue and played in sequence
      *
-     * @param speechId
+     * @param speechId the speech ID in level resource bundle
      */
     public void attachLevelSpeech(int speechId) {
         String soundCategory = kwdFile.getGameLevel().getSoundCategory();
@@ -81,9 +82,10 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     /**
-     * Plays general mentor speeches
+     * Plays general mentor speeches The speech will be put to a queue and
+     * played in sequence
      *
-     * @param speechId
+     * @param speechId the speech ID in resource bundle
      */
     public void attachMentorSpeech(int speechId) {
         attachSpeech(SoundCategory.SPEECH_MENTOR, speechId);
@@ -100,7 +102,7 @@ public class SoundState extends AbstractPauseAwareState {
                     + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(file);
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, e.getLocalizedMessage());
+            LOGGER.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
         }
     }
 
@@ -112,7 +114,9 @@ public class SoundState extends AbstractPauseAwareState {
         }
         speech.setLooping(false);
         speech.setPositional(false);
-        speech.play();
+        app.enqueue(() -> {
+            speech.play();
+        });
     }
 
     public void stopSpeech() {
@@ -131,7 +135,9 @@ public class SoundState extends AbstractPauseAwareState {
         background.setLooping(false);
         background.setPositional(false);
         background.setVolume(0.2f);
-        background.play();
+        app.enqueue(() -> {
+            background.play();
+        });
     }
 
     private String getRandomSoundFile() {
