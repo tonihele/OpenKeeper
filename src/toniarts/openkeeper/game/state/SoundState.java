@@ -120,9 +120,11 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     public void stopSpeech() {
-        if (speech != null) {
-            speech.stop();
-        }
+        app.enqueue(() -> {
+            if (speech != null) {
+                speech.stop();
+            }
+        });
     }
 
     private void playBackground() {
