@@ -282,10 +282,15 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     @Override
+    public void update(float tpf) {
+        entity.applyChanges();
+
+        super.update(tpf);
+    }
+
+    @Override
     protected final void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
-
-        entity.applyChanges();
 
         timeVisible += tpf;
         if (timeVisible >= targetTimeVisible) {
