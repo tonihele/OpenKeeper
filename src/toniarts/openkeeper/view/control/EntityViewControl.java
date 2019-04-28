@@ -26,7 +26,6 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.WatchedEntity;
-import com.simsilica.es.base.DefaultWatchedEntity;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,7 +74,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         this.textParser = textParser;
 
         // Subscribe to the entity changes
-        entity = new DefaultWatchedEntity(entityData, entityId, compileWatchedComponents());
+        entity = entityData.watchEntity(entityId, compileWatchedComponents());
     }
 
     /**

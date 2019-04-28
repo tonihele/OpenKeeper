@@ -34,11 +34,11 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import com.simsilica.es.Entity;
+import com.simsilica.es.EntityChange;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.WatchedEntity;
-import com.simsilica.es.base.DefaultWatchedEntity;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -86,7 +86,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         this.assetManager = assetManager;
 
         // Subscribe to the entity changes
-        entity = new DefaultWatchedEntity(entityData, entityId, compileWatchedComponents());
+        entity = entityData.watchEntity(entityId, compileWatchedComponents());
 
         enabled = false;
         setAlignment(Alignment.Screen);
