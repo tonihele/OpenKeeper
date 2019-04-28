@@ -22,9 +22,7 @@ import com.jme3.network.Network;
 import com.jme3.network.service.ClientService;
 import com.jme3.network.service.rmi.RmiClientService;
 import com.jme3.network.service.rpc.RpcClientService;
-import com.simsilica.es.EntityData;
 import com.simsilica.es.client.EntityDataClientService;
-import com.simsilica.es.client.RemoteEntityData;
 import com.simsilica.ethereal.EtherealClient;
 import java.io.IOException;
 import java.util.List;
@@ -49,16 +47,13 @@ public class NetworkClient implements ChatSession {
 
     private final Client client;
 
-    private RemoteEntityData ed;
-
     private final long frameDelay = 200 * 1000000L; // 200 ms
     private long renderTime;
     private long serverTimeOffset;
     private final long pingDelay = 500 * 1000000L; // 500 ms
     private long nextPing;
 
-    private long lastTime;
-    private static final Logger logger = Logger.getLogger(NetworkClient.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(NetworkClient.class.getName());
 
     public NetworkClient(String host, int port) throws IOException {
         client = Network.connectToServer(NetworkConstants.GAME_NAME, NetworkConstants.PROTOCOL_VERSION, host, port);
@@ -102,7 +97,7 @@ public class NetworkClient implements ChatSession {
     }
 
     public void start() throws IOException {
-        logger.info("Network: Player starting");
+        LOGGER.info("Network: Player starting");
         client.start();
     }
 
@@ -111,10 +106,7 @@ public class NetworkClient implements ChatSession {
     }
 
     public void close() {
-        logger.info("Network: closing client connection");
-        if (ed != null) {
-            ed.close();
-        }
+        LOGGER.info("Network: closing client connection");
 
         if (client != null && client.isConnected()) {
             client.close();
@@ -143,10 +135,6 @@ public class NetworkClient implements ChatSession {
         return client;
     }
 
-    public EntityData getEntityData() {
-        return ed;
-    }
-
     protected void onMessageTime(MessageTime msg) {
         //TODO remove all System.out.println()
         //System.out.println( "onMessageTime:" + msg );
@@ -168,20 +156,20 @@ public class NetworkClient implements ChatSession {
     }
 
     protected void onMessagePlayerInfo(MessagePlayerInfo msg) {
-        logger.log(Level.INFO, "Network: player info {0}", msg);
+        LOGGER.log(Level.INFO, "Network: player info {0}", msg);
         //entity = msg.getEntityId();
     }
 
     protected void onMessageServerInfo(MessageServerInfo msg) {
-        logger.log(Level.INFO, "Network: server info {0}", msg);
+        LOGGER.log(Level.INFO, "Network: server info {0}", msg);
     }
 
     protected void onConnected() {
-        logger.info("Network: Player connected");
+        LOGGER.info("Network: Player connected");
     }
 
     protected void onDisconnected(ClientStateListener.DisconnectInfo di) {
-        logger.log(Level.INFO, "Network: player disconnected {0}", di);
+        LOGGER.log(Level.INFO, "Network: player disconnected {0}", di);
     }
 
 }
