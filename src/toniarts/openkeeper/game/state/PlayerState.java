@@ -426,11 +426,21 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     public void zoomToEntity(EntityId entityId, boolean animate) {
         Position position = entityData.getComponent(entityId, Position.class);
         if (position != null) {
-            if (animate) {
-                cameraState.zoomToPoint(position.position);
-            } else {
-                cameraState.setCameraLookAt(position.position);
-            }
+            zoomToPosition(position.position, animate);
+        }
+    }
+
+    /**
+     * Zoom to position
+     *
+     * @param position the position to zoom to
+     * @param animate whether to animate the transition
+     */
+    public void zoomToPosition(Vector3f position, boolean animate) {
+        if (animate) {
+            cameraState.zoomToPoint(position);
+        } else {
+            cameraState.setCameraLookAt(position);
         }
     }
 

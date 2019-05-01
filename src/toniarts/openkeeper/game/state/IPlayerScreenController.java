@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.screen.ScreenController;
 
@@ -73,6 +74,13 @@ public interface IPlayerScreenController extends ScreenController {
      * @param entityId the entity ID to zoom to
      */
     public void zoomToEntity(EntityId entityId);
+
+    /**
+     * Zoom to position
+     *
+     * @param position the position to zoom to
+     */
+    public void zoomToPosition(Vector3f position);
 
     /**
      * Pick up an entity

@@ -20,6 +20,7 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.TextureKey;
+import com.jme3.math.Vector3f;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
@@ -27,6 +28,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.WatchedEntity;
 import com.simsilica.es.filter.FieldFilter;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
@@ -66,12 +68,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
@@ -328,6 +333,11 @@ public class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void zoomToEntity(EntityId entityId) {
         state.zoomToEntity(entityId, false);
+    }
+
+    @Override
+    public void zoomToPosition(Vector3f position) {
+        state.zoomToPosition(position, false);
     }
 
     @Override
@@ -1015,6 +1025,9 @@ public class PlayerScreenController implements IPlayerScreenController {
         private final Element creaturePanel;
         private final WorkerAmountControl workerAmountControl;
         private final Screen hud;
+        private final short impId;
+
+        private final Map<EntityId, WatchedEntity> creatureEntities = new LinkedHashMap<>();
         private final Map<EntityId, Short> creatureIdsByEntityIds = new HashMap<>();
         private final Map<Short, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
         private final Map<Short, CreatureCardControl> creatureCardControls = new HashMap<>();
@@ -1029,6 +1042,8 @@ public class PlayerScreenController implements IPlayerScreenController {
             this.workerAmountControl = workerAmountControl;
             this.hud = hud;
 
+            impId = kwdFile.getImp().getCreatureId();
+
             this.workerAmountControl.addListener(creatureCardEventListener);
 
             playerCreatureEntities = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", playerId), CreatureComponent.class, Health.class, Owner.class);
@@ -1036,81 +1051,88 @@ public class PlayerScreenController implements IPlayerScreenController {
         }
 
         public void update(float tpf) {
+
+            // Get our creatures for monitoring
             if (playerCreatureEntities.applyChanges()) {
                 processAddedPlayerCreatureEntities(playerCreatureEntities.getAddedEntities());
                 processDeletedPlayerCreatureEntities(playerCreatureEntities.getRemovedEntities());
-                processChangedPlayerCreatureEntities(playerCreatureEntities.getChangedEntities());
+            }
+
+            // Update the creatures individually
+            Set<Entity> modifiedCreatures = new LinkedHashSet<>();
+            for (WatchedEntity watchedEntity : creatureEntities.values()) {
+                if (watchedEntity.applyChanges()) {
+                    modifiedCreatures.add(watchedEntity);
+                }
+            }
+            if (!modifiedCreatures.isEmpty()) {
+                processChangedPlayerCreatureEntities(modifiedCreatures);
             }
         }
 
         public void cleanup() {
             playerCreatureEntities.release();
+
+            for (WatchedEntity watchedEntity : creatureEntities.values()) {
+                watchedEntity.release();
+            }
+            creatureEntities.clear();
         }
 
         private void processAddedPlayerCreatureEntities(Set<Entity> entities) {
-            Set<Short> modifiedCreatures = new LinkedHashSet<>();
             for (Entity entity : entities) {
-
-                // Add to the list
-                short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
-                creatureIdsByEntityIds.put(entity.getId(), creatureId);
-                Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
-                if (creatureSet == null) {
-                    creatureSet = new LinkedHashSet<>();
-                    creaturesByTypes.put(creatureId, creatureSet);
-                }
-                creatureSet.add(entity.getId());
-                modifiedCreatures.add(creatureId);
-            }
-
-            // Update the creature cards
-            for (Short creatureId : modifiedCreatures) {
-
-                // Imps
-                if (creatureId == kwdFile.getImp().getId()) {
-                    updateWorkerStatistics();
-                    continue;
-                }
-
-                // Create the actual card
-                CreatureCardControl card = creatureCardControls.get(creatureId);
-                if (card == null) {
-                    card = createPlayerCreatureIcon(kwdFile.getCreature(creatureId), hud, creaturePanel);// Create
-                    creatureCardControls.put(creatureId, card);
-                }
-                card.setTotal(calculateTotal(creatureId));
+                creatureEntities.put(entity.getId(), entityData.watchEntity(entity.getId(), new Class[]{CreatureAi.class, CreatureComponent.class,
+                    AttackTarget.class, TaskComponent.class, Position.class, CreatureImprisoned.class, CreatureImprisoned.class}));
             }
         }
 
         private void processDeletedPlayerCreatureEntities(Set<Entity> entities) {
-            Set<Short> modifiedCreatures = new LinkedHashSet<>();
+            Set<Short> deletedCreatures = new LinkedHashSet<>();
             for (Entity entity : entities) {
 
                 // Remove from the list
-                short creatureId = creatureIdsByEntityIds.remove(entity.getId());
-                Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
-                if (creatureSet != null) {
-                    creatureSet.remove(entity.getId());
-                    modifiedCreatures.add(creatureId);
+                Short creatureId = creatureIdsByEntityIds.remove(entity.getId());
+                if (creatureId != null) {
+                    Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
+                    if (creatureSet != null) {
+                        creatureSet.remove(entity.getId());
+                        deletedCreatures.add(creatureId);
+                    }
                 }
+                creatureEntities.remove(entity.getId()).release();
             }
 
+            updateCreatureCards(deletedCreatures);
+        }
+
+        private void updateCreatureCards(Set<Short> creatureTypes) {
+
             // Update the creature cards
-            for (Short creatureId : modifiedCreatures) {
+            for (Short creatureId : creatureTypes) {
 
                 // Imps
-                if (creatureId == kwdFile.getImp().getCreatureId()) {
+                if (creatureId == impId) {
                     updateWorkerStatistics();
                     continue;
                 }
 
                 int realTotal = creaturesByTypes.get(creatureId).size();
                 CreatureCardControl card = creatureCardControls.get(creatureId);
-                card.setTotal(calculateTotal(creatureId));
-                if (realTotal == 0) {
+
+                // Remove the card if no longer any creatures of the type
+                if (realTotal == 0 && card != null) {
                     card.removeListener(creatureCardEventListener);
                     card.getElement().markForRemoval(); // Remove
                     creatureCardControls.remove(creatureId);
+                } else if (realTotal > 0) {
+
+                    // Create the card if it doesn't exist
+                    if (card == null) {
+                        card = createPlayerCreatureIcon(kwdFile.getCreature(creatureId), hud, creaturePanel);
+                        creatureCardControls.put(creatureId, card);
+                    }
+
+                    card.setTotal(calculateTotal(creatureId));
                 }
             }
         }
@@ -1118,24 +1140,57 @@ public class PlayerScreenController implements IPlayerScreenController {
         private void processChangedPlayerCreatureEntities(Set<Entity> entities) {
             Set<Short> modifiedCreatures = new LinkedHashSet<>();
             for (Entity entity : entities) {
-                short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
-                short oldCreatureId = creatureIdsByEntityIds.put(entity.getId(), creatureId);
-                modifiedCreatures.add(creatureId);
-                modifiedCreatures.add(oldCreatureId);
-            }
+                short creatureId = entity.get(CreatureComponent.class).creatureId;
+                Short oldCreatureId = creatureIdsByEntityIds.put(entity.getId(), creatureId);
+                if (oldCreatureId != null) {
 
-            // Update the creature cards
-            for (Short creatureId : modifiedCreatures) {
+                    // We have the creature already on our list, update it
+                    modifiedCreatures.add(creatureId);
+                    modifiedCreatures.add(oldCreatureId);
 
-                // Imps
-                if (creatureId == kwdFile.getImp().getCreatureId()) {
-                    updateWorkerStatistics();
-                    continue;
+                    // See if it still qualifies
+                    if (isValidEntity(entity)) {
+
+                        // The creature has changed its type
+                        if (creatureId != oldCreatureId) {
+                            creaturesByTypes.get(oldCreatureId).remove(entity.getId());
+                            Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
+                            if (creatureSet == null) {
+                                creatureSet = new LinkedHashSet<>();
+                                creaturesByTypes.put(creatureId, creatureSet);
+                            }
+                            creatureSet.add(entity.getId());
+                        }
+                    } else {
+                        creatureIdsByEntityIds.remove(entity.getId());
+                        creaturesByTypes.get(oldCreatureId).remove(entity.getId());
+                    }
+                } else if (isValidEntity(entity)) {
+
+                    // New
+                    creatureIdsByEntityIds.put(entity.getId(), creatureId);
+                    Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
+                    if (creatureSet == null) {
+                        creatureSet = new LinkedHashSet<>();
+                        creaturesByTypes.put(creatureId, creatureSet);
+                    }
+                    creatureSet.add(entity.getId());
+                    modifiedCreatures.add(creatureId);
                 }
-
-                CreatureCardControl card = creatureCardControls.get(creatureId);
-                card.setTotal(calculateTotal(creatureId));
             }
+
+            updateCreatureCards(modifiedCreatures);
+        }
+
+        /**
+         * Checks if the entity qualifies to be added to a card. Even if it may
+         * qualify, it might not be qualified to be added to the count
+         *
+         * @param entity entity to check
+         * @return {@code true} if entity should be added on a card
+         */
+        private boolean isValidEntity(Entity entity) {
+            return true;
         }
 
         private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
@@ -1161,13 +1216,22 @@ public class PlayerScreenController implements IPlayerScreenController {
             Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
             if (creatureSet != null) {
                 for (EntityId entityId : creatureSet) {
-                    Position position = entityData.getComponent(entityId, Position.class);
-                    if (position != null) {
+                    if (isIncludeEntityInCount(creatureEntities.get(entityId))) {
                         total++;
                     }
                 }
             }
             return total;
+        }
+
+        /**
+         * Checks if the entity adds to the count
+         *
+         * @param entity entity to check
+         * @return {@code true} if entity should be added on a count
+         */
+        private boolean isIncludeEntityInCount(Entity entity) {
+            return (entity.get(Position.class) != null);
         }
 
         private void updateWorkerStatistics() {
@@ -1178,17 +1242,19 @@ public class PlayerScreenController implements IPlayerScreenController {
             int impFighting = 0;
             int impBusy = 0;
 
-            Set<EntityId> imps = creaturesByTypes.get(kwdFile.getImp().getCreatureId());
+            Set<EntityId> imps = creaturesByTypes.get(impId);
             for (EntityId entityId : imps) {
-                if (entityData.getComponent(entityId, Position.class) == null
-                        || entityData.getComponent(entityId, Death.class) != null) {
+                Entity entity = creatureEntities.get(entityId);
+                if (entity.get(Position.class) == null
+                        || entity.get(Death.class) != null) {
                     continue;
                 }
 
-                CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+                AttackTarget attackTarget = entity.get(AttackTarget.class);
+                CreatureAi creatureAi = entity.get(CreatureAi.class);
                 if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
                     impIdle++;
-                } else if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FIGHT) {
+                } else if (attackTarget != null) {
                     impFighting++;
                 } else {
                     impBusy++;
@@ -1209,17 +1275,17 @@ public class PlayerScreenController implements IPlayerScreenController {
 
             @Override
             public void zoomTo(short creatureId, CreatureUIState uiState) {
-                EntityId entityId = getNextCreature(creatureId, uiState);
-                if (entityId != null) {
-                    playerScreenController.zoomToEntity(entityId);
+                Entity entity = getNextCreature(creatureId, uiState);
+                if (entity != null) {
+                    playerScreenController.zoomToPosition(entity.get(Position.class).position);
                 }
             }
 
             @Override
             public void pickUp(short creatureId, CreatureUIState uiState) {
-                EntityId entityId = getNextCreature(creatureId, uiState);
-                if (entityId != null) {
-                    playerScreenController.pickUpEntity(entityId);
+                Entity entity = getNextCreature(creatureId, uiState);
+                if (entity != null) {
+                    playerScreenController.pickUpEntity(entity.getId());
                 }
             }
 
@@ -1231,7 +1297,7 @@ public class PlayerScreenController implements IPlayerScreenController {
              * @param state the state filter
              * @return the next creature of the type
              */
-            private EntityId getNextCreature(short creatureId, CreatureUIState state) {
+            private Entity getNextCreature(short creatureId, CreatureUIState state) {
                 List<EntityId> creatureList = new ArrayList<>(creaturesByTypes.get(creatureId));
                 Integer index = selectionIndices.get(creatureId);
                 if (index == null || index >= creatureList.size()) {
@@ -1240,13 +1306,14 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                 // Loop until filter hits or we looped it around
                 int startIndex = index;
-                EntityId selectedCreature = null;
+                Entity selectedCreature = null;
                 do {
                     EntityId creature = creatureList.get(index);
+                    Entity entity = creatureEntities.get(creature);
                     index++;
-                    if (isCreatureState(creature, state) && entityData.getComponent(creature, Position.class) != null) {
+                    if (isCreatureState(entity, state) && entity.get(Position.class) != null) {
                         selectionIndices.put(creatureId, index);
-                        selectedCreature = creature;
+                        selectedCreature = entity;
                         break;
                     }
 
@@ -1257,15 +1324,16 @@ public class PlayerScreenController implements IPlayerScreenController {
                 return selectedCreature;
             }
 
-            private boolean isCreatureState(EntityId entityId, CreatureUIState state) {
+            private boolean isCreatureState(Entity entity, CreatureUIState state) {
                 if (state == null) {
                     return true;
                 }
 
-                CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+                AttackTarget attackTarget = entity.get(AttackTarget.class);
+                CreatureAi creatureAi = entity.get(CreatureAi.class);
                 if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
                     return state == CreatureUIState.IDLE;
-                } else if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FIGHT) {
+                } else if (attackTarget != null) {
                     return state == CreatureUIState.FIGHT;
                 } else {
                     return state == CreatureUIState.BUSY;
