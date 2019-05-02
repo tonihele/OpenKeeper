@@ -54,7 +54,7 @@ public class GameServerState extends AbstractAppState {
     private final KwdFile kwdFile;
     private final toniarts.openkeeper.game.data.Level levelObject;
 
-    private boolean campaign;
+    private final boolean campaign;
     private final GameSessionServerService gameService;
     private IMapController mapController;
     private final MapListener mapListener = new MapListenerImpl();
@@ -238,6 +238,11 @@ public class GameServerState extends AbstractAppState {
         @Override
         public void onGetGold(int amount, short playerId) {
             gameWorldController.getGold(amount, playerId);
+        }
+
+        @Override
+        public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
+
         }
     }
 

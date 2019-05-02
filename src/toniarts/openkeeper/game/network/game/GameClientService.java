@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.network.message.GameData;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.network.streaming.StreamedMessageListener;
 import toniarts.openkeeper.game.network.streaming.StreamingClientService;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
@@ -204,6 +205,11 @@ public class GameClientService extends AbstractClientService
         if (getClient().isConnected()) {
             getDelegate().exitGame();
         }
+    }
+
+    @Override
+    public void triggerCheat(CheatState.CheatType cheat) {
+        getDelegate().triggerCheat(cheat);
     }
 
     private class ClientMessageListener implements MessageListener<Client> {

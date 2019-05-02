@@ -39,7 +39,6 @@ import com.simsilica.es.EntityData;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
@@ -48,7 +47,6 @@ import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
-import static toniarts.openkeeper.game.state.CheatState.CheatType.MONEY;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
@@ -218,29 +216,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
         };
 
-        CheatState cheatState = new CheatState(app) {
-            @Override
-            public void onSuccess(CheatState.CheatType cheat) {
+        if (!gameClientState.isMultiplayer()) {
+            CheatState cheatState = new CheatState(app) {
 
-                switch (cheat) {
-                    case MONEY:
-//                        getWorldHandler().addGold(player.getPlayerId(), 100000);
-                        break;
-                    case MANA:
-//                        gameClientState.getPlayer(player.getPlayerId()).getManaControl().addMana(100000);
-                        break;
-                    case LEVEL_MAX:
-//d
-                        break;
-                    case WIN_LEVEL:
-                        //gameClientState.setEnd(true);
-                        break;
-                    default:
-                        LOGGER.log(Level.WARNING, "Cheat {0} not implemented yet!", cheat.toString());
+                @Override
+                public void onSuccess(CheatState.CheatType cheat) {
+                    gameClientState.getGameClientService().triggerCheat(cheat);
                 }
-            }
-        };
-        this.stateManager.attach(cheatState);
+            };
+            this.stateManager.attach(cheatState);
+        }
 
         // Add listener
         if (isEnabled()) {
@@ -671,7 +656,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         // FIXME use CTRL + ALT + C to activate cheats!
                         // TODO Disable in multi player!
                         CheatState cheat = stateManager.getState(CheatState.class);
-                        if (!cheat.isEnabled()) {
+                        if (cheat != null && !cheat.isEnabled()) {
                             cheat.setEnabled(true);
                         }
                     } else if (evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {

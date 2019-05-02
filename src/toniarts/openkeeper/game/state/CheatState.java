@@ -81,17 +81,17 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         }
     }
 
+    public CheatState(final Application app) {
+        this.app = app;
+        super.setEnabled(false);
+    }
+
     private void playSound(boolean enabled) {
         String file = String.format("Sounds/Global/MistressHW/ms_1ft0%s.mp2", enabled ? "1" : "2");
         AudioNode sound = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         sound.setLooping(false);
         sound.setPositional(false);
         sound.play();
-    }
-
-    public CheatState(final Application app) {
-        this.app = app;
-        super.setEnabled(false);
     }
 
     @Override
@@ -126,11 +126,11 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
-        if (evt.isPressed()) {
+        if (evt.isPressed() && evt.getKeyChar() != 0) {
             this.cheat += evt.getKeyChar();
 
             // Leave cheat mode if message was incorrect
-            if (!CheatType.hasCheat(cheat)) {
+            if (!CheatType.hasCheat(this.cheat)) {
                 this.setEnabled(false);
             }
 

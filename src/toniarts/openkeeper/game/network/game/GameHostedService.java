@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameData;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
@@ -589,6 +590,13 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         public void exitGame() {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onExitGame(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerCheat(CheatState.CheatType cheat) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onCheatTriggered(cheat, clientInfo.getKeeper().getId());
             }
         }
 

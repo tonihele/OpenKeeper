@@ -21,6 +21,7 @@ import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import toniarts.openkeeper.game.state.CheatState;
 
 /**
  * Clients view on game service
@@ -143,5 +144,13 @@ public interface GameSession {
      * We quit!
      */
     public void exitGame();
+
+    /**
+     * Trigger a cheat
+     *
+     * @param cheat the cheat to trigger
+     */
+    @Asynchronous
+    public void triggerCheat(CheatState.CheatType cheat);
 
 }

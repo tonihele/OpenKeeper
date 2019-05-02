@@ -71,6 +71,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private volatile boolean gameStarted = false;
 
     private final Short playerId;
+    private final boolean multiplayer;
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
@@ -98,6 +99,18 @@ public class GameClientState extends AbstractPauseAwareState {
         this.gameClientService = gameClientService;
         this.playerId = playerId;
         this.app = (Main) app;
+
+        // Set multiplayer
+        int humanPlayers = 0;
+        for (ClientInfo clientInfo : players) {
+            if (!clientInfo.getKeeper().isAi()) {
+                humanPlayers++;
+                if (humanPlayers > 1) {
+                    break;
+                }
+            }
+        }
+        multiplayer = (humanPlayers > 1);
 
         // Create the loading state
         loadingState = createLoadingState(players, app);
@@ -171,24 +184,15 @@ public class GameClientState extends AbstractPauseAwareState {
         return true;
     }
 
-    private IPlayerLoadingProgress createLoadingState(List<ClientInfo> players, Main app) {
+    public boolean isMultiplayer() {
+        return multiplayer;
+    }
 
-        // See if multiplayer or not
-        boolean multiplayer = false;
-        int humanPlayers = 0;
-        for (ClientInfo clientInfo : players) {
-            if (!clientInfo.getKeeper().isAi()) {
-                humanPlayers++;
-                if (humanPlayers > 1) {
-                    multiplayer = true;
-                    break;
-                }
-            }
-        }
+    private IPlayerLoadingProgress createLoadingState(List<ClientInfo> players, Main app) {
 
         // Create the appropriate loaging screen
         IPlayerLoadingProgress loader;
-        if (multiplayer) {
+        if (isMultiplayer()) {
             loader = new MultiplayerLoadingState(app) {
 
                 @Override

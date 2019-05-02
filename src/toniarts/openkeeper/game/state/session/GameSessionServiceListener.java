@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import toniarts.openkeeper.game.state.CheatState;
 
 /**
  * Listener for the service. To listen to clients' requests
@@ -130,5 +131,14 @@ public interface GameSessionServiceListener {
      */
     @Asynchronous
     public void onExitGame(short playerId);
+
+    /**
+     * Player has triggered a cheat
+     *
+     * @param cheat the cheat triggered
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onCheatTriggered(CheatState.CheatType cheat, short playerId);
 
 }

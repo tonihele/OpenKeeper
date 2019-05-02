@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
@@ -351,6 +352,13 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void exitGame() {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onExitGame(PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void triggerCheat(CheatState.CheatType cheat) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCheatTriggered(cheat, PLAYER_ID);
         }
     }
 
