@@ -32,13 +32,13 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
     private PlayerSpell currentResearch = null;
     private List<PlayerSpellListener> playerSpellListeners;
 
-    public PlayerSpellControl(Keeper keeper) {
-        super(keeper, keeper.getAvailableSpells());
+    public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells) {
+        super(keeper, keeper.getAvailableSpells(), keeperSpells);
     }
 
     @Override
-    public void setTypeAvailable(KeeperSpell type, boolean available) {
-        super.setTypeAvailable(type, available);
+    public boolean setTypeAvailable(KeeperSpell type, boolean available) {
+        boolean result = super.setTypeAvailable(type, available);
 
         // Add one to the stock
         PlayerSpell playerSpell;
@@ -53,7 +53,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
         }
 
         // Listeners
-        if (playerSpellListeners != null) {
+        if (result && playerSpellListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
                 if (available) {
                     playerSpellListener.onAdded(playerSpell);
@@ -62,6 +62,8 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
                 }
             }
         }
+
+        return result;
     }
 
     @Override

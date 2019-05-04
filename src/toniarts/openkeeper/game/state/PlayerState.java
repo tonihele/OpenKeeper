@@ -336,7 +336,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         // TODO: cache, or something, maybe add the listeners here
         GameClientState gameState = stateManager.getState(GameClientState.class);
         Keeper keeper = getPlayer();
-        List<Room> rooms = new ArrayList<>();
+        List<Room> rooms = new ArrayList<>(keeper.getAvailableRooms().size());
         keeper.getAvailableRooms().stream().forEach((id) -> {
             rooms.add(gameState.getLevelData().getRoomById(id));
         });
@@ -558,4 +558,10 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     public void onSold(short keeperId, List<MapTile> tiles) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+        screen.populateRoomTab();
+    }
+
 }

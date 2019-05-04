@@ -30,13 +30,17 @@ import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * The game state that actually runs the game. Has no relation to visuals.
@@ -55,6 +59,7 @@ public class GameServerState extends AbstractAppState {
     private final toniarts.openkeeper.game.data.Level levelObject;
 
     private final boolean campaign;
+    private final boolean multiplayer;
     private final GameSessionServerService gameService;
     private IMapController mapController;
     private final MapListener mapListener = new MapListenerImpl();
@@ -80,11 +85,31 @@ public class GameServerState extends AbstractAppState {
         this.campaign = campaign;
         this.gameService = gameService;
 
+        // Set multiplayer
+        int humanPlayers = 0;
+        if (players != null) {
+            for (Keeper player : players) {
+                if (!player.isAi()) {
+                    humanPlayers++;
+                    if (humanPlayers > 1) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            humanPlayers = 1;
+        }
+        multiplayer = (humanPlayers > 1);
+
         // Add the listener
         gameService.addGameSessionServiceListener(gameSessionListener);
 
         // Start loading game
         loadGame(players);
+    }
+
+    public boolean isMultiplayer() {
+        return multiplayer;
     }
 
     private void loadGame(List<Keeper> players) {
@@ -242,7 +267,53 @@ public class GameServerState extends AbstractAppState {
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
+            if (isMultiplayer()) {
+                return; // No! Bad!
+            }
 
+            // See the cheat
+            switch (cheat) {
+                case LEVEL_MAX: {
+                    // TODO:
+                    break;
+                }
+                case MANA: {
+                    gameController.getPlayerController(playerId).getManaControl().addMana(100000);
+                    break;
+                }
+                case MONEY: {
+                    gameWorldController.addGold(playerId, 100000);
+                    break;
+                }
+                case REMOVE_FOW: {
+                    // TODO:
+                    break;
+                }
+                case UNLOCK_ROOMS: {
+                    PlayerRoomControl playerRoomControl = gameController.getPlayerController(playerId).getRoomControl();
+                    for (Room room : kwdFile.getRooms()) {
+                        playerRoomControl.setTypeAvailable(room, true);
+                    }
+                    break;
+                }
+                case UNLOCK_DOORS_TRAPS: {
+                    // TODO:
+                    break;
+                }
+                case UNLOCK_SPELLS: {
+                    PlayerSpellControl playerSpellControl = gameController.getPlayerController(playerId).getSpellControl();
+                    for (KeeperSpell keeperSpell : kwdFile.getKeeperSpells()) {
+                        playerSpellControl.setSpellDiscovered(keeperSpell, true);
+                    }
+                    break;
+                }
+                case WIN_LEVEL: {
+                    gameController.endGame(playerId, true);
+                    break;
+                }
+                default:
+                    LOGGER.log(Level.INFO, "Cheat {0} not implemented!", cheat);
+            }
         }
     }
 

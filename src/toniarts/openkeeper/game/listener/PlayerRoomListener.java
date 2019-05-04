@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2016 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,11 +16,16 @@
  */
 package toniarts.openkeeper.game.listener;
 
+import com.jme3.network.service.rmi.Asynchronous;
+
 /**
- * General player events etc. listener
+ * Listen for changes in keeper room availabilities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface PlayerListener extends PlayerSpellListener, PlayerGoldListener, PlayerManaListener, PlayerActionListener, PlayerRoomListener {
+public interface PlayerRoomListener {
+
+    @Asynchronous
+    void onRoomAvailabilityChanged(short playerId, short roomId, boolean available);
 
 }

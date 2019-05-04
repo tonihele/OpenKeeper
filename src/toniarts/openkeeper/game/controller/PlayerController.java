@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -47,14 +48,14 @@ public class PlayerController implements IPlayerController {
     private final PlayerHandControl handControl;
     private final PlayerStatsControl statsControl;
 
-    public PlayerController(Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public PlayerController(KwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
 
         // Create the actual controllers
         goldControl = new PlayerGoldControl(keeper);
-        creatureControl = new PlayerCreatureControl(keeper, imp);
-        roomControl = new PlayerRoomControl(keeper);
-        spellControl = new PlayerSpellControl(keeper);
+        creatureControl = new PlayerCreatureControl(keeper, imp, kwdFile.getCreatureList());
+        roomControl = new PlayerRoomControl(keeper, kwdFile.getRooms());
+        spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells());
         statsControl = new PlayerStatsControl();
 
         // Don't create certain controls for neutral nor good player
@@ -78,6 +79,9 @@ public class PlayerController implements IPlayerController {
         if (manaControl != null) {
             manaControl.addListener(listener);
         }
+        if (roomControl != null) {
+            roomControl.addListener(listener);
+        }
     }
 
     @Override
@@ -85,6 +89,9 @@ public class PlayerController implements IPlayerController {
         goldControl.removeListener(listener);
         if (manaControl != null) {
             manaControl.removeListener(listener);
+        }
+        if (roomControl != null) {
+            roomControl.removeListener(listener);
         }
     }
 

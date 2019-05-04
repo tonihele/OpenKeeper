@@ -30,7 +30,9 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.MapController;
+import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -67,6 +69,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private final KwdFile kwdFile;
 
     private final Map<Short, Keeper> players = new TreeMap<>();
+    private final Map<Short, IPlayerController> playerControllers = new TreeMap<>();
     private final Object loadingObject = new Object();
     private volatile boolean gameStarted = false;
 
@@ -113,7 +116,7 @@ public class GameClientState extends AbstractPauseAwareState {
         multiplayer = (humanPlayers > 1);
 
         // Create the loading state
-        loadingState = createLoadingState(players, app);
+        loadingState = createLoadingState(app);
 
         // Add the listener
         gameClientService.addGameSessionListener(gameSessionListener);
@@ -188,7 +191,7 @@ public class GameClientState extends AbstractPauseAwareState {
         return multiplayer;
     }
 
-    private IPlayerLoadingProgress createLoadingState(List<ClientInfo> players, Main app) {
+    private IPlayerLoadingProgress createLoadingState(Main app) {
 
         // Create the appropriate loaging screen
         IPlayerLoadingProgress loader;
@@ -300,7 +303,9 @@ public class GameClientState extends AbstractPauseAwareState {
             kwdFile.load();
             AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
             for (Keeper keeper : players) {
+                keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
                 GameClientState.this.players.put(keeper.getId(), keeper);
+                GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
             }
             mapClientService = new MapController(mapData, kwdFile);
             textParser = new TextParserService(mapClientService);
@@ -513,6 +518,21 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onShowUnitFlower(EntityId entityId, int interval) {
             playerModelViewState.showUnitFlower(entityId, interval);
+        }
+
+        @Override
+        public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+
+            // Hmm, how we design this, should we bring the player controllers here?
+            // Basically lot of the data there is valid to the client, the controlling just might be limited
+            playerControllers.get(playerId).getRoomControl().setTypeAvailable(kwdFile.getRoomById(roomId), available);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == playerId) {
+                app.enqueue(() -> {
+                    playerState.onRoomAvailabilityChanged(playerId, roomId, available);
+                });
+            }
         }
 
     }

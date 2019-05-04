@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.PlayerRoomListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Room;
 
@@ -34,11 +35,11 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
-    private List<IRoomAvailabilityListener> roomAvailabilityListeners;
+    private List<PlayerRoomListener> roomAvailabilityListeners;
     private IRoomController dungeonHeart;
 
-    public PlayerRoomControl(Keeper keeper) {
-        super(keeper, keeper.getAvailableRooms());
+    public PlayerRoomControl(Keeper keeper, List<Room> rooms) {
+        super(keeper, keeper.getAvailableRooms(), rooms);
     }
 
     public void init(List<IRoomController> rooms) {
@@ -48,21 +49,23 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
     }
 
     @Override
-    public void setTypeAvailable(Room type, boolean available) {
+    public boolean setTypeAvailable(Room type, boolean available) {
 
         // Skip non-buildables, I don't know what purpose they serve
         if (!type.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
-            return;
+            return false;
         }
 
-        super.setTypeAvailable(type, available);
+        boolean result = super.setTypeAvailable(type, available);
 
         // Notify listeners
-        if (roomAvailabilityListeners != null) {
-            for (IRoomAvailabilityListener listener : roomAvailabilityListeners) {
-                listener.onChange();
+        if (result && roomAvailabilityListeners != null) {
+            for (PlayerRoomListener listener : roomAvailabilityListeners) {
+                listener.onRoomAvailabilityChanged(keeper.getId(), type.getId(), available);
             }
         }
+
+        return result;
     }
 
     @Override
@@ -163,11 +166,22 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
      *
      * @param listener the listener
      */
-    public void addRoomAvailabilityListener(IRoomAvailabilityListener listener) {
+    public void addListener(PlayerRoomListener listener) {
         if (roomAvailabilityListeners == null) {
             roomAvailabilityListeners = new ArrayList<>();
         }
         roomAvailabilityListeners.add(listener);
+    }
+
+    /**
+     * Stop listening to room availability changes
+     *
+     * @param listener the listener
+     */
+    public void removeListener(PlayerRoomListener listener) {
+        if (roomAvailabilityListeners != null) {
+            roomAvailabilityListeners.remove(listener);
+        }
     }
 
     /**
@@ -177,15 +191,6 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
      */
     public IRoomController getDungeonHeart() {
         return dungeonHeart;
-    }
-
-    /**
-     * A small interface for getting notified about room availability changes
-     */
-    public interface IRoomAvailabilityListener {
-
-        public void onChange();
-
     }
 
 }

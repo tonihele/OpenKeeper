@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.Keeper;
 
@@ -32,16 +33,26 @@ import toniarts.openkeeper.game.data.Keeper;
  * @param <K> the type of object this control manages
  * @param <V> the value behind the type
  */
-public abstract class AbstractPlayerControl<K extends Comparable<K> & IIndexable, V> {
+public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>, V> {
 
     private final List<K> typesAvailable = new ArrayList<>();
     private final List<Short> availabilitiesList;
     protected final Map<K, V> types = new LinkedHashMap<>();
     protected final Keeper keeper;
 
-    public AbstractPlayerControl(Keeper keeper, List<Short> availabilitiesList) {
+    public AbstractPlayerControl(Keeper keeper, List<Short> availabilitiesList, Collection<K> types) {
         this.keeper = keeper;
         this.availabilitiesList = availabilitiesList;
+
+        // Populate the types list
+        if (!availabilitiesList.isEmpty()) {
+            Map<Short, K> typesById = types.stream().collect(Collectors.toMap(K::getId, type -> type));
+            for (Short id : availabilitiesList) {
+                K type = typesById.get(id);
+                int index = Collections.binarySearch(typesAvailable, type);
+                typesAvailable.add(~index, type);
+            }
+        }
     }
 
     /**
@@ -49,15 +60,26 @@ public abstract class AbstractPlayerControl<K extends Comparable<K> & IIndexable
      *
      * @param type the type to add
      * @param available set available or not
+     * @return true if availability status changed
      */
-    public void setTypeAvailable(K type, boolean available) {
+    public boolean setTypeAvailable(K type, boolean available) {
         int index = Collections.binarySearch(typesAvailable, type);
-        if (index < 0 && available) {
-            typesAvailable.add(~index, type);
-            availabilitiesList.add(~index, type.getId());
-        } else if (index >= 0 && !available) {
-            typesAvailable.remove(index);
-            availabilitiesList.remove(index);
+        if (available) {
+            if (index < 0) {
+                typesAvailable.add(~index, type);
+                availabilitiesList.add(~index, type.getId());
+
+                return true;
+            }
+            return false;
+        } else {
+            if (index >= 0) {
+                typesAvailable.remove(index);
+                availabilitiesList.remove(index);
+
+                return true;
+            }
+            return false;
         }
     }
 

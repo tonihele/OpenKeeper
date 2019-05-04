@@ -16,8 +16,15 @@
  */
 package toniarts.openkeeper.game.data;
 
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeExporter;
+import com.jme3.export.JmeImporter;
+import com.jme3.export.OutputCapsule;
+import com.jme3.export.Savable;
 import java.awt.Point;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,7 +36,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Keeper implements Comparable<Keeper>, IIndexable {
+public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
@@ -41,14 +48,14 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
     private int manaLoose;
     private int maxMana;
     private Point dungeonHeartLocation;
-    private final List<Short> availableRooms = new ArrayList<>();
-    private final List<Short> availableSpells = new ArrayList<>();
-    private final List<Short> availableCreatures = new ArrayList<>();
+    private List<Short> availableRooms = new ArrayList<>();
+    private List<Short> availableSpells = new ArrayList<>();
+    private List<Short> availableCreatures = new ArrayList<>();
 
     private transient Player player;
     private short id;
     private boolean destroyed = false;
-    private final Set<Short> allies = new HashSet<>(4);
+    private Set<Short> allies = new HashSet<>(4);
 
     public Keeper() {
 
@@ -219,6 +226,70 @@ public class Keeper implements Comparable<Keeper>, IIndexable {
 
     public List<Short> getAvailableCreatures() {
         return availableCreatures;
+    }
+
+    @Override
+    public void write(JmeExporter ex) throws IOException {
+        OutputCapsule out = ex.getCapsule(this);
+        out.write(id, "playerId", Integer.valueOf(0).shortValue());
+        out.write(ai, "ai", false);
+        out.write(aiType, "aiType", null);
+        out.write(gold, "gold", 0);
+        out.write(goldMined, "goldMined", 0);
+        out.write(mana, "mana", 0);
+        out.write(manaGain, "manaGain", 0);
+        out.write(manaLoose, "manaLoose", 0);
+        out.write(maxMana, "maxMana", 0);
+        out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
+        out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
+        out.write(toPrimitiveShortArray(availableRooms), "availableRooms", new short[0]);
+        out.write(toPrimitiveShortArray(availableSpells), "availableSpells", new short[0]);
+        out.write(toPrimitiveShortArray(availableCreatures), "availableCreatures", new short[0]);
+        out.write(destroyed, "destroyed", false);
+        out.write(toPrimitiveShortArray(allies), "allies", new short[0]);
+    }
+
+    @Override
+    public void read(JmeImporter im) throws IOException {
+        InputCapsule in = im.getCapsule(this);
+        id = in.readShort("playerId", id);
+        ai = in.readBoolean("ai", ai);
+        aiType = in.readEnum("aiType", AIType.class, aiType);
+        gold = in.readInt("gold", gold);
+        goldMined = in.readInt("goldMined", goldMined);
+        mana = in.readInt("mana", mana);
+        manaGain = in.readInt("manaGain", manaGain);
+        manaLoose = in.readInt("manaLoose", manaLoose);
+        maxMana = in.readInt("maxMana", maxMana);
+        int x = in.readInt("dungeonHeartLocationX", 0);
+        int y = in.readInt("dungeonHeartLocationY", 0);
+        dungeonHeartLocation = new Point(x, y);
+        availableRooms = toReferenceList(in.readShortArray("availableRooms", new short[0]));
+        availableSpells = toReferenceList(in.readShortArray("availableSpells", new short[0]));
+        availableCreatures = toReferenceList(in.readShortArray("availableCreatures", new short[0]));
+        destroyed = in.readBoolean("destroyed", destroyed);
+        allies = new HashSet<>(toReferenceList(in.readShortArray("allies", new short[0])));
+    }
+
+    private static short[] toPrimitiveShortArray(Collection<Short> list) {
+        short[] primList = new short[list.size()];
+        int i = 0;
+        for (Short value : list) {
+            primList[i] = value;
+
+            i++;
+        }
+
+        return primList;
+    }
+
+    private static List<Short> toReferenceList(short[] shortArray) {
+        List<Short> list = new ArrayList(shortArray.length);
+        for (short value : shortArray) {
+            list.add(value);
+        }
+
+        return list;
     }
 
     @Override

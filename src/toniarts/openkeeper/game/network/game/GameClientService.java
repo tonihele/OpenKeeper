@@ -408,5 +408,12 @@ public class GameClientService extends AbstractClientService
                 l.onShowUnitFlower(entityId, interval);
             }
         }
+
+        @Override
+        public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onRoomAvailabilityChanged(playerId, roomId, available);
+            }
+        }
     }
 }

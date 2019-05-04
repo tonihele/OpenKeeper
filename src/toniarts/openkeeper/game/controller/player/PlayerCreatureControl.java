@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.player;
 
 import com.simsilica.es.EntityId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -38,8 +39,8 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<E
     private Creature imp;
     private int creatureCount = 0;
 
-    public PlayerCreatureControl(Keeper keeper, Creature imp) {
-        super(keeper, keeper.getAvailableCreatures());
+    public PlayerCreatureControl(Keeper keeper, Creature imp, Collection<Creature> creatures) {
+        super(keeper, keeper.getAvailableCreatures(), creatures);
         this.imp = imp;
     }
 

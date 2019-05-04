@@ -398,6 +398,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
+    @Override
+    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onRoomAvailabilityChanged(playerId, roomId, available);
+                break;
+            }
+        }
+    }
+
     private class ServerMessageListener implements MessageListener<HostedConnection> {
 
         public ServerMessageListener() {
@@ -699,6 +709,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onShowUnitFlower(EntityId entityId, int interval) {
             getCallback().onShowUnitFlower(entityId, interval);
+        }
+
+        @Override
+        public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+            getCallback().onRoomAvailabilityChanged(playerId, roomId, available);
         }
 
     }

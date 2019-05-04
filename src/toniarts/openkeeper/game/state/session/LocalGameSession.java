@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -48,6 +49,8 @@ import toniarts.openkeeper.utils.Utils;
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
 
     private static final short PLAYER_ID = Player.KEEPER1_ID;
+    private static final Logger LOGGER = Logger.getLogger(LocalGameSession.class.getName());
+
     private boolean playerInTransition = false;
     private final EntityData entityData = new DefaultEntityData();
     private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
@@ -120,13 +123,24 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         BinaryExporter exporter = BinaryExporter.getInstance();
         BinaryImporter importer = BinaryImporter.getInstance();
 
-        // Clone the map data so it really is different as in normal multiplayer it is
+        // Clone the data so it really is different as in normal multiplayer it is
         for (GameSessionListener listener : listeners.getArray()) {
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                exporter.save(mapData, baos);
-                listener.onGameDataLoaded(players, (MapData) importer.load(baos.toByteArray()));
+            try (ByteArrayOutputStream mapStream = new ByteArrayOutputStream()) {
+                exporter.save(mapData, mapStream);
+
+                List<Keeper> copiedPlayers = new ArrayList<>(players.size());
+                for (Keeper player : players) {
+                    try (ByteArrayOutputStream playerStream = new ByteArrayOutputStream()) {
+                        exporter.save(player, playerStream);
+                        copiedPlayers.add((Keeper) importer.load(playerStream.toByteArray()));
+                    } catch (IOException ex) {
+                        LOGGER.log(Level.SEVERE, "Failed to serialize the players!", ex);
+                    }
+                }
+
+                listener.onGameDataLoaded(copiedPlayers, (MapData) importer.load(mapStream.toByteArray()));
             } catch (IOException ex) {
-                Logger.getLogger(LocalGameSession.class.getName()).log(Level.SEVERE, null, ex);
+                LOGGER.log(Level.SEVERE, "Failed to serialize the map data!", ex);
             }
         }
     }
@@ -425,6 +439,13 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void onSold(short keeperId, List<MapTile> tiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onSold(keeperId, tiles);
+        }
+    }
+
+    @Override
+    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onRoomAvailabilityChanged(playerId, roomId, available);
         }
     }
 

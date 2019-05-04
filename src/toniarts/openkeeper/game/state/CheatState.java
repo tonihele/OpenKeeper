@@ -49,7 +49,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         LEVEL_MAX("feel the power"),
         UNLOCK_ROOMS("this is my church"),
         UNLOCK_SPELLS("i believe its magic"),
-        UNLOCK_ROOMS_TRAPS("fit the best"),
+        UNLOCK_DOORS_TRAPS("fit the best"),
         REMOVE_FOW("now the rain has gone"),
         WIN_LEVEL("do not fear the reaper");
         private final String cheatMessage;
