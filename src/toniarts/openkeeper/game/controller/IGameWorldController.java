@@ -139,4 +139,11 @@ public interface IGameWorldController {
      * @param playerId the player who is getting the gold
      */
     public void getGold(int amount, short playerId);
+
+    /**
+     * Get the creatures controller
+     *
+     * @return creatures controller
+     */
+    public ICreaturesController getCreaturesController();
 }

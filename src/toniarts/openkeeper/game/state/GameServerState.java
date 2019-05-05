@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * The game state that actually runs the game. Has no relation to visuals.
@@ -274,7 +275,7 @@ public class GameServerState extends AbstractAppState {
             // See the cheat
             switch (cheat) {
                 case LEVEL_MAX: {
-                    // TODO:
+                    gameWorldController.getCreaturesController().levelUpCreatures(playerId, Utils.MAX_CREATURE_LEVEL);
                     break;
                 }
                 case MANA: {

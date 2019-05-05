@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Levels up creatures and adds experience points to them when they are doing
@@ -42,8 +43,6 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreatureExperienceSystem implements IGameLogicUpdatable {
-
-    public static final int MAX_CREATURE_LEVEL = 10;
 
     private final KwdFile kwdFile;
     private final EntitySet experienceEntities;
@@ -79,7 +78,7 @@ public class CreatureExperienceSystem implements IGameLogicUpdatable {
         // Increase the experience level of those who are worthy
         for (EntityId entityId : entityIds.getArray()) {
             CreatureExperience creatureExperience = entityData.getComponent(entityId, CreatureExperience.class);
-            if (creatureExperience.level >= MAX_CREATURE_LEVEL) {
+            if (creatureExperience.level >= Utils.MAX_CREATURE_LEVEL) {
                 continue;
             }
 

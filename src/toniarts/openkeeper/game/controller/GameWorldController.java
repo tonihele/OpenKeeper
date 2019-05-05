@@ -837,6 +837,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         return false;
     }
 
+    @Override
     public ICreaturesController getCreaturesController() {
         return creaturesController;
     }

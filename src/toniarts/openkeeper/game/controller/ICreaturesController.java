@@ -105,4 +105,12 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     void levelUpCreature(EntityId entityId, int level, int experience);
 
+    /**
+     * Level all player creatures to certain level
+     *
+     * @param playerId whose craetures to level up
+     * @param level the level to set to the creatures
+     */
+    void levelUpCreatures(short playerId, int level);
+
 }

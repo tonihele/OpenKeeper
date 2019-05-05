@@ -18,8 +18,11 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -343,6 +346,16 @@ public class CreaturesController implements ICreaturesController {
             }
         }
         return CreatureState.IDLE;
+    }
+
+    @Override
+    public void levelUpCreatures(short playerId, int level) {
+
+        // Find all the living creatures of the wanted player
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
+        for (Entity entity : entities) {
+            levelUpCreature(entity.getId(), level, 0);
+        }
     }
 
     @Override
