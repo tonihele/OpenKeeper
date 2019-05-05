@@ -582,7 +582,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // Since we keep reference on the creature controller classes... nullify the state machine
         // TODO: kinda hack?
-        creaturesController.createController(entity).getStateMachine().changeState(null);
+        if (creaturesController.isValidEntity(entity)) {
+            creaturesController.createController(entity).getStateMachine().changeState(null);
+        }
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
