@@ -96,4 +96,13 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     @Override
     ICreatureController createController(EntityId entityId);
 
+    /**
+     * Levels up a creature
+     *
+     * @param entityId the entity ID
+     * @param level the new experience level
+     * @param experience <i>leftover</i> experience for new level
+     */
+    void levelUpCreature(EntityId entityId, int level, int experience);
+
 }

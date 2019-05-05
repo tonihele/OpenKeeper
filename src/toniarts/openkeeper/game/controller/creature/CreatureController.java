@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
@@ -998,8 +999,8 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public int getLevel() {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.level;
+        CreatureExperience creatureExperience = entityData.getComponent(entityId, CreatureExperience.class);
+        return creatureExperience.level;
     }
 
     @Override

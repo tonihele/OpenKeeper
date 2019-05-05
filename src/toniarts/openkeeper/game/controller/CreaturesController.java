@@ -32,6 +32,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
+import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -226,10 +227,13 @@ public class CreaturesController implements ICreaturesController {
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.name = Utils.generateCreatureName();
         creatureComponent.bloodType = Utils.generateBloodType();
-        creatureComponent.level = level;
         creatureComponent.creatureId = creatureId;
         creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
         creatureComponent.stunDuration = creature.getAttributes().getStunDuration();
+
+        // The creature experience
+        CreatureExperience creatureExperience = new CreatureExperience();
+        creatureExperience.level = level;
 
         // Threat
         Threat threatComponent = new Threat();
@@ -248,9 +252,10 @@ public class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
 
         // Set every attribute by the level of the created creature
-        setAttributesByLevel(creatureComponent, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack);
+        setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack);
 
         entityData.setComponent(entity, creatureComponent);
+        entityData.setComponent(entity, creatureExperience);
         if (healthComponent != null) {
             entityData.setComponent(entity, healthComponent);
         } else {
@@ -340,9 +345,41 @@ public class CreaturesController implements ICreaturesController {
         return CreatureState.IDLE;
     }
 
-    private void setAttributesByLevel(CreatureComponent creatureComponent, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack) {
+    @Override
+    public void levelUpCreature(EntityId entityId, int level, int experience) {
+
+        // Get all the components needed
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        CreatureExperience creatureExperience = entityData.getComponent(entityId, CreatureExperience.class);
+        Health health = entityData.getComponent(entityId, Health.class);
+        Gold gold = entityData.getComponent(entityId, Gold.class);
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        Threat threat = entityData.getComponent(entityId, Threat.class);
+        CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+
+        // Create a new versions of them
+        creatureComponent = new CreatureComponent(creatureComponent);
+        creatureExperience = new CreatureExperience(creatureExperience);
+        health = new Health(health);
+        gold = new Gold(gold);
+        senses = new Senses(senses);
+        threat = new Threat(threat);
+        creatureMeleeAttack = new CreatureMeleeAttack(creatureMeleeAttack);
+
+        // Set the new stats
+        creatureExperience.level = level;
+        creatureExperience.experience = experience;
+
+        // Update stats
+        setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack);
+
+        // Set the new components to the entity
+        entityData.setComponents(entityId, creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack);
+    }
+
+    private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack) {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
-        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureComponent.level);
+        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureExperience.level);
         Creature.Attributes attributes = creature.getAttributes();
         creatureComponent.height = attributes.getHeight() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEIGHT_TILES).getValue() : 100) / 100);
         if (healthComponent != null) {
@@ -357,9 +394,9 @@ public class CreaturesController implements ICreaturesController {
         goldComponent.maxGold = attributes.getMaxGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MAX_GOLD_HELD).getValue() : 100) / 100);
         creatureComponent.hungerFill = attributes.getHungerFill() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS).getValue() : 100) / 100);
         creatureComponent.manaGenPrayer = attributes.getManaGenPrayer() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.experienceToNextLevel = attributes.getExpForNextLevel() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL).getValue() : 100) / 100);
-        creatureComponent.experiencePerSecond = attributes.getExpPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.experiencePerSecondTraining = attributes.getExpPerSecondTraining() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue() : 100) / 100);
+        creatureExperience.experienceToNextLevel = attributes.getExpForNextLevel() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL).getValue() : 100) / 100);
+        creatureExperience.experiencePerSecond = attributes.getExpPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND).getValue() : 100) / 100);
+        creatureExperience.experiencePerSecondTraining = attributes.getExpPerSecondTraining() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue() : 100) / 100);
         creatureComponent.researchPerSecond = attributes.getResearchPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND).getValue() : 100) / 100);
         creatureComponent.manufacturePerSecond = attributes.getManufacturePerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND).getValue() : 100) / 100);
         creatureComponent.decomposeValue = attributes.getDecomposeValue() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DECOMPOSE_VALUE).getValue() : 100) / 100);

@@ -41,4 +41,11 @@ public class Health implements EntityComponent {
         this.unconscious = unconscious;
     }
 
+    public Health(Health health) {
+        this.ownLandHealthIncrease = health.ownLandHealthIncrease;
+        this.health = health.health;
+        this.maxHealth = health.maxHealth;
+        this.unconscious = health.unconscious;
+    }
+
 }

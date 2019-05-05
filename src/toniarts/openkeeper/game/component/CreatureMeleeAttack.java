@@ -45,6 +45,13 @@ public class CreatureMeleeAttack extends Attack {
         this.attactStartTime = attackStartTime;
     }
 
+    public CreatureMeleeAttack(CreatureMeleeAttack creatureMeleeAttack) {
+        super(creatureMeleeAttack.rechargeTime, creatureMeleeAttack.range);
+        this.attackType = creatureMeleeAttack.attackType;
+        this.damage = creatureMeleeAttack.damage;
+        this.attactStartTime = creatureMeleeAttack.attactStartTime;
+    }
+
     public final Creature.AttackType getAttackType() {
 
         /**

@@ -25,6 +25,7 @@ import java.awt.Graphics2D;
 import java.util.Collection;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -62,6 +63,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         components.add(TaskComponent.class);
         components.add(PlayerObjective.class);
         components.add(PortalGem.class);
+        components.add(CreatureExperience.class);
         return components;
     }
 
@@ -151,13 +153,13 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             }
         }
 
-        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
-        if (creatureComponent == null) {
+        CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
+        if (creatureExperience == null) {
             return null;
         }
 
         // Level icon if nothing is found
-        return "Textures/GUI/moods/SL-" + String.format("%02d", creatureComponent.level) + ".png";
+        return "Textures/GUI/moods/SL-" + String.format("%02d", creatureExperience.level) + ".png";
     }
 
     private static String getTaskIcon(TaskType taskType) {
@@ -190,13 +192,13 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected void onTextureGenerated(Graphics2D g) {
-        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
-        if (creatureComponent == null) {
+        CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
+        if (creatureExperience == null) {
             return;
         }
 
         // Calculate the angle
-        int angle = (int) ((float) creatureComponent.experience / creatureComponent.experienceToNextLevel * 360);
+        int angle = (int) ((float) creatureExperience.experience / creatureExperience.experienceToNextLevel * 360);
 
         // Draw the experience indicator
         g.setPaint(new Color(0, 0, 0, 100));

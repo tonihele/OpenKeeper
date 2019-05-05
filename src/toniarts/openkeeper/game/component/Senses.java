@@ -37,4 +37,9 @@ public class Senses implements EntityComponent {
         this.distanceCanSee = distanceCanSee;
     }
 
+    public Senses(Senses senses) {
+        this.distanceCanHear = senses.distanceCanHear;
+        this.distanceCanSee = senses.distanceCanSee;
+    }
+
 }

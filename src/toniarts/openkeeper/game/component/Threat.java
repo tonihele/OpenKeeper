@@ -36,4 +36,8 @@ public class Threat implements EntityComponent {
         this.threat = threat;
     }
 
+    public Threat(Threat threat) {
+        this.threat = threat.threat;
+    }
+
 }

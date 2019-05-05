@@ -37,4 +37,9 @@ public class Gold implements EntityComponent {
         this.maxGold = maxGold;
     }
 
+    public Gold(Gold gold) {
+        this.gold = gold.gold;
+        this.maxGold = gold.maxGold;
+    }
+
 }
