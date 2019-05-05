@@ -62,10 +62,10 @@ import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
+import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
@@ -320,6 +320,9 @@ public class Main extends SimpleApplication {
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
+        // Init nifty while in render thread so it will get initialized before it is updated, otherwise we might hit a rare race-condition
+        Nifty nifty = getNifty();
+
         // Initiate the title screen
         TitleScreenState gameLoader = new TitleScreenState(this) {
 
@@ -359,7 +362,6 @@ public class Main extends SimpleApplication {
                     }
 
                     // Nifty
-                    Nifty nifty = getNifty();
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
                     setupNiftyResourceBundles(nifty);
@@ -566,8 +568,11 @@ public class Main extends SimpleApplication {
      */
     private void startGame() {
         if (params.containsKey("level")) {
-            GameState gameState = new GameState(params.get("level"));
-            stateManager.attach(gameState);
+            try {
+                LocalGameSession.CreateLocalGame(params.get("level"), false, stateManager, this);
+            } catch (IOException ex) {
+                throw new RuntimeException("Failed to start the game!", ex);
+            }
         } else {
 
             // Enable the start menu

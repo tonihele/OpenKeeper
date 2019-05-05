@@ -17,13 +17,16 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * A task for creatures to haul the captured enemy to prison
@@ -32,19 +35,22 @@ import toniarts.openkeeper.world.room.GenericRoom;
  */
 public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask {
 
+    private final ICreatureController creature;
     private boolean executed = false;
 
-    public CarryEnemyCreatureToPrison(WorldState worldState, int x, int y, short playerId, GenericRoom room, TaskManager taskManager) {
-        super(worldState, x, y, playerId, room, taskManager);
+    public CarryEnemyCreatureToPrison(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
+            TaskManager taskManager, ICreatureController creature) {
+        super(navigationService, mapController, x, y, playerId, room, taskManager);
+        this.creature = creature;
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         if (!executed) {
             return super.isValid(creature);
         }
@@ -62,21 +68,18 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-
-        // A bit dirty but it is always a creature we are hauling
-        ((CreatureControl) creature.getHaulable()).imprison();
-
+    public void executeTask(ICreatureController creature, float executionDuration) {
+        this.creature.imprison();
         executed = true;
     }
 
     @Override
-    protected GenericRoom.ObjectType getRoomObjectType() {
-        return GenericRoom.ObjectType.PRISONER;
+    protected ObjectType getRoomObjectType() {
+        return ObjectType.PRISONER;
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 
@@ -86,11 +89,16 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
     }
 
     @Override
-    public void unassign(CreatureControl creature) {
+    public void unassign(ICreatureController creature) {
         super.unassign(creature);
 
         // Set the dragged state
-        creature.setHaulable(null);
+        this.creature.setHaulable(null);
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CARRY_CREATURE_TO_JAIL;
     }
 
 }

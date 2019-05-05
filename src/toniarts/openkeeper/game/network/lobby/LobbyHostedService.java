@@ -21,6 +21,7 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import com.simsilica.ethereal.NetworkStateListener;
 import java.util.*;
@@ -29,6 +30,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.NetworkConstants;
+import toniarts.openkeeper.game.network.game.GameHostedService;
 import static toniarts.openkeeper.game.network.session.AccountHostedService.ATTRIBUTE_SYSTEM_MEMORY;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
@@ -44,7 +46,7 @@ import toniarts.openkeeper.tools.convert.map.AI;
  */
 public class LobbyHostedService extends AbstractHostedConnectionService implements LobbyService {
 
-    private static final Logger logger = Logger.getLogger(LobbyHostedService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(LobbyHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
     public static final String ATTRIBUTE_KEEPER_ID = "lobby.keeperID";
@@ -56,6 +58,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     private final Object playerLock = new Object();
     private final Map<ClientInfo, AbstractLobbySessionImpl> players = new ConcurrentHashMap<>(4, 0.75f, 5);
     private String mapName;
+    private boolean gameStarted = false;
 
     /**
      * Creates a new lobby service that will use the default reliable channel
@@ -85,10 +88,10 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
      * and will then be able to send/receive messages.
      */
     public void startHostingOnConnection(HostedConnection conn, String playerName) {
-        logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
+        LOGGER.log(Level.FINER, "startHostingOnConnection({0})", conn);
 
         boolean playerAdded = false;
-        if (players.size() < maxPlayers) {
+        if (players.size() < maxPlayers && !gameStarted) {
             synchronized (playerLock) {
                 if (players.size() < maxPlayers) {
                     Keeper keeper = LobbyUtils.getNextKeeper(false, players.keySet());
@@ -118,7 +121,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         } else {
 
             // Oh noes, no room, terminate
-            conn.close("Game full!");
+            conn.close(gameStarted ? "Game is already started, on the fly joining currently not supported!" : "Game full!");
         }
     }
 
@@ -133,7 +136,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.FINER, "stopHostingOnConnection({0})", conn);
+        LOGGER.log(Level.FINER, "stopHostingOnConnection({0})", conn);
         LobbySessionImpl player = getLobbySession(conn);
         if (player != null) {
 
@@ -241,6 +244,11 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
                             return clientInfo.getId();
                         }
 
+                        @Override
+                        public void onGameStarted(String mapName, List<ClientInfo> players) {
+
+                        }
+
                     };
                     players.put(clientInfo, session);
                 }
@@ -277,10 +285,41 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
     }
 
     private void notifyPlayersChange() {
+        List<ClientInfo> playerList = getPlayers();
         for (AbstractLobbySessionImpl lobby : players.values()) {
-            lobby.onPlayerListChanged(lobby.getPlayers());
-
+            lobby.onPlayerListChanged(playerList);
         }
+    }
+
+    @Override
+    public void startGame() {
+        gameStarted = true;
+
+        // Notify players
+        List<ClientInfo> playerList = getPlayers();
+        for (AbstractLobbySessionImpl lobby : this.players.values()) {
+            lobby.onGameStarted(mapName, playerList);
+        }
+    }
+
+    private List<ClientInfo> getPlayers() {
+        List<ClientInfo> keepers = new ArrayList<>(players.keySet());
+        Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
+
+        // Update pings
+        EtherealHost etherealHost = getService(EtherealHost.class);
+        for (ClientInfo clientInfo : keepers) {
+            AbstractLobbySessionImpl lobby = players.get(clientInfo);
+
+            if (lobby != null && lobby.getHostedConnection() != null) {
+                NetworkStateListener networkStateListener = etherealHost.getStateListener(lobby.getHostedConnection());
+                if (networkStateListener != null) {
+                    clientInfo.setPing(networkStateListener.getConnectionStats().getAveragePingTime());
+                }
+            }
+        }
+
+        return keepers;
     }
 
     private abstract class AbstractLobbySessionImpl implements LobbySession, LobbySessionListener {
@@ -308,6 +347,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         private final HostedConnection conn;
         private LobbySessionListener callback;
+        private boolean hostingGameServices = false;
 
         public LobbySessionImpl(HostedConnection conn, ClientInfo clientInfo) {
             super(clientInfo);
@@ -330,6 +370,16 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         @Override
         public void setReady(boolean ready) {
+
+            // Not really exact science, do this here, if on game start,
+            // there might not be enough time for the services to start
+            if (ready && !hostingGameServices) {
+                hostingGameServices = true;
+                getService(EtherealHost.class).startHostingOnConnection(conn);
+                getService(GameHostedService.class).startHostingOnConnection(conn, getClientInfo());
+                getService(EntityDataHostedService.class).startHostingOnConnection(conn);
+            }
+
             getClientInfo().setReady(ready);
             for (AbstractLobbySessionImpl lobby : players.values()) {
                 lobby.onPlayerListChanged(getPlayers());
@@ -348,28 +398,17 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
         @Override
         public List<ClientInfo> getPlayers() {
-            List<ClientInfo> keepers = new ArrayList<>(players.keySet());
-            Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o1.getKeeper().getId(), o2.getKeeper().getId()));
-
-            // Update pings
-            EtherealHost etherealHost = getService(EtherealHost.class);
-            for (ClientInfo clientInfo : keepers) {
-                AbstractLobbySessionImpl lobby = players.get(clientInfo);
-
-                if (lobby != null && lobby.getHostedConnection() != null) {
-                    NetworkStateListener networkStateListener = etherealHost.getStateListener(lobby.getHostedConnection());
-                    if (networkStateListener != null) {
-                        clientInfo.setPing(networkStateListener.getConnectionStats().getAveragePingTime());
-                    }
-                }
-            }
-
-            return keepers;
+            return LobbyHostedService.this.getPlayers();
         }
 
         @Override
         public void onPlayerListChanged(List<ClientInfo> players) {
             getCallback().onPlayerListChanged(players);
+        }
+
+        @Override
+        public void onGameStarted(String mapName, List<ClientInfo> players) {
+            getCallback().onGameStarted(mapName, players);
         }
 
         @Override

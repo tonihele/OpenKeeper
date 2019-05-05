@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.console;
 
 import com.jme3.app.state.AppStateManager;
-import com.jme3.math.Vector2f;
 import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.ConsoleCommands;
 import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
@@ -25,18 +24,18 @@ import de.lessvoid.nifty.tools.Color;
 import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.room.ICreatureEntrance;
 
 /**
  *
  * @author ArchDemon
  */
 public class GameConsole {
+
     private final Console console;
     private ConsoleCommands consoleCommands;
     private boolean welcomeMessageShown = false;
@@ -81,7 +80,7 @@ public class GameConsole {
 
     private void initialize() {
         consoleCommands = new ConsoleCommands(console.getElement().getNifty(), console);
-        creatures = stateManager.getState(GameState.class).getLevelData().getCreatureList();
+        creatures = stateManager.getState(GameClientState.class).getLevelData().getCreatureList();
 
         ConsoleCommand parameterCommand = new ParameterCommand();
 
@@ -95,7 +94,6 @@ public class GameConsole {
                 consoleCommands.registerCommand(parameterCmd.toString().toLowerCase(), parameterCommand);
             }
         }
-
 
         ConsoleCommand simpleCommand = new SimpleCommand();
         for (SimpleCommands simpleCmd : SimpleCommands.values()) {
@@ -123,6 +121,7 @@ public class GameConsole {
     }
 
     public class SimpleCommand implements ConsoleCommand {
+
         @Override
         public void execute(final String[] args) {
             String command = args[0].toUpperCase();
@@ -178,7 +177,7 @@ public class GameConsole {
                 case ADD_MANA:
                     try {
                         int amount = Integer.parseInt(args[1]);
-                        keeper.getManaControl().addMana(amount);
+//                        keeper.getManaControl().addMana(amount);
                     } catch (NumberFormatException e) {
                         console.outputError("First parameter must be a number!");
                     }
@@ -227,12 +226,12 @@ public class GameConsole {
     }
 
     private void spawnImp() {
-        spawnCreature(keeper.getCreatureControl().getImp().getCreatureId(), (short) 1);
+//        spawnCreature(keeper.getCreatureControl().getImp().getCreatureId(), (short) 1);
     }
 
     private void spawnCreature(short creatureId, short level) {
-        Vector2f dhEntrance = WorldUtils.pointToVector2f(((ICreatureEntrance) keeper.getRoomControl().getDungeonHeart()).getEntranceCoordinate());
-        stateManager.getState(WorldState.class).getThingLoader().spawnCreature(creatureId, keeper.getId(), level, dhEntrance, false, null);
+//        Vector2f dhEntrance = WorldUtils.pointToVector2f(((ICreatureEntrance) keeper.getRoomControl().getDungeonHeart()).getEntranceCoordinate());
+//        stateManager.getState(WorldState.class).getThingLoader().spawnCreature(creatureId, keeper.getId(), level, dhEntrance, false, null);
     }
 
     private boolean showHelpMessage() {

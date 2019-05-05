@@ -36,6 +36,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  * @param <V> the value type to add
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class RoomObjectControl<T extends ObjectControl, V> {
 
     protected final GenericRoom parent;

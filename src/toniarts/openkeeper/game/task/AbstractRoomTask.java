@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.game.task;
 
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.control.RoomObjectControl;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**
  * A base of a task that involves a room
@@ -28,28 +30,28 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  */
 public abstract class AbstractRoomTask extends AbstractTileTask {
 
-    private final GenericRoom room;
+    private final IRoomController room;
 
-    public AbstractRoomTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
-        super(worldState, x, y, playerId);
+    public AbstractRoomTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room) {
+        super(navigationService, mapController, x, y, playerId);
 
         this.room = room;
     }
 
-    protected GenericRoom getRoom() {
+    protected IRoomController getRoom() {
         return room;
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
 
         // See that the room exists and has capacity etc.
         return room.getRoomInstance().getOwnerId() == playerId && !room.isDestroyed() && !getRoomObjectControl().isFullCapacity();
     }
 
-    protected abstract GenericRoom.ObjectType getRoomObjectType();
+    protected abstract ObjectType getRoomObjectType();
 
-    protected RoomObjectControl getRoomObjectControl() {
+    protected IRoomObjectControl getRoomObjectControl() {
         return getRoom().getObjectControl(getRoomObjectType());
     }
 

@@ -20,21 +20,28 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.player.PlayerCreatureControl;
-import toniarts.openkeeper.game.player.PlayerCreatureControl.CreatureUIState;
-import toniarts.openkeeper.game.player.PlayerGoldControl;
-import toniarts.openkeeper.game.player.PlayerRoomControl;
-import toniarts.openkeeper.game.player.PlayerSpellControl;
-import toniarts.openkeeper.game.player.PlayerStatsControl;
+import toniarts.openkeeper.game.listener.PlayerListener;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -47,19 +54,22 @@ import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.object.GoldObjectControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
- * The player state! GUI, camera, etc. Player interactions
+ * The player state! GUI, camera, etc. Player interactions. TODO: shouldn't
+ * really be persistent, only persistent due to Nifty screen, these screen
+ * controllers could be just the persistent ones
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerState extends AbstractAppState {
+public class PlayerState extends AbstractAppState implements PlayerListener {
 
     protected Main app;
 
@@ -67,6 +77,8 @@ public class PlayerState extends AbstractAppState {
     protected AppStateManager stateManager;
 
     private short playerId;
+    private KwdFile kwdFile;
+    private EntityData entityData;
 
     private boolean paused = false;
 
@@ -79,7 +91,7 @@ public class PlayerState extends AbstractAppState {
     private boolean transitionEnd = true;
     private PlayerScreenController screen;
 
-    private static final Logger logger = Logger.getLogger(PlayerState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
     public PlayerState(int playerId, Main app) {
         this.playerId = (short) playerId;
@@ -124,8 +136,8 @@ public class PlayerState extends AbstractAppState {
         if (enabled) {
 
             // Get the game state
-            final GameState gameState = stateManager.getState(GameState.class);
-            screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile());
+            final GameClientState gameState = stateManager.getState(GameClientState.class);
+            screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile(), entityData);
 
             // Cursor
             app.getInputManager().setCursorVisible(true);
@@ -135,6 +147,7 @@ public class PlayerState extends AbstractAppState {
             screen.setPause(paused);
 
             stateManager.attach(new ConsoleState());
+
             // Create app states
             Player player = gameState.getLevelData().getPlayer(playerId);
 
@@ -163,7 +176,7 @@ public class PlayerState extends AbstractAppState {
             appStates.add(possessionState);
 
             cameraState = new PlayerCameraState(player);
-            interactionState = new PlayerInteractionState(player) {
+            interactionState = new PlayerInteractionState(player, kwdFile, entityData, gameState.getMapClientService(), gameState.getTextParser()) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState) {
                     PlayerState.this.screen.updateSelectedItem(interactionState);
@@ -203,8 +216,30 @@ public class PlayerState extends AbstractAppState {
             stateManager.detach(stateManager.getState(ConsoleState.class));
 
             appStates.clear();
+            screen.cleanup();
             screen.goToScreen(PlayerScreenController.SCREEN_EMPTY_ID);
         }
+    }
+
+    @Override
+    public void update(float tpf) {
+        screen.update(tpf);
+    }
+
+    public KwdFile getKwdFile() {
+        return kwdFile;
+    }
+
+    public void setKwdFile(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
+    }
+
+    public EntityData getEntityData() {
+        return entityData;
+    }
+
+    public void setEntityData(EntityData entityData) {
+        this.entityData = entityData;
     }
 
     public PlayerScreenController getScreen() {
@@ -217,7 +252,7 @@ public class PlayerState extends AbstractAppState {
      * @return this player
      */
     public Keeper getPlayer() {
-        GameState gs = stateManager.getState(GameState.class);
+        GameClientState gs = stateManager.getState(GameClientState.class);
         if (gs != null) {
             return gs.getPlayer(playerId);
         }
@@ -226,41 +261,41 @@ public class PlayerState extends AbstractAppState {
 
     public PlayerStatsControl getStatsControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getStatsControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getStatsControl();
+//        }
         return null;
     }
 
     public PlayerGoldControl getGoldControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getGoldControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getGoldControl();
+//        }
         return null;
     }
 
     public PlayerCreatureControl getCreatureControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getCreatureControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getCreatureControl();
+//        }
         return null;
     }
 
     public PlayerRoomControl getRoomControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getRoomControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getRoomControl();
+//        }
         return null;
     }
 
     public PlayerSpellControl getSpellControl() {
         Keeper keeper = getPlayer();
-        if (keeper != null) {
-            return keeper.getSpellControl();
-        }
+//        if (keeper != null) {
+//            return keeper.getSpellControl();
+//        }
         return null;
     }
 
@@ -297,17 +332,25 @@ public class PlayerState extends AbstractAppState {
     }
 
     protected List<Room> getAvailableRoomsToBuild() {
-        return getRoomControl().getTypesAvailable();
+
+        // TODO: cache, or something, maybe add the listeners here
+        GameClientState gameState = stateManager.getState(GameClientState.class);
+        Keeper keeper = getPlayer();
+        List<Room> rooms = new ArrayList<>(keeper.getAvailableRooms().size());
+        keeper.getAvailableRooms().stream().forEach((id) -> {
+            rooms.add(gameState.getLevelData().getRoomById(id));
+        });
+        return rooms;
     }
 
     protected List<Door> getAvailableDoors() {
-        GameState gameState = stateManager.getState(GameState.class);
+        GameClientState gameState = stateManager.getState(GameClientState.class);
         List<Door> doors = gameState.getLevelData().getDoors();
         return doors;
     }
 
     protected List<Trap> getAvailableTraps() {
-        GameState gameState = stateManager.getState(GameState.class);
+        GameClientState gameState = stateManager.getState(GameClientState.class);
         List<Trap> traps = new ArrayList<>();
         for (Trap trap : gameState.getLevelData().getTraps()) {
             if (trap.getGuiIcon() == null) {
@@ -319,11 +362,28 @@ public class PlayerState extends AbstractAppState {
     }
 
     public void setPaused(boolean paused) {
+
+        // Pause / unpause
+        // TODO: We should give the client to these states to self register to the client service listener...
+        // But PlayerState is persistent.. I don't want to have the reference here
+        if (paused) {
+            stateManager.getState(GameClientState.class).getGameClientService().pauseGame();
+        } else {
+            stateManager.getState(GameClientState.class).getGameClientService().resumeGame();
+        }
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
+    public void onPaused(boolean paused) {
+
         // Pause state
         this.paused = paused;
 
-        // Pause / unpause
-        stateManager.getState(GameState.class).setEnabled(!paused);
+        // Delegate to the screen
+        screen.onPaused(paused);
 
         for (AbstractPauseAwareState state : appStates) {
             if (state.isPauseable()) {
@@ -332,14 +392,10 @@ public class PlayerState extends AbstractAppState {
         }
     }
 
-    public boolean isPaused() {
-        return paused;
-    }
-
     public void quitToMainMenu() {
 
         // Disable us, detach game and enable start
-        stateManager.getState(GameState.class).detach();
+        stateManager.getState(GameClientState.class).detach();
         setEnabled(false);
         stateManager.getState(MainMenuState.class).setEnabled(true);
     }
@@ -358,42 +414,59 @@ public class PlayerState extends AbstractAppState {
     }
 
     public void zoomToDungeon() {
-        MapLoader mapLoader = stateManager.getState(WorldState.class).getMapLoader();
-        for (Map.Entry<RoomInstance, GenericRoom> en : mapLoader.getRoomActuals().entrySet()) {
-            RoomInstance key = en.getKey();
-            GenericRoom value = en.getValue();
-            if (value.isDungeonHeart() && key.getOwnerId() == playerId) {
-                cameraState.setCameraLookAt(key.getCenter());
-                break;
-            }
-        }
-    }
-
-    public void zoomToCreature(short creatureId, CreatureUIState uiState) {
-        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
-        CreatureControl creatureControl = getCreatureControl().getNextCreature(creature, uiState);
-
-        zoomToCreature(creatureControl);
+        cameraState.setCameraLookAt(new Point(stateManager.getState(GameClientState.class).getPlayer(playerId).getDungeonHeartLocation()));
     }
 
     /**
-     * Zoom to given creature
+     * Zoom to entity
      *
-     * @param creature creature to zoom to
+     * @param entityId the entity to zoom to
+     * @param animate whether to animate the transition
      */
-    public void zoomToCreature(CreatureControl creature) {
-        cameraState.setCameraLookAt(creature.getSpatial());
+    public void zoomToEntity(EntityId entityId, boolean animate) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (position != null) {
+            zoomToPosition(position.position, animate);
+        }
     }
 
-    void pickUpCreature(short creatureId, CreatureUIState uiState) {
-        Creature creature = stateManager.getState(GameState.class).getLevelData().getCreature(creatureId);
-        CreatureControl creatureControl = getCreatureControl().getCreature(creature, uiState);
+    /**
+     * Zoom to position
+     *
+     * @param position the position to zoom to
+     * @param animate whether to animate the transition
+     */
+    public void zoomToPosition(Vector3f position, boolean animate) {
+        if (animate) {
+            cameraState.zoomToPoint(position);
+        } else {
+            cameraState.setCameraLookAt(position);
+        }
+    }
 
-        interactionState.pickupObject(creatureControl);
+    /**
+     * Pick up an entity
+     *
+     * @param entityId entity
+     */
+    public void pickUpEntity(EntityId entityId) {
+
+        // TODO: We should really have some sort of static etc. service that we can just ask these for entityId, not to pass a view controller
+        // They can be used with convenience methods from the view controller yes, but so that all will have access, shared with game logic, so the rules are the same (canPickup etc.)
+        interactionState.pickupObject(new EntityViewControl(entityId, entityData, app, null, assetManager, null) {
+            @Override
+            protected ArtResource getAnimationData(Object state) {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        });
     }
 
     public short getPlayerId() {
         return playerId;
+    }
+
+    public void setPlayerId(short playerId) {
+        this.playerId = playerId;
     }
 
     protected Creature getPossessionCreature() {
@@ -404,18 +477,21 @@ public class PlayerState extends AbstractAppState {
         return interactionState.getInteractionState();
     }
 
+    public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+        cameraState.rotateAroundPoint(point, relative, angle, time);
+    }
+
+    public void showMessage(int textId) {
+        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", textId));
+    }
+
+    public void zoomToPoint(Vector3f point) {
+        cameraState.zoomToPoint(point);
+    }
+
     protected void grabGold(int amount) {
         if (!interactionState.isKeeperHandFull()) {
-            WorldState ws = stateManager.getState(WorldState.class);
-            int left = ws.substractGoldFromPlayer(amount, playerId);
-            int goldSubstracted = amount - left;
-
-            // FIXME: questionable way of creating gold
-            GoldObjectControl goc = ws.getThingLoader().addRoomGold(new Point(0, 0),
-                    playerId, goldSubstracted, goldSubstracted);
-            if (goc != null) {
-                interactionState.pickupObject(goc);
-            }
+            stateManager.getState(GameClientState.class).getGameClientService().getGold(amount);
         }
     }
 
@@ -447,4 +523,45 @@ public class PlayerState extends AbstractAppState {
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));
     }
+
+    @Override
+    public void onAdded(PlayerSpell spell) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onRemoved(PlayerSpell spell) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onResearchStatusChanged(PlayerSpell spell) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onGoldChange(short keeperId, int gold) {
+        screen.setGold(gold);
+    }
+
+    @Override
+    public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
+        screen.setMana(mana, manaLoose, manaGain);
+    }
+
+    @Override
+    public void onBuild(short keeperId, List<MapTile> tiles) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onSold(short keeperId, List<MapTile> tiles) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+        screen.populateRoomTab();
+    }
+
 }

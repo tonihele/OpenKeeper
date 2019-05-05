@@ -142,5 +142,13 @@ public class LobbyClientService extends AbstractClientService
                 l.onPlayerListChanged(players);
             }
         }
+
+        @Override
+        public void onGameStarted(String mapName, List<ClientInfo> players) {
+            logger.log(Level.FINEST, "onGameStarted({0})", new Object[]{mapName});
+            for (LobbySessionListener l : listeners) {
+                l.onGameStarted(mapName, players);
+            }
+        }
     }
 }

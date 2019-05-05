@@ -24,6 +24,7 @@ import toniarts.openkeeper.world.TileData;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class MapPathFinder extends IndexedAStarPathFinder<TileData> {
 
     public MapPathFinder(MapIndexedGraph graph, boolean calculateMetrics) {

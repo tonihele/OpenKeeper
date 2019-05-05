@@ -1,0 +1,168 @@
+/*
+ * Copyright (C) 2014-2018 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.game.logic;
+
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureEfficiency;
+import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureSlapped;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Variable;
+
+/**
+ * Manages slapping of creatures, the added effects etc
+ *
+ * @author Toni Helenius <helenius.toni@gmail.com>
+ */
+public class CreatureSlapSystem implements IGameLogicUpdatable {
+
+    private final KwdFile kwdFile;
+    private final EntitySet creatureEntities;
+    private final EntityData entityData;
+    private final int maxSlapDuration;
+    private final Map<Short, PlayerStatsControl> statControls = new HashMap<>(4);
+    private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
+
+    private final static int EFFICIENCY_BONUS = 10;
+
+    public CreatureSlapSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this.kwdFile = kwdFile;
+        this.entityData = entityData;
+        for (IPlayerController playerController : playerControllers) {
+            statControls.put(playerController.getKeeper().getId(), playerController.getStatsControl());
+        }
+        maxSlapDuration = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS).getValue();
+
+        creatureEntities = entityData.getEntities(CreatureSlapped.class);
+        processAddedEntities(creatureEntities);
+    }
+
+    @Override
+    public void processTick(float tpf, double gameTime) {
+        if (creatureEntities.applyChanges()) {
+
+            processAddedEntities(creatureEntities.getAddedEntities());
+
+            processDeletedEntities(creatureEntities.getRemovedEntities());
+
+            processChangedEntities(creatureEntities.getChangedEntities());
+        }
+
+        // Remove the slap effect from creatures
+        // TODO: So many variables, for work efficiency and speeding up, so, figure out
+        for (Map.Entry<EntityId, Double> entry : slapStartTimesByEntityId.entrySet()) {
+            if (gameTime - entry.getValue() >= maxSlapDuration) {
+                entityData.removeComponent(entry.getKey(), CreatureSlapped.class);
+            }
+        }
+    }
+
+    private void processAddedEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            double startTime = entity.get(CreatureSlapped.class).startTime;
+            short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
+            short ownerId = entityData.getComponent(entity.getId(), Owner.class).ownerId;
+
+            // Slap
+            handleCreatureSlap(entity, startTime, creatureId, ownerId);
+
+            // Efficiency, this doesn't stack, so only when added
+            // TODO: there are several parameters, speed and work efficiency, and they look a bit weird to me, so just this now
+            CreatureEfficiency efficiency = entityData.getComponent(entity.getId(), CreatureEfficiency.class);
+            if (efficiency != null) {
+                entityData.setComponent(entity.getId(), new CreatureEfficiency(efficiency.efficiencyPercentage + EFFICIENCY_BONUS));
+            }
+        }
+    }
+
+    private void handleCreatureSlap(Entity entity, double startTime, short creatureId, short ownerId) {
+        slapStartTimesByEntityId.put(entity.getId(), startTime);
+
+        // Stats and health
+        Creature creature = kwdFile.getCreature(creatureId);
+
+        // Stat
+        statControls.get(ownerId).creatureSlapped(creature);
+
+        // Damage
+        int damage = creature.getAttributes().getSlapDamage();
+        if (damage != 0) {
+            Health health = entityData.getComponent(entity.getId(), Health.class);
+            if (health != null) {
+                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, health.health - damage, health.maxHealth, false));
+            }
+        }
+
+        // Mood
+        short moodChange = creature.getAttributes().getAngerSlap();
+        if (moodChange != 0) {
+            CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
+            if (mood != null) {
+                entityData.setComponent(entity.getId(), new CreatureMood(mood.moodValue - moodChange));
+            }
+        }
+
+        // TODO: Apply the force
+    }
+
+    private void processDeletedEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            slapStartTimesByEntityId.remove(entity.getId());
+            CreatureEfficiency efficiency = entityData.getComponent(entity.getId(), CreatureEfficiency.class);
+            if (efficiency != null) {
+                entityData.setComponent(entity.getId(), new CreatureEfficiency(efficiency.efficiencyPercentage - EFFICIENCY_BONUS));
+            }
+        }
+    }
+
+    private void processChangedEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            double startTime = entity.get(CreatureSlapped.class).startTime;
+            short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
+            short ownerId = entityData.getComponent(entity.getId(), Owner.class).ownerId;
+
+            // Slap
+            handleCreatureSlap(entity, startTime, creatureId, ownerId);
+        }
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+        creatureEntities.release();
+        slapStartTimesByEntityId.clear();
+    }
+
+}

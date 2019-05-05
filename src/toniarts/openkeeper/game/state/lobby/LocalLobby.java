@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -35,17 +36,17 @@ import toniarts.openkeeper.utils.Utils;
 public class LocalLobby implements LobbyService, LobbyClientService {
 
     private final Map<Integer, ClientInfo> players = new HashMap<>(4);
-    private final List<LobbySessionListener> listeners = new ArrayList<>();
+    private final List<LobbySessionListener> listeners = new CopyOnWriteArrayList<>();
     private String map;
     private int maxPlayers = 0;
     private int idCounter = 0;
     private boolean ready = false;
 
     public LocalLobby() {
-        Keeper keeper = new Keeper(false, Player.KEEPER1_ID, null);
+        Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
         ClientInfo clientInfo = createClientInfo(keeper, Utils.getMainTextResourceBundle().getString("58"));
         players.put(clientInfo.getId(), clientInfo);
-        keeper = new Keeper(true, Player.KEEPER2_ID, null);
+        keeper = new Keeper(true, Player.KEEPER2_ID);
         clientInfo = createClientInfo(keeper, null);
         players.put(clientInfo.getId(), clientInfo);
     }
@@ -136,5 +137,12 @@ public class LocalLobby implements LobbyService, LobbyClientService {
     @Override
     public int getPlayerId() {
         return 0;
+    }
+
+    @Override
+    public void startGame() {
+        for (LobbySessionListener l : listeners) {
+            l.onGameStarted(map, getPlayers());
+        }
     }
 }

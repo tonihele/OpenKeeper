@@ -35,10 +35,9 @@ import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.world.MapLoader;
 
 /**
  * Our wrapper on JME cinematic class, produces ready cinematics from camera
@@ -51,7 +50,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class Cinematic extends com.jme3.cinematic.Cinematic {
 
     private final AssetManager assetManager;
-    private static final Logger logger = Logger.getLogger(Cinematic.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(Cinematic.class.getName());
     private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
     private final AppStateManager stateManager;
@@ -77,10 +76,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         this(assetManager, cam, WorldUtils.pointToVector3f(start), cameraSweepFile, scene, stateManager);
     }
 
-    public Cinematic(final Main app, String cameraSweepFile, final ActionPoint ap) {
+    public Cinematic(final Main app, String cameraSweepFile, final Vector3f start) {
 
         this(app.getAssetManager(), app.getCamera(),
-                WorldUtils.ActionPointToVector3f(ap).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                start.addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
                 cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 

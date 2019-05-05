@@ -30,6 +30,7 @@ import java.util.List;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <T> Room, Terrain
  */
+@Deprecated
 public class EntityInstance<T> {
 
     private final T entity;

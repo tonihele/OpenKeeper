@@ -33,7 +33,7 @@ public class MovementThread implements Runnable {
     private final float tpf;
     private final Application app;
     private final ThingLoader thingLoader;
-    private static final Logger logger = Logger.getLogger(MovementThread.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MovementThread.class.getName());
 
     public MovementThread(Application app, float tpf, ThingLoader thingLoader) {
         this.app = app;
@@ -53,9 +53,9 @@ public class MovementThread implements Runnable {
 
             // Logging
             long tickTime = System.currentTimeMillis() - start;
-            logger.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Movement took {0}ms!", tickTime);
+            LOGGER.log(tickTime < tpf * 1000 ? Level.FINEST : Level.SEVERE, "Movement took {0}ms!", tickTime);
         } catch (Exception e) {
-            logger.severe(e.getLocalizedMessage());
+            LOGGER.severe(e.getLocalizedMessage());
         }
     }
 

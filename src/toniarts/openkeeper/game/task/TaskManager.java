@@ -17,6 +17,11 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,8 +37,25 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.ai.creature.CreatureState;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
@@ -54,34 +76,50 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.world.MapData;
-import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.listener.CreatureListener;
-import toniarts.openkeeper.world.listener.ObjectListener;
-import toniarts.openkeeper.world.listener.TileChangeListener;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.object.ObjectControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Task manager for several players. Can assign creatures to different tasks.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskManager {
+public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
-    private final WorldState worldState;
-    private final Map<Short, Set<AbstractTask>> taskQueues;
-    private final Map<GenericRoom, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
-    private static final Logger logger = Logger.getLogger(TaskManager.class.getName());
+    private final IMapController mapController;
+    private final IGameWorldController gameWorldController;
+    private final ICreaturesController creaturesController;
+    private final INavigationService navigationService;
+    private final ILevelInfo levelInfo;
+    private final EntityData entityData;
+    private final EntitySet taskEntities;
+    private final EntitySet unconsciousEntities;
+    private final EntitySet corpseEntities;
+    private final Map<Short, Set<Task>> taskQueues;
+    private final Map<Long, Task> tasksByIds = new HashMap<>();
+    private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
+    private final Map<Short, IPlayerController> playerControllers;
+    private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+    private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
-    public TaskManager(WorldState worldState, Collection<Keeper> players) {
-        this.worldState = worldState;
+    public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController, ICreaturesController creaturesController, INavigationService navigationService,
+            Collection<IPlayerController> players, ILevelInfo levelInfo) {
+        this.entityData = entityData;
+        this.mapController = mapController;
+        this.gameWorldController = gameWorldController;
+        this.creaturesController = creaturesController;
+        this.navigationService = navigationService;
+        this.levelInfo = levelInfo;
 
+        // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
         taskQueues = new HashMap<>(players.size());
-        for (Keeper keeper : players) {
+        playerControllers = new HashMap<>();
+        for (IPlayerController playerController : players) {
+            Keeper keeper = playerController.getKeeper();
+
+            playerControllers.put(keeper.getId(), playerController);
+
             if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
                 taskQueues.put(keeper.getId(), new HashSet<>());
             }
@@ -92,150 +130,228 @@ public class TaskManager {
 
         // Add task listeners
         addListeners(players);
+
+        // Listen to entities having a task, for cleanup purposes
+        taskEntities = entityData.getEntities(TaskComponent.class);
+        processAddedTasks(taskEntities);
+
+        // Listen to rescue/capture missions
+        unconsciousEntities = entityData.getEntities(new FieldFilter(Health.class, "unconscious", true), CreatureComponent.class, Health.class, Owner.class);
+        processAddedUnconsciousEntities(unconsciousEntities);
+
+        // Listen to corpse robbing missions
+        corpseEntities = entityData.getEntities(CreatureComponent.class, Death.class);
+        processAddedCorpseEntities(corpseEntities);
     }
 
-    private void addListeners(Collection<Keeper> players) {
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+        taskEntities.release();
+        unconsciousEntities.release();
+        corpseEntities.release();
+    }
+
+    @Override
+    public void processTick(float tpf, double gameTime) {
+        if (taskEntities.applyChanges()) {
+            processAddedTasks(taskEntities.getAddedEntities());
+            processDeletedTasks(taskEntities.getRemovedEntities());
+            processChangedTasks(taskEntities.getChangedEntities());
+        }
+        if (unconsciousEntities.applyChanges()) {
+            processAddedUnconsciousEntities(unconsciousEntities.getAddedEntities());
+            processDeletedUnconsciousEntities(unconsciousEntities.getRemovedEntities());
+        }
+        if (corpseEntities.applyChanges()) {
+            processAddedCorpseEntities(corpseEntities.getAddedEntities());
+            processDeletedCorpseEntities(corpseEntities.getRemovedEntities());
+        }
+    }
+
+    private void processAddedTasks(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            long taskId = entity.get(TaskComponent.class).taskId;
+            tasksIdsByEntities.put(entity.getId(), taskId);
+        }
+    }
+
+    private void processDeletedTasks(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            Long taskId = tasksIdsByEntities.remove(entity.getId());
+            Task task = tasksByIds.get(taskId);
+            if (task != null) {
+                task.unassign(creaturesController.createController(entity.getId()));
+                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
+                    //tasksByIds.remove(taskId);
+                }
+            }
+        }
+    }
+
+    private void processChangedTasks(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            long taskId = entity.get(TaskComponent.class).taskId;
+            Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            Task task = tasksByIds.get(oldTaskId);
+            if (task != null) {
+                task.unassign(creaturesController.createController(entity.getId()));
+                if (task.getAssigneeCount() == 0 && task.isRemovable()) {
+                    //tasksByIds.remove(taskId);
+                }
+            }
+        }
+    }
+
+    private void processAddedUnconsciousEntities(Set<Entity> entities) {
+
+        // Add rescue mission for the own troops and capture for the enemy
+        for (Entity entity : entities) {
+            Owner owner = entity.get(Owner.class);
+            for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
+
+                Task task;
+                if (entry.getKey() == owner.ownerId) {
+
+                    // Rescue
+                    task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
+                } else {
+
+                    // Capture
+                    task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
+                }
+                entry.getValue().add(task);
+                tasksByIds.put(task.getId(), task);
+            }
+        }
+    }
+
+    private void processDeletedUnconsciousEntities(Set<Entity> entities) {
+        // TODO:
+    }
+
+    private void processAddedCorpseEntities(Set<Entity> entities) {
+        // TODO:
+    }
+
+    private void processDeletedCorpseEntities(Set<Entity> entities) {
+        // TODO:
+    }
+
+    private void addListeners(Collection<IPlayerController> players) {
+
         // We want to be notified on tile changes, we are event based, not constantly scanning type
-        this.worldState.addListener(new TileChangeListener() {
+        this.mapController.addListener(new MapListener() {
 
             @Override
-            public void onTileChange(final int x, final int y) {
-                MapData mapData = worldState.getMapData();
-                scanTerrainTasks(mapData, x, y, true, true);
+            public void onTilesChange(List<MapTile> updatedTiles) {
+                for (MapTile tile : updatedTiles) {
+                    scanTerrainTasks(tile, true, true);
+                }
+            }
+
+            @Override
+            public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
+                // Not interested
             }
         });
 
         // Get notified by object tasks
-        this.worldState.getThingLoader().addListener(new ObjectListener() {
-
-            @Override
-            public void onAdded(ObjectControl objectControl) {
-                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-                    entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
-                }
-            }
-
-            @Override
-            public void onRemoved(ObjectControl objectControl) {
-                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-                    entry.getValue().remove(getObjectTask(objectControl, entry.getKey()));
-                }
-            }
-        });
-
-        // Get notified by fallen comrades and enemies
-        for (Keeper keeper : players) {
-            this.worldState.getThingLoader().addListener(keeper.getId(), new CreatureListener() {
-                @Override
-                public void onSpawn(CreatureControl creature) {
-
-                }
-
-                @Override
-                public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-                    if (newState == CreatureState.UNCONSCIOUS) {
-
-                        // Add rescue mission for the own troops and capture for the enemy
-                        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-                            if (entry.getKey() == creature.getOwnerId()) {
-
-                                // Rescue
-                                entry.getValue().add(new RescueCreatureTask(worldState, creature, entry.getKey()));
-                            } else {
-
-                                // Capture
-                                entry.getValue().add(new CaptureEnemyCreatureTask(worldState, creature, entry.getKey()));
-                            }
-                        }
-                    }
-                }
-
-                @Override
-                public void onDie(CreatureControl creature) {
-                    // TODO: Rob the corpses
-                }
-
-            });
-        }
+        // TODO: pick uppable objects entityset listener
+//        this.worldState.getThingLoader().addListener(new ObjectListener() {
+//
+//            @Override
+//            public void onAdded(ObjectControl objectControl) {
+//                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+//                    entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
+//                }
+//            }
+//
+//            @Override
+//            public void onRemoved(ObjectControl objectControl) {
+//                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+//                    entry.getValue().remove(getObjectTask(objectControl, entry.getKey()));
+//                }
+//            }
+//        });
     }
 
     private void scanInitialTasks() {
-        MapData mapData = worldState.getMapData();
+        MapData mapData = mapController.getMapData();
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                scanTerrainTasks(mapData, x, y, false, false);
+                scanTerrainTasks(mapController.getMapData().getTile(x, y), false, false);
             }
         }
 
         // Object tasks
-        for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
-            for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-                entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
-            }
-        }
+//        for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
+//            for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+//                entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
+//            }
+//        }
     }
 
-    private void scanTerrainTasks(final MapData mapData, final int x, final int y, final boolean checkNeighbours, final boolean deleteObsolete) {
-        for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
+    private void scanTerrainTasks(final MapTile tile, final boolean checkNeighbours, final boolean deleteObsolete) {
+        for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
             // Scan existing tasks that are they valid, should be only one tile task per tile?
             if (deleteObsolete) {
-                Iterator<AbstractTask> iter = entry.getValue().iterator();
+                Iterator<Task> iter = entry.getValue().iterator();
                 while (iter.hasNext()) {
-                    AbstractTask task = iter.next();
+                    Task task = iter.next();
                     if (task instanceof AbstractTileTask) {
                         AbstractTileTask tileTask = (AbstractTileTask) task;
                         if (tileTask.isRemovable()) {
                             iter.remove();
+                            if (tileTask.getAssigneeCount() == 0) {
+                                //tasksByIds.remove(task.getId());
+                            }
                         }
                     }
                 }
             }
 
-            // Add a task
-            TileData tile = mapData.getTile(x, y);
+            // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
             // Dig
-            if (tile.isSelectedByPlayerId(entry.getKey())) {
-                AbstractTask task = new DigTileTask(worldState, x, y, entry.getKey());
+            if (mapController.isSelected(tile.getX(), tile.getY(), entry.getKey())) {
+                Task task = new DigTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim wall
-            else if (worldState.isClaimableWall(x, y, entry.getKey())) {
-                AbstractTask task = new ClaimWallTileTask(worldState, x, y, entry.getKey());
+            else if (mapController.isClaimableWall(tile.getX(), tile.getY(), entry.getKey())) {
+                Task task = new ClaimWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim
-            else if (worldState.isClaimableTile(x, y, entry.getKey())) {
-                AbstractTask task = new ClaimTileTask(worldState, x, y, entry.getKey());
+            else if (mapController.isClaimableTile(tile.getX(), tile.getY(), entry.getKey())) {
+                Task task = new ClaimTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Repair wall
-            else if (worldState.isRepairableWall(x, y, entry.getKey())) {
-                AbstractTask task = new RepairWallTileTask(worldState, x, y, entry.getKey());
+            else if (mapController.isRepairableWall(tile.getX(), tile.getY(), entry.getKey())) {
+                Task task = new RepairWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim room
-            else if (worldState.isClaimableRoom(x, y, entry.getKey())) {
-                AbstractTask task = new ClaimRoomTask(worldState, x, y, entry.getKey());
+            else if (mapController.isClaimableRoom(tile.getX(), tile.getY(), entry.getKey())) {
+                Task task = new ClaimRoomTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
                 addTask(entry.getKey(), task);
             }
         }
 
         // See the neighbours
         if (checkNeighbours) {
-            for (Point p : worldState.getMapLoader().getSurroundingTiles(new Point(x, y), false)) {
-                scanTerrainTasks(mapData, p.x, p.y, false, false);
+            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile.getLocation(), false)) {
+                scanTerrainTasks(mapController.getMapData().getTile(p), false, false);
             }
         }
     }
 
-    /**
-     * Assign a task to a creature
-     *
-     * @param creature the creature to assign a task to
-     * @param byDistance whether we should assign the closest task (i.e. if a
-     * player drops the creature somewhere)
-     * @return true if a task was assigned
-     */
-    public boolean assignTask(CreatureControl creature, boolean byDistance) {
+    @Override
+    public boolean assignTask(ICreatureController creature, boolean byDistance) {
 
-        Set<AbstractTask> taskQueue = taskQueues.get(creature.getOwnerId());
+        Set<Task> taskQueue = taskQueues.get(creature.getOwnerId());
         if (taskQueue == null) {
             return false;
 //            throw new IllegalArgumentException("This task manager instance is not for the given player!");
@@ -243,11 +359,11 @@ public class TaskManager {
 
         // Sort by distance & priority
         final Point currentLocation = creature.getCreatureCoordinates();
-        List<AbstractTask> prioritisedTaskQueue = new ArrayList<>(taskQueue);
-        Collections.sort(prioritisedTaskQueue, new Comparator<AbstractTask>() {
+        List<Task> prioritisedTaskQueue = new ArrayList<>(taskQueue);
+        Collections.sort(prioritisedTaskQueue, new Comparator<Task>() {
 
             @Override
-            public int compare(AbstractTask t, AbstractTask t1) {
+            public int compare(Task t, Task t1) {
                 int result = Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
                 if (result == 0) {
 
@@ -260,7 +376,7 @@ public class TaskManager {
         });
 
         // Take the first available task from the sorted queue
-        for (AbstractTask task : prioritisedTaskQueue) {
+        for (Task task : prioritisedTaskQueue) {
             if (task.canAssign(creature)) {
 
                 // Assign to first task
@@ -272,41 +388,31 @@ public class TaskManager {
         return false;
     }
 
-    private void addTask(short playerId, AbstractTask task) {
-        Set<AbstractTask> tasks = taskQueues.get(playerId);
+    public void addTask(short playerId, Task task) {
+        Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
             tasks.add(task);
-            logger.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
+            tasksByIds.put(task.getId(), task);
+            LOGGER.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
         } else {
-            logger.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
+            LOGGER.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
         }
     }
 
-    /**
-     * Assigns gold to treasury task to the given creature
-     *
-     * @param creature the creature to assign to
-     * @return true if the task was assigned
-     */
-    public boolean assignGoldToTreasuryTask(CreatureControl creature) {
+    @Override
+    public boolean assignGoldToTreasuryTask(ICreatureController creature) {
 
         // See if the creature's player lacks of gold
-        Keeper player = worldState.getGameState().getPlayer(creature.getOwnerId());
+        IPlayerController player = playerControllers.get(creature.getOwnerId());
         if (!player.getGoldControl().isFullCapacity()) {
-            return assignClosestRoomTask(creature, GenericRoom.ObjectType.GOLD);
+            return assignClosestRoomTask(creature, ObjectType.GOLD, null);
         }
         return false;
     }
 
-    /**
-     * Assigns closest room task to a given creature of requested type
-     *
-     * @param creature the creature to assign to
-     * @param objectType the type of room service
-     * @return true if the task was assigned
-     */
-    public boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType) {
-        return assignClosestRoomTask(creature, objectType, true);
+    @Override
+    public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId target) {
+        return assignClosestRoomTask(creature, objectType, target, true);
     }
 
     /**
@@ -319,13 +425,13 @@ public class TaskManager {
      * test
      * @return true if the task was assigned
      */
-    private boolean assignClosestRoomTask(CreatureControl creature, GenericRoom.ObjectType objectType, boolean assign) {
+    private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
-        List<GenericRoom> rooms = worldState.getMapLoader().getRoomsByFunction(objectType, creature.getOwnerId());
-        Map<Integer, GenericRoom> distancesToRooms = new TreeMap<>();
-        for (GenericRoom room : rooms) {
+        List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
+        Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
+        for (IRoomController room : rooms) {
             if (!room.isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[room.getRoomInstance().getCoordinates().size()])), room
                 );
@@ -333,7 +439,7 @@ public class TaskManager {
         }
 
         // See that are they really accessible starting from the least distance one
-        for (GenericRoom room : distancesToRooms.values()) {
+        for (IRoomController room : distancesToRooms.values()) {
 
             // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
@@ -350,11 +456,11 @@ public class TaskManager {
             // Assign
             if (!coordinates.isEmpty()) {
                 Point target = Utils.getRandomItem(coordinates);
-                GraphPath<TileData> path = worldState.findPath(creature.getCreatureCoordinates(), target, creature);
+                GraphPath<MapTile> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task
-                    AbstractTask task = getRoomTask(objectType, target, creature, room);
+                    Task task = getRoomTask(objectType, target, targetEntity, creature, room);
 
                     // See if really assign
                     if (!assign) {
@@ -369,6 +475,7 @@ public class TaskManager {
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
                     return true;
                 }
             }
@@ -390,22 +497,25 @@ public class TaskManager {
     }
 
     private static int calculateDistance(Point currentPosition, Point p) {
+        if (currentPosition == null || p == null) {
+            return Short.MAX_VALUE; // With the points added, int max value would overflow
+        }
         return Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y);
     }
 
-    private AbstractTask getRoomTask(GenericRoom.ObjectType objectType, Point target, CreatureControl creature, GenericRoom room) {
+    private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
             case GOLD: {
-                return new CarryGoldToTreasuryTask(worldState, target.x, target.y, creature.getOwnerId(), room);
+                return new CarryGoldToTreasuryTask(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR: {
-                return new ClaimLair(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case RESEARCHER: {
-                return new ResearchSpells(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+                return new ResearchSpells(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case PRISONER: {
-                return new CarryEnemyCreatureToPrison(worldState, target.x, target.y, creature.getOwnerId(), room, this);
+                return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
         }
         return null;
@@ -416,86 +526,80 @@ public class TaskManager {
         taskPoints.remove(task.getTaskLocation());
         if (taskPoints.isEmpty()) {
             roomTasks.remove(task.getRoom());
+            if (task.getAssigneeCount() == 0) {
+                //tasksByIds.remove(task.getId(), task);
+            }
         }
     }
 
-    /**
-     * Assign a task according to the creature's objectives
-     *
-     * @param creature the creature
-     * @param objective the objective
-     * @return true if the objective task could be accomplished
-     */
-    public boolean assignObjectiveTask(CreatureControl creature, Thing.HeroParty.Objective objective) {
+    @Override
+    public boolean assignObjectiveTask(ICreatureController creature, Thing.HeroParty.Objective objective) {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
-                task = new SendToActionPoint(worldState, creature.getObjectiveTargetActionPoint(), creature.getOwnerId());
+                task = new SendToActionPoint(navigationService, mapController, levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId()), creature.getOwnerId());
                 break;
             }
             case KILL_PLAYER: {
-                task = new KillPlayer(worldState, creature.getObjectiveTargetPlayerId(), creature);
+                task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
                 break;
             }
         }
 
         // Assign
-        if (task != null) {
-            task.getTask().assign(creature, true);
+        if (task != null && task.getCurrentTask() != null) {
+            task.getCurrentTask().assign(creature, true);
+            tasksByIds.put(task.getId(), task);
             return true;
         }
         return false;
     }
 
     private AbstractTask getObjectTask(ObjectControl objectControl, short playerId) {
-        return new FetchObjectTask(worldState, objectControl, playerId);
+        return new FetchObjectTask(navigationService, mapController, objectControl, playerId);
     }
 
-    /**
-     * Test if a given task type is available
-     *
-     * @param creature the creature asking for the task
-     * @param jobType the job type to ask for
-     * @return true if task type is available
-     */
-    public boolean isTaskAvailable(CreatureControl creature, Creature.JobType jobType) {
+    @Override
+    public boolean isTaskAvailable(ICreatureController creature, Creature.JobType jobType) {
         return assignTask(creature, jobType, false);
     }
 
-    /**
-     * Assigns a creature to given task type
-     *
-     * @param creature the creature asking for the task
-     * @param jobType the job type to ask for
-     * @return true if the task was assigned
-     */
-    public boolean assignTask(CreatureControl creature, Creature.JobType jobType) {
+    @Override
+    public boolean assignTask(ICreatureController creature, Creature.JobType jobType) {
         return assignTask(creature, jobType, true);
     }
 
-    private boolean assignTask(CreatureControl creature, Creature.JobType jobType, boolean assign) {
+    private boolean assignTask(ICreatureController creature, Creature.JobType jobType, boolean assign) {
         switch (jobType) {
             case RESEARCH: {
-                return assignClosestRoomTask(creature, GenericRoom.ObjectType.RESEARCHER, assign);
+                return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
             }
             default:
                 return false;
         }
     }
 
-    /**
-     * Assigns a go to sleep task to the player if the lair is accessible
-     *
-     * @param creature the creature wanting to go to sleep
-     * @return true if the task was assigned
-     */
-    public boolean assignSleepTask(CreatureControl creature) {
-        GoToSleep task = new GoToSleep(worldState, creature);
+    @Override
+    public boolean assignSleepTask(ICreatureController creature) {
+        GoToSleep task = new GoToSleep(navigationService, mapController, creature);
         if (task.isReachable(creature)) {
             task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
             return true;
         }
         return false;
+    }
+
+    @Override
+    public Task getTaskById(long taskId) {
+        Task task = tasksByIds.get(taskId);
+
+        // For nested task, return the actual task
+        if (task != null && task instanceof AbstractObjectiveTask) {
+            return ((AbstractObjectiveTask) task).getCurrentTask();
+        }
+
+        return task;
     }
 
 }

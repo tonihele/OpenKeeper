@@ -23,6 +23,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface RoomListener {
 
     void onBuild(GenericRoom room);

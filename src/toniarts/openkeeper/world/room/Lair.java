@@ -27,6 +27,7 @@ import toniarts.openkeeper.world.room.control.RoomLairControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Lair extends Normal {
 
     public Lair(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

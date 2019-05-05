@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class TrainingRoom extends Normal {
 
     public TrainingRoom(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

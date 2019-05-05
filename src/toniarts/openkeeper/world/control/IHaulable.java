@@ -24,6 +24,7 @@ import com.jme3.math.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface IHaulable {
 
     /**

@@ -23,6 +23,7 @@ import com.badlogic.gdx.math.Vector2;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class CreatureLocation implements Location<Vector2> {
 
     private final Vector2 position;

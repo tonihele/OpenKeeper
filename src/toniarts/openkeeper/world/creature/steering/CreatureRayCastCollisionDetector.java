@@ -43,6 +43,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class CreatureRayCastCollisionDetector implements RaycastCollisionDetector<Vector2> {
 
     private final WorldState worldState;

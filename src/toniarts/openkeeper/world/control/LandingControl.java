@@ -28,6 +28,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public abstract class LandingControl extends AbstractControl {
     private static final float GRAVITY = 2.0f;
     private final Vector2f position;

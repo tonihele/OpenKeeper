@@ -16,10 +16,11 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
-import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Send to action point task
@@ -31,31 +32,31 @@ public class SendToActionPoint extends GoToTask {
     protected final ActionPoint actionPoint;
     private boolean executed = false;
 
-    public SendToActionPoint(WorldState worldState, ActionPoint actionPoint, short playerId) {
-        super(worldState, (int) actionPoint.getCenter().x, (int) actionPoint.getCenter().y, playerId);
+    public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, short playerId) {
+        super(navigationService, mapController, (int) actionPoint.getCenter().x, (int) actionPoint.getCenter().y, playerId);
 
         this.actionPoint = actionPoint;
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         if (!executed && creature != null) {
 
             // Check that the objectives are still the same
-            return Thing.HeroParty.Objective.SEND_TO_ACTION_POINT.equals(creature.getObjective()) && actionPoint.equals(creature.getObjectiveTargetActionPoint());
+            return Thing.HeroParty.Objective.SEND_TO_ACTION_POINT.equals(creature.getObjective()) && actionPoint.getId() == creature.getObjectiveTargetActionPointId();
         }
         return !executed;
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
 
         // TODO: Wait delay
         executed = true;
         if (actionPoint.getNextWaypointId() != 0) {
 
             // Assign new objective
-            creature.setObjectiveTargetActionPoint(worldState.getGameState().getActionPointState().getActionPoint(actionPoint.getNextWaypointId()));
+            creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
         }
     }
 

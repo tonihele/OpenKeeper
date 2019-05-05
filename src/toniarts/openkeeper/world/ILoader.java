@@ -24,6 +24,7 @@ import com.jme3.scene.Spatial;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface ILoader<T> {
 
     public Spatial load(AssetManager assetManager, T object);

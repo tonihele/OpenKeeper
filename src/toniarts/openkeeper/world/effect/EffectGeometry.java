@@ -29,6 +29,7 @@ import com.jme3.scene.control.AbstractControl;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class EffectGeometry extends Geometry {
     private EffectMesh particleMesh;
     private int frameIndex = 0;

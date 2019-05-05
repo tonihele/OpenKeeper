@@ -28,6 +28,7 @@ import toniarts.openkeeper.world.room.control.RoomSpellBookControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Library extends Normal {
 
     public Library(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

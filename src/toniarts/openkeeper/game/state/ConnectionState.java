@@ -29,14 +29,18 @@ import com.simsilica.ethereal.TimeSource;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
+import toniarts.openkeeper.game.network.game.GameClientService;
+import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
 import toniarts.openkeeper.game.network.session.AccountClientService;
 import toniarts.openkeeper.game.network.session.AccountSessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
+import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -63,7 +67,7 @@ public class ConnectionState extends AbstractAppState {
 
     private volatile boolean closing;
 
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ConnectionState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ConnectionState.class.getName());
 
     public ConnectionState(String host, int port, String playerName) {
         this(host, port, playerName, false, null);
@@ -118,10 +122,32 @@ public class ConnectionState extends AbstractAppState {
         return client.getService(LobbyClientService.class);
     }
 
+    /**
+     * If you are hosting the game, you have access to the game session services
+     *
+     * @return the server side game services
+     */
+    public GameSessionServerService getGameSessionServerService() {
+        if (server != null) {
+            return server.getService(GameHostedService.class);
+        }
+        return null;
+    }
+
+    /**
+     * The client side game session services, you should always be welcome to
+     * use these
+     *
+     * @return the client side game session services
+     */
+    public GameClientService getGameClientService() {
+        return client.getService(GameClientService.class);
+    }
+
     public void disconnect() {
-        logger.info("disconnect()");
+        LOGGER.info("disconnect()");
         closing = true;
-        logger.info("Detaching ConnectionState");
+        LOGGER.info("Detaching ConnectionState");
         stateManager.detach(this);
     }
 
@@ -181,16 +207,16 @@ public class ConnectionState extends AbstractAppState {
     }
 
     protected void onConnected() {
-        logger.info("onConnected()");
+        LOGGER.info("onConnected()");
 
         // Add our client listeners
         client.getService(AccountClientService.class).addAccountSessionListener(new AccountObserver());
 
         serverInfo = client.getService(AccountClientService.class).getServerInfo();
 
-        logger.log(Level.FINER, "Server info:{0}", serverInfo);
+        LOGGER.log(Level.FINER, "Server info:{0}", serverInfo);
 
-        logger.log(Level.INFO, "join({0})", playerName);
+        LOGGER.log(Level.INFO, "join({0})", playerName);
 
         // So here we'd login and then when we get a response from the
         // server that we are logged in then we'd launch the game state and
@@ -199,7 +225,7 @@ public class ConnectionState extends AbstractAppState {
     }
 
     protected void onDisconnected(DisconnectInfo info) {
-        logger.log(Level.INFO, "onDisconnected({0})", info);
+        LOGGER.log(Level.INFO, "onDisconnected({0})", info);
         if (closing) {
             return;
         }
@@ -214,19 +240,19 @@ public class ConnectionState extends AbstractAppState {
 
         @Override
         public void clientConnected(final Client c) {
-            logger.log(Level.INFO, "clientConnected({0})", c);
+            LOGGER.log(Level.INFO, "clientConnected({0})", c);
             onConnected();
         }
 
         @Override
         public void clientDisconnected(final Client c, final DisconnectInfo info) {
-            logger.log(Level.INFO, "clientDisconnected({0}, {1})", new Object[]{c, info});
+            LOGGER.log(Level.INFO, "clientDisconnected({0}, {1})", new Object[]{c, info});
             onDisconnected(info);
         }
 
         @Override
         public void handleError(Client source, Throwable t) {
-            logger.log(Level.SEVERE, "Connection error", t);
+            LOGGER.log(Level.SEVERE, "Connection error", t);
             showError("Connection Error", t, true);
         }
     }
@@ -257,13 +283,13 @@ public class ConnectionState extends AbstractAppState {
 
                 // If we are the host, create the server also
                 if (gameHost) {
-                    logger.log(Level.INFO, "Creating game server {0} at {1}", new Object[]{gameName, port});
+                    LOGGER.log(Level.INFO, "Creating game server {0} at {1}", new Object[]{gameName, port});
                     server = new NetworkServer(gameName, port);
                     server.start();
-                    logger.info("Server started.");
+                    LOGGER.info("Server started.");
                 }
 
-                logger.log(Level.INFO, "Creating game client for: {0} {1}", new Object[]{gameHost ? "localhost" : host, port});
+                LOGGER.log(Level.INFO, "Creating game client for: {0} {1}", new Object[]{gameHost ? "localhost" : host, port});
                 client = new NetworkClient(gameHost ? "localhost" : host, port);
                 if (closing) {
                     return;
@@ -274,9 +300,9 @@ public class ConnectionState extends AbstractAppState {
                     return;
                 }
 
-                logger.info("Starting client...");
+                LOGGER.info("Starting client...");
                 client.start();
-                logger.info("Client started.");
+                LOGGER.info("Client started.");
             } catch (Exception e) {
                 if (closing) {
                     disconnect();

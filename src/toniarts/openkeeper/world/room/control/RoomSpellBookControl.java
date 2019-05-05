@@ -20,7 +20,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.object.ObjectControl;
@@ -32,6 +32,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookObjectControl, PlayerSpell> {
 
     private int storedSpellBooks = 0;

@@ -20,7 +20,7 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.tools.Color;
 import toniarts.openkeeper.gui.nifty.table.*;
-import toniarts.openkeeper.world.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
  * Gives the player the coloring it deserves

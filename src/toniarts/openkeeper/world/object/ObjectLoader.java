@@ -23,7 +23,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
-import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -41,6 +41,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class ObjectLoader implements ILoader<Thing.Object> {
 
     public final static short OBJECT_GOLD_ID = 1;

@@ -32,7 +32,7 @@ public class TriggerGenericData extends TriggerData {
     private short repeatTimes; // Repeat x times, 255 = always
     private TriggerGenericData lastTrigger = null;
     private final SafeArrayList<TriggerData> children = new SafeArrayList<>(TriggerData.class);
-    private static final Logger logger = Logger.getLogger(TriggerGenericData.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TriggerGenericData.class.getName());
 
     public TriggerGenericData() {
         super();
@@ -103,7 +103,7 @@ public class TriggerGenericData extends TriggerData {
     }
 
     /**
-     * determines if the provided TriggerActionData is contained in the children
+     * Determines if the provided TriggerActionData is contained in the children
      * map of this TriggerGenericData.
      *
      * @param trigger the child object to look for.
@@ -142,6 +142,7 @@ public class TriggerGenericData extends TriggerData {
      * If the child already had a parent it is detached from that former parent.
      *
      * @param child the child to attach to this node.
+     * @param index the index to add to
      * @return the number of children maintained by this node.
      * @throws NullPointerException if child is null.
      */
@@ -157,8 +158,8 @@ public class TriggerGenericData extends TriggerData {
             child.setParent(this);
             children.add(index, child);
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "Child ({0}) attached to this trigger ({1})",
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Child ({0}) attached to this trigger ({1})",
                         new Object[]{child.getId(), getId()});
             }
         }
@@ -190,8 +191,8 @@ public class TriggerGenericData extends TriggerData {
             child.setParent(this);
             children.add(child);
 
-            if (logger.isLoggable(Level.FINE)) {
-                logger.log(Level.FINE, "Child ({0}) attached to this TriggerData ({1})",
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "Child ({0}) attached to this TriggerData ({1})",
                         new Object[]{child.getId(), getId()});
             }
         }
@@ -208,7 +209,7 @@ public class TriggerGenericData extends TriggerData {
         for (int i = children.size() - 1; i >= 0; i--) {
             detachChildAt(i);
         }
-        logger.log(Level.FINE, "{0}: All children removed.", this.toString());
+        LOGGER.log(Level.FINE, "{0}: All children removed.", this.toString());
     }
 
     public int detachChild(TriggerData child) {
@@ -239,7 +240,7 @@ public class TriggerGenericData extends TriggerData {
         TriggerData child = children.remove(index);
         if (child != null) {
             child.setParent(null);
-            logger.log(Level.FINE, "{0}: Child removed.", this.toString());
+            LOGGER.log(Level.FINE, "{0}: Child removed.", this.toString());
         }
 
         return child;

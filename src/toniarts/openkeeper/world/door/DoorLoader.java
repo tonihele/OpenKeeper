@@ -38,6 +38,7 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class DoorLoader implements ILoader<Thing.Door> {
 
     private final KwdFile kwdFile;

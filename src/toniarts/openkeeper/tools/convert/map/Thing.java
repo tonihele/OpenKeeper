@@ -1363,6 +1363,13 @@ public abstract class Thing {
             this.unknown1 = unknown1;
         }
 
+        /**
+         * Get number of shots, what ever that means... Seems that the info
+         * about being blueprint is just saved here, when this is 0, then the
+         * trap is a blueprint
+         *
+         * @return
+         */
         public short getNumberOfShots() {
             return numberOfShots;
         }

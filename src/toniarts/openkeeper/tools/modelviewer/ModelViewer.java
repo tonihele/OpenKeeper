@@ -59,9 +59,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.game.data.ISoundable;
-import toniarts.openkeeper.game.sound.SoundGroup;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
+import toniarts.openkeeper.game.sound.SoundGroup;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -138,7 +138,7 @@ public class ModelViewer extends SimpleApplication {
     private static final String KEY_MAPPING_SHOW_NORMALS = "show normals";
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
-    private static final Logger logger = Logger.getLogger(ModelViewer.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
 
     private EffectManagerState effectManagerState;
 
@@ -250,7 +250,7 @@ public class ModelViewer extends SimpleApplication {
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
-                logger.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+                LOGGER.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
             }
         }
     }
@@ -685,8 +685,9 @@ public class ModelViewer extends SimpleApplication {
         }
     }
 
-    private synchronized KwdFile getKwdFile() {
+    private KwdFile getKwdFile() {
         if (kwdFile == null) {
+
             // Read Alcatraz.kwd by default
             kwdFile = new KwdFile(dkIIFolder,
                     new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + "Alcatraz.kwd"));

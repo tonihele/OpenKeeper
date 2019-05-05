@@ -66,6 +66,7 @@ import toniarts.openkeeper.world.terrain.Water;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class MapLoader implements ILoader<KwdFile> {
 
     public final static float TILE_WIDTH = 1;
@@ -125,11 +126,9 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         terrain.attachChild(roomsNode);
 
         // Go through the fixed rooms and construct them
-        for (Thing thing : kwdFile.getThings()) {
-            if (thing instanceof Thing.Room) {
-                Point p = new Point(((Thing.Room) thing).getPosX(), ((Thing.Room) thing).getPosY());
-                handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrain().getTerrainId()), (Thing.Room) thing);
-            }
+        for (Thing.Room room : kwdFile.getThings(Thing.Room.class)) {
+            Point p = new Point(room.getPosX(), room.getPosY());
+            handleRoom(p, kwdFile.getRoomByTerrain(mapData.getTile(p).getTerrain().getTerrainId()), room);
         }
 
         // Go through the map

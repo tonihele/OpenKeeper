@@ -16,9 +16,12 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.screen.ScreenController;
 
 /**
+ * Offers services to the player screen, that is the in-game UI
  *
  * @author ArchDemon
  */
@@ -40,22 +43,14 @@ public interface IPlayerScreenController extends ScreenController {
 
     public void pauseMenu();
 
+    public void onPaused(boolean paused);
+
     public void pauseMenuNavigate(String menu, String backMenu,
             String confirmationTitle, String confirmMethod);
 
     public void zoomToDungeon();
 
-    public void zoomToCreature(String creatureId, String uiState);
-
-    public void pickUpCreature(String creatureId, String uiState);
-
     public void workersAmount(String uiState);
-
-    // TODO move method to own controller or in parameter
-
-    public void zoomToImp(String state);
-
-    public void pickUpImp(String state);
 
     public void grabGold();
 
@@ -64,4 +59,33 @@ public interface IPlayerScreenController extends ScreenController {
     public void quitToMainMenu();
 
     public void quitToOS();
+
+    /**
+     *
+     * @param tpf
+     */
+    public void update(float tpf);
+
+    public void cleanup();
+
+    /**
+     * Zoom to entity
+     *
+     * @param entityId the entity ID to zoom to
+     */
+    public void zoomToEntity(EntityId entityId);
+
+    /**
+     * Zoom to position
+     *
+     * @param position the position to zoom to
+     */
+    public void zoomToPosition(Vector3f position);
+
+    /**
+     * Pick up an entity
+     *
+     * @param entityId the entity ID to pick up
+     */
+    public void pickUpEntity(EntityId entityId);
 }

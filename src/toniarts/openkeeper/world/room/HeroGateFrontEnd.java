@@ -43,6 +43,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class HeroGateFrontEnd extends GenericRoom {
 
     private static final short OBJECT_BANNER_ONE_ID = 89;

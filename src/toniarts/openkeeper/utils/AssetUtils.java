@@ -70,11 +70,11 @@ import toniarts.openkeeper.world.MapLoader;
 public class AssetUtils {
 
     private static volatile boolean preWarmedAssets = false;
-    private final static Object assetLock = new Object();
-    private final static AssetCache assetCache = new SimpleAssetCache();
-    private final static AssetCache weakAssetCache = new WeakRefAssetCache();
-    private final static Map<String, Boolean> textureMapCache = new HashMap<>();
-    private static final Logger logger = Logger.getLogger(AssetUtils.class.getName());
+    private final static Object ASSET_LOCK = new Object();
+    private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
+    private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
+    private final static Map<String, Boolean> TEXTURE_MAP_CACHE = new HashMap<>();
+    private static final Logger LOGGER = Logger.getLogger(AssetUtils.class.getName());
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
@@ -104,7 +104,7 @@ public class AssetUtils {
         Spatial result;
         if (useCache) {
             // Set the correct asset cache
-            final AssetCache cache = (useWeakCache) ? weakAssetCache : assetCache;
+            final AssetCache cache = (useWeakCache) ? WEAK_ASSET_CACHE : ASSET_CACHE;
 
             // Get the model from cache
             Spatial model = cache.getFromCache(assetKey);
@@ -127,6 +127,7 @@ public class AssetUtils {
 
     /**
      * Only for ModelViewer
+     *
      * @param assetManager
      * @param modelName
      * @return
@@ -160,7 +161,7 @@ public class AssetUtils {
 
         if (asset == null || !(asset instanceof CameraSweepData)) {
             String msg = "Failed to load the camera sweep file " + resourceName + "!";
-            logger.severe(msg);
+            LOGGER.severe(msg);
             throw new RuntimeException(msg);
         }
 
@@ -188,6 +189,7 @@ public class AssetUtils {
      * @param material the material to apply to
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
+
         // Unharmed texture
         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
 
@@ -198,14 +200,14 @@ public class AssetUtils {
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
         // Try to locate the texture
-        Boolean found = textureMapCache.get(textureName);
+        Boolean found = TEXTURE_MAP_CACHE.get(textureName);
         if (found == null) {
             TextureKey textureKey = new TextureKey(textureName, false);
 
             // See if it exists
             AssetInfo assetInfo = assetManager.locateAsset(textureKey);
             found = (assetInfo != null);
-            textureMapCache.put(textureName, found);
+            TEXTURE_MAP_CACHE.put(textureName, found);
         }
 
         // Set it
@@ -242,7 +244,7 @@ public class AssetUtils {
 
             // Cache
             MaterialKey assetKey = new MaterialKey(resource.getName());
-            Material mat = assetCache.getFromCache(assetKey);
+            Material mat = ASSET_CACHE.getFromCache(assetKey);
 
             if (mat == null) {
                 mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
@@ -264,11 +266,11 @@ public class AssetUtils {
                     // Load the texture up
                     mat.setTexture("DiffuseMap", tex);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
+                    LOGGER.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
                 }
 
                 // Add to cache
-                assetCache.addToCache(assetKey, mat);
+                ASSET_CACHE.addToCache(assetKey, mat);
             }
             return mat.clone();
         }
@@ -286,18 +288,18 @@ public class AssetUtils {
 
         // Cache
         MaterialKey assetKey = new MaterialKey(resource.getName());
-        Material mat = assetCache.getFromCache(assetKey);
+        Material mat = ASSET_CACHE.getFromCache(assetKey);
 
         if (mat == null) {
             mat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
             try {
                 mat.setTexture("Texture", createArtResourceTexture(resource, assetManager));
             } catch (Exception e) {
-                logger.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
+                LOGGER.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
             }
 
             // Add to cache
-            assetCache.addToCache(assetKey, mat);
+            ASSET_CACHE.addToCache(assetKey, mat);
         }
         return mat.clone();
     }
@@ -329,7 +331,7 @@ public class AssetUtils {
                     img = ImageIO.read(asset.openStream());
                 } else {
                     // use previous img
-                    logger.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{resource.getName(), x});
+                    LOGGER.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{resource.getName(), x});
                 }
                 g.drawImage(img, rop, img.getWidth() * x, 0);
             }
@@ -362,7 +364,7 @@ public class AssetUtils {
      */
     public static void prewarmAssets(KwdFile kwdFile, AssetManager assetManager, Main app) {
         if (!preWarmedAssets) {
-            synchronized (assetLock) {
+            synchronized (ASSET_LOCK) {
                 if (!preWarmedAssets) {
                     try {
 
@@ -491,7 +493,7 @@ public class AssetUtils {
 
         // Enque the warming up, we need GL context
         if (!models.isEmpty()) {
-            logger.log(Level.INFO, "Prewarming {0} objects!", models.size());
+            LOGGER.log(Level.INFO, "Prewarming {0} objects!", models.size());
             app.enqueue(() -> {
 
                 for (Spatial spatial : models) {
@@ -530,13 +532,14 @@ public class AssetUtils {
                     Material material = ((Geometry) spatial).getMaterial();
                     if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
                         material.setColor("Ambient", highlightColor);
-                        material.setBoolean("UseMaterialColors", enabled);
                     } else {
                         material.setColor("Color", highlightColor);
+                    }
+                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
                         material.setBoolean("UseMaterialColors", enabled);
                     }
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Failed to set material color!", e);
+                    LOGGER.log(Level.WARNING, "Failed to set material color!", e);
                 }
             }
         });
@@ -556,7 +559,7 @@ public class AssetUtils {
         } else {
             spatial.setLocalTranslation(0, 0, 0);
         }
-        */
+         */
         spatial.breadthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
@@ -599,7 +602,7 @@ public class AssetUtils {
                     mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
                     spatial.setMaterial(mat);
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Failed to set material color!", e);
+                    LOGGER.log(Level.WARNING, "Failed to set material color!", e);
                 }
             }
         });

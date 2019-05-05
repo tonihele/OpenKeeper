@@ -21,6 +21,7 @@ package toniarts.openkeeper.world.listener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface TileChangeListener {
 
     void onTileChange(final int x, final int y);

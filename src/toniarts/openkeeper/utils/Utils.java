@@ -97,6 +97,8 @@ public class Utils {
         "Loam", "Prang", "Bane", "Odo", "Smirch", "Orzac", "Tome", "Phestre", "Scurge", "Rictus",
         "Hatchett", "Gewgog", "Slake", "Ratchett", "Threck", "Galen", "Mortis", "Delver"};
 
+    public static final int MAX_CREATURE_LEVEL = 10;
+
     private Utils() {
         // Nope
     }

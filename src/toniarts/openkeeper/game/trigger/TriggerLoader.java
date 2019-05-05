@@ -24,10 +24,10 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
  *
+ * Loads all the triggers from a KWD file
+ *
  * @author ArchDemon
  */
-
-
 public class TriggerLoader {
 
     private final Map<Integer, Trigger> triggers;
@@ -76,7 +76,7 @@ public class TriggerLoader {
                 parent.attachChild(trigger);
 
             } else {
-                throw new RuntimeException("Unexpected class");
+                throw new RuntimeException("Unexpected class " + temp + "!");
             }
 
             if (temp.hasNext()) {

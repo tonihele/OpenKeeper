@@ -42,4 +42,14 @@ public interface LobbySessionListener {
     @Asynchronous
     public void onMapChanged(String mapName);
 
+    /**
+     * Called when the server wants to start the game
+     *
+     * @param mapName the map we are going to play (you should know already)
+     * @param players the player participating in the game (you should know
+     * already)
+     */
+    @Asynchronous
+    public void onGameStarted(String mapName, List<ClientInfo> players);
+
 }

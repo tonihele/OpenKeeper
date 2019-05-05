@@ -53,6 +53,7 @@ import toniarts.openkeeper.game.state.lobby.LobbyClientService;
 import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.game.state.lobby.LocalLobby;
+import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -397,11 +398,10 @@ public class MainMenuState extends AbstractAppState {
      * otherwise
      */
     public void startLevel(String type) {
-        GameState gameState;
         if ("campaign".equals(type.toLowerCase())) {
 
             // Create the level state
-            gameState = new GameState(selectedLevel);
+            LocalGameSession.CreateLocalGame(selectedLevel.getKwdFile(), true, stateManager, app);
         } else {
             LOGGER.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
@@ -409,7 +409,6 @@ public class MainMenuState extends AbstractAppState {
 
         // Start the game
         setEnabled(false);
-        stateManager.attach(gameState);
     }
 
     /**

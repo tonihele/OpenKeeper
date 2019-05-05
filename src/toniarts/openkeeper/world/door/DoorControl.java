@@ -45,6 +45,7 @@ import toniarts.openkeeper.world.object.HighlightControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class DoorControl extends HighlightControl implements IInteractiveControl, AnimationControl, IUnitFlowerControl {
 
     public enum DoorState {

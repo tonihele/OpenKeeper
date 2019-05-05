@@ -47,6 +47,7 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class GenericRoom {
 
     public enum ObjectType {
@@ -94,6 +95,7 @@ public abstract class GenericRoom {
 
     // FIXME we need todo something
     private static final Map<Integer, String> temp = new HashMap<>();
+
     static {
         temp.put(3, "%44"); // Portal
         temp.put(2, "%45"); // Lairs
@@ -502,7 +504,6 @@ public abstract class GenericRoom {
         return result;
     }
 
-
     /**
      * Get used capacity
      *
@@ -633,12 +634,14 @@ public abstract class GenericRoom {
         }
 
         Keeper player = worldState.getGameState().getPlayer(roomInstance.getOwnerId());
-        int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
+//        int total = player.getRoomControl().getTypeCount(roomInstance.getRoom());
 
-        return new RoomCount(temp.get(roomId), total);
+//        return new RoomCount(temp.get(roomId), total);
+        return null;
     }
 
     private static class RoomCount {
+
         public String placeholder;
         public int amount;
 

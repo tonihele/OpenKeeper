@@ -44,6 +44,7 @@ import toniarts.openkeeper.world.object.HighlightControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class TrapControl extends HighlightControl implements IInteractiveControl, AnimationControl, IUnitFlowerControl {
 
     public enum TrapState {

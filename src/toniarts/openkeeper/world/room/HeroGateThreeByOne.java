@@ -32,6 +32,7 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  * FIXME some problem with wall when reinforce near tile
  * @author ArchDemon
  */
+@Deprecated
 public class HeroGateThreeByOne extends GenericRoom {
 
     private String destroyed = "";

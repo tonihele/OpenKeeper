@@ -519,8 +519,28 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 if (playersTable != null) {
                     playersTable.getElement().markForRemoval();
                 }
+
+                removeLobbyListeners();
+
                 break;
         }
+    }
+
+    private void removeLobbyListeners() {
+        if (chatSessionListener != null) {
+            ChatClientService ccs = state.getChatService();
+            if (ccs != null) {
+                ccs.removeChatSessionListener(getChatSessionListener());
+            }
+        }
+        LobbyState ls = state.getLobbyState();
+        if (ls != null) {
+            if (lobbySessionListener != null) {
+                ls.removeLobbySessionListener(getLobbySessionListener());
+            }
+        }
+        chatSessionListener = null;
+        lobbySessionListener = null;
     }
 
     private void closePopup() {
@@ -842,6 +862,13 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 public void onMapChanged(String mapName) {
                     populateSelectedMap(state.mapSelector.getMap(mapName).getMap());
                 }
+
+                @Override
+                public void onGameStarted(String mapName, List<ClientInfo> players) {
+
+                    // Load the game up
+                    removeLobbyListeners();
+                }
             };
         }
         return lobbySessionListener;
@@ -849,7 +876,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     private void refreshPlayerList(List<ClientInfo> players) {
         TableControl<PlayerTableRow> playersList = screen.findNiftyControl(PLAYER_LIST_ID, TableControl.class);
-        if (playersList != null) {
+        LobbyState lobbyState = state.getLobbyState();
+        if (playersList != null && lobbyState != null) {
 
             // Get the selection, so that we can restore it possibly
             ClientInfo selectedClient = null;
@@ -858,7 +886,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             }
 
             playersList.clear();
-            LobbyState lobbyState = state.getLobbyState();
 
             // Populate the players list
             int index = -1;
@@ -901,20 +928,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
     @Override
     public void cancelMultiplayer() {
+        LobbyState ls = state.getLobbyState();
 
         // Disconnect and dismantle
-        if (chatSessionListener != null) {
-            ChatClientService ccs = state.getChatService();
-            if (ccs != null) {
-                ccs.removeChatSessionListener(getChatSessionListener());
-            }
-        }
-        LobbyState ls = state.getLobbyState();
-        if (lobbySessionListener != null) {
-            ls.removeLobbySessionListener(getLobbySessionListener());
-        }
-        chatSessionListener = null;
-        lobbySessionListener = null;
+        removeLobbyListeners();
         state.shutdownMultiplayer();
 
         // Go back to where we were, if we ever left...

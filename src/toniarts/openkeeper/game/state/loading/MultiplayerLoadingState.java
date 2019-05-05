@@ -35,14 +35,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.world.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
  * Loading state with a multiple (4) loading bars
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class MultiplayerLoadingState extends LoadingState {
+public abstract class MultiplayerLoadingState extends LoadingState implements IPlayerLoadingProgress {
 
     private static final List<String> AVAILABLE_SCREENS = Arrays.asList("M-LoadingScreen1024x768.png",
             "M-LoadingScreen1280x1024.png", "M-LoadingScreen1600x1200.png", "M-LoadingScreen400x300.png",
@@ -119,18 +119,20 @@ public abstract class MultiplayerLoadingState extends LoadingState {
      * @param progress 0.0 to 1.0, 1 being complete
      * @param playerId the player ID whose progress is updated
      */
+    @Override
     public void setProgress(final float progress, final short playerId) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        app.enqueue(() -> {
+        if (initialized) {
+            app.enqueue(() -> {
 
-            // Adjust the progress bar
-            Quad q = (Quad) progressBars.get(playerId - Player.KEEPER1_ID).getMesh();
-            q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
+                // Adjust the progress bar
+                Quad q = (Quad) progressBars.get(playerId - Player.KEEPER1_ID).getMesh();
+                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
 
-            return null;
-        });
-
+                return null;
+            });
+        }
     }
 
     @Override

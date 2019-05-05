@@ -23,6 +23,7 @@ import com.jme3.scene.control.Control;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface IUnitFlowerControl extends Control {
 
     /**

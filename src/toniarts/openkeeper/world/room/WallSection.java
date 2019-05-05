@@ -25,6 +25,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class WallSection {
 
     public enum WallDirection {

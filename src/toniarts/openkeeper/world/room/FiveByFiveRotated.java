@@ -29,8 +29,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
-import toniarts.openkeeper.game.player.PlayerManaControl;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
@@ -49,6 +47,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
 
     private static final short OBJECT_HEART_ID = 13;
@@ -381,9 +380,8 @@ public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance 
         String result = super.getTooltip(playerId);
 
         if (playerId == roomInstance.getOwnerId()) {
-            PlayerManaControl pmc = worldState.getGameState().getPlayer(playerId).getManaControl();
-            result = result.replaceAll("%40", String.valueOf(pmc.getMana())) // mana held
-                .replaceAll("%41", String.valueOf(pmc.getManaMax())); // max mana held
+            result = result.replaceAll("%40", String.valueOf(worldState.getGameState().getPlayer(playerId).getMana())) // mana held
+                    .replaceAll("%41", String.valueOf(worldState.getGameState().getPlayer(playerId).getMaxMana())); // max mana held
         }
 
         return result;
@@ -397,11 +395,12 @@ public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance 
     @Override
     public CreatureControl spawnCreature(short creatureId, short level, Application app, ThingLoader thingLoader) {
 
-        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
-                roomInstance.getOwnerId(), level, app, thingLoader, getEntranceCoordinate(), true);
-        attractedCreatures.add(creature);
-
-        return creature;
+//        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
+//                roomInstance.getOwnerId(), level, app, thingLoader, getEntranceCoordinate(), true);
+//        attractedCreatures.add(creature);
+//
+//        return creature;
+        return null;
     }
 
     @Override

@@ -31,6 +31,9 @@ public class ClientInfo {
     private Keeper keeper;
     private String name;
     private boolean ready = false;
+    private float loadingProgress = 0;
+    private boolean loaded = false;
+    private boolean readyToLoad = false;
     private int id;
 
     public ClientInfo() {
@@ -92,6 +95,30 @@ public class ClientInfo {
 
     protected void setId(int id) {
         this.id = id;
+    }
+
+    public float getLoadingProgress() {
+        return loadingProgress;
+    }
+
+    public void setLoadingProgress(float loadingProgress) {
+        this.loadingProgress = loadingProgress;
+    }
+
+    public void setLoaded(boolean loaded) {
+        this.loaded = loaded;
+    }
+
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    public void setReadyToLoad(boolean readyToLoad) {
+        this.readyToLoad = readyToLoad;
+    }
+
+    public boolean isReadyToLoad() {
+        return readyToLoad;
     }
 
     @Override

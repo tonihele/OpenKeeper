@@ -18,16 +18,12 @@ package toniarts.openkeeper.world.room;
 
 import com.jme3.app.Application;
 import com.jme3.asset.AssetManager;
-import com.jme3.math.Vector3f;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.game.logic.CreatureSpawnLogicState;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -39,6 +35,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
 
     private final List<CreatureControl> attractedCreatures = new ArrayList<>();
@@ -99,15 +96,16 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
     @Override
     public CreatureControl spawnCreature(short creatureId, short level, Application app, ThingLoader thingLoader) {
 
-        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
-                roomInstance.getOwnerId(), (short) 1, app, thingLoader, getEntranceCoordinate(), true);
-        attractedCreatures.add(creature);
-
-        Vector3f effectPos = WorldUtils.pointToVector3f(roomInstance.getCenter());
-        effectManager.load(getRootNode(), effectPos,
-                creature.getCreature().getEntranceEffectId(), false);
-
-        return creature;
+//        CreatureControl creature = CreatureSpawnLogicState.spawnCreature(creatureId,
+//                roomInstance.getOwnerId(), (short) 1, app, thingLoader, getEntranceCoordinate(), true);
+//        attractedCreatures.add(creature);
+//
+//        Vector3f effectPos = WorldUtils.pointToVector3f(roomInstance.getCenter());
+//        effectManager.load(getRootNode(), effectPos,
+//                creature.getCreature().getEntranceEffectId(), false);
+//
+//        return creature;
+        return null;
     }
 
     @Override

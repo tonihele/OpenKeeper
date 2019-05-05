@@ -40,7 +40,7 @@ import toniarts.openkeeper.Main;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class SingleBarLoadingState extends LoadingState {
+public abstract class SingleBarLoadingState extends LoadingState implements IPlayerLoadingProgress {
 
     private static final List<String> AVAILABLE_SCREENS = Arrays.asList("LoadingScreen1024x768.png",
             "LoadingScreen1280x1024.png", "LoadingScreen1600x1200.png", "LoadingScreen400x300.png",
@@ -110,15 +110,21 @@ public abstract class SingleBarLoadingState extends LoadingState {
     public void setProgress(final float progress) {
 
         // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        app.enqueue(() -> {
+        if (initialized) {
+            app.enqueue(() -> {
 
-            // Adjust the progress bar
-            Quad q = (Quad) progressBar.getMesh();
-            q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
+                // Adjust the progress bar
+                Quad q = (Quad) progressBar.getMesh();
+                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
 
-            return null;
-        });
+                return null;
+            });
+        }
+    }
 
+    @Override
+    public void setProgress(float progress, short playerId) {
+        setProgress(progress); // We only have one player
     }
 
     @Override
@@ -131,4 +137,5 @@ public abstract class SingleBarLoadingState extends LoadingState {
 
         super.cleanup();
     }
+
 }

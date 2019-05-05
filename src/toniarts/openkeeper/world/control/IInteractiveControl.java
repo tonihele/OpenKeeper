@@ -29,6 +29,7 @@ import toniarts.openkeeper.world.TileData;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface IInteractiveControl extends Control {
 
     /**

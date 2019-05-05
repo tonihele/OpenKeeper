@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.world.object;
 
-import toniarts.openkeeper.game.player.PlayerSpell;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class SpellBookObjectControl extends ObjectControl {
 
     private final PlayerSpell playerSpell;

@@ -50,7 +50,7 @@ public class LobbyUtils {
         while (Collections.binarySearch(keepers, id) >= 0) {
             id++;
         }
-        return new Keeper(ai, id, null);
+        return new Keeper(ai, id);
     }
 
     /**

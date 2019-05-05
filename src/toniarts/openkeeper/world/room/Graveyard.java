@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Graveyard extends Normal {
 
     public Graveyard(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

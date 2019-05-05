@@ -17,12 +17,16 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Carry gold to treasury
@@ -31,14 +35,17 @@ import toniarts.openkeeper.world.room.GenericRoom;
  */
 public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
+    private final IGameWorldController gameWorldController;
     private boolean executed = false;
 
-    public CarryGoldToTreasuryTask(WorldState worldState, int x, int y, short playerId, GenericRoom room) {
-        super(worldState, x, y, playerId, room);
+    public CarryGoldToTreasuryTask(final INavigationService navigationService, final IMapController mapController,
+            int x, int y, short playerId, final IRoomController room, final IGameWorldController gameWorldController) {
+        super(navigationService, mapController, x, y, playerId, room);
+        this.gameWorldController = gameWorldController;
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         if (!executed) {
             return super.isValid(creature);
         }
@@ -46,7 +53,7 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
@@ -56,27 +63,32 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     }
 
     @Override
-    protected GenericRoom.ObjectType getRoomObjectType() {
-        return GenericRoom.ObjectType.GOLD;
+    protected ObjectType getRoomObjectType() {
+        return ObjectType.GOLD;
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
+    public void executeTask(ICreatureController creature, float executionDuration) {
         int gold = creature.getGold();
-        creature.substractGold(gold - worldState.addGold(playerId, getTaskLocation(), gold));
+        creature.substractGold(gold - gameWorldController.addGold(playerId, getTaskLocation(), gold));
 
         // This is a one timer
         executed = true;
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Take_Gold.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CARRY_GOLD_TO_TREASURY;
     }
 
 }

@@ -40,13 +40,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
  * A base class for showing unit (creature, object...) flower
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class UnitFlowerControl extends BillboardControl {
 
     private static final float DISPLAY_SECONDS = 2.5f;

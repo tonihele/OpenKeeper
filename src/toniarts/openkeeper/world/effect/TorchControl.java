@@ -55,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class TorchControl extends BillboardControl {
 
     private final int frames = 20;

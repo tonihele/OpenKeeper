@@ -54,9 +54,6 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
-import toniarts.openkeeper.game.state.PlayerState;
-import toniarts.openkeeper.game.state.SoundState;
-import toniarts.openkeeper.game.state.SystemMessageState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -93,6 +90,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class WorldState extends AbstractAppState {
 
     private Main app;
@@ -171,15 +169,16 @@ public abstract class WorldState extends AbstractAppState {
             if (roomEntry.getValue().canStoreGold()) {
                 Keeper keeper = gameState.getPlayer(roomEntry.getKey().getOwnerId());
                 if (keeper != null) {
-                    keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getObjectControl(GenericRoom.ObjectType.GOLD).getMaxCapacity());
+//                    keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + roomEntry.getValue().getObjectControl(GenericRoom.ObjectType.GOLD).getMaxCapacity());
                 }
             }
         }
 
         // Set up the money$$$
-        for (Keeper player : gameState.getPlayers()) {
-            if (player.getInitialGold() > 0) {
-                addGold(player.getId(), player.getInitialGold());
+        for (Keeper keeper : gameState.getPlayers()) {
+            Player player = kwdFile.getPlayer(keeper.getId());
+            if (player.getStartingGold() > 0) {
+                addGold(keeper.getId(), player.getStartingGold());
             }
         }
     }
@@ -190,40 +189,40 @@ public abstract class WorldState extends AbstractAppState {
         Map<Short, List<CreatureControl>> playerCreatures = thingLoader.getCreatures().stream().collect(Collectors.groupingBy(c -> c.getOwnerId()));
         for (Keeper player : gameState.getPlayers()) {
             List<CreatureControl> creatures = playerCreatures.get(player.getId());
-            player.getCreatureControl().init(creatures, kwdFile.getImp());
+//            player.getCreatureControl().init(creatures, kwdFile.getImp());
             thingLoader.addListener(player.getId(), new CreatureListener() {
 
                 @Override
                 public void onSpawn(CreatureControl creature) {
-                    if (player.getId() == stateManager.getState(PlayerState.class).getPlayerId() && player.getCreatureControl().getTypeCount(creature.getCreature()) == 0) {
-
-                        // First appearance
-                        String message;
-                        Integer overrideTextId = kwdFile.getGameLevel().getIntroductionOverrideTextIds().get(creature.getCreature().getCreatureId());
-                        if (overrideTextId != null) {
-                            message = String.format("${level.%d}", overrideTextId - 1);
-                            stateManager.getState(SoundState.class).attachLevelSpeech(overrideTextId);
-
-                            stateManager.getState(PlayerState.class).setText(overrideTextId, true, 0);
-                        } else {
-                            // default entrance message
-                            message = "${speech.376}";
-                            stateManager.getState(SoundState.class).attachMentorSpeech(376);
-                        }
-
-                        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.CREATURE, message);
-                    }
-                    player.getCreatureControl().onSpawn(creature);
+//                    if (player.getId() == stateManager.getState(PlayerState.class).getPlayerId() && player.getCreatureControl().getTypeCount(creature.getCreature()) == 0) {
+//
+//                        // First appearance
+//                        String message;
+//                        Integer overrideTextId = kwdFile.getGameLevel().getIntroductionOverrideTextIds().get(creature.getCreature().getCreatureId());
+//                        if (overrideTextId != null) {
+//                            message = String.format("${level.%d}", overrideTextId - 1);
+//                            stateManager.getState(SoundState.class).attachLevelSpeech(overrideTextId);
+//
+//                            stateManager.getState(PlayerState.class).setText(overrideTextId, true, 0);
+//                        } else {
+//                            // default entrance message
+//                            message = "${speech.376}";
+//                            stateManager.getState(SoundState.class).attachMentorSpeech(376);
+//                        }
+//
+//                        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.CREATURE, message);
+//                    }
+//                    player.getCreatureControl().onSpawn(creature);
                 }
 
                 @Override
                 public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-                    player.getCreatureControl().onStateChange(creature, newState, oldState);
+//                    player.getCreatureControl().onStateChange(creature, newState, oldState);
                 }
 
                 @Override
                 public void onDie(CreatureControl creature) {
-                    player.getCreatureControl().onDie(creature);
+//                    player.getCreatureControl().onDie(creature);
                 }
             });
         }
@@ -236,11 +235,11 @@ public abstract class WorldState extends AbstractAppState {
         for (Keeper player : gameState.getPlayers()) {
             List<Entry<RoomInstance, GenericRoom>> rooms = playerRooms.get(player.getId());
             if (rooms != null) {
-                player.getRoomControl().init(rooms);
+//                player.getRoomControl().init(rooms);
             }
 
             // Add the listener
-            addListener(player.getId(), player.getRoomControl());
+//            addListener(player.getId(), player.getRoomControl());
         }
     }
 
@@ -505,7 +504,7 @@ public abstract class WorldState extends AbstractAppState {
             return;
         }
         Keeper keeper = gameState.getPlayer(playerId);
-        keeper.getGoldControl().addGold(value);
+//        keeper.getGoldControl().addGold(value);
     }
 
     public void alterTerrain(Point pos, short terrainId, short playerId, boolean enqueue) {
@@ -666,7 +665,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // See that can we afford the building
         int cost = instancePlots.size() * room.getCost();
-        if (instancePlots.size() * room.getCost() > gameState.getPlayer(player.getPlayerId()).getGoldControl().getGold()) {
+        if (instancePlots.size() * room.getCost() > gameState.getPlayer(player.getPlayerId()).getGold()) {
             return;
         }
         substractGoldFromPlayer(cost, player.getPlayerId());
@@ -1247,8 +1246,8 @@ public abstract class WorldState extends AbstractAppState {
                     roomTile.applyHealing(tile.getTerrain().getMaxHealth());
 
                     effectManager.load(worldNode,
-                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
-                        tile.getTerrain().getMaxHealthEffectId(), false);
+                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                            tile.getTerrain().getMaxHealthEffectId(), false);
 
                     // FIXME ROOM_CLAIM_ID is realy claim effect?
                     effectManager.load(worldNode,
@@ -1341,7 +1340,7 @@ public abstract class WorldState extends AbstractAppState {
         if (room.canStoreGold()) {
             Keeper keeper = gameState.getPlayer(instance.getOwnerId());
             RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
-            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() - control.getMaxCapacity());
+//            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() - control.getMaxCapacity());
         }
     }
 
@@ -1350,7 +1349,7 @@ public abstract class WorldState extends AbstractAppState {
         if (room.canStoreGold()) {
             Keeper keeper = gameState.getPlayer(instance.getOwnerId());
             RoomGoldControl control = room.getObjectControl(GenericRoom.ObjectType.GOLD);
-            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + control.getMaxCapacity());
+//            keeper.getGoldControl().setGoldMax(keeper.getGoldControl().getGoldMax() + control.getMaxCapacity());
         }
     }
 
@@ -1471,7 +1470,7 @@ public abstract class WorldState extends AbstractAppState {
 
         // See if the player has any gold even
         Keeper keeper = gameState.getPlayer(playerId);
-        if (keeper.getGoldControl().getGold() == 0) {
+        if (keeper.getGold() == 0) {
             return amount;
         }
 

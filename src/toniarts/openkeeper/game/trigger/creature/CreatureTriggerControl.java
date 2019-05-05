@@ -16,10 +16,15 @@
  */
 package toniarts.openkeeper.game.trigger.creature;
 
-import com.jme3.app.state.AppStateManager;
 import java.util.logging.Logger;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.ObjectiveType;
-import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
@@ -27,22 +32,19 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
  * @author ArchDemon
  */
-public class CreatureTriggerControl extends AbstractThingTriggerControl<CreatureControl> {
+public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatureController> {
 
-    private static final Logger logger = Logger.getLogger(CreatureTriggerControl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(CreatureTriggerControl.class.getName());
 
-    public CreatureTriggerControl() { // empty serialization constructor
-        super();
-    }
-
-    public CreatureTriggerControl(final AppStateManager stateManager, int triggerId) {
-        super(stateManager, triggerId);
+    public CreatureTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+            final ICreaturesController creaturesController, final int triggerId, final short playerId,
+            final PlayerService playerService) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
     @Override
@@ -61,6 +63,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 }
                 return false;
             case CREATURE_SLAPPED:
+                if (instanceControl != null) {
+                    return instanceControl.isSlapped();
+                }
                 return false;
             case CREATURE_ATTACKED:
                 if (instanceControl != null) {
@@ -120,6 +125,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
             case CREATURE_HUNGER_SATED:
                 return false;
             case CREATURE_PICKS_UP_PORTAL_GEM:
+                if (instanceControl != null) {
+                    return instanceControl.isPortalGemInPosession();
+                }
                 return false;
             case CREATURE_SACKED:
                 return false;
@@ -157,9 +165,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
 
             case SHOW_HEALTH_FLOWER:
                 if (instanceControl != null) {
-                    stateManager.getApplication().enqueue(() -> {
-                        instanceControl.showUnitFlower(trigger.getUserData("value", Integer.class));
-                    });
+                    getPlayerService().showUnitFlower(instanceControl.getEntityId(), trigger.getUserData("value", Integer.class), getPlayer().getId());
                 }
                 break;
 
@@ -176,7 +182,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
 
             case ZOOM_TO:
                 if (instanceControl != null) {
-                    stateManager.getState(PlayerState.class).zoomToCreature(instanceControl);
+                    getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
                 }
                 break;
 
@@ -188,7 +194,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<Creature
                 // Assign to creature
                 if (instanceControl != null) {
                     if (apId != 0) {
-                        instanceControl.setObjectiveTargetActionPoint(getActionPoint(apId));
+                        instanceControl.setObjectiveTargetActionPointId(apId);
                     }
                     instanceControl.setObjectiveTargetPlayerId(playerId);
                     instanceControl.setObjective(jobType);

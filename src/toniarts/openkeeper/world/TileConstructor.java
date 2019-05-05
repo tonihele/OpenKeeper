@@ -26,7 +26,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author ArchDemon
  */
-
+@Deprecated
 abstract class TileConstructor {
     protected final KwdFile kwdFile;
 

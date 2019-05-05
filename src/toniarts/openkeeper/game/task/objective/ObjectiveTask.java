@@ -17,8 +17,8 @@
 package toniarts.openkeeper.game.task.objective;
 
 import java.util.Deque;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Interface for chainable complex tasks
@@ -37,17 +37,40 @@ public interface ObjectiveTask extends Task {
     }
 
     /**
-     * Get the next task
+     * Get the next task. Advances the task queue
      *
      * @return the next task
      */
-    default Task getTask() {
+    default Task getNextTask() {
         Task nextTask = getTaskQueue().peekFirst();
         if (nextTask != null) {
             if (nextTask instanceof ObjectiveTask) {
-                return ((ObjectiveTask) nextTask).getTask();
+                ObjectiveTask nextObjectiveTask = (ObjectiveTask) nextTask;
+                nextTask = nextObjectiveTask.getNextTask();
+                if (nextTask == null) {
+                    getTaskQueue().removeFirst();
+                    return getNextTask();
+                }
+                return nextTask;
             }
             getTaskQueue().removeFirst();
+            return nextTask;
+        }
+        return null;
+    }
+
+    /**
+     * Get the current task
+     *
+     * @return the current task
+     */
+    default Task getCurrentTask() {
+        Task nextTask = getTaskQueue().peekFirst();
+        if (nextTask != null) {
+            if (nextTask instanceof ObjectiveTask) {
+                ObjectiveTask nextObjectiveTask = (ObjectiveTask) nextTask;
+                nextObjectiveTask.getCurrentTask();
+            }
             return nextTask;
         }
         return this;
@@ -65,16 +88,16 @@ public interface ObjectiveTask extends Task {
     }
 
     @Override
-    public default void executeTask(CreatureControl creature) {
+    public default void executeTask(ICreatureController creature, float executionDuration) {
         if (!isValid(creature)) {
 
             // Assign next task
-            Task nextTask = getTask();
+            Task nextTask = getNextTask();
             if (nextTask != null) {
                 if (nextTask instanceof ObjectiveTask && ((ObjectiveTask) nextTask).isWorkerPartyTask() && creature.getParty() != null) {
 
                     // Assign to all workers
-                    for (CreatureControl c : creature.getParty().getActualMembers()) {
+                    for (ICreatureController c : creature.getParty().getActualMembers()) {
                         if (!c.equals(creature) && c.isWorker() && nextTask.canAssign(c)) {
                             nextTask.assign(c, true);
                         }

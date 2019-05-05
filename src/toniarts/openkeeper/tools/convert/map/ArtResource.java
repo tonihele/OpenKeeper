@@ -20,14 +20,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Placeholder for the container class for the ArtResource
  *
- * @author Wizand Petteri Loisko <petteri.loisko@gmail.com>, Toni Helenius
- * <helenius.toni@gmail.com>
+ * @author Wizand Petteri Loisko <petteri.loisko@gmail.com>
+ * @author Toni Helenius <helenius.toni@gmail.com>
  *
  * Thank you https://github.com/werkt
  */
@@ -42,11 +43,11 @@ public class ArtResource {
         HAS_END_ANIMATION(0x0010),
         RANDOM_START_FRAME(0x0020),
         ORIGIN_AT_BOTTOM(0x0040),
-        DOESNT_LOOP(0x0080),  // if ANIMATING_TEXTURE but in all ArtResourceType
+        DOESNT_LOOP(0x0080), // if ANIMATING_TEXTURE but in all ArtResourceType
         FLAT(0x0100),
         DOESNT_USE_PROGRESSIVE_MESH(0x0200),
-        UNKNOWN_1(0x0400),  // FIXME unknown flag. In creature Imp (animIdle1)
-        UNKNOWN_2(0x8000),  // FIXME unknown flag. In creature Imp (animMelee1)
+        UNKNOWN_1(0x0400), // FIXME unknown flag. In creature Imp (animIdle1)
+        UNKNOWN_2(0x8000), // FIXME unknown flag. In creature Imp (animMelee1)
         USE_ANIMATING_TEXTURE_FOR_SELECTION(0x10000),
         PRELOAD(0x20000),
         BLOOD(0x40000);
@@ -90,7 +91,7 @@ public class ArtResource {
     private ArtResourceType type;
     private short sometimesOne;
 
-    private HashMap<String, Number> data = null;
+    private Map<String, Number> data = null;
 
     public String getName() {
         return name;

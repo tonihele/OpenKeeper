@@ -17,25 +17,29 @@
 package toniarts.openkeeper.game.task.objective;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.Date;
 import java.util.Deque;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * A decorator for some simple task to create complex task chains
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
+public class ObjectiveTaskDecorator implements ObjectiveTask {
 
+    private final long taskId;
     private final Task task;
     private final Deque<ObjectiveTask> taskQueue = new ArrayDeque<>();
 
-    public ObjectiveTaskDecorator(Task task) {
+    public ObjectiveTaskDecorator(long originalTaskId, Task task) {
+        this.taskId = originalTaskId;
         this.task = task;
     }
 
@@ -45,22 +49,21 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        task.executeTask(creature);
-        ObjectiveTask.super.executeTask(creature);
+    public void executeTask(ICreatureController creature, float executionDuration) {
+        task.executeTask(creature, executionDuration);
+        ObjectiveTask.super.executeTask(creature, executionDuration);
     }
 
     @Override
-    public void assign(CreatureControl creature, boolean setToCreature) {
+    public void assign(ICreatureController creature, boolean setToCreature) {
         task.assign(creature, false);
 
         // Override the assign
         creature.setAssignedTask(this);
-
         if (isWorkerPartyTask() && creature.getParty() != null) {
 
             // Assign to all workers
-            for (CreatureControl c : creature.getParty().getActualMembers()) {
+            for (ICreatureController c : creature.getParty().getActualMembers()) {
                 if (!c.equals(creature) && c.isWorker() && task.canAssign(c)) {
                     task.assign(c, true);
                 }
@@ -69,7 +72,7 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public boolean canAssign(CreatureControl creature) {
+    public boolean canAssign(ICreatureController creature) {
         return task.canAssign(creature);
     }
 
@@ -89,12 +92,12 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return task.getTarget(creature);
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return task.getTaskAnimation(creature);
     }
 
@@ -124,23 +127,38 @@ public class ObjectiveTaskDecorator implements Task, ObjectiveTask {
     }
 
     @Override
-    public boolean isReachable(CreatureControl creature) {
+    public boolean isReachable(ICreatureController creature) {
         return task.isReachable(creature);
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public boolean isValid(ICreatureController creature) {
         return task.isValid(creature);
     }
 
     @Override
-    public void unassign(CreatureControl creature) {
+    public void unassign(ICreatureController creature) {
         task.unassign(creature);
     }
 
     @Override
     public boolean isRemovable() {
         return task.isRemovable();
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return task.getTaskType();
+    }
+
+    @Override
+    public EntityId getTaskTarget() {
+        return task.getTaskTarget();
+    }
+
+    @Override
+    public long getId() {
+        return taskId;
     }
 
 }

@@ -29,6 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public final class MapData {
 
     private final int width, height;

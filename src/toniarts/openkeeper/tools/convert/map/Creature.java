@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
@@ -30,7 +31,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Creature implements Comparable<Creature>, ISoundable {
+public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
 
     public static enum AnimationType {
         WALK,
@@ -60,10 +61,10 @@ public class Creature implements Comparable<Creature>, ISoundable {
         RESEARCHING,
         MANUFACTURING,
         TRAINING,
-//        IN_PRISON,
+        //        IN_PRISON,
         DRINKING,
         PRAYING,
-//        GAMBLING,
+        //        GAMBLING,
         TORTURED_WHEEL,
         TORTURED_CHAIR,
         TORTURED_CHAIR_SKELETON,
@@ -71,10 +72,9 @@ public class Creature implements Comparable<Creature>, ISoundable {
         SPECIAL_2,
         DRUNKED_WALK,
         DRUNKED_IDLE,
-//        FIGHT_VICTORY,
-//        FIGHT_IDLE,
+        //        FIGHT_VICTORY,
+        //        FIGHT_IDLE,
         DRAGGED,
-
         DIG, // Imp
         SWIPE,
         IDLE_3, // Imp
@@ -171,10 +171,10 @@ public class Creature implements Comparable<Creature>, ISoundable {
     };
 
     public enum CreatureFlag3 implements IFlagEnum {
-	UNK_1(1),
-	UNK_2(2),
-	UNK_4(4),
-	UNK_8(8);
+        UNK_1(1),
+        UNK_2(2),
+        UNK_4(4),
+        UNK_8(8);
 
         private final long flagValue;
 
@@ -1507,6 +1507,10 @@ public class Creature implements Comparable<Creature>, ISoundable {
         this.unknown_1 = unknown;
     }
 
+    @Override
+    public short getId() {
+        return creatureId;
+    }
 
     @Override
     public String toString() {
@@ -1808,6 +1812,7 @@ public class Creature implements Comparable<Creature>, ISoundable {
     }
 
     public class Attributes {
+
         private int expForNextLevel; // f00
         private int expPerSecond; // f04
         private int expPerSecondTraining; // f06

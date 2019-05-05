@@ -32,23 +32,26 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
-import toniarts.openkeeper.game.action.ActionPoint;
+import toniarts.openkeeper.game.control.Container;
+import toniarts.openkeeper.game.control.IContainer;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
-import toniarts.openkeeper.game.state.GameState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.MapData;
-import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.camera.PlayerCameraControl;
+import toniarts.openkeeper.view.camera.PlayerCameraRotateControl;
 
 /**
  * The player camera state. Listens for camera movement inputs.
@@ -61,11 +64,12 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private AppStateManager stateManager;
     private InputManager inputManager;
 
+    private final IContainer container;
     private PlayerCamera camera;
     private Camera storedCamera;
     private final Player player;
 
-    private final List<Integer> keys = new ArrayList<>();
+    private final Set<Integer> keys = new HashSet<>();
 
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
@@ -78,7 +82,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
     // User set keys
-    private static final String[] mappings = new String[]{
+    private static final String[] MAPPINGS = new String[]{
         Settings.Setting.CAMERA_DOWN.name(),
         Settings.Setting.CAMERA_LEFT.name(),
         Settings.Setting.CAMERA_RIGHT.name(),
@@ -99,12 +103,13 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         CAMERA_MOUSE_ZOOM_OUT,
         SPECIAL_KEY_CONTROL,
         SPECIAL_KEY_ALT,
-        SPECIAL_KEY_SHIFT,};
+        SPECIAL_KEY_SHIFT};
 
-    private static final Logger logger = Logger.getLogger(PlayerCameraState.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(PlayerCameraState.class.getName());
 
     public PlayerCameraState(Player player) {
         this.player = player;
+        this.container = new Container();
     }
 
     @Override
@@ -152,17 +157,17 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     }
 
     private Vector2f getCameraMapLimit() {
-        MapData md = this.stateManager.getState(WorldState.class).getMapData();
-        return new Vector2f(md.getWidth(), md.getHeight());
+        GameMap gm = this.stateManager.getState(GameClientState.class).getLevelData().getMap();
+        return new Vector2f(gm.getWidth(), gm.getHeight());
     }
 
     private Thing.Camera getCameraPresets() {
-        GameState gs = this.stateManager.getState(GameState.class);
+        GameClientState gs = this.stateManager.getState(GameClientState.class);
         Thing.Camera result = null;
 
-        for (Thing thing : gs.getLevelData().getThings()) {
-            if (thing instanceof Thing.Camera && ((Thing.Camera) thing).getId() == Thing.Camera.ID_GAME) {
-                result = (Thing.Camera) thing;
+        for (Thing.Camera thing : gs.getLevelData().getThings(Thing.Camera.class)) {
+            if (thing.getId() == Thing.Camera.ID_GAME) {
+                result = thing;
                 break;
             }
         }
@@ -207,11 +212,19 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         camera.setLookAt(spatial.getWorldTranslation());
     }
 
+    public void setCameraLookAt(Vector3f position) {
+        camera.setLookAt(position);
+    }
+
     public void doTransition(int sweepFileId, final ActionPoint point) {
+        this.doTransition(sweepFileId, WorldUtils.ActionPointToVector3f(point), null);
+    }
+
+    public void doTransition(int sweepFileId, final Vector3f start, final CinematicEventListener listener) {
         String sweepFile = "EnginePath" + sweepFileId;
 
         // Do cinematic transition
-        Cinematic c = new Cinematic(app, sweepFile, point);
+        Cinematic c = new Cinematic(app, sweepFile, start);
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
@@ -232,6 +245,9 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                 PlayerCameraState.this.cameraRestore();
             }
         });
+        if (listener != null) {
+            c.addListener(listener);
+        }
         // GuiEvent ce = new GuiEvent(app.getNifty(), PlayerState.CINEMATIC_SCREEN_ID);
         // c.addCinematicEvent(0, ce);
         // SoundEvent se = new SoundEvent(sweepFile);
@@ -239,6 +255,14 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         stateManager.getState(PlayerState.class).setTransitionEnd(false);
         stateManager.attach(c);
         c.play();
+    }
+
+    public void zoomToPoint(Vector3f point) {
+        container.addControl(new PlayerCameraControl(camera, point));
+    }
+
+    public void rotateAroundPoint(Vector3f point, boolean relative, int angle, int time) {
+        container.addControl(new PlayerCameraRotateControl(camera, relative, angle, time));
     }
 
     @Override
@@ -253,6 +277,10 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     @Override
     public void update(float tpf) {
         super.update(tpf);
+
+        // Update the container
+        container.update(tpf);
+
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
@@ -294,11 +322,11 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_IN, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false));
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_OUT, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true));
 
-        inputManager.addListener(this, mappings);
+        inputManager.addListener(this, MAPPINGS);
     }
 
     private void unregisterInput() {
-        for (String s : mappings) {
+        for (String s : MAPPINGS) {
             inputManager.deleteMapping(s);
         }
 
@@ -328,8 +356,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                     keys.add(KeyInput.KEY_LCONTROL);
                     keys.add(KeyInput.KEY_RCONTROL);
                 } else {
-                    keys.remove(Integer.valueOf(KeyInput.KEY_LCONTROL));
-                    keys.remove(Integer.valueOf(KeyInput.KEY_RCONTROL));
+                    keys.remove(KeyInput.KEY_LCONTROL);
+                    keys.remove(KeyInput.KEY_RCONTROL);
                 }
                 break;
 
@@ -338,8 +366,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                     keys.add(KeyInput.KEY_LMENU);
                     keys.add(KeyInput.KEY_RMENU);
                 } else {
-                    keys.remove(Integer.valueOf(KeyInput.KEY_LMENU));
-                    keys.remove(Integer.valueOf(KeyInput.KEY_RMENU));
+                    keys.remove(KeyInput.KEY_LMENU);
+                    keys.remove(KeyInput.KEY_RMENU);
                 }
                 break;
 
@@ -348,8 +376,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                     keys.add(KeyInput.KEY_LSHIFT);
                     keys.add(KeyInput.KEY_RSHIFT);
                 } else {
-                    keys.remove(Integer.valueOf(KeyInput.KEY_LSHIFT));
-                    keys.remove(Integer.valueOf(KeyInput.KEY_RSHIFT));
+                    keys.remove(KeyInput.KEY_LSHIFT);
+                    keys.remove(KeyInput.KEY_RSHIFT);
                 }
                 break;
         }

@@ -22,8 +22,6 @@ import com.jme3.export.Savable;
  *
  * @author ArchDemon
  */
-
-
 public interface IContainer extends Savable {
 
     public void addControl(IControl control);

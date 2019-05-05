@@ -20,14 +20,24 @@ import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import java.awt.Point;
-import toniarts.openkeeper.game.action.ActionPoint;
+import java.util.ArrayList;
+import java.util.List;
+import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
  * Contains transforms from tile indexes and world coordinates
+ *
  * @author archdemon
  */
 public class WorldUtils {
+
+    private WorldUtils() {
+        // Nope
+    }
+
     /**
      * Get a standard camera position vector on given map point
      *
@@ -41,6 +51,7 @@ public class WorldUtils {
 
     /**
      * calculates position from center ActionPoint
+     *
      * @param ap
      * @return position on 3D world with y = 0
      */
@@ -54,6 +65,7 @@ public class WorldUtils {
 
     /**
      * calculates position from center ActionPoint
+     *
      * @param ap
      * @return position on 2D world
      */
@@ -104,4 +116,40 @@ public class WorldUtils {
     public static Point vectorToPoint(final float x, final float y) {
         return new Point(Math.round(x / MapLoader.TILE_WIDTH), Math.round(y / MapLoader.TILE_WIDTH));
     }
+
+    /**
+     * Get surrounding tile coordinates
+     *
+     * @param mapData the map data
+     * @param point starting coordinate whose surroundings you want
+     * @param diagonal whether to also include diagonally attached tiles
+     * @return surrounding tile coordinates
+     */
+    public static Point[] getSurroundingTiles(MapData mapData, Point point, boolean diagonal) {
+
+        // Get all surrounding tiles
+        List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
+        tileCoords.add(point);
+
+        addIfValidCoordinate(mapData, point.x, point.y - 1, tileCoords); // North
+        addIfValidCoordinate(mapData, point.x + 1, point.y, tileCoords); // East
+        addIfValidCoordinate(mapData, point.x, point.y + 1, tileCoords); // South
+        addIfValidCoordinate(mapData, point.x - 1, point.y, tileCoords); // West
+        if (diagonal) {
+            addIfValidCoordinate(mapData, point.x - 1, point.y - 1, tileCoords); // NW
+            addIfValidCoordinate(mapData, point.x + 1, point.y - 1, tileCoords); // NE
+            addIfValidCoordinate(mapData, point.x - 1, point.y + 1, tileCoords); // SW
+            addIfValidCoordinate(mapData, point.x + 1, point.y + 1, tileCoords); // SE
+        }
+
+        return tileCoords.toArray(new Point[tileCoords.size()]);
+    }
+
+    private static void addIfValidCoordinate(MapData mapData, final int x, final int y, List<Point> tileCoords) {
+        MapTile tile = mapData.getTile(x, y);
+        if (tile != null) {
+            tileCoords.add(tile.getLocation());
+        }
+    }
+
 }

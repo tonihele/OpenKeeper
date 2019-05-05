@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Repair a claimed wall
@@ -28,14 +30,14 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class RepairWallTileTask extends DigTileTask {
 
-    public RepairWallTileTask(WorldState worldState, int x, int y, short playerId) {
-        super(worldState, x, y, playerId);
+    public RepairWallTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
+        super(navigationService, mapController, x, y, playerId);
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
-        TileData tile = worldState.getMapData().getTile(getTaskLocation());
-        return worldState.isRepairableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelectedByPlayerId(playerId);
+    public boolean isValid(ICreatureController creature) {
+        MapTile tile = mapController.getMapData().getTile(getTaskLocation());
+        return mapController.isRepairableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelected(playerId);
     }
 
     @Override
@@ -55,18 +57,28 @@ public class RepairWallTileTask extends DigTileTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        worldState.applyClaimTile(getTaskLocation(), playerId);
+    public void executeTask(ICreatureController creature, float executionDuration) {
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+
+            mapController.applyClaimTile(getTaskLocation(), playerId);
+        }
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
-        return creature.getCreature().getAnimSleepResource();
+    public ArtResource getTaskAnimation(ICreatureController creature) {
+        //return creature.getCreature().getAnimSleepResource();
+        return null;
     }
 
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Reinforce.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.REPAIR_WALL;
     }
 
 }

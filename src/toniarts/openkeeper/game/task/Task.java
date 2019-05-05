@@ -17,16 +17,25 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Date;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
+ * Represents a task to be carried out by entities in the game world
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface Task {
+
+    /**
+     * Tasks are identified by their ID inside the task manager
+     *
+     * @return the task unique ID
+     */
+    long getId();
 
     /**
      * Assing an entity to the task
@@ -34,7 +43,7 @@ public interface Task {
      * @param creature entity to be assigned
      * @param setToCreature set the task to creature right away, typically yes
      */
-    void assign(CreatureControl creature, boolean setToCreature);
+    void assign(ICreatureController creature, boolean setToCreature);
 
     /**
      * Can the entity be assigned to this task
@@ -42,14 +51,16 @@ public interface Task {
      * @param creature the tested entity
      * @return returns tru if the entity can be assigned to the task
      */
-    boolean canAssign(CreatureControl creature);
+    boolean canAssign(ICreatureController creature);
 
     /**
      * Execute task!
      *
      * @param creature creature executing the task
+     * @param executionDuration the time spend executing the task, the worker is
+     * responsible for delivering this
      */
-    void executeTask(CreatureControl creature);
+    void executeTask(ICreatureController creature, float executionDuration);
 
     /**
      * How many workers have already been assigned to this task
@@ -79,7 +90,7 @@ public interface Task {
      * @param creature who wants to know?
      * @return the target coordinates
      */
-    Vector2f getTarget(CreatureControl creature);
+    Vector2f getTarget(ICreatureController creature);
 
     /**
      * Get the animation used for the task. Might be null if no animation is
@@ -88,14 +99,14 @@ public interface Task {
      * @param creature executing the task
      * @return the animation
      */
-    ArtResource getTaskAnimation(CreatureControl creature);
+    ArtResource getTaskAnimation(ICreatureController creature);
 
     Date getTaskCreated();
 
     /**
      * The task icon for unit flowers
      *
-     * @return the path t the icon
+     * @return the path to the icon
      */
     String getTaskIcon();
 
@@ -105,6 +116,13 @@ public interface Task {
      * @return the task location
      */
     Point getTaskLocation();
+
+    /**
+     * Task target, if the task is related to an entity
+     *
+     * @return the task target entity
+     */
+    EntityId getTaskTarget();
 
     /**
      * Get the task tooltip
@@ -127,7 +145,7 @@ public interface Task {
      * @param creature the creature trying to reach this
      * @return is the task reachable
      */
-    boolean isReachable(CreatureControl creature);
+    boolean isReachable(ICreatureController creature);
 
     /**
      * Evaluates the task validity
@@ -136,14 +154,14 @@ public interface Task {
      * validity
      * @return the task validity
      */
-    boolean isValid(CreatureControl creature);
+    boolean isValid(ICreatureController creature);
 
     /**
      * Unassing a creature from the job. A place for doing some cleanup
      *
      * @param creature
      */
-    void unassign(CreatureControl creature);
+    void unassign(ICreatureController creature);
 
     /**
      * Evaluates the task validity, in a way that is it valid ever again and
@@ -152,5 +170,12 @@ public interface Task {
      * @return should the task be removed
      */
     boolean isRemovable();
+
+    /**
+     * Specifies the type of the task
+     *
+     * @return type of task
+     */
+    TaskType getTaskType();
 
 }

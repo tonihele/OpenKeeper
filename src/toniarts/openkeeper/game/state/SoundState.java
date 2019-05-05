@@ -31,6 +31,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
@@ -42,12 +43,14 @@ public class SoundState extends AbstractPauseAwareState {
 
     private Main app;
     private AppStateManager stateManager;
-    private AudioNode speech = null;
-    private AudioNode background = null;
-    private final Queue<String> speechQueue = new ArrayDeque<>();
-    private static final Logger logger = Logger.getLogger(SoundState.class.getName());
+    private AudioNode speechNode = null;
+    private AudioNode backgroundNode = null;
+    private KwdFile kwdFile;
+    private final Queue<Speech> speechQueue = new ArrayDeque<>();
+    private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
 
-    public SoundState() {
+    public SoundState(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
     }
 
     public SoundState(boolean enabled) {
@@ -68,25 +71,31 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     /**
-     * Plays mentor speeches for the current level
+     * Plays mentor speeches for the current level. The speech will be put to a
+     * queue and played in sequence
      *
-     * @param speechId
+     * @param speechId the speech ID in level resource bundle
+     * @param listener can be {@code null}, allows you to listen when the speech
+     * starts playing
      */
-    public void attachLevelSpeech(int speechId) {
-        String soundCategory = stateManager.getState(GameState.class).getLevelData().getGameLevel().getSoundCategory();
-        attachSpeech(soundCategory, speechId);
+    public void attachLevelSpeech(int speechId, ISpeechListener listener) {
+        String soundCategory = kwdFile.getGameLevel().getSoundCategory();
+        attachSpeech(soundCategory, speechId, listener);
     }
 
     /**
-     * Plays general mentor speeches
+     * Plays general mentor speeches The speech will be put to a queue and
+     * played in sequence
      *
-     * @param speechId
+     * @param speechId the speech ID in resource bundle
+     * @param listener can be {@code null}, allows you to listen when the speech
+     * starts playing
      */
-    public void attachMentorSpeech(int speechId) {
-        attachSpeech(SoundCategory.SPEECH_MENTOR, speechId);
+    public void attachMentorSpeech(int speechId, ISpeechListener listener) {
+        attachSpeech(SoundCategory.SPEECH_MENTOR, speechId, listener);
     }
 
-    private void attachSpeech(String soundCategory, int speechId) {
+    private void attachSpeech(String soundCategory, int speechId, ISpeechListener listener) {
         try {
             SoundCategory sc = SoundsLoader.load(soundCategory, false);
             if (sc == null) {
@@ -95,40 +104,49 @@ public class SoundState extends AbstractPauseAwareState {
 
             String file = AssetsConverter.SOUNDS_FOLDER + File.separator
                     + sc.getGroup(speechId).getFiles().get(0).getFilename();
-            speechQueue.add(file);
+            speechQueue.add(new Speech(speechId, file, listener));
         } catch (Exception e) {
-            logger.log(Level.WARNING, e.getLocalizedMessage());
+            LOGGER.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
         }
     }
 
-    private void playSpeech(String file) {
-        speech = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
-        if (speech == null) {
-            logger.log(Level.WARNING, "Audio file {0} not found", file);
+    private void playSpeech(Speech speech) {
+        speechNode = new AudioNode(app.getAssetManager(), speech.file, DataType.Buffer);
+        if (speechNode == null) {
+            LOGGER.log(Level.WARNING, "Audio file {0} not found", speech.file);
             return;
         }
-        speech.setLooping(false);
-        speech.setPositional(false);
-        speech.play();
+        speechNode.setLooping(false);
+        speechNode.setPositional(false);
+        app.enqueue(() -> {
+            speechNode.play();
+            if (speech.listener != null) {
+                speech.listener.onStart();
+            }
+        });
     }
 
     public void stopSpeech() {
-        if (speech != null) {
-            speech.stop();
-        }
+        app.enqueue(() -> {
+            if (speechNode != null) {
+                speechNode.stop();
+            }
+        });
     }
 
     private void playBackground() {
         String file = this.getRandomSoundFile();
-        background = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
-        if (background == null) {
-            logger.log(Level.WARNING, "Audio file {0} not found", file);
+        backgroundNode = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
+        if (backgroundNode == null) {
+            LOGGER.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
-        background.setLooping(false);
-        background.setPositional(false);
-        background.setVolume(0.2f);
-        background.play();
+        backgroundNode.setLooping(false);
+        backgroundNode.setPositional(false);
+        backgroundNode.setVolume(0.2f);
+        app.enqueue(() -> {
+            backgroundNode.play();
+        });
     }
 
     private String getRandomSoundFile() {
@@ -187,15 +205,42 @@ public class SoundState extends AbstractPauseAwareState {
         super.update(tpf);
 
         if (!speechQueue.isEmpty()) {
-            if (speech == null || speech.getStatus() == AudioSource.Status.Stopped) {
-                String speechFile = speechQueue.poll();
-                playSpeech(speechFile);
+            if (speechNode == null || speechNode.getStatus() == AudioSource.Status.Stopped) {
+                playSpeech(speechQueue.poll());
             }
         }
 
-        if (background == null || background.getStatus() == AudioSource.Status.Stopped) {
+        if (backgroundNode == null || backgroundNode.getStatus() == AudioSource.Status.Stopped) {
             playBackground();
         }
+    }
+
+    /**
+     * Simple wrapper for a speech to play
+     */
+    private static class Speech {
+
+        private final int speechId;
+        private final String file;
+        private final ISpeechListener listener;
+
+        public Speech(int speechId, String file, ISpeechListener listener) {
+            this.speechId = speechId;
+            this.file = file;
+            this.listener = listener;
+        }
+
+    }
+
+    /**
+     * A simple listener for getting notified when we actually play the queued
+     * speech. If we need more, we might need to use the Java native audio
+     * playing. There are already existing listeners unlke JME.
+     */
+    public interface ISpeechListener {
+
+        void onStart();
+
     }
 
 }

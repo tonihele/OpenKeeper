@@ -27,6 +27,7 @@ import toniarts.openkeeper.world.room.control.RoomTortureeControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class TortureChamber extends Normal {
 
     public TortureChamber(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

@@ -30,6 +30,7 @@ import toniarts.openkeeper.gui.nifty.WorkerAmountControl.State;
  * @author archdemon
  */
 public class WorkerEqualControl extends AbstractController {
+
     private Nifty nifty;
     private Element element;
     private Screen screen;
@@ -44,21 +45,15 @@ public class WorkerEqualControl extends AbstractController {
 
     @Override
     public void onStartScreen() {
+        initState();
+    }
+
+    private void initState() {
         Element e = element.findElementById("#equal");
         String fileName = String.format("Textures/GUI/Tabs/t-cp-%s.png", state.toString().toLowerCase());
 
         ImageRenderer imageRenderer = e.getRenderer(ImageRenderer.class);
         imageRenderer.setImage(nifty.getRenderEngine().createImage(screen, fileName, true));
-        /*
-        for (Element e : element.getChildren()) {
-            String id = e.getId();
-            if (id != null && id.endsWith("#" + state.toString().toLowerCase())) {
-                e.show();
-            } else {
-                e.hide();
-            }
-        }
-        */
     }
 
     @Override
@@ -69,6 +64,6 @@ public class WorkerEqualControl extends AbstractController {
     public void setState(WorkerAmountControl.State state) {
         this.state = state;
 
-        onStartScreen();
+        initState();
     }
 }

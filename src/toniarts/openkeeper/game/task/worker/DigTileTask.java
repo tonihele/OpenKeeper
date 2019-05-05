@@ -18,11 +18,14 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.awt.Point;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.world.TileData;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Dig a tile task, for workers
@@ -31,8 +34,8 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class DigTileTask extends AbstractTileTask {
 
-    public DigTileTask(WorldState worldState, int x, int y, short playerId) {
-        super(worldState, x, y, playerId);
+    public DigTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
+        super(navigationService, mapController, x, y, playerId);
     }
 
     @Override
@@ -42,17 +45,19 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
 
         // Find an accessible target
         // TODO: entity's location?
-        for (Point p : worldState.getMapLoader().getSurroundingTiles(getTaskLocation(), false)) {
-            if (worldState.isAccessible(worldState.getMapData().getTile(p), creature)) {
+        for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+                if (navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
 
-                // TODO: intelligent coordinates?
-                Vector2f target = new Vector2f(p.x, p.y);
-                if (isReachable(creature, target)) {
-                    return target;
+                    // TODO: intelligent coordinates?
+                    Vector2f target = new Vector2f(p.x, p.y);
+                    if (isReachable(creature, target)) {
+                        return target;
+                    }
                 }
             }
         }
@@ -61,14 +66,14 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
-    public boolean isReachable(CreatureControl creature) {
+    public boolean isReachable(ICreatureController creature) {
         return (getTarget(creature) != null); // To avoid multiple path finds
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
-        TileData tile = worldState.getMapData().getTile(getTaskLocation());
-        return tile.isSelectedByPlayerId(playerId);
+    public boolean isValid(ICreatureController creature) {
+        MapTile tile = mapController.getMapData().getTile(getTaskLocation());
+        return tile.isSelected(playerId);
     }
 
     @Override
@@ -83,18 +88,25 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     protected String getStringId() {
-        TileData tile = worldState.getMapData().getTile(getTaskLocation());
+        MapTile tile = mapController.getMapData().getTile(getTaskLocation());
         return (tile.getGold() > 0 ? "2605" : "2600");
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        creature.addGold(worldState.damageTile(getTaskLocation(), playerId));
+    public void executeTask(ICreatureController creature, float executionDuration) {
+
+        // TODO: is this a general case or even smart to do this like this...?
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+
+            creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
+        }
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
-        return creature.getCreature().getAnimMelee1Resource();
+    public ArtResource getTaskAnimation(ICreatureController creature) {
+        return null;
+        // return creature.getCreature().getAnimMelee1Resource();
     }
 
     @Override
@@ -105,6 +117,11 @@ public class DigTileTask extends AbstractTileTask {
     @Override
     public boolean isFaceTarget() {
         return true;
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.DIG_TILE;
     }
 
 }

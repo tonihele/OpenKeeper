@@ -35,6 +35,7 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class TrapLoader implements ILoader<Thing.Trap> {
 
     private final KwdFile kwdFile;

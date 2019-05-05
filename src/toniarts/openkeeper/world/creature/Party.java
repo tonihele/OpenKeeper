@@ -40,6 +40,7 @@ import toniarts.openkeeper.world.pathfinding.PathFindable;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class Party implements PathFindable {
 
     public enum Type implements IValueEnum {

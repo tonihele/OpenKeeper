@@ -16,29 +16,28 @@
  */
 package toniarts.openkeeper.game.trigger;
 
-import com.jme3.app.state.AppStateManager;
 import java.awt.Point;
 import java.util.EnumSet;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.action.ActionPoint;
 import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.PartyType;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.player.PlayerCameraControl;
-import toniarts.openkeeper.game.state.GameState;
-import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.PlayerCameraState;
-import toniarts.openkeeper.world.ThingLoader;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
-import toniarts.openkeeper.world.creature.Party;
 
 /**
  *
@@ -52,9 +51,13 @@ public class TriggerControl extends Control {
     protected TriggerGenericData trigger;
     protected TriggerGenericData root;
 
-    protected AppStateManager stateManager;
+    protected ILevelInfo levelInfo;
+    protected IGameTimer gameTimer;
+    protected IGameController gameController;
+    protected IMapController mapController;
+    protected ICreaturesController creaturesController;
 
-    private static final Logger logger = Logger.getLogger(TriggerControl.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TriggerControl.class.getName());
 
     /**
      * empty serialization constructor
@@ -63,10 +66,15 @@ public class TriggerControl extends Control {
         super();
     }
 
-    public TriggerControl(final AppStateManager stateManager, int triggerId) {
+    public TriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+            final ICreaturesController creaturesController, final int triggerId) {
+        this.gameController = gameController;
+        this.levelInfo = levelInfo;
+        this.gameTimer = gameTimer;
+        this.mapController = mapController;
+        this.creaturesController = creaturesController;
 
-        this.stateManager = stateManager;
-        root = new TriggerLoader(this.stateManager.getState(GameState.class).getLevelData()).load(triggerId);
+        root = new TriggerLoader(levelInfo.getLevelData()).load(triggerId);
         if (root == null) {
             throw new IllegalArgumentException("trigger can not be null");
         }
@@ -82,7 +90,7 @@ public class TriggerControl extends Control {
             TriggerData value = trigger.getChild(i);
 
             if (value == null) {
-                logger.warning("Trigger is null");
+                LOGGER.warning("Trigger is null!");
 
             } else if (value instanceof TriggerGenericData) {
 
@@ -118,8 +126,8 @@ public class TriggerControl extends Control {
     protected boolean isActive(TriggerGenericData trigger) {
         boolean result = false;
 
-        int value = 0;
-        int target = 0;
+        int value;
+        int target;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
@@ -128,28 +136,34 @@ public class TriggerControl extends Control {
                 if (targetId == LEVEL_SCORE_FLAG_ID) {
 
                     // A special value, level score
-                    target = stateManager.getState(GameState.class).getLevelScore();
+                    target = levelInfo.getLevelScore();
                 } else {
-                    target = stateManager.getState(GameState.class).getFlag(targetId);
+                    target = levelInfo.getFlag(targetId);
                 }
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
-                    value = stateManager.getState(GameState.class).getFlag((Short) trigger.getUserData("flagId"));
+                    value = levelInfo.getFlag((Short) trigger.getUserData("flagId"));
                 }
                 break;
 
             case TIMER:
-                target = (int) stateManager.getState(GameState.class).getTimer((Short) trigger.getUserData("targetId")).getTime();
+                targetId = (short) trigger.getUserData("targetId");
+                if (targetId == TIME_LIMIT_TIMER_ID) {
+                    target = (levelInfo.getTimeLimit() != null ? levelInfo.getTimeLimit().intValue() : 0);
+                } else {
+                    target = (int) levelInfo.getTimer(targetId).getTime();
+                }
+
                 if ((Short) trigger.getUserData("flag") == 1) {
                     value = (Integer) trigger.getUserData("value");
                 } else {
-                    value = (int) Math.floor(stateManager.getState(GameState.class).getTimer((Short) trigger.getUserData("timerId")).getTime());
+                    value = (int) Math.floor(levelInfo.getTimer((Short) trigger.getUserData("timerId")).getTime());
                 }
                 break;
 
             case LEVEL_TIME:
-                target = (int) Math.floor(stateManager.getState(GameState.class).getGameTime());
+                target = (int) Math.floor(gameTimer.getGameTime());
                 value = (Integer) trigger.getUserData("value");
                 break;
             case LEVEL_CREATURES:
@@ -159,7 +173,7 @@ public class TriggerControl extends Control {
             case LEVEL_PLAYED:
                 return false;
             default:
-                logger.warning("Target Type not supported");
+                LOGGER.log(Level.WARNING, "Target Type not supported{0}!", targetType);
                 return false;
         }
 
@@ -172,19 +186,18 @@ public class TriggerControl extends Control {
     }
 
     protected void doAction(TriggerActionData trigger) {
-        //System.out.println(String.format("\t Action: %d %s", trigger.getId(), trigger.getType())); // TODO remove this line
-
         TriggerAction.ActionType type = trigger.getType();
         switch (type) {
 
             case CREATE_CREATURE:
-                // TODO this
                 short creatureId = trigger.getUserData("creatureId", short.class);
                 short playerId = trigger.getUserData("playerId", short.class);
                 short level = trigger.getUserData("level", short.class);
                 EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
                 Point p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
+                // TODO: flags!
+                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), false);
                 break;
 
             case MAKE:
@@ -192,21 +205,20 @@ public class TriggerControl extends Control {
                         TriggerAction.MakeType.class);
                 boolean available = trigger.getUserData("available", short.class) != 0;
                 playerId = trigger.getUserData("playerId", short.class);
-                Keeper keeper = getPlayer(playerId);
-                KwdFile kwdFile = stateManager.getState(GameState.class).getLevelData();
+                KwdFile kwdFile = levelInfo.getLevelData();
                 short targetId = trigger.getUserData("targetId", short.class);
                 // TODO this
                 switch (flag) {
                     case CREATURE:
-                        keeper.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
+                        getPlayerController(playerId).getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
                         break;
                     case DOOR:
                         break;
                     case KEEPER_SPELL:
-                        keeper.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
+                        getPlayerController(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
                         break;
                     case ROOM:
-                        keeper.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
+                        getPlayerController(playerId).getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
                         break;
                     case TRAP:
                         break;
@@ -219,15 +231,14 @@ public class TriggerControl extends Control {
                         FlagTargetValueActionType.class);
                 int value = trigger.getUserData("value", int.class);
                 if (flagType.contains(FlagTargetValueActionType.TARGET)) {
-                    value = stateManager.getState(GameState.class).getFlag(value);
+                    value = levelInfo.getFlag(value);
                 }
 
                 if (flagId == LEVEL_SCORE_FLAG_ID) {
-                    GameState gs = stateManager.getState(GameState.class);
-                    gs.setLevelScore(getTargetValue(gs.getLevelScore(), value, flagType));
+                    levelInfo.setLevelScore(getTargetValue(levelInfo.getLevelScore(), value, flagType));
                 } else {
-                    int base = stateManager.getState(GameState.class).getFlag(flagId);
-                    stateManager.getState(GameState.class).setFlag(flagId, getTargetValue(base, value, flagType));
+                    int base = levelInfo.getFlag(flagId);
+                    levelInfo.setFlag(flagId, getTargetValue(base, value, flagType));
                 }
                 break;
 
@@ -235,31 +246,27 @@ public class TriggerControl extends Control {
                 short timerId = trigger.getUserData("timerId", short.class);
                 if (timerId == TIME_LIMIT_TIMER_ID) {
                     value = trigger.getUserData("value", int.class);
-                    stateManager.getState(GameState.class).setTimeLimit(value);
+                    levelInfo.setTimeLimit(value);
                 } else {
-                    stateManager.getState(GameState.class).getTimer(timerId).initialize();
+                    levelInfo.getTimer(timerId).initialize();
+                }
+                break;
+
+            case SET_TIME_LIMIT:
+                timerId = trigger.getUserData("timerId", short.class);
+                if (timerId == TIME_LIMIT_TIMER_ID) {
+                    value = trigger.getUserData("value", int.class);
+                    levelInfo.setTimeLimit(value);
+                } else {
+                    LOGGER.warning("Only level time limit supported!");
                 }
                 break;
 
             case CREATE_HERO_PARTY:
-                ThingLoader loader = stateManager.getState(WorldState.class).getThingLoader();
-                Party party = loader.getParty(trigger.getUserData("partyId", short.class));
-                party.setType(ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Party.Type.class));
-                ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-
-                // Load the party members
-                for (Thing.GoodCreature creature : party.getMembers()) {
-                    CreatureControl creatureInstance = loader.spawnCreature(creature,
-                            WorldUtils.ActionPointToVector2f(ap), stateManager.getApplication());
-                    creatureInstance.setParty(party);
-                    party.addMemberInstance(creature, creatureInstance);
-
-                    // Also add to the creature trigger control
-                    if (creature.getTriggerId() != 0) {
-                        stateManager.getState(GameState.class).getCreatureTriggerState().setThing(creature.getTriggerId(), creatureInstance);
-                    }
-                }
-                party.setCreated(true);
+                ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+                short partyId = trigger.getUserData("partyId", short.class);
+                PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
+                creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
                 break;
 
             case SET_ALLIANCE:
@@ -267,9 +274,9 @@ public class TriggerControl extends Control {
                 short playerTwoId = trigger.getUserData("playerTwoId", short.class);
                 available = trigger.getUserData("available", short.class) == 0; // 0 = Create, !0 = Break
                 if (available) {
-                    stateManager.getState(GameState.class).createAlliance(playerOneId, playerTwoId);
+                    gameController.createAlliance(playerOneId, playerTwoId);
                 } else {
-                    stateManager.getState(GameState.class).breakAlliance(playerOneId, playerTwoId);
+                    gameController.breakAlliance(playerOneId, playerTwoId);
                 }
                 break;
 
@@ -278,7 +285,7 @@ public class TriggerControl extends Control {
                         trigger.getUserData("posY", int.class) - 1);
                 short terrainId = trigger.getUserData("terrainId", short.class);
                 playerId = trigger.getUserData("playerId", short.class);
-                stateManager.getState(WorldState.class).alterTerrain(p, terrainId, playerId, true);
+                mapController.alterTerrain(p, terrainId, playerId);
                 break;
 
             case COLLAPSE_HERO_GATE:
@@ -315,7 +322,7 @@ public class TriggerControl extends Control {
                 break;
 
             default:
-                logger.warning("Trigger Action not supported!");
+                LOGGER.warning("Trigger Action not supported!");
                 break;
         }
     }
@@ -342,14 +349,10 @@ public class TriggerControl extends Control {
                 result = target != value;
                 break;
             case NONE:
-                logger.warning("Comparison Type not supported");
+                LOGGER.warning("Comparison Type not supported!");
                 break;
         }
         return result;
-    }
-
-    protected ActionPoint getActionPoint(int id) {
-        return stateManager.getState(GameState.class).getActionPointState().getActionPoint(id);
     }
 
     private int getTargetValue(int base, int value, EnumSet<FlagTargetValueActionType> flagType) {
@@ -362,23 +365,23 @@ public class TriggerControl extends Control {
             return base - value;
         }
 
-        logger.warning("Unsupported target flag type");
+        LOGGER.log(Level.WARNING, "Unsupported target flag type {0}!", flagType);
         return 0;
     }
 
     protected Keeper getPlayer(short playerId) {
-        GameState gameState = stateManager.getState(GameState.class);
         if (playerId == 0) {
-            return gameState.getPlayer(this.stateManager.getState(PlayerState.class).getPlayerId()); // Current player
+            return levelInfo.getPlayer(Player.KEEPER1_ID); // Current player
         } else {
-            return gameState.getPlayer(playerId);
+            return levelInfo.getPlayer(playerId);
         }
     }
 
-    protected void zoomToAP(int apId) {
-        if (apId != 0) {
-            PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-            getActionPoint(apId).addControl(new PlayerCameraControl(pcs.getCamera()));
+    protected IPlayerController getPlayerController(short playerId) {
+        if (playerId == 0) {
+            return gameController.getPlayerController(Player.KEEPER1_ID); // Current player
+        } else {
+            return gameController.getPlayerController(playerId);
         }
     }
 }

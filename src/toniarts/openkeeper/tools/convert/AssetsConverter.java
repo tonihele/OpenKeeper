@@ -72,7 +72,7 @@ import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFi
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.world.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
  *

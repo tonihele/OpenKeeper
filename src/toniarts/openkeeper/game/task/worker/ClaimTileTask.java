@@ -17,11 +17,13 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * Claim a tile task, for workers
@@ -30,18 +32,18 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class ClaimTileTask extends AbstractTileTask {
 
-    public ClaimTileTask(WorldState worldState, int x, int y, short playerId) {
-        super(worldState, x, y, playerId);
+    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
+        super(navigationService, mapController, x, y, playerId);
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
-        return worldState.isClaimableTile(getTaskLocation().x, getTaskLocation().y, playerId);
+    public boolean isValid(ICreatureController creature) {
+        return mapController.isClaimableTile(getTaskLocation().x, getTaskLocation().y, playerId);
     }
 
     @Override
@@ -55,18 +57,30 @@ public class ClaimTileTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        worldState.applyClaimTile(getTaskLocation(), playerId);
+    public void executeTask(ICreatureController creature, float executionDuration) {
+
+        // TODO: is this a general case or even smart to do this like this...?
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+
+            mapController.applyClaimTile(getTaskLocation(), playerId);
+        }
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
-        return creature.getCreature().getAnimEatResource();
+    public ArtResource getTaskAnimation(ICreatureController creature) {
+        //return creature.getCreature().getAnimEatResource();
+        return null;
     }
 
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Claim.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.CLAIM_TILE;
     }
 
 }

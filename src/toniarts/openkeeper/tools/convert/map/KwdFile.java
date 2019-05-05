@@ -94,7 +94,7 @@ public final class KwdFile {
     private Map<Integer, EffectElement> effectElements;
     private Map<Integer, Effect> effects;
     private Map<Short, KeeperSpell> keeperSpells;
-    private List<Thing> things;
+    private Map<Class<? extends Thing>, List<? extends Thing>> thingsByType;
     private Map<Short, Shot> shots;
     private Map<Integer, Trigger> triggers;
     // Variables
@@ -109,9 +109,12 @@ public final class KwdFile {
     private boolean customOverrides = false;
     private boolean loaded = false;
     private Creature imp;
+    private Creature dwarf;
     private final String basePath;
     private GameObject levelGem;
-    private static final Logger logger = Logger.getLogger(KwdFile.class.getName());
+
+    private final Object loadingLock = new Object();
+    private static final Logger LOGGER = Logger.getLogger(KwdFile.class.getName());
 
     /**
      * Constructs a new KWD file reader<br>
@@ -184,26 +187,30 @@ public final class KwdFile {
      */
     public void load() throws RuntimeException {
         if (!loaded) {
+            synchronized (loadingLock) {
+                if (!loaded) {
 
-            // Read the map data first (we store some data to the map)
-            for (FilePath path : gameLevel.getPaths()) {
-                if (path.getId() == MapDataTypeEnum.MAP) {
-                    readFilePath(path);
-                    break;
+                    // Read the map data first (we store some data to the map)
+                    for (FilePath path : gameLevel.getPaths()) {
+                        if (path.getId() == MapDataTypeEnum.MAP) {
+                            readFilePath(path);
+                            break;
+                        }
+                    }
+
+                    // Now we have the paths, read all of those in order
+                    for (FilePath path : gameLevel.getPaths()) {
+
+                        if (path.getId() == MapDataTypeEnum.MAP) {
+                            continue;
+                        }
+
+                        // Open the file
+                        readFilePath(path);
+                    }
+                    loaded = true;
                 }
             }
-
-            // Now we have the paths, read all of those in order
-            for (FilePath path : gameLevel.getPaths()) {
-
-                if (path.getId() == MapDataTypeEnum.MAP) {
-                    continue;
-                }
-
-                // Open the file
-                readFilePath(path);
-            }
-            loaded = true;
         }
     }
 
@@ -273,7 +280,7 @@ public final class KwdFile {
         }
 
         if (data.getFilePointer() != offset + header.getHeaderEndOffset()) {
-            logger.warning("Incorrect parsing of file header");
+            LOGGER.warning("Incorrect parsing of file header");
         }
         //header.setHeaderSize(28 + header.getHeaderEndOffset());
         header.setCheckTwo(ConversionUtils.readUnsignedInteger(data));
@@ -374,7 +381,7 @@ public final class KwdFile {
                 break;
 
             default:
-                logger.log(Level.WARNING, "File type {0} have no reader", header.getId());
+                LOGGER.log(Level.WARNING, "File type {0} have no reader", header.getId());
                 break;
         }
     }
@@ -389,7 +396,7 @@ public final class KwdFile {
     private void readMap(KwdHeader header, RandomAccessFile file) throws IOException {
 
         // Read the requested MAP file
-        logger.info("Reading map!");
+        LOGGER.info("Reading map!");
         if (map == null) {
             map = new GameMap(header.getWidth(), header.getHeight());
         }
@@ -416,10 +423,10 @@ public final class KwdFile {
 
         // Read the requested PLAYER file
         if (players == null) {
-            logger.info("Reading players!");
+            LOGGER.info("Reading players!");
             players = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides players!");
+            LOGGER.warning("Overrides players!");
         }
 
         for (int playerIndex = 0; playerIndex < header.getItemCount(); playerIndex++) {
@@ -547,10 +554,10 @@ public final class KwdFile {
 
         // Read the terrain catalog
         if (terrainTiles == null) {
-            logger.info("Reading terrain!");
+            LOGGER.info("Reading terrain!");
             terrainTiles = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides terrain!");
+            LOGGER.warning("Overrides terrain!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -700,7 +707,7 @@ public final class KwdFile {
 
             default:
                 ConversionUtils.checkNull(file, 12);
-                logger.log(Level.WARNING, "Unknown artResource type {0}", artResource.getType());
+                LOGGER.log(Level.WARNING, "Unknown artResource type {0}", artResource.getType());
                 break;
         }
 
@@ -747,10 +754,10 @@ public final class KwdFile {
 
         // Read the doors catalog
         if (doors == null) {
-            logger.info("Reading doors!");
+            LOGGER.info("Reading doors!");
             doors = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides doors!");
+            LOGGER.warning("Overrides doors!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -813,10 +820,10 @@ public final class KwdFile {
 
         // Read the traps catalog
         if (traps == null) {
-            logger.info("Reading traps!");
+            LOGGER.info("Reading traps!");
             traps = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides traps!");
+            LOGGER.warning("Overrides traps!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -891,11 +898,11 @@ public final class KwdFile {
 
         // Read the rooms catalog
         if (rooms == null) {
-            logger.info("Reading rooms!");
+            LOGGER.info("Reading rooms!");
             rooms = new HashMap<>(header.getItemCount());
             roomsByTerrainId = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides rooms!");
+            LOGGER.warning("Overrides rooms!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -973,10 +980,10 @@ public final class KwdFile {
 
         //Additional header data
         if (gameLevel == null) {
-            logger.info("Reading level info!");
+            LOGGER.info("Reading level info!");
             gameLevel = new GameLevel();
         } else {
-            logger.warning("Overrides level!");
+            LOGGER.warning("Overrides level!");
         }
 
         //Property data
@@ -1094,7 +1101,7 @@ public final class KwdFile {
             // See if the globals are present
             if (filePath.getId() == MapDataTypeEnum.GLOBALS) {
                 customOverrides = true;
-                logger.info("The map uses custom overrides!");
+                LOGGER.info("The map uses custom overrides!");
             }
 
             filePath.setPath(path);
@@ -1134,10 +1141,10 @@ public final class KwdFile {
 
         // Read the creatures catalog
         if (creatures == null) {
-            logger.info("Reading creatures!");
+            LOGGER.info("Reading creatures!");
             creatures = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides creatures!");
+            LOGGER.warning("Overrides creatures!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1392,7 +1399,7 @@ public final class KwdFile {
             creature.setAnimation(AnimationType.IDLE_4_1, readArtResource(file));
             creature.setAnimation(AnimationType.DIG, readArtResource(file));
 
-            OffsetType[] offsetTypes = new OffsetType[] {OffsetType.FALL_BACK_GET_UP,
+            OffsetType[] offsetTypes = new OffsetType[]{OffsetType.FALL_BACK_GET_UP,
                 OffsetType.PRAYING, OffsetType.CORPSE, OffsetType.OFFSET_5,
                 OffsetType.OFFSET_6, OffsetType.OFFSET_7, OffsetType.OFFSET_8};
             for (OffsetType type : offsetTypes) {
@@ -1445,6 +1452,11 @@ public final class KwdFile {
             // Set the imp
             if (imp == null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) && creature.getFlags().contains(Creature.CreatureFlag.IS_EVIL)) {
                 imp = creature;
+            }
+
+            // Set the dwarf
+            if (dwarf == null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER) && !creature.getFlags().contains(Creature.CreatureFlag.IS_EVIL)) {
+                dwarf = creature;
             }
 
             // Check file offset
@@ -1511,10 +1523,10 @@ public final class KwdFile {
 
         // Read the objects catalog
         if (objects == null) {
-            logger.info("Reading objects!");
+            LOGGER.info("Reading objects!");
             objects = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides objects!");
+            LOGGER.warning("Overrides objects!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1588,10 +1600,10 @@ public final class KwdFile {
 
         // Read the creature spells catalog
         if (creatureSpells == null) {
-            logger.info("Reading creature spells!");
+            LOGGER.info("Reading creature spells!");
             creatureSpells = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides creature spells!");
+            LOGGER.warning("Overrides creature spells!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1645,10 +1657,10 @@ public final class KwdFile {
 
         // Read the effect elements catalog
         if (effectElements == null) {
-            logger.info("Reading effect elements!");
+            LOGGER.info("Reading effect elements!");
             effectElements = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides effect elements!");
+            LOGGER.warning("Overrides effect elements!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1701,10 +1713,10 @@ public final class KwdFile {
 
         // Read the effects catalog
         if (effects == null) {
-            logger.info("Reading effects!");
+            LOGGER.info("Reading effects!");
             effects = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides effects!");
+            LOGGER.warning("Overrides effects!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1779,10 +1791,10 @@ public final class KwdFile {
 
         // Read the keeper spells catalog
         if (keeperSpells == null) {
-            logger.info("Reading keeper spells!");
+            LOGGER.info("Reading keeper spells!");
             keeperSpells = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides keeper spells!");
+            LOGGER.warning("Overrides keeper spells!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1843,11 +1855,11 @@ public final class KwdFile {
     private void readThings(KwdHeader header, RandomAccessFile file) throws IOException {
 
         // Read the requested Things file
-        if (things == null) {
-            logger.info("Reading things!");
-            things = new ArrayList<>(header.getItemCount());
+        if (thingsByType == null) {
+            LOGGER.info("Reading things!");
+            thingsByType = new HashMap<>(12);
         } else {
-            logger.warning("Overrides things!");
+            LOGGER.warning("Overrides things!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -1876,6 +1888,8 @@ public final class KwdFile {
                     ((Thing.Object) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Object) thing).setObjectId((short) file.readUnsignedByte());
                     ((Thing.Object) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.Object) thing);
                     break;
                 }
                 case 195: {
@@ -1889,6 +1903,8 @@ public final class KwdFile {
                     ((Thing.Trap) thing).setTrapId((short) file.readUnsignedByte());
                     ((Thing.Trap) thing).setPlayerId((short) file.readUnsignedByte());
                     ((Thing.Trap) thing).setUnknown2((short) file.readUnsignedByte());
+
+                    addThing((Thing.Trap) thing);
                     break;
                 }
                 case 196: {
@@ -1907,6 +1923,8 @@ public final class KwdFile {
                         unknown2[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.Door) thing).setUnknown2(unknown2);
+
+                    addThing((Thing.Door) thing);
                     break;
                 }
                 case 197: {
@@ -1924,6 +1942,8 @@ public final class KwdFile {
                     ((ActionPoint) thing).setNextWaypointId((short) file.readUnsignedByte());
 
                     ((ActionPoint) thing).setName(ConversionUtils.readString(file, 32).trim());
+
+                    addThing((Thing.ActionPoint) thing);
                     break;
                 }
                 case 198: {
@@ -1940,6 +1960,8 @@ public final class KwdFile {
                     ((NeutralCreature) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((NeutralCreature) thing).setCreatureId((short) file.readUnsignedByte());
                     ((NeutralCreature) thing).setUnknown1((short) file.readUnsignedByte());
+
+                    addThing((Thing.NeutralCreature) thing);
                     break;
                 }
                 case 199: {
@@ -1964,6 +1986,8 @@ public final class KwdFile {
                     }
                     ((GoodCreature) thing).setUnknown1(unknown1);
                     ((GoodCreature) thing).setFlags2(ConversionUtils.parseFlagValue((short) file.readUnsignedByte(), Thing.Creature.CreatureFlag2.class));
+
+                    addThing((Thing.GoodCreature) thing);
                     break;
                 }
                 case 200: {
@@ -1981,6 +2005,8 @@ public final class KwdFile {
                     ((KeeperCreature) thing).setTriggerId(ConversionUtils.readUnsignedShort(file));
                     ((KeeperCreature) thing).setCreatureId((short) file.readUnsignedByte());
                     ((KeeperCreature) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.KeeperCreature) thing);
                     break;
                 }
                 case 201: {
@@ -2021,6 +2047,8 @@ public final class KwdFile {
                         }
                     }
                     ((HeroParty) thing).setHeroPartyMembers(heroPartyMembers);
+
+                    addThing((Thing.HeroParty) thing);
                     break;
                 }
                 case 202: {
@@ -2033,6 +2061,8 @@ public final class KwdFile {
                     ((Thing.DeadBody) thing).setGoldHeld(ConversionUtils.readUnsignedShort(file));
                     ((Thing.DeadBody) thing).setCreatureId((short) file.readUnsignedByte());
                     ((Thing.DeadBody) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.DeadBody) thing);
                     break;
                 }
                 case 203: {
@@ -2060,6 +2090,8 @@ public final class KwdFile {
                         pad[x] = (short) file.readUnsignedByte();
                     }
                     ((Thing.EffectGenerator) thing).setPad(pad);
+
+                    addThing((Thing.EffectGenerator) thing);
                     break;
                 }
                 case 204: {
@@ -2075,6 +2107,8 @@ public final class KwdFile {
                     ((Thing.Room) thing).setInitialHealth(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Room) thing).setRoomType(ConversionUtils.parseEnum((short) file.readUnsignedByte(), Thing.Room.RoomType.class));
                     ((Thing.Room) thing).setPlayerId((short) file.readUnsignedByte());
+
+                    addThing((Thing.Room) thing);
                     break;
                 }
                 case 205: {
@@ -2105,22 +2139,30 @@ public final class KwdFile {
                     ((Thing.Camera) thing).setAngleRoll(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setAnglePitch(ConversionUtils.readUnsignedShort(file));
                     ((Thing.Camera) thing).setId((short) ConversionUtils.readUnsignedShort(file));
+
+                    addThing((Thing.Camera) thing);
                     break;
                 }
                 default: {
 
                     // Just skip the bytes
                     file.skipBytes(thingTag[1]);
-                    logger.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
+                    LOGGER.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
                 }
             }
-
-            // Add to the list
-            things.add(thing);
 
             // Check file offset
             checkOffset(thingTag[1], file, offset);
         }
+    }
+
+    private <T extends Thing> void addThing(T thing) {
+        List<T> thingList = (List<T>) thingsByType.get(thing.getClass());
+        if (thingList == null) {
+            thingList = new ArrayList<>();
+            thingsByType.put(thing.getClass(), thingList);
+        }
+        thingList.add(thing);
     }
 
     /**
@@ -2134,10 +2176,10 @@ public final class KwdFile {
 
         // Read the shots catalog
         if (shots == null) {
-            logger.info("Reading shots!");
+            LOGGER.info("Reading shots!");
             shots = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides shots!");
+            LOGGER.warning("Overrides shots!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -2201,10 +2243,10 @@ public final class KwdFile {
 
         // Read the requested Triggers file
         if (triggers == null) {
-            logger.info("Reading triggers!");
+            LOGGER.info("Reading triggers!");
             triggers = new HashMap<>(header.getItemCount());
         } else {
-            logger.warning("Overrides triggers!");
+            LOGGER.warning("Overrides triggers!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -2419,7 +2461,7 @@ public final class KwdFile {
 
                         default:
                             ConversionUtils.checkNull(file, 8); // file.skipBytes(8);
-                            logger.warning("Unsupported Type of TriggerGeneric");
+                            LOGGER.warning("Unsupported Type of TriggerGeneric");
                             break;
 
                     }
@@ -2660,7 +2702,7 @@ public final class KwdFile {
 
                         default:
                             ConversionUtils.checkNull(file, 8); // file.skipBytes(8);
-                            logger.warning("Unsupported Type of TriggerAction");
+                            LOGGER.warning("Unsupported Type of TriggerAction");
                             break;
                     }
 
@@ -2675,7 +2717,7 @@ public final class KwdFile {
 
                     // Just skip the bytes
                     file.skipBytes(triggerTag[1]);
-                    logger.log(Level.WARNING, "Unsupported trigger type {0}!", triggerTag[0]);
+                    LOGGER.log(Level.WARNING, "Unsupported trigger type {0}!", triggerTag[0]);
                 }
             }
 
@@ -2701,7 +2743,7 @@ public final class KwdFile {
         // Read the requested VARIABLES file
         // Should be the GlobalVariables first, then the level's own
         if (variables == null) {
-            logger.info("Reading variables!");
+            LOGGER.info("Reading variables!");
             availabilities = new ArrayList<>();
             creaturePools = new HashMap<>(4);
             creatureStatistics = new HashMap<>(10);
@@ -2710,7 +2752,7 @@ public final class KwdFile {
             sacrifices = new HashSet<>();
             unknownVariables = new HashSet<>();
         } else {
-            logger.info("Overrides variables!");
+            LOGGER.info("Overrides variables!");
         }
 
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -2932,12 +2974,18 @@ public final class KwdFile {
     }
 
     /**
-     * Get list of things
+     * Get list of things by certain type
      *
-     * @return things
+     * @param <T>        the instance type of the things you want
+     * @param thingClass the class of things you want
+     * @return things list of things you want
      */
-    public List<Thing> getThings() {
-        return things;
+    public <T extends Thing> List<T> getThings(Class<T> thingClass) {
+        List<T> result = (List<T>) thingsByType.get(thingClass);
+        if (result == null) {
+            result = Collections.emptyList();
+        }
+        return result;
     }
 
     /**
@@ -3109,6 +3157,10 @@ public final class KwdFile {
         return imp;
     }
 
+    public Creature getDwarf() {
+        return dwarf;
+    }
+
     public Room getPortal() {
         return getRoomById(ROOM_PORTAL_ID);
     }
@@ -3159,7 +3211,7 @@ public final class KwdFile {
     private void checkOffset(long itemSize, RandomAccessFile file, long offset) throws IOException {
         long wantedOffset = offset + itemSize;
         if (file.getFilePointer() != wantedOffset) {
-            logger.log(Level.WARNING, "Record size differs from expected! File offset is {0} and should be {1}!",
+            LOGGER.log(Level.WARNING, "Record size differs from expected! File offset is {0} and should be {1}!",
                     new java.lang.Object[]{file.getFilePointer(), wantedOffset});
             file.seek(wantedOffset);
         }

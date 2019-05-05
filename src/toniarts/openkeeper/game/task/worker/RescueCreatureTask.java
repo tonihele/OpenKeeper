@@ -17,12 +17,18 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityId;
+import java.awt.Point;
 import java.util.Objects;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskManager;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * A task for creatures to rescue a fellow comrade from the harsh world
@@ -31,20 +37,31 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class RescueCreatureTask extends AbstractTileTask {
 
-    private final CreatureControl creature;
+    private final ICreatureController creature;
+    private final TaskManager taskManager;
 
-    public RescueCreatureTask(WorldState worldState, CreatureControl creature, short playerId) {
-        super(worldState, creature.getCreatureCoordinates().x, creature.getCreatureCoordinates().y, playerId);
+    public RescueCreatureTask(final TaskManager taskManager, final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
+        super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
         this.creature = creature;
+        this.taskManager = taskManager;
     }
 
     @Override
-    public Vector2f getTarget(CreatureControl creature) {
+    public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
     @Override
-    public boolean isValid(CreatureControl creature) {
+    public Point getTaskLocation() {
+        Vector3f pos = creature.getPosition();
+        if (pos != null) {
+            return WorldUtils.vectorToPoint(creature.getPosition());
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isValid(ICreatureController creature) {
         return this.creature.isUnconscious() && this.creature.hasLair();
     }
 
@@ -64,22 +81,33 @@ public class RescueCreatureTask extends AbstractTileTask {
     }
 
     @Override
-    public void executeTask(CreatureControl creature) {
-        creature.setHaulable(this.creature);
+    public void executeTask(ICreatureController creature, float executionDuration) {
+        this.creature.setHaulable(creature);
 
         // Assign carry to lair
-        CarryCreatureToLairTask task = new CarryCreatureToLairTask(worldState, this.creature, playerId);
+        CarryCreatureToLairTask task = new CarryCreatureToLairTask(navigationService, mapController, this.creature, playerId);
+        taskManager.addTask(playerId, task);
         task.assign(creature, true);
     }
 
     @Override
-    public ArtResource getTaskAnimation(CreatureControl creature) {
+    public ArtResource getTaskAnimation(ICreatureController creature) {
         return null;
     }
 
     @Override
     public String getTaskIcon() {
         return "Textures/GUI/moods/SJ-Take_Crate.png";
+    }
+
+    @Override
+    public TaskType getTaskType() {
+        return TaskType.RESCUE_CREATURE;
+    }
+
+    @Override
+    public EntityId getTaskTarget() {
+        return creature.getEntityId();
     }
 
     @Override

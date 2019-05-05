@@ -29,19 +29,19 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.control.UnitFlowerControl;
 
 /**
  * Static helpers to handle animations in our basic scene objects
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class AnimationLoader {
 
     private static final String START_ANIMATION_NAME = "Start";
     private static final String END_ANIMATION_NAME = "End";
     private static final String ANIM_NAME = "anim";
-    private static final Logger logger = Logger.getLogger(AnimationLoader.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AnimationLoader.class.getName());
 
     private AnimationLoader() {
         // No!
@@ -137,6 +137,7 @@ public class AnimationLoader {
                         @Override
                         public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
                             cyclesCount++;
+
                             // Signal that the main animation cycle is done
                             animationControl.onAnimationCycleDone();
 
@@ -176,14 +177,10 @@ public class AnimationLoader {
                         }
                     });
                     AnimChannel channel = animControl.createChannel();
-                    if (resource.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)) {
-                        channel.setLoopMode(LoopMode.DontLoop);
-                    } else {
-                        setLoopModeOnChannel(spat, channel);
-                    }
+                    setLoopModeOnChannel(spat, channel);
                 }
             } catch (Exception e) {
-                logger.log(Level.WARNING, e.getMessage());
+                LOGGER.log(Level.WARNING, e.getMessage());
             }
         }
     }
@@ -264,7 +261,7 @@ public class AnimationLoader {
         } catch (Exception e) {
             // FIXME sometimes NPE in CreatureControl.java
             // line: playAnimation(creature.getAnimEntranceResource());
-            logger.log(Level.SEVERE, "Creature animation playing error: {0}", e.toString());
+            LOGGER.log(Level.SEVERE, "Creature animation playing error: {0}", e.toString());
         }
     }
 
@@ -281,7 +278,7 @@ public class AnimationLoader {
     }
 
     private static void hideAllNodes(Node root) {
-        UnitFlowerControl aufc = root.getControl(UnitFlowerControl.class);
+        //UnitFlowerControl aufc = root.getControl(UnitFlowerControl.class);
         for (Spatial child : root.getChildren()) {
 
             // Don't hide the unit flower
