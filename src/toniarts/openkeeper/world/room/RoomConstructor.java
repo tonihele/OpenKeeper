@@ -29,6 +29,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public final class RoomConstructor {
 
     private static final Logger logger = Logger.getLogger(RoomConstructor.class.getName());

@@ -51,6 +51,7 @@ import toniarts.openkeeper.world.MapLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Water {
 
     /**

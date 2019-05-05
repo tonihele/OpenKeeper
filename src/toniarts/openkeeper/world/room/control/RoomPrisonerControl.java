@@ -27,6 +27,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class RoomPrisonerControl extends RoomObjectControl<ObjectControl, Integer> {
 
     public RoomPrisonerControl(GenericRoom parent) {

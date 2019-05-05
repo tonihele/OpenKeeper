@@ -30,6 +30,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class Temple extends DoubleQuad {
 
     private static final short OBJECT_TEMPLE_HAND_ID = 66;

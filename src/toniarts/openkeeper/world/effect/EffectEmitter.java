@@ -27,6 +27,7 @@ import toniarts.openkeeper.tools.convert.map.EffectElement;
  *
  * @author ArchDemon
  */
+@Deprecated
 public abstract class EffectEmitter extends Node {
     private boolean enabled = true;
 

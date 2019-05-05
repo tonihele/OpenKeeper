@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2016 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,34 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.control;
+package toniarts.openkeeper.view.animation;
 
-import com.jme3.math.Vector3f;
+import com.jme3.scene.control.Control;
 
 /**
- * Simple interface to tell us that the object / creature can be hauled by a
- * worker
+ * An interface for handling our animations, callbacks
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-@Deprecated
-public interface IHaulable {
+public interface AnimationControl extends Control {
 
     /**
-     * Signal that the hauling has started
-     */
-    public void haulingStarted();
-
-    /**
-     * Signal that the hauling has ended
-     */
-    public void haulingEnded();
-
-    /**
-     * Update the position of the object as it is being hauled
+     * On animation stop
      *
-     * @param position the new position
      */
-    public void updatePosition(Vector3f position);
+    public void onAnimationStop();
 
+    /**
+     * Main animation cycle is done
+     */
+    public void onAnimationCycleDone();
+
+    /**
+     * Should we stop the animation
+     */
+    public boolean isStopAnimation();
 }

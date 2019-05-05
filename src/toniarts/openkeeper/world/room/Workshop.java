@@ -32,6 +32,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Workshop extends Normal {
 
     private boolean[][] bigTiles;

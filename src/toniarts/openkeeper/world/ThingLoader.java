@@ -60,6 +60,7 @@ import toniarts.openkeeper.world.trap.TrapLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class ThingLoader {
 
     private final WorldState worldState;

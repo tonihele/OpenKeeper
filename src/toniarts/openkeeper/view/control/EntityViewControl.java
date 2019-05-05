@@ -39,9 +39,9 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.animation.AnimationControl;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.animation.AnimationControl;
 
 /**
  * General entity controller, a bridge between entities and view

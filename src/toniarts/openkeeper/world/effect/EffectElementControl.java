@@ -30,6 +30,7 @@ import static toniarts.openkeeper.world.effect.EffectControl.calculateVelocity;
  *
  * @author ArchDemon
  */
+@Deprecated
 public abstract class EffectElementControl extends AbstractControl {
     private EffectElement effect;
 

@@ -33,6 +33,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class DoubleQuad extends GenericRoom {
 
     public DoubleQuad(AssetManager assetManager, RoomInstance roomInstance,

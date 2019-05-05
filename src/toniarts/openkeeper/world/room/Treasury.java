@@ -28,6 +28,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Treasury extends Normal {
 
     private Integer goldPerTile;

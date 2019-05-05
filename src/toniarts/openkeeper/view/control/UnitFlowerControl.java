@@ -53,7 +53,7 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
  * A base class for showing unit (creature, object...) flower. TODO: Maybe

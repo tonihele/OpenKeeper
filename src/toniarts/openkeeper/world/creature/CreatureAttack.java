@@ -26,6 +26,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class CreatureAttack {
 
     private final float rechargeTime;

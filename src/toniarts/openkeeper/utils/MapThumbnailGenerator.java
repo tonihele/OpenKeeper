@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world;
+package toniarts.openkeeper.utils;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -47,10 +47,10 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  */
 public class MapThumbnailGenerator {
 
-    private static final Object paletteLock = new Object();
+    private static final Object PALETTE_LOCK = new Object();
     private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
     private static volatile IndexColorModel cm;
-    private static final Logger logger = Logger.getLogger(MapThumbnailGenerator.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(MapThumbnailGenerator.class.getName());
 
     private MapThumbnailGenerator() {
         // Nope
@@ -71,7 +71,7 @@ public class MapThumbnailGenerator {
 
         // Get the palette if not gotten already
         if (cm == null) {
-            synchronized (paletteLock) {
+            synchronized (PALETTE_LOCK) {
                 if (cm == null) {
                     cm = readPalette();
                 }
@@ -166,7 +166,7 @@ public class MapThumbnailGenerator {
             // Create the actual palette
             return new IndexColorModel(8, paletteImage.getWidth(), r, g, b);
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to create the map thumbnail palette!", e);
+            LOGGER.log(Level.WARNING, "Failed to create the map thumbnail palette!", e);
 
             // TODO: Create a random palette here?
             throw new RuntimeException("Failed to create the map thumbnail palette!", e);
@@ -221,7 +221,7 @@ public class MapThumbnailGenerator {
                 } else {
 
                     // Wat
-                    logger.log(Level.WARNING, "Unkown tile on {0} at tile {1}, {2}!", new Object[]{kwd, x, y});
+                    LOGGER.log(Level.WARNING, "Unkown tile on {0} at tile {1}, {2}!", new Object[]{kwd, x, y});
                 }
 
                 // Write the value

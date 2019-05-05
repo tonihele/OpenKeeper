@@ -27,6 +27,7 @@ import com.jme3.scene.control.AbstractControl;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class PlugControl extends AbstractControl {
 
     private static final float GRAVITY = 9.81f;

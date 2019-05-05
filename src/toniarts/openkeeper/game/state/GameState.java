@@ -65,6 +65,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdatable {
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;

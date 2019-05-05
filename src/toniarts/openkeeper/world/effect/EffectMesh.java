@@ -25,6 +25,7 @@ import java.nio.FloatBuffer;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class EffectMesh extends Mesh {
 
     private float scale = 1;
@@ -38,7 +39,7 @@ public class EffectMesh extends Mesh {
         setFrames(frames);
         setScale(scale);
     }
-    
+
     public EffectMesh(int frames) {
         this();
         setFrames(frames);
@@ -98,19 +99,19 @@ public class EffectMesh extends Mesh {
 
     private void setScale(float scale) {
         this.scale = scale;
-        
+
         VertexBuffer pvb = getBuffer(VertexBuffer.Type.Position);
         FloatBuffer positions = (FloatBuffer) pvb.getData();
-        
+
         positions.clear();
-        
+
         positions.put(new float[]{
             -scale / 2, 0,     0,
             scale / 2,  0,     0,
             scale / 2,  scale, 0,
             -scale / 2, scale, 0
         });
-        
+
         pvb.updateData(positions);
     }
 

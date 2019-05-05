@@ -24,16 +24,17 @@ import com.badlogic.gdx.math.Vector2;
 import com.jme3.app.Application;
 import com.jme3.bounding.BoundingBox;
 import com.jme3.scene.Spatial;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.object.HighlightControl;
-import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 
 /**
  * Handles the moving logic of the visual creature object
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class AbstractCreatureSteeringControl extends HighlightControl implements Steerable<Vector2>, IGameLogicUpdatable {
 
     protected final Creature creature;

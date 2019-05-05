@@ -33,6 +33,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class RoomGoldControl extends RoomObjectControl<GoldObjectControl, Integer> {
 
     private int storedGold = 0;

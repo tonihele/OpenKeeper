@@ -25,7 +25,6 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.Arrays;
 import java.util.EnumSet;
-import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
@@ -38,6 +37,7 @@ import toniarts.openkeeper.world.room.WallSection.WallDirection;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class Normal extends GenericRoom {
 
     public Normal(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

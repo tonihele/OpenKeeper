@@ -20,6 +20,7 @@ package toniarts.openkeeper.world.effect;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class FloatLimit {
     private Float upperLimit = null;
     private Float lowerLimit = null;

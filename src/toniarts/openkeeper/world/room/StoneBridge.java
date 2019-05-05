@@ -33,6 +33,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class StoneBridge extends Quad {
 
     public StoneBridge(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

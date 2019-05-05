@@ -39,6 +39,7 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class ObjectControl extends HighlightControl implements IInteractiveControl {
 
     public enum ObjectState {

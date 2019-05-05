@@ -22,22 +22,23 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
  *
  * @author ArchDemon
  */
+@Deprecated
 public interface IEffect {
     public String getName();
     public ArtResource getArtResource();
-    
+
     public float getAirFriction();
     public float getElasticity();
     public float getMass();
-    
+
     public float getMinSpeedXy();
     public float getMaxSpeedXy();
     public float getMinSpeedYz();
     public float getMaxSpeedYz();
-    
+
     public float getMinScale();
     public float getMaxScale();
-    
+
     public int getMinHp();
     public int getMaxHp();
 }

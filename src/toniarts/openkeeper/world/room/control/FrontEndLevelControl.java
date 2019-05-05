@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.data.Level;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class FrontEndLevelControl extends AbstractControl {
 
     private final Level level;

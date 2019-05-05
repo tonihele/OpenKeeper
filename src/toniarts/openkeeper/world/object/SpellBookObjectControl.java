@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class SpellBookObjectControl extends ObjectControl {
 
     private final PlayerSpell playerSpell;

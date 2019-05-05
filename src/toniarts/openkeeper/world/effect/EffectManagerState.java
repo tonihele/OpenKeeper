@@ -35,8 +35,9 @@ import toniarts.openkeeper.world.WorldState;
  * @author ArchDemon
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class EffectManagerState extends AbstractAppState {
-    
+
     public static int ROOM_CLAIM_ID = 2;
 
     private final KwdFile kwdFile;

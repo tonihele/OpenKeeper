@@ -23,6 +23,7 @@ import toniarts.openkeeper.world.object.ObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface ObjectListener {
 
     void onAdded(ObjectControl objectControl);

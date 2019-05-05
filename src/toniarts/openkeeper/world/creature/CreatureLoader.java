@@ -25,7 +25,6 @@ import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.ILoader;
 import toniarts.openkeeper.world.MapLoader;
@@ -38,6 +37,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class CreatureLoader implements ILoader<Thing.Creature>, CreatureListener {
 
     private final KwdFile kwdFile;

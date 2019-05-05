@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.world.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
  * Loading state with a multiple (4) loading bars

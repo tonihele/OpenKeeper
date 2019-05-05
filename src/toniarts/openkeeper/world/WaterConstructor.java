@@ -27,6 +27,7 @@ import toniarts.openkeeper.world.room.Quad;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class WaterConstructor extends TileConstructor {
 
     public WaterConstructor(KwdFile kwdFile) {

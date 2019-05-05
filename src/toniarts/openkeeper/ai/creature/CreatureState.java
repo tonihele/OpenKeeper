@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public enum CreatureState implements State<CreatureControl> {
 
     IDLE() {

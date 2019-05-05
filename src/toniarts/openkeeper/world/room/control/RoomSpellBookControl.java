@@ -32,6 +32,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class RoomSpellBookControl extends RoomObjectControl<SpellBookObjectControl, PlayerSpell> {
 
     private int storedSpellBooks = 0;

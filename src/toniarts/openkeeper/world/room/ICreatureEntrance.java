@@ -27,6 +27,7 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public interface ICreatureEntrance {
 
     /**

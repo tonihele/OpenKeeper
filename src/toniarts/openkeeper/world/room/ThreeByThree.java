@@ -35,6 +35,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
 
     private final List<CreatureControl> attractedCreatures = new ArrayList<>();

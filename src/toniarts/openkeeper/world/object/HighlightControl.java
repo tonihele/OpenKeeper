@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
  *
  * @author ArchDemon
  */
+@Deprecated
 public abstract class HighlightControl extends AbstractControl implements IInteractiveControl {
 
     private boolean active = false;

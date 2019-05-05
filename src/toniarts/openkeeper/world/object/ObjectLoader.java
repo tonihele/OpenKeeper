@@ -41,6 +41,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class ObjectLoader implements ILoader<Thing.Object> {
 
     public final static short OBJECT_GOLD_ID = 1;

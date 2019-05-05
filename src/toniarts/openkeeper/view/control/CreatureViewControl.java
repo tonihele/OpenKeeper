@@ -29,8 +29,8 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
  * View control that is intended specifically for creatures

@@ -66,6 +66,7 @@ import toniarts.openkeeper.world.terrain.Water;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class MapLoader implements ILoader<KwdFile> {
 
     public final static float TILE_WIDTH = 1;

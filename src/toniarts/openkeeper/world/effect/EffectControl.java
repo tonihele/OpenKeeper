@@ -29,6 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Effect;
  *
  * @author ArchDemon
  */
+@Deprecated
 public abstract class EffectControl extends AbstractControl {
     private Effect effect;
 

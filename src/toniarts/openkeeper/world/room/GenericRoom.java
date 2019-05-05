@@ -47,6 +47,7 @@ import toniarts.openkeeper.world.room.control.RoomObjectControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public abstract class GenericRoom {
 
     public enum ObjectType {

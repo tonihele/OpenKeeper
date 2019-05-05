@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.animation;
+package toniarts.openkeeper.view.animation;
 
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
@@ -35,7 +35,6 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-@Deprecated
 public class AnimationLoader {
 
     private static final String START_ANIMATION_NAME = "Start";

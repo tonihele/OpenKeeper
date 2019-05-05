@@ -28,6 +28,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class MapIndexedGraph implements IndexedGraph<TileData> {
 
     private final WorldState worldState;

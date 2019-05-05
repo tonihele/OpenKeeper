@@ -26,6 +26,7 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
  *
  * @author toni
  */
+@Deprecated
 public class CreatureFlowerControl extends UnitFlowerControl {
 
     private enum Status {

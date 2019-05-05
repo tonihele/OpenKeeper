@@ -29,6 +29,7 @@ import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class QuadConstructor extends TileConstructor {
 
     public QuadConstructor(KwdFile kwdFile) {

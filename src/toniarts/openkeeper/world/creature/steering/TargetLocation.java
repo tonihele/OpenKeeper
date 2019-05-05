@@ -23,6 +23,7 @@ import com.badlogic.gdx.math.Vector2;
  *
  * @author ArchDemon
  */
+@Deprecated
 public final class TargetLocation implements Location<Vector2> {
 
     private final Vector2 position;

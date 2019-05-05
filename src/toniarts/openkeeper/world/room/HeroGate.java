@@ -22,7 +22,6 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -31,6 +30,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class HeroGate extends GenericRoom {
 
     public HeroGate(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {

@@ -30,8 +30,8 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
  * View control that is intended specifically for doors

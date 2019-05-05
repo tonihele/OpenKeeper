@@ -47,6 +47,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Deprecated
 public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance {
 
     private static final short OBJECT_HEART_ID = 13;

@@ -29,6 +29,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author ArchDemon
  */
+@Deprecated
 public class FlashTileControl extends AbstractControl {
 
     private float tick = 0;
