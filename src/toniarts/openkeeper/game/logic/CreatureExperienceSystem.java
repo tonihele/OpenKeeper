@@ -133,7 +133,12 @@ public class CreatureExperienceSystem implements IGameLogicUpdatable {
     private boolean isEntityWorkingOrFighting(EntityId entityId) {
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         CreatureState creatureState = creatureAi.getCreatureState();
-        return creatureState == CreatureState.WORK || creatureState == CreatureState.MELEE_ATTACK;
+        return creatureState == CreatureState.MELEE_ATTACK || (creatureState == CreatureState.WORK && isWorker(entityId));
+    }
+
+    private boolean isWorker(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.worker;
     }
 
     @Override
