@@ -356,8 +356,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                     keys.add(KeyInput.KEY_LCONTROL);
                     keys.add(KeyInput.KEY_RCONTROL);
                 } else {
-                    keys.remove(Integer.valueOf(KeyInput.KEY_LCONTROL));
-                    keys.remove(Integer.valueOf(KeyInput.KEY_RCONTROL));
+                    keys.remove(KeyInput.KEY_LCONTROL);
+                    keys.remove(KeyInput.KEY_RCONTROL);
                 }
                 break;
 
@@ -366,8 +366,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                     keys.add(KeyInput.KEY_LMENU);
                     keys.add(KeyInput.KEY_RMENU);
                 } else {
-                    keys.remove(Integer.valueOf(KeyInput.KEY_LMENU));
-                    keys.remove(Integer.valueOf(KeyInput.KEY_RMENU));
+                    keys.remove(KeyInput.KEY_LMENU);
+                    keys.remove(KeyInput.KEY_RMENU);
                 }
                 break;
 
@@ -376,8 +376,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
                     keys.add(KeyInput.KEY_LSHIFT);
                     keys.add(KeyInput.KEY_RSHIFT);
                 } else {
-                    keys.remove(Integer.valueOf(KeyInput.KEY_LSHIFT));
-                    keys.remove(Integer.valueOf(KeyInput.KEY_RSHIFT));
+                    keys.remove(KeyInput.KEY_LSHIFT);
+                    keys.remove(KeyInput.KEY_RSHIFT);
                 }
                 break;
         }
