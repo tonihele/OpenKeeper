@@ -39,6 +39,8 @@ import com.simsilica.es.EntityData;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
@@ -103,6 +105,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
+    private final Set<Integer> keys = new HashSet<>();
     private IEntityViewControl interactiveControl;
     private Label tooltip;
     private KeeperHandState keeperHandState;
@@ -243,6 +246,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         } else if (!enabled && inputListenerAdded) {
             app.getInputManager().removeRawInputListener(inputListener);
             inputListenerAdded = false;
+            keys.clear();
         }
     }
 
@@ -251,6 +255,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.stateManager.detach(keeperHandState);
         keeperHandState = null;
         app.getInputManager().removeRawInputListener(inputListener);
+        keys.clear();
         selectionHandler.cleanup();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
         if (cheatState != null) {
@@ -651,10 +656,35 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             @Override
             public void onKeyEvent(KeyInputEvent evt) {
+
+                // See the CTRL + ALT
+                switch (evt.getKeyCode()) {
+                    case KeyInput.KEY_LCONTROL:
+                    case KeyInput.KEY_RCONTROL:
+                        if (evt.isPressed()) {
+                            keys.add(KeyInput.KEY_LCONTROL);
+                            keys.add(KeyInput.KEY_RCONTROL);
+                        } else {
+                            keys.remove(KeyInput.KEY_LCONTROL);
+                            keys.remove(KeyInput.KEY_RCONTROL);
+                        }
+                        break;
+
+                    case KeyInput.KEY_LMENU:
+                    case KeyInput.KEY_RMENU:
+                        if (evt.isPressed()) {
+                            keys.add(KeyInput.KEY_LMENU);
+                            keys.add(KeyInput.KEY_RMENU);
+                        } else {
+                            keys.remove(KeyInput.KEY_LMENU);
+                            keys.remove(KeyInput.KEY_RMENU);
+                        }
+                        break;
+                }
+
+
                 if (evt.isPressed()) {
-                    if (evt.getKeyCode() == KeyInput.KEY_F12) {
-                        // FIXME use CTRL + ALT + C to activate cheats!
-                        // TODO Disable in multi player!
+                    if (evt.getKeyCode() == KeyInput.KEY_C && keys.contains(KeyInput.KEY_LCONTROL) && keys.contains(KeyInput.KEY_LMENU)) {
                         CheatState cheat = stateManager.getState(CheatState.class);
                         if (cheat != null && !cheat.isEnabled()) {
                             cheat.setEnabled(true);
