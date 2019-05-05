@@ -76,7 +76,7 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && !isWorkAnimation());
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
     private void playAnimation(Creature.AnimationType animation) {

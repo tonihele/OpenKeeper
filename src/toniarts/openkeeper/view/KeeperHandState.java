@@ -53,10 +53,10 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 
 /**
  * TODO I think we need to move cursor here
