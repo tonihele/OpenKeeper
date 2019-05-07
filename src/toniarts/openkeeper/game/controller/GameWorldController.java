@@ -304,11 +304,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
-        Set<Point> updatableTiles = new HashSet<>();
-        Set<Point> buildPlots = new HashSet<>();
         List<Point> instancePlots = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
+        int x1 = (int) Math.max(0, start.x);
+        int x2 = (int) Math.min(kwdFile.getMap().getWidth(), end.x + 1);
+        int y1 = (int) Math.max(0, start.y);
+        int y2 = (int) Math.min(kwdFile.getMap().getHeight(), end.y + 1);
+        for (int x = x1; x < x2; x++) {
+            for (int y = y1; y < y2; y++) {
 
                 // See that is this valid
                 if (!mapController.isBuildable(x, y, playerId, roomId)) {
@@ -317,13 +319,22 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
                 Point p = new Point(x, y);
                 instancePlots.add(p);
-                buildPlots.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)));
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
         }
 
-        // See that can we afford the building
+        // If no plots, no building
+        if (instancePlots.isEmpty()) {
+            return;
+        }
+
+        // If this is a bridge, we only got the starting point(s) as valid so we need to determine valid bridge pieces by our ourselves
         Room room = kwdFile.getRoomById(roomId);
+        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
+            instancePlots = new ArrayList(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
+        }
+
+        // See that can we afford the building
         synchronized (GOLD_LOCK) {
             int cost = instancePlots.size() * room.getCost();
             if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
@@ -332,9 +343,15 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             substractGold(cost, playerId);
         }
 
-        // Build
+        // Build & mark
         List<MapTile> buildTiles = new ArrayList<>(instancePlots.size());
+        Set<Point> updatableTiles = new HashSet<>();
+        Set<Point> buildPlots = new HashSet<>();
         for (Point p : instancePlots) {
+
+            buildPlots.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)));
+            updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
+
             MapTile tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
@@ -853,5 +870,4 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public ITrapsController getTrapsController() {
         return trapsController;
     }
-
 }

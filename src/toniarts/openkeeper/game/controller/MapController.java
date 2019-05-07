@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -316,13 +318,34 @@ public final class MapController extends Container implements Savable, IMapContr
         }
 
         // See if we are dealing with bridges
-        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
-            return true;
-        }
-        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
-            return true;
+        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER))
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+
+            // We need to have an adjacent owned tile
+            return hasAdjacentOwnedPath(tile.getLocation(), playerId);
         }
 
+        return false;
+    }
+
+    /**
+     * Checks if you have an adjacent (not diagonally) owned tile. Flat tile
+     * that is. Or a piece of bridge.
+     *
+     * @param point the origin point
+     * @param playerId the player ID, the owner
+     * @return has adjacent owned path tile
+     */
+    private boolean hasAdjacentOwnedPath(Point point, short playerId) {
+        for (Point p : WorldUtils.getSurroundingTiles(mapData, point, false)) {
+            MapTile neighbourTile = getMapData().getTile(p);
+            if (neighbourTile != null) {
+                Terrain neighbourTerrain = kwdFile.getTerrain(neighbourTile.getTerrainId());
+                if (neighbourTile.getOwnerId() == playerId && neighbourTerrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !neighbourTerrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -350,15 +373,7 @@ public final class MapController extends Container implements Savable, IMapContr
 
         // In order to claim, it needs to be adjacent to your own tiles
         if (claimable) {
-            for (Point p : WorldUtils.getSurroundingTiles(mapData, new Point(x, y), false)) {
-                MapTile neighbourTile = getMapData().getTile(p);
-                if (neighbourTile != null) {
-                    Terrain neighbourTerrain = kwdFile.getTerrain(neighbourTile.getTerrainId());
-                    if (neighbourTile.getOwnerId() == playerId && neighbourTerrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !neighbourTerrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                        return true;
-                    }
-                }
-            }
+            return hasAdjacentOwnedPath(tile.getLocation(), playerId);
         }
 
         return false;
@@ -866,5 +881,47 @@ public final class MapController extends Container implements Savable, IMapContr
 
         InputCapsule in = im.getCapsule(this);
         mapData = (MapData) in.readSavable("mapData", null);
+    }
+
+    @Override
+    public Set<Point> getTerrainBatches(List<Point> startingPoints, int x1, int x2, int y1, int y2) {
+        Set<Point> batches = new HashSet<>();
+        for (Point start : startingPoints) {
+            findTerrainBatch(start, null, batches, x1, x2, y1, y2);
+        }
+        return batches;
+    }
+
+    private void findTerrainBatch(Point p, Short terrainId, Set<Point> batches, int x1, int x2, int y1, int y2) {
+
+        // See the constraints
+        if (p.x < x1 || p.x >= x2 || p.y < y1 || p.y >= y2) {
+            return;
+        }
+
+        MapTile tile = getMapData().getTile(p);
+        if (terrainId == null) {
+            terrainId = tile.getTerrainId();
+        }
+
+        if (!batches.contains(p)) {
+            if (tile.getTerrainId() == terrainId) {
+
+                // Add the coordinate
+                batches.add(p);
+
+                // Find north
+                findTerrainBatch(new Point(p.x, p.y - 1), terrainId, batches, x1, x2, y1, y2);
+
+                // Find east
+                findTerrainBatch(new Point(p.x + 1, p.y), terrainId, batches, x1, x2, y1, y2);
+
+                // Find south
+                findTerrainBatch(new Point(p.x, p.y + 1), terrainId, batches, x1, x2, y1, y2);
+
+                // Find west
+                findTerrainBatch(new Point(p.x - 1, p.y), terrainId, batches, x1, x2, y1, y2);
+            }
+        }
     }
 }
