@@ -10,6 +10,7 @@ import java.awt.Point;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -193,5 +194,19 @@ public interface IMapController extends IMapInformation, IGameLogicUpdatable {
      * @param playerId the player whose flashing will be affected
      */
     public void unFlashTiles(List<Point> points, short playerId);
+
+    /**
+     * Get the same terrain adjacent (not diagonally) to the stating point(s).
+     * Kinda flood fill. The starting points maybe different terrain types.
+     *
+     * @param startingPoints starting coordinates for the search
+     * @param x1 min x coordinate, inclusive
+     * @param x2 max x coordinate, exclusive
+     * @param y1 min y coordinate, inclusive
+     * @param y2 max y coordinate, exclusive
+     * @return all the terrain points within the given area that match the
+     * terrain in the starting coordinates
+     */
+    public Set<Point> getTerrainBatches(List<Point> startingPoints, int x1, int x2, int y1, int y2);
 
 }
