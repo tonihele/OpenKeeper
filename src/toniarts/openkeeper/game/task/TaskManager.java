@@ -52,6 +52,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -74,6 +76,8 @@ import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -258,6 +262,105 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
                 // Not interested
             }
+        });
+
+        // Bridges! They open up new opportunities in new lands
+        // Here we got capturing
+        for (IPlayerController player : players) {
+            this.mapController.addListener(player.getKeeper().getId(), new RoomListener() {
+
+                @Override
+                public void onBuild(IRoomController room) {
+
+                }
+
+                @Override
+                public void onCaptured(IRoomController room) {
+                    scanBridgeSurroundings(room);
+                }
+
+                @Override
+                public void onCapturedByEnemy(IRoomController room) {
+
+                }
+
+                @Override
+                public void onSold(IRoomController room) {
+
+                }
+
+                private void scanBridgeSurroundings(IRoomController room) {
+                    if (room.getRoom().getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) || room.getRoom().getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)) {
+
+                        // Just gather the adjacent tiles to the brigde
+                        Set<Point> roomPoints = new HashSet<>(room.getRoomInstance().getCoordinates());
+                        Set<Point> adjacentPoints = new HashSet<>();
+                        for (Point p : roomPoints) {
+                            for (Point adjacentPoint : WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)) {
+                                if (!roomPoints.contains(adjacentPoint)) {
+                                    adjacentPoints.add(adjacentPoint);
+                                }
+                            }
+
+                            // Scan all the adjacent tiles for tasks
+                            for (Point adjacentPoint : adjacentPoints) {
+                                MapTile mapTile = mapController.getMapData().getTile(adjacentPoint);
+                                if (mapTile != null) {
+                                    scanTerrainTasks(mapTile, false, true);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Bridges! They open up new opportunities in new lands
+        this.gameWorldController.addListener(new PlayerActionListener() {
+
+            @Override
+            public void onBuild(short keeperId, List<MapTile> tiles) {
+                scanBridgeSurroundings(tiles);
+            }
+
+            @Override
+            public void onSold(short keeperId, List<MapTile> tiles) {
+                scanBridgeSurroundings(tiles);
+            }
+
+            private void scanBridgeSurroundings(List<MapTile> tiles) {
+
+                // Check first to see if we are on land or water
+                Terrain terrain = mapController.getTerrain(tiles.get(0));
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                    Room room = levelInfo.getLevelData().getRoomByTerrain(terrain.getTerrainId());
+                    if (!(room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))) {
+                        return;
+                    }
+                } else if (!(levelInfo.getLevelData().getMap().getLava().equals(terrain) || levelInfo.getLevelData().getMap().getWater().equals(terrain))) {
+                    return;
+                }
+
+                // Just gather the adjacent tiles to the brigde
+                Set<MapTile> roomPoints = new HashSet<>(tiles);
+                Set<MapTile> adjacentPoints = new HashSet<>();
+                for (MapTile tile : roomPoints) {
+                    for (Point adjacentPoint : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile.getLocation(), false)) {
+                        MapTile mapTile = mapController.getMapData().getTile(adjacentPoint);
+                        if (mapTile != null) {
+                            if (!roomPoints.contains(mapTile)) {
+                                adjacentPoints.add(mapTile);
+                            }
+                        }
+                    }
+
+                    // Scan all the adjacent tiles for tasks
+                    for (MapTile mapTile : adjacentPoints) {
+                        scanTerrainTasks(mapTile, false, true);
+                    }
+                }
+            }
+
         });
 
         // Get notified by object tasks
