@@ -123,7 +123,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
         entry.setUnknown1(rawBf4.readUnsignedShort());
         entry.setDataSize(rawBf4.readInteger());
         entry.setTotalSize(rawBf4.readUnsignedInteger());
-        entry.setFlag(ConversionUtils.parseEnum(rawBf4.readUnsignedByte(), FontEntryFlag.class));
+        entry.setFlag(rawBf4.readByteAsEnum(FontEntryFlag.class));
         entry.setUnknown2(rawBf4.readUnsignedByte());
         entry.setUnknown3(rawBf4.readUnsignedByte());
         entry.setUnknown4(rawBf4.readUnsignedByte());

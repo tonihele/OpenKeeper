@@ -76,8 +76,7 @@ public class SdtFile {
                 entry.setName(rawSdt.readString(16).trim());
                 entry.setSampleRate(rawSdt.readUnsignedShort());
                 entry.setBitsPerSample(rawSdt.readUnsignedByte());
-                entry.setType(ConversionUtils.parseEnum(rawSdt.readUnsignedByte(),
-                        SdtFileEntry.SoundType.class));
+                entry.setType(rawSdt.readByteAsEnum(SdtFileEntry.SoundType.class));
                 entry.setUnknown3(rawSdt.readUnsignedInteger());
                 entry.setnSamples(rawSdt.readUnsignedInteger());
                 entry.setUnknown4(rawSdt.readUnsignedInteger());

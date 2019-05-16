@@ -477,7 +477,7 @@ public class SFChunk {
             byOriginalKey = file.readUnsignedByte();
             chCorrection = file.readByte();
             wSampleLink = file.readUnsignedShort();
-            sfSampleType = ConversionUtils.parseEnum(file.readUnsignedShort(), SFSampleLink.class);
+            sfSampleType = file.readShortAsEnum(SFSampleLink.class);
         }
 
         @Override
