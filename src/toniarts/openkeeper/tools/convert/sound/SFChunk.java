@@ -17,11 +17,11 @@
 package toniarts.openkeeper.tools.convert.sound;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
@@ -201,15 +201,15 @@ public class SFChunk {
 
     protected HashMap<SubType, SFChunk> childs = new HashMap<>();
 
-    public SFChunk(RandomAccessFile file) throws IOException {
-        String code = ConversionUtils.readString(file, 4);
-        size = ConversionUtils.readUnsignedIntegerAsLong(file);
+    public SFChunk(IResourceReader file) throws IOException {
+        String code = file.readString(4);
+        size = file.readUnsignedIntegerAsLong();
         long pointer = file.getFilePointer();
         //data = new byte[(int)size];
         //file.read(data);
         try {
             type = Type.valueOf(code);
-            code = ConversionUtils.readString(file, 4);
+            code = file.readString(4);
             subType = SubType.valueOf(code);
 
             while (!isEOC(file, pointer)) {
@@ -226,7 +226,7 @@ public class SFChunk {
         } catch (IllegalArgumentException e) {
             try {
                 subType = SubType.valueOf(code);
-                switch(subType) {
+                switch (subType) {
                     case isng: // szSoundEngine : e.g. "EMU8000"
                     case irom: // szROM : e.g. "1MGM"
                     case INAM: // szName : e.g. "General MIDI"
@@ -238,13 +238,13 @@ public class SFChunk {
                     case ISFT: // szTools : e.g. ":Preditor 2.00a:Vienna SF Studio 2.0:"
                         //data = new ArrayList<>();
                         while (!isEOC(file, pointer)) {
-                            data.add(ConversionUtils.readString(file, (int) size));
+                            data.add(file.readString((int) size));
                         }
                         break;
 
                     case smpl:
                         while (!isEOC(file, pointer)) {
-                            data.add(file.readShort());
+                            data.add(file.readRealShort());
                         }
                         //byte d = new byte[(int) size];
                         //file.read((byte[])data);
@@ -337,7 +337,7 @@ public class SFChunk {
      * @return true if file pointer >= chunk end pointer
      * @throws IOException
      */
-    private boolean isEOC(RandomAccessFile file, long chunkPointer) throws IOException {
+    private boolean isEOC(IResourceReader file, long chunkPointer) throws IOException {
         return file.getFilePointer() >= (size + chunkPointer);
     }
 
@@ -361,14 +361,14 @@ public class SFChunk {
         return result;
     }
 
-
     protected class sfVersionTag { // <iver-rec>
+
         protected int major;
         protected int minor;
 
-        protected sfVersionTag(RandomAccessFile file) throws IOException {
-            major = ConversionUtils.readShort(file);
-            minor = ConversionUtils.readShort(file);
+        protected sfVersionTag(IResourceReader file) throws IOException {
+            major = file.readShort();
+            minor = file.readShort();
         }
 
         @Override
@@ -378,6 +378,7 @@ public class SFChunk {
     }
 
     protected class sfPresetHeader { // <phdr-rec>
+
         protected String achPresetName;
         protected int wPreset;
         protected int wBank;
@@ -386,14 +387,14 @@ public class SFChunk {
         protected long dwGenre;
         protected long dwMorphology;
 
-        protected sfPresetHeader(RandomAccessFile file) throws IOException {
-            achPresetName = ConversionUtils.readVaryingLengthString(file, 20);
-            wPreset = ConversionUtils.readUnsignedShort(file);
-            wBank = ConversionUtils.readUnsignedShort(file);
-            wPresetBagNdx = ConversionUtils.readUnsignedShort(file);
-            dwLibrary = ConversionUtils.readUnsignedIntegerAsLong(file);
-            dwGenre = ConversionUtils.readUnsignedIntegerAsLong(file);
-            dwMorphology = ConversionUtils.readUnsignedIntegerAsLong(file);
+        protected sfPresetHeader(IResourceReader file) throws IOException {
+            achPresetName = file.readVaryingLengthString(20);
+            wPreset = file.readUnsignedShort();
+            wBank = file.readUnsignedShort();
+            wPresetBagNdx = file.readUnsignedShort();
+            dwLibrary = file.readUnsignedIntegerAsLong();
+            dwGenre = file.readUnsignedIntegerAsLong();
+            dwMorphology = file.readUnsignedIntegerAsLong();
         }
 
         @Override
@@ -406,12 +407,13 @@ public class SFChunk {
     }
 
     protected class sfPresetBag { // <pbag-rec>
+
         protected int wGenNdx;
         protected int wModNdx;
 
-        protected sfPresetBag(RandomAccessFile file) throws IOException {
-            wGenNdx = ConversionUtils.readUnsignedShort(file);
-            wModNdx = ConversionUtils.readUnsignedShort(file);
+        protected sfPresetBag(IResourceReader file) throws IOException {
+            wGenNdx = file.readUnsignedShort();
+            wModNdx = file.readUnsignedShort();
         }
 
         @Override
@@ -421,12 +423,13 @@ public class SFChunk {
     }
 
     protected class sfInst { // <inst-rec>
+
         protected String achInstName;
         protected int wInstBagNdx;
 
-        protected sfInst(RandomAccessFile file) throws IOException {
-            achInstName = ConversionUtils.readVaryingLengthString(file, 20);
-            wInstBagNdx = ConversionUtils.readUnsignedShort(file);
+        protected sfInst(IResourceReader file) throws IOException {
+            achInstName = file.readVaryingLengthString(20);
+            wInstBagNdx = file.readUnsignedShort();
         }
 
         @Override
@@ -436,12 +439,13 @@ public class SFChunk {
     }
 
     protected class sfInstBag { // <ibag-rec>
+
         protected int wInstGenNdx;
         protected int wInstModNdx;
 
-        protected sfInstBag(RandomAccessFile file) throws IOException {
-            wInstGenNdx = ConversionUtils.readUnsignedShort(file);
-            wInstModNdx = ConversionUtils.readUnsignedShort(file);
+        protected sfInstBag(IResourceReader file) throws IOException {
+            wInstGenNdx = file.readUnsignedShort();
+            wInstModNdx = file.readUnsignedShort();
         }
 
         @Override
@@ -451,6 +455,7 @@ public class SFChunk {
     }
 
     protected class sfSample { // <shdr-rec>
+
         protected String achSampleName;
         protected long dwStart;
         protected long dwEnd;
@@ -462,18 +467,17 @@ public class SFChunk {
         protected int wSampleLink;
         protected SFSampleLink sfSampleType;
 
-        protected sfSample(RandomAccessFile file) throws IOException {
-            achSampleName = ConversionUtils.readVaryingLengthString(file, 20);
-            dwStart = ConversionUtils.readUnsignedIntegerAsLong(file);
-            dwEnd = ConversionUtils.readUnsignedIntegerAsLong(file);
-            dwStartloop = ConversionUtils.readUnsignedIntegerAsLong(file);
-            dwEndloop = ConversionUtils.readUnsignedIntegerAsLong(file);
-            dwSampleRate = ConversionUtils.readUnsignedIntegerAsLong(file);
-            byOriginalKey = (short) file.readUnsignedByte();
+        protected sfSample(IResourceReader file) throws IOException {
+            achSampleName = file.readVaryingLengthString(20);
+            dwStart = file.readUnsignedIntegerAsLong();
+            dwEnd = file.readUnsignedIntegerAsLong();
+            dwStartloop = file.readUnsignedIntegerAsLong();
+            dwEndloop = file.readUnsignedIntegerAsLong();
+            dwSampleRate = file.readUnsignedIntegerAsLong();
+            byOriginalKey = file.readUnsignedByte();
             chCorrection = file.readByte();
-            wSampleLink = ConversionUtils.readUnsignedShort(file);
-            sfSampleType = ConversionUtils.parseEnum(ConversionUtils.readUnsignedShort(file),
-                    SFSampleLink.class);
+            wSampleLink = file.readUnsignedShort();
+            sfSampleType = ConversionUtils.parseEnum(file.readUnsignedShort(), SFSampleLink.class);
         }
 
         @Override
@@ -487,36 +491,39 @@ public class SFChunk {
     }
 
     protected class rangesType {
+
         protected short byLo;
         protected short byHi;
 
-        protected rangesType(RandomAccessFile file) throws IOException {
-            byLo = (short) file.readUnsignedByte();
-            byHi = (short) file.readUnsignedByte();
+        protected rangesType(IResourceReader file) throws IOException {
+            byLo = file.readUnsignedByte();
+            byHi = file.readUnsignedByte();
         }
     }
 
     protected class genAmountType {
+
         protected rangesType ranges;
         protected short shAmount;
         protected int wAmount;
 
-        protected genAmountType(RandomAccessFile file) throws IOException {
+        protected genAmountType(IResourceReader file) throws IOException {
             ranges = new rangesType(file);
-            shAmount = file.readShort();
-            wAmount = ConversionUtils.readUnsignedShort(file);
+            shAmount = file.readRealShort();
+            wAmount = file.readUnsignedShort();
         }
     }
 
     protected class SFModulator {
+
         protected Modulators bIndex = null; // A 7 bit value specifying the controller source
         protected boolean cc; // MIDI Continuous Controller Flag
         protected boolean d; // Direction
         protected boolean p; // Polarity
         protected ModulatorTypes bType = null; // A 6 bit value specifying the continuity of the controller
 
-        protected SFModulator(RandomAccessFile file) throws IOException {
-            int bits = ConversionUtils.readUnsignedShort(file);
+        protected SFModulator(IResourceReader file) throws IOException {
+            int bits = file.readUnsignedShort();
 
             bIndex = ConversionUtils.parseEnum(ConversionUtils.bits(bits, 0, 7), Modulators.class);
             cc = ConversionUtils.bits(bits, 7, 1) == 1;
@@ -527,14 +534,15 @@ public class SFChunk {
     }
 
     protected class SFGenerator {
+
         protected Generators bIndex = null;
         protected boolean cc;
         protected boolean d;
         protected boolean p;
         protected byte bType;
 
-        protected SFGenerator(RandomAccessFile file) throws IOException {
-            int bits = ConversionUtils.readUnsignedShort(file);
+        protected SFGenerator(IResourceReader file) throws IOException {
+            int bits = file.readUnsignedShort();
 
             bIndex = ConversionUtils.parseEnum(ConversionUtils.bits(bits, 0, 7), Generators.class);
             cc = ConversionUtils.bits(bits, 7, 1) == 1;
@@ -545,14 +553,15 @@ public class SFChunk {
     }
 
     protected class SFTransform {
+
         protected Transforms bIndex = null;
         protected boolean cc;
         protected boolean d;
         protected boolean p;
         protected byte bType;
 
-        protected SFTransform(RandomAccessFile file) throws IOException {
-            int bits = ConversionUtils.readUnsignedShort(file);
+        protected SFTransform(IResourceReader file) throws IOException {
+            int bits = file.readUnsignedShort();
 
             bIndex = ConversionUtils.parseEnum(ConversionUtils.bits(bits, 0, 7), Transforms.class);
             cc = ConversionUtils.bits(bits, 7, 1) == 1;
@@ -570,10 +579,10 @@ public class SFChunk {
         protected SFModulator sfModAmtSrcOper;
         protected SFTransform sfModTransOper;
 
-        protected sfModList(RandomAccessFile file) throws IOException {
+        protected sfModList(IResourceReader file) throws IOException {
             sfModSrcOper = new SFModulator(file);
             sfModDestOper = new SFGenerator(file);
-            modAmount = file.readShort();
+            modAmount = file.readRealShort();
             sfModAmtSrcOper = new SFModulator(file);
             sfModTransOper = new SFTransform(file);
         }
@@ -587,10 +596,11 @@ public class SFChunk {
     }
 
     protected class sfGenList { // <pgen-rec>
+
         protected SFGenerator sfGenOper;
         protected genAmountType genAmount;
 
-        protected sfGenList(RandomAccessFile file) throws IOException {
+        protected sfGenList(IResourceReader file) throws IOException {
             sfGenOper = new SFGenerator(file);
             genAmount = new genAmountType(file);
         }
@@ -602,16 +612,17 @@ public class SFChunk {
     }
 
     protected class sfInstModList { // <imod-rec>
+
         protected SFModulator sfModSrcOper;
         protected SFGenerator sfModDestOper;
         protected short modAmount;
         protected SFModulator sfModAmtSrcOper;
         protected SFTransform sfModTransOper;
 
-        protected sfInstModList(RandomAccessFile file) throws IOException {
+        protected sfInstModList(IResourceReader file) throws IOException {
             sfModSrcOper = new SFModulator(file);
             sfModDestOper = new SFGenerator(file);
-            modAmount = file.readShort();
+            modAmount = file.readRealShort();
             sfModAmtSrcOper = new SFModulator(file);
             sfModTransOper = new SFTransform(file);
         }
@@ -625,10 +636,11 @@ public class SFChunk {
     }
 
     protected class sfInstGenList { // <igen-rec>
+
         protected SFGenerator sfGenOper;
         protected genAmountType genAmount;
 
-        protected sfInstGenList(RandomAccessFile file) throws IOException {
+        protected sfInstGenList(IResourceReader file) throws IOException {
             sfGenOper = new SFGenerator(file);
             genAmount = new genAmountType(file);
         }

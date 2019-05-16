@@ -24,13 +24,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Parses a DK II movie file<br>
- * A little endian file, containing audio and video, just one stream of each.
- * Audio and video frames are ~interspersedly positioned in the file.<br>
- * The format is actually called Texture Quantized Image (TQI), but named here
- * for the extension the DK II movie files have.<br>
+ * A little endian file, containing audio and video, just one stream of each. Audio and video frames
+ * are ~interspersedly positioned in the file.<br>
+ * The format is actually called Texture Quantized Image (TQI), but named here for the extension the
+ * DK II movie files have.<br>
  *
  * Source: http://wiki.multimedia.cx/index.php?title=Electronic_Arts_Formats
  *
@@ -38,7 +40,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public abstract class TgqFile implements AutoCloseable {
 
-    private final RandomAccessFile file;
+    private final ResourceReader file;
     private EAAudioHeader audioHeader;
     private Integer width;
     private Integer height;
@@ -55,7 +57,8 @@ public abstract class TgqFile implements AutoCloseable {
     private final static String SCEl_TAG = "SCEl";
     private final static String SEEN_TAG = "SEEN";
     private final static String PT_PATCH_TAG = "PT";
-    private static final Logger logger = Logger.getLogger(TgqFile.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(TgqFile.class.getName());
 
     public static void main(final String[] args) throws IOException {
 
@@ -101,7 +104,7 @@ public abstract class TgqFile implements AutoCloseable {
     }
 
     public TgqFile(File file) throws FileNotFoundException {
-        this.file = new RandomAccessFile(file, "r");
+        this.file = new ResourceReader(file);
     }
 
     @Override
@@ -112,18 +115,17 @@ public abstract class TgqFile implements AutoCloseable {
     public boolean readFrame() throws IOException {
         boolean gotFrame = false;
 
-        if (file.getFilePointer() == file.length()) {
+        if (file.isEof()) {
             return false; // EOF
         }
 
         // Read the next FourCC
         long pos = file.getFilePointer();
-        byte[] bytes = new byte[4];
-        file.read(bytes);
-        int frameSize = ConversionUtils.readInteger(file);
+        String tag = file.readString(4);
+        int frameSize = file.readInteger();
 
         // See what kind of frame we are dealing with here
-        switch (ConversionUtils.toString(bytes)) {
+        switch (tag) {
             case SHEN_TAG:
             case SCHl_TAG: {
 
@@ -138,7 +140,7 @@ public abstract class TgqFile implements AutoCloseable {
             case SCCl_TAG: {
 
                 // Number of audio data tags
-                numberOfAudioStreamChunks = ConversionUtils.readUnsignedInteger(file);
+                numberOfAudioStreamChunks = file.readUnsignedInteger();
 
                 gotFrame = true;
                 break;
@@ -147,8 +149,7 @@ public abstract class TgqFile implements AutoCloseable {
             case SCDl_TAG: {
 
                 // Audio data itself
-                byte[] data = new byte[frameSize - 8];
-                file.read(data);
+                byte[] data = file.read(frameSize - 8);
                 addAudioFrame(new EAAudioFrame(audioHeader, data, audioFrameIndex));
 
                 gotFrame = true;
@@ -159,15 +160,13 @@ public abstract class TgqFile implements AutoCloseable {
             case SCEl_TAG: {
 
                 // End of audio stream, nothing really to do
-
                 gotFrame = true;
                 break;
             }
             case TQG_TAG: {
 
                 // Video frame
-                byte[] data = new byte[frameSize - 8];
-                file.read(data);
+                byte[] data = file.read(frameSize - 8);
                 TgqFrame frame = new TgqFrame(data, videoFrameIndex);
                 addVideoFrame(frame);
 
@@ -182,14 +181,14 @@ public abstract class TgqFile implements AutoCloseable {
                 break;
             }
             default: {
-                logger.log(Level.WARNING, "Unkown tag {0}!", ConversionUtils.toString(bytes));
+                LOGGER.log(Level.WARNING, "Unkown tag {0}!", tag);
                 break;
             }
         }
 
         // Make sure we leave the file in sensible location
         if (file.getFilePointer() != pos + frameSize) {
-            logger.log(Level.WARNING, "Invalid file position! Was {0}, should be {1}!", new Object[]{file.getFilePointer(), pos + frameSize});
+            LOGGER.log(Level.WARNING, "Invalid file position! Was {0}, should be {1}!", new Object[]{file.getFilePointer(), pos + frameSize});
             file.seek(pos + frameSize);
         }
 
@@ -220,10 +219,9 @@ public abstract class TgqFile implements AutoCloseable {
     private void readAudioHeader(long pos, int frameSize) throws IOException {
 
         // Support only PT patch
-        byte[] bytes = new byte[2];
-        file.read(bytes);
-        if (!PT_PATCH_TAG.equals(ConversionUtils.toString(bytes))) {
-            throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + ConversionUtils.toString(bytes) + " found!");
+        String headerTag = file.readString(2);
+        if (!PT_PATCH_TAG.equals(headerTag)) {
+            throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + headerTag + " found!");
         }
         audioHeader = new EAAudioHeader();
 
@@ -233,7 +231,7 @@ public abstract class TgqFile implements AutoCloseable {
         audioHeader.setNumberOfChannels(1);
         audioHeader.setSampleRate(22050);
 
-        int platformIdentifier = ConversionUtils.readShort(file);
+        int platformIdentifier = file.readShort();
         switch (platformIdentifier) {
             case 0x00: {
                 audioHeader.setPlatform(EAAudioHeader.Platform.PC);
@@ -271,7 +269,7 @@ public abstract class TgqFile implements AutoCloseable {
         // Tag data
         boolean inSubStream;
         while (file.getFilePointer() < (pos + frameSize)) {
-            short tag = (short) file.readUnsignedByte();
+            short tag = file.readUnsignedByte();
 
             switch (tag) {
                 case 0xFC:
@@ -283,7 +281,7 @@ public abstract class TgqFile implements AutoCloseable {
 
                     // Loop through the sub stream
                     while (inSubStream && file.getFilePointer() < (pos + frameSize)) {
-                        short subTag = (short) file.readUnsignedByte();
+                        short subTag = file.readUnsignedByte();
                         switch (subTag) {
                             case 0x82: {
                                 audioHeader.setNumberOfChannels(getValue(file));
@@ -319,7 +317,7 @@ public abstract class TgqFile implements AutoCloseable {
                                 return; // The end
                             }
                             default: {
-                                logger.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
+                                LOGGER.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
                                 getValue(file);
                             }
                         }
@@ -330,7 +328,7 @@ public abstract class TgqFile implements AutoCloseable {
                     return; // The end
                 }
                 default: {
-                    logger.log(Level.INFO, "Did not process tag {0}!", tag);
+                    LOGGER.log(Level.INFO, "Did not process tag {0}!", tag);
                     getValue(file);
                 }
             }
@@ -338,19 +336,17 @@ public abstract class TgqFile implements AutoCloseable {
     }
 
     /**
-     * Gets a value from the file, first reading the length (a byte that
-     * signifies the number of bytes to read for the value) of the value, and
-     * the value itself
+     * Gets a value from the file, first reading the length (a byte that signifies the number of
+     * bytes to read for the value) of the value, and the value itself
      *
      * @param file file to read from
      * @return value value from the file
      * @throws IOException
      */
-    private static int getValue(final RandomAccessFile file) throws IOException {
+    private static int getValue(final IResourceReader file) throws IOException {
         int value = 0;
-        short length = (short) file.readUnsignedByte();
-        byte[] bytes = new byte[length];
-        file.read(bytes);
+        short length = file.readUnsignedByte();
+        byte[] bytes = file.read(length);
 
         // Always big endian
         for (byte b : bytes) {

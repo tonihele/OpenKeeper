@@ -21,16 +21,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.tools.convert.sound.SdtFileEntry.SoundType;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
- * Stores the SDT file structure and contains the methods to handle the SDT
- * archive<br>
+ * Stores the SDT file structure and contains the methods to handle the SDT archive<br>
  * SDT files contain the Dungeon Keeper II sounds as MP2 and WAV files<br>
  * The file is LITTLE ENDIAN I might say<br>
  * The file structure definition is extracted from Dragon UnPACKer
@@ -56,31 +56,31 @@ public class SdtFile {
         this.file = file;
 
         //Read the file
-        try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawSdt = new ResourceReader(file)) {
 
             //Header
-            count = ConversionUtils.readUnsignedInteger(rawSdt);
+            count = rawSdt.readUnsignedInteger();
 
             //Read the files
             entriesOffsets = new int[count];
             for (int i = 0; i < entriesOffsets.length; i++) {
-                entriesOffsets[i] = ConversionUtils.readUnsignedInteger(rawSdt);
+                entriesOffsets[i] = rawSdt.readUnsignedInteger();
             }
 
             entries = new SdtFileEntry[count];
             for (int i = 0; i < entries.length; i++) {
 
                 SdtFileEntry entry = new SdtFileEntry();
-                entry.setHeaderSize(ConversionUtils.readUnsignedInteger(rawSdt));
-                entry.setDataSize(ConversionUtils.readUnsignedInteger(rawSdt));
-                entry.setName(ConversionUtils.readString(rawSdt, 16).trim());
-                entry.setSampleRate(ConversionUtils.readUnsignedShort(rawSdt));
-                entry.setBitsPerSample(ConversionUtils.toUnsignedByte(rawSdt.readByte()));
-                entry.setType(ConversionUtils.parseEnum(ConversionUtils.toUnsignedByte(rawSdt.readByte()),
+                entry.setHeaderSize(rawSdt.readUnsignedInteger());
+                entry.setDataSize(rawSdt.readUnsignedInteger());
+                entry.setName(rawSdt.readString(16).trim());
+                entry.setSampleRate(rawSdt.readUnsignedShort());
+                entry.setBitsPerSample(rawSdt.readUnsignedByte());
+                entry.setType(ConversionUtils.parseEnum(rawSdt.readUnsignedByte(),
                         SdtFileEntry.SoundType.class));
-                entry.setUnknown3(ConversionUtils.readUnsignedInteger(rawSdt));
-                entry.setnSamples(ConversionUtils.readUnsignedInteger(rawSdt));
-                entry.setUnknown4(ConversionUtils.readUnsignedInteger(rawSdt));
+                entry.setUnknown3(rawSdt.readUnsignedInteger());
+                entry.setnSamples(rawSdt.readUnsignedInteger());
+                entry.setUnknown4(rawSdt.readUnsignedInteger());
                 entry.setDataOffset(rawSdt.getFilePointer());
 
                 //Skip entries of size 0, there seems to be these BLANKs
@@ -108,7 +108,7 @@ public class SdtFile {
     public void extractFileData(String destination) {
 
         //Open the SDT for extraction
-        try (RandomAccessFile rawSdt = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawSdt = new ResourceReader(file)) {
             for (SdtFileEntry entry : entries) {
                 extractFileData(entry, destination, rawSdt);
             }
@@ -125,7 +125,7 @@ public class SdtFile {
      * @param destination destination directory
      * @param rawSdt the opened SDT file
      */
-    private void extractFileData(SdtFileEntry entry, String destination, RandomAccessFile rawSdt) {
+    private void extractFileData(SdtFileEntry entry, String destination, IResourceReader rawSdt) {
         if (entry == null) {
             return;
         }
@@ -153,7 +153,7 @@ public class SdtFile {
      * @param rawSdt the opened SDT file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(SdtFileEntry fileEntry, RandomAccessFile rawSdt) throws IOException {
+    private ByteArrayOutputStream getFileData(SdtFileEntry fileEntry, IResourceReader rawSdt) throws IOException {
 
         //Get the file
         if (fileEntry == null) {
@@ -165,16 +165,14 @@ public class SdtFile {
         result.write(getFileHeader(fileEntry));
         //Seek to the file we want and read it
         rawSdt.seek(fileEntry.getDataOffset());
-        byte[] bytes = new byte[fileEntry.getDataSize()];
-        rawSdt.read(bytes);
+        byte[] bytes = rawSdt.read(fileEntry.getDataSize());
         result.write(bytes);
 
         return result;
     }
 
     /**
-     * Fix the file extensions, since the 16 char limit, it seems that there are
-     * broken extensions
+     * Fix the file extensions, since the 16 char limit, it seems that there are broken extensions
      *
      * @param entry the SDT entry
      * @return fixed file name
@@ -208,13 +206,16 @@ public class SdtFile {
     private byte[] getFileHeader(SdtFileEntry entry) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         short numChannels;
-        if (entry.getType() == SoundType.WAV_MONO) {
-            numChannels = 1;
-        } else if (entry.getType() == SoundType.WAV_STEREO) {
-            numChannels = 2;
-        } else {
-            // no need header
-            return new byte[0];
+        switch (entry.getType()) {
+            case WAV_MONO:
+                numChannels = 1;
+                break;
+            case WAV_STEREO:
+                numChannels = 2;
+                break;
+            default:
+                // no need header
+                return new byte[0];
         }
         short audioFormat = 1; // 1 = PCM
         int chunkSize = 44 - 8 + entry.getDataSize(); //chunkSize

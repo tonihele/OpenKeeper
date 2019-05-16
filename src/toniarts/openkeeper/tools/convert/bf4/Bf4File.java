@@ -26,7 +26,6 @@ import java.awt.image.WritableRaster;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,6 +33,8 @@ import java.util.Iterator;
 import java.util.List;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
 
 /**
@@ -73,22 +74,22 @@ public class Bf4File implements Iterable<Bf4Entry> {
     public Bf4File(File file) {
 
         // Read the file
-        try (RandomAccessFile rawBf4 = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawBf4 = new ResourceReader(file)) {
 
             // Check the header
-            byte[] header = new byte[4];
-            rawBf4.read(header);
-            if (!BF4_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
-                throw new RuntimeException("Header should be " + BF4_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
+            String header = rawBf4.readString(4);
+            if (!BF4_HEADER_IDENTIFIER.equals(header)) {
+                throw new RuntimeException("Header should be " + BF4_HEADER_IDENTIFIER
+                        + " and it was " + header + "! Cancelling!");
             }
-            maxWidth = ConversionUtils.toUnsignedByte(rawBf4.readByte()); // This is know to be bogus value
-            maxHeight = ConversionUtils.toUnsignedByte(rawBf4.readByte());
-            int offsetsCount = ConversionUtils.readUnsignedShort(rawBf4);
+            maxWidth = rawBf4.readUnsignedByte(); // This is know to be bogus value
+            maxHeight = rawBf4.readUnsignedByte();
+            int offsetsCount = rawBf4.readUnsignedShort();
 
             // Read the offsets
             List<Integer> offsets = new ArrayList<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
-                offsets.add(ConversionUtils.readUnsignedInteger(rawBf4));
+                offsets.add(rawBf4.readUnsignedInteger());
             }
 
             // Read the font entries
@@ -115,27 +116,26 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * @return the font entry
      * @throws IOException may fail
      */
-    private Bf4Entry readFontEntry(RandomAccessFile rawBf4) throws IOException {
+    private Bf4Entry readFontEntry(IResourceReader rawBf4) throws IOException {
         Bf4Entry entry = new Bf4Entry();
 
-        entry.setCharacter(ConversionUtils.readStringUtf16(rawBf4, 1).charAt(0));
-        entry.setUnknown1(ConversionUtils.readUnsignedShort(rawBf4));
-        entry.setDataSize(ConversionUtils.readInteger(rawBf4));
-        entry.setTotalSize(ConversionUtils.readUnsignedInteger(rawBf4));
+        entry.setCharacter(rawBf4.readStringUtf16(1).charAt(0));
+        entry.setUnknown1(rawBf4.readUnsignedShort());
+        entry.setDataSize(rawBf4.readInteger());
+        entry.setTotalSize(rawBf4.readUnsignedInteger());
         entry.setFlag(ConversionUtils.parseEnum(rawBf4.readUnsignedByte(), FontEntryFlag.class));
-        entry.setUnknown2(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
-        entry.setUnknown3(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
-        entry.setUnknown4(ConversionUtils.toUnsignedByte(rawBf4.readByte()));
-        entry.setWidth(ConversionUtils.readUnsignedShort(rawBf4));
-        entry.setHeight(ConversionUtils.readUnsignedShort(rawBf4));
+        entry.setUnknown2(rawBf4.readUnsignedByte());
+        entry.setUnknown3(rawBf4.readUnsignedByte());
+        entry.setUnknown4(rawBf4.readUnsignedByte());
+        entry.setWidth(rawBf4.readUnsignedShort());
+        entry.setHeight(rawBf4.readUnsignedShort());
         entry.setOffsetX(rawBf4.readByte());
         entry.setOffsetY(rawBf4.readByte());
-        entry.setOuterWidth(ConversionUtils.readShort(rawBf4));
+        entry.setOuterWidth(rawBf4.readShort());
 
-        byte[] bytes;
         if (entry.getWidth() > 0 && entry.getHeight() > 0) {
-            bytes = new byte[entry.getDataSize()];
-            rawBf4.read(bytes, 0, entry.getDataSize());
+            byte[] bytes = rawBf4.read(entry.getDataSize());
+
             entry.setImage(decodeFontImage(entry, bytes));
 
             // Update the max values

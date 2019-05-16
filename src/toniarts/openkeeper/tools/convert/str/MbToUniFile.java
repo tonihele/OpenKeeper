@@ -18,11 +18,11 @@ package toniarts.openkeeper.tools.convert.str;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Dungeon Keeper 2 MultiByte to Unicode codepage file reader. The file is used
@@ -49,20 +49,18 @@ public class MbToUniFile {
     private final int count;
 
     public MbToUniFile(File file) {
-        try (RandomAccessFile rawCodepage = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawCodepage = new ResourceReader(file)) {
 
             // Check the header
-            byte[] header = new byte[4];
-            rawCodepage.read(header);
-            if (!CODEPAGE_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
-                throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + ConversionUtils.toString(header) + "! Cancelling!");
+            String header = rawCodepage.readString(4);
+            if (!CODEPAGE_HEADER_IDENTIFIER.equals(header)) {
+                throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
-            singleCount = ConversionUtils.toUnsignedByte(rawCodepage.readByte());
-            unknown1 = ConversionUtils.toUnsignedByte(rawCodepage.readByte());
-            count1 = ConversionUtils.toUnsignedByte(rawCodepage.readByte());
-            count2 = ConversionUtils.toUnsignedByte(rawCodepage.readByte());
-            byte[] data = new byte[(int) (rawCodepage.length() - rawCodepage.getFilePointer())];
-            rawCodepage.read(data);
+            singleCount = rawCodepage.readByte();
+            unknown1 = rawCodepage.readByte();
+            count1 = rawCodepage.readByte();
+            count2 = rawCodepage.readByte();
+            byte[] data = rawCodepage.read((int) (rawCodepage.length() - rawCodepage.getFilePointer()));
 
             threshold = 255 - singleCount;
             count = (((count1 - 1) + 257) * 255) - threshold * 254 + count2;
@@ -79,8 +77,7 @@ public class MbToUniFile {
     }
 
     /**
-     * Get threshold. The threshold governs should 1 or 2 bytes used for the
-     * character index
+     * Get threshold. The threshold governs should 1 or 2 bytes used for the character index
      *
      * @return the multibyte threshold
      */

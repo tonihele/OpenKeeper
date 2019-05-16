@@ -18,10 +18,10 @@ package toniarts.openkeeper.tools.convert.kcs;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Stores the KCS file entries<br>
@@ -48,10 +48,10 @@ public class KcsFile {
     public KcsFile(File file) {
 
         //Read the file
-        try (RandomAccessFile rawKcs = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawKcs = new ResourceReader(file)) {
 
             //Header
-            int numOfEntries = ConversionUtils.readUnsignedInteger(rawKcs);
+            int numOfEntries = rawKcs.readUnsignedInteger();
             rawKcs.skipBytes(12); // 12 bytes of emptiness?
 
             //Read the entries
@@ -60,20 +60,12 @@ public class KcsFile {
 
                 //Entries have 56 bytes in them
                 KcsEntry entry = new KcsEntry();
-                entry.setPosition(ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs));
-                entry.setDirection(ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs));
-                entry.setLeft(ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs));
-                entry.setUp(ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs),
-                        ConversionUtils.readFloat(rawKcs));
-                entry.setLens(ConversionUtils.readFloat(rawKcs));
-                entry.setNear(ConversionUtils.readFloat(rawKcs));
+                entry.setPosition(rawKcs.readFloat(), rawKcs.readFloat(), rawKcs.readFloat());
+                entry.setDirection(rawKcs.readFloat(), rawKcs.readFloat(), rawKcs.readFloat());
+                entry.setLeft(rawKcs.readFloat(), rawKcs.readFloat(), rawKcs.readFloat());
+                entry.setUp(rawKcs.readFloat(), rawKcs.readFloat(), rawKcs.readFloat());
+                entry.setLens(rawKcs.readFloat());
+                entry.setNear(rawKcs.readFloat());
                 kcsEntries.add(entry);
             }
         } catch (IOException e) {

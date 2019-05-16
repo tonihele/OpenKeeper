@@ -22,11 +22,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  *
@@ -36,30 +35,33 @@ public class SprFile {
 
     private class SprHeader {
 
-        protected String magic; // PSFB
+        protected String tag; // PSFB
         protected int framesCount;
     }
+
     public final static int[] PALETTE = getHalftonePalette();
-    private final String PSFB = "PSFB";
+
+    private final static String PSFB = "PSFB";
     private SprHeader header;
     private File sprFile;
     private SprEntry[] sprites;
-    private static final Logger logger = Logger.getLogger(SprFile.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
 
     public SprFile(File file) {
         this.sprFile = file;
 
-        try (RandomAccessFile data = new RandomAccessFile(sprFile, "r")) {
+        try (IResourceReader data = new ResourceReader(sprFile)) {
 
             header = new SprHeader();
-            header.magic = ConversionUtils.readString(data, 4);
+            header.tag = data.readString(4);
 
-            if (!header.magic.equals(PSFB)) {
-                logger.log(Level.SEVERE, "This is not sprite file");
+            if (!header.tag.equals(PSFB)) {
+                LOGGER.log(Level.SEVERE, "This is not sprite file");
                 throw new RuntimeException("This is not sprite file");
             }
 
-            header.framesCount = ConversionUtils.readUnsignedInteger(data);
+            header.framesCount = data.readUnsignedInteger();
             sprites = new SprEntry[header.framesCount];
 
             for (int i = 0; i < sprites.length; i++) {

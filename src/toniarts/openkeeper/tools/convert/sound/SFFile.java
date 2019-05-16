@@ -18,18 +18,20 @@ package toniarts.openkeeper.tools.convert.sound;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  *
  * @author ArchDemon
  */
 public class SFFile {
+
     private final SFChunk chunk;
 
     public SFFile(File file) {
         //Read the file
-        try (RandomAccessFile f = new RandomAccessFile(file, "r")) {
+        try (IResourceReader f = new ResourceReader(file)) {
             chunk = new SFChunk(f);
         } catch (IOException e) {
             //Fug

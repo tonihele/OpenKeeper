@@ -18,10 +18,10 @@ package toniarts.openkeeper.tools.convert.hiscores;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Stores the HiScores file entries<br>
@@ -42,15 +42,15 @@ public class HiScoresFile {
     public HiScoresFile(File file) {
 
         //Read the file
-        try (RandomAccessFile data = new RandomAccessFile(file, "r")) {
+        try (IResourceReader data = new ResourceReader(file)) {
 
             //Read the entries, no header, just entries till the end
             hiScoresEntries = new ArrayList<>();
             while (data.getFilePointer() < data.length()) {
                 HiScoresEntry entry = new HiScoresEntry();
-                entry.setScore(ConversionUtils.readUnsignedInteger(data));
-                entry.setName(ConversionUtils.readVaryingLengthStringUtf16(data, 32).trim());
-                entry.setLevel(ConversionUtils.readVaryingLengthStringUtf16(data, 32).trim());
+                entry.setScore(data.readUnsignedInteger());
+                entry.setName(data.readVaryingLengthStringUtf16(32).trim());
+                entry.setLevel(data.readVaryingLengthStringUtf16(32).trim());
 
                 hiScoresEntries.add(entry);
             }

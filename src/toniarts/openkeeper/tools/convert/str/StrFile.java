@@ -18,7 +18,6 @@ package toniarts.openkeeper.tools.convert.str;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -30,6 +29,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Reads the Dungeon Keeper 2 STR files<br>
@@ -75,23 +76,22 @@ public class StrFile {
         this.codePage = codePage;
 
         // Read the file
-        try (RandomAccessFile rawStr = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawStr = new ResourceReader(file)) {
 
             // Check the header
-            byte[] header = new byte[4];
-            rawStr.read(header);
-            if (!STR_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
+            String header = rawStr.readString(4);
+            if (!STR_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + STR_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
             // Header... 12 bytes, must be added to offsets
-            fileId = ConversionUtils.readUnsignedInteger(rawStr);
-            int offsetsCount = ConversionUtils.readUnsignedInteger(rawStr);
+            fileId = rawStr.readUnsignedInteger();
+            int offsetsCount = rawStr.readUnsignedInteger();
 
             // Read the offsets
             List<Integer> offsets = new ArrayList<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
-                offsets.add(ConversionUtils.readUnsignedInteger(rawStr));
+                offsets.add(rawStr.readUnsignedInteger());
             }
 
             // Make a copy because offsets in some languages (like german) are not sorted!
@@ -108,6 +108,7 @@ public class StrFile {
 
                 byte[] data = new byte[dataLength];
                 int dataRead = rawStr.read(data);
+                // FIXME should we throws Exception?
                 if (dataRead < dataLength) {
                     LOGGER.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, dataRead});
                 }
