@@ -16,9 +16,16 @@
  */
 package toniarts.openkeeper.gui.nifty;
 
+import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.render.TextRenderer;
+import de.lessvoid.nifty.spi.sound.SoundHandle;
 import de.lessvoid.nifty.tools.SizeValue;
+import java.io.File;
+import javax.annotation.Nullable;
+import toniarts.openkeeper.game.sound.SoundFile;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
  * Utility class for Nifty related stuff
@@ -41,4 +48,23 @@ public class NiftyUtils {
         label.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
         label.getElement().getParent().layoutElements();
     }
+
+    @Nullable
+    public static SoundHandle getSoundHandler(Nifty nifty, String category, int id) {
+        SoundFile file = SoundsLoader.getAudioFile(category, id);
+        if (file == null) {
+            return null;
+        }
+
+        SoundHandle soundHandler = nifty.getSoundSystem().getSound(file.toString());
+        if (soundHandler == null) {
+            String filename = AssetsConverter.SOUNDS_FOLDER + File.separator + file.getFilename();
+            if (nifty.getSoundSystem().addSound(file.toString(), filename)) {
+                soundHandler = nifty.getSoundSystem().getSound(file.toString());
+            }
+        }
+
+        return soundHandler;
+    }
+
 }

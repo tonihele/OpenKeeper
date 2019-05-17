@@ -62,8 +62,10 @@ import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -73,6 +75,7 @@ import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
@@ -88,6 +91,7 @@ public class Main extends SimpleApplication {
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
+    public final static String VERSION = "*PRE-ALPHA*";
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object LOCK = new Object();
@@ -190,7 +194,7 @@ public class Main extends SimpleApplication {
             setLookNFeel();
             AssetManager assetManager = JmeSystem.newAssetManager(
                     Thread.currentThread().getContextClassLoader()
-                    .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
+                            .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
             assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
             DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
@@ -329,16 +333,17 @@ public class Main extends SimpleApplication {
             @Override
             public Void onLoad() {
                 try {
-                    long startTime = System.currentTimeMillis();
-
                     // Asset loaders
                     // Sound
-                    getAssetManager().registerLoader(MP2Loader.class, "mp2");
+                    getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
                     // Camera sweep files
-                    getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
+                    getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
 
                     // Set the anisotropy asset listener
                     setAnisotropy();
+
+                    stateManager.attach(new SoundState(false));
+                    loadSounds();
 
                     // Allow people to take screenshots
                     ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
@@ -364,6 +369,7 @@ public class Main extends SimpleApplication {
                     // Nifty
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
+                    nifty.getGlobalProperties().setProperty("VERSION", VERSION);
                     setupNiftyResourceBundles(nifty);
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
@@ -391,16 +397,6 @@ public class Main extends SimpleApplication {
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
                         nifty.addXml(new ByteArrayInputStream(xml.getValue()));
                     }
-
-                    // It is all a clever ruge, we don't actually load much here
-                    if (!params.containsKey("nomovies") && !params.containsKey("level")) {
-                        long waitTime = 5000 - (System.currentTimeMillis() - startTime);
-                        if (waitTime > 0) {
-                            Thread.sleep(waitTime);
-                        }
-                    }
-                } catch (InterruptedException ex) {
-                    // Doesn't matter
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
                     app.stop();
@@ -419,9 +415,14 @@ public class Main extends SimpleApplication {
                 if (params.containsKey("nomovies") || params.containsKey("level")) {
                     startGame();
                 } else {
-
                     // The fireworks!
                     playIntro();
+                }
+            }
+
+            private void loadSounds() {
+                for (String cat : GlobalCategory.getCategories()) {
+                    SoundsLoader.load(cat);
                 }
             }
 

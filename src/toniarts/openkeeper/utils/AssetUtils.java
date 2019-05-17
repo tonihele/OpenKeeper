@@ -154,7 +154,7 @@ public class AssetUtils {
 
     public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
         String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "."
-                + CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION;
+                + CameraSweepDataLoader.FILE_EXTENSION;
         String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
 
         Object asset = assetManager.loadAsset(assetKey);

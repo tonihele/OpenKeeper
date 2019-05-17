@@ -11,10 +11,6 @@
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CreditsControl.xml" />
-    <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
-
-    <registerSound id="buttonClick" filename="Sounds/Global/GuiHD/FE3D CLICK ON T.mp2" />
-    <registerSound id="menuClick" filename="Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2" />
 
     <style id="text">
         <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />
@@ -93,7 +89,7 @@
             </panel>
 
             <panel align="right" valign="bottom" childLayout="vertical" paddingRight="10px">
-                <text style="text" text="*PRE-ALPHA*" align="center"/>
+                <text style="text" text="${PROP.VERSION}" align="center"/>
                 <text style="text" text="Open Source Edition" align="center"/>
             </panel>
         </layer>

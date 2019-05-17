@@ -164,7 +164,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
                         state.setEnabled(true);
                     }
 
-                    screen.goToScreen(PlayerScreenController.HUD_SCREEN_ID);
+                    screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
                 }
 
                 @Override
@@ -196,7 +196,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
                     possessionState.setTarget(creature);
                     possessionState.setEnabled(true);
 
-                    screen.goToScreen(PlayerScreenController.POSSESSION_SCREEN_ID);
+                    screen.goToScreen(PlayerScreenController.SCREEN_POSSESSION_ID);
                 }
             };
             appStates.add(cameraState);
@@ -313,9 +313,9 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         }
 
         if (enable) {
-            screen.goToScreen(PlayerScreenController.CINEMATIC_SCREEN_ID);
+            screen.goToScreen(PlayerScreenController.SCREEN_CINEMATIC_ID);
         } else {
-            screen.goToScreen(PlayerScreenController.HUD_SCREEN_ID);
+            screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
         }
     }
 

@@ -222,6 +222,7 @@
                                imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
                             <!-- Query pointer -->
                             <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
+                                <interact onClick="playButtonSound(GUI_BUTTON_DEFAULT)"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
@@ -257,6 +258,7 @@
                             </panel>
                             <!-- mag magnifier -->
                             <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
+                                <interact onClick="playButtonSound(GUI_BUTTON_ZOOM)"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->
@@ -311,6 +313,7 @@
                             <control name="customTab" id="tab-creature"
                                      image="Textures/GUI/Tabs/t-creatures.png"
                                      active="Textures/GUI/Icons/selected-creature.png"
+                                     sound="GUI_BUTTON_TAB_CREATURE"
                                      hintText="${menu.2153}" tooltip="${menu.2154}">
                                 <panel childLayout="horizontal" align="left" id="tab-creature-container">
                                     <!--The worker amount & status-->
@@ -323,20 +326,26 @@
                                 </panel>
                             </control>
 
-                            <control name="customTab" id="tab-room" image="Textures/GUI/Tabs/t-rooms.png"
+                            <control name="customTab" id="tab-room"
+                                     image="Textures/GUI/Tabs/t-rooms.png"
                                      active="Textures/GUI/Icons/selected-room.png"
+                                     sound="GUI_BUTTON_TAB_ROOMS"
                                      hintText="${menu.2155}" tooltip="${menu.2156}">
                                 <control name="flowLayout" id="tab-room-content" rows="2" padding="6px" />
                             </control>
 
-                            <control name="customTab" id="tab-spell" image="Textures/GUI/Tabs/t-spells.png"
+                            <control name="customTab" id="tab-spell"
+                                     image="Textures/GUI/Tabs/t-spells.png"
                                      active="Textures/GUI/Icons/selected-spell.png"
+                                     sound="GUI_BUTTON_TAB_SPELLS"
                                      hintText="${menu.2157}" tooltip="${menu.2158}">
                                 <control name="flowLayout" id="tab-spell-content" rows="2" padding="6px" />
                             </control>
 
-                            <control name="customTab" id="tab-workshop" image="Textures/GUI/Tabs/t-workshop.png"
+                            <control name="customTab" id="tab-workshop"
+                                     image="Textures/GUI/Tabs/t-workshop.png"
                                      active="Textures/GUI/Icons/selected-workshop.png"
+                                     sound="GUI_BUTTON_TAB_WORKSHOP"
                                      hintText="${menu.2159}" tooltip="${menu.2160}">
                                 <control name="flowLayout" id="tab-workshop-content" rows="2" padding="6px" />
                             </control>

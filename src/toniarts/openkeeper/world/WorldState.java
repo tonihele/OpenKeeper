@@ -206,8 +206,8 @@ public abstract class WorldState extends AbstractAppState {
 //                            stateManager.getState(PlayerState.class).setText(overrideTextId, true, 0);
 //                        } else {
 //                            // default entrance message
-//                            message = "${speech.376}";
-//                            stateManager.getState(SoundState.class).attachMentorSpeech(376);
+//                            stateManager.getState(SoundState.class).attachMentorSpeech(MentorType.SPECIES_CREATURE_ENTERED);
+//                            message = String.format("${speech.%d}", MentorType.SPECIES_CREATURE_ENTERED.getId() - 1);
 //                        }
 //
 //                        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.CREATURE, message);

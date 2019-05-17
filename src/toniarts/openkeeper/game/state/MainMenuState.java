@@ -240,6 +240,9 @@ public class MainMenuState extends AbstractAppState {
             return;
         }
 
+        stateManager.getState(SoundState.class).changeBackground(SoundState.Background.AMBIENCE);
+        stateManager.getState(SoundState.class).setEnabled(true);
+
         if (enabled) {
 
             // If this is the first time, we might have to load the menu
