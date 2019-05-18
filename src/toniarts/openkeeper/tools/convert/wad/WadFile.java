@@ -21,18 +21,20 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
- * Stores the wad file structure and contains the methods to handle the WAD
- * archive<br>
+ * Stores the wad file structure and contains the methods to handle the WAD archive<br>
  * The file is LITTLE ENDIAN I might say<br>
  * Converted to JAVA from C code, C code by:
  * <li>Tomasz Lis</li>
@@ -47,6 +49,8 @@ public class WadFile {
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
     private static final int WAD_HEADER_VERSION = 2;
 
+    private static final Logger LOGGER = Logger.getLogger(WadFile.class.getName());
+
     /**
      * Constructs a new Wad file reader<br>
      * Reads the WAD file structure
@@ -57,17 +61,16 @@ public class WadFile {
         this.file = file;
 
         // Read the file
-        try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawWad = new ResourceReader(file)) {
 
             // Check the header
-            byte[] header = new byte[4];
-            rawWad.read(header);
-            if (!WAD_HEADER_IDENTIFIER.equals(ConversionUtils.toString(header))) {
+            String header = rawWad.readString(4);
+            if (!WAD_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + WAD_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
             // See the version
-            int version = ConversionUtils.readUnsignedInteger(rawWad);
+            int version = rawWad.readUnsignedInteger();
             if (WAD_HEADER_VERSION != version) {
                 throw new RuntimeException("Version header should be " + WAD_HEADER_VERSION + " and it was " + version + "! Cancelling!");
             }
@@ -75,21 +78,21 @@ public class WadFile {
             // Seek
             rawWad.seek(0x48);
 
-            int files = ConversionUtils.readUnsignedInteger(rawWad);
-            int nameOffset = ConversionUtils.readUnsignedInteger(rawWad);
-            int nameSize = ConversionUtils.readUnsignedInteger(rawWad);
-            int unknown = ConversionUtils.readUnsignedInteger(rawWad);
+            int files = rawWad.readUnsignedInteger();
+            int nameOffset = rawWad.readUnsignedInteger();
+            int nameSize = rawWad.readUnsignedInteger();
+            int unknown = rawWad.readUnsignedInteger();
 
             // Loop through the file count
             List<WadFileEntry> entries = new ArrayList<>(files);
             for (int i = 0; i < files; i++) {
                 WadFileEntry wadInfo = new WadFileEntry();
-                wadInfo.setUnk1(ConversionUtils.readUnsignedInteger(rawWad));
-                wadInfo.setNameOffset(ConversionUtils.readUnsignedInteger(rawWad));
-                wadInfo.setNameSize(ConversionUtils.readUnsignedInteger(rawWad));
-                wadInfo.setOffset(ConversionUtils.readUnsignedInteger(rawWad));
-                wadInfo.setCompressedSize(ConversionUtils.readUnsignedInteger(rawWad));
-                int typeIndex = ConversionUtils.readUnsignedInteger(rawWad);
+                wadInfo.setUnk1(rawWad.readUnsignedInteger());
+                wadInfo.setNameOffset(rawWad.readUnsignedInteger());
+                wadInfo.setNameSize(rawWad.readUnsignedInteger());
+                wadInfo.setOffset(rawWad.readUnsignedInteger());
+                wadInfo.setCompressedSize(rawWad.readUnsignedInteger());
+                int typeIndex = rawWad.readUnsignedInteger();
                 switch (typeIndex) {
                     case 0: {
                         wadInfo.setType(WadFileEntry.WadFileEntryType.NOT_COMPRESSED);
@@ -103,11 +106,11 @@ public class WadFile {
                         wadInfo.setType(WadFileEntry.WadFileEntryType.UNKOWN);
                     }
                 }
-                wadInfo.setSize(ConversionUtils.readUnsignedInteger(rawWad));
+                wadInfo.setSize(rawWad.readUnsignedInteger());
                 int[] unknown2 = new int[3];
-                unknown2[0] = ConversionUtils.readUnsignedInteger(rawWad);
-                unknown2[1] = ConversionUtils.readUnsignedInteger(rawWad);
-                unknown2[2] = ConversionUtils.readUnsignedInteger(rawWad);
+                unknown2[0] = rawWad.readUnsignedInteger();
+                unknown2[1] = rawWad.readUnsignedInteger();
+                unknown2[2] = rawWad.readUnsignedInteger();
                 wadInfo.setUnknown2(unknown2);
                 entries.add(wadInfo);
             }
@@ -116,8 +119,7 @@ public class WadFile {
             // If the file has a path, carry that path all the way to next entry with path
             // The file names itself aren't unique, but with the path they are
             rawWad.seek(nameOffset);
-            byte[] nameArray = new byte[nameSize];
-            rawWad.read(nameArray);
+            byte[] nameArray = rawWad.read(nameSize);
             wadFileEntries = new LinkedHashMap<>(files);
             String path = "";
             for (WadFileEntry entry : entries) {
@@ -168,7 +170,7 @@ public class WadFile {
     public void extractFileData(String destination) {
 
         // Open the WAD for extraction
-        try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawWad = new ResourceReader(file)) {
 
             for (String fileName : wadFileEntries.keySet()) {
                 extractFileData(fileName, destination, rawWad);
@@ -187,7 +189,7 @@ public class WadFile {
      * @param destination destination directory
      * @param rawWad the opened WAD file
      */
-    private File extractFileData(String fileName, String destination, RandomAccessFile rawWad) {
+    private File extractFileData(String fileName, String destination, IResourceReader rawWad) {
 
         // See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
@@ -220,7 +222,7 @@ public class WadFile {
     public File extractFileData(String fileName, String destination) {
 
         // Open the WAD for extraction
-        try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawWad = new ResourceReader(file)) {
             return extractFileData(fileName, destination, rawWad);
         } catch (Exception e) {
 
@@ -236,7 +238,7 @@ public class WadFile {
      * @param rawWad the opened WAD file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(String fileName, RandomAccessFile rawWad) {
+    private ByteArrayOutputStream getFileData(String fileName, IResourceReader rawWad) {
         ByteArrayOutputStream result = null;
 
         // Get the file
@@ -249,8 +251,7 @@ public class WadFile {
 
             // Seek to the file we want and read it
             rawWad.seek(fileEntry.getOffset());
-            byte[] bytes = new byte[fileEntry.getCompressedSize()];
-            rawWad.read(bytes);
+            byte[] bytes = rawWad.read(fileEntry.getCompressedSize());
 
             result = new ByteArrayOutputStream();
 
@@ -279,7 +280,7 @@ public class WadFile {
     public ByteArrayOutputStream getFileData(String fileName) {
 
         // Open the WAD for extraction
-        try (RandomAccessFile rawWad = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawWad = new ResourceReader(file)) {
             return getFileData(fileName, rawWad);
         } catch (Exception e) {
 
@@ -289,8 +290,7 @@ public class WadFile {
     }
 
     /**
-     * Some file entries in the WAD are compressed (type 4?), this decompresses
-     * the file data
+     * Some file entries in the WAD are compressed (type 4?), this decompresses the file data
      *
      * @param bytes the compressed bytes
      * @param fileName just for logging
@@ -379,15 +379,14 @@ public class WadFile {
                     // Crepare to copy the last bytes
                     counter = ConversionUtils.toUnsignedByte(flag) & 3;
                 }
-                while (counter-- != 0) // Copy literally
-                {
+                while (counter-- != 0) { // Copy literally
                     dest[j] = src[i++];
                     j++;
                 }
             }
         } // Of while()
         if (!finished) {
-            System.err.println("File " + fileName + " might not be successfully extracted!");
+            LOGGER.log(Level.WARNING, "File {0} might not be successfully extracted!", fileName);
         }
         return dest;
     }

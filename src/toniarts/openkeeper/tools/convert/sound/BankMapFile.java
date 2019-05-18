@@ -18,12 +18,11 @@ package toniarts.openkeeper.tools.convert.sound;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
- * Dungeon Keeper II *Bank.map files. The map files contain sound playback
- * events of some sorts<br>
+ * Dungeon Keeper II *Bank.map files. The map files contain sound playback events of some sorts<br>
  * The file is LITTLE ENDIAN I might say<br>
  * File structure specifications by Tomasz Lis
  *
@@ -31,7 +30,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class BankMapFile {
 
-    private final static int HEADER_ID[] = new int[] {
+    private final static int HEADER_ID[] = new int[]{
         0xE9612C01, // dword_674048
         0x11D231D0, // dword_67404C
         0xA00009B4, // dword_674050
@@ -53,13 +52,13 @@ public class BankMapFile {
         this.file = file;
 
         //Read the file
-        try (RandomAccessFile rawMap = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawMap = new ResourceReader(file)) {
             //Header
-            int[] check = new int[] {
-                ConversionUtils.readInteger(rawMap),
-                ConversionUtils.readInteger(rawMap),
-                ConversionUtils.readInteger(rawMap),
-                ConversionUtils.readInteger(rawMap)
+            int[] check = new int[]{
+                rawMap.readInteger(),
+                rawMap.readInteger(),
+                rawMap.readInteger(),
+                rawMap.readInteger()
             };
             for (int i = 0; i < HEADER_ID.length; i++) {
                 if (check[i] != HEADER_ID[i]) {
@@ -67,9 +66,9 @@ public class BankMapFile {
                 }
             }
 
-            unknown1 = ConversionUtils.readUnsignedInteger(rawMap);
-            unknown2 = ConversionUtils.readUnsignedIntegerAsLong(rawMap);
-            int count = ConversionUtils.readUnsignedInteger(rawMap);
+            unknown1 = rawMap.readUnsignedInteger();
+            unknown2 = rawMap.readUnsignedIntegerAsLong();
+            int count = rawMap.readUnsignedInteger();
 
             //Read the entries
             entries = new BankMapFileEntry[count];
@@ -77,10 +76,10 @@ public class BankMapFile {
 
                 //Entries are 11 bytes of size
                 BankMapFileEntry entry = new BankMapFileEntry();
-                entry.setUnknown1(ConversionUtils.readUnsignedIntegerAsLong(rawMap));
-                entry.setUnknown2(ConversionUtils.readInteger(rawMap));
-                entry.setUnknown3(ConversionUtils.readUnsignedShort(rawMap));
-                entry.setUnknown4((short) rawMap.readUnsignedByte());
+                entry.setUnknown1(rawMap.readUnsignedIntegerAsLong());
+                entry.setUnknown2(rawMap.readInteger());
+                entry.setUnknown3(rawMap.readUnsignedShort());
+                entry.setUnknown4(rawMap.readUnsignedByte());
 
                 entries[i] = entry;
             }
@@ -89,8 +88,8 @@ public class BankMapFile {
             // It seems the amount is the same as entries
             for (BankMapFileEntry entry : entries) {
                 // 4 bytes = length of the name (including the null terminator)
-                int length = ConversionUtils.readUnsignedInteger(rawMap);
-                entry.setName(ConversionUtils.readString(rawMap, length).trim());
+                int length = rawMap.readUnsignedInteger();
+                entry.setName(rawMap.readString(length).trim());
             }
 
         } catch (IOException e) {

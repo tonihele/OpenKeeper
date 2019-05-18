@@ -19,9 +19,8 @@ package toniarts.openkeeper.tools.convert.spr;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
 
 /**
  *
@@ -38,11 +37,11 @@ public class SprEntry {
     private SprEntryHeader header;
     protected ByteArrayOutputStream buffer;
 
-    public SprEntry(RandomAccessFile file) throws IOException {
+    public SprEntry(IResourceReader file) throws IOException {
         header = new SprEntryHeader();
-        header.width = ConversionUtils.readUnsignedShort(file);
-        header.height = ConversionUtils.readUnsignedShort(file);
-        header.offset = ConversionUtils.readUnsignedIntegerAsLong(file);
+        header.width = file.readUnsignedShort();
+        header.height = file.readUnsignedShort();
+        header.offset = file.readUnsignedIntegerAsLong();
 
         long pointer = file.getFilePointer();
 

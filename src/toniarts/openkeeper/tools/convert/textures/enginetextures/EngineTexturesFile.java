@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,6 +31,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -44,19 +45,21 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class EngineTexturesFile implements Iterable<String> {
 
-    private static final Logger logger = Logger.getLogger(EngineTexturesFile.class.getName());
     private static final boolean DECOMPRESSION_ENABLED = true;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
+
     private final File file;
     private EngineTextureDecoder decoder;
     private final HashMap<String, EngineTextureEntry> engineTextureEntries;
+
+    private static final Logger LOGGER = Logger.getLogger(EngineTexturesFile.class.getName());
 
     public EngineTexturesFile(File file) {
         this.file = file;
 
         //Read the names from the DIR file in the same folder
         File dirFile = new File(file.toString().substring(0, file.toString().length() - 3).concat("dir"));
-        try (RandomAccessFile rawDir = new RandomAccessFile(dirFile, "r")) {
+        try (IResourceReader rawDir = new ResourceReader(dirFile)) {
 
             // File format:
             // HEADER:
@@ -70,25 +73,25 @@ public class EngineTexturesFile implements Iterable<String> {
 
             //Read the entries
             rawDir.skipBytes(12);
-            int numberOfEntries = ConversionUtils.readUnsignedInteger(rawDir);
+            int numberOfEntries = rawDir.readUnsignedInteger();
             engineTextureEntries = new HashMap<>(numberOfEntries);
 
-            try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
+            try (IResourceReader rawTextures = new ResourceReader(file)) {
                 do {
-                    String name = ConversionUtils.convertFileSeparators(ConversionUtils.readVaryingLengthStrings(rawDir, 1).get(0));
-                    int offset = ConversionUtils.readUnsignedInteger(rawDir);
+                    String name = ConversionUtils.convertFileSeparators(rawDir.readVaryingLengthStrings(1).get(0));
+                    int offset = rawDir.readUnsignedInteger();
 
                     //Read the actual data from the DAT file from the offset specified by the DIR file
                     rawTextures.seek(offset);
 
                     //Read the header
                     EngineTextureEntry entry = new EngineTextureEntry();
-                    entry.setResX(ConversionUtils.readUnsignedInteger(rawTextures));
-                    entry.setResY(ConversionUtils.readUnsignedInteger(rawTextures));
-                    entry.setSize(ConversionUtils.readUnsignedInteger(rawTextures) - 8); // - 8 since the size is from here now on
-                    entry.setsResX(ConversionUtils.readUnsignedShort(rawTextures));
-                    entry.setsResY(ConversionUtils.readUnsignedShort(rawTextures));
-                    entry.setAlphaFlag(ConversionUtils.readUnsignedInteger(rawTextures) >> 7 != 0);
+                    entry.setResX(rawTextures.readUnsignedInteger());
+                    entry.setResY(rawTextures.readUnsignedInteger());
+                    entry.setSize(rawTextures.readUnsignedInteger() - 8); // - 8 since the size is from here now on
+                    entry.setsResX(rawTextures.readUnsignedShort());
+                    entry.setsResY(rawTextures.readUnsignedShort());
+                    entry.setAlphaFlag(rawTextures.readUnsignedInteger() >> 7 != 0);
                     entry.setDataStartLocation(rawTextures.getFilePointer());
 
                     //Put the entry to the hash
@@ -123,7 +126,7 @@ public class EngineTexturesFile implements Iterable<String> {
     public void extractFileData(String destination) {
 
         //Open the Texture file for extraction
-        try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawTextures = new ResourceReader(file)) {
 
             for (String textureEntry : engineTextureEntries.keySet()) {
                 extractFileData(textureEntry, destination, rawTextures, true);
@@ -146,7 +149,7 @@ public class EngineTexturesFile implements Iterable<String> {
     public File extractFileData(String textureEntry, String destination, boolean overwrite) {
 
         //Open the Texture file for extraction
-        try (RandomAccessFile rawTextures = new RandomAccessFile(file, "r")) {
+        try (IResourceReader rawTextures = new ResourceReader(file)) {
             return extractFileData(textureEntry, destination, rawTextures, overwrite);
         } catch (IOException e) {
 
@@ -164,7 +167,7 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param overwrite overwrite destination file
      *
      */
-    private File extractFileData(String textureEntry, String destination, RandomAccessFile rawTextures, boolean overwrite) {
+    private File extractFileData(String textureEntry, String destination, IResourceReader rawTextures, boolean overwrite) {
 
         //See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
@@ -173,7 +176,7 @@ public class EngineTexturesFile implements Iterable<String> {
         if (!overwrite && destinationFile.exists()) {
 
             //Skip
-            logger.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
+            LOGGER.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
             return destinationFile;
         }
         Path destinationFolder = destinationFile.toPath();
@@ -195,7 +198,7 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param rawTextures the opened EngineTextures file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(String textureEntry, RandomAccessFile rawTextures) {
+    private ByteArrayOutputStream getFileData(String textureEntry, IResourceReader rawTextures) {
         ByteArrayOutputStream result = null;
 
         //Get the file
@@ -215,7 +218,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 int count = (engineTextureEntry.getSize()) / 4;
                 long[] buf = new long[count];
                 for (int i = 0; i < count; i++) {
-                    buf[i] = ConversionUtils.readUnsignedIntegerAsLong(rawTextures);
+                    buf[i] = rawTextures.readUnsignedIntegerAsLong();
                 }
 
                 // Use the monstrous decompression routine
@@ -227,7 +230,7 @@ public class EngineTexturesFile implements Iterable<String> {
             }
             result = new ByteArrayOutputStream();
             ImageIO.write(image, "png", result);
-        } catch (Exception e) {
+        } catch (IOException e) {
 
             //Fug
             throw new RuntimeException("Faile to read the engine texture file!", e);

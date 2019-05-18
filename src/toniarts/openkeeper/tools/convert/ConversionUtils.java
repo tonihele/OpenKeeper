@@ -19,7 +19,6 @@ package toniarts.openkeeper.tools.convert;
 import com.jme3.math.Vector3f;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -31,14 +30,11 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -60,47 +56,12 @@ public class ConversionUtils {
     public static final float DOUBLE = 65536f; // or DIVIDER_DOUBLE Fixed Point Double Precision Divider
 
     /**
-     * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned
-     * int<br>
-     * This method returns long, which means the value is sure to fit
-     *
-     * @param file the file to read from
-     * @return JAVA native long
-     * @throws IOException may fail
-     */
-    public static long readUnsignedIntegerAsLong(RandomAccessFile file) throws IOException {
-        return ConversionUtils.readInteger(file) & 0xFFFFFFFFL;
-    }
-
-    public static float readIntegerAsFloat(RandomAccessFile file) throws IOException {
-        return readInteger(file) / ConversionUtils.FLOAT;
-    }
-
-    public static float readIntegerAsDouble(RandomAccessFile file) throws IOException {
-        return readInteger(file) / ConversionUtils.DOUBLE;
-    }
-
-    /**
-     * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN unsigned int
-     *
-     * @param file the file to read from
-     * @return JAVA native int
-     * @throws IOException may fail
-     * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
-     */
-    public static int readUnsignedInteger(RandomAccessFile file) throws IOException {
-        byte[] unsignedInt = new byte[4];
-        file.read(unsignedInt);
-        return toUnsignedInteger(unsignedInt);
-    }
-
-    /**
      * Converts 4 bytes to JAVA int from LITTLE ENDIAN unsigned int presented by
      * a byte array
      *
      * @param unsignedInt the byte array
      * @return JAVA native int
-     * @see #readUnsignedIntegerAsLong(java.io.RandomAccessFile)
+     * @see toniarts.openkeeper.tools.convert.IResourceReader#readUnsignedIntegerAsLong()
      */
     public static int toUnsignedInteger(byte[] unsignedInt) {
         int result = toInteger(unsignedInt);
@@ -111,19 +72,6 @@ public class ConversionUtils {
             LOGGER.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
-    }
-
-    /**
-     * Reads 4 bytes and converts it to JAVA int from LITTLE ENDIAN int
-     *
-     * @param file the file to read from
-     * @return JAVA native int
-     * @throws IOException may fail
-     */
-    public static int readInteger(RandomAccessFile file) throws IOException {
-        byte[] signedInt = new byte[4];
-        file.read(signedInt);
-        return toInteger(signedInt);
     }
 
     /**
@@ -140,20 +88,6 @@ public class ConversionUtils {
     }
 
     /**
-     * Reads 2 bytes and converts it to JAVA short from LITTLE ENDIAN unsigned
-     * short (needs to be int in JAVA)
-     *
-     * @param file the file to read from
-     * @return JAVA native int
-     * @throws IOException may fail
-     */
-    public static int readUnsignedShort(RandomAccessFile file) throws IOException {
-        byte[] unsignedShort = new byte[2];
-        file.read(unsignedShort);
-        return toUnsignedShort(unsignedShort);
-    }
-
-    /**
      * Converts 2 bytes to JAVA short from LITTLE ENDIAN unsigned short
      * presented by a byte array (needs to be int in JAVA)
      *
@@ -162,24 +96,6 @@ public class ConversionUtils {
      */
     public static int toUnsignedShort(byte[] unsignedShort) {
         return toShort(unsignedShort) & 0xFFFF;
-    }
-
-    /**
-     * Reads 2 bytes and converts it to JAVA short from LITTLE ENDIAN signed
-     * short
-     *
-     * @param file the file to read from
-     * @return JAVA native short
-     * @throws IOException may fail
-     */
-    public static short readShort(RandomAccessFile file) throws IOException {
-        byte[] signedShort = new byte[2];
-        file.read(signedShort);
-        return toShort(signedShort);
-    }
-
-    public static float readShortAsFloat(RandomAccessFile file) throws IOException {
-        return readShort(file) / ConversionUtils.FLOAT;
     }
 
     /**
@@ -193,19 +109,6 @@ public class ConversionUtils {
         ByteBuffer buffer = ByteBuffer.wrap(signedShort);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getShort();
-    }
-
-    /**
-     * Reads 4 bytes and converts it to JAVA float from LITTLE ENDIAN float
-     *
-     * @param file the file to read from
-     * @return JAVA native float
-     * @throws IOException may fail
-     */
-    public static float readFloat(RandomAccessFile file) throws IOException {
-        byte[] f = new byte[4];
-        file.read(f);
-        return toFloat(f);
     }
 
     /**
@@ -225,41 +128,11 @@ public class ConversionUtils {
      * Converts a byte array to a JAVA String
      *
      * @param bytes the bytearray to convert
-     * @see #readString(java.io.RandomAccessFile, int)
+     * @see toniarts.openkeeper.tools.convert.IResourceReader#readString(int)
      * @return fresh String
      */
     public static String toString(byte[] bytes) {
         return new String(bytes, Charset.forName("windows-1252"));
-    }
-
-    /**
-     * Reads bytes from a file and converts them to a string
-     *
-     * @param file the file
-     * @param length string length
-     * @see #toString(byte[])
-     * @return fresh String
-     * @throws IOException the reading may fail
-     */
-    public static String readString(RandomAccessFile file, int length) throws IOException {
-        byte[] bytes = new byte[length];
-        file.read(bytes);
-        return toString(bytes);
-    }
-
-    /**
-     * Reads bytes from a file and converts them to a string
-     *
-     * @param file the file
-     * @param length string length
-     * @see #toStringUtf16(byte[])
-     * @return fresh String
-     * @throws IOException the reading may fail
-     */
-    public static String readStringUtf16(RandomAccessFile file, int length) throws IOException {
-        byte[] bytes = new byte[length * 2];
-        file.read(bytes);
-        return toStringUtf16(bytes);
     }
 
     /**
@@ -274,32 +147,6 @@ public class ConversionUtils {
     }
 
     /**
-     * Reads strings of varying length (UTF16 NULL terminated) from the file
-     *
-     * @param file the file to read from
-     * @param length max length of string
-     * @return string read from the file
-     * @throws IOException
-     */
-    public static String readVaryingLengthStringUtf16(RandomAccessFile file, int length) throws IOException {
-
-        byte[] bytes = new byte[length * 2];
-        file.read(bytes);
-
-        List<Byte> result = new ArrayList<>();
-
-        for (int i = 0; i < bytes.length; i += 2) {
-            if (bytes[i] == 0 && bytes[i + 1] == 0) {
-                break;
-            }
-            result.add(bytes[i]);
-            result.add(bytes[i + 1]);
-        }
-
-        return ConversionUtils.toStringUtf16(toByteArray(result));
-    }
-
-    /**
      * Converts JAVAX 3f vector to JME vector (also converts the coordinate
      * system)
      *
@@ -311,28 +158,6 @@ public class ConversionUtils {
     }
 
     /**
-     * Reads a DK2 style timestamp
-     *
-     * @param file the file to read from
-     * @return the date in current locale
-     * @throws IOException may fail
-     */
-    public static Date readTimestamp(RandomAccessFile file) throws IOException {
-
-        // Dates are in UTC
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.set(Calendar.YEAR, ConversionUtils.readUnsignedShort(file));
-        cal.set(Calendar.DAY_OF_MONTH, file.readUnsignedByte());
-        cal.set(Calendar.MONTH, file.readUnsignedByte());
-        file.skipBytes(2);
-        cal.set(Calendar.HOUR_OF_DAY, file.readUnsignedByte());
-        cal.set(Calendar.MINUTE, file.readUnsignedByte());
-        cal.set(Calendar.SECOND, file.readUnsignedByte());
-        file.skipBytes(1);
-        return cal.getTime();
-    }
-
-    /**
      * Convert a byte to unsigned byte
      *
      * @param b byte
@@ -340,69 +165,6 @@ public class ConversionUtils {
      */
     public static short toUnsignedByte(byte b) {
         return Integer.valueOf(b & 0xFF).shortValue();
-    }
-
-    @Deprecated
-    public static void checkNull(RandomAccessFile file, int size) throws IOException {
-        byte[] bytes = new byte[size];
-        file.read(bytes);
-        for (byte b : bytes) {
-            if (b != 0) {
-                LOGGER.log(Level.WARNING, "Value not 0! Was {0}!", b);
-            }
-        }
-    }
-
-    /**
-     * Reads strings of varying length (ASCII NULL terminated) from the file
-     *
-     * @param rawKmf the file to read from
-     * @param numberOfStrings number of Strings to read
-     * @return list of strings read from the file
-     * @throws IOException
-     */
-    public static List<String> readVaryingLengthStrings(RandomAccessFile rawKmf, int numberOfStrings) throws IOException {
-        List<String> strings = new ArrayList<>(numberOfStrings);
-
-        for (int i = 0; i < numberOfStrings; i++) {
-
-            // A bit tricky, read until 0 byte
-            List<Byte> bytes = new ArrayList();
-            byte b = 0;
-            do {
-                b = rawKmf.readByte();
-                if (b != 0) {
-                    bytes.add(b);
-                } else {
-                    break;
-                }
-            } while (true);
-            strings.add(ConversionUtils.toString(toByteArray(bytes)));
-        }
-        return strings;
-    }
-
-    /**
-     * Reads string of varying length (ASCII NULL terminated) from the file
-     *
-     * @param rawKmf rawKmf the file to read from
-     * @param length bytes to reed from file
-     * @return string read from the file
-     * @throws java.io.IOException
-     */
-    public static String readVaryingLengthString(RandomAccessFile rawKmf, int length) throws IOException {
-        byte[] bytes = new byte[length];
-        rawKmf.read(bytes);
-        List<Byte> string = new ArrayList();
-        // A bit tricky, read until 0 byte
-        for (byte b : bytes) {
-            if (b == 0) {
-                break;
-            }
-            string.add(b);
-        }
-
-        return ConversionUtils.toString(toByteArray(string));
     }
 
     /**
