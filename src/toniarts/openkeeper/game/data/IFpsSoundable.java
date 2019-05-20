@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ package toniarts.openkeeper.game.data;
  *
  * @author archdemon
  */
-public interface IIndexable {
+public interface IFpsSoundable {
 
-    public short getId();
+    public String getSoundCategoryFirstPerson();
 }

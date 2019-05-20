@@ -24,6 +24,15 @@ import de.lessvoid.nifty.screen.ScreenController;
  */
 public interface IMainMenuScreenController extends ScreenController {
 
+    public final static String SOUND_BUTTON_ID = "buttonClick";
+    public final static String SOUND_MENU_ID = "menuClick";
+    public final static String SCREEN_EMPTY_ID = "empty";
+    public final static String SCREEN_START_ID = "start";
+    public final static String SCREEN_DEBRIEFING_ID = "debriefing";
+    public final static String SCREEN_OPTIONS_MAIN_ID = "optionsMain";
+    public final static String PLAYER_LIST_ID = "playersTable";
+
+    public void applySoundSettings();
     //// screen id="multiplayerCreate"  ////
     //public void multiplayerSend()
     public void addComputerPlayer();

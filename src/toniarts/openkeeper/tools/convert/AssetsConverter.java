@@ -709,7 +709,7 @@ public abstract class AssetsConverter {
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
                     // Save it
-                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat(CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION)));
+                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat(CameraSweepDataLoader.FILE_EXTENSION)));
                 } else if (entry.toLowerCase().endsWith(".txt")) {
 
                     // The text file is nice to have, it is an info text

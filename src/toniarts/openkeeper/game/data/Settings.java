@@ -166,7 +166,15 @@ public class Settings {
         PLAYER_NAME(String.class, System.getProperty("user.name"), SettingCategory.MISCELLANEOUS),
         GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),
         MULTIPLAYER_LAST_IP(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS),
-        MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS);
+        MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS),
+        // Sound settings
+        MASTER_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
+        VOICE_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
+        VOICE_ENABLED(Boolean.class, true, SettingCategory.SOUND),
+        MUSIC_VOLUME(Float.class, 0.5f, SettingCategory.SOUND),
+        MUSIC_ENABLED(Boolean.class, true, SettingCategory.SOUND),
+        SFX_VOLUME(Float.class, 0.5f, SettingCategory.SOUND),
+        SFX_ENABLED(Boolean.class, true, SettingCategory.SOUND);
 
         private Setting(Class clazz, Integer specialKey, Object defValue, SettingCategory category, Integer resourceKey) {
             this.clazz = clazz;
@@ -328,7 +336,7 @@ public class Settings {
      * @param setting the setting
      * @return the setting value
      */
-    public int getSettingInteger(ISetting setting) {
+    public int getInteger(ISetting setting) {
         return (int) getSetting(setting);
     }
 
@@ -338,7 +346,7 @@ public class Settings {
      * @param setting the setting
      * @return the setting value
      */
-    public boolean getSettingBoolean(ISetting setting) {
+    public boolean getBoolean(ISetting setting) {
         return (boolean) getSetting(setting);
     }
 
@@ -348,7 +356,7 @@ public class Settings {
      * @param setting the setting
      * @return the setting value
      */
-    public float getSettingFloat(ISetting setting) {
+    public float getFloat(ISetting setting) {
         return (float) getSetting(setting);
     }
 

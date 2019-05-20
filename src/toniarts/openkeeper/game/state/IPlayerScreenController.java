@@ -27,6 +27,11 @@ import de.lessvoid.nifty.screen.ScreenController;
  */
 public interface IPlayerScreenController extends ScreenController {
 
+    public static final String SCREEN_HUD_ID = "hud";
+    public static final String SCREEN_POSSESSION_ID = "possession";
+    public static final String SCREEN_CINEMATIC_ID = "cinematic";
+    public static final String SCREEN_EMPTY_ID = "empty";
+
     /**
      * Select active item on HUD
      *
@@ -36,6 +41,10 @@ public interface IPlayerScreenController extends ScreenController {
      * @param id id of selected item
      */
     public void select(String iState, String id);
+
+    public void playSound(String category, String id);
+
+    public void playButtonSound(String category);
 
     public void togglePanel();
 

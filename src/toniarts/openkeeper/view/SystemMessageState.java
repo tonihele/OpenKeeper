@@ -22,14 +22,19 @@ import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
+import de.lessvoid.nifty.spi.sound.SoundHandle;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
-import static toniarts.openkeeper.game.state.PlayerScreenController.HUD_SCREEN_ID;
+import static toniarts.openkeeper.game.state.PlayerScreenController.SCREEN_HUD_ID;
+import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * TODO separate screen
+ *
  * @author ufdada
  */
 public class SystemMessageState extends AbstractPauseAwareState {
@@ -61,7 +66,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
 
     public SystemMessageState(Element systemMessages, boolean enabled) {
         this.systemMessagesQueue = systemMessages;
-        this.hud = systemMessagesQueue.getNifty().getScreen(HUD_SCREEN_ID);
+        this.hud = systemMessagesQueue.getNifty().getScreen(SCREEN_HUD_ID);
 
         // can be removed if system messages are correctly detached after quiting the game (like going back to main menu)
         this.removeAllMessages();
@@ -90,9 +95,13 @@ public class SystemMessageState extends AbstractPauseAwareState {
             return;
         }
         if (this.app != null) {
-            this.app.enqueue(()-> {
+            SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
+                        GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());
+            this.app.enqueue(() -> {
                 this.addMessageIcon(type, text);
-                return null;
+                if (soundHandler != null) {
+                    soundHandler.play();
+                }
             });
         } else {
             this.addMessageIcon(type, text);
@@ -105,19 +114,21 @@ public class SystemMessageState extends AbstractPauseAwareState {
         final String hoverIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
         final String activeIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "02"));
 
-        Element systemMessage = new ControlBuilder("sysmessage-" + NiftyIdCreator.generate(), "systemMessage"){{
-            parameter("image", normalIcon);
-            parameter("hoverImage", hoverIcon);
-            parameter("activeImage", activeIcon);
-            set("text", text);
-        }}.build(systemMessagesQueue.getNifty(), this.hud, systemMessagesQueue);
+        Element systemMessage = new ControlBuilder("sysmessage-" + NiftyIdCreator.generate(), "systemMessage") {
+            {
+                parameter("image", normalIcon);
+                parameter("hoverImage", hoverIcon);
+                parameter("activeImage", activeIcon);
+                set("text", text);
+            }
+        }.build(systemMessagesQueue.getNifty(), this.hud, systemMessagesQueue);
         systemMessage.show();
     }
 
     @Override
     public void update(float tpf) {
         if (systemMessagesQueue != null) {
-            for(Element child : systemMessagesQueue.getChildren()) {
+            for (Element child : systemMessagesQueue.getChildren()) {
                 SystemMessageControl control = child.getControl(SystemMessageControl.class);
                 if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
                     child.markForRemoval();
@@ -136,7 +147,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
      */
     private void removeAllMessages() {
         if (systemMessagesQueue != null && systemMessagesQueue.getChildrenCount() > 0) {
-            systemMessagesQueue.getChildren().forEach((child)->{
+            systemMessagesQueue.getChildren().forEach((child) -> {
                 child.markForRemoval();
             });
         }

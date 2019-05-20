@@ -44,6 +44,8 @@ import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,6 +63,9 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -73,10 +78,12 @@ import toniarts.openkeeper.gui.nifty.table.TableControl;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 
@@ -85,11 +92,6 @@ import toniarts.openkeeper.utils.Utils;
  * @author ArchDemon
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
-
-    public final static String SCREEN_EMPTY_ID = "empty";
-    public final static String SCREEN_START_ID = "start";
-    private final static String PLAYER_LIST_ID = "playersTable";
-    public final static String SCREEN_DEBRIEFING_ID = "debriefing";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -102,7 +104,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
      * A popup instance if some screen should need one
      */
     private Element popupElement;
-    private static final Logger logger = Logger.getLogger(MainMenuScreenController.class.getName());
+
+    private static final Logger LOGGER = Logger.getLogger(MainMenuScreenController.class.getName());
 
     static {
         CUTSCENES.add(new Cutscene("Intro", "INTRO", "${menu.77}"));
@@ -131,6 +134,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     public MainMenuScreenController(MainMenuState state, Nifty nifty) {
         this.state = state;
         this.nifty = nifty;
+
+        SoundCategory sc = SoundsLoader.load(GlobalCategory.FRONT_END);
+        String filename = sc.getGroup(GlobalType.FRONT_END_CKICK).getFiles().get(0).getFilename();
+        this.nifty.registerSound(SOUND_MENU_ID, AssetsConverter.SOUNDS_FOLDER + File.separator + filename);
+        this.nifty.registerSound(SOUND_BUTTON_ID, "Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2");
     }
 
     @Override
@@ -363,6 +371,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             case "optionsControl":
                 setControlSettingsToGUI();
+                break;
+
+            case "optionsSound":
+                setSoundSettingsToGUI();
                 break;
 
             case "movies":
@@ -755,11 +767,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         af.addAllItems(Settings.ANISOTROPHIES);
         if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)
-                && Settings.ANISOTROPHIES.contains(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY))) {
-            af.selectItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+                && Settings.ANISOTROPHIES.contains(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY))) {
+            af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
         } else if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)) {
-            af.addItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
-            af.selectItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+            af.addItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
+            af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
         }
 
         //OpenGL
@@ -769,7 +781,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         //SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
-        ssao.setChecked(Main.getUserSettings().getSettingBoolean(Settings.Setting.SSAO));
+        ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
     }
 
     private void setControlSettingsToGUI() {
@@ -1055,6 +1067,62 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         }
     }
 
+    private void setSoundSettingsToGUI() {
+        Settings settings = Main.getUserSettings();
+
+        Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
+        Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
+        Slider musicVolume = screen.findNiftyControl("musicVolume", Slider.class);
+        Slider sfxVolume = screen.findNiftyControl("sfxVolume", Slider.class);
+
+        CheckBox voiceEnabled = screen.findNiftyControl("voiceEnabled", CheckBox.class);
+        CheckBox musicEnabled = screen.findNiftyControl("musicEnabled", CheckBox.class);
+        CheckBox sfxEnabled = screen.findNiftyControl("sfxEnabled", CheckBox.class);
+
+        masterVolume.setValue(settings.getFloat(Settings.Setting.MASTER_VOLUME));
+        voiceVolume.setValue(settings.getFloat(Settings.Setting.VOICE_VOLUME));
+        musicVolume.setValue(settings.getFloat(Settings.Setting.MUSIC_VOLUME));
+        sfxVolume.setValue(settings.getFloat(Settings.Setting.SFX_VOLUME));
+
+        voiceEnabled.setChecked(settings.getBoolean(Settings.Setting.VOICE_ENABLED));
+        musicEnabled.setChecked(settings.getBoolean(Settings.Setting.MUSIC_ENABLED));
+        sfxEnabled.setChecked(settings.getBoolean(Settings.Setting.SFX_ENABLED));
+    }
+
+    @Override
+    public void applySoundSettings() {
+        try {
+            // Get the controls settings
+            Settings settings = Main.getUserSettings();
+
+            Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
+            Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
+            Slider musicVolume = screen.findNiftyControl("musicVolume", Slider.class);
+            Slider sfxVolume = screen.findNiftyControl("sfxVolume", Slider.class);
+
+            CheckBox voiceEnabled = screen.findNiftyControl("voiceEnabled", CheckBox.class);
+            CheckBox musicEnabled = screen.findNiftyControl("musicEnabled", CheckBox.class);
+            CheckBox sfxEnabled = screen.findNiftyControl("sfxEnabled", CheckBox.class);
+
+            // Set the settings
+            settings.setSetting(Settings.Setting.MASTER_VOLUME, masterVolume.getValue());
+            settings.setSetting(Settings.Setting.VOICE_VOLUME, voiceVolume.getValue());
+            settings.setSetting(Settings.Setting.MUSIC_VOLUME, musicVolume.getValue());
+            settings.setSetting(Settings.Setting.SFX_VOLUME, sfxVolume.getValue());
+
+            settings.setSetting(Settings.Setting.VOICE_ENABLED, voiceEnabled.isChecked());
+            settings.setSetting(Settings.Setting.MUSIC_ENABLED, musicEnabled.isChecked());
+            settings.setSetting(Settings.Setting.SFX_ENABLED, sfxEnabled.isChecked());
+
+            Main.setupNiftySound(nifty);
+            Settings.getInstance().save();
+        } catch (IOException ex) {
+            Logger.getLogger(MainMenuScreenController.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+
+        nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
+    }
+
     public static class Cutscene {
 
         protected String image;
@@ -1141,7 +1209,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            logger.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1169,7 +1237,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     subObjectiveImage.setHeight(img.getHeight());
                     subObjectiveImage.show();
                 } catch (Exception e) {
-                    logger.log(java.util.logging.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
+                    LOGGER.log(java.util.logging.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
                     subObjectiveImage.hide();
                 }
 
@@ -1207,7 +1275,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            logger.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1225,7 +1293,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 subObjectiveImage.setHeight(img.getHeight());
                 subObjectiveImage.show();
             } catch (Exception e) {
-                logger.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+                LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "1"));
                 subObjectiveImage.hide();
             }
         }

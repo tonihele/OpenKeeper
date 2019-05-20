@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
@@ -36,11 +37,12 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author archdemon
  */
 public class SoundCategory {
-    // default sounds categories
+
     public static final String SPEECH_MENTOR = "SPEECH_MENTOR";
     public static final String SPEECH_MULTIPLAYER = "SPEECH_MULTIPLAYER";
     public static final String SPEECH_HORNY = "SPEECH_HORNY";
-    // TODO need to add some GUI sounds categories
+    public static final String SPEECH_MYPETDUNGEON = "SPEECH_MYPETDUNGEON";
+
     private final String folder;
     private final String name;
     private final Map<Integer, SoundGroup> groups = new HashMap<>();
@@ -70,14 +72,21 @@ public class SoundCategory {
         return groups;
     }
 
+    @Nullable
     public SoundGroup getGroup(int id) {
         return groups.get(id);
     }
 
-    public SoundGroup getGroup(SoundGroup.SoundType type) {
-        return groups.get(type.getValue());
+    @Nullable
+    public SoundGroup getGroup(IIndexable type) {
+        return groups.get((int) type.getId());
     }
 
+    public boolean hasGroup(int id) {
+        return groups.containsKey(id);
+    }
+
+    @Nullable
     public SfxMapFile getSfxMapFile() {
         File f = new File(PathUtils.getDKIIFolder() + folder
                 + name.toLowerCase() + "SFX.map");
@@ -85,7 +94,8 @@ public class SoundCategory {
             return new SfxMapFile(f);
         }
 
-        throw new RuntimeException("Sfx file of category " + name + " not exits");
+        LOGGER.log(Level.SEVERE, "Sfx file of category {0} not exits", name);
+        return null;
     }
 
     public BankMapFile getBankMapFile() {
@@ -107,14 +117,14 @@ public class SoundCategory {
     @Nullable
     public static SdtFile getSdtFile(String archiveFilename) {
         // FIXME I don`t know what better HD or HW, but quantity HW less than HD, but size HW more than HD
-        for (String part : new String[] {"HD.sdt", "HW.sdt"}) {
+        for (String part : new String[]{"HD.sdt", "HW.sdt"}) {
             try {
                 File f = new File(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(),
                         PathUtils.DKII_SFX_FOLDER + archiveFilename + part));
                 if (f.exists()) {
                     return new SdtFile(f);
                 }
-            } catch (Exception ex) {
+            } catch (IOException ex) {
                 // nop
             }
         }
@@ -129,8 +139,8 @@ public class SoundCategory {
             return;
         }
 
-        for (SfxMapFileEntry entry: sfx.getEntries()) {
-            for (SfxGroupEntry eEntry: entry.getGroups()) {
+        for (SfxMapFileEntry entry : sfx.getEntries()) {
+            for (SfxGroupEntry eEntry : entry.getGroups()) {
                 // take action Index
                 int actionId = eEntry.getTypeId();
                 if (!groups.containsKey(actionId)) {

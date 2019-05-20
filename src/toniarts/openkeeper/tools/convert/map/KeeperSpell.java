@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.IGuiSoundable;
 import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
@@ -27,7 +28,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable, IIndexable {
+public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable, IIndexable, IGuiSoundable {
 
     /**
      * Keeper spell flags
@@ -397,6 +398,7 @@ public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable, IIndexa
         this.bonusIcon = bonusIcon;
     }
 
+    @Override
     public String getSoundCategoryGui() {
         return soundCategoryGui;
     }

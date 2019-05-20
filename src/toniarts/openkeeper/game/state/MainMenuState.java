@@ -224,7 +224,7 @@ public class MainMenuState extends AbstractAppState {
 
         // Enable cursor
         app.getInputManager().setCursorVisible(true);
-        if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
+        if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
             app.getInputManager().setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
         }
 
@@ -239,6 +239,9 @@ public class MainMenuState extends AbstractAppState {
         if (!isInitialized()) {
             return;
         }
+
+        stateManager.getState(SoundState.class).changeBackground(SoundState.Background.AMBIENCE);
+        stateManager.getState(SoundState.class).setEnabled(true);
 
         if (enabled) {
 
@@ -307,7 +310,7 @@ public class MainMenuState extends AbstractAppState {
     public void multiplayerConnect(String hostAddress, String player) {
         String[] address = hostAddress.split(":");
         String host = address[0];
-        Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getSettingInteger(Setting.MULTIPLAYER_LAST_PORT);
+        Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getInteger(Setting.MULTIPLAYER_LAST_PORT);
 
         // Connect, connection is lazy
         ConnectionState connectionState = new ConnectionState(host, port, player) {
