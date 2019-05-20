@@ -45,6 +45,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -370,6 +371,10 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
             case "optionsControl":
                 setControlSettingsToGUI();
+                break;
+
+            case "optionsSound":
+                setSoundSettingsToGUI();
                 break;
 
             case "movies":
@@ -762,11 +767,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         af.addAllItems(Settings.ANISOTROPHIES);
         if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)
-                && Settings.ANISOTROPHIES.contains(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY))) {
-            af.selectItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+                && Settings.ANISOTROPHIES.contains(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY))) {
+            af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
         } else if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)) {
-            af.addItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
-            af.selectItem(Main.getUserSettings().getSettingInteger(Settings.Setting.ANISOTROPY));
+            af.addItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
+            af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
         }
 
         //OpenGL
@@ -776,7 +781,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         //SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
-        ssao.setChecked(Main.getUserSettings().getSettingBoolean(Settings.Setting.SSAO));
+        ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
     }
 
     private void setControlSettingsToGUI() {
@@ -1060,6 +1065,62 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 state.getLobbyState().getLobbyService().changeAIType(clientInfo, index + 1 == types.size() ? types.get(0) : types.get(index + 1));
             }
         }
+    }
+
+    private void setSoundSettingsToGUI() {
+        Settings settings = Main.getUserSettings();
+
+        Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
+        Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
+        Slider musicVolume = screen.findNiftyControl("musicVolume", Slider.class);
+        Slider sfxVolume = screen.findNiftyControl("sfxVolume", Slider.class);
+
+        CheckBox voiceEnabled = screen.findNiftyControl("voiceEnabled", CheckBox.class);
+        CheckBox musicEnabled = screen.findNiftyControl("musicEnabled", CheckBox.class);
+        CheckBox sfxEnabled = screen.findNiftyControl("sfxEnabled", CheckBox.class);
+
+        masterVolume.setValue(settings.getFloat(Settings.Setting.MASTER_VOLUME));
+        voiceVolume.setValue(settings.getFloat(Settings.Setting.VOICE_VOLUME));
+        musicVolume.setValue(settings.getFloat(Settings.Setting.MUSIC_VOLUME));
+        sfxVolume.setValue(settings.getFloat(Settings.Setting.SFX_VOLUME));
+
+        voiceEnabled.setChecked(settings.getBoolean(Settings.Setting.VOICE_ENABLED));
+        musicEnabled.setChecked(settings.getBoolean(Settings.Setting.MUSIC_ENABLED));
+        sfxEnabled.setChecked(settings.getBoolean(Settings.Setting.SFX_ENABLED));
+    }
+
+    @Override
+    public void applySoundSettings() {
+        try {
+            // Get the controls settings
+            Settings settings = Main.getUserSettings();
+
+            Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
+            Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
+            Slider musicVolume = screen.findNiftyControl("musicVolume", Slider.class);
+            Slider sfxVolume = screen.findNiftyControl("sfxVolume", Slider.class);
+
+            CheckBox voiceEnabled = screen.findNiftyControl("voiceEnabled", CheckBox.class);
+            CheckBox musicEnabled = screen.findNiftyControl("musicEnabled", CheckBox.class);
+            CheckBox sfxEnabled = screen.findNiftyControl("sfxEnabled", CheckBox.class);
+
+            // Set the settings
+            settings.setSetting(Settings.Setting.MASTER_VOLUME, masterVolume.getValue());
+            settings.setSetting(Settings.Setting.VOICE_VOLUME, voiceVolume.getValue());
+            settings.setSetting(Settings.Setting.MUSIC_VOLUME, musicVolume.getValue());
+            settings.setSetting(Settings.Setting.SFX_VOLUME, sfxVolume.getValue());
+
+            settings.setSetting(Settings.Setting.VOICE_ENABLED, voiceEnabled.isChecked());
+            settings.setSetting(Settings.Setting.MUSIC_ENABLED, musicEnabled.isChecked());
+            settings.setSetting(Settings.Setting.SFX_ENABLED, sfxEnabled.isChecked());
+
+            Main.setupNiftySound(nifty);
+            Settings.getInstance().save();
+        } catch (IOException ex) {
+            Logger.getLogger(MainMenuScreenController.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+
+        nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
     }
 
     public static class Cutscene {

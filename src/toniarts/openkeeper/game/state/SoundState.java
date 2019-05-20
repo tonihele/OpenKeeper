@@ -25,16 +25,15 @@ import java.io.File;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.game.sound.SoundGroup;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
@@ -72,8 +71,8 @@ public class SoundState extends AbstractPauseAwareState {
      * AMBIENCE(341) | OPTIONS_MUSIC(838) | MUSIC(343, 345) | maybe ONE_SHOT_ATMOS(746)
      */
     private final BackgroundState backgroundState = new BackgroundState("MUSIC");
-
     private final Queue<Speech> speechQueue = new ArrayDeque<>();
+
     private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
 
     public SoundState(KwdFile kwdFile) {
@@ -101,23 +100,25 @@ public class SoundState extends AbstractPauseAwareState {
     public final void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
 
-        app.enqueue(() -> {
-            if (speechNode != null) {
-                if (enabled) {
-                    speechNode.play();
-                } else {
-                    speechNode.pause();
+        if (isInitialized()) {
+            app.enqueue(() -> {
+                if (speechNode != null) {
+                    if (enabled) {
+                        speechNode.play();
+                    } else {
+                        speechNode.pause();
+                    }
                 }
-            }
 
-            if (backgroundNode != null) {
-                if (enabled) {
-                    backgroundNode.play();
-                } else {
-                    backgroundNode.pause();
+                if (backgroundNode != null) {
+                    if (enabled) {
+                        backgroundNode.play();
+                    } else {
+                        backgroundNode.pause();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     public void changeBackground(Background category) {
@@ -152,6 +153,10 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     private void attachSpeech(String soundCategory, int speechId, ISpeechListener listener) {
+        if (!Main.getUserSettings().getBoolean(Settings.Setting.VOICE_ENABLED)) {
+            return;
+        }
+
         try {
             SoundCategory sc = SoundsLoader.load(soundCategory, false);
             if (sc == null) {
@@ -161,7 +166,7 @@ public class SoundState extends AbstractPauseAwareState {
             String file = AssetsConverter.SOUNDS_FOLDER + File.separator
                     + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(new Speech(speechId, file, listener));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             LOGGER.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
         }
     }
@@ -174,6 +179,9 @@ public class SoundState extends AbstractPauseAwareState {
         }
         speechNode.setLooping(false);
         speechNode.setPositional(false);
+        float volume = Main.getUserSettings().getFloat(Settings.Setting.MASTER_VOLUME)
+                * Main.getUserSettings().getFloat(Settings.Setting.VOICE_VOLUME);
+        speechNode.setVolume(volume);
         app.enqueue(() -> {
             speechNode.play();
             if (speech.listener != null) {
@@ -191,6 +199,10 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     private void playBackground() {
+        if (!Main.getUserSettings().getBoolean(Settings.Setting.MUSIC_ENABLED)) {
+            return;
+        }
+
         String file = AssetsConverter.SOUNDS_FOLDER + File.separator + backgroundState.getNext();
 
         backgroundNode = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
@@ -200,8 +212,9 @@ public class SoundState extends AbstractPauseAwareState {
         }
         backgroundNode.setLooping(false);
         backgroundNode.setPositional(false);
-        // TODO add volume from game settings
-        backgroundNode.setVolume(0.2f);
+        float volume = Main.getUserSettings().getFloat(Settings.Setting.MASTER_VOLUME)
+                * Main.getUserSettings().getFloat(Settings.Setting.MUSIC_VOLUME);
+        backgroundNode.setVolume(volume);
         app.enqueue(() -> {
             backgroundNode.play();
         });
@@ -240,11 +253,11 @@ public class SoundState extends AbstractPauseAwareState {
         public final synchronized void setCategory(String category) {
             this.sc = SoundsLoader.load(category);
             if (sc == null) {
-                throw new RuntimeException("Category does not exist");
+                throw new RuntimeException("Category " + category + " does not exist");
             }
 
             if (this.sc.getGroups().isEmpty()) {
-                throw new RuntimeException("We have no groups");
+                throw new RuntimeException("We have no groups in category " + category);
             }
 
             int total = 0;
@@ -252,7 +265,7 @@ public class SoundState extends AbstractPauseAwareState {
                 total += group.getFiles().size();
             }
             if (total == 0) {
-                throw new RuntimeException("We have no files in groups");
+                throw new RuntimeException("We have no files in groups in category " + category);
             }
 
             itGroup = null;

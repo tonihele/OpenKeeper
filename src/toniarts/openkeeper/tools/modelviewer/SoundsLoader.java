@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.game.sound.SoundGroup;
@@ -57,7 +59,7 @@ public class SoundsLoader {
     @Nullable
     public static SoundCategory load(final String category, final boolean useGlobal) {
 
-        if (category == null && category.isEmpty()) {
+        if (category == null || category.isEmpty()) {
             return null;
         } else if (CACHE.containsKey(category)) {
             return CACHE.get(category);
@@ -67,9 +69,9 @@ public class SoundsLoader {
         try {
             result = new SoundCategory(category, useGlobal);
             CACHE.put(category, result);
-            temp(category, useGlobal);
+//            temp(category, useGlobal);
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Sound category {} does not exist", category);
+            LOGGER.log(Level.WARNING, "Sound category {0} does not exist", category);
         }
 
         return result;
@@ -83,7 +85,7 @@ public class SoundsLoader {
         }
 
         if (!sc.hasGroup(id)) {
-            LOGGER.log(Level.WARNING, "Sound group {} does not exist in category {} ", new Object[]{id, category});
+            LOGGER.log(Level.WARNING, "Sound group {0} does not exist in category {1} ", new Object[]{id, category});
             return null;
         }
 
@@ -124,6 +126,8 @@ public class SoundsLoader {
 
     public static void playSound(final AudioNode node) {
         if (node != null) {
+            float volume = Main.getUserSettings().getFloat(Settings.Setting.MASTER_VOLUME);
+            node.setVolume(volume);
             node.setLooping(false);
             node.setPositional(false);
             node.play();
@@ -132,6 +136,8 @@ public class SoundsLoader {
 
     public static void playSound(final Node parent, final AudioNode node, final Point p) {
         if (node != null) {
+            float volume = Main.getUserSettings().getFloat(Settings.Setting.MASTER_VOLUME);
+            node.setVolume(volume);
             node.setPositional(true);
             node.setReverbEnabled(false);
             node.setLocalTranslation(p.x, 0, p.y);
@@ -141,6 +147,8 @@ public class SoundsLoader {
     }
 
     /**
+     * Prints sound files in System.out. For debug only
+     *
      * @deprecated @param category
      * @param useGlobal
      */

@@ -89,7 +89,7 @@
             </panel>
 
             <panel align="right" valign="bottom" childLayout="vertical" paddingRight="10px">
-                <text style="text" text="${PROP.VERSION}" align="center"/>
+                <text style="text" text="*PRE-ALPHA*" align="center"/>
                 <text style="text" text="Open Source Edition" align="center"/>
             </panel>
         </layer>
@@ -417,13 +417,43 @@
                 <text style="menuTitleText" text="${menu.95}" align="center" />
             </panel>
 
-            <panel width="100%" height="*" childLayout="center" align="center" valign="center">
-                <text style="menuTextSmall" text="Not ready yet" />
+            <panel width="100%" height="*" childLayout="vertical" align="center" valign="center">
+                <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
+                    <text style="menuTextSmall" text="${menu.1460}" width="33%" valign="center" />
+                    <control name="horizontalSlider" id="masterVolume" min="0.0" max="1.0"
+                             initial="1.0" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
+                    <panel width="*" height="*" childLayout="center" />
+                </panel>
+                <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
+                    <text style="menuTextSmall" text="${menu.1457}" width="33%" valign="center" />
+                    <control name="horizontalSlider" id="voiceVolume" min="0" max="1.0"
+                             initial="1.0" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
+                    <panel width="*" height="*" childLayout="center">
+                        <control name="checkbox" id="voiceEnabled" />
+                    </panel>
+                </panel>
+                <panel width="100%" height="*" childLayout="horizontal">
+                    <text style="menuTextSmall" text="${menu.1459}" width="33%" valign="center" />
+                    <control name="horizontalSlider" id="musicVolume" min="0.0" max="1.0"
+                             initial="0.5" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
+                    <panel width="*" height="*" childLayout="center">
+                        <control name="checkbox" id="musicEnabled" />
+                    </panel>
+                </panel>
+                <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
+                    <text style="menuTextSmall" text="${menu.1458}" width="33%" valign="center" />
+                    <control name="horizontalSlider" id="sfxVolume" min="0.0" max="1.0"
+                             initial="0.5" stepSize="0.01" buttonStepSize="0.01" width="33%" valign="center" />
+                    <panel width="*" height="*" childLayout="center">
+                        <control name="checkbox" id="sfxEnabled" />
+                    </panel>
+                </panel>
+                <!-- <panel width="100%" height="15%" childLayout="center" backgroundColor="#f508" /> -->
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control name="cancelButton" click="goToScreen(optionsMain)" />
-                <control name="okButton" click="goToScreen(optionsMain)" />
+                <control name="okButton" click="applySoundSettings()" />
             </panel>
         </layer>
     </screen>

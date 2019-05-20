@@ -488,7 +488,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected void updateCursor() {
         keeperHandState.setVisible(false);
-        if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
+        if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
             } else if (selectionHandler.isActive() && isTaggable) {

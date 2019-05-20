@@ -91,7 +91,6 @@ public class Main extends SimpleApplication {
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
     public final static String TITLE = "OpenKeeper";
-    public final static String VERSION = "*PRE-ALPHA*";
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object LOCK = new Object();
@@ -342,17 +341,14 @@ public class Main extends SimpleApplication {
                     // Set the anisotropy asset listener
                     setAnisotropy();
 
-                    stateManager.attach(new SoundState(false));
-                    loadSounds();
-
                     // Allow people to take screenshots
                     ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
                     getStateManager().attach(screenShotState);
 
                     // Recording video
                     if (params.containsKey("record")) {
-                        float quality = Settings.getInstance().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
-                        int frameRate = Settings.getInstance().getSettingInteger(Settings.Setting.RECORDER_FPS);
+                        float quality = Settings.getInstance().getFloat(Settings.Setting.RECORDER_QUALITY);
+                        int frameRate = Settings.getInstance().getInteger(Settings.Setting.RECORDER_FPS);
                         getSettings().setFrameRate(frameRate);
                         VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
                         String folder = params.get("record");
@@ -369,8 +365,8 @@ public class Main extends SimpleApplication {
                     // Nifty
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
-                    nifty.getGlobalProperties().setProperty("VERSION", VERSION);
                     setupNiftyResourceBundles(nifty);
+                    setupNiftySound(nifty);
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
@@ -389,6 +385,9 @@ public class Main extends SimpleApplication {
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
                     PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false, Main.this);
+
+                    getStateManager().attach(new SoundState(false));
+                    loadSounds();
 
                     getStateManager().attach(mainMenuState);
                     getStateManager().attach(playerState);
@@ -442,6 +441,14 @@ public class Main extends SimpleApplication {
         this.stateManager.attach(gameLoader);
     }
 
+    public static void setupNiftySound(Nifty nifty) {
+        Settings s = getUserSettings();
+
+        float musicVolume = s.getFloat(Settings.Setting.MASTER_VOLUME) * s.getFloat(Settings.Setting.MUSIC_VOLUME);
+        nifty.getSoundSystem().setMusicVolume(s.getBoolean(Settings.Setting.VOICE_ENABLED) ? musicVolume : 0);
+        nifty.getSoundSystem().setSoundVolume(s.getFloat(Settings.Setting.MASTER_VOLUME));
+    }
+
     /**
      * Adds an asset listener to the asset manager that automatically sets
      * anisotropy level to any textures loaded
@@ -456,7 +463,7 @@ public class Main extends SimpleApplication {
             public void assetRequested(AssetKey key) {
                 if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
                     TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(Settings.getInstance().getSettingInteger(Settings.Setting.ANISOTROPY));
+                    tkey.setAnisotropy(Settings.getInstance().getInteger(Settings.Setting.ANISOTROPY));
                 }
             }
 
@@ -528,12 +535,12 @@ public class Main extends SimpleApplication {
         viewPort.clearProcessors();
 
         // Add SSAO
-        if (Settings.getInstance().getSettingBoolean(Settings.Setting.SSAO)) {
+        if (Settings.getInstance().getBoolean(Settings.Setting.SSAO)) {
             FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
-                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
-                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SCALE),
-                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_BIAS));
+            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
+                    Settings.getInstance().getFloat(Settings.Setting.SSAO_INTENSITY),
+                    Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
+                    Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }

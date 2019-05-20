@@ -88,7 +88,7 @@ public class SoundGroup {
                     SoundFile sf = new SoundFile(this, soundId, soundFilename);
                     files.add(sf);
                 } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
+                    LOGGER.log(Level.SEVERE, ex.getMessage() + " in file " + sdt.getFile().getName() + " with id " + soundId, ex);
                 }
             }
         }
