@@ -75,10 +75,6 @@ public class SoundState extends AbstractPauseAwareState {
 
     private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
 
-    public SoundState(KwdFile kwdFile) {
-        this.kwdFile = kwdFile;
-    }
-
     public SoundState(boolean enabled) {
         this.setEnabled(enabled);
     }
@@ -102,7 +98,7 @@ public class SoundState extends AbstractPauseAwareState {
 
         if (isInitialized()) {
             app.enqueue(() -> {
-                if (speechNode != null) {
+                if (speechNode != null && speechNode.getStatus() != AudioSource.Status.Stopped) {
                     if (enabled) {
                         speechNode.play();
                     } else {
@@ -110,7 +106,7 @@ public class SoundState extends AbstractPauseAwareState {
                     }
                 }
 
-                if (backgroundNode != null) {
+                if (backgroundNode != null && backgroundNode.getStatus() != AudioSource.Status.Stopped) {
                     if (enabled) {
                         backgroundNode.play();
                     } else {
@@ -119,6 +115,10 @@ public class SoundState extends AbstractPauseAwareState {
                 }
             });
         }
+    }
+
+    public void setKwdFile(KwdFile kwdFile) {
+        this.kwdFile = kwdFile;
     }
 
     public void changeBackground(Background category) {

@@ -200,7 +200,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                     //taskManager = new TaskManager(worldState, getPlayers());
                     GameState.this.stateManager.attach(worldState);
 
-                    GameState.this.stateManager.attach(new SoundState(false));
                     setProgress(0.60f, Player.KEEPER1_ID);
 
                     // Trigger data
@@ -359,7 +358,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
     private void detachRelatedAppStates() {
         stateManager.detach(stateManager.getState(WorldState.class));
-        stateManager.detach(stateManager.getState(SoundState.class));
     }
 
     /**

@@ -83,7 +83,6 @@ public class GameClientState extends AbstractPauseAwareState {
 
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
-    private SoundState soundState;
     private TextParser textParser;
 
     private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
@@ -145,7 +144,6 @@ public class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
-        stateManager.detach(stateManager.getState(SoundState.class));
         stateManager.detach(stateManager.getState(PlayerEntityViewState.class));
         stateManager.detach(stateManager.getState(PlayerMapViewState.class));
     }
@@ -326,7 +324,6 @@ public class GameClientState extends AbstractPauseAwareState {
                     }
                 }
             };
-            soundState = new SoundState(kwdFile);
 
             app.enqueue(() -> {
 
@@ -354,6 +351,9 @@ public class GameClientState extends AbstractPauseAwareState {
             // Release loading state from memory
             loadingState = null;
 
+            stateManager.getState(SoundState.class).setKwdFile(kwdFile);
+            stateManager.getState(SoundState.class).setEnabled(true);
+
             // Set the player stuff
             playerState = stateManager.getState(PlayerState.class);
             playerState.setKwdFile(kwdFile);
@@ -364,7 +364,6 @@ public class GameClientState extends AbstractPauseAwareState {
                 playerState.setEnabled(true);
                 stateManager.attach(playerMapViewState);
                 stateManager.attach(playerModelViewState);
-                stateManager.attach(soundState);
 
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {
