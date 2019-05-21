@@ -62,8 +62,10 @@ import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -73,6 +75,7 @@ import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.UTF8Control;
@@ -190,7 +193,7 @@ public class Main extends SimpleApplication {
             setLookNFeel();
             AssetManager assetManager = JmeSystem.newAssetManager(
                     Thread.currentThread().getContextClassLoader()
-                    .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
+                            .getResource("com/jme3/asset/Desktop.cfg")); // Get temporary asset manager instance since we not yet have one ourselves
             assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
             DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
@@ -329,13 +332,11 @@ public class Main extends SimpleApplication {
             @Override
             public Void onLoad() {
                 try {
-                    long startTime = System.currentTimeMillis();
-
                     // Asset loaders
                     // Sound
-                    getAssetManager().registerLoader(MP2Loader.class, "mp2");
+                    getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
                     // Camera sweep files
-                    getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.CAMERA_SWEEP_DATA_FILE_EXTENSION);
+                    getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
 
                     // Set the anisotropy asset listener
                     setAnisotropy();
@@ -346,8 +347,8 @@ public class Main extends SimpleApplication {
 
                     // Recording video
                     if (params.containsKey("record")) {
-                        float quality = Settings.getInstance().getSettingFloat(Settings.Setting.RECORDER_QUALITY);
-                        int frameRate = Settings.getInstance().getSettingInteger(Settings.Setting.RECORDER_FPS);
+                        float quality = Settings.getInstance().getFloat(Settings.Setting.RECORDER_QUALITY);
+                        int frameRate = Settings.getInstance().getInteger(Settings.Setting.RECORDER_FPS);
                         getSettings().setFrameRate(frameRate);
                         VideoRecorderAppState recorder = new VideoRecorderAppState(quality, frameRate);
                         String folder = params.get("record");
@@ -365,6 +366,7 @@ public class Main extends SimpleApplication {
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
                     setupNiftyResourceBundles(nifty);
+                    setupNiftySound(nifty);
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
@@ -384,6 +386,9 @@ public class Main extends SimpleApplication {
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
                     PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false, Main.this);
 
+                    getStateManager().attach(new SoundState(false));
+                    loadSounds();
+
                     getStateManager().attach(mainMenuState);
                     getStateManager().attach(playerState);
 
@@ -391,16 +396,6 @@ public class Main extends SimpleApplication {
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
                         nifty.addXml(new ByteArrayInputStream(xml.getValue()));
                     }
-
-                    // It is all a clever ruge, we don't actually load much here
-                    if (!params.containsKey("nomovies") && !params.containsKey("level")) {
-                        long waitTime = 5000 - (System.currentTimeMillis() - startTime);
-                        if (waitTime > 0) {
-                            Thread.sleep(waitTime);
-                        }
-                    }
-                } catch (InterruptedException ex) {
-                    // Doesn't matter
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
                     app.stop();
@@ -419,9 +414,14 @@ public class Main extends SimpleApplication {
                 if (params.containsKey("nomovies") || params.containsKey("level")) {
                     startGame();
                 } else {
-
                     // The fireworks!
                     playIntro();
+                }
+            }
+
+            private void loadSounds() {
+                for (String cat : GlobalCategory.getCategories()) {
+                    SoundsLoader.load(cat);
                 }
             }
 
@@ -441,6 +441,14 @@ public class Main extends SimpleApplication {
         this.stateManager.attach(gameLoader);
     }
 
+    public static void setupNiftySound(Nifty nifty) {
+        Settings s = getUserSettings();
+
+        float musicVolume = s.getFloat(Settings.Setting.MASTER_VOLUME) * s.getFloat(Settings.Setting.MUSIC_VOLUME);
+        nifty.getSoundSystem().setMusicVolume(s.getBoolean(Settings.Setting.VOICE_ENABLED) ? musicVolume : 0);
+        nifty.getSoundSystem().setSoundVolume(s.getFloat(Settings.Setting.MASTER_VOLUME));
+    }
+
     /**
      * Adds an asset listener to the asset manager that automatically sets
      * anisotropy level to any textures loaded
@@ -455,7 +463,7 @@ public class Main extends SimpleApplication {
             public void assetRequested(AssetKey key) {
                 if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
                     TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(Settings.getInstance().getSettingInteger(Settings.Setting.ANISOTROPY));
+                    tkey.setAnisotropy(Settings.getInstance().getInteger(Settings.Setting.ANISOTROPY));
                 }
             }
 
@@ -527,12 +535,12 @@ public class Main extends SimpleApplication {
         viewPort.clearProcessors();
 
         // Add SSAO
-        if (Settings.getInstance().getSettingBoolean(Settings.Setting.SSAO)) {
+        if (Settings.getInstance().getBoolean(Settings.Setting.SSAO)) {
             FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
-                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_INTENSITY),
-                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_SCALE),
-                    Settings.getInstance().getSettingFloat(Settings.Setting.SSAO_BIAS));
+            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
+                    Settings.getInstance().getFloat(Settings.Setting.SSAO_INTENSITY),
+                    Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
+                    Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }

@@ -28,7 +28,7 @@ import java.io.IOException;
  */
 public class CameraSweepDataLoader implements AssetLoader {
 
-    public static final String CAMERA_SWEEP_DATA_FILE_EXTENSION = "csd";
+    public static final String FILE_EXTENSION = "csd";
 
     @Override
     public Object load(AssetInfo assetInfo) throws IOException {

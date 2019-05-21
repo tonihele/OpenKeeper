@@ -32,6 +32,7 @@ import toniarts.openkeeper.audio.plugins.decoder.AudioInformation;
 import toniarts.openkeeper.audio.plugins.decoder.Decoder;
 import toniarts.openkeeper.audio.plugins.decoder.MediaInformation;
 import toniarts.openkeeper.audio.plugins.decoder.MpxReader;
+import toniarts.openkeeper.audio.plugins.decoder.UnsupportedMediaException;
 
 /**
  * Plays MPx files, not MP3s though
@@ -40,11 +41,14 @@ import toniarts.openkeeper.audio.plugins.decoder.MpxReader;
  */
 public class MP2Loader implements AssetLoader {
 
-    private static final Logger logger = Logger.getLogger(MP2Loader.class.getName());
+    public static final String FILE_EXTENSION = "mp2";
+
     private boolean readStream = false;
     private AudioBuffer audioBuffer;
     private AudioStream audioStream;
     private AudioData audioData;
+
+    private static final Logger LOGGER = Logger.getLogger(MP2Loader.class.getName());
 
     /**
      * Masks the real input stream to decode the MP2<br>
@@ -138,7 +142,9 @@ public class MP2Loader implements AssetLoader {
             Decoder decoder = reader.getDecoder(inputStream, true);
 
             // Setup audio
-            audioData.setupFormat((int) info.get(AudioInformation.I_CHANNEL_NUMBER), (int) decoder.get(AudioInformation.I_SAMPLE_SIZE), (int) info.get(AudioInformation.I_SAMPLE_RATE));
+            audioData.setupFormat((int) info.get(AudioInformation.I_CHANNEL_NUMBER),
+                    (int) decoder.get(AudioInformation.I_SAMPLE_SIZE),
+                    (int) info.get(AudioInformation.I_SAMPLE_RATE));
 
             // Read the file
             while (true) {
@@ -149,8 +155,8 @@ public class MP2Loader implements AssetLoader {
                 }
                 return audioData;
             }
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Failed to read a frame!", ex);
+        } catch (IOException | UnsupportedMediaException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to read a frame!", ex);
             throw new IOException("Failed to read a frame!");
         }
     }
@@ -166,7 +172,7 @@ public class MP2Loader implements AssetLoader {
                 inputStream = null;
             }
             return data;
-        } catch (Exception e) {
+        } catch (IOException e) {
             return new AudioBuffer(); // Failed
         } finally {
             if (inputStream != null) {

@@ -38,6 +38,7 @@ import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.controls.Tab;
 import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
@@ -48,6 +49,7 @@ import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.render.image.ImageModeFactory;
 import de.lessvoid.nifty.render.image.ImageModeHelper;
 import de.lessvoid.nifty.screen.Screen;
+import de.lessvoid.nifty.spi.sound.SoundHandle;
 import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
@@ -79,9 +81,12 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
 import toniarts.openkeeper.gui.nifty.CreatureCardControl;
 import toniarts.openkeeper.gui.nifty.CreatureCardEventListener;
+import toniarts.openkeeper.gui.nifty.CustomTabControl;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.WorkerAmountControl;
 import toniarts.openkeeper.gui.nifty.WorkerEqualControl;
@@ -100,6 +105,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
+import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
 
 /**
@@ -112,11 +118,6 @@ public class PlayerScreenController implements IPlayerScreenController {
 
         MAIN, QUIT, CONFIRMATION;
     }
-
-    public static final String HUD_SCREEN_ID = "hud";
-    public static final String POSSESSION_SCREEN_ID = "possession";
-    public static final String CINEMATIC_SCREEN_ID = "cinematic";
-    public static final String SCREEN_EMPTY_ID = "empty";
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     public float lastUpdate = 0;
@@ -162,13 +163,17 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void select(String iState, String id) {
-        state.interactionState.setInteractionState(PlayerInteractionState.InteractionState.Type.valueOf(iState.toUpperCase()), Integer.valueOf(id));
+        Type type = Type.valueOf(iState.toUpperCase());
+        if (type == Type.SELL) {
+            this.playButtonSound(GlobalCategory.GUI_SELL);
+        }
+        state.interactionState.setInteractionState(type, Integer.valueOf(id));
     }
 
     @Override
     public void togglePanel() {
         // FIXME work but not properly. Map should not move with other things. Need HUD redesign
-        Element element = nifty.getScreen(HUD_SCREEN_ID).findElementById("bottomPanel");
+        Element element = nifty.getScreen(SCREEN_HUD_ID).findElementById("bottomPanel");
 
         if (!element.getUserDataKeys().contains("toggle")) {
             element.setUserData("toggle", false);
@@ -186,7 +191,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void toggleObjective() {
-        Element element = nifty.getScreen(HUD_SCREEN_ID).findElementById("objective");
+        Element element = nifty.getScreen(SCREEN_HUD_ID).findElementById("objective");
         if (element.isVisible()) {
             element.hide();
         } else {
@@ -218,22 +223,23 @@ public class PlayerScreenController implements IPlayerScreenController {
     public void onPaused(boolean paused) {
 
         // Set the menuButton
-        Element menuButton = nifty.getScreen(HUD_SCREEN_ID).findElementById("menuButton");
+        Element menuButton = nifty.getScreen(SCREEN_HUD_ID).findElementById("menuButton");
         if (paused) {
             menuButton.startEffect(EffectEventId.onCustom, null, "select");
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
 
-        nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu").setVisible(paused);
+        nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
+            this.playButtonSound("GUI_BUTTON_OPTIONS");
             pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
         }
     }
 
     @Override
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
-        Element optionsMenu = nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu");
+        Element optionsMenu = nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu");
         Label optionsMenuTitle = optionsMenu.findNiftyControl("#title", Label.class);
         Element optionsColumnOne = optionsMenu.findElementById("#columnOne");
         for (Element element : optionsColumnOne.getChildren()) {
@@ -289,7 +295,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                     {
                         style("textNormal");
                     }
-                }.build(nifty, nifty.getScreen(HUD_SCREEN_ID), optionsColumnOne);
+                }.build(nifty, nifty.getScreen(SCREEN_HUD_ID), optionsColumnOne);
 
                 items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
                 items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
@@ -305,7 +311,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
                 {
                 }
-            }.build(nifty, nifty.getScreen(HUD_SCREEN_ID), item.parent);
+            }.build(nifty, nifty.getScreen(SCREEN_HUD_ID), item.parent);
         }
 
         // Fix layout
@@ -349,7 +355,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     public void workersAmount(String uiState) {
         WorkerAmountControl.State controlState = WorkerAmountControl.State.valueOf(uiState.toUpperCase());
         if (controlState != null) {
-            Screen s = nifty.getScreen(HUD_SCREEN_ID);
+            Screen s = nifty.getScreen(SCREEN_HUD_ID);
             WorkerAmountControl cAmount = s.findNiftyControl("tab-workers", WorkerAmountControl.class);
             cAmount.setState(controlState);
 
@@ -384,7 +390,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         setScreen(nifty.getCurrentScreen());
 
         switch (screen.getScreenId()) {
-            case HUD_SCREEN_ID: {
+            case SCREEN_HUD_ID: {
 
                 if (initHud) {
 
@@ -395,7 +401,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                 break;
             }
-            case POSSESSION_SCREEN_ID:
+            case SCREEN_POSSESSION_ID:
                 // what we need? abitities and spells, also melee
                 //final Creature creature = gameState.getLevelData().getCreature((short)13);
                 final Creature creature = state.getPossessionCreature();
@@ -461,7 +467,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 updatePossessionSelectedItem(possessionAction);
                 break;
 
-            case CINEMATIC_SCREEN_ID:
+            case SCREEN_CINEMATIC_ID:
                 Label text = screen.findNiftyControl("speechText", Label.class);
                 text.setText(cinematicText);
                 break;
@@ -475,10 +481,15 @@ public class PlayerScreenController implements IPlayerScreenController {
     @NiftyEventSubscriber(id = "tabs-hud")
     public void onTabChange(String id, TabSelectedEvent event) {
         updateSelectedItem(state.getInteractionState());
+        Tab tab = event.getTab();
+        if (tab instanceof CustomTabControl) {
+            String sound = ((CustomTabControl) event.getTab()).getSound();
+            this.playButtonSound(sound);
+        }
     }
 
     protected void initHud(String resource, EntityData entityData) {
-        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
 
         // Load the level dictionary
         if (resource != null) {
@@ -494,34 +505,34 @@ public class PlayerScreenController implements IPlayerScreenController {
         initHud = true;
         this.entityData = entityData;
 
-        nifty.gotoScreen(PlayerScreenController.HUD_SCREEN_ID);
+        nifty.gotoScreen(PlayerScreenController.SCREEN_HUD_ID);
 
         hud.layoutLayers();
     }
 
     public void setPause(boolean paused) {
-        nifty.getScreen(HUD_SCREEN_ID).findElementById("optionsMenu").setVisible(paused);
+        nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
     }
 
     public Element getGuiConstraint() {
-        Element middle = nifty.getScreen(HUD_SCREEN_ID).findElementById("middle");
+        Element middle = nifty.getScreen(SCREEN_HUD_ID).findElementById("middle");
         return middle;
     }
 
     public Label getTooltip() {
         if (tooltip == null) {
-            tooltip = nifty.getScreen(HUD_SCREEN_ID).findNiftyControl("tooltip", Label.class);
+            tooltip = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("tooltip", Label.class);
         }
 
         return tooltip;
     }
 
     public Console getConsole() {
-        return nifty.getScreen(HUD_SCREEN_ID).findNiftyControl("console", Console.class);
+        return nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("console", Console.class);
     }
 
     public Element getMessages() {
-        return nifty.getScreen(HUD_SCREEN_ID).findElementById("systemMessages");
+        return nifty.getScreen(SCREEN_HUD_ID).findElementById("systemMessages");
     }
 
     /**
@@ -545,7 +556,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     private void setCinematicText(String text) {
-        Label label = nifty.getScreen(CINEMATIC_SCREEN_ID).findNiftyControl("speechText", Label.class);
+        Label label = nifty.getScreen(SCREEN_CINEMATIC_ID).findNiftyControl("speechText", Label.class);
         cinematicText = text;
         label.setText(cinematicText);
     }
@@ -566,7 +577,7 @@ public class PlayerScreenController implements IPlayerScreenController {
      */
     protected void updatePossessionSelectedItem(PossessionInteractionState.Action action) {
         possessionAction = action;
-        Element element = nifty.getScreen(POSSESSION_SCREEN_ID).findElementById("creature-" + possessionAction.toString().toLowerCase());
+        Element element = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-" + possessionAction.toString().toLowerCase());
         if (element != null) {
             element.setFocus();
         }
@@ -577,7 +588,7 @@ public class PlayerScreenController implements IPlayerScreenController {
      * initials
      */
     private void initHudItems(AssetManager assetManager, EntityData entityData) {
-        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
 
         // Stretch the background image (height-wise) on the background image panel
         try {
@@ -731,12 +742,12 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     public void setGold(int gold) {
-        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
     }
 
     public void setMana(int mana, int manaLoose, int manaGain) {
-        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
@@ -746,7 +757,7 @@ public class PlayerScreenController implements IPlayerScreenController {
      * Populates the player spells tab
      */
     public void populateSpellTab() {
-        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final Entry<KeeperSpell, PlayerSpell> entry : state.getSpellControl().getTypes().entrySet()) {
@@ -758,7 +769,7 @@ public class PlayerScreenController implements IPlayerScreenController {
      * Populates the player rooms tab
      */
     public void populateRoomTab() {
-        Screen hud = nifty.getScreen(HUD_SCREEN_ID);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-room-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final Room room : state.getAvailableRoomsToBuild()) {
@@ -871,7 +882,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         }
 
         String itemId = state.getType().toString().toLowerCase() + "_" + state.getItemId();
-        selectedButton = nifty.getScreen(HUD_SCREEN_ID).findElementById(itemId);
+        selectedButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
         if (selectedButton != null) {
             selectedButton.startEffect(EffectEventId.onCustom, null, "select");
         }
@@ -1009,6 +1020,19 @@ public class PlayerScreenController implements IPlayerScreenController {
             }
         };
         return cb;
+    }
+
+    @Override
+    public void playSound(String category, String id) {
+        SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.valueOf(id));
+        if (soundHandler != null) {
+            soundHandler.play();
+        }
+    }
+
+    @Override
+    public void playButtonSound(String category) {
+        this.playSound(category, String.valueOf(GlobalType.GUI_BUTTON_CKICK.getId()));
     }
 
     /**

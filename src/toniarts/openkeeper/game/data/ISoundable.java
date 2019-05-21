@@ -21,5 +21,6 @@ package toniarts.openkeeper.game.data;
  * @author archdemon
  */
 public interface ISoundable {
+
     public String getSoundCategory();
 }

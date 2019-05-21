@@ -21,6 +21,7 @@ package toniarts.openkeeper.game.sound;
  * @author archdemon
  */
 public class SoundFile implements Comparable<SoundFile> {
+
     private final int id;
     private final SoundGroup group;
     private final String filename;
@@ -67,7 +68,6 @@ public class SoundFile implements Comparable<SoundFile> {
         }
         return true;
     }
-
 
     @Override
     public String toString() {

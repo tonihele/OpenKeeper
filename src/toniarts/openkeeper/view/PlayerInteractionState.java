@@ -488,7 +488,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected void updateCursor() {
         keeperHandState.setVisible(false);
-        if (Main.getUserSettings().getSettingBoolean(Settings.Setting.USE_CURSORS)) {
+        if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
             } else if (selectionHandler.isActive() && isTaggable) {
@@ -582,7 +582,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 updateCursor();
                                 // The tagging sound is positional and played against the cursor change, not the action itself
                                 Point pos = selectionHandler.getPointedTileIndex();
-//                                getWorldHandler().playSoundAtTile(pos.x, pos.y, "/Global/GuiHD/dk1tag.mp2");
+//                                getWorldHandler().playSoundAtTile(pos, GlobalCategory.HAND, GlobalType.HAND_TAG);
                             }
                         }
 
@@ -626,7 +626,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                                updateCursor();
 //                            }
                         } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
-//                            getWorldHandler().playSoundAtTile(p.x, p.y, KeeperHand.getSlapSound());
+//                            getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
                             gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                             interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {

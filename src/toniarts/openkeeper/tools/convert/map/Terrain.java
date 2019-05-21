@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.awt.Color;
 import java.util.EnumSet;
+import toniarts.openkeeper.game.data.IFpsSoundable;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 
@@ -29,7 +30,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Terrain implements Comparable<Terrain>, ISoundable {
+public class Terrain implements Comparable<Terrain>, ISoundable, IFpsSoundable {
 
     /**
      * Terrain flags
@@ -405,6 +406,7 @@ public class Terrain implements Comparable<Terrain>, ISoundable {
         this.ambientLight = ambientLight;
     }
 
+    @Override
     public String getSoundCategoryFirstPerson() {
         return soundCategoryFirstPerson;
     }

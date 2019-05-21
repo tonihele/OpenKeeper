@@ -23,7 +23,7 @@ import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import static toniarts.openkeeper.game.state.PlayerScreenController.HUD_SCREEN_ID;
+import static toniarts.openkeeper.game.state.PlayerScreenController.SCREEN_HUD_ID;
 
 /**
  *
@@ -42,7 +42,7 @@ public class SystemMessageControl extends AbstractController {
         this.text = parameter.get("text");
         this.element = element;
         this.nifty = nifty;
-        this.hud = this.nifty.getScreen(HUD_SCREEN_ID);
+        this.hud = this.nifty.getScreen(SCREEN_HUD_ID);
         // sync effects on adding messages
         syncActiveEffects();
     }

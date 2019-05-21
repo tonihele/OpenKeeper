@@ -287,7 +287,7 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
     }
 
     private void addKeyMapping(Setting s) {
-        inputManager.addMapping(s.name(), new KeyTrigger(Main.getUserSettings().getSettingInteger(s)));
+        inputManager.addMapping(s.name(), new KeyTrigger(Main.getUserSettings().getInteger(s)));
     }
 
     private void registerInput() {
@@ -391,8 +391,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
         if (name.equals(CAMERA_MOUSE_ZOOM_IN) || isCombinationPressed(name, Setting.CAMERA_ZOOM_IN)) {
             if (name.equals(CAMERA_MOUSE_ZOOM_IN)) {
-                value = Main.getUserSettings().getSettingFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
-                if (Main.getUserSettings().getSettingBoolean(Setting.MOUSE_INVERT)) {
+                value = Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
+                if (Main.getUserSettings().getBoolean(Setting.MOUSE_INVERT)) {
                     value = -value;
                 }
             }
@@ -400,8 +400,8 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
 
         } else if (name.equals(CAMERA_MOUSE_ZOOM_OUT) || isCombinationPressed(name, Setting.CAMERA_ZOOM_OUT)) {
             if (name.equals(CAMERA_MOUSE_ZOOM_OUT)) {
-                value = Main.getUserSettings().getSettingFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
-                if (Main.getUserSettings().getSettingBoolean(Setting.MOUSE_INVERT)) {
+                value = Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
+                if (Main.getUserSettings().getBoolean(Setting.MOUSE_INVERT)) {
                     value = -value;
                 }
             }
