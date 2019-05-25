@@ -26,7 +26,8 @@ import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
- * TODO: not completed
+ * Manages prison door placement, currently it is decoupled from the actual
+ * door. But the rules are pretty static, so...
  *
  * @author ArchDemon
  */
@@ -65,7 +66,7 @@ public class PrisonConstructor extends DoubleQuadConstructor {
 
             if (!door && southInside) {
 
-                // This is true, the door is always like this, it might not look correct (the opposite quads of the door...) but it is
+                // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
                 Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
                 part.move(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 moveSpatial(part, p);
@@ -76,7 +77,9 @@ public class PrisonConstructor extends DoubleQuadConstructor {
                 continue;
             }
 
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW, northWestInside, northEastInside, southWestInside, southEastInside, northInside, eastInside, southInside, westInside);
+            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
+                    northWestInside, northEastInside, southWestInside, southEastInside,
+                    northInside, eastInside, southInside, westInside);
             moveSpatial(model, p);
             root.attachChild(model);
         }
