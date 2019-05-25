@@ -67,7 +67,16 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
                 continue;
             }
 
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            boolean northInside = isTileInside(roomInstance, new Point(p.x, p.y - 1));
+            boolean northEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y - 1));
+            boolean eastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y));
+            boolean southEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y + 1));
+            boolean southInside = isTileInside(roomInstance, new Point(p.x, p.y + 1));
+            boolean southWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y + 1));
+            boolean westInside = isTileInside(roomInstance, new Point(p.x - 1, p.y));
+            boolean northWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y - 1));
+
+            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW, northWestInside, northEastInside, southWestInside, southEastInside, northInside, eastInside, southInside, westInside);
             moveSpatial(model, p);
             root.attachChild(model);
         }

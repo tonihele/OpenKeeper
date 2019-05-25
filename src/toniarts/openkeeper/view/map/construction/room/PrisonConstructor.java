@@ -54,7 +54,18 @@ public class PrisonConstructor extends DoubleQuadConstructor {
             boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
-            if (!door && !N && !NE && E && SE && S && SW && W && !NW) {
+            boolean northInside = isTileInside(roomInstance, new Point(p.x, p.y - 1));
+            boolean northEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y - 1));
+            boolean eastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y));
+            boolean southEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y + 1));
+            boolean southInside = isTileInside(roomInstance, new Point(p.x, p.y + 1));
+            boolean southWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y + 1));
+            boolean westInside = isTileInside(roomInstance, new Point(p.x - 1, p.y));
+            boolean northWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y - 1));
+
+            if (!door && southInside) {
+
+                // This is true, the door is always like this, it might not look correct (the opposite quads of the door...) but it is
                 Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
                 part.move(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 moveSpatial(part, p);
@@ -65,7 +76,7 @@ public class PrisonConstructor extends DoubleQuadConstructor {
                 continue;
             }
 
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW, northWestInside, northEastInside, southWestInside, southEastInside, northInside, eastInside, southInside, westInside);
             moveSpatial(model, p);
             root.attachChild(model);
         }

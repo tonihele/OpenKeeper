@@ -63,18 +63,7 @@ public class PrisonController extends DoubleQuadController {
 
         door = null;
         for (Point p : roomInstance.getCoordinates()) {
-
-            // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
-
-            if (door == null && !N && !NE && E && SE && S && SW && W && !NW) {
+            if (door == null && insideCoordinates.contains(new Point(p.x, p.y + 1))) {
                 objectsController.loadObject(OBJECT_DOOR_ID, (short) 0, p.x, p.y);
                 objectsController.loadObject(OBJECT_DOORBAR_ID, (short) 0, p.x, p.y);
 

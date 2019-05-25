@@ -103,6 +103,7 @@ public class AssetUtils {
 
         Spatial result;
         if (useCache) {
+
             // Set the correct asset cache
             final AssetCache cache = (useWeakCache) ? WEAK_ASSET_CACHE : ASSET_CACHE;
 
@@ -111,6 +112,7 @@ public class AssetUtils {
             if (model == null) {
                 model = assetManager.loadModel(assetKey);
                 resetSpatial(model);
+
                 // Assign maps
                 assignMapsToMaterial(model, assetManager);
 
