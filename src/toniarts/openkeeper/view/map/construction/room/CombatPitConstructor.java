@@ -26,7 +26,9 @@ import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
 
 /**
- * TODO: not completed
+ * Manages combat pit door placement, currently it is decoupled from the actual
+ * door. But the rules are pretty static, so... And now one so visibly uses this
+ * door.
  *
  * @author ArchDemon
  */
@@ -56,7 +58,18 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
             boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
-            if (!door && !N && !NE && E && SE && S && SW && W && !NW) {
+            boolean northInside = isTileInside(roomInstance, new Point(p.x, p.y - 1));
+            boolean northEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y - 1));
+            boolean eastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y));
+            boolean southEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y + 1));
+            boolean southInside = isTileInside(roomInstance, new Point(p.x, p.y + 1));
+            boolean southWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y + 1));
+            boolean westInside = isTileInside(roomInstance, new Point(p.x - 1, p.y));
+            boolean northWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y - 1));
+
+            if (!door && southInside) {
+
+                // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
                 Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
                 part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
                 moveSpatial(part, p);
@@ -67,16 +80,9 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
                 continue;
             }
 
-            boolean northInside = isTileInside(roomInstance, new Point(p.x, p.y - 1));
-            boolean northEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y - 1));
-            boolean eastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y));
-            boolean southEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y + 1));
-            boolean southInside = isTileInside(roomInstance, new Point(p.x, p.y + 1));
-            boolean southWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y + 1));
-            boolean westInside = isTileInside(roomInstance, new Point(p.x - 1, p.y));
-            boolean northWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y - 1));
-
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW, northWestInside, northEastInside, southWestInside, southEastInside, northInside, eastInside, southInside, westInside);
+            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
+                    northWestInside, northEastInside, southWestInside, southEastInside,
+                    northInside, eastInside, southInside, westInside);
             moveSpatial(model, p);
             root.attachChild(model);
         }

@@ -24,7 +24,8 @@ import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
- * TODO: not completed
+ * Manages prison. Prison has a special door and special navigation for
+ * creatures.
  *
  * @author ArchDemon
  */
