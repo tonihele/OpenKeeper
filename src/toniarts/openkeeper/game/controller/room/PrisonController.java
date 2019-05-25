@@ -18,8 +18,6 @@ package toniarts.openkeeper.game.controller.room;
 
 import java.awt.Point;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomPrisonerControl;
@@ -36,7 +34,6 @@ public class PrisonController extends DoubleQuadController {
     private static final short OBJECT_DOORBAR_ID = 116;
 
     private Point door;
-    private Set<Point> insideCoordinates;
 
     public PrisonController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(kwdFile, roomInstance, objectsController);
@@ -97,34 +94,6 @@ public class PrisonController extends DoubleQuadController {
             return true; // We have a door, the tile is accessible
         }
         return super.isTileAccessible(fromX, fromY, toX, toY);
-    }
-
-    @Override
-    protected void setupCoordinates() {
-        super.setupCoordinates();
-
-        insideCoordinates = getInsideCoordinates();
-    }
-
-
-    private Set<Point> getInsideCoordinates() {
-        Set<Point> coordinates = new HashSet<>();
-        for (int x = 1; x < map.length - 1; x++) {
-            for (int y = 1; y < map[x].length - 1; y++) {
-                boolean N = hasSameTile(map, x, y + 1);
-                boolean NE = hasSameTile(map, x - 1, y + 1);
-                boolean E = hasSameTile(map, x - 1, y);
-                boolean SE = hasSameTile(map, x - 1, y - 1);
-                boolean S = hasSameTile(map, x, y - 1);
-                boolean SW = hasSameTile(map, x + 1, y - 1);
-                boolean W = hasSameTile(map, x + 1, y);
-                boolean NW = hasSameTile(map, x + 1, y + 1);
-                if (N && NE && E && SE && S && SW && W && NW) {
-                    coordinates.add(new Point(roomInstance.getMatrixStartPoint().x + x, roomInstance.getMatrixStartPoint().y + y));
-                }
-            }
-        }
-        return coordinates;
     }
 
 }

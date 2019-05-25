@@ -17,8 +17,11 @@
 package toniarts.openkeeper.game.controller.room;
 
 import java.awt.Point;
+import java.util.HashSet;
+import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import static toniarts.openkeeper.game.controller.room.AbstractRoomController.hasSameTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
@@ -27,6 +30,8 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public class DoubleQuadController extends NormalRoomController {
 
+    protected Set<Point> insideCoordinates;
+
     public DoubleQuadController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(kwdFile, roomInstance, objectsController);
     }
@@ -34,17 +39,39 @@ public class DoubleQuadController extends NormalRoomController {
     @Override
     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
-        // Only the surroundings are accessible
-        Point roomPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
-        boolean N = hasSameTile(map, roomPoint.x, roomPoint.y + 1);
-        boolean NE = hasSameTile(map, roomPoint.x - 1, roomPoint.y + 1);
-        boolean E = hasSameTile(map, roomPoint.x - 1, roomPoint.y);
-        boolean SE = hasSameTile(map, roomPoint.x - 1, roomPoint.y - 1);
-        boolean S = hasSameTile(map, roomPoint.x, roomPoint.y - 1);
-        boolean SW = hasSameTile(map, roomPoint.x + 1, roomPoint.y - 1);
-        boolean W = hasSameTile(map, roomPoint.x + 1, roomPoint.y);
-        boolean NW = hasSameTile(map, roomPoint.x + 1, roomPoint.y + 1);
+        // You can't access insides from outsides and vice versa, by default
+        Point toPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
+        if (fromX != null && fromY != null) {
+            Point fromPoint = roomInstance.worldCoordinateToLocalCoordinate(fromX, fromY);
+            return (insideCoordinates.contains(fromPoint) && insideCoordinates.contains(toPoint)) || ((!insideCoordinates.contains(fromPoint) && !insideCoordinates.contains(toPoint)));
+        }
+        return !insideCoordinates.contains(toPoint);
+    }
 
-        return !(N && NE && E && SE && S && SW && W && NW);
+    @Override
+    protected void setupCoordinates() {
+        super.setupCoordinates();
+
+        insideCoordinates = getInsideCoordinates();
+    }
+
+    private Set<Point> getInsideCoordinates() {
+        Set<Point> coordinates = new HashSet<>();
+        for (int x = 1; x < map.length - 1; x++) {
+            for (int y = 1; y < map[x].length - 1; y++) {
+                boolean N = hasSameTile(map, x, y + 1);
+                boolean NE = hasSameTile(map, x - 1, y + 1);
+                boolean E = hasSameTile(map, x - 1, y);
+                boolean SE = hasSameTile(map, x - 1, y - 1);
+                boolean S = hasSameTile(map, x, y - 1);
+                boolean SW = hasSameTile(map, x + 1, y - 1);
+                boolean W = hasSameTile(map, x + 1, y);
+                boolean NW = hasSameTile(map, x + 1, y + 1);
+                if (N && NE && E && SE && S && SW && W && NW) {
+                    coordinates.add(new Point(roomInstance.getMatrixStartPoint().x + x, roomInstance.getMatrixStartPoint().y + y));
+                }
+            }
+        }
+        return coordinates;
     }
 }
