@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.NormalRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.TortureChamberController;
 import toniarts.openkeeper.game.controller.room.TreasuryController;
@@ -106,11 +107,9 @@ public final class RoomControllerFactory {
                     return new PrisonController(kwdFile, roomInstance, objectsController);
                 } else if (roomName.equalsIgnoreCase("Combat Pit")) {
                     return new CombatPitController(kwdFile, roomInstance, objectsController);
+                } else if (roomName.equalsIgnoreCase("Temple")) {
+                    return new TempleController(kwdFile, roomInstance, objectsController);
                 }
-//                } else if (roomName.equalsIgnoreCase("Temple")) {
-//                    return new Temple(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                }
-//                // TODO use quad construction for different rooms
                 return new DoubleQuadController(kwdFile, roomInstance, objectsController);
             default:
 
