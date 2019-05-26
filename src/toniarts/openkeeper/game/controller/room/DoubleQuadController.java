@@ -40,9 +40,9 @@ public class DoubleQuadController extends NormalRoomController {
     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
         // You can't access insides from outsides and vice versa, by default
-        Point toPoint = roomInstance.worldCoordinateToLocalCoordinate(toX, toY);
+        Point toPoint = new Point(toX, toY);
         if (fromX != null && fromY != null) {
-            Point fromPoint = roomInstance.worldCoordinateToLocalCoordinate(fromX, fromY);
+            Point fromPoint = new Point(fromX, fromY);
             return (insideCoordinates.contains(fromPoint) && insideCoordinates.contains(toPoint)) || ((!insideCoordinates.contains(fromPoint) && !insideCoordinates.contains(toPoint)));
         }
         return !insideCoordinates.contains(toPoint);
