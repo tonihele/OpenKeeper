@@ -93,7 +93,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
      * @return true if given point is fully surrounded by the room
      */
     protected static boolean isTileInside(boolean[][] map, int x, int y) {
-        if (!map[x][y]) {
+        if (!hasSameTile(map, x, y)) {
             return false;
         }
 
