@@ -87,7 +87,7 @@ public class WorkshopController extends NormalRoomController {
     private EntityId constructPillar(Point p, float yAngle) {
 
         // Construct a pillar
-        return objectsController.loadObject(getPillarObject(roomInstance.getRoom().getRoomId()), (short) 0, p.x, p.y, yAngle);
+        return objectsController.loadObject(getPillarObject(roomInstance.getRoom().getRoomId()), roomInstance.getOwnerId(), p.x, p.y, yAngle);
     }
 
     @Override
