@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.object.ObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -109,18 +110,27 @@ public class ObjectsController implements IObjectsController {
     }
 
     @Override
+    public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation) {
+        return loadObject(objectId, ownerId, pos, rotation, null, null, null, null);
+    }
+
+    @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId) {
         return loadObject(objectId, ownerId, x, y, 0, money, spellId, null, null);
     }
 
     private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
+        Vector3f pos = WorldUtils.pointToVector3f(x, y);
+        return loadObject(objectId, ownerId, pos, rotation, money, spellId, triggerId, maxMoney);
+    }
+
+    private EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
         EntityId entity = entityData.createEntity();
         entityData.setComponent(entity, new ObjectComponent(objectId));
         entityData.setComponent(entity, new Owner(ownerId));
 
         // Move to the center of the tile
-        Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID ? MapLoader.UNDERFLOOR_HEIGHT : MapLoader.FLOOR_HEIGHT); // FIXME: no
+        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? MapLoader.UNDERFLOOR_HEIGHT : MapLoader.FLOOR_HEIGHT); // FIXME: no
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components

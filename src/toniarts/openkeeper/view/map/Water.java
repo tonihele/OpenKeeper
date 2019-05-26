@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.map;
 
-import toniarts.openkeeper.common.EntityInstance;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -38,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import toniarts.openkeeper.common.EntityInstance;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -61,7 +61,7 @@ public class Water {
         SIMPLE, CLASSIC;
     };
     private static final WaterType WATER_TYPE = WaterType.CLASSIC;
-    private static final Logger logger = Logger.getLogger(Water.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(Water.class.getName());
 
     private Water() {
         // Nope

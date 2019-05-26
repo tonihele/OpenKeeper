@@ -169,4 +169,16 @@ public class EntityInstance<T> {
     public Point worldCoordinateToLocalCoordinate(int x, int y) {
         return new Point(x - getMatrixStartPoint().x, y - getMatrixStartPoint().y);
     }
+
+    /**
+     * Translates a world tile coordinate to local room coordinate, stating at
+     * the top left corner
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @return the local coordinate
+     */
+    public Point localCoordinateToWorldCoordinate(int x, int y) {
+        return new Point(x + getMatrixStartPoint().x, y + getMatrixStartPoint().y);
+    }
 }

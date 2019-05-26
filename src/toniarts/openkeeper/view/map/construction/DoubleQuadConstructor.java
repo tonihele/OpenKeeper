@@ -41,143 +41,218 @@ public class DoubleQuadConstructor extends RoomConstructor {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        //Point start = roomInstance.getCoordinates().get(0);
-        // Contruct the tiles
-        for (Point p : roomInstance.getCoordinates()) {
-            // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
 
-            // 2x2
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
-            //AssetUtils.scale(model);
-            AssetUtils.translateToTile(model, p);
-            root.attachChild(model);
+        // Contruct the tiles
+        for (int y = 0; y < map[0].length; y++) {
+            for (int x = 0; x < map.length; x++) {
+
+                // Skip non-room tiles
+                if (!roomInstance.getCoordinatesAsMatrix()[x][y]) {
+                    continue;
+                }
+
+                // Figure out which peace by seeing the neighbours
+                boolean N = hasSameTile(map, x, y - 1);
+                boolean NE = hasSameTile(map, x + 1, y - 1);
+                boolean E = hasSameTile(map, x + 1, y);
+                boolean SE = hasSameTile(map, x + 1, y + 1);
+                boolean S = hasSameTile(map, x, y + 1);
+                boolean SW = hasSameTile(map, x - 1, y + 1);
+                boolean W = hasSameTile(map, x - 1, y);
+                boolean NW = hasSameTile(map, x - 1, y - 1);
+
+                boolean northInside = isTileInside(map, x, y - 1);
+                boolean northEastInside = isTileInside(map, x + 1, y - 1);
+                boolean eastInside = isTileInside(map, x + 1, y);
+                boolean southEastInside = isTileInside(map, x + 1, y + 1);
+                boolean southInside = isTileInside(map, x, y + 1);
+                boolean southWestInside = isTileInside(map, x - 1, y + 1);
+                boolean westInside = isTileInside(map, x - 1, y);
+                boolean northWestInside = isTileInside(map, x - 1, y - 1);
+
+                // 2x2
+                Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
+                        northWestInside, northEastInside, southWestInside, southEastInside,
+                        northInside, eastInside, southInside, westInside);
+                AssetUtils.translateToTile(model, new Point(x, y));
+                root.attachChild(model);
+            }
         }
+
+        AssetUtils.translateToTile(root, start);
 
         return root;
     }
 
-    public static Node constructQuad(AssetManager assetManager, String modelName,
-            boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
+    /**
+     * Checks if the tile is fully inside
+     *
+     * @param map the room map matrix to check
+     * @param x the x coordinate to check
+     * @param y the y coordinate to check
+     * @return true if given point is fully surrounded by the room
+     */
+    protected static boolean isTileInside(boolean[][] map, int x, int y) {
+        boolean N = hasSameTile(map, x, y - 1);
+        boolean NE = hasSameTile(map, x + 1, y - 1);
+        boolean E = hasSameTile(map, x + 1, y);
+        boolean SE = hasSameTile(map, x + 1, y + 1);
+        boolean S = hasSameTile(map, x, y + 1);
+        boolean SW = hasSameTile(map, x - 1, y + 1);
+        boolean W = hasSameTile(map, x - 1, y);
+        boolean NW = hasSameTile(map, x - 1, y - 1);
 
+        return N && NE && NW && E && SE && S && SW && W && NW;
+    }
+
+    public static Node constructQuad(AssetManager assetManager, String modelName, boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW,
+            boolean northWestInside, boolean northEastInside, boolean southWestInside, boolean southEastInside,
+            boolean northInside, boolean eastInside, boolean southInside, boolean westInside) {
         Node quad = new Node();
-
         for (int i = 0; i < 2; i++) {
             for (int k = 0; k < 2; k++) {
+
                 // 4 - 8 - walls
+                // 9 full floor?
+                // 10-12, 14-19 are non-wall walls (i.e. prison bars)
                 int piece = 0;
                 float yAngle = 0;
                 Vector3f movement;
+                boolean inside = N && NE && NW && E && SE && S && SW && W && NW;
+
                 // Determine the piece
                 if (i == 0 && k == 0) { // North west corner
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (inside) {
                         piece = 13;
-                    } else if (N && E && S && W && NW && !SE) {
+                    } else if (northInside && northWestInside && westInside) {
                         piece = 12;
                         yAngle = FastMath.HALF_PI;
-                    } else if (N && E && SE && S && W && !NW) {
+                    } else if (northWestInside && westInside) {
+                        piece = 10;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (northWestInside && northInside) {
+                        piece = 10;
+                        yAngle = FastMath.PI;
+                    } else if (westInside && N && NW) {
+                        piece = 10;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (northInside && W && NW) {
+                        piece = 10;
+                        yAngle = FastMath.PI;
+                    } else if (northWestInside && N && W) {
+                        piece = 11;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (N && NW && W) {
+                        piece = 3;
+                    } else if (N && W) {
                         piece = 2;
                         yAngle = FastMath.HALF_PI;
                     } else if (!N && !W) {
                         piece = 1;
                         yAngle = FastMath.HALF_PI;
-                    } else if (!S && !E && NW) {
-                        piece = 11;
-                        yAngle = -FastMath.HALF_PI;
                     } else if (N && !W) {
                         piece = 0;
                         yAngle = FastMath.HALF_PI;
-                    } else if (N && W && (!S || !SW)) {
-                        piece = 10;
-                        yAngle = FastMath.PI;
-                    } else if (N && W && (!E || !NE)) {
-                        piece = 10;
-                        yAngle = -FastMath.HALF_PI;
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 } else if (i == 1 && k == 0) { // North east corner
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (inside) {
                         piece = 13;
-                    } else if (N && NE && E && S && W && !SW) {
+                    } else if (northInside && northEastInside && eastInside) {
                         piece = 12;
-                    } else if (N && E && S && SW && W && !NE) {
+                    } else if (northEastInside && eastInside) {
+                        piece = 10;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (northEastInside && northInside) {
+                        piece = 10;
+                        yAngle = FastMath.PI;
+                    } else if (eastInside && N && NE) {
+                        piece = 10;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (northInside && E && NE) {
+                        piece = 10;
+                        yAngle = FastMath.PI;
+                    } else if (northEastInside && N && NE) {
+                        piece = 11;
+                        yAngle = FastMath.PI;
+                    } else if (N && NE && E) {
+                        piece = 3;
+                    } else if (N && E) {
                         piece = 2;
                     } else if (!N && !E) {
                         piece = 1;
-                    } else if (!S && !W && NE) {
-                        piece = 11;
-                        yAngle = FastMath.PI;
                     } else if (N && !E) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;
-                    } else if (N && E && (!S || !SE)) {
-                        piece = 10;
-                        yAngle = FastMath.PI;
-                    } else if (N && E && (!W || !NW)) {
-                        piece = 10;
-                        yAngle = FastMath.HALF_PI;
                     }
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 } else if (i == 0 && k == 1) { // South west corner
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (inside) {
                         piece = 13;
-                    } else if (N && E && S && SW && W && !NE) {
+                    } else if (southInside && southWestInside && westInside) {
                         piece = 12;
                         yAngle = FastMath.PI;
+                    } else if (southWestInside && westInside) {
+                        piece = 10;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (southWestInside && southInside) {
+                        piece = 10;
+                    } else if (westInside && S && SW) {
+                        piece = 10;
+                        yAngle = -FastMath.HALF_PI;
+                    } else if (southInside && W && SW) {
+                        piece = 10;
+                    } else if (southWestInside && S && W) {
+                        piece = 11;
+                    } else if (S && SW && W) {
+                        piece = 3;
                     } else if (N && NE && E && S && W && !SW) {
                         piece = 2;
                         yAngle = FastMath.PI;
                     } else if (!S && !W) {
                         piece = 1;
                         yAngle = FastMath.PI;
-                    } else if (!N && !E && SW) {
-                        piece = 11;
-                    } else if (!N && !W && S) {
+                    } else if (!W && S) {
                         piece = 0;
                         yAngle = FastMath.HALF_PI;
                     } else if (W && !S) {
                         piece = 0;
                         yAngle = FastMath.PI;
-                    } else if (S && W && (!E || !SE)) {
-                        piece = 10;
-                        yAngle = -FastMath.HALF_PI;
-                    } else if (S && W && (!N || !NW)) {
-                        piece = 10;
                     }
                     movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 } else { // South east corner  if (i == 1 && k == 1)
-                    if (N && NE && NW && E && SE && S && SW && W && NW) {
+                    if (inside) {
                         piece = 13;
-                    } else if (N && E && SE && S && W && !NW) {
+                    } else if (southInside && southEastInside && eastInside) {
                         piece = 12;
                         yAngle = -FastMath.HALF_PI;
-                    } else if (N && E && S && W && NW && !SE) {
+                    } else if (southEastInside && eastInside) {
+                        piece = 10;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (southEastInside && southInside) {
+                        piece = 10;
+                    } else if (eastInside && S && SE) {
+                        piece = 10;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (southInside && E && SE) {
+                        piece = 10;
+                    } else if (southEastInside && S && SE) {
+                        piece = 11;
+                        yAngle = FastMath.HALF_PI;
+                    } else if (S && SE && E) {
+                        piece = 3;
+                    } else if (S && E) {
                         piece = 2;
                         yAngle = -FastMath.HALF_PI;
                     } else if (!S && !E) {
                         piece = 1;
                         yAngle = -FastMath.HALF_PI;
-                    } else if (!N && !W && SE) {
-                        piece = 11;
-                        yAngle = FastMath.HALF_PI;
-                    } else if (!N && !E && S) {
+                    } else if (!E && S) {
                         piece = 0;
                         yAngle = -FastMath.HALF_PI;
                     } else if (E && !S) {
                         piece = 0;
                         yAngle = FastMath.PI;
-                    } else if (E && S && (!W || !SW)) {
-                        piece = 10;
-                        yAngle = FastMath.HALF_PI;
-                    } else if (E && S && (!N || !NE)) {
-                        piece = 10;
                     }
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }

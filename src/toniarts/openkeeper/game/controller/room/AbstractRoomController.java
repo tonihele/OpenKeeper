@@ -415,11 +415,13 @@ public abstract class AbstractRoomController implements IRoomController {
             case 10:  // Workshop
                 return 80;
             case 11:  // Prison
-                return 81;
+                //return 81; // Model exists, but not used by the game
+                return null;
             case 12:  // Torture
                 return 82;
             case 13:  // Temple
-                return 83;
+                //return 83; // This is the actual model, but place candle sticks instead...
+                return 111;
             case 14: // Graveyard
                 return 84;
             case 15: // Casino
