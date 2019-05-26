@@ -59,6 +59,10 @@ public class DoubleQuadController extends NormalRoomController {
         Set<Point> coordinates = new HashSet<>();
         for (int x = 1; x < map.length - 1; x++) {
             for (int y = 1; y < map[x].length - 1; y++) {
+                if (!map[x][y]) {
+                    continue;
+                }
+
                 boolean N = hasSameTile(map, x, y + 1);
                 boolean NE = hasSameTile(map, x - 1, y + 1);
                 boolean E = hasSameTile(map, x - 1, y);

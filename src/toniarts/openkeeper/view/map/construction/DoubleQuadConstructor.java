@@ -93,6 +93,10 @@ public class DoubleQuadConstructor extends RoomConstructor {
      * @return true if given point is fully surrounded by the room
      */
     protected static boolean isTileInside(boolean[][] map, int x, int y) {
+        if (!map[x][y]) {
+            return false;
+        }
+
         boolean N = hasSameTile(map, x, y - 1);
         boolean NE = hasSameTile(map, x + 1, y - 1);
         boolean E = hasSameTile(map, x + 1, y);
@@ -206,7 +210,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                         piece = 11;
                     } else if (S && SW && W) {
                         piece = 3;
-                    } else if (N && NE && E && S && W && !SW) {
+                    } else if (S && W) {
                         piece = 2;
                         yAngle = FastMath.PI;
                     } else if (!S && !W) {
