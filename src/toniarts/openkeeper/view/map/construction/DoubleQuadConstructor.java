@@ -43,34 +43,43 @@ public class DoubleQuadConstructor extends RoomConstructor {
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
 
         // Contruct the tiles
-        for (Point p : roomInstance.getCoordinates()) {
+        for (int y = 0; y < map[0].length; y++) {
+            for (int x = 0; x < map.length; x++) {
 
-            // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
+                // Skip non-room tiles
+                if (!roomInstance.getCoordinatesAsMatrix()[x][y]) {
+                    continue;
+                }
 
-            boolean northInside = isTileInside(roomInstance, new Point(p.x, p.y - 1));
-            boolean northEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y - 1));
-            boolean eastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y));
-            boolean southEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y + 1));
-            boolean southInside = isTileInside(roomInstance, new Point(p.x, p.y + 1));
-            boolean southWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y + 1));
-            boolean westInside = isTileInside(roomInstance, new Point(p.x - 1, p.y));
-            boolean northWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y - 1));
+                // Figure out which peace by seeing the neighbours
+                boolean N = hasSameTile(map, x, y - 1);
+                boolean NE = hasSameTile(map, x + 1, y - 1);
+                boolean E = hasSameTile(map, x + 1, y);
+                boolean SE = hasSameTile(map, x + 1, y + 1);
+                boolean S = hasSameTile(map, x, y + 1);
+                boolean SW = hasSameTile(map, x - 1, y + 1);
+                boolean W = hasSameTile(map, x - 1, y);
+                boolean NW = hasSameTile(map, x - 1, y - 1);
 
-            // 2x2
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
-                    northWestInside, northEastInside, southWestInside, southEastInside,
-                    northInside, eastInside, southInside, westInside);
-            AssetUtils.translateToTile(model, p);
-            root.attachChild(model);
+                boolean northInside = isTileInside(map, x, y - 1);
+                boolean northEastInside = isTileInside(map, x + 1, y - 1);
+                boolean eastInside = isTileInside(map, x + 1, y);
+                boolean southEastInside = isTileInside(map, x + 1, y + 1);
+                boolean southInside = isTileInside(map, x, y + 1);
+                boolean southWestInside = isTileInside(map, x - 1, y + 1);
+                boolean westInside = isTileInside(map, x - 1, y);
+                boolean northWestInside = isTileInside(map, x - 1, y - 1);
+
+                // 2x2
+                Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
+                        northWestInside, northEastInside, southWestInside, southEastInside,
+                        northInside, eastInside, southInside, westInside);
+                AssetUtils.translateToTile(model, new Point(x, y));
+                root.attachChild(model);
+            }
         }
+
+        AssetUtils.translateToTile(root, start);
 
         return root;
     }
@@ -78,24 +87,27 @@ public class DoubleQuadConstructor extends RoomConstructor {
     /**
      * Checks if the tile is fully inside
      *
-     * @param roomInstance the room instance to check
-     * @param p the point to check
+     * @param map the room map matrix to check
+     * @param x the x coordinate to check
+     * @param y the y coordinate to check
      * @return true if given point is fully surrounded by the room
      */
-    protected static boolean isTileInside(RoomInstance roomInstance, Point p) {
-        boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-        boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-        boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-        boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
-        boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-        boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-        boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-        boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
+    protected static boolean isTileInside(boolean[][] map, int x, int y) {
+        boolean N = hasSameTile(map, x, y - 1);
+        boolean NE = hasSameTile(map, x + 1, y - 1);
+        boolean E = hasSameTile(map, x + 1, y);
+        boolean SE = hasSameTile(map, x + 1, y + 1);
+        boolean S = hasSameTile(map, x, y + 1);
+        boolean SW = hasSameTile(map, x - 1, y + 1);
+        boolean W = hasSameTile(map, x - 1, y);
+        boolean NW = hasSameTile(map, x - 1, y - 1);
 
         return N && NE && NW && E && SE && S && SW && W && NW;
     }
 
-    public static Node constructQuad(AssetManager assetManager, String modelName, boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW, boolean northWestInside, boolean northEastInside, boolean southWestInside, boolean southEastInside, boolean northInside, boolean eastInside, boolean southInside, boolean westInside) {
+    public static Node constructQuad(AssetManager assetManager, String modelName, boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW,
+            boolean northWestInside, boolean northEastInside, boolean southWestInside, boolean southEastInside,
+            boolean northInside, boolean eastInside, boolean southInside, boolean westInside) {
         Node quad = new Node();
         for (int i = 0; i < 2; i++) {
             for (int k = 0; k < 2; k++) {

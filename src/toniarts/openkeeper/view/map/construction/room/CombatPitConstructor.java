@@ -42,53 +42,59 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        //Point start = roomInstance.getCoordinates().get(0);
 
         // Contruct the tiles
         boolean door = false;
-        for (Point p : roomInstance.getCoordinates()) {
+        for (int y = 0; y < map[0].length; y++) {
+            for (int x = 0; x < map.length; x++) {
 
-            // Figure out which peace by seeing the neighbours
-            boolean N = roomInstance.hasCoordinate(new Point(p.x, p.y - 1));
-            boolean NE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y - 1));
-            boolean E = roomInstance.hasCoordinate(new Point(p.x + 1, p.y));
-            boolean SE = roomInstance.hasCoordinate(new Point(p.x + 1, p.y + 1));
-            boolean S = roomInstance.hasCoordinate(new Point(p.x, p.y + 1));
-            boolean SW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y + 1));
-            boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
-            boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
+                // Skip non-room tiles
+                if (!roomInstance.getCoordinatesAsMatrix()[x][y]) {
+                    continue;
+                }
 
-            boolean northInside = isTileInside(roomInstance, new Point(p.x, p.y - 1));
-            boolean northEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y - 1));
-            boolean eastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y));
-            boolean southEastInside = isTileInside(roomInstance, new Point(p.x + 1, p.y + 1));
-            boolean southInside = isTileInside(roomInstance, new Point(p.x, p.y + 1));
-            boolean southWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y + 1));
-            boolean westInside = isTileInside(roomInstance, new Point(p.x - 1, p.y));
-            boolean northWestInside = isTileInside(roomInstance, new Point(p.x - 1, p.y - 1));
+                // Figure out which peace by seeing the neighbours
+                boolean N = hasSameTile(map, x, y - 1);
+                boolean NE = hasSameTile(map, x + 1, y - 1);
+                boolean E = hasSameTile(map, x + 1, y);
+                boolean SE = hasSameTile(map, x + 1, y + 1);
+                boolean S = hasSameTile(map, x, y + 1);
+                boolean SW = hasSameTile(map, x - 1, y + 1);
+                boolean W = hasSameTile(map, x - 1, y);
+                boolean NW = hasSameTile(map, x - 1, y - 1);
 
-            if (!door && southInside) {
+                boolean northInside = isTileInside(map, x, y - 1);
+                boolean northEastInside = isTileInside(map, x + 1, y - 1);
+                boolean eastInside = isTileInside(map, x + 1, y);
+                boolean southEastInside = isTileInside(map, x + 1, y + 1);
+                boolean southInside = isTileInside(map, x, y + 1);
+                boolean southWestInside = isTileInside(map, x - 1, y + 1);
+                boolean westInside = isTileInside(map, x - 1, y);
+                boolean northWestInside = isTileInside(map, x - 1, y - 1);
 
-                // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
-                part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
-                moveSpatial(part, p);
+                if (!door && southInside) {
 
-                root.attachChild(part);
+                    // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
+                    Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
+                    AssetUtils.translateToTile(part, new Point(x, y));
+                    part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
 
-                door = true;
-                continue;
+                    root.attachChild(part);
+
+                    door = true;
+                    continue;
+                }
+
+                Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
+                        northWestInside, northEastInside, southWestInside, southEastInside,
+                        northInside, eastInside, southInside, westInside);
+                AssetUtils.translateToTile(model, new Point(x, y));
+                root.attachChild(model);
             }
-
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW,
-                    northWestInside, northEastInside, southWestInside, southEastInside,
-                    northInside, eastInside, southInside, westInside);
-            moveSpatial(model, p);
-            root.attachChild(model);
         }
 
-        // Set the transform and scale to our scale and 0 the transform
-        //AssetUtils.moveToTile(root, start);
+        AssetUtils.translateToTile(root, start);
+
         return root;
     }
 }
