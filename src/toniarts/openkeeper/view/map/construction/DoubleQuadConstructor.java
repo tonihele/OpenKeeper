@@ -128,7 +128,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 if (i == 0 && k == 0) { // North west corner
                     if (inside) {
                         piece = 13;
-                    } else if (northInside && northWestInside && westInside) {
+                    } else if (northInside && westInside) {
                         piece = 12;
                         yAngle = FastMath.HALF_PI;
                     } else if (northWestInside && westInside) {
@@ -162,7 +162,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 } else if (i == 1 && k == 0) { // North east corner
                     if (inside) {
                         piece = 13;
-                    } else if (northInside && northEastInside && eastInside) {
+                    } else if (northInside && eastInside) {
                         piece = 12;
                     } else if (northEastInside && eastInside) {
                         piece = 10;
@@ -193,7 +193,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 } else if (i == 0 && k == 1) { // South west corner
                     if (inside) {
                         piece = 13;
-                    } else if (southInside && southWestInside && westInside) {
+                    } else if (southInside && westInside) {
                         piece = 12;
                         yAngle = FastMath.PI;
                     } else if (southWestInside && westInside) {
@@ -227,7 +227,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 } else { // South east corner  if (i == 1 && k == 1)
                     if (inside) {
                         piece = 13;
-                    } else if (southInside && southEastInside && eastInside) {
+                    } else if (southInside && eastInside) {
                         piece = 12;
                         yAngle = -FastMath.HALF_PI;
                     } else if (southEastInside && eastInside) {
