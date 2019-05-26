@@ -93,6 +93,10 @@ public class DoubleQuadConstructor extends RoomConstructor {
      * @return true if given point is fully surrounded by the room
      */
     protected static boolean isTileInside(boolean[][] map, int x, int y) {
+        if (!hasSameTile(map, x, y)) {
+            return false;
+        }
+
         boolean N = hasSameTile(map, x, y - 1);
         boolean NE = hasSameTile(map, x + 1, y - 1);
         boolean E = hasSameTile(map, x + 1, y);
@@ -124,7 +128,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 if (i == 0 && k == 0) { // North west corner
                     if (inside) {
                         piece = 13;
-                    } else if (northInside && northWestInside && westInside) {
+                    } else if (northInside && westInside) {
                         piece = 12;
                         yAngle = FastMath.HALF_PI;
                     } else if (northWestInside && westInside) {
@@ -158,7 +162,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 } else if (i == 1 && k == 0) { // North east corner
                     if (inside) {
                         piece = 13;
-                    } else if (northInside && northEastInside && eastInside) {
+                    } else if (northInside && eastInside) {
                         piece = 12;
                     } else if (northEastInside && eastInside) {
                         piece = 10;
@@ -189,7 +193,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 } else if (i == 0 && k == 1) { // South west corner
                     if (inside) {
                         piece = 13;
-                    } else if (southInside && southWestInside && westInside) {
+                    } else if (southInside && westInside) {
                         piece = 12;
                         yAngle = FastMath.PI;
                     } else if (southWestInside && westInside) {
@@ -206,7 +210,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                         piece = 11;
                     } else if (S && SW && W) {
                         piece = 3;
-                    } else if (N && NE && E && S && W && !SW) {
+                    } else if (S && W) {
                         piece = 2;
                         yAngle = FastMath.PI;
                     } else if (!S && !W) {
@@ -223,7 +227,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                 } else { // South east corner  if (i == 1 && k == 1)
                     if (inside) {
                         piece = 13;
-                    } else if (southInside && southEastInside && eastInside) {
+                    } else if (southInside && eastInside) {
                         piece = 12;
                         yAngle = -FastMath.HALF_PI;
                     } else if (southEastInside && eastInside) {

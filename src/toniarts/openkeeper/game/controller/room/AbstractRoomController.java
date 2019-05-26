@@ -74,8 +74,8 @@ public abstract class AbstractRoomController implements IRoomController {
     protected boolean[][] map;
     protected Point start;
     protected final IObjectsController objectsController;
-    private final Set<EntityId> floorFurniture = new HashSet<>();
-    private final Set<EntityId> wallFurniture = new HashSet<>();
+    protected final Set<EntityId> floorFurniture = new HashSet<>();
+    protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
 
     public AbstractRoomController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {

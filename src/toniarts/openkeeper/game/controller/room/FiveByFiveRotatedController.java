@@ -81,18 +81,18 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
         // Because of physics and whatnot, the object are on server, so what about the creation animation?
         // The creation animation should be on the client perhaps... We don't care about it...
         Point center = roomInstance.getCenter();
-        objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y);
+        floorFurniture.add(objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y));
 
         // Construct the plug
-        objectsController.loadObject(OBJECT_PLUG_ID, roomInstance.getOwnerId(), center.x, center.y);
+        floorFurniture.add(objectsController.loadObject(OBJECT_PLUG_ID, roomInstance.getOwnerId(), center.x, center.y));
 
         // The arches
-        objectsController.loadObject(OBJECT_ARCHES_ID, roomInstance.getOwnerId(), center.x, center.y);
+        floorFurniture.add(objectsController.loadObject(OBJECT_ARCHES_ID, roomInstance.getOwnerId(), center.x, center.y));
 
         // The steps between the arches
-        objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y);
-        objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, -FastMath.TWO_PI / 3);
-        objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, FastMath.TWO_PI / 3);
+        floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y));
+        floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, -FastMath.TWO_PI / 3));
+        floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, FastMath.TWO_PI / 3));
     }
 
     @Override
