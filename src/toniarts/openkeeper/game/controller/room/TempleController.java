@@ -53,7 +53,7 @@ public class TempleController extends DoubleQuadController {
         Point p = getFirstSubSquare(map, MIN_HAND_SIZE);
         if (p != null) {
             Point worldPoint = roomInstance.localCoordinateToWorldCoordinate(p.x - (MIN_HAND_SIZE / 2), p.y - (MIN_HAND_SIZE / 2));
-            objectsController.loadObject(OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId(), worldPoint.x, worldPoint.y);
+            floorFurniture.add(objectsController.loadObject(OBJECT_TEMPLE_HAND_ID, roomInstance.getOwnerId(), worldPoint.x, worldPoint.y));
         }
     }
 
