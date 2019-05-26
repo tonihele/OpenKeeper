@@ -62,8 +62,8 @@ public class PrisonController extends DoubleQuadController {
         door = null;
         for (Point p : roomInstance.getCoordinates()) {
             if (door == null && insideCoordinates.contains(new Point(p.x, p.y + 1))) {
-                objectsController.loadObject(OBJECT_DOOR_ID, (short) 0, p.x, p.y);
-                objectsController.loadObject(OBJECT_DOORBAR_ID, (short) 0, p.x, p.y);
+                objectsController.loadObject(OBJECT_DOOR_ID, roomInstance.getOwnerId(), p.x, p.y);
+                objectsController.loadObject(OBJECT_DOORBAR_ID, roomInstance.getOwnerId(), p.x, p.y);
 
                 door = p;
                 break;
