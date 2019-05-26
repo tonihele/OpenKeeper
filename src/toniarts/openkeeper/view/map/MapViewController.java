@@ -819,7 +819,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        RoomConstructor roomConstructor = RoomFactory.constructRoom(roomInstance, assetManager, null);
+        RoomConstructor roomConstructor = RoomFactory.constructRoom(roomInstance, assetManager, null, kwdFile);
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
         if (roomConstructor != null) {

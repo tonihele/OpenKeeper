@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
 import toniarts.openkeeper.view.map.construction.FiveByFiveRotatedConstructor;
 import toniarts.openkeeper.view.map.construction.HeroGateConstructor;
@@ -33,6 +34,7 @@ import toniarts.openkeeper.view.map.construction.ThreeByThreeConstructor;
 import toniarts.openkeeper.view.map.construction.room.CombatPitConstructor;
 import toniarts.openkeeper.view.map.construction.room.PrisonConstructor;
 import toniarts.openkeeper.view.map.construction.room.StoneBridgeConstructor;
+import toniarts.openkeeper.view.map.construction.room.TempleConstructor;
 import toniarts.openkeeper.view.map.construction.room.WorkshopConstructor;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
@@ -43,14 +45,14 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  */
 public final class RoomFactory {
 
-    private static final Logger logger = Logger.getLogger(RoomFactory.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(RoomFactory.class.getName());
 
     private RoomFactory() {
         // Nope
     }
 
     public static RoomConstructor constructRoom(RoomInstance roomInstance, AssetManager assetManager,
-            EffectManagerState effectManager) {
+            EffectManagerState effectManager, KwdFile kwdFile) {
 
         String roomName = roomInstance.getRoom().getName();
 
@@ -112,15 +114,14 @@ public final class RoomFactory {
                 } else if (roomName.equalsIgnoreCase("Combat Pit")) {
                     return new CombatPitConstructor(assetManager, roomInstance);
                 }
-//                else if (roomName.equalsIgnoreCase("Temple")) {
-//                    return new TempleConstructor(assetManager, roomInstance);
-//                }
-//                // TODO use quad construction for different rooms
+                else if (roomName.equalsIgnoreCase("Temple")) {
+                    return new TempleConstructor(assetManager, roomInstance, kwdFile);
+                }
                 return new DoubleQuadConstructor(assetManager, roomInstance);
             default:
 
                 // TODO
-                logger.log(Level.WARNING, "Room {0} not exist", roomName);
+                LOGGER.log(Level.WARNING, "Room {0} not exist", roomName);
         }
         return null;
     }
