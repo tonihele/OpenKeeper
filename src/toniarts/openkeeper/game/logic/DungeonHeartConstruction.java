@@ -69,7 +69,7 @@ public class DungeonHeartConstruction implements IGameLogicUpdatable {
             for (EntityId stairsEntityId : stairs) {
                 if (entityData.getComponent(stairsEntityId, Owner.class).ownerId == dHeartOwner) {
                     ObjectViewState originalState = entityData.getComponent(stairsEntityId, ObjectViewState.class);
-                    entityData.setComponent(stairsEntityId, new ObjectViewState(originalState.objectId, originalState.state, false));
+                    entityData.setComponent(stairsEntityId, new ObjectViewState(originalState.objectId, originalState.state, originalState.animState, false));
 
                     dHeartStairs.add(stairsEntityId);
                 }
@@ -88,7 +88,7 @@ public class DungeonHeartConstruction implements IGameLogicUpdatable {
             for (EntityId archesEntityId : arches) {
                 if (entityData.getComponent(archesEntityId, Owner.class).ownerId == dHeartOwner) {
                     ObjectViewState originalState = entityData.getComponent(archesEntityId, ObjectViewState.class);
-                    entityData.setComponent(archesEntityId, new ObjectViewState(originalState.objectId, originalState.state, false));
+                    entityData.setComponent(archesEntityId, new ObjectViewState(originalState.objectId, originalState.state, originalState.animState, false));
 
                     dHeartArches.add(archesEntityId);
                 }
@@ -156,11 +156,11 @@ public class DungeonHeartConstruction implements IGameLogicUpdatable {
     private void showStepsAndArches(EntityId entityId) {
         for (EntityId stairsEntityId : dungeonHeartStairs.get(entityId)) {
             ObjectViewState originalState = entityData.getComponent(stairsEntityId, ObjectViewState.class);
-            entityData.setComponent(stairsEntityId, new ObjectViewState(originalState.objectId, originalState.state, true));
+            entityData.setComponent(stairsEntityId, new ObjectViewState(originalState.objectId, originalState.state, originalState.animState, true));
         }
         for (EntityId archesEntityId : dungeonHeartArches.get(entityId)) {
             ObjectViewState originalState = entityData.getComponent(archesEntityId, ObjectViewState.class);
-            entityData.setComponent(archesEntityId, new ObjectViewState(originalState.objectId, originalState.state, true));
+            entityData.setComponent(archesEntityId, new ObjectViewState(originalState.objectId, originalState.state, originalState.animState, true));
         }
     }
 

@@ -116,7 +116,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
 
         // Load objects
-        objectsController = new ObjectsController(kwdFile, entityData, gameSettings);
+        objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController);
 
         // Load the map
         mapController = new MapController(kwdFile, objectsController, gameSettings);

@@ -45,12 +45,12 @@ import java.util.List;
 import java.util.Objects;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
@@ -279,7 +279,7 @@ public abstract class KeeperHandState extends AbstractAppState {
                     break;
                 }
                 case OBJECT: {
-                    viewControl = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(inHand.id), GameObject.State.BEING_DROPPED, assetManager, null);
+                    viewControl = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(inHand.id), new ObjectViewState(), assetManager, null);
                     break;
                 }
                 default:

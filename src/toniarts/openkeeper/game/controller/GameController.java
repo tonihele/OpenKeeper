@@ -37,6 +37,8 @@ import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.logic.ChickenAiSystem;
+import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
@@ -259,8 +261,10 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
                 this,
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
+                new ChickenSpawnSystem(gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
+                new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),

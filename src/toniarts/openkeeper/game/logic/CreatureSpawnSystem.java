@@ -57,7 +57,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
 
     private final ICreaturesController creaturesController;
     private final int minimumImpCount;
-    private final int entranceCoolDownTime;
+    private final int entranceCooldownTime;
     private final int initialPortalCapacity;
     private final int additionalPortalCapacity;
     private final int freeImpCoolDownTime;
@@ -71,7 +71,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
         this.creaturesController = creaturesController;
 
         // We need the game state just for the variables
-        entranceCoolDownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS).getValue();
+        entranceCooldownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS).getValue();
         minimumImpCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue();
         initialPortalCapacity = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL).getValue();
         additionalPortalCapacity = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL).getValue();
@@ -128,7 +128,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
                 creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
                 spawned = true;
             }
-        } else if (timeSinceLastSpawn >= Math.max(entranceCoolDownTime, entranceCoolDownTime * player.getCreatureControl().getTypeCount() * 0.5)
+        } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
 
             // Evaluate what creature can we spawn

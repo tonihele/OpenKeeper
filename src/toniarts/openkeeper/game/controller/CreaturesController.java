@@ -117,6 +117,7 @@ public class CreaturesController implements ICreaturesController {
      * @param gameTimer
      * @param gameController
      * @param mapController
+     * @param levelInfo
      */
     public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo) {

@@ -29,21 +29,34 @@ public class ObjectViewState implements EntityComponent {
 
     public short objectId;
     public GameObject.State state;
+    public GameObjectAnimState animState = GameObjectAnimState.MESH_RESOURCE;
     public boolean visible;
 
     public ObjectViewState() {
         // For serialization
     }
 
-    public ObjectViewState(short objectId, GameObject.State state, boolean visible) {
+    public ObjectViewState(short objectId, GameObject.State state, GameObjectAnimState animState, boolean visible) {
         this.objectId = objectId;
         this.state = state;
+        this.animState = animState;
         this.visible = visible;
     }
 
     @Override
     public String toString() {
         return "ObjectViewState{" + "objectId=" + objectId + ", state=" + state + '}';
+    }
+
+    /**
+     * Game objects have 5 resources, this specifies what we should use
+     */
+    public enum GameObjectAnimState {
+        MESH_RESOURCE,
+        ADDITIONAL_RESOURCE_1,
+        ADDITIONAL_RESOURCE_2,
+        ADDITIONAL_RESOURCE_3,
+        ADDITIONAL_RESOURCE_4
     }
 
 }

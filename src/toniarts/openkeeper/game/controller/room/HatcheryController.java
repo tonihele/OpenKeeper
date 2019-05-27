@@ -16,16 +16,20 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * The hatchery
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HatcheryController extends NormalRoomController {
+public class HatcheryController extends NormalRoomController implements IChickenGenerator {
+
+    private double lastSpawnTime = Double.MIN_VALUE;
 
     public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(kwdFile, roomInstance, objectsController);
@@ -34,6 +38,39 @@ public class HatcheryController extends NormalRoomController {
     @Override
     protected RoomObjectLayout getRoomObjectLayout() {
         return RoomObjectLayout.ISOLATED;
+    }
+
+    @Override
+    public Point getEntranceCoordinate() {
+        // TODO: Should be maybe random available point, where there are no coops
+        return Utils.getRandomItem(roomInstance.getCoordinates());
+    }
+
+    @Override
+    public double getLastSpawnTime() {
+        return lastSpawnTime;
+    }
+
+    @Override
+    public void onSpawn(double time) {
+        this.lastSpawnTime = time;
+    }
+
+    @Override
+    public void captured(short playerId) {
+        super.captured(playerId);
+        lastSpawnTime = Double.MIN_VALUE;
+    }
+
+    @Override
+    protected int getUsedCapacity() {
+        // TODO: General problem how do we tie objects to room, with component of course but how does the room know
+        return super.getUsedCapacity();
+    }
+
+    @Override
+    protected int getMaxCapacity() {
+        return roomInstance.getCoordinates().size();
     }
 
 }
