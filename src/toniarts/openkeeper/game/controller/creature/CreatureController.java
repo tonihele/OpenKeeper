@@ -737,7 +737,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public int compareTo(ICreatureController t) {
-        return Long.compare(entityId.getId(), t.getEntityId().getId());
+        return entityId.compareTo(t.getEntityId());
     }
 
     private void initState() {
