@@ -75,10 +75,9 @@ public class MovementSystem implements IGameLogicUpdatable {
     @Override
     public void processTick(float tpf, double gameTime) {
         if (movableEntities.applyChanges()) {
+            processDeletedEntities(movableEntities.getRemovedEntities());
 
             processAddedEntities(movableEntities.getAddedEntities());
-
-            processDeletedEntities(movableEntities.getRemovedEntities());
 
             processChangedEntities(movableEntities.getChangedEntities());
         }
