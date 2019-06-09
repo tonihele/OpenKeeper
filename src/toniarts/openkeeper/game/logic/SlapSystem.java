@@ -27,9 +27,11 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
-import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -37,14 +39,15 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
- * Manages slapping of creatures, the added effects etc
+ * Manages slapping of entities, the added effects etc
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSlapSystem implements IGameLogicUpdatable {
+public class SlapSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
     private final EntitySet creatureEntities;
+    private final EntitySet objectEntities;
     private final EntityData entityData;
     private final int maxSlapDuration;
     private final Map<Short, PlayerStatsControl> statControls = new HashMap<>(4);
@@ -52,7 +55,7 @@ public class CreatureSlapSystem implements IGameLogicUpdatable {
 
     private final static int EFFICIENCY_BONUS = 10;
 
-    public CreatureSlapSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers,
+    public SlapSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
@@ -61,38 +64,50 @@ public class CreatureSlapSystem implements IGameLogicUpdatable {
         }
         maxSlapDuration = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS).getValue();
 
-        creatureEntities = entityData.getEntities(CreatureSlapped.class);
-        processAddedEntities(creatureEntities);
+        creatureEntities = entityData.getEntities(Slapped.class, CreatureComponent.class, Owner.class);
+        objectEntities = entityData.getEntities(Slapped.class, ObjectComponent.class, Interaction.class);
+        processAddedCreatureEntities(creatureEntities);
+        processAddedObjectEntities(objectEntities);
     }
 
     @Override
     public void processTick(float tpf, double gameTime) {
         if (creatureEntities.applyChanges()) {
 
-            processAddedEntities(creatureEntities.getAddedEntities());
-
             processDeletedEntities(creatureEntities.getRemovedEntities());
 
+            processAddedCreatureEntities(creatureEntities.getAddedEntities());
+
             processChangedEntities(creatureEntities.getChangedEntities());
+        }
+
+        if (objectEntities.applyChanges()) {
+
+            processDeletedEntities(objectEntities.getRemovedEntities());
+
+            processAddedObjectEntities(objectEntities.getAddedEntities());
+
+            processChangedEntities(objectEntities.getChangedEntities());
         }
 
         // Remove the slap effect from creatures
         // TODO: So many variables, for work efficiency and speeding up, so, figure out
         for (Map.Entry<EntityId, Double> entry : slapStartTimesByEntityId.entrySet()) {
             if (gameTime - entry.getValue() >= maxSlapDuration) {
-                entityData.removeComponent(entry.getKey(), CreatureSlapped.class);
+                entityData.removeComponent(entry.getKey(), Slapped.class);
             }
         }
     }
 
-    private void processAddedEntities(Set<Entity> entities) {
+    private void processAddedCreatureEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            double startTime = entity.get(CreatureSlapped.class).startTime;
-            short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
-            short ownerId = entityData.getComponent(entity.getId(), Owner.class).ownerId;
+            double startTime = entity.get(Slapped.class).startTime;
+            short creatureId = entity.get(CreatureComponent.class).creatureId;
+            short ownerId = entity.get(Owner.class).ownerId;
 
             // Slap
-            handleCreatureSlap(entity, startTime, creatureId, ownerId);
+            slapStartTimesByEntityId.put(entity.getId(), startTime);
+            handleCreatureSlap(entity, creatureId, ownerId);
 
             // Efficiency, this doesn't stack, so only when added
             // TODO: there are several parameters, speed and work efficiency, and they look a bit weird to me, so just this now
@@ -103,8 +118,25 @@ public class CreatureSlapSystem implements IGameLogicUpdatable {
         }
     }
 
-    private void handleCreatureSlap(Entity entity, double startTime, short creatureId, short ownerId) {
-        slapStartTimesByEntityId.put(entity.getId(), startTime);
+    private void processAddedObjectEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            double startTime = entity.get(Slapped.class).startTime;
+            Interaction interaction = entity.get(Interaction.class);
+
+            // Slap
+            slapStartTimesByEntityId.put(entity.getId(), startTime);
+            handleObjectSlap(entity, interaction);
+        }
+    }
+
+    private void handleObjectSlap(Entity entity, Interaction interaction) {
+        if (interaction.dieWhenSlapped) {
+            Health health = entityData.getComponent(entity.getId(), Health.class);
+            entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, 0, health.maxHealth, health.unconscious));
+        }
+    }
+
+    private void handleCreatureSlap(Entity entity, short creatureId, short ownerId) {
 
         // Stats and health
         Creature creature = kwdFile.getCreature(creatureId);
@@ -145,12 +177,18 @@ public class CreatureSlapSystem implements IGameLogicUpdatable {
 
     private void processChangedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            double startTime = entity.get(CreatureSlapped.class).startTime;
-            short creatureId = entityData.getComponent(entity.getId(), CreatureComponent.class).creatureId;
-            short ownerId = entityData.getComponent(entity.getId(), Owner.class).ownerId;
+            double startTime = entity.get(Slapped.class).startTime;
 
-            // Slap
-            handleCreatureSlap(entity, startTime, creatureId, ownerId);
+            if (slapStartTimesByEntityId.get(entity.getId()) != startTime) {
+                slapStartTimesByEntityId.put(entity.getId(), startTime);
+                if (entity.get(CreatureComponent.class) != null) {
+                    short creatureId = entity.get(CreatureComponent.class).creatureId;
+                    short ownerId = entity.get(Owner.class).ownerId;
+
+                    // Slap
+                    handleCreatureSlap(entity, creatureId, ownerId);
+                }
+            }
         }
     }
 
@@ -162,6 +200,7 @@ public class CreatureSlapSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         creatureEntities.release();
+        objectEntities.release();
         slapStartTimesByEntityId.clear();
     }
 

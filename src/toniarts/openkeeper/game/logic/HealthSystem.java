@@ -25,12 +25,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -137,6 +139,8 @@ public class HealthSystem implements IGameLogicUpdatable {
     private void processDeath(EntityId entityId, double gameTime) {
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);
+        entityData.removeComponent(entityId, ChickenAi.class);
+        entityData.removeComponent(entityId, ObjectViewState.class);
         entityData.removeComponent(entityId, Navigation.class);
         entityData.removeComponent(entityId, Interaction.class);
         entityData.setComponent(entityId, new Death(gameTime));

@@ -19,21 +19,19 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Tagging component for something that has been slapped by the keeper. TODO:
- * Also objects can be slapped, but the mechanism needs some studying, for now
- * it is just easy to target the effect to creatures
+ * Tagging component for something that has been slapped by the keeper
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSlapped implements EntityComponent {
+public class Slapped implements EntityComponent {
 
     public double startTime;
 
-    public CreatureSlapped() {
+    public Slapped() {
         // For serialization
     }
 
-    public CreatureSlapped(double startTime) {
+    public Slapped(double startTime) {
         this.startTime = startTime;
     }
 

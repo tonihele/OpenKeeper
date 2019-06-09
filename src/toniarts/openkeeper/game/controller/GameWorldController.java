@@ -40,7 +40,6 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
-import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -55,6 +54,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
@@ -671,11 +671,20 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 return;
             }
 
+            Interaction interaction = entityData.getComponent(entity, Interaction.class);
+
             // Creatures (slapping)
             // TODO: Slap limit
             CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            if (creatureComponent != null) {
-                entityData.setComponent(entity, new CreatureSlapped(gameTimer.getGameTime()));
+            if (creatureComponent != null && interaction.slappable) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                return;
+            }
+
+            // Objects
+            ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+            if (objectComponent != null && interaction.slappable) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 return;
             }
         }

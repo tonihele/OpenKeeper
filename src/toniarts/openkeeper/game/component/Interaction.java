@@ -30,16 +30,18 @@ public class Interaction implements EntityComponent {
     public boolean slappable;
     public boolean pickUppable;
     public boolean canBeDroppedOnAnyLand;
+    public boolean dieWhenSlapped;
 
     public Interaction() {
         // For serialization
     }
 
-    public Interaction(boolean interactable, boolean slappable, boolean pickUppable, boolean canBeDroppedOnAnyLand) {
+    public Interaction(boolean interactable, boolean slappable, boolean pickUppable, boolean canBeDroppedOnAnyLand, boolean dieWhenSlapped) {
         this.interactable = interactable;
         this.slappable = slappable;
         this.pickUppable = pickUppable;
         this.canBeDroppedOnAnyLand = canBeDroppedOnAnyLand;
+        this.dieWhenSlapped = dieWhenSlapped;
     }
 
 }

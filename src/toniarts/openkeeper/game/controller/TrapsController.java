@@ -106,7 +106,7 @@ public class TrapsController implements ITrapsController {
         }
 
         // Add some interaction properties
-        entityData.setComponent(entity, new Interaction(true, false, false, false));
+        entityData.setComponent(entity, new Interaction(true, false, false, false, false));
 
         // The visual state
         entityData.setComponent(entity, new TrapViewState(trapId, blueprint));

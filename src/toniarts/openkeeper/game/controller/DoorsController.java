@@ -124,7 +124,7 @@ public class DoorsController implements IDoorsController {
         }
 
         // Add some interaction properties
-        entityData.setComponent(entity, new Interaction(true, false, false, false));
+        entityData.setComponent(entity, new Interaction(true, false, false, false, false));
 
         // The visual state
         entityData.setComponent(entity, new DoorViewState(doorId, locked, blueprint, false));
