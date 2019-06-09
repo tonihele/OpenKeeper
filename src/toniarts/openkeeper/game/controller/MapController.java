@@ -58,6 +58,7 @@ public final class MapController extends Container implements Savable, IMapContr
 
     private MapData mapData;
     private KwdFile kwdFile;
+    private IGameTimer gameTimer;
     private IObjectsController objectsController;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
@@ -75,12 +76,15 @@ public final class MapController extends Container implements Savable, IMapContr
      * @param kwdFile           the KWD file
      * @param objectsController objects controller
      * @param gameSettings      the game settings
+     * @param gameTimer
      */
-    public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            IGameTimer gameTimer) {
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
         this.mapData = new MapData(kwdFile);
         this.gameSettings = gameSettings;
+        this.gameTimer = gameTimer;
 
         // Load rooms
         loadRooms();
@@ -93,10 +97,11 @@ public final class MapController extends Container implements Savable, IMapContr
      * @param kwdFile      the KWD file
      * @param gameSettings the game settings
      */
-    public MapController(MapData mapData, KwdFile kwdFile, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public MapController(MapData mapData, KwdFile kwdFile, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
         this.mapData = mapData;
         this.kwdFile = kwdFile;
         this.gameSettings = gameSettings;
+        this.gameTimer = gameTimer;
     }
 
     public MapController(MapData mapData, KwdFile kwdFile) {
@@ -130,7 +135,7 @@ public final class MapController extends Container implements Savable, IMapContr
         findRoom(p, roomInstance);
 
         // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(kwdFile, roomInstance, objectsController, gameSettings);
+        IRoomController roomController = RoomControllerFactory.constructRoom(kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
 

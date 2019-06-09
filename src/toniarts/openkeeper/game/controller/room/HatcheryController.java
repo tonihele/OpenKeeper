@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room;
 
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.Utils;
@@ -29,10 +30,14 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class HatcheryController extends NormalRoomController implements IChickenGenerator {
 
-    private double lastSpawnTime = Double.MIN_VALUE;
+    private double lastSpawnTime;
+    private final IGameTimer gameTimer;
 
-    public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(kwdFile, roomInstance, objectsController);
+
+        this.gameTimer = gameTimer;
+        lastSpawnTime = gameTimer.getGameTime();
     }
 
     @Override
@@ -59,7 +64,7 @@ public class HatcheryController extends NormalRoomController implements IChicken
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        lastSpawnTime = Double.MIN_VALUE;
+        lastSpawnTime = gameTimer.getGameTime();
     }
 
     @Override

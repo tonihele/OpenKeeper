@@ -51,7 +51,7 @@ public final class RoomControllerFactory {
     }
 
     public static IRoomController constructRoom(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
 
         String roomName = roomInstance.getRoom().getName();
 
@@ -92,7 +92,7 @@ public final class RoomControllerFactory {
                 } else if (roomName.equalsIgnoreCase("Treasury")) {
                     return new TreasuryController(kwdFile, roomInstance, objectsController, gameSettings);
                 } else if (roomName.equalsIgnoreCase("Hatchery")) {
-                    return new HatcheryController(kwdFile, roomInstance, objectsController);
+                    return new HatcheryController(kwdFile, roomInstance, objectsController, gameTimer);
                 }
                 return new NormalRoomController(kwdFile, roomInstance, objectsController);
 

@@ -119,7 +119,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
