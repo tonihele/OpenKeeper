@@ -280,4 +280,14 @@ public class StrFile {
     public MbToUniFile getCodePage() {
         return codePage;
     }
+
+    /**
+     * Get file ID
+     *
+     * @return file ID
+     */
+    public int getFileId() {
+        return fileId;
+    }
+
 }
