@@ -56,10 +56,10 @@ public class MbToUniFile {
             if (!CODEPAGE_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
-            singleCount = rawCodepage.readByte();
-            unknown1 = rawCodepage.readByte();
-            count1 = rawCodepage.readByte();
-            count2 = rawCodepage.readByte();
+            singleCount = rawCodepage.readUnsignedByte();
+            unknown1 = rawCodepage.readUnsignedByte();
+            count1 = rawCodepage.readUnsignedByte();
+            count2 = rawCodepage.readUnsignedByte();
             byte[] data = rawCodepage.read((int) (rawCodepage.length() - rawCodepage.getFilePointer()));
 
             threshold = 255 - singleCount;
