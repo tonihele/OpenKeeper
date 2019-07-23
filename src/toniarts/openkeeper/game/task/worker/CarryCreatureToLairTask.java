@@ -65,6 +65,9 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
         this.creature.sleep();
         executed = true;
+
+        // Set the dragged state
+        this.creature.setHaulable(null);
     }
 
     @Override

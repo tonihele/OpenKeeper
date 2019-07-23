@@ -475,7 +475,10 @@ public class CreatureController implements ICreatureController {
             EntityId nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
             for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-                if (creaturesController.isValidEntity(entity) && isEnemy(entity) && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))) {
+                if (creaturesController.isValidEntity(entity)
+                        && isEnemy(entity)
+                        && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                        && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                     float distance = getDistanceToCreature(entity);
                     if (distance < nearestDistance) {
                         nearestDistance = distance;
@@ -493,6 +496,13 @@ public class CreatureController implements ICreatureController {
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
         return attackTargetController;
+    }
+
+    private boolean hasPathToEntity(EntityId entity) {
+        Point ourPos = WorldUtils.vectorToPoint(getPosition());
+        Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
+
+        return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
     }
 
     private void setAttackTarget(EntityId entity) {
@@ -1197,5 +1207,5 @@ public class CreatureController implements ICreatureController {
         }
         return true;
     }
-
+    
 }

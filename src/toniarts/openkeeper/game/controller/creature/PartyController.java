@@ -131,6 +131,7 @@ public class PartyController implements IPartyController {
 
     @Override
     public ICreatureController getPartyLeader() {
+        checkPartyLeader();
         return leader;
     }
 
@@ -148,27 +149,27 @@ public class PartyController implements IPartyController {
     /**
      * A party member is incapacitated, if it was the leader. Swap the duties
      * and objectives
-     *
-     * @param creature the creature incapacitated
      */
-    protected void partyMemberIncapacitated(ICreatureController creature) {
-        if (isPartyLeader(creature)) {
+    private void checkPartyLeader() {
+        if (leader != null && leader.isIncapacitated()) {
             List<ICreatureController> leaderCandidates = new ArrayList<>(getActualMembers());
             Iterator<ICreatureController> iter = leaderCandidates.iterator();
             while (iter.hasNext()) {
                 ICreatureController c = iter.next();
-                if (c.isIncapacitated() || creature.equals(c)) {
+                if (c.isIncapacitated()) {
                     iter.remove();
                 }
             }
 
             // See if any left
             if (!leaderCandidates.isEmpty()) {
+                ICreatureController oldLeader = leader;
                 leader = Utils.getRandomItem(leaderCandidates);
 
                 // Swap duties
-                leader.setObjectiveTargetActionPointId(creature.getObjectiveTargetActionPointId());
-                leader.setObjective(creature.getObjective());
+                // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
+                leader.setObjectiveTargetActionPointId(oldLeader.getObjectiveTargetActionPointId());
+                leader.setObjective(oldLeader.getObjective());
             }
         }
     }

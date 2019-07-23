@@ -58,10 +58,9 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
         // Add new & remove old
         if (creatureEntities.applyChanges()) {
+            processDeletedEntities(creatureEntities.getRemovedEntities());
 
             processAddedEntities(creatureEntities.getAddedEntities());
-
-            processDeletedEntities(creatureEntities.getRemovedEntities());
         }
 
         // Process ticks
