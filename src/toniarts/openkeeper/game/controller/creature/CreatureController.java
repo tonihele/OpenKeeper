@@ -782,12 +782,30 @@ public class CreatureController implements ICreatureController {
     @Override
     public boolean canWalkOnWater() {
         Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        if (!mobile.canWalkOnWater) {
+
+            // We need anyway to get out from water if we are tossed in such
+            Vector3f pos = getPosition();
+            if (pos != null) {
+                Point p = WorldUtils.vectorToPoint(pos);
+                return mapController.isWater(p.x, p.y);
+            }
+        }
         return mobile.canWalkOnWater;
     }
 
     @Override
     public boolean canWalkOnLava() {
         Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        if (!mobile.canWalkOnLava) {
+
+            // We need anyway to get out from lava if we are tossed in such
+            Vector3f pos = getPosition();
+            if (pos != null) {
+                Point p = WorldUtils.vectorToPoint(pos);
+                return mapController.isLava(p.x, p.y);
+            }
+        }
         return mobile.canWalkOnLava;
     }
 

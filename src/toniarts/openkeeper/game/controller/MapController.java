@@ -398,6 +398,26 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
+    public boolean isWater(int x, int y) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain.getFlags().contains(Terrain.TerrainFlag.WATER);
+    }
+
+    @Override
+    public boolean isLava(int x, int y) {
+        MapTile tile = getMapData().getTile(x, y);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            return terrain.getFlags().contains(Terrain.TerrainFlag.LAVA);
+    }
+
+    @Override
     public void setTiles(List<MapTile> tiles) {
         mapData.setTiles(tiles);
     }

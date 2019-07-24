@@ -139,4 +139,22 @@ public interface IMapInformation {
      */
     public boolean isClaimableRoom(int x, int y, short playerId);
 
+    /**
+     * Is water tile at the coordinates
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return is the tile water
+     */
+    public boolean isWater(int x, int y);
+
+    /**
+     * Is water tile at the coordinates
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @return is the tile lava
+     */
+    public boolean isLava(int x, int y);
+
 }

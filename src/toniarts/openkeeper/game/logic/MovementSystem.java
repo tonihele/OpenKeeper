@@ -139,8 +139,10 @@ public class MovementSystem implements IGameLogicUpdatable {
         ISteerableEntity steerableEntity = steerableEntitiesByEntityId.remove(entity.getId());
         EntitySteeringBehavior steeringBehavior = steeringBehaviorsBySteerableEntity.remove(steerableEntity);
         steerableEntitiesBySteeringBehavior.remove(steeringBehavior);
-        int index = Collections.binarySearch(steeringBehaviors, steeringBehavior);
-        steeringBehaviors.remove(index);
+        if (steeringBehavior != null) {
+            int index = Collections.binarySearch(steeringBehaviors, steeringBehavior);
+            steeringBehaviors.remove(index);
+        }
         steeringOutputsBySteeringBehaviors.remove(steeringBehavior);
         entityIdsBySteeringBehavior.remove(steeringBehavior);
         targetPointsByEntityId.remove(entity.getId());
