@@ -39,7 +39,7 @@ public class HatcheryController extends NormalRoomController implements IChicken
     public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(kwdFile, roomInstance, objectsController);
 
-        roomFoodControl = new RoomFoodControl(kwdFile, this, objectsController) {
+        roomFoodControl = new RoomFoodControl(kwdFile, this, objectsController, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

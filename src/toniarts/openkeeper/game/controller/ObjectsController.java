@@ -68,6 +68,12 @@ public class ObjectsController implements IObjectsController {
     public final static short OBJECT_CHICKEN_ID = 9;
     public final static short OBJECT_EGG_ID = 47;
 
+    /**
+     * Some objects have these die over time, I'm not sure what variable governs
+     * these so.. here we go for now
+     */
+    public static final double OBJECT_TIME_TO_LIVE = 60;
+
     private KwdFile kwdFile;
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;

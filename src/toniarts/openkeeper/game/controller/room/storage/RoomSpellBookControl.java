@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -37,8 +39,8 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
 
     private int storedSpellBooks = 0;
 
-    public RoomSpellBookControl(IRoomController parent, IObjectsController objectsController) {
-        super(parent, objectsController);
+    public RoomSpellBookControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(kwdFile, parent, objectsController, gameTimer);
     }
 
     @Override

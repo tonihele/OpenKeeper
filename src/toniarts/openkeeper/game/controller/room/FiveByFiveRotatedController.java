@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -45,10 +46,10 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
     private final List<Point> spawnPoints = new ArrayList<>(16);
 
     public FiveByFiveRotatedController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
         super(kwdFile, roomInstance, objectsController);
         final int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
-        addObjectControl(new RoomGoldControl(this, objectsController) {
+        addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
 
             @Override
             protected int getGoldPerObject() {

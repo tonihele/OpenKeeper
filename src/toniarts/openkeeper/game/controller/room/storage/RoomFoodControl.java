@@ -21,7 +21,7 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -36,8 +36,8 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
 
     private int chickens = 0;
 
-    public RoomFoodControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController) {
-        super(parent, objectsController);
+    public RoomFoodControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(kwdFile, parent, objectsController, gameTimer);
     }
 
     @Override
@@ -70,7 +70,7 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
         for (Collection<EntityId> objects : objectList) {
             for (EntityId obj : objects) {
-                objectsController.getEntityData().removeComponent(obj, RoomStorage.class);
+                removeItem(obj);
             }
         }
     }

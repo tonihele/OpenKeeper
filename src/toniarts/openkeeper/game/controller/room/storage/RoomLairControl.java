@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -34,12 +35,10 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId> {
 
-    private final KwdFile kwdFile;
     private int lairs = 0;
 
-    public RoomLairControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController) {
-        super(parent, objectsController);
-        this.kwdFile = kwdFile;
+    public RoomLairControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(kwdFile, parent, objectsController, gameTimer);
     }
 
     @Override

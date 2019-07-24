@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureTorturingSystem;
 import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.logic.DeathSystem;
+import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
@@ -251,6 +252,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Game logic
         gameLogicThread = new GameLogicManager(positionSystem,
                 gameWorldController.getMapController(),
+                new DecaySystem(entityData),
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
                 new SlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController()),
