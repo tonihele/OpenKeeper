@@ -39,6 +39,17 @@ public interface INavigationService {
     Point findRandomAccessibleTile(Point start, int radius, INavigable navigable);
 
     /**
+     * Get a random tile from current room, that is not a starting tile. The
+     * starting tile must be a room.
+     *
+     * @param start starting coordinates
+     * @param radius radius, in tiles
+     * @param navigable the navigable entity
+     * @return a random tile if one is found
+     */
+    Point findRandomTileInRoom(Point start, int radius, INavigable navigable);
+
+    /**
      * Finds a path between the given points if there is one
      *
      * @param start start point

@@ -55,7 +55,7 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
 
     @Override
     public EntityId addItem(EntityId researcher, Point p) {
-        setRoomStorageToItem(researcher);
+        setRoomStorageToItem(researcher, false);
         return researcher;
     }
 
@@ -63,6 +63,11 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
     public void destroy() {
 
         // TODO: The researcher can't do his/her job
+    }
+
+    @Override
+    public void captured(short playerId) {
+
     }
 
     @Override

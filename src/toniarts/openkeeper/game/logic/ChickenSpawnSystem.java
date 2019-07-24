@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Collection;
 import java.util.HashMap;
@@ -97,18 +98,19 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
         double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
         IPlayerController player = playerControllersById.get(entrance.getRoomInstance().getOwnerId());
         boolean spawned = false;
+        EntityId entityId = null;
         if (timeSinceLastSpawn >= entranceCooldownTime && !entrance.isFullCapacity()) {
 
             // Spawn chicken
             Point entranceCoordinate = entrance.getEntranceCoordinate();
-            objectsController.spawnChicken(entrance.getRoomInstance().getOwnerId(), WorldUtils.pointToVector3f(entranceCoordinate));
+            entityId = objectsController.spawnChicken(entrance.getRoomInstance().getOwnerId(), WorldUtils.pointToVector3f(entranceCoordinate));
             spawned = true;
         }
 
         if (spawned) {
 
             // Reset spawn time
-            entrance.onSpawn(gameTime);
+            entrance.onSpawn(gameTime, entityId);
         }
     }
 

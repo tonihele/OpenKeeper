@@ -88,7 +88,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
                 if (entityId != null) {
                     goldPiles.add(entityId);
                     objectsByCoordinate.put(p, goldPiles);
-                    setRoomStorageToItem(entityId);
+                    setRoomStorageToItem(entityId, true);
                 }
             } else {
 

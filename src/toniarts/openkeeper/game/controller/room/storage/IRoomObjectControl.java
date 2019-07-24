@@ -93,4 +93,11 @@ public interface IRoomObjectControl<V> {
      */
     Collection<Point> getAvailableCoordinates();
 
+    /**
+     * Notifies that the room has been captured
+     *
+     * @param playerId the new owner
+     */
+    void captured(short playerId);
+
 }

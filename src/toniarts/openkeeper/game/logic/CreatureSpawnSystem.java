@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -120,12 +121,13 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
         double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
         IPlayerController player = playerControllersById.get(entrance.getRoomInstance().getOwnerId());
         boolean spawned = false;
+        EntityId entityId = null;
         if (timeSinceLastSpawn >= freeImpCoolDownTime && entrance.isDungeonHeart()) {
             if (player.getCreatureControl().getImpCount() < minimumImpCount) {
 
                 // Spawn imp
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
+                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
                 spawned = true;
             }
         } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
@@ -150,7 +152,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
             if (!possibleCreatures.isEmpty()) {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), true);
+                entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), true);
                 spawned = true;
             }
         }
@@ -158,7 +160,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
         if (spawned) {
 
             // Reset spawn time
-            entrance.onSpawn(gameTime);
+            entrance.onSpawn(gameTime, entityId);
         }
     }
 

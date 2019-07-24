@@ -50,14 +50,18 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId creature, Point p) {
-        setRoomStorageToItem(creature);
+        setRoomStorageToItem(creature, false);
         return creature;
     }
 
     @Override
     public void destroy() {
-
         // TODO: The prisoners are released!
+    }
+
+    @Override
+    public void captured(short playerId) {
+        // TODO: Also the prisoners might get released...
     }
 
 }

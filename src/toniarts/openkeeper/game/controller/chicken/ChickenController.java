@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.map.MapTile;
@@ -81,9 +82,19 @@ public class ChickenController implements IChickenController {
         final Position position = entityData.getComponent(entityId, Position.class);
         final Mobile mobile = entityData.getComponent(entityId, Mobile.class);
         final Owner owner = entityData.getComponent(entityId, Owner.class);
+        final RoomStorage roomStorage = entityData.getComponent(entityId, RoomStorage.class);
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
-            Point destination = navigationService.findRandomAccessibleTile(start, 3, this);
+            Point destination = null;
+            if (roomStorage != null) {
+
+                // Koppi-kana, not a happy chicken
+                destination = navigationService.findRandomTileInRoom(start, 3, this);
+            } else {
+
+                // Free-range chicken
+                destination = navigationService.findRandomAccessibleTile(start, 3, this);
+            }
             if (destination != null) {
                 createNavigation(start, destination, null);
             }

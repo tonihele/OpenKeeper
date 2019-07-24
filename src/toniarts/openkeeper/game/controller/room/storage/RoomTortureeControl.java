@@ -55,7 +55,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
-        setRoomStorageToItem(torturee);
+        setRoomStorageToItem(torturee, false);
         return torturee;
     }
 
@@ -63,6 +63,11 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     public void destroy() {
 
         // TODO: The creature is released
+    }
+
+    @Override
+    public void captured(short playerId) {
+
     }
 
     @Override

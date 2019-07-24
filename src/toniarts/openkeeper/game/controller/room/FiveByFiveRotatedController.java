@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -121,7 +122,7 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
     }
 
     @Override
-    public void onSpawn(double time) {
+    public void onSpawn(double time, EntityId entityId) {
         this.lastSpawnTime = time;
     }
 

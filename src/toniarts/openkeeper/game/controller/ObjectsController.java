@@ -244,8 +244,6 @@ public class ObjectsController implements IObjectsController {
         // I don't know could we make it anymore generic or easy
         EntityId entity = loadObject(OBJECT_EGG_ID, ownerId, pos, 0);
 
-        //entityData.setComponent(entity, new ObjectViewState(OBJECT_EGG_ID, GameObject.State.HATCHING, true));
-
         // Add the chicken AI :)
         entityData.setComponent(entity, new ChickenAi(gameTimer.getGameTime(), ChickenState.HATCHING_START));
 
@@ -257,7 +255,6 @@ public class ObjectsController implements IObjectsController {
         Owner owner = entityData.getComponent(entityId, Owner.class);
         Position position = entityData.getComponent(entityId, Position.class);
         loadObject(entityId, OBJECT_CHICKEN_ID, owner.ownerId, position.position, position.rotation, null, null, null, null);
-        //entityData.setComponent(entityId, new ObjectViewState(OBJECT_CHICKEN_ID, GameObject.State.WANDER, true));
     }
 
     @Override

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -145,8 +146,33 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         return coordinates;
     }
 
-    protected void setRoomStorageToItem(EntityId entityId) {
+    protected void setRoomStorageToItem(EntityId entityId, boolean changeOwner) {
         objectsController.getEntityData().setComponent(entityId, new RoomStorage(getObjectType()));
+
+        if (changeOwner) {
+
+            // Also set the owner if there is one already
+            changeEntityOwner(entityId, parent.getRoomInstance().getOwnerId());
+        }
+    }
+
+    @Override
+    public void captured(short playerId) {
+
+        // The new owner shall also own the riches we hold
+        List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
+        for (Collection<EntityId> objects : objectList) {
+            for (EntityId obj : objects) {
+                changeEntityOwner(obj, playerId);
+            }
+        }
+    }
+
+    private void changeEntityOwner(EntityId entity, short playerId) {
+        Owner owner = objectsController.getEntityData().getComponent(entity, Owner.class);
+        if (owner != null && owner.ownerId != playerId) {
+            objectsController.getEntityData().setComponent(entity, new Owner(playerId));
+        }
     }
 
 }

@@ -583,6 +583,14 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
         playerHandControl.push(entity);
 
+        /**
+         * TODO: Basically here we can have a concurrency problem, especially
+         * visible with things that have AI. The AI or other systems may be
+         * still processing and manipulating stuff. One way to fix would be to
+         * add this to game loop queue to be executed. That would introduce a
+         * delay though...
+         */
+
         // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
         // And also no need to create a system for this which saves resources
         Position position = entityData.getComponent(entity, Position.class);

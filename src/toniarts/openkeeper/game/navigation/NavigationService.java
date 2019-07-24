@@ -22,6 +22,8 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.MapTile;
@@ -32,6 +34,7 @@ import toniarts.openkeeper.game.navigation.pathfinding.MapPathFinder;
 import toniarts.openkeeper.utils.Utils;
 
 /**
+ * Offers navigation related services
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -42,6 +45,8 @@ public class NavigationService implements INavigationService {
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
+
+    private static final Logger LOGGER = Logger.getLogger(NavigationService.class.getName());
 
     public NavigationService(IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         this.mapController = mapController;
@@ -55,10 +60,26 @@ public class NavigationService implements INavigationService {
 
     @Override
     public Point findRandomAccessibleTile(Point start, int radius, INavigable navigable) {
+        return findRandomAccessibleTile(start, radius, navigable, null);
+    }
+
+    @Override
+    public Point findRandomTileInRoom(Point start, int radius, INavigable navigable) {
+        RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(start);
+        if (roomInstance == null) {
+            LOGGER.warning(() -> "Starting point " + start + " is not in a room!");
+            return null;
+        }
+        Set<Point> allowedTiles = new HashSet<>(roomInstance.getCoordinates());
+
+        return findRandomAccessibleTile(start, radius, navigable, allowedTiles);
+    }
+
+    private Point findRandomAccessibleTile(Point start, int radius, INavigable navigable, Set<Point> allowedTiles) {
         Set<Point> tiles = new HashSet<>(radius * radius - 1);
 
         // Start growing the circle, always testing the tile
-        getAccessibleNeighbours(mapController.getMapData().getTile(start.x, start.y), radius, navigable, tiles);
+        getAccessibleNeighbours(mapController.getMapData().getTile(start.x, start.y), radius, navigable, tiles, allowedTiles);
         tiles.remove(start);
 
         // Take a random point
@@ -68,16 +89,19 @@ public class NavigationService implements INavigationService {
         return null;
     }
 
-    private void getAccessibleNeighbours(MapTile startTile, int radius, INavigable navigable, Set<Point> tiles) {
+    private void getAccessibleNeighbours(MapTile startTile, int radius, INavigable navigable, Set<Point> tiles, Set<Point> allowedTiles) {
         if (radius > 0) {
             for (int y = startTile.getY() - 1; y <= startTile.getY() + 1; y++) {
                 for (int x = startTile.getX() - 1; x <= startTile.getX() + 1; x++) {
 
                     // If this is good, add and get neighbours
                     MapTile tile = mapController.getMapData().getTile(x, y);
-                    if (tile != null && !tiles.contains(tile.getLocation()) && isAccessible(startTile, tile, navigable)) {
+                    if (tile != null
+                            && !tiles.contains(tile.getLocation())
+                            && isAccessible(startTile, tile, navigable)
+                            && (allowedTiles == null || allowedTiles.contains(tile.getLocation()))) {
                         tiles.add(tile.getLocation());
-                        getAccessibleNeighbours(tile, radius - 1, navigable, tiles);
+                        getAccessibleNeighbours(tile, radius - 1, navigable, tiles, allowedTiles);
                     }
                 }
             }

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 
 /**
@@ -43,7 +44,8 @@ public interface IEntityGenerator extends IRoomController {
      * Notifies that a entity was spawn from this room
      *
      * @param time the time the entity was spawn
+     * @param entityId spawned entity ID
      */
-    public void onSpawn(double time);
+    public void onSpawn(double time, EntityId entityId);
 
 }

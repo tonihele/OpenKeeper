@@ -68,7 +68,7 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         }
         objects.add(object);
         objectsByCoordinate.put(p, objects);
-        setRoomStorageToItem(object);
+        setRoomStorageToItem(object, true);
         lairs++;
         return object;
     }

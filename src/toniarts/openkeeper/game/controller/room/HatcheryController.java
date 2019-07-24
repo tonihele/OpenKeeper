@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomFoodControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.Utils;
 
@@ -32,9 +34,19 @@ public class HatcheryController extends NormalRoomController implements IChicken
 
     private double lastSpawnTime;
     private final IGameTimer gameTimer;
+    private final RoomFoodControl roomFoodControl;
 
     public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(kwdFile, roomInstance, objectsController);
+
+        roomFoodControl = new RoomFoodControl(kwdFile, this, objectsController) {
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return roomInstance.getCoordinates().size();
+            }
+        };
+        addObjectControl(roomFoodControl);
 
         this.gameTimer = gameTimer;
         lastSpawnTime = gameTimer.getGameTime();
@@ -57,8 +69,9 @@ public class HatcheryController extends NormalRoomController implements IChicken
     }
 
     @Override
-    public void onSpawn(double time) {
+    public void onSpawn(double time, EntityId entityId) {
         this.lastSpawnTime = time;
+        this.roomFoodControl.addItem(entityId, start);
     }
 
     @Override
