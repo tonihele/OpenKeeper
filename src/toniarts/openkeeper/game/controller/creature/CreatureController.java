@@ -127,6 +127,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean shouldFleeOrAttack() {
+        checkSurroundings();
 
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
@@ -164,6 +165,21 @@ public class CreatureController implements ICreatureController {
         }
 
         return false;
+    }
+
+    @Override
+    public void checkSurroundings() {
+
+        // Scan for neutral creatures to claim
+        short ownerId = getOwnerId();
+        if (ownerId != Player.NEUTRAL_PLAYER_ID && ownerId != Player.GOOD_PLAYER_ID) {
+            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+                Owner owner = entityData.getComponent(entity, Owner.class);
+                if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
+                    entityData.setComponent(entity, new Owner(ownerId));
+                }
+            }
+        }
     }
 
     /**
@@ -1225,5 +1241,5 @@ public class CreatureController implements ICreatureController {
         }
         return true;
     }
-    
+
 }

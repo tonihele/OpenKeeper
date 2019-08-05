@@ -34,7 +34,6 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import com.simsilica.es.Entity;
-import com.simsilica.es.EntityChange;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -317,8 +316,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
             Mesh mesh = createMesh(0.5f, 0.5f);
             spatial = new Geometry("Health indicator", mesh);
             material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-            Color c = MapThumbnailGenerator.getPlayerColor(getOwnerId());
-            material.setColor("Color", new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f));
+            setFlowerColor(getPlayerColor());
             spatial.setMaterial(material);
             material.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
             material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
@@ -329,6 +327,20 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
             generateTexture();
         }
         return spatial;
+    }
+
+    protected final Color getPlayerColor() {
+        return getPlayerColor(getOwnerId());
+    }
+
+    protected static Color getPlayerColor(short ownerId) {
+        return MapThumbnailGenerator.getPlayerColor(ownerId);
+    }
+
+    protected final void setFlowerColor(Color c) {
+        if (material != null) {
+            material.setColor("Color", new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f));
+        }
     }
 
     @Override

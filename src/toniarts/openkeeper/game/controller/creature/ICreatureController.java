@@ -36,6 +36,11 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean shouldFleeOrAttack();
 
+    /**
+     * Checks what the creature sees and hears
+     */
+    public void checkSurroundings();
+
     public void unassingCurrentTask();
 
     public void navigateToRandomPoint();
