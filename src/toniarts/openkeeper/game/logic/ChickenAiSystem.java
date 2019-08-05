@@ -64,10 +64,9 @@ public class ChickenAiSystem implements IGameLogicUpdatable {
 
         // Add new & remove old
         if (chickenEntities.applyChanges()) {
+            processDeletedEntities(chickenEntities.getRemovedEntities());
 
             processAddedEntities(chickenEntities.getAddedEntities());
-
-            processDeletedEntities(chickenEntities.getRemovedEntities());
         }
 
         // Process ticks
@@ -114,18 +113,21 @@ public class ChickenAiSystem implements IGameLogicUpdatable {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            IChickenController creatureController = objectsController.createChickenController(entity.getId());
-            int index = Collections.binarySearch(chickenControllers, creatureController);
-            chickenControllers.add(~index, creatureController);
-            chickenControllersByEntityId.put(entity.getId(), creatureController);
+            IChickenController chickenController = objectsController.createChickenController(entity.getId());
+            int index = Collections.binarySearch(chickenControllers, chickenController);
+            chickenControllers.add(~index, chickenController);
+            chickenControllersByEntityId.put(entity.getId(), chickenController);
         }
     }
 
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            IChickenController creatureController = chickenControllersByEntityId.remove(entity.getId());
-            int index = Collections.binarySearch(chickenControllers, creatureController);
-            chickenControllers.remove(index);
+            IChickenController chickenController = chickenControllersByEntityId.remove(entity.getId());
+            if (chickenController != null) {
+                int index = Collections.binarySearch(chickenControllers, chickenController);
+                chickenControllers.remove(index);
+                chickenController.getStateMachine().changeState(null);
+            }
         }
     }
 

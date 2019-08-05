@@ -594,9 +594,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
         // And also no need to create a system for this which saves resources
         Position position = entityData.getComponent(entity, Position.class);
+        entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
-        entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, TaskComponent.class);
         entityData.removeComponent(entity, CreatureRecuperating.class);
         entityData.removeComponent(entity, CreatureTortured.class);
@@ -604,12 +604,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         entityData.removeComponent(entity, AttackTarget.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
-
-        // Since we keep reference on the creature controller classes... nullify the state machine
-        // TODO: kinda hack?
-        if (creaturesController.isValidEntity(entity)) {
-            creaturesController.createController(entity).getStateMachine().changeState(null);
-        }
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
