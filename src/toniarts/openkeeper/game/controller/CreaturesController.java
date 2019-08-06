@@ -479,9 +479,22 @@ public class CreaturesController implements ICreaturesController {
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
-        return creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
-            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo));
+        ICreatureController creatureController = creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
+            return new WeakReference<>(createCreatureController(id, creatureComponent));
         }).get();
+
+        // Hmm, the entity IDs seem to be referenced somewhere, they outlast the controllers
+        // So maybe this is all very unnecessary...
+        if (creatureController == null) {
+            creatureController = createCreatureController(entityId, creatureComponent);
+            creatureControllersByEntityId.put(entityId, new WeakReference<>(creatureController));
+        }
+
+        return creatureController;
+    }
+
+    private CreatureController createCreatureController(EntityId id, CreatureComponent creatureComponent) {
+        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo);
     }
 
     @Override
