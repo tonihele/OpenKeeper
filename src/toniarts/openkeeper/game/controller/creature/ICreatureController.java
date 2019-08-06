@@ -225,4 +225,11 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      */
     public void imprison();
 
+    /**
+     * Is the (neutral) creature claimed
+     *
+     * @return returns {@code true} if the creature is owned by a keeper
+     */
+    public boolean isClaimed();
+
 }

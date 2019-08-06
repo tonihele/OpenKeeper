@@ -72,6 +72,9 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
             ICreatureController creatureController = creaturesController.createController(entity.getId());
+            if (creatureController == null) {
+                int i = 10;
+            }
             int index = Collections.binarySearch(creatureControllers, creatureController);
             creatureControllers.add(~index, creatureController);
             creatureControllersByEntityId.put(entity.getId(), creatureController);

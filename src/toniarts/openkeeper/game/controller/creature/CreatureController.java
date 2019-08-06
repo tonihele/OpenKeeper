@@ -1218,6 +1218,11 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
+    public boolean isClaimed() {
+        return Player.NEUTRAL_PLAYER_ID != getOwnerId();
+    }
+
+    @Override
     public int hashCode() {
         int hash = 7;
         hash = 37 * hash + Objects.hashCode(this.entityId);
