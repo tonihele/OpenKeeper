@@ -16,9 +16,11 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomFoodControl;
@@ -71,7 +73,9 @@ public class HatcheryController extends NormalRoomController implements IChicken
     @Override
     public void onSpawn(double time, EntityId entityId) {
         this.lastSpawnTime = time;
-        this.roomFoodControl.addItem(entityId, start);
+        if (entityId != null) {
+            this.roomFoodControl.addItem(entityId, start);
+        }
     }
 
     @Override
@@ -90,5 +94,17 @@ public class HatcheryController extends NormalRoomController implements IChicken
     protected int getMaxCapacity() {
         return roomInstance.getCoordinates().size();
     }
+
+    @Override
+    protected void constructObjects() {
+        super.constructObjects();
+
+        // The only objects we have are coops, they don't seem to have any indicator etc. so to avoid hard coding an ID and to allow maximum editability, all objects in the room generate chickens
+        EntityData entityData = objectsController.getEntityData();
+        for (EntityId obj : floorFurniture) {
+            entityData.setComponent(obj, new ChickenGenerator());
+        }
+    }
+
 
 }

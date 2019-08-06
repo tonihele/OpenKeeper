@@ -57,6 +57,16 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
     public EntityId spawnChicken(short ownerId, Vector3f pos);
 
     /**
+     * Spawns an freerange chicken in specified position.
+     *
+     * @param ownerId the chicken owner
+     * @param pos spawn position
+     * @param gameTime the current game time
+     * @return return the entity ID for the generated chicken
+     */
+    public EntityId spawnFreerangeChicken(short ownerId, Vector3f pos, double gameTime);
+
+    /**
      * Transforms entity into a chicken (destructive operation). Mainly meant to
      * be used when eggs hatch
      *

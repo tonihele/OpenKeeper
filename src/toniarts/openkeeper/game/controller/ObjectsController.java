@@ -25,6 +25,7 @@ import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
@@ -252,6 +253,15 @@ public class ObjectsController implements IObjectsController {
 
         // Add the chicken AI :)
         entityData.setComponent(entity, new ChickenAi(gameTimer.getGameTime(), ChickenState.HATCHING_START));
+
+        return entity;
+    }
+
+    @Override
+    public EntityId spawnFreerangeChicken(short ownerId, Vector3f pos, double gameTime) {
+        EntityId entity = spawnChicken(ownerId, pos);
+
+        entityData.setComponent(entity, new Decay(gameTime, OBJECT_TIME_TO_LIVE));
 
         return entity;
     }
