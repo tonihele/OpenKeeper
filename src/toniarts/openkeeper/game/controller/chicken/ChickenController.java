@@ -27,7 +27,6 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.ChickenAi;
-import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mobile;
@@ -45,7 +44,7 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Controls an entity with {@link CreatureAi} component. Basically supports the
+ * Controls an entity with {@link ChickenAi} component. Basically supports the
  * AI state machine.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
