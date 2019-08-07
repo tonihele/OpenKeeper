@@ -40,7 +40,6 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
-import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -55,6 +54,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
@@ -116,10 +116,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
 
         // Load objects
-        objectsController = new ObjectsController(kwdFile, entityData, gameSettings);
+        objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
@@ -583,12 +583,20 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
         playerHandControl.push(entity);
 
+        /**
+         * TODO: Basically here we can have a concurrency problem, especially
+         * visible with things that have AI. The AI or other systems may be
+         * still processing and manipulating stuff. One way to fix would be to
+         * add this to game loop queue to be executed. That would introduce a
+         * delay though...
+         */
+
         // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
         // And also no need to create a system for this which saves resources
         Position position = entityData.getComponent(entity, Position.class);
+        entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
-        entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, TaskComponent.class);
         entityData.removeComponent(entity, CreatureRecuperating.class);
         entityData.removeComponent(entity, CreatureTortured.class);
@@ -596,12 +604,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         entityData.removeComponent(entity, AttackTarget.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
-
-        // Since we keep reference on the creature controller classes... nullify the state machine
-        // TODO: kinda hack?
-        if (creaturesController.isValidEntity(entity)) {
-            creaturesController.createController(entity).getStateMachine().changeState(null);
-        }
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
@@ -671,11 +673,20 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 return;
             }
 
+            Interaction interaction = entityData.getComponent(entity, Interaction.class);
+
             // Creatures (slapping)
             // TODO: Slap limit
             CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            if (creatureComponent != null) {
-                entityData.setComponent(entity, new CreatureSlapped(gameTimer.getGameTime()));
+            if (creatureComponent != null && interaction.slappable) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                return;
+            }
+
+            // Objects
+            ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+            if (objectComponent != null && interaction.slappable) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 return;
             }
         }

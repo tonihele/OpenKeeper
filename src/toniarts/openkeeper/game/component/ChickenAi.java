@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,24 +17,34 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.controller.chicken.ChickenState;
 
 /**
- * Tagging component for something that has been slapped by the keeper. TODO:
- * Also objects can be slapped, but the mechanism needs some studying, for now
- * it is just easy to target the effect to creatures
+ * Simple chicken AI component
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSlapped implements EntityComponent {
+public class ChickenAi implements EntityComponent {
 
-    public double startTime;
+    public double stateStartTime;
+    private int chickenState;
 
-    public CreatureSlapped() {
-        // For serialization
+    public ChickenAi() {
     }
 
-    public CreatureSlapped(double startTime) {
-        this.startTime = startTime;
+    public ChickenAi(double stateStartTime, ChickenState chickenState) {
+        this.stateStartTime = stateStartTime;
+        this.chickenState = chickenState.ordinal();
+    }
+
+    public final ChickenState getChickenState() {
+
+        /**
+         * The creature state enum is not final class, so FieldSerializer wont
+         * serialize it. Easiest for us now is just to emulate the serialization
+         * like this
+         */
+        return ChickenState.class.getEnumConstants()[chickenState];
     }
 
 }

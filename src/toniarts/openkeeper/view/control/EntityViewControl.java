@@ -54,7 +54,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     private final EntityId entityId;
     private final WatchedEntity entity;
-    private final T data;
+    private T data;
     protected S currentState;
     protected S targetState;
     protected final AssetManager assetManager;
@@ -140,7 +140,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         if (interaction == null) {
             return false;
         }
-        return interaction.interactable && getOwnerId() == playerId;
+        return (interaction.interactable || interaction.slappable) && getOwnerId() == playerId;
     }
 
     @Override
@@ -243,12 +243,17 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public void setTargetState(S state) {
-        this.targetState = (S) state;
+        this.targetState = state;
     }
 
     @Override
     public T getDataObject() {
         return data;
+    }
+
+    @Override
+    public void setDataObject(T data) {
+        this.data = data;
     }
 
     protected abstract ArtResource getAnimationData(S state);

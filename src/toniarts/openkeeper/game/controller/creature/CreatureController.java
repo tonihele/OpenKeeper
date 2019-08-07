@@ -40,7 +40,6 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
-import toniarts.openkeeper.game.component.CreatureSlapped;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Fearless;
@@ -57,6 +56,7 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -127,6 +127,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean shouldFleeOrAttack() {
+        checkSurroundings();
 
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
@@ -164,6 +165,21 @@ public class CreatureController implements ICreatureController {
         }
 
         return false;
+    }
+
+    @Override
+    public void checkSurroundings() {
+
+        // Scan for neutral creatures to claim
+        short ownerId = getOwnerId();
+        if (ownerId != Player.NEUTRAL_PLAYER_ID && ownerId != Player.GOOD_PLAYER_ID) {
+            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+                Owner owner = entityData.getComponent(entity, Owner.class);
+                if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
+                    entityData.setComponent(entity, new Owner(ownerId));
+                }
+            }
+        }
     }
 
     /**
@@ -475,7 +491,10 @@ public class CreatureController implements ICreatureController {
             EntityId nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
             for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-                if (creaturesController.isValidEntity(entity) && isEnemy(entity) && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))) {
+                if (creaturesController.isValidEntity(entity)
+                        && isEnemy(entity)
+                        && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                        && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                     float distance = getDistanceToCreature(entity);
                     if (distance < nearestDistance) {
                         nearestDistance = distance;
@@ -493,6 +512,13 @@ public class CreatureController implements ICreatureController {
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
         return attackTargetController;
+    }
+
+    private boolean hasPathToEntity(EntityId entity) {
+        Point ourPos = WorldUtils.vectorToPoint(getPosition());
+        Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
+
+        return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
     }
 
     private void setAttackTarget(EntityId entity) {
@@ -737,7 +763,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public int compareTo(ICreatureController t) {
-        return Long.compare(entityId.getId(), t.getEntityId().getId());
+        return entityId.compareTo(t.getEntityId());
     }
 
     private void initState() {
@@ -772,12 +798,30 @@ public class CreatureController implements ICreatureController {
     @Override
     public boolean canWalkOnWater() {
         Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        if (!mobile.canWalkOnWater) {
+
+            // We need anyway to get out from water if we are tossed in such
+            Vector3f pos = getPosition();
+            if (pos != null) {
+                Point p = WorldUtils.vectorToPoint(pos);
+                return mapController.isWater(p.x, p.y);
+            }
+        }
         return mobile.canWalkOnWater;
     }
 
     @Override
     public boolean canWalkOnLava() {
         Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        if (!mobile.canWalkOnLava) {
+
+            // We need anyway to get out from lava if we are tossed in such
+            Vector3f pos = getPosition();
+            if (pos != null) {
+                Point p = WorldUtils.vectorToPoint(pos);
+                return mapController.isLava(p.x, p.y);
+            }
+        }
         return mobile.canWalkOnLava;
     }
 
@@ -1011,7 +1055,7 @@ public class CreatureController implements ICreatureController {
 
     @Override
     public boolean isSlapped() {
-        CreatureSlapped creatureSlapped = entityData.getComponent(entityId, CreatureSlapped.class);
+        Slapped creatureSlapped = entityData.getComponent(entityId, Slapped.class);
         return creatureSlapped != null;
     }
 
@@ -1171,6 +1215,11 @@ public class CreatureController implements ICreatureController {
         int frames = animationResource.getData("frames");
         int fps = animationResource.getData("fps");
         return frames / (double) fps;
+    }
+
+    @Override
+    public boolean isClaimed() {
+        return Player.NEUTRAL_PLAYER_ID != getOwnerId();
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,29 +19,14 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * This entity tells what actions if any are possible for an entity (hmm, not
- * sure if this is a good ES design...)
+ * Just a tagging component for chicken generators
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Interaction implements EntityComponent {
+public class ChickenGenerator implements EntityComponent {
 
-    public boolean interactable;
-    public boolean slappable;
-    public boolean pickUppable;
-    public boolean canBeDroppedOnAnyLand;
-    public boolean dieWhenSlapped;
-
-    public Interaction() {
+    public ChickenGenerator() {
         // For serialization
-    }
-
-    public Interaction(boolean interactable, boolean slappable, boolean pickUppable, boolean canBeDroppedOnAnyLand, boolean dieWhenSlapped) {
-        this.interactable = interactable;
-        this.slappable = slappable;
-        this.pickUppable = pickUppable;
-        this.canBeDroppedOnAnyLand = canBeDroppedOnAnyLand;
-        this.dieWhenSlapped = dieWhenSlapped;
     }
 
 }

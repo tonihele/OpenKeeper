@@ -19,29 +19,20 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * This entity tells what actions if any are possible for an entity (hmm, not
- * sure if this is a good ES design...)
+ * Tagging component for something that has been slapped by the keeper
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Interaction implements EntityComponent {
+public class Slapped implements EntityComponent {
 
-    public boolean interactable;
-    public boolean slappable;
-    public boolean pickUppable;
-    public boolean canBeDroppedOnAnyLand;
-    public boolean dieWhenSlapped;
+    public double startTime;
 
-    public Interaction() {
+    public Slapped() {
         // For serialization
     }
 
-    public Interaction(boolean interactable, boolean slappable, boolean pickUppable, boolean canBeDroppedOnAnyLand, boolean dieWhenSlapped) {
-        this.interactable = interactable;
-        this.slappable = slappable;
-        this.pickUppable = pickUppable;
-        this.canBeDroppedOnAnyLand = canBeDroppedOnAnyLand;
-        this.dieWhenSlapped = dieWhenSlapped;
+    public Slapped(double startTime) {
+        this.startTime = startTime;
     }
 
 }

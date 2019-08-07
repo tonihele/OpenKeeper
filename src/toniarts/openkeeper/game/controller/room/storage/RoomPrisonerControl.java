@@ -18,9 +18,11 @@ package toniarts.openkeeper.game.controller.room.storage;
 
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Holds out the prisoners populating a room
@@ -29,8 +31,8 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
  */
 public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomPrisonerControl(IRoomController parent, IObjectsController objectsController) {
-        super(parent, objectsController);
+    public RoomPrisonerControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(kwdFile, parent, objectsController, gameTimer);
     }
 
     @Override
@@ -50,14 +52,18 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId creature, Point p) {
-        setRoomStorageToItem(creature);
+        setRoomStorageToItem(creature, false);
         return creature;
     }
 
     @Override
     public void destroy() {
-
         // TODO: The prisoners are released!
+    }
+
+    @Override
+    public void captured(short playerId) {
+        // TODO: Also the prisoners might get released...
     }
 
 }

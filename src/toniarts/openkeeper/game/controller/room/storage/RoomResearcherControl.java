@@ -22,9 +22,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -34,8 +36,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomResearcherControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomResearcherControl(IRoomController parent, IObjectsController objectsController) {
-        super(parent, objectsController);
+    public RoomResearcherControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(kwdFile, parent, objectsController, gameTimer);
     }
 
     @Override
@@ -55,7 +57,7 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
 
     @Override
     public EntityId addItem(EntityId researcher, Point p) {
-        setRoomStorageToItem(researcher);
+        setRoomStorageToItem(researcher, false);
         return researcher;
     }
 
@@ -63,6 +65,11 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
     public void destroy() {
 
         // TODO: The researcher can't do his/her job
+    }
+
+    @Override
+    public void captured(short playerId) {
+
     }
 
     @Override

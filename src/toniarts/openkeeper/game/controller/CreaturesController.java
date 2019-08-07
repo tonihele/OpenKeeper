@@ -117,6 +117,7 @@ public class CreaturesController implements ICreaturesController {
      * @param gameTimer
      * @param gameController
      * @param mapController
+     * @param levelInfo
      */
     public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo) {
@@ -301,7 +302,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Add some interaction properties
         if (creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) || creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)) {
-            entityData.setComponent(entity, new Interaction(true, creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED), creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP), false));
+            entityData.setComponent(entity, new Interaction(true, creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED), creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP), false, false));
         }
 
         // Visuals
@@ -478,9 +479,22 @@ public class CreaturesController implements ICreaturesController {
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
-        return creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
-            return new WeakReference<>(new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo));
+        ICreatureController creatureController = creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
+            return new WeakReference<>(createCreatureController(id, creatureComponent));
         }).get();
+
+        // Hmm, the entity IDs seem to be referenced somewhere, they outlast the controllers
+        // So maybe this is all very unnecessary...
+        if (creatureController == null) {
+            creatureController = createCreatureController(entityId, creatureComponent);
+            creatureControllersByEntityId.put(entityId, new WeakReference<>(creatureController));
+        }
+
+        return creatureController;
+    }
+
+    private ICreatureController createCreatureController(EntityId id, CreatureComponent creatureComponent) {
+        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo);
     }
 
     @Override

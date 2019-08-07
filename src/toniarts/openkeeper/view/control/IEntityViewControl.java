@@ -190,6 +190,8 @@ public interface IEntityViewControl<T, S> extends Control {
 
     public T getDataObject();
 
+    public void setDataObject(T data);
+
     public void cleanup();
 
 }

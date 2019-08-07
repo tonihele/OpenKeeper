@@ -42,7 +42,7 @@ public abstract class AbstractRoomController implements IRoomController {
      */
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, RESEARCHER, PRISONER, TORTUREE;
+        GOLD, LAIR, SPELL_BOOK, RESEARCHER, PRISONER, TORTUREE, FOOD;
 
     };
 
@@ -353,8 +353,14 @@ public abstract class AbstractRoomController implements IRoomController {
 
     @Override
     public void captured(short playerId) {
+
         // Nothing, hmm, should we move some logic here from the MapController
         roomInstance.setOwnerId(playerId);
+
+        // Notify the controls
+        for (IRoomObjectControl control : objectControls.values()) {
+            control.captured(playerId);
+        }
     }
 
     /**

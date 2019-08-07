@@ -147,4 +147,10 @@ public class SdtFileEntry {
     protected void setDataOffset(long dataOffset) {
         this.dataOffset = dataOffset;
     }
+
+    @Override
+    public String toString() {
+        return "SdtFileEntry{" + "name=" + name + ", sampleRate=" + sampleRate + ", bitsPerSample=" + bitsPerSample + ", type=" + type + ", nSamples=" + nSamples + '}';
+    }
+
 }

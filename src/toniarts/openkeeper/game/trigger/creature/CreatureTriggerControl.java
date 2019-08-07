@@ -85,7 +85,9 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
             case CREATURE_CONVERTED:
                 return false;
             case CREATURE_CLAIMED:
-                return false;
+                if (instanceControl != null) {
+                    return instanceControl.isClaimed();
+                }
             case CREATURE_ANGRY:
                 return false;
             case CREATURE_AFRAID:

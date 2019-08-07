@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,10 @@
 package toniarts.openkeeper.game.controller.room;
 
 /**
- * Signifies that a room is an entrance for creatures
+ * Signifies that a room generates yummy yammy chickens :P
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ICreatureEntrance extends IEntityGenerator {
+public interface IChickenGenerator extends IEntityGenerator {
 
 }

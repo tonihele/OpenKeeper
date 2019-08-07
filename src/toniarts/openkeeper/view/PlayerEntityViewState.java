@@ -192,7 +192,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState.state, assetManager, textParser);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -309,6 +309,22 @@ public class PlayerEntityViewState extends AbstractAppState {
         object.getControl(DoorViewControl.class).setTargetState(viewState);
     }
 
+    private void updateObjectModelState(Spatial object, Entity e) {
+        ObjectViewState viewState = e.get(ObjectViewState.class);
+        ObjectViewControl control = object.getControl(ObjectViewControl.class);
+
+        if (control != null) {
+
+            // Phew, maybe should be dynamic...
+            if (control.getDataObject().getObjectId() != viewState.objectId) {
+                control.setDataObject(kwdFile.getObject(viewState.objectId));
+            }
+
+            control.setTargetState(viewState);
+        }
+        object.setCullHint(viewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+    }
+
     private void updateModelPosition(Spatial object, Entity e) {
         Position position = e.get(Position.class);
         object.setLocalTranslation(position.position);
@@ -338,7 +354,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
-     * Contains the static objects...
+     * Contains the static(ish) objects...
      */
     private class ObjectModelContainer extends EntityContainer<Spatial> {
 
@@ -358,8 +374,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             LOGGER.log(Level.FINEST, "ObjectModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
-            ObjectViewState objectViewState = e.get(ObjectViewState.class);
-            object.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+            updateObjectModelState(object, e);
         }
 
         @Override

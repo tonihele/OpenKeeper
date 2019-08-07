@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * Unit flower control for creatures
@@ -47,12 +48,15 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     private static final float CHANGE_STATUS_INTERVAL = 0.5f;
     private static final float REDRAW_INTERVAL = 0.1f;
 
+    private short currentDrawnOwnerId;
     private float timeCurrentStatusVisible = 0;
     private float timeCurrentVisible = 0;
     private Status currentStatus = Status.LEVEL;
 
     public CreatureFlowerControl(EntityId entityId, EntityData entityData, Creature data, AssetManager assetManager) {
         super(entityId, entityData, data, assetManager);
+
+        currentDrawnOwnerId = getOwnerId();
     }
 
     @Override
@@ -81,6 +85,17 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         timeCurrentStatusVisible = 0;
         timeCurrentVisible = 0;
         currentStatus = Status.LEVEL;
+    }
+
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+
+        // TODO: did the neutral player colors flash in the original? Either way, see if the owner has changed
+        if (currentDrawnOwnerId == Player.NEUTRAL_PLAYER_ID && currentDrawnOwnerId != getOwnerId()) {
+            currentDrawnOwnerId = getOwnerId();
+            setFlowerColor(getPlayerColor(currentDrawnOwnerId));
+        }
     }
 
     @Override

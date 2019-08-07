@@ -36,6 +36,11 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean shouldFleeOrAttack();
 
+    /**
+     * Checks what the creature sees and hears
+     */
+    public void checkSurroundings();
+
     public void unassingCurrentTask();
 
     public void navigateToRandomPoint();
@@ -219,5 +224,12 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      * to the prison
      */
     public void imprison();
+
+    /**
+     * Is the (neutral) creature claimed
+     *
+     * @return returns {@code true} if the creature is owned by a keeper
+     */
+    public boolean isClaimed();
 
 }

@@ -21,8 +21,10 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -142,13 +144,28 @@ public class Utils {
      *
      * @param <T> item type
      * @param list list
-     * @return random item from the list
+     * @return random item from the list or {@code null} if the list is empty
      */
     public static <T> T getRandomItem(List<T> list) {
+        if (list.isEmpty()) {
+            return null;
+        }
         if (list.size() == 1) {
             return list.get(0);
         }
         return list.get(RANDOM.nextInt(list.size()));
+    }
+
+    /**
+     * Get a random item from a collection
+     *
+     * @param <T> item type
+     * @param collection list
+     * @return random item from the collection or {@code null} if the list is
+     * empty
+     */
+    public static <T> Optional<T> getRandomItem(Collection<T> collection) {
+        return collection.stream().skip(RANDOM.nextInt(collection.size())).findFirst();
     }
 
     /**

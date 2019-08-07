@@ -24,9 +24,16 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Room object controller. FIXME: Cache the coordinates and listen to changes in
@@ -37,13 +44,18 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
  */
 public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl<V> {
 
+    protected final KwdFile kwdFile;
     protected final IRoomController parent;
     protected final IObjectsController objectsController;
+    private final IGameTimer gameTimer;
     protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
 
-    public AbstractRoomObjectControl(IRoomController parent, IObjectsController objectsController) {
+    public AbstractRoomObjectControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        this.kwdFile = kwdFile;
         this.parent = parent;
         this.objectsController = objectsController;
+        this.gameTimer = gameTimer;
     }
 
     protected abstract int getObjectsPerTile();
@@ -89,6 +101,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     @Override
     public void removeItem(EntityId object) {
         objectsController.getEntityData().removeComponent(object, RoomStorage.class);
+        addNoRoomDecay(object);
         for (Collection<EntityId> objects : objectsByCoordinate.values()) {
             if (objects.remove(object)) {
                 break;
@@ -145,8 +158,50 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         return coordinates;
     }
 
-    protected void setRoomStorageToItem(EntityId entityId) {
+    protected void setRoomStorageToItem(EntityId entityId, boolean changeOwner) {
         objectsController.getEntityData().setComponent(entityId, new RoomStorage(getObjectType()));
+        ObjectComponent objectComponent = objectsController.getEntityData().getComponent(entityId, ObjectComponent.class);
+        if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.DIE_OVER_TIME_IF_NOT_IN_ROOM)) {
+            objectsController.getEntityData().removeComponent(entityId, Decay.class);
+        }
+
+        if (changeOwner) {
+
+            // Also set the owner if there is one already
+            changeEntityOwner(entityId, parent.getRoomInstance().getOwnerId());
+        }
+    }
+
+    @Override
+    public void captured(short playerId) {
+
+        // The new owner shall also own the riches we hold
+        List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
+        for (Collection<EntityId> objects : objectList) {
+            for (EntityId obj : objects) {
+                changeEntityOwner(obj, playerId);
+            }
+        }
+    }
+
+    private void changeEntityOwner(EntityId entity, short playerId) {
+        Owner owner = objectsController.getEntityData().getComponent(entity, Owner.class);
+        if (owner != null && owner.ownerId != playerId) {
+            objectsController.getEntityData().setComponent(entity, new Owner(playerId));
+        }
+    }
+
+    /**
+     * Adds decay for the object for not being in the room if such is defined on
+     * the object
+     *
+     * @param object the entity ID
+     */
+    protected void addNoRoomDecay(EntityId object) {
+        ObjectComponent objectComponent = objectsController.getEntityData().getComponent(object, ObjectComponent.class);
+        if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.DIE_OVER_TIME_IF_NOT_IN_ROOM)) {
+            objectsController.getEntityData().setComponent(object, new Decay(gameTimer.getGameTime(), ObjectsController.OBJECT_TIME_TO_LIVE));
+        }
     }
 
 }

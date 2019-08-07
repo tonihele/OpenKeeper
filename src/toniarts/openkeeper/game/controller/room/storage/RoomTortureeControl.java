@@ -22,9 +22,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -34,8 +36,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomTortureeControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomTortureeControl(IRoomController parent, IObjectsController objectsController) {
-        super(parent, objectsController);
+    public RoomTortureeControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(kwdFile, parent, objectsController, gameTimer);
     }
 
     @Override
@@ -55,7 +57,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
-        setRoomStorageToItem(torturee);
+        setRoomStorageToItem(torturee, false);
         return torturee;
     }
 
@@ -63,6 +65,11 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     public void destroy() {
 
         // TODO: The creature is released
+    }
+
+    @Override
+    public void captured(short playerId) {
+
     }
 
     @Override

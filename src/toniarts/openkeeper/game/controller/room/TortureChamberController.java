@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room;
 
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -29,10 +30,11 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public class TortureChamberController extends NormalRoomController {
 
-    public TortureChamberController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    public TortureChamberController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+             IGameTimer gameTimer) {
         super(kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomTortureeControl(this, objectsController) {
+        addObjectControl(new RoomTortureeControl(kwdFile, this, objectsController, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

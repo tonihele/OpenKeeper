@@ -19,10 +19,13 @@ package toniarts.openkeeper.view.control;
 import com.jme3.asset.AssetManager;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.Objects;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
@@ -30,9 +33,9 @@ import toniarts.openkeeper.view.text.TextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.State> {
+public class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
-    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, GameObject.State state,
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, TextParser textParser) {
         super(entityId, entityData, data, state, assetManager, textParser);
     }
@@ -73,7 +76,39 @@ public class ObjectViewControl extends EntityViewControl<GameObject, GameObject.
     }
 
     @Override
-    protected ArtResource getAnimationData(GameObject.State state) {
+    public void setTargetState(ObjectViewState state) {
+        super.setTargetState(state);
+
+        // Play immediately
+        if (!Objects.equals(currentState, targetState)) {
+            playAnimation(state);
+            currentState = targetState;
+        }
+    }
+
+    private void playAnimation(ObjectViewState viewState) {
+        AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
+        isAnimationPlaying = true;
+    }
+
+    @Override
+    protected ArtResource getAnimationData(ObjectViewState state) {
+        switch (state.animState) {
+            case MESH_RESOURCE:
+                return getDataObject().getMeshResource();
+            case ADDITIONAL_RESOURCE_1: {
+                return getDataObject().getAdditionalResources().get(0);
+            }
+            case ADDITIONAL_RESOURCE_2: {
+                return getDataObject().getAdditionalResources().get(1);
+            }
+            case ADDITIONAL_RESOURCE_3: {
+                return getDataObject().getAdditionalResources().get(2);
+            }
+            case ADDITIONAL_RESOURCE_4: {
+                return getDataObject().getAdditionalResources().get(3);
+            }
+        }
         return getDataObject().getMeshResource();
     }
 

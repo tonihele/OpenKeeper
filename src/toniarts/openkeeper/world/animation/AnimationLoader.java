@@ -261,7 +261,7 @@ public class AnimationLoader {
         } catch (Exception e) {
             // FIXME sometimes NPE in CreatureControl.java
             // line: playAnimation(creature.getAnimEntranceResource());
-            LOGGER.log(Level.SEVERE, "Creature animation playing error: {0}", e.toString());
+            LOGGER.log(Level.SEVERE, e, () -> "Creature animation playing error: " + e.toString());
         }
     }
 

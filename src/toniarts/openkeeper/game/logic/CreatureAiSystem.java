@@ -58,10 +58,9 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
 
         // Add new & remove old
         if (creatureEntities.applyChanges()) {
+            processDeletedEntities(creatureEntities.getRemovedEntities());
 
             processAddedEntities(creatureEntities.getAddedEntities());
-
-            processDeletedEntities(creatureEntities.getRemovedEntities());
         }
 
         // Process ticks
@@ -82,8 +81,11 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
             ICreatureController creatureController = creatureControllersByEntityId.remove(entity.getId());
-            int index = Collections.binarySearch(creatureControllers, creatureController);
-            creatureControllers.remove(index);
+            if (creatureController != null) {
+                int index = Collections.binarySearch(creatureControllers, creatureController);
+                creatureControllers.remove(index);
+                creatureController.getStateMachine().changeState(null);
+            }
         }
     }
 

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -53,7 +54,7 @@ public class ThreeByThreeController extends AbstractRoomController implements IC
     }
 
     @Override
-    public void onSpawn(double time) {
+    public void onSpawn(double time, EntityId entityId) {
         this.lastSpawnTime = time;
     }
 

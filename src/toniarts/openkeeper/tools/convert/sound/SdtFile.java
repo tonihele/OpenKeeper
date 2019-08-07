@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
-import toniarts.openkeeper.tools.convert.sound.SdtFileEntry.SoundType;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -42,8 +41,6 @@ public class SdtFile {
     private static final Pattern FILE_EXTENSION_PATTERN = Pattern.compile("([^\\s]+(\\.(?i)(mp2|wav))$)");
 
     private final File file;
-    private final int count;
-    private final int[] entriesOffsets;
     private final SdtFileEntry[] entries;
 
     /**
@@ -55,20 +52,23 @@ public class SdtFile {
     public SdtFile(File file) {
         this.file = file;
 
-        //Read the file
+        // Read the file
         try (IResourceReader rawSdt = new ResourceReader(file)) {
 
-            //Header
-            count = rawSdt.readUnsignedInteger();
+            // Header
+            int count = rawSdt.readUnsignedInteger();
 
-            //Read the files
-            entriesOffsets = new int[count];
+            // Read the files
+            int[] entriesOffsets = new int[count];
             for (int i = 0; i < entriesOffsets.length; i++) {
                 entriesOffsets[i] = rawSdt.readUnsignedInteger();
             }
 
             entries = new SdtFileEntry[count];
-            for (int i = 0; i < entries.length; i++) {
+            for (int i = 0; i < count; i++) {
+
+                // Go to the start of the entry
+                rawSdt.seek(entriesOffsets[i]);
 
                 SdtFileEntry entry = new SdtFileEntry();
                 entry.setHeaderSize(rawSdt.readUnsignedInteger());
@@ -82,19 +82,16 @@ public class SdtFile {
                 entry.setUnknown4(rawSdt.readUnsignedInteger());
                 entry.setDataOffset(rawSdt.getFilePointer());
 
-                //Skip entries of size 0, there seems to be these BLANKs
+                // Skip entries of size 0, there seems to be these BLANKs
                 if (entry.getDataSize() == 0) {
                     continue;
                 }
 
                 entries[i] = entry;
-
-                //Skip to next one (or to end of file)
-                rawSdt.skipBytes(entry.getDataSize());
             }
         } catch (IOException e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
     }
@@ -106,13 +103,13 @@ public class SdtFile {
      */
     public void extractFileData(String destination) {
 
-        //Open the SDT for extraction
+        // Open the SDT for extraction
         try (IResourceReader rawSdt = new ResourceReader(file)) {
             for (SdtFileEntry entry : entries) {
                 extractFileData(entry, destination, rawSdt);
             }
         } catch (Exception e) {
-            //Fug
+            // Fug
             throw new RuntimeException("Faile to read the WAD file!", e);
         }
     }
@@ -128,16 +125,17 @@ public class SdtFile {
         if (entry == null) {
             return;
         }
-        //Fix file extension
+        // Fix file extension
         String filename = fixFileExtension(entry);
-        //See that the destination is formatted correctly and create it if it does not exist
+
+        // See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
         File destinationFolder = new File(dest);
         destinationFolder.mkdirs();
 
         dest = dest.concat(filename);
 
-        //Write to the file
+        // Write to the file
         try (OutputStream outputStream = new FileOutputStream(dest)) {
             getFileData(entry, rawSdt).writeTo(outputStream);
         } catch (IOException e) {
@@ -154,15 +152,17 @@ public class SdtFile {
      */
     private ByteArrayOutputStream getFileData(SdtFileEntry fileEntry, IResourceReader rawSdt) throws IOException {
 
-        //Get the file
+        // Get the file
         if (fileEntry == null) {
             throw new RuntimeException("File entry is null");
         }
 
         ByteArrayOutputStream result = new ByteArrayOutputStream();
-        // add file header if needed
+
+        // Add file header if needed
         result.write(getFileHeader(fileEntry));
-        //Seek to the file we want and read it
+
+        // Seek to the file we want and read it
         rawSdt.seek(fileEntry.getDataOffset());
         byte[] bytes = rawSdt.read(fileEntry.getDataSize());
         result.write(bytes);
@@ -182,9 +182,11 @@ public class SdtFile {
         if (!m.find()) {
             int index = filename.lastIndexOf(".");
             if (index > -1) {
+
                 // Strip the partial extension
                 filename = filename.substring(0, index);
             }
+
             // Add the extension
             filename += "." + entry.getType().getExtension();
         }
@@ -192,7 +194,7 @@ public class SdtFile {
         return filename;
     }
 
-    private byte[] getBytes(int value, int size) {
+    private static byte[] getBytes(int value, int size) {
         byte[] result = new byte[size];
 
         for (int i = 0; i < result.length; i++) {
@@ -202,7 +204,7 @@ public class SdtFile {
         return result;
     }
 
-    private byte[] getFileHeader(SdtFileEntry entry) throws IOException {
+    private static byte[] getFileHeader(SdtFileEntry entry) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         short numChannels;
         switch (entry.getType()) {
@@ -238,11 +240,11 @@ public class SdtFile {
     }
 
     /**
-     * Get array of entires
+     * Get array of entries
      *
-     * @return array of entires
+     * @return array of entries
      */
-    public SdtFileEntry[] getEntires() {
+    public SdtFileEntry[] getEntries() {
         return entries;
     }
 

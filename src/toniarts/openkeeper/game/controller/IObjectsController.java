@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 
@@ -29,20 +30,56 @@ import toniarts.openkeeper.game.controller.player.PlayerSpell;
  */
 public interface IObjectsController extends IEntityWrapper<IObjectController> {
 
-    EntityId loadObject(short objectId, short ownerId, int x, int y);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y);
 
-    EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation);
 
-    EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation);
+    public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation);
 
-    EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId);
 
-    EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney);
+    public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney);
 
-    EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney);
+    public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney);
 
-    EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell);
+    public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell);
 
     public EntityData getEntityData();
+
+    /**
+     * Spawns an chicken in specified position. Yes, chickens are object. And an
+     * egg is actually spawned.
+     *
+     * @param ownerId the chicken owner
+     * @param pos spawn position
+     * @return return the entity ID for the generated chicken
+     */
+    public EntityId spawnChicken(short ownerId, Vector3f pos);
+
+    /**
+     * Spawns an freerange chicken in specified position.
+     *
+     * @param ownerId the chicken owner
+     * @param pos spawn position
+     * @param gameTime the current game time
+     * @return return the entity ID for the generated chicken
+     */
+    public EntityId spawnFreerangeChicken(short ownerId, Vector3f pos, double gameTime);
+
+    /**
+     * Transforms entity into a chicken (destructive operation). Mainly meant to
+     * be used when eggs hatch
+     *
+     * @param entityId the entity to turn into a chicken
+     */
+    public void transformToChicken(EntityId entityId);
+
+    /**
+     * Creates a chicken controller around given entity
+     *
+     * @param id the entity ID to create the controller for
+     * @return the controller
+     */
+    public IChickenController createChickenController(EntityId id);
 
 }

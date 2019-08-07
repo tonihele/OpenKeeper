@@ -37,16 +37,18 @@ import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.logic.ChickenAiSystem;
+import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureImprisonSystem;
 import toniarts.openkeeper.game.logic.CreatureRecuperatingSystem;
-import toniarts.openkeeper.game.logic.CreatureSlapSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureTorturingSystem;
 import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.logic.DeathSystem;
+import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
@@ -59,6 +61,7 @@ import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
+import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.NavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
@@ -249,18 +252,21 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Game logic
         gameLogicThread = new GameLogicManager(positionSystem,
                 gameWorldController.getMapController(),
+                new DecaySystem(entityData),
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
-                new CreatureSlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
+                new SlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController()),
                 new CreatureRecuperatingSystem(entityData, gameSettings),
                 new CreatureImprisonSystem(entityData, gameSettings),
                 new CreatureTorturingSystem(entityData, this, gameSettings),
-                new DeathSystem(entityData, gameSettings, gameWorldController.getObjectsController()),
+                new DeathSystem(entityData, gameSettings, gameWorldController.getObjectsController(), gameWorldController.getMapController()),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
                 this,
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
+                new ChickenSpawnSystem(gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(gameSettings, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
+                new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
