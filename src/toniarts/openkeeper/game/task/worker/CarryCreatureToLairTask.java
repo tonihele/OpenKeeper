@@ -23,7 +23,6 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -57,27 +56,12 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2619";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
         this.creature.sleep();
         executed = true;
 
         // Set the dragged state
         this.creature.setHaulable(null);
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Take_Crate.png";
     }
 
     @Override

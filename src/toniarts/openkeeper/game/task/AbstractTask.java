@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
-import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -161,18 +160,6 @@ public abstract class AbstractTask implements Task {
     public boolean isFaceTarget() {
         return false;
     }
-
-    @Override
-    public String getTooltip() {
-        return Utils.getMainTextResourceBundle().getString(getStringId());
-    }
-
-    /**
-     * The string ID for the dictionary
-     *
-     * @return string ID
-     */
-    protected abstract String getStringId();
 
     @Override
     public boolean isRemovable() {

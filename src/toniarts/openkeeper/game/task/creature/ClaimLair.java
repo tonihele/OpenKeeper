@@ -27,7 +27,6 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -57,11 +56,6 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2627";
-    }
-
-    @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.LAIR;
     }
@@ -78,16 +72,6 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
         // This is a one timer
         executed = true;
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Rest.png";
     }
 
     @Override

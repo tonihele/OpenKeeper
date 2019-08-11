@@ -88,7 +88,8 @@ public class CreatureFlowerControl extends UnitFlowerControl {
                     return "Textures/GUI/moods/SJ-Fighting.png";
                 }
                 case WORK: {
-                    String icon = creatureControl.getAssignedTask().getTaskIcon();
+                    String icon = null;
+                    //creatureControl.getAssignedTask().getTaskIcon();
                     if (icon != null) {
                         return icon;
                     }

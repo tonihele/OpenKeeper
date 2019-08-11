@@ -25,7 +25,6 @@ import java.util.Deque;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * A decorator for some simple task to create complex task chains
@@ -97,28 +96,14 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
     }
 
     @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return task.getTaskAnimation(creature);
-    }
-
-    @Override
     public Date getTaskCreated() {
         return task.getTaskCreated();
     }
 
-    @Override
-    public String getTaskIcon() {
-        return task.getTaskIcon();
-    }
 
     @Override
     public Point getTaskLocation() {
         return task.getTaskLocation();
-    }
-
-    @Override
-    public String getTooltip() {
-        return task.getTooltip();
     }
 
     @Override

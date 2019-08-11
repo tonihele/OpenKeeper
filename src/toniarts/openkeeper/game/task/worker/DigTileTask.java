@@ -24,7 +24,6 @@ import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -87,12 +86,6 @@ public class DigTileTask extends AbstractTileTask {
     }
 
     @Override
-    protected String getStringId() {
-        MapTile tile = mapController.getMapData().getTile(getTaskLocation());
-        return (tile.getGold() > 0 ? "2605" : "2600");
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // TODO: is this a general case or even smart to do this like this...?
@@ -101,17 +94,6 @@ public class DigTileTask extends AbstractTileTask {
 
             creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
         }
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-        // return creature.getCreature().getAnimMelee1Resource();
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Dig.png";
     }
 
     @Override

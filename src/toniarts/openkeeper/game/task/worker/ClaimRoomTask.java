@@ -43,11 +43,6 @@ public class ClaimRoomTask extends ClaimTileTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2602";
-    }
-
-    @Override
     public TaskType getTaskType() {
         return TaskType.CLAIM_ROOM;
     }

@@ -29,7 +29,6 @@ import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * Go to eat!
@@ -71,26 +70,11 @@ public class GoToEat extends AbstractTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2668";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
         creature.eat(target);
 
         // This is a one timer
         executed = true;
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Hungry.png";
     }
 
     @Override

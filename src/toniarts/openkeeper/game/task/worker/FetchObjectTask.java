@@ -25,7 +25,6 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.object.ObjectControl;
 
@@ -64,25 +63,10 @@ public class FetchObjectTask extends AbstractTileTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "546";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
         //object.creaturePicksUp(creature);
 
         // TODO: perhaps chaining? everything except gold, maybe a new task class...? Fetch & deliver
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Claim.png";
     }
 
     private boolean isPlayerCapacityFull() {

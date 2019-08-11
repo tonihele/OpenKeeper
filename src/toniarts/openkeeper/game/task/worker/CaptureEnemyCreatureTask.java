@@ -27,7 +27,6 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -67,27 +66,12 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2621";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Assign carry to prison
         if (taskManager.assignClosestRoomTask(creature, ObjectType.PRISONER, this.creature.getEntityId())) {
             this.creature.setHaulable(creature);
         }
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Take_Crate.png";
     }
 
     private boolean isPrisonCapacityFull() {
