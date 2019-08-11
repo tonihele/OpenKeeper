@@ -18,22 +18,23 @@ package toniarts.openkeeper.game.controller.trap;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.util.Objects;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.tools.convert.map.Trap;
 
 /**
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapController implements ITrapController {
+public class TrapController extends EntityController implements ITrapController {
 
-    private final EntityId entityId;
-    private final EntityData entityData;
     private final Trap trap;
 
-    public TrapController(EntityId entityId, EntityData entityData, Trap trap) {
-        this.entityId = entityId;
-        this.entityData = entityData;
+    public TrapController(EntityId entityId, EntityData entityData, Trap trap,
+            IObjectsController objectsController, IMapController mapController) {
+        super(entityId, entityData, objectsController, mapController);
+
         this.trap = trap;
     }
 
@@ -42,29 +43,4 @@ public class TrapController implements ITrapController {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 29 * hash + Objects.hashCode(this.entityId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final TrapController other = (TrapController) obj;
-        if (!Objects.equals(this.entityId, other.entityId)) {
-            return false;
-        }
-        return true;
-    }
 }

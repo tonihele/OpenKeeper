@@ -50,6 +50,7 @@ public class TrapsController implements ITrapsController {
     private KwdFile kwdFile;
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
+    private IGameController gameController;
 
     private static final Logger LOGGER = Logger.getLogger(TrapsController.class.getName());
 
@@ -63,11 +64,14 @@ public class TrapsController implements ITrapsController {
      * @param kwdFile the KWD file
      * @param entityData the entity controller
      * @param gameSettings the game settings
+     * @param gameController
      */
-    public TrapsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public TrapsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            IGameController gameController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
+        this.gameController = gameController;
 
         // Load traps
         loadTraps();
@@ -120,7 +124,7 @@ public class TrapsController implements ITrapsController {
         if (trapComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a trap!");
         }
-        return new TrapController(entityId, entityData, kwdFile.getTrapById(trapComponent.trapId));
+        return new TrapController(entityId, entityData, kwdFile.getTrapById(trapComponent.trapId), gameController.getGameWorldController().getObjectsController(), gameController.getGameWorldController().getMapController());
     }
 
     @Override

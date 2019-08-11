@@ -140,7 +140,7 @@ public enum CreatureState implements State<ICreatureController> {
     DEAD() {
         @Override
         public void enter(ICreatureController entity) {
-            entity.die();
+            //entity.die();
         }
 
         @Override

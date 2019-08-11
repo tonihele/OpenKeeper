@@ -55,6 +55,7 @@ public class DoorsController implements IDoorsController {
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IMapController mapController;
+    private IGameController gameController;
 
     private static final Logger LOGGER = Logger.getLogger(DoorsController.class.getName());
 
@@ -69,13 +70,15 @@ public class DoorsController implements IDoorsController {
      * @param entityData the entity controller
      * @param gameSettings the game settings
      * @param mapController the map controller
+     * @param gameController
      */
     public DoorsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IMapController mapController) {
+            IMapController mapController, IGameController gameController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.mapController = mapController;
+        this.gameController = gameController;
 
         // Load doors
         loadDoors();
@@ -147,7 +150,8 @@ public class DoorsController implements IDoorsController {
         if (doorComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a door!");
         }
-        return new DoorController(entityId, entityData, kwdFile.getDoorById(doorComponent.doorId));
+        return new DoorController(entityId, entityData, kwdFile.getDoorById(doorComponent.doorId), gameController.getGameWorldController().getObjectsController(), gameController.getGameWorldController().getMapController()
+        );
     }
 
     @Override

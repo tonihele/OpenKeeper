@@ -18,9 +18,10 @@ package toniarts.openkeeper.game.controller.door;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.util.Objects;
 import toniarts.openkeeper.game.component.Health;
-import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.tools.convert.map.Door;
 
 /**
@@ -28,15 +29,14 @@ import toniarts.openkeeper.tools.convert.map.Door;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorController implements IDoorController {
+public class DoorController extends EntityController implements IDoorController {
 
-    private final EntityId entityId;
-    private final EntityData entityData;
     private final Door door;
 
-    public DoorController(EntityId entityId, EntityData entityData, Door door) {
-        this.entityId = entityId;
-        this.entityData = entityData;
+    public DoorController(EntityId entityId, EntityData entityData, Door door,
+            IObjectsController objectsController, IMapController mapController) {
+        super(entityId, entityData, objectsController, mapController);
+
         this.door = door;
     }
 
@@ -46,34 +46,4 @@ public class DoorController implements IDoorController {
         return (health == null || health.health == 0);
     }
 
-    @Override
-    public short getOwnerId() {
-        Owner owner = entityData.getComponent(entityId, Owner.class);
-        return owner.ownerId;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 29 * hash + Objects.hashCode(this.entityId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final DoorController other = (DoorController) obj;
-        if (!Objects.equals(this.entityId, other.entityId)) {
-            return false;
-        }
-        return true;
-    }
 }

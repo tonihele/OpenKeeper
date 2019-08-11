@@ -71,7 +71,7 @@ public class GoToEat extends AbstractTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        creature.eat(target);
+        creature.eat(entityPositionLookup.getEntityController(target));
 
         // This is a one timer
         executed = true;

@@ -17,8 +17,7 @@
 package toniarts.openkeeper.game.controller.chicken;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
-import com.jme3.math.Vector3f;
-import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 
@@ -27,7 +26,7 @@ import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IChickenController extends Comparable<IChickenController>, IGameLogicUpdatable, INavigable {
+public interface IChickenController extends IGameLogicUpdatable, INavigable, IEntityController {
 
     public void navigateToRandomPoint();
 
@@ -35,19 +34,9 @@ public interface IChickenController extends Comparable<IChickenController>, IGam
 
     public boolean isStopped();
 
-    public EntityId getEntityId();
-
     public boolean isTimeToReEvaluate();
 
     public void resetReEvaluationTimer();
-
-    public Vector3f getPosition();
-
-    public int getHealth();
-
-    public int getMaxHealth();
-
-    public boolean isPickedUp();
 
     /**
      * Evaluates the time spent in current state and compares it to the
@@ -57,15 +46,6 @@ public interface IChickenController extends Comparable<IChickenController>, IGam
      * @return {@code true} if state should be changed
      */
     public boolean isStateTimeExceeded();
-
-    /**
-     * Get percentage of health
-     *
-     * @return human formatted percentage
-     */
-    default int getHealthPercentage() {
-        return (int) ((getHealth() * 100.0f) / getMaxHealth());
-    }
 
     public void growIntoChicken();
 

@@ -235,7 +235,7 @@ public class ObjectsController implements IObjectsController {
         if (objectComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a object!");
         }
-        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId));
+        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController());
     }
 
     @Override
@@ -292,7 +292,7 @@ public class ObjectsController implements IObjectsController {
     }
 
     private IChickenController createChickenControllerInternal(EntityId id) {
-        return new ChickenController(id, entityData, kwdFile.getObject(OBJECT_EGG_ID), kwdFile.getObject(OBJECT_CHICKEN_ID), gameController.getNavigationService(), gameTimer, this);
+        return new ChickenController(id, entityData, kwdFile.getObject(OBJECT_EGG_ID), kwdFile.getObject(OBJECT_CHICKEN_ID), gameController.getNavigationService(), gameTimer, this, gameController.getGameWorldController().getMapController());
     }
 
 }

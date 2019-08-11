@@ -16,11 +16,13 @@
  */
 package toniarts.openkeeper.game.controller.object;
 
+import toniarts.openkeeper.game.controller.entity.IEntityController;
+
 /**
  * Controls game object entities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IObjectController {
+public interface IObjectController extends IEntityController {
 
 }

@@ -218,7 +218,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, players, playerControllers, this);
         gameWorldController.createNewGame(this, this);
 
-        positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController());
+        positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(), gameWorldController.getObjectsController());
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
@@ -259,7 +259,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureRecuperatingSystem(entityData, gameSettings),
                 new CreatureImprisonSystem(entityData, gameSettings),
                 new CreatureTorturingSystem(entityData, this, gameSettings),
-                new DeathSystem(entityData, gameSettings, gameWorldController.getObjectsController(), gameWorldController.getMapController()),
+                new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
                 this,
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
@@ -639,6 +639,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         }
     }
 
+    @Override
     public IGameWorldController getGameWorldController() {
         return gameWorldController;
     }

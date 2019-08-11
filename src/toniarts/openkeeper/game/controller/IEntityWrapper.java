@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 
 /**
  * Wraps entities in controllers
@@ -24,7 +25,7 @@ import com.simsilica.es.EntityId;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <T> The entity wrapper
  */
-public interface IEntityWrapper<T> {
+public interface IEntityWrapper<T extends IEntityController> {
 
     T createController(EntityId entityId);
 
