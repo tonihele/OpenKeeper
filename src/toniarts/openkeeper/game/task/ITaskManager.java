@@ -101,4 +101,12 @@ public interface ITaskManager {
      */
     Task getTaskById(long taskId);
 
+    /**
+     * Assigns a go to eat task to the creature if food is accessible
+     *
+     * @param creature the creature wanting to feast
+     * @return true if the task was assigned
+     */
+    boolean assignEatTask(ICreatureController creature);
+
 }

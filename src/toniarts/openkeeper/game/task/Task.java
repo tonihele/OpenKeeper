@@ -21,7 +21,6 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Date;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * Represents a task to be carried out by entities in the game world
@@ -92,23 +91,7 @@ public interface Task {
      */
     Vector2f getTarget(ICreatureController creature);
 
-    /**
-     * Get the animation used for the task. Might be null if no animation is
-     * tied to the task, sufficient to have the creature visit the location
-     *
-     * @param creature executing the task
-     * @return the animation
-     */
-    ArtResource getTaskAnimation(ICreatureController creature);
-
     Date getTaskCreated();
-
-    /**
-     * The task icon for unit flowers
-     *
-     * @return the path to the icon
-     */
-    String getTaskIcon();
 
     /**
      * Task location, the task it self not necessarily the target for navigating
@@ -123,13 +106,6 @@ public interface Task {
      * @return the task target entity
      */
     EntityId getTaskTarget();
-
-    /**
-     * Get the task tooltip
-     *
-     * @return the task tooltip
-     */
-    String getTooltip();
 
     /**
      * Should the creature face the task it is doing

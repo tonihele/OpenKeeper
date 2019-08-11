@@ -20,6 +20,7 @@ import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.List;
 import java.util.Set;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.map.MapTile;
 
 /**
@@ -62,11 +63,31 @@ public interface IEntityPositionLookup {
      */
     MapTile getEntityLocation(EntityId entityId);
 
-    <T> List<T> getEntityTypesInLocation(Point p, Class<T> clazz);
+    <T extends IEntityController> List<T> getEntityTypesInLocation(Point p, Class<T> clazz);
 
-    <T> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz);
+    <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz);
 
-    <T> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz);
+    <T extends IEntityController> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz);
+
+    /**
+     * Get a entity controller for the entity. Tries to find a correct one with
+     * correct behavior. TODO: better some EntityFactory thingie
+     *
+     * @param entityId the entity ID to wrap
+     * @return entity controller
+     */
+    IEntityController getEntityController(EntityId entityId);
+
+    /**
+     * Get a entity controller for the entity. Tests that the entity supports
+     * the controller required (i.e. creature is a creature)
+     *
+     * @param <T> the controller class type
+     * @param entityId the entity ID to wrap
+     * @param clazz the controller class
+     * @return entity controller
+     */
+    <T extends IEntityController> T getEntityController(EntityId entityId, Class<T> clazz);
 
     /**
      * Checks if a tile in given location is blocked for player's entity (a.k.a.

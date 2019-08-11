@@ -111,7 +111,7 @@ public class HealthSystem implements IGameLogicUpdatable {
                     entityData.removeComponent(entityId, Navigation.class);
                     timeUnconsciousByEntityId.put(entityId, gameTime);
                 } else {
-                    processDeath(entityId, gameTime);
+                    entityPositionLookup.getEntityController(entityId).remove();
                 }
             } else if (health.ownLandHealthIncrease > 0 && health.health != health.maxHealth) {
                 MapTile tile = entityPositionLookup.getEntityLocation(entityId);

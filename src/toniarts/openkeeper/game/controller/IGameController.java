@@ -69,4 +69,6 @@ public interface IGameController {
 
     public IEntityPositionLookup getEntityLookupService();
 
+    public IGameWorldController getGameWorldController();
+
 }

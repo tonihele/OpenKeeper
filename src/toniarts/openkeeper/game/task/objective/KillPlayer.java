@@ -25,7 +25,6 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -67,23 +66,8 @@ public class KillPlayer extends AbstractObjectiveTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2645";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return null;
     }
 
     private boolean isPlayerDestroyed() {

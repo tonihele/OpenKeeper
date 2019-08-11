@@ -16,15 +16,15 @@
  */
 package toniarts.openkeeper.game.controller.door;
 
+import toniarts.openkeeper.game.controller.entity.IEntityController;
+
 /**
  * Controls game object entities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IDoorController {
+public interface IDoorController extends IEntityController {
 
     public boolean isDestroyed();
-
-    public short getOwnerId();
 
 }

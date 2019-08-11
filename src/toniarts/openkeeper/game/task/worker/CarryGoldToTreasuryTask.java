@@ -25,7 +25,6 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractRoomTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -58,11 +57,6 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2786";
-    }
-
-    @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.GOLD;
     }
@@ -74,16 +68,6 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
         // This is a one timer
         executed = true;
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Take_Gold.png";
     }
 
     @Override

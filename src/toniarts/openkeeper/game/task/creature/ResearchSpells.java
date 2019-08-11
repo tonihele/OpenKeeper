@@ -26,7 +26,6 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -55,11 +54,6 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2625";
-    }
-
-    @Override
     protected ObjectType getRoomObjectType() {
         return ObjectType.RESEARCHER;
     }
@@ -74,17 +68,6 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
             // Create a spell book
         //    getRoom().getObjectControl(GenericRoom.ObjectType.SPELL_BOOK).addItem(playerSpell, null, worldState.getThingLoader(), creature);
        // }
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        //return creature.getCreature().getAnimResearchResource();
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Library.png";
     }
 
     @Override

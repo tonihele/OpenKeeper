@@ -16,12 +16,14 @@
  */
 package toniarts.openkeeper.game.controller.trap;
 
+import toniarts.openkeeper.game.controller.entity.IEntityController;
+
 /**
  * Controls trap entities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ITrapController {
+public interface ITrapController extends IEntityController {
 
     public boolean isDestroyed();
 

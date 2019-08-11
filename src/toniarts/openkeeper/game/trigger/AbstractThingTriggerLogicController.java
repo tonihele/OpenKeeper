@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 
 /**
@@ -31,7 +32,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
  * @param <T> the entity controller wrapper
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractThingTriggerLogicController<T> implements IGameLogicUpdatable {
+public abstract class AbstractThingTriggerLogicController<T extends IEntityController> implements IGameLogicUpdatable {
 
     private final Map<Integer, AbstractThingTriggerControl<T>> thingTriggers;
     private final SafeArrayList<AbstractThingTriggerControl> triggerControls;

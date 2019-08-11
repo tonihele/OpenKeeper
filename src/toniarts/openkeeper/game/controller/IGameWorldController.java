@@ -146,4 +146,11 @@ public interface IGameWorldController {
      * @return creatures controller
      */
     public ICreaturesController getCreaturesController();
+
+    /**
+     * Get the objects controller
+     *
+     * @return objects controller
+     */
+    public IObjectsController getObjectsController();
 }

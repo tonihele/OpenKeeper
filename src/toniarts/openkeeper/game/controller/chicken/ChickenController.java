@@ -19,23 +19,21 @@ package toniarts.openkeeper.game.controller.chicken;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
-import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.ChickenAi;
-import toniarts.openkeeper.game.component.Health;
-import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
@@ -49,13 +47,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChickenController implements IChickenController {
+public class ChickenController extends EntityController implements IChickenController {
 
-    private final EntityId entityId;
-    private final EntityData entityData;
     private final INavigationService navigationService;
     private final IGameTimer gameTimer;
-    private final IObjectsController objectsController;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final GameObject eggObject;
     private final GameObject chickenObject;
@@ -65,14 +60,14 @@ public class ChickenController implements IChickenController {
     private static final Logger LOGGER = Logger.getLogger(ChickenController.class.getName());
 
     public ChickenController(EntityId entityId, EntityData entityData, GameObject eggObject, GameObject chickenObject,
-            INavigationService navigationService, IGameTimer gameTimer, IObjectsController objectsController) {
-        this.entityId = entityId;
-        this.entityData = entityData;
+            INavigationService navigationService, IGameTimer gameTimer, IObjectsController objectsController,
+            IMapController mapController) {
+        super(entityId, entityData, objectsController, mapController);
+
         this.navigationService = navigationService;
         this.eggObject = eggObject;
         this.chickenObject = chickenObject;
         this.gameTimer = gameTimer;
-        this.objectsController = objectsController;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -130,37 +125,8 @@ public class ChickenController implements IChickenController {
         // Note that this is the updatable stop, not the creature stop...
     }
 
-    @Override
-    public EntityId getEntityId() {
-        return entityId;
-    }
-
-    @Override
-    public int compareTo(IChickenController t) {
-        return Long.compare(entityId.getId(), t.getEntityId().getId());
-    }
-
     private void initState() {
         stateMachine.changeState(entityData.getComponent(entityId, ChickenAi.class).getChickenState());
-    }
-
-    @Override
-    public Vector3f getPosition() {
-        return getPosition(entityData, entityId);
-    }
-
-    public static Vector3f getPosition(EntityData entityData, EntityId entity) {
-        Position position = entityData.getComponent(entity, Position.class);
-        if (position != null) {
-            return position.position;
-        }
-        return null;
-    }
-
-    @Override
-    public short getOwnerId() {
-        Owner owner = entityData.getComponent(entityId, Owner.class);
-        return owner.ownerId;
     }
 
     @Override
@@ -242,24 +208,6 @@ public class ChickenController implements IChickenController {
     }
 
     @Override
-    public int getHealth() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        return health.health;
-    }
-
-    @Override
-    public int getMaxHealth() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        return health.maxHealth;
-    }
-
-    @Override
-    public boolean isPickedUp() {
-        InHand inHand = entityData.getComponent(entityId, InHand.class);
-        return inHand != null;
-    }
-
-    @Override
     public boolean isStateTimeExceeded() {
         double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, ChickenAi.class).stateStartTime;
 
@@ -297,31 +245,6 @@ public class ChickenController implements IChickenController {
 
     private Point getChickenCoordinates() {
         return WorldUtils.vectorToPoint(getPosition(entityData, entityId));
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 37 * hash + Objects.hashCode(this.entityId);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final ChickenController other = (ChickenController) obj;
-        if (!Objects.equals(this.entityId, other.entityId)) {
-            return false;
-        }
-        return true;
     }
 
 }

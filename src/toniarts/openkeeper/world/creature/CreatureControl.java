@@ -556,9 +556,10 @@ public abstract class CreatureControl extends AbstractCreatureSteeringControl im
                     return Utils.getMainTextResourceBundle().getString("2599");
                 }
                 case WORK: {
-                    if (assignedTask != null) {
-                        return assignedTask.getTooltip();
-                    }
+//                    if (assignedTask != null) {
+//                        return assignedTask.getTooltip();
+//                    }
+                    return null;
                 }
                 case WANDER: {
                     return Utils.getMainTextResourceBundle().getString("2628");

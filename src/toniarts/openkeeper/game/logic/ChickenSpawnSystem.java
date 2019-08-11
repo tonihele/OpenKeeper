@@ -72,8 +72,7 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
         this.mapController = mapController;
 
         // We need the game state just for the variables
-        entranceCooldownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY).getValue();
-        // / levelInfo.getLevelData().getGameLevel().getTicksPerSec(); <- Hmmm
+        entranceCooldownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY).getValue() / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
         maximumFreerangeChickenCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER).getValue();
 
         // Populate entrance list
@@ -232,9 +231,8 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
 
     private void processDeletedChickenEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            Owner owner = entity.get(Owner.class);
-            freeRangeChickensByPlayer.get(owner.ownerId).remove(entity.getId());
-            freeRangeChickenOwners.remove(entity.getId());
+            short ownerId = freeRangeChickenOwners.remove(entity.getId());
+            freeRangeChickensByPlayer.get(ownerId).remove(entity.getId());
         }
     }
 

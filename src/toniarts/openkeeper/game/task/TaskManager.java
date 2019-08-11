@@ -39,8 +39,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -54,11 +56,13 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.RoomListener;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.ResearchSpells;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -95,6 +99,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final ICreaturesController creaturesController;
     private final INavigationService navigationService;
     private final ILevelInfo levelInfo;
+    private final IEntityPositionLookup entityPositionLookup;
     private final EntityData entityData;
     private final EntitySet taskEntities;
     private final EntitySet unconsciousEntities;
@@ -104,16 +109,18 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+
     private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController, ICreaturesController creaturesController, INavigationService navigationService,
-            Collection<IPlayerController> players, ILevelInfo levelInfo) {
+            Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
         this.creaturesController = creaturesController;
         this.navigationService = navigationService;
         this.levelInfo = levelInfo;
+        this.entityPositionLookup = entityPositionLookup;
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -163,17 +170,17 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     @Override
     public void processTick(float tpf, double gameTime) {
         if (taskEntities.applyChanges()) {
-            processAddedTasks(taskEntities.getAddedEntities());
             processDeletedTasks(taskEntities.getRemovedEntities());
+            processAddedTasks(taskEntities.getAddedEntities());
             processChangedTasks(taskEntities.getChangedEntities());
         }
         if (unconsciousEntities.applyChanges()) {
-            processAddedUnconsciousEntities(unconsciousEntities.getAddedEntities());
             processDeletedUnconsciousEntities(unconsciousEntities.getRemovedEntities());
+            processAddedUnconsciousEntities(unconsciousEntities.getAddedEntities());
         }
         if (corpseEntities.applyChanges()) {
-            processAddedCorpseEntities(corpseEntities.getAddedEntities());
             processDeletedCorpseEntities(corpseEntities.getRemovedEntities());
+            processAddedCorpseEntities(corpseEntities.getAddedEntities());
         }
     }
 
@@ -467,7 +474,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             @Override
             public int compare(Task t, Task t1) {
-                int result = Integer.compare(calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
+                int result = Integer.compare(WorldUtils.calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), WorldUtils.calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
                 if (result == 0) {
 
                     // If the same, compare by date added
@@ -591,19 +598,12 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         int distance = Integer.MAX_VALUE;
         for (Point p : coordinates) {
             // TODO: do we need to do this diagonally?
-            distance = Math.min(distance, calculateDistance(currentPosition, p));
+            distance = Math.min(distance, WorldUtils.calculateDistance(currentPosition, p));
             if (distance == 0) {
                 break;
             }
         }
         return distance;
-    }
-
-    private static int calculateDistance(Point currentPosition, Point p) {
-        if (currentPosition == null || p == null) {
-            return Short.MAX_VALUE; // With the points added, int max value would overflow
-        }
-        return Math.abs(currentPosition.x - p.x) + Math.abs(currentPosition.y - p.y);
     }
 
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
@@ -626,11 +626,13 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
         Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(task.getRoom());
-        taskPoints.remove(task.getTaskLocation());
-        if (taskPoints.isEmpty()) {
-            roomTasks.remove(task.getRoom());
-            if (task.getAssigneeCount() == 0) {
-                //tasksByIds.remove(task.getId(), task);
+        if (taskPoints != null) {
+            taskPoints.remove(task.getTaskLocation());
+            if (taskPoints.isEmpty()) {
+                roomTasks.remove(task.getRoom());
+                if (task.getAssigneeCount() == 0) {
+                    //tasksByIds.remove(task.getId(), task);
+                }
             }
         }
     }
@@ -690,6 +692,43 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             tasksByIds.put(task.getId(), task);
             return true;
         }
+        return false;
+    }
+
+    @Override
+    public boolean assignEatTask(ICreatureController creature) {
+
+        // The creatures in the original don't seem to make anykind of reservations on the food items, I've seen them "fight over food", first come first serve
+        // Hmm, is this a good way to find the food, performance-wise...?
+        List<EntityId> foods = new ArrayList<>(entityData.findEntities(new FieldFilter(Owner.class, "ownerId", creature.getOwnerId()), Food.class, Owner.class, Position.class));
+        if (foods.isEmpty()) {
+            return false; // No food available
+        }
+
+        // Sort by manhattan distance in relation to the creature
+        Collections.sort(foods, new Comparator<EntityId>() {
+
+            private final Point currentLocation = creature.getCreatureCoordinates();
+
+            @Override
+            public int compare(EntityId entityId, EntityId entityId1) {
+                int result = Integer.compare(WorldUtils.calculateDistance(currentLocation, entityPositionLookup.getEntityLocation(entityId).getLocation()), WorldUtils.calculateDistance(currentLocation, entityPositionLookup.getEntityLocation(entityId1).getLocation()));
+                return result;
+            }
+
+        });
+
+        // Pick closest we can actually access
+        for (EntityId food : foods) {
+            Point target = entityPositionLookup.getEntityLocation(food).getLocation();
+            if (target == creature.getCreatureCoordinates() || navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null) {
+                GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
+                task.assign(creature, true);
+                tasksByIds.put(task.getId(), task);
+                return true;
+            }
+        }
+
         return false;
     }
 

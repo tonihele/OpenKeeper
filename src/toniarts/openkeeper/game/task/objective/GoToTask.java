@@ -21,7 +21,6 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -48,23 +47,8 @@ public class GoToTask extends AbstractObjectiveTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2670";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
         executed = true;
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return null;
     }
 
     @Override

@@ -71,6 +71,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return true; // Found work
             }
 
+            // See hunger
+            if (entity.isHungry() && entity.goToEat()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                return true; // Found work
+            }
+
             // Find work
             if (entity.findWork() || (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
@@ -134,7 +140,7 @@ public enum CreatureState implements State<ICreatureController> {
     DEAD() {
         @Override
         public void enter(ICreatureController entity) {
-            entity.die();
+            //entity.die();
         }
 
         @Override
@@ -193,6 +199,7 @@ public enum CreatureState implements State<ICreatureController> {
             // If we have some pocket money left, we should return it to treasury
             if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
                 entity.getStateMachine().changeState(IDLE);
+                return;
             }
 
             // Check arrival
@@ -585,6 +592,42 @@ public enum CreatureState implements State<ICreatureController> {
             if (entity.isStateTimeExceeded()) {
                 entity.getStateMachine().changeState(FIGHT);
             }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, EATING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+            public void update(ICreatureController entity) {
+            if (entity.isStateTimeExceeded()) {
+                entity.sate();
+
+                // Should we flee or attack
+                if (entity.shouldFleeOrAttack()) {
+                    return;
+                }
+
+                // See if we are still hungry
+                if (entity.isHungry() && entity.goToEat()) {
+                    entity.getStateMachine().changeState(CreatureState.WORK);
+                    return;
+                }
+                entity.getStateMachine().changeState(CreatureState.IDLE);
+            }
+
         }
 
         @Override

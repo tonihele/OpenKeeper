@@ -125,10 +125,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
 
         // Load the doors
-        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController);
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController);
 
         // Load the traps
-        trapsController = new TrapsController(kwdFile, entityData, gameSettings);
+        trapsController = new TrapsController(kwdFile, entityData, gameSettings, gameController);
 
         // Setup player stuff
         initPlayerMoney();
@@ -874,6 +874,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         return doorsController;
     }
 
+    @Override
     public IObjectsController getObjectsController() {
         return objectsController;
     }

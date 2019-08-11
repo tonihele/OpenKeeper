@@ -28,7 +28,6 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Attack;
@@ -37,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -63,6 +64,9 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -86,17 +90,14 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureController implements ICreatureController {
+public class CreatureController extends EntityController implements ICreatureController {
 
-    private final EntityId entityId;
-    private final EntityData entityData;
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final ICreaturesController creaturesController;
     private final IEntityPositionLookup entityPositionLookup;
-    private final IMapController mapController;
     private final ILevelInfo levelInfo;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
@@ -110,9 +111,8 @@ public class CreatureController implements ICreatureController {
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo) {
-        this.entityId = entityId;
-        this.entityData = entityData;
+            ILevelInfo levelInfo, IObjectsController objectsController) {
+        super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
         this.creature = creature;
@@ -120,7 +120,6 @@ public class CreatureController implements ICreatureController {
         this.gameSettings = gameSettings;
         this.creaturesController = creaturesController;
         this.entityPositionLookup = entityPositionLookup;
-        this.mapController = mapController;
         this.levelInfo = levelInfo;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
@@ -414,11 +413,6 @@ public class CreatureController implements ICreatureController {
     @Override
     public boolean isStopped() {
         return entityData.getComponent(entityId, Navigation.class) == null;
-    }
-
-    @Override
-    public void die() {
-        // TODO:
     }
 
     @Override
@@ -718,17 +712,6 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public boolean isFullHealth() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        return health.health == health.maxHealth;
-    }
-
-    @Override
-    public EntityId getEntityId() {
-        return entityId;
-    }
-
-    @Override
     public boolean isIncapacitated() {
         return isIncapacitated(entityData, entityId);
     }
@@ -761,32 +744,8 @@ public class CreatureController implements ICreatureController {
         return false;
     }
 
-    @Override
-    public int compareTo(ICreatureController t) {
-        return entityId.compareTo(t.getEntityId());
-    }
-
     private void initState() {
         stateMachine.changeState(entityData.getComponent(entityId, CreatureAi.class).getCreatureState());
-    }
-
-    @Override
-    public Vector3f getPosition() {
-        return getPosition(entityData, entityId);
-    }
-
-    public static Vector3f getPosition(EntityData entityData, EntityId entity) {
-        Position position = entityData.getComponent(entity, Position.class);
-        if (position != null) {
-            return position.position;
-        }
-        return null;
-    }
-
-    @Override
-    public short getOwnerId() {
-        Owner owner = entityData.getComponent(entityId, Owner.class);
-        return owner.ownerId;
     }
 
     @Override
@@ -1030,27 +989,9 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public int getHealth() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        return health.health;
-    }
-
-    @Override
-    public int getMaxHealth() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        return health.maxHealth;
-    }
-
-    @Override
     public int getLevel() {
         CreatureExperience creatureExperience = entityData.getComponent(entityId, CreatureExperience.class);
         return creatureExperience.level;
-    }
-
-    @Override
-    public boolean isPickedUp() {
-        InHand inHand = entityData.getComponent(entityId, InHand.class);
-        return inHand != null;
     }
 
     @Override
@@ -1181,6 +1122,7 @@ public class CreatureController implements ICreatureController {
         Health health = entityData.getComponent(entityId, Health.class);
         entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, (int) Math.floor(health.maxHealth * 0.2f), health.maxHealth, false));
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
+        entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
         stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
@@ -1205,6 +1147,9 @@ public class CreatureController implements ICreatureController {
             case MELEE_ATTACK: {
                 return timeSpent >= getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
             }
+            case EATING: {
+                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.EATING);
+            }
         }
         return false;
     }
@@ -1223,28 +1168,56 @@ public class CreatureController implements ICreatureController {
     }
 
     @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 37 * hash + Objects.hashCode(this.entityId);
-        return hash;
+    public boolean isHungry() {
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (creatureHunger != null) {
+            if (creatureHunger.amountNeeded > 0) {
+                return true;
+            } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
+
+                // We are hungry now, mark the amount of food we need
+                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
+    public boolean goToEat() {
+        return taskManager.assignEatTask(this);
+    }
+
+    @Override
+    public void eat(IEntityController target) {
+
+        // Ok, first we destroy the entity we are eating so that nobody else gets it
+        Health health = entityData.getComponent(target.getEntityId(), Health.class);
+        if (health != null) {
+            target.remove();
+
+            stateMachine.changeState(CreatureState.EATING);
         }
-        if (obj == null) {
-            return false;
+    }
+
+    @Override
+    public void sate() {
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (creatureHunger.amountNeeded == 1) {
+
+            // We are full
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
+        } else if (creatureHunger.amountNeeded > 0) {
+            entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
         }
-        if (getClass() != obj.getClass()) {
-            return false;
+
+        // Increase health
+        if (!isFullHealth()) {
+            Health health = entityData.getComponent(entityId, Health.class);
+            entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, Math.max(health.health + creature.getAttributes().getHpFromChicken(), health.maxHealth), health.maxHealth, health.unconscious));
         }
-        final CreatureController other = (CreatureController) obj;
-        if (!Objects.equals(this.entityId, other.entityId)) {
-            return false;
-        }
-        return true;
     }
 
 }

@@ -36,8 +36,11 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -51,6 +54,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     private final EntityData entityData;
     private final IMapController mapController;
+    private final IObjectsController objectsController;
     private final EntitySet positionedEntities;
     private final Map<MapTile, Set<EntityId>> entitiesByMapTile = new HashMap<>();
     private final Map<MapTile, Set<EntityId>> obstaclesByMapTile = new HashMap<>();
@@ -59,9 +63,10 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new HashMap<>();
 
-    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController) {
+    public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController, IObjectsController objectsController) {
         this.entityData = entityData;
         this.mapController = mapController;
+        this.objectsController = objectsController;
         entityWrappers.put(ICreatureController.class, creaturesController);
         entityWrappers.put(IDoorController.class, doorsController);
 
@@ -180,25 +185,23 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     }
 
     @Override
-    public <T> List<T> getEntityTypesInLocation(Point p, Class<T> clazz) {
+    public <T extends IEntityController> List<T> getEntityTypesInLocation(Point p, Class<T> clazz) {
         MapTile mapTile = mapController.getMapData().getTile(p);
         return getEntityTypesInLocation(mapTile, clazz);
     }
 
     @Override
-    public <T> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
+    public <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
         MapTile mapTile = mapController.getMapData().getTile(x, y);
         return getEntityTypesInLocation(mapTile, clazz);
     }
 
     @Override
-    public <T> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz) {
+    public <T extends IEntityController> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz) {
         Set<EntityId> entityIds = entitiesByMapTile.get(mapTile);
         if (entityIds != null) {
-            IEntityWrapper<T> entityWrapper = (IEntityWrapper<T>) entityWrappers.get(clazz);
-            if (entityWrapper == null) {
-                throw new RuntimeException("No entity wrappers registered with type " + clazz + "!");
-            }
+            IEntityWrapper<T> entityWrapper = getEntityWrapper(clazz);
+
             List<T> entities = new ArrayList<>(entityIds.size());
             for (EntityId entityId : new ArrayList<>(entityIds)) {
                 if (entityWrapper.isValidEntity(entityId)) {
@@ -209,6 +212,36 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         }
 
         return Collections.emptyList();
+    }
+
+    @Override
+    public IEntityController getEntityController(EntityId entityId) {
+
+        // Hmm, dunno, it might get duplicate hits etc. Not maybe smart design.
+        // Maybe create the base interface methods as final, and it would be always valid to return the IEntityController wherever required
+        for (IEntityWrapper<?> entityWrapper : entityWrappers.values()) {
+            if (entityWrapper.isValidEntity(entityId)) {
+                return entityWrapper.createController(entityId);
+                }
+        }
+
+        // Hmm, I think this is safe, just create the general one
+        return new EntityController(entityId, entityData, objectsController, mapController);
+    }
+
+    @Override
+    public <T extends IEntityController> T getEntityController(EntityId entityId, Class<T> clazz) {
+        IEntityWrapper<T> entityWrapper = getEntityWrapper(clazz);
+
+        return entityWrapper.createController(entityId);
+    }
+
+    private <T extends IEntityController> IEntityWrapper<T> getEntityWrapper(Class<T> clazz) throws RuntimeException {
+        IEntityWrapper<T> entityWrapper = (IEntityWrapper<T>) entityWrappers.get(clazz);
+        if (entityWrapper == null) {
+            throw new RuntimeException("No entity wrappers registered with type " + clazz + "!");
+        }
+        return entityWrapper;
     }
 
     @Override

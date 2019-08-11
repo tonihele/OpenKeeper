@@ -22,7 +22,6 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -52,11 +51,6 @@ public class ClaimTileTask extends AbstractTileTask {
     }
 
     @Override
-    protected String getStringId() {
-        return "2601";
-    }
-
-    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // TODO: is this a general case or even smart to do this like this...?
@@ -65,17 +59,6 @@ public class ClaimTileTask extends AbstractTileTask {
 
             mapController.applyClaimTile(getTaskLocation(), playerId);
         }
-    }
-
-    @Override
-    public ArtResource getTaskAnimation(ICreatureController creature) {
-        //return creature.getCreature().getAnimEatResource();
-        return null;
-    }
-
-    @Override
-    public String getTaskIcon() {
-        return "Textures/GUI/moods/SJ-Claim.png";
     }
 
     @Override

@@ -17,9 +17,9 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
-import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface ICreatureController extends Comparable<ICreatureController>, IGameLogicUpdatable, INavigable {
+public interface ICreatureController extends IGameLogicUpdatable, INavigable, IEntityController {
 
     public boolean shouldFleeOrAttack();
 
@@ -73,8 +73,6 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean isStopped();
 
-    public void die();
-
     public void navigateToAssignedTask();
 
     public boolean isAtAssignedTaskTarget();
@@ -111,17 +109,11 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean isEnoughSleep();
 
-    public boolean isFullHealth();
-
-    public EntityId getEntityId();
-
     public boolean isIncapacitated();
 
     public boolean isTimeToReEvaluate();
 
     public void resetReEvaluationTimer();
-
-    public Vector3f getPosition();
 
     public int getGold();
 
@@ -161,13 +153,7 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
 
     public boolean isStunned();
 
-    public int getHealth();
-
-    public int getMaxHealth();
-
     public int getLevel();
-
-    public boolean isPickedUp();
 
     public void attachPortalGem();
 
@@ -187,15 +173,6 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      * @return {@code true} if state should be changed
      */
     public boolean isStateTimeExceeded();
-
-    /**
-     * Get percentage of health
-     *
-     * @return human formatted percentage
-     */
-    default int getHealthPercentage() {
-        return (int) ((getHealth() * 100.0f) / getMaxHealth());
-    }
 
     public void sleep();
 
@@ -231,5 +208,21 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      * @return returns {@code true} if the creature is owned by a keeper
      */
     public boolean isClaimed();
+
+    public boolean isHungry();
+
+    public boolean goToEat();
+
+    /**
+     * Makes the creature eat the target
+     *
+     * @param target the devouree
+     */
+    public void eat(IEntityController target);
+
+    /**
+     * Marks that we have eaten a single ration of food
+     */
+    public void sate();
 
 }
