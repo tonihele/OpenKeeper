@@ -75,9 +75,9 @@ public class DeathSystem implements IGameLogicUpdatable {
     public void processTick(float tpf, double gameTime) {
         if (deathEntities.applyChanges()) {
 
-            processAddedEntities(deathEntities.getAddedEntities());
-
             processDeletedEntities(deathEntities.getRemovedEntities());
+
+            processAddedEntities(deathEntities.getAddedEntities());
         }
 
         // Decay stuff

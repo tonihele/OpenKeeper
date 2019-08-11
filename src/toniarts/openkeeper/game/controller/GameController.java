@@ -224,7 +224,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
         // Initialize tasks
-        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this);
+        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this, positionSystem);
 
         // The triggers
         partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());

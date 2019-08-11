@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.navigation.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Heuristic;
 import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Calculates distance between nodes
@@ -28,7 +29,7 @@ public class MapDistance implements Heuristic<MapTile> {
 
     @Override
     public float estimate(MapTile node, MapTile endNode) {
-        return Math.abs(endNode.getX() - node.getX()) + Math.abs(endNode.getY() - node.getY());
+        return WorldUtils.calculateDistance(node.getLocation(), endNode.getLocation());
     }
 
 }

@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
@@ -56,6 +57,7 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -1181,6 +1183,7 @@ public class CreatureController implements ICreatureController {
         Health health = entityData.getComponent(entityId, Health.class);
         entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, (int) Math.floor(health.maxHealth * 0.2f), health.maxHealth, false));
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
+        entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
         stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
@@ -1205,6 +1208,9 @@ public class CreatureController implements ICreatureController {
             case MELEE_ATTACK: {
                 return timeSpent >= getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
             }
+            case EATING: {
+                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.EATING);
+            }
         }
         return false;
     }
@@ -1220,6 +1226,60 @@ public class CreatureController implements ICreatureController {
     @Override
     public boolean isClaimed() {
         return Player.NEUTRAL_PLAYER_ID != getOwnerId();
+    }
+
+    @Override
+    public boolean isHungry() {
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (creatureHunger != null) {
+            if (creatureHunger.amountNeeded > 0) {
+                return true;
+            } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
+
+                // We are hungry now, mark the amount of food we need
+                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean goToEat() {
+        return taskManager.assignEatTask(this);
+    }
+
+    @Override
+    public void eat(EntityId target) {
+
+        // Ok, first we destroy the entity we are eating so that nobody else gets it
+        // TODO: We shouldn't know the logic here, is it some objectcontroller etc that is passed instead?
+        Health health = entityData.getComponent(target, Health.class);
+        if (health != null) {
+            entityData.setComponent(target, new Health(health.ownLandHealthIncrease, 0, health.maxHealth, health.unconscious));
+
+            stateMachine.changeState(CreatureState.EATING);
+        }
+    }
+
+    @Override
+    public void sate() {
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (creatureHunger.amountNeeded == 1) {
+
+            // We are full
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
+        } else if (creatureHunger.amountNeeded > 0) {
+            entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
+        }
+
+        // Increase health
+        if (!isFullHealth()) {
+            Health health = entityData.getComponent(entityId, Health.class);
+            entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, Math.max(health.health + creature.getAttributes().getHpFromChicken(), health.maxHealth), health.maxHealth, health.unconscious));
+        }
     }
 
     @Override

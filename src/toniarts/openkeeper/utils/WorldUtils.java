@@ -152,4 +152,18 @@ public class WorldUtils {
         }
     }
 
+    /**
+     * Calculates manhattan distance between two points
+     *
+     * @param p1 point 1
+     * @param p2 point 2
+     * @return distance between the to points
+     */
+    public static int calculateDistance(Point p1, Point p2) {
+        if (p1 == null || p2 == null) {
+            return Short.MAX_VALUE; // With the points added, int max value would overflow
+        }
+        return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+    }
+
 }

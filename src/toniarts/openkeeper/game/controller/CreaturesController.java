@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -250,6 +251,11 @@ public class CreaturesController implements ICreaturesController {
         // Need for sleep
         if (creature.getAttributes().getTimeSleep() > 0) {
             entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
+        }
+
+        // Hunger
+        if (creature.getAttributes().getHungerFill() > 0) {
+            entityData.setComponent(entity, new CreatureHunger(gameTimer.getGameTime(), 0));
         }
 
         CreatureState creatureState = entrance ? CreatureState.ENTERING_DUNGEON : getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);

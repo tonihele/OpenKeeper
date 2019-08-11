@@ -232,4 +232,20 @@ public interface ICreatureController extends Comparable<ICreatureController>, IG
      */
     public boolean isClaimed();
 
+    public boolean isHungry();
+
+    public boolean goToEat();
+
+    /**
+     * Makes the creature eat the target
+     *
+     * @param target the devouree
+     */
+    public void eat(EntityId target);
+
+    /**
+     * Marks that we have eaten a single ration of food
+     */
+    public void sate();
+
 }

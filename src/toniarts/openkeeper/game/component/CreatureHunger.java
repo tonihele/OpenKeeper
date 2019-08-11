@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2018 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,30 +14,31 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task;
+package toniarts.openkeeper.game.component;
+
+import com.simsilica.es.EntityComponent;
 
 /**
- * Type of task
+ * Creature hunger component. Marks the need for eating overall.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public enum TaskType {
+public class CreatureHunger implements EntityComponent {
 
-    CLAIM_LAIR,
-    GO_TO_SLEEP,
-    RESEARCH_SPELL,
-    GO_TO_LOCATION,
-    KILL_PLAYER,
-    CAPTURE_ENEMY_CREATURE,
-    CARRY_CREATURE_TO_LAIR,
-    CARRY_CREATURE_TO_JAIL,
-    CARRY_GOLD_TO_TREASURY,
-    CLAIM_ROOM,
-    CLAIM_TILE,
-    CLAIM_WALL,
-    DIG_TILE,
-    FETCH_OBJECT,
-    REPAIR_WALL,
-    RESCUE_CREATURE,
-    GO_TO_EAT
+    public double lastEatTime;
+
+    /**
+     * How many chickens still needed to satiate the hunger
+     */
+    public int amountNeeded;
+
+    public CreatureHunger() {
+        // For serialization
+    }
+
+    public CreatureHunger(double lastEatTime, int amountNeeded) {
+        this.lastEatTime = lastEatTime;
+        this.amountNeeded = amountNeeded;
+    }
+
 }
