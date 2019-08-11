@@ -44,20 +44,22 @@ public class GoToEat extends AbstractTask {
      */
     private final EntityId target;
     private final EntityData entityData;
+    private final ICreatureController creature;
 
 
     public GoToEat(final INavigationService navigationService, final IMapController mapController, final IEntityPositionLookup entityPositionLookup,
-            EntityId target, EntityData entityData) {
+            EntityId target, EntityData entityData, ICreatureController creature) {
         super(navigationService, mapController);
 
         this.entityPositionLookup = entityPositionLookup;
         this.target = target;
         this.entityData = entityData;
+        this.creature = creature;
     }
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return !executed && getTaskLocation() != null && entityData.getComponent(target, Food.class) != null && creature.isHungry();
+        return !executed && getTaskLocation() != null && entityData.getComponent(target, Food.class) != null && this.creature.isHungry();
     }
 
     @Override

@@ -722,7 +722,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (EntityId food : foods) {
             Point target = entityPositionLookup.getEntityLocation(food).getLocation();
             if (target == creature.getCreatureCoordinates() || navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null) {
-                GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData);
+                GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
                 return true;

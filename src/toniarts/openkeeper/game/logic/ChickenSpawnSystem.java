@@ -231,9 +231,8 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
 
     private void processDeletedChickenEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            Owner owner = entity.get(Owner.class);
-            freeRangeChickensByPlayer.get(owner.ownerId).remove(entity.getId());
-            freeRangeChickenOwners.remove(entity.getId());
+            short ownerId = freeRangeChickenOwners.remove(entity.getId());
+            freeRangeChickensByPlayer.get(ownerId).remove(entity.getId());
         }
     }
 
