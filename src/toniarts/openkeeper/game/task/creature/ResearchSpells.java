@@ -17,8 +17,11 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -36,11 +39,14 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerSpellControl spellControl;
+    private IObjectsController objectsController;
 
-    public ResearchSpells(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
+    public ResearchSpells(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
+            TaskManager taskManager, PlayerSpellControl spellControl, IObjectsController objectsController) {
         super(navigationService, mapController, x, y, playerId, room, taskManager);
-        spellControl = null;
-        //worldState.getGameState().getPlayer(playerId).getSpellControl();
+
+        this.spellControl = spellControl;
+        this.objectsController = objectsController;
     }
 
     @Override
@@ -62,12 +68,13 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // Advance players spell research
-        //PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
-       // if (playerSpell != null) {
+        PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
+        if (playerSpell != null) {
 
             // Create a spell book
-        //    getRoom().getObjectControl(GenericRoom.ObjectType.SPELL_BOOK).addItem(playerSpell, null, worldState.getThingLoader(), creature);
-       // }
+            EntityId entityId = objectsController.addRoomSpellBook(playerId, getTaskLocation().x, getTaskLocation().y, playerSpell);
+            getRoomObjectControl().addItem(entityId, getTaskLocation());
+       }
     }
 
     @Override

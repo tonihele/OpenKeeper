@@ -23,7 +23,10 @@ import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 
 /**
- * Holds and manages player's spells
+ * Holds and manages player's spells. In the original game the research status
+ * is persisted even if all libraries are removed in midst of a research. So we
+ * hold here the current research status. Only when the research is done, a
+ * spellbook is created to the world.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -49,7 +52,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
                 currentResearch = playerSpell;
             }
         } else {
-            playerSpell = types.remove(type);
+            playerSpell = remove(type);
         }
 
         // Listeners
@@ -94,8 +97,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
      * Researches current spell
      *
      * @param researchAmount the research amount
-     * @return returns the spell if it is researched, it should be bound to a
-     * world object
+     * @return returns the spell if it is researched completely
      */
     public PlayerSpell research(int researchAmount) {
         PlayerSpell spell = currentResearch;
@@ -109,8 +111,8 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
             setNextResearchTarget();
         }
 
-        // If discovered by the player for the first time, tie the spell to a spell book
-        if (advanceToNext && spell.isDiscovered() && spell.getSpellBookObjectControl() == null) {
+        // If research complete, return the spellbook
+        if (advanceToNext) {
             return spell;
         }
         return null;
@@ -156,6 +158,42 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
             playerSpellListeners = new ArrayList<>();
         }
         playerSpellListeners.add(listener);
+    }
+
+    public void onSpellbookAdded(KeeperSpell keeperSpell) {
+        PlayerSpell playerSpell = get(keeperSpell);
+        if (playerSpell != null) {
+            if (!playerSpell.isDiscovered()) {
+                playerSpell.setDiscovered(true);
+            } else {
+                playerSpell.setUpgraded(true);
+            }
+
+            // Notify listeners
+            if (playerSpellListeners != null) {
+                for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
+                    playerSpellListener.onAdded(playerSpell);
+                }
+            }
+        }
+    }
+
+    public void onSpellbookRemoved(KeeperSpell keeperSpell) {
+        PlayerSpell playerSpell = get(keeperSpell);
+        if (playerSpell != null) {
+            if (playerSpell.isUpgraded()) {
+                playerSpell.setUpgraded(false);
+            } else {
+                playerSpell.setDiscovered(false);
+            }
+
+            // Notify listeners
+            if (playerSpellListeners != null) {
+                for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
+                    playerSpellListener.onRemoved(playerSpell);
+                }
+            }
+        }
     }
 
 }

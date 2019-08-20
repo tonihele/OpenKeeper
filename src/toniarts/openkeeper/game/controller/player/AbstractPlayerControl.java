@@ -109,6 +109,10 @@ public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>
         return types.put(key, value);
     }
 
+    protected V remove(K key) {
+        return types.remove(key);
+    }
+
     /**
      * Get the amount of object types the player has
      *

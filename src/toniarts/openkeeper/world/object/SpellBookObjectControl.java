@@ -35,7 +35,7 @@ public class SpellBookObjectControl extends ObjectControl {
         super(tile, object, worldState);
 
         this.playerSpell = playerSpell;
-        this.playerSpell.setSpellBookObjectControl(this);
+        //this.playerSpell.setSpellBookObjectControl(this);
     }
 
     @Override

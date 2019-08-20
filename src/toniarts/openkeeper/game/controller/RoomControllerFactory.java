@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.LairController;
+import toniarts.openkeeper.game.controller.room.LibraryController;
 import toniarts.openkeeper.game.controller.room.NormalRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.TempleController;
@@ -74,9 +75,9 @@ public final class RoomControllerFactory {
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
                     return new LairController(kwdFile, roomInstance, objectsController, gameTimer);
-//                } else if (roomName.equalsIgnoreCase("Library")) {
-//                    return new Library(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else if (roomName.equalsIgnoreCase("Training Room")) {
+                } else if (roomName.equalsIgnoreCase("Library")) {
+                    return new LibraryController(kwdFile, roomInstance, objectsController, gameTimer);
+//                } //else if (roomName.equalsIgnoreCase("Training Room")) {
 //                    return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
 //                } else
                } else if (roomName.equalsIgnoreCase("Work Shop")) {
