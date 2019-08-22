@@ -93,7 +93,12 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
     public void destroy() {
 
         // The keeper has no more access to the spells
-        // TODO: how
+        List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
+        for (Collection<EntityId> objects : objectList) {
+            for (EntityId obj : objects) {
+                removeItem(obj);
+            }
+        }
     }
 
     @Override

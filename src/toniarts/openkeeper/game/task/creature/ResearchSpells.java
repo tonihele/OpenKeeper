@@ -17,9 +17,7 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
-import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
@@ -39,14 +37,12 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerSpellControl spellControl;
-    private IObjectsController objectsController;
 
     public ResearchSpells(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerSpellControl spellControl, IObjectsController objectsController) {
+            TaskManager taskManager, PlayerSpellControl spellControl) {
         super(navigationService, mapController, x, y, playerId, room, taskManager);
 
         this.spellControl = spellControl;
-        this.objectsController = objectsController;
     }
 
     @Override
@@ -61,7 +57,7 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
 
     @Override
     protected ObjectType getRoomObjectType() {
-        return ObjectType.RESEARCHER;
+        return ObjectType.SPELL_BOOK;
     }
 
     @Override
@@ -72,8 +68,7 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
         if (playerSpell != null) {
 
             // Create a spell book
-            EntityId entityId = objectsController.addRoomSpellBook(playerId, getTaskLocation().x, getTaskLocation().y, playerSpell);
-            getRoomObjectControl().addItem(entityId, getTaskLocation());
+            getRoomObjectControl().addItem(playerSpell, getTaskLocation());
        }
     }
 

@@ -153,11 +153,22 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
      *
      * @param listener the listener
      */
-    public void addPlayerSpellListener(PlayerSpellListener listener) {
+    public void addListener(PlayerSpellListener listener) {
         if (playerSpellListeners == null) {
             playerSpellListeners = new ArrayList<>();
         }
         playerSpellListeners.add(listener);
+    }
+
+    /**
+     * No longer listen to spell status changes
+     *
+     * @param listener the listener
+     */
+    public void removeListener(PlayerSpellListener listener) {
+        if (playerSpellListeners != null) {
+            playerSpellListeners.remove(listener);
+        }
     }
 
     public void onSpellbookAdded(KeeperSpell keeperSpell) {

@@ -82,6 +82,9 @@ public class PlayerController implements IPlayerController {
         if (roomControl != null) {
             roomControl.addListener(listener);
         }
+        if (spellControl != null) {
+            spellControl.addListener(listener);
+        }
     }
 
     @Override
@@ -92,6 +95,9 @@ public class PlayerController implements IPlayerController {
         }
         if (roomControl != null) {
             roomControl.removeListener(listener);
+        }
+        if (spellControl != null) {
+            spellControl.removeListener(listener);
         }
     }
 
