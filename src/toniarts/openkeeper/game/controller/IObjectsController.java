@@ -21,7 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 
 /**
  * Handles the object space

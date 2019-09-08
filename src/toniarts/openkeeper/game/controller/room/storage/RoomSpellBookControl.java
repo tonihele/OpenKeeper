@@ -24,7 +24,7 @@ import java.util.List;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;

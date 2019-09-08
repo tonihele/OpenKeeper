@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;

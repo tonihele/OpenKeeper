@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;

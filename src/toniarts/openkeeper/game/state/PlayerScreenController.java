@@ -64,7 +64,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +79,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
@@ -730,7 +729,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 //                populateSpellTab();
 //            }
 //        });
-//        populateSpellTab();
+        populateSpellTab();
 //        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
 //        contentPanel.removeAll();
 //        for (final Door door : state.getAvailableDoors()) {
@@ -760,8 +759,8 @@ public class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
-        for (final Entry<KeeperSpell, PlayerSpell> entry : state.getSpellControl().getTypes().entrySet()) {
-            contentPanel.addElement(createSpellIcon(entry.getValue()));
+        for (final PlayerSpell spell : state.getAvailableKeeperSpells()) {
+            contentPanel.addElement(createSpellIcon(spell));
         }
     }
 
@@ -970,15 +969,16 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     private ControlBuilder createSpellIcon(final PlayerSpell spell) {
+        KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
         if (spell.isDiscovered()) {
-            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getKeeperSpell().getNameStringId()));
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
             String hint = Utils.getMainTextResourceBundle().getString("1785")
                     .replace("%1", name)
-                    .replace("%2", spell.getKeeperSpell().getManaCost() + "")
+                    .replace("%2", keeperSpell.getManaCost() + "")
                     .replace("%3", spell.isUpgraded() ? "2" : "1");
-            return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", spell.isUpgraded() ? spell.getKeeperSpell().getGuiIcon().getName() + "-2" : spell.getKeeperSpell().getGuiIcon().getName(), spell.getKeeperSpell().getGeneralDescriptionStringId(), hint, true);
+            return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), keeperSpell.getGeneralDescriptionStringId(), hint, true);
         }
-        return createIcon(spell.getKeeperSpell().getKeeperSpellId(),
+        return createIcon(keeperSpell.getKeeperSpellId(),
                 "spell", "gui\\spells\\s-tba", null, null, false);
     }
 

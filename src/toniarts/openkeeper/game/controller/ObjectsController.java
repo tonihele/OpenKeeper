@@ -42,10 +42,10 @@ import toniarts.openkeeper.game.controller.chicken.ChickenState;
 import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.object.ObjectController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
 import toniarts.openkeeper.game.controller.room.TempleController;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -224,7 +224,7 @@ public class ObjectsController implements IObjectsController {
 
     @Override
     public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell) {
-        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y, null, spell.getKeeperSpell().getId());
+        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y, null, spell.getKeeperSpellId());
     }
 
     @Override

@@ -55,7 +55,7 @@ public class PlayerController implements IPlayerController {
         goldControl = new PlayerGoldControl(keeper);
         creatureControl = new PlayerCreatureControl(keeper, imp, kwdFile.getCreatureList());
         roomControl = new PlayerRoomControl(keeper, kwdFile.getRooms());
-        spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells());
+        spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells(), kwdFile);
         statsControl = new PlayerStatsControl();
 
         // Don't create certain controls for neutral nor good player

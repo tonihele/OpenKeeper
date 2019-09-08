@@ -34,11 +34,11 @@ import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -343,6 +343,18 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         return rooms;
     }
 
+    protected List<PlayerSpell> getAvailableKeeperSpells() {
+
+        // TODO: cache, or something, maybe add the listeners here
+        GameClientState gameState = stateManager.getState(GameClientState.class);
+        Keeper keeper = getPlayer();
+        List<PlayerSpell> spells = new ArrayList<>(keeper.getAvailableSpells().size());
+        keeper.getAvailableSpells().stream().forEach((id) -> {
+            spells.add(keeper.getPlayerSpells().get(id));
+        });
+        return spells;
+    }
+
     protected List<Door> getAvailableDoors() {
         GameClientState gameState = stateManager.getState(GameClientState.class);
         List<Door> doors = gameState.getLevelData().getDoors();
@@ -526,17 +538,17 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     @Override
     public void onAdded(PlayerSpell spell) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        screen.populateSpellTab();
     }
 
     @Override
     public void onRemoved(PlayerSpell spell) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        screen.populateSpellTab();
     }
 
     @Override
     public void onResearchStatusChanged(PlayerSpell spell) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        //screen.populateSpellTab();
     }
 
     @Override

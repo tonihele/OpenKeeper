@@ -19,8 +19,10 @@ package toniarts.openkeeper.game.controller.player;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Holds and manages player's spells. In the original game the research status
@@ -32,11 +34,14 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
  */
 public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, PlayerSpell> {
 
+    private final KwdFile kwdFile;
     private PlayerSpell currentResearch = null;
     private List<PlayerSpellListener> playerSpellListeners;
 
-    public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells) {
+    public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells, KwdFile kwdFile) {
         super(keeper, keeper.getAvailableSpells(), keeperSpells);
+
+        this.kwdFile = kwdFile;
     }
 
     @Override
@@ -46,13 +51,15 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
         // Add one to the stock
         PlayerSpell playerSpell;
         if (available) {
-            playerSpell = new PlayerSpell(type);
+            playerSpell = new PlayerSpell(type.getId());
             put(type, playerSpell);
+            keeper.getPlayerSpells().put(type.getId(), playerSpell);
             if (currentResearch == null) {
                 currentResearch = playerSpell;
             }
         } else {
             playerSpell = remove(type);
+            keeper.getPlayerSpells().remove(type.getId());
         }
 
         // Listeners
@@ -101,7 +108,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
      */
     public PlayerSpell research(int researchAmount) {
         PlayerSpell spell = currentResearch;
-        boolean advanceToNext = currentResearch.research(researchAmount);
+        boolean advanceToNext = research(spell, kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), researchAmount);
         if (playerSpellListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
                 playerSpellListener.onResearchStatusChanged(spell);
@@ -116,6 +123,20 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
             return spell;
         }
         return null;
+    }
+
+    private static boolean research(PlayerSpell spell, KeeperSpell keeperSpell, int researchAmount) {
+        spell.setResearch(spell.getResearch() + researchAmount);
+        if (spell.isDiscovered() && spell.getResearch() >= keeperSpell.getBonusRTime()) {
+            spell.setUpgraded(true);
+            spell.setResearch(0);
+            return true;
+        } else if (!spell.isDiscovered() && spell.getResearch() >= keeperSpell.getResearchTime()) {
+            spell.setDiscovered(true);
+            spell.setResearch(0);
+            return true;
+        }
+        return false;
     }
 
     /**

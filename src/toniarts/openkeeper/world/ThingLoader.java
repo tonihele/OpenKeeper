@@ -32,7 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;

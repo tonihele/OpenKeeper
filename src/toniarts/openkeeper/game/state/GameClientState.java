@@ -33,8 +33,8 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.controller.PlayerController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -381,22 +381,43 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onAdded(PlayerSpell spell) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            playerControllers.get(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), true);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == playerId) {
+                app.enqueue(() -> {
+                    playerState.onAdded(spell);
+                });
+            }
         }
 
         @Override
         public void onRemoved(PlayerSpell spell) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            playerControllers.get(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), true);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == playerId) {
+                app.enqueue(() -> {
+                    playerState.onRemoved(spell);
+                });
+            }
         }
 
         @Override
         public void onResearchStatusChanged(PlayerSpell spell) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            playerControllers.get(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), true);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == playerId) {
+                app.enqueue(() -> {
+                    playerState.onResearchStatusChanged(spell);
+                });
+            }
         }
 
         @Override
         public void onGoldChange(short keeperId, int gold) {
-            players.get(keeperId).setGold(gold);
+            playerControllers.get(playerId).getGoldControl().addGold(gold);
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == keeperId) {
@@ -408,10 +429,7 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
-            Keeper keeper = players.get(keeperId);
-            keeper.setMana(mana);
-            keeper.setManaGain(manaGain);
-            keeper.setManaLoose(manaLoose);
+            playerControllers.get(playerId).getManaControl().updateMana(manaGain, manaLoose);
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == keeperId) {
