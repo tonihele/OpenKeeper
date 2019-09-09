@@ -24,9 +24,9 @@ import java.util.List;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -95,7 +95,7 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
         // The keeper has no more access to the spells
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
         for (Collection<EntityId> objects : objectList) {
-            for (EntityId obj : objects) {
+            for (EntityId obj : new ArrayList<>(objects)) {
                 removeItem(obj);
             }
         }
