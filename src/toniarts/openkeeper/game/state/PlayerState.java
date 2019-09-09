@@ -346,13 +346,8 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     protected List<PlayerSpell> getAvailableKeeperSpells() {
 
         // TODO: cache, or something, maybe add the listeners here
-        GameClientState gameState = stateManager.getState(GameClientState.class);
         Keeper keeper = getPlayer();
-        List<PlayerSpell> spells = new ArrayList<>(keeper.getAvailableSpells().size());
-        keeper.getAvailableSpells().stream().forEach((id) -> {
-            spells.add(keeper.getPlayerSpells().get(id));
-        });
-        return spells;
+        return keeper.getAvailableSpells();
     }
 
     protected List<Door> getAvailableDoors() {
@@ -537,18 +532,18 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onAdded(PlayerSpell spell) {
+    public void onAdded(short keeperId, PlayerSpell spell) {
         screen.populateSpellTab();
     }
 
     @Override
-    public void onRemoved(PlayerSpell spell) {
+    public void onRemoved(short keeperId, PlayerSpell spell) {
         screen.populateSpellTab();
     }
 
     @Override
-    public void onResearchStatusChanged(PlayerSpell spell) {
-        //screen.populateSpellTab();
+    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
+        screen.populateSpellTab();
     }
 
     @Override

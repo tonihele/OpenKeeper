@@ -76,6 +76,36 @@ public class PlayerSpell implements Savable {
     }
 
     @Override
+    public String toString() {
+        return "PlayerSpell{" + "keeperSpellId=" + keeperSpellId + ", upgraded=" + upgraded + ", discovered=" + discovered + ", research=" + research + '}';
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 23 * hash + this.keeperSpellId;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final PlayerSpell other = (PlayerSpell) obj;
+        if (this.keeperSpellId != other.keeperSpellId) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public void write(JmeExporter ex) throws IOException {
         OutputCapsule out = ex.getCapsule(this);
         out.write(keeperSpellId, "keeperSpellId", Integer.valueOf(0).shortValue());

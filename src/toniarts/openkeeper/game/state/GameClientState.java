@@ -24,6 +24,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -268,6 +269,10 @@ public class GameClientState extends AbstractPauseAwareState {
         return players.get(playerId);
     }
 
+    public Keeper getPlayer() {
+        return players.get(playerId);
+    }
+
     public Collection<Keeper> getPlayers() {
         return players.values();
     }
@@ -380,44 +385,60 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onAdded(PlayerSpell spell) {
-            playerControllers.get(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), true);
+        public void onAdded(short keeperId, PlayerSpell spell) {
+            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
+            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
+                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
+            });
+            if (index < 0) {
+                spells.add(~index, spell);
+            } else {
+                spells.set(index, spell);
+            }
 
             // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == playerId) {
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
                 app.enqueue(() -> {
-                    playerState.onAdded(spell);
+                    playerState.onAdded(keeperId, spell);
                 });
             }
         }
 
         @Override
-        public void onRemoved(PlayerSpell spell) {
-            playerControllers.get(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), true);
+        public void onRemoved(short keeperId, PlayerSpell spell) {
+            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
+            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
+                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
+            });
+            spells.set(index, spell);
 
             // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == playerId) {
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
                 app.enqueue(() -> {
-                    playerState.onRemoved(spell);
+                    playerState.onRemoved(keeperId, spell);
                 });
             }
         }
 
         @Override
-        public void onResearchStatusChanged(PlayerSpell spell) {
-            playerControllers.get(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), true);
+        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
+            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
+            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
+                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
+            });
+            spells.set(index, spell);
 
             // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == playerId) {
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
                 app.enqueue(() -> {
-                    playerState.onResearchStatusChanged(spell);
+                    playerState.onResearchStatusChanged(keeperId, spell);
                 });
             }
         }
 
         @Override
         public void onGoldChange(short keeperId, int gold) {
-            playerControllers.get(playerId).getGoldControl().addGold(gold);
+            getPlayer(keeperId).setGold(gold);
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == keeperId) {
@@ -429,7 +450,10 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
-            playerControllers.get(playerId).getManaControl().updateMana(manaGain, manaLoose);
+            Keeper keeper = getPlayer(keeperId);
+            keeper.setMana(mana);
+            keeper.setManaGain(manaGain);
+            keeper.setManaLoose(manaLoose);
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == keeperId) {
@@ -539,10 +563,15 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
-
-            // Hmm, how we design this, should we bring the player controllers here?
-            // Basically lot of the data there is valid to the client, the controlling just might be limited
-            playerControllers.get(playerId).getRoomControl().setTypeAvailable(kwdFile.getRoomById(roomId), available);
+            List<Short> rooms = getPlayer(playerId).getAvailableRooms();
+            int index = Collections.binarySearch(rooms, roomId, (Short o1, Short o2) -> {
+                return kwdFile.getRoomById(o1).compareTo(kwdFile.getRoomById(o2));
+            });
+            if (index < 0 && available) {
+                rooms.add(~index, roomId);
+            } else if (index > -1 && !available) {
+                rooms.remove(index);
+            }
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == playerId) {

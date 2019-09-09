@@ -25,12 +25,9 @@ import java.awt.Point;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -52,9 +49,9 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int maxMana;
     private Point dungeonHeartLocation;
     private List<Short> availableRooms = new ArrayList<>();
-    private List<Short> availableSpells = new ArrayList<>();
+    private List<PlayerSpell> availableSpells = new ArrayList<>();
     private List<Short> availableCreatures = new ArrayList<>();
-    private Map<Short, PlayerSpell> playerSpells = new HashMap<>();
+    private PlayerSpell currentResearch;
 
     private transient Player player;
     private short id;
@@ -224,16 +221,20 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         return availableRooms;
     }
 
-    public List<Short> getAvailableSpells() {
+    public List<PlayerSpell> getAvailableSpells() {
         return availableSpells;
-    }
-
-    public Map<Short, PlayerSpell> getPlayerSpells() {
-        return playerSpells;
     }
 
     public List<Short> getAvailableCreatures() {
         return availableCreatures;
+    }
+
+    public void setCurrentResearch(PlayerSpell currentResearch) {
+        this.currentResearch = currentResearch;
+    }
+
+    public PlayerSpell getCurrentResearch() {
+        return currentResearch;
     }
 
     @Override
@@ -251,9 +252,9 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
         out.write(toPrimitiveShortArray(availableRooms), "availableRooms", new short[0]);
-        out.write(toPrimitiveShortArray(availableSpells), "availableSpells", new short[0]);
-        out.writeSavableArrayList(new ArrayList(playerSpells.values()), "playerSpells", null);
+        out.writeSavableArrayList(new ArrayList(availableSpells), "availableSpells", null);
         out.write(toPrimitiveShortArray(availableCreatures), "availableCreatures", new short[0]);
+        out.write(currentResearch, "currentResearch", null);
         out.write(destroyed, "destroyed", false);
         out.write(toPrimitiveShortArray(allies), "allies", new short[0]);
     }
@@ -274,10 +275,9 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         int y = in.readInt("dungeonHeartLocationY", 0);
         dungeonHeartLocation = new Point(x, y);
         availableRooms = toReferenceList(in.readShortArray("availableRooms", new short[0]));
-        availableSpells = toReferenceList(in.readShortArray("availableSpells", new short[0]));
-        List<?> spells = in.readSavableArrayList("playerSpells", new ArrayList<>());
-        playerSpells = spells.stream().map(obj -> (PlayerSpell) obj).collect(Collectors.toMap(PlayerSpell::getKeeperSpellId, spell -> spell));
+        availableSpells = in.readSavableArrayList("availableSpells", new ArrayList<>());
         availableCreatures = toReferenceList(in.readShortArray("availableCreatures", new short[0]));
+        currentResearch = (PlayerSpell) in.readSavable("currentResearch", null);
         destroyed = in.readBoolean("destroyed", destroyed);
         allies = new HashSet<>(toReferenceList(in.readShortArray("allies", new short[0])));
     }
