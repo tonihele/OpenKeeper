@@ -211,6 +211,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
 
             // If it was the one we were researching, advance to next
             if (playerSpell.equals(keeper.getCurrentResearch())) {
+                playerSpell.setResearch(0);
                 setNextResearchTarget();
             }
 
