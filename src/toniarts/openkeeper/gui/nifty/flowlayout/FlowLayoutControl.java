@@ -53,7 +53,7 @@ public class FlowLayoutControl implements Controller {
 
         rows = parameter.getAsInteger("rows", rows);
         for (int i = 0; i < rows; i++) {
-            new ControlBuilder("#row-" + i, "customScroll").build(nifty, screen, element);
+            new ControlBuilder("#row-" + i, "customScroll").build(element);
         }
 
         // Get the elements
@@ -96,6 +96,8 @@ public class FlowLayoutControl implements Controller {
         for (int i = 0; i < rows; i++) {
             getLineElement(i).removeAll();
         }
+        rowId = 0;
+        line = getLineElement(rowId);
     }
 
     @Override
