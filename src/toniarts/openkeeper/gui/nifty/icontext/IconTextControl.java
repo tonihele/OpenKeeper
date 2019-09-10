@@ -24,7 +24,6 @@ import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import java.util.logging.Logger;
 
 /**
  * A small class combining an image and a text, with on hover effect
@@ -40,11 +39,6 @@ public class IconTextControl implements Controller {
     private Element image;
     private Element text;
 
-    /**
-     * The logger that takes care for the output of log messages in this class.
-     */
-    private static final Logger log = Logger.getLogger(IconTextControl.class.getName());
-
     @Override
     public void bind(Nifty nifty, Screen screen, Element elmnt, Parameters prmtrs) {
         this.nifty = nifty;
@@ -54,13 +48,11 @@ public class IconTextControl implements Controller {
 
         if (this.element.getId() == null) {
             this.element.setId("IconText-" + NiftyIdCreator.generate());
-            //log.log(Level.INFO, "element {0} have no id", element.toString());
         }
+
         // Get the elements
         image = this.element.findElementById("#image");
-        //image.setId(this.element.getId() + "#image");
         text = this.element.findElementById("#text");
-        //text.setId(this.element.getId() + "#image");
     }
 
     @Override

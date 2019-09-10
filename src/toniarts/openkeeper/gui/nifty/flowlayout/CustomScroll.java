@@ -19,18 +19,28 @@ package toniarts.openkeeper.gui.nifty.flowlayout;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
-import de.lessvoid.nifty.controls.Controller;
+import de.lessvoid.nifty.builder.ElementBuilder;
+import de.lessvoid.nifty.builder.PanelBuilder;
+import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.SizeValue;
+import de.lessvoid.nifty.tools.SizeValueType;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
+ * Creates a scrollable area with multiple rows. Has its own scroll controls and
+ * streches the contents to fill maximum area. Spans to multiple rows before
+ * resorting to scrolling. Works only horizontally.<br>
+ * Differs a bit from the original DK 2 component, the scrolling should be more
+ * intuitive
  *
  * @author ArchDemon
  */
-public class CustomScroll implements Controller {
+public class CustomScroll extends AbstractController {
 
     private Nifty nifty;
     private Screen screen;
@@ -40,6 +50,11 @@ public class CustomScroll implements Controller {
     private Element content;
     private Element back;
     private Element forward;
+
+    private final List<Element> elements = new ArrayList<>();
+    private final List<Element> rows = new ArrayList<>();
+    private int currentRowIndex = 1;
+    private int maxRows = 2;
 
     private int stepSize = 0;
     private boolean enable = true;
@@ -53,8 +68,11 @@ public class CustomScroll implements Controller {
         this.element = element;
 
         if (this.element.getId() == null) {
-            this.element.setId("FlowLayout-" + NiftyIdCreator.generate());
+            this.element.setId(getClass().getSimpleName() + "-" + NiftyIdCreator.generate());
         }
+
+        maxRows = parameters.getAsInteger("maxRows", maxRows);
+
         // Get the elements
         content = this.element.findElementById("#content");
         back = this.element.findElementById("#back");
@@ -81,29 +99,53 @@ public class CustomScroll implements Controller {
     }
 
     public void back() {
-        int cX = content.getConstraintX().getValueAsInt(1.f);
+        for (Element row : rows) {
+            int cX = row.getConstraintX().getValueAsInt(1.f);
 
-        if (cX + content.getWidth() > content.getParent().getWidth()) {
-            content.setConstraintX(SizeValue.px(cX - stepSize));
-            content.getParent().layoutElements();
+            if (cX < 0) {
+                row.setConstraintX(SizeValue.px(cX + stepSize));
+                content.layoutElements();
+            }
         }
     }
 
     public void forward() {
-        int cX = content.getConstraintX().getValueAsInt(1.f);
+        for (Element row : rows) {
+            int cX = row.getConstraintX().getValueAsInt(1.f);
 
-        if (cX < 0) {
-            content.setConstraintX(SizeValue.px(cX + stepSize));
-            content.getParent().layoutElements();
+            if (cX + row.getWidth() > content.getWidth()) {
+                row.setConstraintX(SizeValue.px(cX - stepSize));
+                content.layoutElements();
+            }
         }
     }
 
     public Element addElement(ControlBuilder controlBuilder) {
-        Element el = controlBuilder.build(nifty, screen, content);
-        if (!enable && content.getWidth() > content.getParent().getWidth()) {
+        Element currentRow = getCurrentRow();
+        currentRowIndex++;
+        if (rows.size() < currentRowIndex) {
+            currentRowIndex = 1;
+        }
+
+        Element el = controlBuilder.build(currentRow);
+        elements.add(el);
+
+        resizeRowElement(el);
+        el.setMarginRight(SizeValue.px(4));
+
+        content.layoutElements();
+
+        // Check overflow
+        if (currentRow.getWidth() > content.getWidth() && rows.size() < maxRows) {
+
+            // New row and rearrange all items
+            createRow();
+            rearrangeElements();
+        }
+
+        if (!enable && currentRow.getWidth() > content.getWidth()) {
             setEnable(true);
         }
-        content.getParent().layoutElements();
 
         if (stepSize == 0) {
             stepSize = el.getWidth();
@@ -112,11 +154,87 @@ public class CustomScroll implements Controller {
         return el;
     }
 
+    private void resizeRowElement(Element el) {
+
+        // Stretch the element, heightwise and preserve aspect ratio
+        int originalHeight = el.getHeight();
+        int newHeight = content.getHeight() / rows.size();
+        el.setConstraintHeight(new SizeValue(newHeight, SizeValueType.Pixel));
+        el.setConstraintWidth(new SizeValue(el.getWidth() * newHeight / originalHeight, SizeValueType.Pixel));
+    }
+
+    private void rearrangeElements() {
+
+        // Set the row Y constraints
+        int i = 0;
+        for (Element row : rows) {
+            row.setConstraintY(SizeValue.percent(50 / rows.size() + i * 50));
+            if (i != 0) {
+                row.setPaddingTop(SizeValue.px(4));
+            } else {
+                row.setPaddingTop(SizeValue.px(0));
+            }
+            if (i != rows.size() - 1) {
+                row.setPaddingBottom(SizeValue.px(4));
+            } else {
+                row.setPaddingBottom(SizeValue.px(0));
+            }
+            i++;
+        }
+
+        // Resize all the elements and set to correct rows
+        stepSize = 0;
+        currentRowIndex = 1;
+        for (Element element : elements) {
+            resizeRowElement(element);
+
+            Element currentRow = getCurrentRow();
+            element.markForMove(currentRow, () -> {
+                element.setIndex(elements.indexOf(element) / rows.size());
+            });
+            currentRowIndex++;
+            if (rows.size() < currentRowIndex) {
+                currentRowIndex = 1;
+            }
+        }
+
+        content.layoutElements();
+    }
+
+    private Element getCurrentRow() {
+        Element currentRow;
+        if (rows.size() < currentRowIndex) {
+            currentRow = createRow();
+            content.layoutElements();
+        } else {
+            currentRow = rows.get(currentRowIndex - 1);
+        }
+
+        return currentRow;
+    }
+
+    private Element createRow() {
+        Element currentRow = new PanelBuilder("#row-" + currentRowIndex + "-" + NiftyIdCreator.generate())
+                .x(new SizeValue(0, SizeValueType.Pixel))
+                .y(new SizeValue(50, SizeValueType.Percent))
+                .childLayoutHorizontal()
+                .valign(ElementBuilder.VAlign.Center)
+                .height(new SizeValue(SizeValueType.Wildcard))
+                .build(content);
+        rows.add(currentRow);
+
+        return currentRow;
+    }
+
     public void removeAll() {
         for (Element child : content.getChildren()) {
             child.markForRemoval();
         }
         stepSize = 0;
+        elements.clear();
+        rows.clear();
+        currentRowIndex = 1;
+        setEnable(false);
     }
 
     public void setEnable(boolean enable) {
@@ -153,4 +271,5 @@ public class CustomScroll implements Controller {
     public void onEndScreen() {
 
     }
+
 }
