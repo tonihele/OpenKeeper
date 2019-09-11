@@ -23,13 +23,14 @@ import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import static toniarts.openkeeper.game.state.PlayerScreenController.SCREEN_HUD_ID;
+import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
 /**
  *
  * @author ufdada
  */
 public class SystemMessageControl extends AbstractController {
+
     private Nifty nifty;
     private Element element;
     private boolean unread = true;

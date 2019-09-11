@@ -465,7 +465,7 @@
         </panel>
     </controlDefinition>
 
-    <controlDefinition name="guiIcon">
+    <controlDefinition name="guiIcon" controller="toniarts.openkeeper.gui.nifty.guiicon.GuiIconControl">
         <image id="$id" filename="$image" valign="center">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>

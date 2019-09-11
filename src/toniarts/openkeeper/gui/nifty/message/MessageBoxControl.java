@@ -24,13 +24,14 @@ import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import static toniarts.openkeeper.game.state.PlayerScreenController.SCREEN_HUD_ID;
+import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
 /**
  *
  * @author ufdada
  */
 public class MessageBoxControl extends AbstractController {
+
     private Nifty nifty;
     private Screen hud;
     private Element element;
@@ -144,7 +145,8 @@ public class MessageBoxControl extends AbstractController {
             parameter("hoverImage", image.replace("$index", "01"));
             parameter("activeImage", image.replace("$index", "02"));
             parameter("click", onClick);
-        }}.build(this.nifty, this.hud, this.buttonPanel);
+            }
+        }.build(this.buttonPanel);
     }
 
     private void cleanButtonPanel() {

@@ -90,6 +90,7 @@ import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.WorkerAmountControl;
 import toniarts.openkeeper.gui.nifty.WorkerEqualControl;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
+import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -1003,22 +1004,16 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect) {
-        ControlBuilder cb = new ControlBuilder(type + "_" + id, "guiIcon") {
-            {
-                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"));
-                if (generalDescriptionId != null) {
-                    parameter("tooltip", "${menu." + generalDescriptionId + "}");
-                }
-                if (hint != null) {
-                    parameter("hint", hint);
-                }
-//                if (allowSelect) {
-                parameter("click", "select(" + type + ", " + id + ")");
-                parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
-                parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
-//                }
-            }
-        };
+        ControlBuilder cb = new GuiIconBuilder(type + "_" + id,
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"),
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
+                hint != null ? hint : "",
+                generalDescriptionId != null ? "${menu." + generalDescriptionId + "}" : "",
+                "select(" + type + ", " + id + ")");
+        if (!allowSelect) {
+            cb.parameter("enabled", Boolean.toString(false));
+        }
         return cb;
     }
 
