@@ -34,6 +34,7 @@ import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.ControlDefinitionBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.Console;
@@ -92,6 +93,7 @@ import toniarts.openkeeper.gui.nifty.WorkerEqualControl;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
+import toniarts.openkeeper.gui.nifty.jme.KeeperSpellResearchControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -383,6 +385,12 @@ public class PlayerScreenController implements IPlayerScreenController {
     public void bind(Nifty nifty, Screen screen) {
         this.nifty = nifty;
         this.screen = screen;
+
+        new ControlDefinitionBuilder(KeeperSpellResearchControl.CONTROL_NAME) {
+            {
+                controller(KeeperSpellResearchControl.class.getName());
+            }
+        }.registerControlDefintion(nifty);
     }
 
     @Override
@@ -761,7 +769,11 @@ public class PlayerScreenController implements IPlayerScreenController {
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final PlayerSpell spell : state.getAvailableKeeperSpells()) {
-            contentPanel.addElement(createSpellIcon(spell));
+            Element element = contentPanel.addElement(createSpellIcon(spell));
+            if (!spell.isUpgraded()) {
+                KeeperSpellResearchControl researchControl = new ControlBuilder(KeeperSpellResearchControl.CONTROL_NAME).build(element).getControl(KeeperSpellResearchControl.class);
+                researchControl.initJme(state.app);
+            }
         }
     }
 
@@ -875,6 +887,20 @@ public class PlayerScreenController implements IPlayerScreenController {
         }
         return name;
     }
+
+    public void updateSpellResearch(PlayerSpell spell) {
+        String itemId = "spell_" + spell.getKeeperSpellId();
+        Element spellButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
+        if (spellButton != null) {
+            KeeperSpellResearchControl researchControl = spellButton.getControl(KeeperSpellResearchControl.class);
+            if (researchControl != null) {
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
+                float percentage = (float) spell.getResearch() / (spell.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime());
+                researchControl.setResearch(percentage);
+            }
+        }
+    }
+
 
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {

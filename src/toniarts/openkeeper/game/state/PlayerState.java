@@ -543,7 +543,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     @Override
     public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-        screen.populateSpellTab();
+        screen.updateSpellResearch(spell);
     }
 
     @Override

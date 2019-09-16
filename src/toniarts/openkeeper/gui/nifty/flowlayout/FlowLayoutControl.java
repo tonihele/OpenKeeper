@@ -71,8 +71,8 @@ public class FlowLayoutControl extends AbstractController {
         return false;
     }
 
-    public void addElement(ControlBuilder controlBuilder) {
-        content.addElement(controlBuilder);
+    public Element addElement(ControlBuilder controlBuilder) {
+        return content.addElement(controlBuilder);
     }
 
     public void removeAll() {
