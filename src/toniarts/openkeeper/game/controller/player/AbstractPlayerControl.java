@@ -32,28 +32,33 @@ import toniarts.openkeeper.game.data.Keeper;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <K> the type of object this control manages
  * @param <V> the value behind the type
+ * @param <T> the data type held in the user data
  */
-public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>, V> {
+public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>, V, T> {
 
     private final List<K> typesAvailable = new ArrayList<>();
-    private final List<Short> availabilitiesList;
+    private final List<T> availabilitiesList;
     protected final Map<K, V> types = new LinkedHashMap<>();
     protected final Keeper keeper;
 
-    public AbstractPlayerControl(Keeper keeper, List<Short> availabilitiesList, Collection<K> types) {
+    public AbstractPlayerControl(Keeper keeper, List<T> availabilitiesList, Collection<K> types) {
         this.keeper = keeper;
         this.availabilitiesList = availabilitiesList;
 
         // Populate the types list
         if (!availabilitiesList.isEmpty()) {
             Map<Short, K> typesById = types.stream().collect(Collectors.toMap(K::getId, type -> type));
-            for (Short id : availabilitiesList) {
-                K type = typesById.get(id);
+            for (T id : availabilitiesList) {
+                K type = typesById.get(getDataTypeId(id));
                 int index = Collections.binarySearch(typesAvailable, type);
                 typesAvailable.add(~index, type);
             }
         }
     }
+
+    protected abstract short getDataTypeId(T type);
+
+    protected abstract T getDataType(K type);
 
     /**
      * Add a type to the availability pool of this player
@@ -67,7 +72,7 @@ public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>
         if (available) {
             if (index < 0) {
                 typesAvailable.add(~index, type);
-                availabilitiesList.add(~index, type.getId());
+                availabilitiesList.add(~index, getDataType(type));
 
                 return true;
             }
@@ -107,6 +112,10 @@ public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>
 
     protected V put(K key, V value) {
         return types.put(key, value);
+    }
+
+    protected V remove(K key) {
+        return types.remove(key);
     }
 
     /**

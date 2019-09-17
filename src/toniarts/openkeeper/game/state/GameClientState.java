@@ -24,6 +24,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -33,8 +34,8 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.controller.PlayerController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -268,6 +269,10 @@ public class GameClientState extends AbstractPauseAwareState {
         return players.get(playerId);
     }
 
+    public Keeper getPlayer() {
+        return players.get(playerId);
+    }
+
     public Collection<Keeper> getPlayers() {
         return players.values();
     }
@@ -380,23 +385,60 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onAdded(PlayerSpell spell) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        public void onAdded(short keeperId, PlayerSpell spell) {
+            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
+            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
+                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
+            });
+            if (index < 0) {
+                spells.add(~index, spell);
+            } else {
+                spells.set(index, spell);
+            }
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
+                app.enqueue(() -> {
+                    playerState.onAdded(keeperId, spell);
+                });
+            }
         }
 
         @Override
-        public void onRemoved(PlayerSpell spell) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        public void onRemoved(short keeperId, PlayerSpell spell) {
+            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
+            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
+                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
+            });
+            spells.set(index, spell);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
+                app.enqueue(() -> {
+                    playerState.onRemoved(keeperId, spell);
+                });
+            }
         }
 
         @Override
-        public void onResearchStatusChanged(PlayerSpell spell) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
+            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
+            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
+                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
+            });
+            spells.set(index, spell);
+
+            // FIXME: See in what thread we are
+            if (playerState != null && playerState.getPlayerId() == keeperId) {
+                app.enqueue(() -> {
+                    playerState.onResearchStatusChanged(keeperId, spell);
+                });
+            }
         }
 
         @Override
         public void onGoldChange(short keeperId, int gold) {
-            players.get(keeperId).setGold(gold);
+            getPlayer(keeperId).setGold(gold);
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == keeperId) {
@@ -408,7 +450,7 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
-            Keeper keeper = players.get(keeperId);
+            Keeper keeper = getPlayer(keeperId);
             keeper.setMana(mana);
             keeper.setManaGain(manaGain);
             keeper.setManaLoose(manaLoose);
@@ -521,10 +563,15 @@ public class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
-
-            // Hmm, how we design this, should we bring the player controllers here?
-            // Basically lot of the data there is valid to the client, the controlling just might be limited
-            playerControllers.get(playerId).getRoomControl().setTypeAvailable(kwdFile.getRoomById(roomId), available);
+            List<Short> rooms = getPlayer(playerId).getAvailableRooms();
+            int index = Collections.binarySearch(rooms, roomId, (Short o1, Short o2) -> {
+                return kwdFile.getRoomById(o1).compareTo(kwdFile.getRoomById(o2));
+            });
+            if (index < 0 && available) {
+                rooms.add(~index, roomId);
+            } else if (index > -1 && !available) {
+                rooms.remove(index);
+            }
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == playerId) {

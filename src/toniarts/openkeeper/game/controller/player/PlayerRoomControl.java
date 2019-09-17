@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomController>> implements RoomListener {
+public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomController>, Short> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
@@ -46,6 +46,16 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
         for (IRoomController roomController : rooms) {
             onBuild(roomController);
         }
+    }
+
+    @Override
+    protected short getDataTypeId(Short type) {
+        return type;
+    }
+
+    @Override
+    protected Short getDataType(Room type) {
+        return type.getRoomId();
     }
 
     @Override

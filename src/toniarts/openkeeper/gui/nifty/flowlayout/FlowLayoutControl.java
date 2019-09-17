@@ -19,26 +19,26 @@ package toniarts.openkeeper.gui.nifty.flowlayout;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
-import de.lessvoid.nifty.controls.Controller;
+import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
 
 /**
+ * Wraps a custom scroll panel container
  *
+ * @see CustomScroll
  * @author ArchDemon
  */
-public class FlowLayoutControl implements Controller {
+public class FlowLayoutControl extends AbstractController {
 
     private Nifty nifty;
     private Screen screen;
     private Parameters parameters;
 
     private Element element;
-    private CustomScroll line;
-    private int rowId = 0;
-    private int rows = 1;
+    private CustomScroll content;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -48,16 +48,10 @@ public class FlowLayoutControl implements Controller {
         this.element = element;
 
         if (this.element.getId() == null) {
-            this.element.setId("FlowLayout-" + NiftyIdCreator.generate());
+            this.element.setId(getClass().getSimpleName() + "-" + NiftyIdCreator.generate());
         }
 
-        rows = parameter.getAsInteger("rows", rows);
-        for (int i = 0; i < rows; i++) {
-            new ControlBuilder("#row-" + i, "customScroll").build(nifty, screen, element);
-        }
-
-        // Get the elements
-        line = getLineElement(rowId);
+        content = this.element.findControl("#scroll-area", CustomScroll.class);
     }
 
     @Override
@@ -77,25 +71,12 @@ public class FlowLayoutControl implements Controller {
         return false;
     }
 
-    public void addElement(ControlBuilder controlBuilder) {
-
-        line.addElement(controlBuilder);
-
-        rowId++;
-        if (rowId == rows) {
-            rowId = 0;
-        }
-        line = getLineElement(rowId);
-    }
-
-    private CustomScroll getLineElement(int id) {
-        return element.findElementById("#row-" + id).getControl(CustomScroll.class);
+    public Element addElement(ControlBuilder controlBuilder) {
+        return content.addElement(controlBuilder);
     }
 
     public void removeAll() {
-        for (int i = 0; i < rows; i++) {
-            getLineElement(i).removeAll();
-        }
+        content.removeAll();
     }
 
     @Override

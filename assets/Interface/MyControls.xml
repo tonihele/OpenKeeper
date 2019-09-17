@@ -465,7 +465,7 @@
         </panel>
     </controlDefinition>
 
-    <controlDefinition name="guiIcon">
+    <controlDefinition name="guiIcon" controller="toniarts.openkeeper.gui.nifty.guiicon.GuiIconControl">
         <image id="$id" filename="$image" valign="center">
             <effect>
                 <onHover name="imageOverlay" filename="$hoverImage" post="true"/>
@@ -502,22 +502,24 @@
     </controlDefinition>
 
     <controlDefinition name="flowLayout" controller="toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl">
-        <panel childLayout="vertical" valign="center" width="*" height="*" />
+        <panel childLayout="vertical" valign="center" width="*" height="*">
+            <control id="#scroll-area" name="customScroll" maxRows="$maxRows"/>
+        </panel>
     </controlDefinition>
 
     <controlDefinition name="customScroll" controller="toniarts.openkeeper.gui.nifty.flowlayout.CustomScroll">
-        <panel childLayout="horizontal">
-            <image id="#back" filename="Textures/GUI/Pages/page_back.png" valign="center">
+        <panel childLayout="horizontal" padding="4px,2px,4px,0px">
+            <image id="#back" filename="Textures/GUI/Pages/page_back.png" valign="center" height="100%">
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true"/>
                     <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Selected.png" post="true" neverStopRendering="true" />
                 </effect>
                 <interact onClick="back()" />
             </image>
-            <panel childLayout="absolute" childClip="true" width="*" height="*">
-                <panel x="0" y="50%" id="#content" childLayout="horizontal" valign="center" height="*"/>
+            <panel id="#content" childLayout="absolute" childClip="true" width="*" height="*" padding="0px,4px,0px,4px">
+                <panel x="0" y="50%" id="#row-1" childLayout="horizontal" valign="center" height="100%" width="100%" />
             </panel>
-            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" valign="center">
+            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" valign="center" height="100%">
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true"/>
                     <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Selected.png" post="true" neverStopRendering="true" />

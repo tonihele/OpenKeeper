@@ -39,8 +39,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -350,23 +350,23 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void onAdded(PlayerSpell spell) {
+    public void onAdded(short keeperId, PlayerSpell spell) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onAdded(spell);
+            gameSession.onAdded(keeperId, spell);
         }
     }
 
     @Override
-    public void onRemoved(PlayerSpell spell) {
+    public void onRemoved(short keeperId, PlayerSpell spell) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onRemoved(spell);
+            gameSession.onRemoved(keeperId, spell);
         }
     }
 
     @Override
-    public void onResearchStatusChanged(PlayerSpell spell) {
+    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onResearchStatusChanged(spell);
+            gameSession.onResearchStatusChanged(keeperId, spell);
         }
     }
 
@@ -616,18 +616,18 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onAdded(PlayerSpell spell) {
-            getCallback().onAdded(spell);
+        public void onAdded(short keeperId, PlayerSpell spell) {
+            getCallback().onAdded(keeperId, spell);
         }
 
         @Override
-        public void onRemoved(PlayerSpell spell) {
-            getCallback().onRemoved(spell);
+        public void onRemoved(short keeperId, PlayerSpell spell) {
+            getCallback().onRemoved(keeperId, spell);
         }
 
         @Override
-        public void onResearchStatusChanged(PlayerSpell spell) {
-            getCallback().onResearchStatusChanged(spell);
+        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
+            getCallback().onResearchStatusChanged(keeperId, spell);
         }
 
         @Override

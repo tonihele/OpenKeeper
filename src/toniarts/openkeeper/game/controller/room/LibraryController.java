@@ -16,32 +16,32 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
-import toniarts.openkeeper.world.room.*;
-import com.jme3.asset.AssetManager;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.object.ObjectLoader;
-import toniarts.openkeeper.world.room.control.RoomResearcherControl;
-import toniarts.openkeeper.world.room.control.RoomSpellBookControl;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomResearcherControl;
+import toniarts.openkeeper.game.controller.room.storage.RoomSpellBookControl;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * The library
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Library extends Normal {
+public class LibraryController extends NormalRoomController {
 
-    public Library(AssetManager assetManager, RoomInstance roomInstance, ObjectLoader objectLoader, WorldState worldState, EffectManagerState effectManager) {
-        super(assetManager, roomInstance, objectLoader, worldState, effectManager);
+    public LibraryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        super(kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomResearcherControl(this) {
+        addObjectControl(new RoomResearcherControl(kwdFile, this, objectsController, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
                 return getFurnitureCount();
             }
         });
-        addObjectControl(new RoomSpellBookControl(this) {
+        addObjectControl(new RoomSpellBookControl(kwdFile, this, objectsController, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
@@ -50,8 +50,4 @@ public class Library extends Normal {
         });
     }
 
-    @Override
-    protected boolean hasPillars() {
-        return false;
-    }
 }

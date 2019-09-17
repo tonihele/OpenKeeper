@@ -33,15 +33,25 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<EntityId>> {
+public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<EntityId>, Short> {
 
     private List<CreatureListener> creatureListeners;
-    private Creature imp;
+    private final Creature imp;
     private int creatureCount = 0;
 
     public PlayerCreatureControl(Keeper keeper, Creature imp, Collection<Creature> creatures) {
         super(keeper, keeper.getAvailableCreatures(), creatures);
         this.imp = imp;
+    }
+
+    @Override
+    protected short getDataTypeId(Short type) {
+        return type;
+    }
+
+    @Override
+    protected Short getDataType(Creature type) {
+        return type.getCreatureId();
     }
 
     public void onCreatureAdded(EntityId entityId, Creature creature) {

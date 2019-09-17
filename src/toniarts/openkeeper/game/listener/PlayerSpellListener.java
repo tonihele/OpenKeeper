@@ -17,7 +17,7 @@
 package toniarts.openkeeper.game.listener;
 
 import com.jme3.network.service.rmi.Asynchronous;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 
 /**
  * Listen for changes in keeper spell statuses
@@ -27,12 +27,12 @@ import toniarts.openkeeper.game.controller.player.PlayerSpell;
 public interface PlayerSpellListener {
 
     @Asynchronous
-    void onAdded(PlayerSpell spell);
+    void onAdded(short keeperId, PlayerSpell spell);
 
     @Asynchronous
-    void onRemoved(PlayerSpell spell);
+    void onRemoved(short keeperId, PlayerSpell spell);
 
     @Asynchronous
-    void onResearchStatusChanged(PlayerSpell spell);
+    void onResearchStatusChanged(short keeperId, PlayerSpell spell);
 
 }

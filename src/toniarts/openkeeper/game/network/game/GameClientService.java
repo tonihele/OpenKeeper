@@ -33,8 +33,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -277,23 +277,23 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onAdded(PlayerSpell spell) {
+        public void onAdded(short keeperId, PlayerSpell spell) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onAdded(spell);
+                l.onAdded(keeperId, spell);
             }
         }
 
         @Override
-        public void onRemoved(PlayerSpell spell) {
+        public void onRemoved(short keeperId, PlayerSpell spell) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onRemoved(spell);
+                l.onRemoved(keeperId, spell);
             }
         }
 
         @Override
-        public void onResearchStatusChanged(PlayerSpell spell) {
+        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onResearchStatusChanged(spell);
+                l.onResearchStatusChanged(keeperId, spell);
             }
         }
 

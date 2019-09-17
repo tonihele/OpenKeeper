@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2019 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,30 +14,27 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.gui.nifty.icontext;
+package toniarts.openkeeper.gui.nifty.guiicon;
 
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyIdCreator;
-import de.lessvoid.nifty.controls.Controller;
+import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Parameters;
-import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
 
 /**
- * A small class combining an image and a text, with on hover effect
+ * A clickable GUI icon with on hover effect and active states
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class IconTextControl implements Controller {
+public class GuiIconControl extends AbstractController {
 
     private Nifty nifty;
     private Screen screen;
     private Parameters parameters;
     private Element element;
-    private Element image;
-    private Element text;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element elmnt, Parameters prmtrs) {
@@ -47,12 +44,12 @@ public class IconTextControl implements Controller {
         this.element = elmnt;
 
         if (this.element.getId() == null) {
-            this.element.setId("IconText-" + NiftyIdCreator.generate());
+            this.element.setId(getClass().getSimpleName() + NiftyIdCreator.generate());
         }
 
-        // Get the elements
-        image = this.element.findElementById("#image");
-        text = this.element.findElementById("#text");
+        if (!parameters.getAsBoolean("enabled", true)) {
+            element.setVisibleToMouseEvents(false);
+        }
     }
 
     @Override
@@ -66,16 +63,6 @@ public class IconTextControl implements Controller {
     @Override
     public boolean inputEvent(NiftyInputEvent inputEvent) {
         return false;
-    }
-
-    public void startHover() {
-        image.startEffect(EffectEventId.onCustom, null, "hover");
-        text.startEffect(EffectEventId.onCustom, null, "hover");
-    }
-
-    public void endHover() {
-        image.stopEffect(EffectEventId.onCustom);
-        text.stopEffect(EffectEventId.onCustom);
     }
 
     @Override

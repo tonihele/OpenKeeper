@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.world.object;
 
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.world.TileData;
 import toniarts.openkeeper.world.WorldState;
@@ -35,7 +35,7 @@ public class SpellBookObjectControl extends ObjectControl {
         super(tile, object, worldState);
 
         this.playerSpell = playerSpell;
-        this.playerSpell.setSpellBookObjectControl(this);
+        //this.playerSpell.setSpellBookObjectControl(this);
     }
 
     @Override

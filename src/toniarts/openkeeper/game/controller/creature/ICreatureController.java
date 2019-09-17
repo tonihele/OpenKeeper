@@ -225,4 +225,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void sate();
 
+    /**
+     * Get research per second attribute
+     *
+     * @return research per second
+     */
+    public int getResearchPerSecond();
+
 }

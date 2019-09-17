@@ -42,10 +42,10 @@ import toniarts.openkeeper.game.controller.chicken.ChickenState;
 import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.object.ObjectController;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
 import toniarts.openkeeper.game.controller.room.TempleController;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -129,7 +129,7 @@ public class ObjectsController implements IObjectsController {
 
     private void loadObject(Thing.Object objectThing) {
         loadObject(objectThing.getObjectId(), objectThing.getPlayerId(), objectThing.getPosX(), objectThing.getPosY(),
-                0, objectThing.getMoneyAmount(), objectThing.getKeeperSpellId(), objectThing.getTriggerId() != 0 ? objectThing.getTriggerId() : null, null);
+                0, objectThing.getMoneyAmount(), (short) objectThing.getKeeperSpellId(), objectThing.getTriggerId() != 0 ? objectThing.getTriggerId() : null, null);
     }
 
     @Override
@@ -148,23 +148,23 @@ public class ObjectsController implements IObjectsController {
     }
 
     @Override
-    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Integer spellId) {
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Short spellId) {
         return loadObject(objectId, ownerId, x, y, 0, money, spellId, null, null);
     }
 
-    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
+    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Short spellId, Integer triggerId, Integer maxMoney) {
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
         return loadObject(objectId, ownerId, pos, rotation, money, spellId, triggerId, maxMoney);
     }
 
-    private EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer spellId, Integer triggerId, Integer maxMoney) {
+    private EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Short spellId, Integer triggerId, Integer maxMoney) {
         EntityId entity = entityData.createEntity();
         loadObject(entity, objectId, ownerId, pos, rotation, money, maxMoney, spellId, triggerId);
 
         return entity;
     }
 
-    private void loadObject(EntityId entity, short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer maxMoney, Integer spellId, Integer triggerId) {
+    private void loadObject(EntityId entity, short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer maxMoney, Short spellId, Integer triggerId) {
         entityData.setComponent(entity, new ObjectComponent(objectId));
         entityData.setComponent(entity, new Owner(ownerId));
 
@@ -179,6 +179,9 @@ public class ObjectsController implements IObjectsController {
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
             entityData.setComponent(entity, new Spellbook(spellId));
+
+            // Hmm
+            pos.y++;
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
             entityData.setComponent(entity, new Food());
@@ -221,7 +224,7 @@ public class ObjectsController implements IObjectsController {
 
     @Override
     public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell) {
-        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y);
+        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y, null, spell.getKeeperSpellId());
     }
 
     @Override

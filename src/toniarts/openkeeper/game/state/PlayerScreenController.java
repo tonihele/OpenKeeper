@@ -34,6 +34,7 @@ import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.ControlDefinitionBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.Console;
@@ -64,7 +65,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +80,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
@@ -91,7 +91,9 @@ import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.WorkerAmountControl;
 import toniarts.openkeeper.gui.nifty.WorkerEqualControl;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
+import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
+import toniarts.openkeeper.gui.nifty.jme.KeeperSpellResearchControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -383,6 +385,12 @@ public class PlayerScreenController implements IPlayerScreenController {
     public void bind(Nifty nifty, Screen screen) {
         this.nifty = nifty;
         this.screen = screen;
+
+        new ControlDefinitionBuilder(KeeperSpellResearchControl.CONTROL_NAME) {
+            {
+                controller(KeeperSpellResearchControl.class.getName());
+            }
+        }.registerControlDefintion(nifty);
     }
 
     @Override
@@ -730,7 +738,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 //                populateSpellTab();
 //            }
 //        });
-//        populateSpellTab();
+        populateSpellTab();
 //        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
 //        contentPanel.removeAll();
 //        for (final Door door : state.getAvailableDoors()) {
@@ -760,8 +768,17 @@ public class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
-        for (final Entry<KeeperSpell, PlayerSpell> entry : state.getSpellControl().getTypes().entrySet()) {
-            contentPanel.addElement(createSpellIcon(entry.getValue()));
+        for (final PlayerSpell spell : state.getAvailableKeeperSpells()) {
+            Element element = contentPanel.addElement(createSpellIcon(spell));
+            if (!spell.isUpgraded()) {
+                KeeperSpellResearchControl researchControl = new ControlBuilder(KeeperSpellResearchControl.CONTROL_NAME) {
+                    {
+                        parameter("color", spell.isDiscovered() ? "" : Integer.toString(new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f).getRGB()));
+                        parameter("image", spell.isDiscovered() ? ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
+                    }
+                }.build(element).getControl(KeeperSpellResearchControl.class);
+                researchControl.initJme(state.app);
+            }
         }
     }
 
@@ -876,6 +893,20 @@ public class PlayerScreenController implements IPlayerScreenController {
         return name;
     }
 
+    public void updateSpellResearch(PlayerSpell spell) {
+        String itemId = "spell_" + spell.getKeeperSpellId();
+        Element spellButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
+        if (spellButton != null) {
+            KeeperSpellResearchControl researchControl = spellButton.getControl(KeeperSpellResearchControl.class);
+            if (researchControl != null) {
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
+                float percentage = (float) spell.getResearch() / (spell.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime());
+                researchControl.setResearch(percentage);
+            }
+        }
+    }
+
+
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
@@ -966,20 +997,21 @@ public class PlayerScreenController implements IPlayerScreenController {
                 .replace("%1", name)
                 .replace("%2", room.getCost() + "");
         return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(),
-                hint.replace("%21", room.getCost() + ""), true);
+                hint.replace("%21", room.getCost() + ""), true, false);
     }
 
     private ControlBuilder createSpellIcon(final PlayerSpell spell) {
+        KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
         if (spell.isDiscovered()) {
-            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(spell.getKeeperSpell().getNameStringId()));
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
             String hint = Utils.getMainTextResourceBundle().getString("1785")
                     .replace("%1", name)
-                    .replace("%2", spell.getKeeperSpell().getManaCost() + "")
+                    .replace("%2", keeperSpell.getManaCost() + "")
                     .replace("%3", spell.isUpgraded() ? "2" : "1");
-            return createIcon(spell.getKeeperSpell().getKeeperSpellId(), "spell", spell.isUpgraded() ? spell.getKeeperSpell().getGuiIcon().getName() + "-2" : spell.getKeeperSpell().getGuiIcon().getName(), spell.getKeeperSpell().getGeneralDescriptionStringId(), hint, true);
+            return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), keeperSpell.getGeneralDescriptionStringId(), hint, true, spell.isUpgraded());
         }
-        return createIcon(spell.getKeeperSpell().getKeeperSpellId(),
-                "spell", "gui\\spells\\s-tba", null, null, false);
+        return createIcon(keeperSpell.getKeeperSpellId(),
+                "spell", "gui\\spells\\s-tba", null, null, false, false);
     }
 
     private ControlBuilder createDoorIcon(final Door door) {
@@ -987,7 +1019,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
                 .replace("%1", name)
                 .replace("%2", door.getGoldCost() + "");
-        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true);
+        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true, false);
     }
 
     private ControlBuilder createTrapIcon(final Trap trap) {
@@ -995,30 +1027,24 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1784")
                 .replace("%1", name)
                 .replace("%2", trap.getManaCost() + "");
-        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true);
+        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect) {
-        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint, allowSelect);
+    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
+        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint, allowSelect, hilightGold);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect) {
-        ControlBuilder cb = new ControlBuilder(type + "_" + id, "guiIcon") {
-            {
-                parameter("image", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"));
-                if (generalDescriptionId != null) {
-                    parameter("tooltip", "${menu." + generalDescriptionId + "}");
-                }
-                if (hint != null) {
-                    parameter("hint", hint);
-                }
-//                if (allowSelect) {
-                parameter("click", "select(" + type + ", " + id + ")");
-                parameter("hoverImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"));
-                parameter("activeImage", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"));
-//                }
-            }
-        };
+    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
+        ControlBuilder cb = new GuiIconBuilder(type + "_" + id,
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
+                hint != null ? hint : "",
+                generalDescriptionId != null ? "${menu." + generalDescriptionId + "}" : "",
+                "select(" + type + ", " + id + ")");
+        if (!allowSelect) {
+            cb.parameter("enabled", Boolean.toString(false));
+        }
         return cb;
     }
 

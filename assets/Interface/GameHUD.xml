@@ -331,7 +331,7 @@
                                      active="Textures/GUI/Icons/selected-room.png"
                                      sound="GUI_BUTTON_TAB_ROOMS"
                                      hintText="${menu.2155}" tooltip="${menu.2156}">
-                                <control name="flowLayout" id="tab-room-content" rows="2" padding="6px" />
+                                <control name="flowLayout" id="tab-room-content" maxRows="2" padding="6px" />
                             </control>
 
                             <control name="customTab" id="tab-spell"
@@ -339,7 +339,7 @@
                                      active="Textures/GUI/Icons/selected-spell.png"
                                      sound="GUI_BUTTON_TAB_SPELLS"
                                      hintText="${menu.2157}" tooltip="${menu.2158}">
-                                <control name="flowLayout" id="tab-spell-content" rows="2" padding="6px" />
+                                <control name="flowLayout" id="tab-spell-content" maxRows="2" padding="6px" />
                             </control>
 
                             <control name="customTab" id="tab-workshop"
@@ -347,7 +347,7 @@
                                      active="Textures/GUI/Icons/selected-workshop.png"
                                      sound="GUI_BUTTON_TAB_WORKSHOP"
                                      hintText="${menu.2159}" tooltip="${menu.2160}">
-                                <control name="flowLayout" id="tab-workshop-content" rows="2" padding="6px" />
+                                <control name="flowLayout" id="tab-workshop-content" maxRows="2" padding="6px" />
                             </control>
                         </control>
 

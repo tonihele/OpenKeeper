@@ -25,13 +25,13 @@ import com.simsilica.es.EntityComponent;
  */
 public class Spellbook implements EntityComponent {
 
-    public int keeperSpellId;
+    public short keeperSpellId;
 
     public Spellbook() {
         // For serialization
     }
 
-    public Spellbook(int keeperSpellId) {
+    public Spellbook(short keeperSpellId) {
         this.keeperSpellId = keeperSpellId;
     }
 

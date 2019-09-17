@@ -23,7 +23,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
-import toniarts.openkeeper.game.controller.player.PlayerSpell;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -91,7 +91,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
             KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
 
             // Create a wrapper for it
-            playerSpell = new PlayerSpell(keeperSpell, true);
+            playerSpell = new PlayerSpell(keeperSpell.getId(), true);
         }
 
         return load(assetManager, pos, playerSpell,

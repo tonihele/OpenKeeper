@@ -615,7 +615,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new ClaimLair(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case RESEARCHER: {
-                return new ResearchSpells(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
+                return new ResearchSpells(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getSpellControl());
             }
             case PRISONER: {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));

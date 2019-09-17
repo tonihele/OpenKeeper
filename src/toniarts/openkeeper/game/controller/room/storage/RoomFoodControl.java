@@ -69,7 +69,7 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
         // We don't destroy the chickens, that would be inhumane, but we set them free
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
         for (Collection<EntityId> objects : objectList) {
-            for (EntityId obj : objects) {
+            for (EntityId obj : new ArrayList<>(objects)) {
                 removeItem(obj);
             }
         }
