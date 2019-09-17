@@ -19,10 +19,10 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -63,13 +63,18 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // Advance players spell research
-        PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
-        if (playerSpell != null) {
+        // TODO: is this a general case or even smart to do this like this...?
+        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
+            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
-            // Create a spell book
-            getRoomObjectControl().addItem(playerSpell, getTaskLocation());
-       }
+            // Advance players spell research
+            PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
+            if (playerSpell != null) {
+
+                // Create a spell book
+                getRoomObjectControl().addItem(playerSpell, null);
+            }
+        }
     }
 
     @Override
