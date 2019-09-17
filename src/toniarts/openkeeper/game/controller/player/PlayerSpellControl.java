@@ -103,7 +103,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
         }
         if (playerSpellListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                playerSpellListener.onResearchStatusChanged(keeper.getId(), playerSpell);
+                playerSpellListener.onAdded(keeper.getId(), playerSpell);
             }
         }
     }

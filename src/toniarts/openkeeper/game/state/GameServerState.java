@@ -304,6 +304,7 @@ public class GameServerState extends AbstractAppState {
                 case UNLOCK_SPELLS: {
                     PlayerSpellControl playerSpellControl = gameController.getPlayerController(playerId).getSpellControl();
                     for (KeeperSpell keeperSpell : kwdFile.getKeeperSpells()) {
+                        playerSpellControl.setTypeAvailable(keeperSpell, true);
                         playerSpellControl.setSpellDiscovered(keeperSpell, true);
                     }
                     break;
