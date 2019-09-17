@@ -1220,4 +1220,10 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
     }
 
+    @Override
+    public int getResearchPerSecond() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.researchPerSecond;
+    }
+
 }

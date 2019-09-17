@@ -68,7 +68,7 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
             setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
             // Advance players spell research
-            PlayerSpell playerSpell = spellControl.research(creature.getCreature().getAttributes().getResearchPerSecond());
+            PlayerSpell playerSpell = spellControl.research(creature.getResearchPerSecond());
             if (playerSpell != null) {
 
                 // Create a spell book
