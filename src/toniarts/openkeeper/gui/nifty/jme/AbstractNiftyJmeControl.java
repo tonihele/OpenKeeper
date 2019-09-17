@@ -18,6 +18,7 @@ package toniarts.openkeeper.gui.nifty.jme;
 
 import com.jme3.app.SimpleApplication;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
@@ -46,6 +47,10 @@ public abstract class AbstractNiftyJmeControl extends AbstractController {
         super.bind(element);
         this.nifty = nifty;
         this.screen = screen;
+
+        if (element.getId() == null) {
+            element.setId(getClass().getSimpleName() + NiftyIdCreator.generate());
+        }
     }
 
     @Override

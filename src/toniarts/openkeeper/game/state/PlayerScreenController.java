@@ -771,7 +771,12 @@ public class PlayerScreenController implements IPlayerScreenController {
         for (final PlayerSpell spell : state.getAvailableKeeperSpells()) {
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
-                KeeperSpellResearchControl researchControl = new ControlBuilder(KeeperSpellResearchControl.CONTROL_NAME).build(element).getControl(KeeperSpellResearchControl.class);
+                KeeperSpellResearchControl researchControl = new ControlBuilder(KeeperSpellResearchControl.CONTROL_NAME) {
+                    {
+                        parameter("color", spell.isDiscovered() ? "" : Integer.toString(new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f).getRGB()));
+                        parameter("image", spell.isDiscovered() ? ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
+                    }
+                }.build(element).getControl(KeeperSpellResearchControl.class);
                 researchControl.initJme(state.app);
             }
         }
@@ -992,7 +997,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 .replace("%1", name)
                 .replace("%2", room.getCost() + "");
         return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(),
-                hint.replace("%21", room.getCost() + ""), true);
+                hint.replace("%21", room.getCost() + ""), true, false);
     }
 
     private ControlBuilder createSpellIcon(final PlayerSpell spell) {
@@ -1003,10 +1008,10 @@ public class PlayerScreenController implements IPlayerScreenController {
                     .replace("%1", name)
                     .replace("%2", keeperSpell.getManaCost() + "")
                     .replace("%3", spell.isUpgraded() ? "2" : "1");
-            return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), keeperSpell.getGeneralDescriptionStringId(), hint, true);
+            return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), keeperSpell.getGeneralDescriptionStringId(), hint, true, spell.isUpgraded());
         }
         return createIcon(keeperSpell.getKeeperSpellId(),
-                "spell", "gui\\spells\\s-tba", null, null, false);
+                "spell", "gui\\spells\\s-tba", null, null, false, false);
     }
 
     private ControlBuilder createDoorIcon(final Door door) {
@@ -1014,7 +1019,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1783")
                 .replace("%1", name)
                 .replace("%2", door.getGoldCost() + "");
-        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true);
+        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true, false);
     }
 
     private ControlBuilder createTrapIcon(final Trap trap) {
@@ -1022,17 +1027,17 @@ public class PlayerScreenController implements IPlayerScreenController {
         final String hint = Utils.getMainTextResourceBundle().getString("1784")
                 .replace("%1", name)
                 .replace("%2", trap.getManaCost() + "");
-        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true);
+        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect) {
-        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint, allowSelect);
+    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
+        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint, allowSelect, hilightGold);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect) {
+    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
         ControlBuilder cb = new GuiIconBuilder(type + "_" + id,
                 ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
-                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/frame.png"),
+                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
                 ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
                 hint != null ? hint : "",
                 generalDescriptionId != null ? "${menu." + generalDescriptionId + "}" : "",

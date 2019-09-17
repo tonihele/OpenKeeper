@@ -117,7 +117,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
     public PlayerSpell research(int researchAmount) {
         PlayerSpell spell = keeper.getCurrentResearch();
         boolean advanceToNext = research(spell, kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), researchAmount);
-        if (playerSpellListeners != null) {
+        if (!advanceToNext && playerSpellListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
                 playerSpellListener.onResearchStatusChanged(keeper.getId(), spell);
             }
