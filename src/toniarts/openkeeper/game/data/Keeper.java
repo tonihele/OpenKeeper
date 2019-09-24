@@ -48,10 +48,12 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int manaLoose;
     private int maxMana;
     private Point dungeonHeartLocation;
-    private List<Short> availableRooms = new ArrayList<>();
+    private List<ResearchableEntity> availableRooms = new ArrayList<>();
     private List<PlayerSpell> availableSpells = new ArrayList<>();
     private List<Short> availableCreatures = new ArrayList<>();
-    private PlayerSpell currentResearch;
+    private List<ResearchableEntity> availableDoors = new ArrayList<>();
+    private List<ResearchableEntity> availableTraps = new ArrayList<>();
+    private ResearchableEntity currentResearch;
 
     private transient Player player;
     private short id;
@@ -217,7 +219,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         this.dungeonHeartLocation = dungeonHeartLocation;
     }
 
-    public List<Short> getAvailableRooms() {
+    public List<ResearchableEntity> getAvailableRooms() {
         return availableRooms;
     }
 
@@ -229,11 +231,19 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         return availableCreatures;
     }
 
-    public void setCurrentResearch(PlayerSpell currentResearch) {
+    public List<ResearchableEntity> getAvailableDoors() {
+        return availableDoors;
+    }
+
+    public List<ResearchableEntity> getAvailableTraps() {
+        return availableTraps;
+    }
+
+    public void setCurrentResearch(ResearchableEntity currentResearch) {
         this.currentResearch = currentResearch;
     }
 
-    public PlayerSpell getCurrentResearch() {
+    public ResearchableEntity getCurrentResearch() {
         return currentResearch;
     }
 
@@ -251,9 +261,11 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(maxMana, "maxMana", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
-        out.write(toPrimitiveShortArray(availableRooms), "availableRooms", new short[0]);
+        out.writeSavableArrayList(new ArrayList(availableRooms), "availableRooms", null);
         out.writeSavableArrayList(new ArrayList(availableSpells), "availableSpells", null);
         out.write(toPrimitiveShortArray(availableCreatures), "availableCreatures", new short[0]);
+        out.writeSavableArrayList(new ArrayList(availableDoors), "availableDoors", null);
+        out.writeSavableArrayList(new ArrayList(availableTraps), "availableTraps", null);
         out.write(currentResearch, "currentResearch", null);
         out.write(destroyed, "destroyed", false);
         out.write(toPrimitiveShortArray(allies), "allies", new short[0]);
@@ -274,9 +286,11 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         int x = in.readInt("dungeonHeartLocationX", 0);
         int y = in.readInt("dungeonHeartLocationY", 0);
         dungeonHeartLocation = new Point(x, y);
-        availableRooms = toReferenceList(in.readShortArray("availableRooms", new short[0]));
+        availableRooms = in.readSavableArrayList("availableRooms", new ArrayList<>());
         availableSpells = in.readSavableArrayList("availableSpells", new ArrayList<>());
         availableCreatures = toReferenceList(in.readShortArray("availableCreatures", new short[0]));
+        availableDoors = in.readSavableArrayList("availableDoors", new ArrayList<>());
+        availableTraps = in.readSavableArrayList("availableTraps", new ArrayList<>());
         currentResearch = (PlayerSpell) in.readSavable("currentResearch", null);
         destroyed = in.readBoolean("destroyed", destroyed);
         allies = new HashSet<>(toReferenceList(in.readShortArray("allies", new short[0])));

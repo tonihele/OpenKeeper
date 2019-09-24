@@ -41,10 +41,10 @@ import javax.imageio.ImageIO;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KeeperSpellResearchControl extends AbstractNiftyJmeControl {
+public class ResearchEffectControl extends AbstractNiftyJmeControl {
 
-    public static final String CONTROL_NAME = "keeperSpellResearch";
-    private static final Logger LOGGER = Logger.getLogger(KeeperSpellResearchControl.class.getName());
+    public static final String CONTROL_NAME = "researchEffect";
+    private static final Logger LOGGER = Logger.getLogger(ResearchEffectControl.class.getName());
 
     private Picture picture;
     private boolean initialized = false;
@@ -76,7 +76,7 @@ public class KeeperSpellResearchControl extends AbstractNiftyJmeControl {
     public void initJme(SimpleApplication app) {
         super.initJme(app);
 
-        picture = new Picture("SpellResearchIndicator");
+        picture = new Picture("ResearchIndicator");
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
@@ -104,6 +104,11 @@ public class KeeperSpellResearchControl extends AbstractNiftyJmeControl {
 
     private void initialize() {
         initialized = true;
+
+        // Make sure we are drawing on the right spot
+        picture.setHeight(getControlHeight());
+        picture.setWidth(getControlWidth());
+        picture.setPosition(getControlX(), getControlY());
 
         // We need to have a texture before we attach the image
         drawTexture();

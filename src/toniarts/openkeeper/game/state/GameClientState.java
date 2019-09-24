@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -562,21 +563,21 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
-            List<Short> rooms = getPlayer(playerId).getAvailableRooms();
-            int index = Collections.binarySearch(rooms, roomId, (Short o1, Short o2) -> {
-                return kwdFile.getRoomById(o1).compareTo(kwdFile.getRoomById(o2));
+        public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
+            List<ResearchableEntity> rooms = getPlayer(playerId).getAvailableRooms();
+            int index = Collections.binarySearch(rooms, room, (ResearchableEntity o1, ResearchableEntity o2) -> {
+                return kwdFile.getRoomById(o1.getId()).compareTo(kwdFile.getRoomById(o2.getId()));
             });
-            if (index < 0 && available) {
-                rooms.add(~index, roomId);
-            } else if (index > -1 && !available) {
-                rooms.remove(index);
+            if (index < 0) {
+                rooms.add(~index, room);
+            } else {
+                rooms.set(index, room);
             }
 
             // FIXME: See in what thread we are
             if (playerState != null && playerState.getPlayerId() == playerId) {
                 app.enqueue(() -> {
-                    playerState.onRoomAvailabilityChanged(playerId, roomId, available);
+                    playerState.onRoomAvailabilityChanged(playerId, room);
                 });
             }
         }

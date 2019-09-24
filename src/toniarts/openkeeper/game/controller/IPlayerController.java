@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
@@ -50,6 +51,8 @@ public interface IPlayerController {
     PlayerHandControl getHandControl();
 
     PlayerStatsControl getStatsControl();
+
+    PlayerDoorControl getDoorControl();
 
     void removeListener(PlayerListener listener);
 

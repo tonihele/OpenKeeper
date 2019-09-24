@@ -81,7 +81,7 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
             playerControllersById.put(player.getKeeper().getId(), player);
 
             // Add initial rooms
-            for (Entry<Room, Set<IRoomController>> keeperRooms : player.getRoomControl().getTypes().entrySet()) {
+            for (Entry<Room, Set<IRoomController>> keeperRooms : player.getRoomControl().getRoomControllers().entrySet()) {
 
                 // See that should we add
                 for (IRoomController genericRoom : keeperRooms.getValue()) {

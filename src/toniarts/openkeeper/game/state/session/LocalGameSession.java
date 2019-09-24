@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.CheatState;
@@ -443,9 +444,9 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+    public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onRoomAvailabilityChanged(playerId, roomId, available);
+            listener.onRoomAvailabilityChanged(playerId, room);
         }
     }
 

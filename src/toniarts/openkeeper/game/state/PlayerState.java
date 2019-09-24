@@ -39,14 +39,13 @@ import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerCameraState;
@@ -331,16 +330,11 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         // TODO make flash button
     }
 
-    protected List<Room> getAvailableRoomsToBuild() {
+    protected List<ResearchableEntity> getAvailableRoomsToBuild() {
 
         // TODO: cache, or something, maybe add the listeners here
-        GameClientState gameState = stateManager.getState(GameClientState.class);
         Keeper keeper = getPlayer();
-        List<Room> rooms = new ArrayList<>(keeper.getAvailableRooms().size());
-        keeper.getAvailableRooms().stream().forEach((id) -> {
-            rooms.add(gameState.getLevelData().getRoomById(id));
-        });
-        return rooms;
+        return keeper.getAvailableRooms();
     }
 
     protected List<PlayerSpell> getAvailableKeeperSpells() {
@@ -350,10 +344,10 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         return keeper.getAvailableSpells();
     }
 
-    protected List<Door> getAvailableDoors() {
-        GameClientState gameState = stateManager.getState(GameClientState.class);
-        List<Door> doors = gameState.getLevelData().getDoors();
-        return doors;
+    protected List<ResearchableEntity> getAvailableDoors() {
+        // TODO: cache, or something, maybe add the listeners here
+        Keeper keeper = getPlayer();
+        return keeper.getAvailableDoors();
     }
 
     protected List<Trap> getAvailableTraps() {
@@ -567,7 +561,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+    public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
         screen.populateRoomTab();
     }
 

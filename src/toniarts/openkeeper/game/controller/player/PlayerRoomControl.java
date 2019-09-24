@@ -17,11 +17,15 @@
 package toniarts.openkeeper.game.controller.player;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.listener.PlayerRoomListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -31,11 +35,12 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomController>, Short> implements RoomListener {
+public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, ResearchableEntity> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
     private List<PlayerRoomListener> roomAvailabilityListeners;
+    private final Map<Room, Set<IRoomController>> roomControllers = new HashMap<>();
     private IRoomController dungeonHeart;
 
     public PlayerRoomControl(Keeper keeper, List<Room> rooms) {
@@ -49,29 +54,24 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
     }
 
     @Override
-    protected short getDataTypeId(Short type) {
-        return type;
+    protected ResearchableEntity createDataType(Room type) {
+        return new ResearchableEntity(type.getRoomId(), ResearchableType.ROOM);
     }
 
     @Override
-    protected Short getDataType(Room type) {
-        return type.getRoomId();
-    }
-
-    @Override
-    public boolean setTypeAvailable(Room type, boolean available) {
+    public boolean setTypeAvailable(Room type, boolean available, boolean discovered) {
 
         // Skip non-buildables, I don't know what purpose they serve
         if (!type.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
             return false;
         }
 
-        boolean result = super.setTypeAvailable(type, available);
+        boolean result = super.setTypeAvailable(type, available, discovered);
 
         // Notify listeners
         if (result && roomAvailabilityListeners != null) {
             for (PlayerRoomListener listener : roomAvailabilityListeners) {
-                listener.onRoomAvailabilityChanged(keeper.getId(), type.getId(), available);
+                listener.onRoomAvailabilityChanged(keeper.getId(), getDataType(type));
             }
         }
 
@@ -82,10 +82,10 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
     public void onBuild(IRoomController room) {
 
         // Add to the list
-        Set<IRoomController> roomSet = get(room.getRoom());
+        Set<IRoomController> roomSet = roomControllers.get(room.getRoom());
         if (roomSet == null) {
             roomSet = new LinkedHashSet<>();
-            put(room.getRoom(), roomSet);
+            roomControllers.put(room.getRoom(), roomSet);
         }
         roomSet.add(room);
         roomCount++;
@@ -109,7 +109,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
     public void onSold(IRoomController room) {
 
         // Delete
-        Set<IRoomController> roomSet = get(room.getRoom());
+        Set<IRoomController> roomSet = roomControllers.get(room.getRoom());
         if (roomSet != null) {
             roomSet.remove(room);
             roomCount--;
@@ -134,6 +134,10 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
         this.portalsOpen = portalsOpen;
     }
 
+    public Map<Room, Set<IRoomController>> getRoomControllers() {
+        return roomControllers;
+    }
+
     /**
      * Get room slab count, all rooms
      *
@@ -143,7 +147,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
         int count = 0;
         if (!types.isEmpty()) {
             for (Room room : new ArrayList<>(types.keySet())) {
-                Set<IRoomController> rooms = get(room);
+                Set<IRoomController> rooms = roomControllers.get(room);
                 if (!rooms.isEmpty()) {
                     for (IRoomController genericRoom : new ArrayList<>(rooms)) {
                         count += genericRoom.getRoomInstance().getCoordinates().size();
@@ -162,7 +166,7 @@ public class PlayerRoomControl extends AbstractPlayerControl<Room, Set<IRoomCont
      */
     public int getRoomSlabsCount(Room room) {
         int count = 0;
-        Set<IRoomController> rooms = get(room);
+        Set<IRoomController> rooms = roomControllers.get(room);
         if (rooms != null && !rooms.isEmpty()) {
             for (IRoomController genericRoom : new ArrayList<>(rooms)) {
                 count += genericRoom.getRoomInstance().getCoordinates().size();

@@ -314,7 +314,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 // Spells are all available for research unless otherwise stated
                 for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
                     if (spell.getBonusRTime() != 0) {
-                        playerController.getSpellControl().setTypeAvailable(spell, true);
+                        playerController.getSpellControl().setTypeAvailable(spell, true, false);
                     }
                 }
             }
@@ -342,23 +342,23 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
     private void setAvailability(Keeper player, Variable.Availability availability) {
         IPlayerController playerController = playerControllers.get(player.getId());
+        boolean available = availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE;
         switch (availability.getType()) {
             case CREATURE: {
-                playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), available);
                 break;
             }
             case ROOM: {
-                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), true, available);
                 break;
             }
             case SPELL: {
-                if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
-
-                    // Enable the spell, no need to research it
-                    playerController.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
-                } else {
-                    playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
-                }
+                playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), available, available);
+                break;
+            }
+            case DOOR: {
+                playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById((short) availability.getTypeId()), true, available);
+                break;
             }
         }
     }

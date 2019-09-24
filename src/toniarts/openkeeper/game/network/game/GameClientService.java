@@ -35,6 +35,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -410,9 +411,9 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+        public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onRoomAvailabilityChanged(playerId, roomId, available);
+                l.onRoomAvailabilityChanged(playerId, room);
             }
         }
     }

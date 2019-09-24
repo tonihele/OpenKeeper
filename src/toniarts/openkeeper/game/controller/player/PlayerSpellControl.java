@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, PlayerSpell, PlayerSpell> {
+public class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, PlayerSpell> {
 
     private final KwdFile kwdFile;
     private List<PlayerSpellListener> playerSpellListeners;
@@ -44,31 +44,18 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
     }
 
     @Override
-    protected short getDataTypeId(PlayerSpell type) {
-        return type.getKeeperSpellId();
+    protected PlayerSpell createDataType(KeeperSpell type) {
+        return new PlayerSpell(type.getId());
     }
 
     @Override
-    protected PlayerSpell getDataType(KeeperSpell type) {
-        return get(type);
-    }
+    public boolean setTypeAvailable(KeeperSpell type, boolean available, boolean discovered) {
+        boolean result = super.setTypeAvailable(type, available, discovered);
 
-    @Override
-    public boolean setTypeAvailable(KeeperSpell type, boolean available) {
-
-        // Add one to the stock
-        PlayerSpell playerSpell;
-        if (available) {
-            playerSpell = new PlayerSpell(type.getId());
-            put(type, playerSpell);
-            if (keeper.getCurrentResearch() == null) {
-                keeper.setCurrentResearch(playerSpell);
-            }
-        } else {
-            playerSpell = remove(type);
+        PlayerSpell playerSpell = getDataType(type);
+        if (playerSpell != null && keeper.getCurrentResearch() == null) {
+            keeper.setCurrentResearch(playerSpell);
         }
-
-        boolean result = super.setTypeAvailable(type, available);
 
         // Listeners
         if (result && playerSpellListeners != null) {
@@ -115,7 +102,7 @@ public class PlayerSpellControl extends AbstractPlayerControl<KeeperSpell, Playe
      * @return returns the spell if it is researched completely
      */
     public PlayerSpell research(int researchAmount) {
-        PlayerSpell spell = keeper.getCurrentResearch();
+        PlayerSpell spell = (PlayerSpell) keeper.getCurrentResearch();
         boolean advanceToNext = research(spell, kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), researchAmount);
         if (!advanceToNext && playerSpellListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerSpellListeners) {

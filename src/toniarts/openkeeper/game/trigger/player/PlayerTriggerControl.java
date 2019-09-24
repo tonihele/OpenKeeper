@@ -270,7 +270,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 short level = trigger.getUserData("level", short.class);
 
                 // Get first spawn point of the player (this flag is only for the players)
-                Set<IRoomController> rooms = getPlayerController(playerId).getRoomControl().getTypes().get(levelInfo.getLevelData().getPortal());
+                Set<IRoomController> rooms = getPlayerController(playerId).getRoomControl().getRoomControllers().get(levelInfo.getLevelData().getPortal());
                 if (rooms == null || rooms.isEmpty()) {
                     LOGGER.warning("Generate creature triggered but no entrances found!");
                     break;

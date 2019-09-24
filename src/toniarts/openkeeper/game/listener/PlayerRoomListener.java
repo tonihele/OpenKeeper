@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.listener;
 
 import com.jme3.network.service.rmi.Asynchronous;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 
 /**
  * Listen for changes in keeper room availabilities
@@ -26,6 +27,6 @@ import com.jme3.network.service.rmi.Asynchronous;
 public interface PlayerRoomListener {
 
     @Asynchronous
-    void onRoomAvailabilityChanged(short playerId, short roomId, boolean available);
+    void onRoomAvailabilityChanged(short playerId, ResearchableEntity room);
 
 }

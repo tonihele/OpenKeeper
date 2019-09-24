@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.simsilica.es.EntityData;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
@@ -47,6 +48,7 @@ public class PlayerController implements IPlayerController {
     private final PlayerManaControl manaControl;
     private final PlayerHandControl handControl;
     private final PlayerStatsControl statsControl;
+    private final PlayerDoorControl doorControl;
 
     public PlayerController(KwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
@@ -57,6 +59,7 @@ public class PlayerController implements IPlayerController {
         roomControl = new PlayerRoomControl(keeper, kwdFile.getRooms());
         spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells(), kwdFile);
         statsControl = new PlayerStatsControl();
+        doorControl = new PlayerDoorControl(keeper, kwdFile.getDoors());
 
         // Don't create certain controls for neutral nor good player
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
@@ -134,6 +137,11 @@ public class PlayerController implements IPlayerController {
     @Override
     public PlayerStatsControl getStatsControl() {
         return statsControl;
+    }
+
+    @Override
+    public PlayerDoorControl getDoorControl() {
+        return doorControl;
     }
 
 }
