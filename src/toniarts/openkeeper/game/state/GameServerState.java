@@ -30,17 +30,21 @@ import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -298,7 +302,15 @@ public class GameServerState extends AbstractAppState {
                     break;
                 }
                 case UNLOCK_DOORS_TRAPS: {
-                    // TODO:
+                    PlayerDoorControl playerDoorControl = gameController.getPlayerController(playerId).getDoorControl();
+                    for (Door door : kwdFile.getDoors()) {
+                        playerDoorControl.setTypeAvailable(door, true);
+                    }
+
+                    PlayerTrapControl playerTrapControl = gameController.getPlayerController(playerId).getTrapControl();
+                    for (Trap trap : kwdFile.getTraps()) {
+                        playerTrapControl.setTypeAvailable(trap, true);
+                    }
                     break;
                 }
                 case UNLOCK_SPELLS: {
