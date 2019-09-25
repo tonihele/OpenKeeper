@@ -770,19 +770,31 @@ public class PlayerScreenController implements IPlayerScreenController {
         contentPanel.removeAll();
         for (final ResearchableEntity door : state.getAvailableDoors()) {
             Element element = contentPanel.addElement(createDoorIcon(door));
-            if (!door.isDiscovered()) {
-                ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
-                    {
-                        parameter("color", Integer.toString(RESEARCH_COLOR.getRGB()));
-                        parameter("image", "");
-                    }
-                }.build(element).getControl(ResearchEffectControl.class);
-                researchControl.initJme(state.app);
-            }
+            setResearchEffect(door, element);
         }
-//        for (final Trap trap : state.getAvailableTraps()) {
-//            contentPanel.addElement(createTrapIcon(trap));
-//        }
+        for (final ResearchableEntity trap : state.getAvailableTraps()) {
+            Element element = contentPanel.addElement(createTrapIcon(trap));
+            setResearchEffect(trap, element);
+        }
+    }
+
+    /**
+     * Sets research effect on top of the element if needed, the basic effect.
+     * Not to be used for keeper spells
+     *
+     * @param researchableEntity the entity the element is for
+     * @param element the Nifty element created for the entity
+     */
+    private void setResearchEffect(final ResearchableEntity researchableEntity, final Element element) {
+        if (!researchableEntity.isDiscovered()) {
+            ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
+                {
+                    parameter("color", Integer.toString(RESEARCH_COLOR.getRGB()));
+                    parameter("image", "");
+                }
+            }.build(element).getControl(ResearchEffectControl.class);
+            researchControl.initJme(state.app);
+        }
     }
 
     /**
@@ -815,15 +827,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         contentPanel.removeAll();
         for (final ResearchableEntity room : state.getAvailableRoomsToBuild()) {
             Element element = contentPanel.addElement(createRoomIcon(room));
-            if (!room.isDiscovered()) {
-                ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
-                    {
-                        parameter("color", Integer.toString(RESEARCH_COLOR.getRGB()));
-                        parameter("image", "");
-                    }
-                }.build(element).getControl(ResearchEffectControl.class);
-                researchControl.initJme(state.app);
-            }
+            setResearchEffect(room, element);
         }
     }
 
@@ -1067,12 +1071,18 @@ public class PlayerScreenController implements IPlayerScreenController {
                 "door", "gui\\traps\\w-tba", null, null, false, false);
     }
 
-    private ControlBuilder createTrapIcon(final Trap trap) {
-        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
-        final String hint = Utils.getMainTextResourceBundle().getString("1784")
-                .replace("%1", name)
-                .replace("%2", trap.getManaCost() + "");
-        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
+    private ControlBuilder createTrapIcon(final ResearchableEntity trapInfo) {
+        Trap trap = state.getKwdFile().getTrapById(trapInfo.getId());
+        if (trapInfo.isDiscovered()) {
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
+            final String hint = Utils.getMainTextResourceBundle().getString("1784")
+                    .replace("%1", name)
+                    .replace("%2", trap.getManaCost() + "");
+            return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
+        }
+
+        return createIcon(trap.getId(),
+                "door", "gui\\traps\\w-tba", null, null, false, false);
     }
 
     public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {

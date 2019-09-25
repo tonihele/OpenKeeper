@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -49,6 +50,7 @@ public class PlayerController implements IPlayerController {
     private final PlayerHandControl handControl;
     private final PlayerStatsControl statsControl;
     private final PlayerDoorControl doorControl;
+    private final PlayerTrapControl trapControl;
 
     public PlayerController(KwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
@@ -60,6 +62,7 @@ public class PlayerController implements IPlayerController {
         spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells(), kwdFile);
         statsControl = new PlayerStatsControl();
         doorControl = new PlayerDoorControl(keeper, kwdFile.getDoors());
+        trapControl = new PlayerTrapControl(keeper, kwdFile.getTraps());
 
         // Don't create certain controls for neutral nor good player
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
@@ -142,6 +145,11 @@ public class PlayerController implements IPlayerController {
     @Override
     public PlayerDoorControl getDoorControl() {
         return doorControl;
+    }
+
+    @Override
+    public PlayerTrapControl getTrapControl() {
+        return trapControl;
     }
 
 }

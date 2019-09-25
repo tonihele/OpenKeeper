@@ -46,7 +46,6 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -350,16 +349,10 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         return keeper.getAvailableDoors();
     }
 
-    protected List<Trap> getAvailableTraps() {
-        GameClientState gameState = stateManager.getState(GameClientState.class);
-        List<Trap> traps = new ArrayList<>();
-        for (Trap trap : gameState.getLevelData().getTraps()) {
-            if (trap.getGuiIcon() == null) {
-                continue;
-            }
-            traps.add(trap);
-        }
-        return traps;
+    protected List<ResearchableEntity> getAvailableTraps() {
+        // TODO: cache, or something, maybe add the listeners here
+        Keeper keeper = getPlayer();
+        return keeper.getAvailableTraps();
     }
 
     public void setPaused(boolean paused) {

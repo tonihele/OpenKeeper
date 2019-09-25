@@ -16,22 +16,22 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.IFlagEnum;
 import java.util.EnumSet;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.ISoundable;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
  * Container class for the Trap
  *
- *
- * @author Wizand Petteri Loisko petteri.loisko@gmail.com, Toni Helenius
+ * @author Wizand Petteri Loisko <petteri.loisko@gmail.com>, Toni Helenius
  * <helenius.toni@gmail.com>
  *
  * Thank you https://github.com/werkt
  */
-public class Trap implements Comparable<Trap>, ISoundable {
+public class Trap implements Comparable<Trap>, ISoundable, IIndexable {
 
     /**
      * Trap flags
@@ -466,6 +466,11 @@ public class Trap implements Comparable<Trap>, ISoundable {
 
     protected void setHealthGain(int healthGain) {
         this.healthGain = healthGain;
+    }
+
+    @Override
+    public short getId() {
+        return trapId;
     }
 
     @Override

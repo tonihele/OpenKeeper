@@ -22,20 +22,20 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.listener.PlayerRoomListener;
-import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Trap;
 
 /**
- * Holds a list of player doors and functionality related to them
+ * Holds a list of player traps and functionality related to them
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, ResearchableEntity> /*implements RoomListener*/ {
+public class PlayerTrapControl extends AbstractResearchablePlayerControl<Trap, ResearchableEntity> /*implements RoomListener*/ {
 
-    private int doorCount = 0;
+    private int trapCount = 0;
     private List<PlayerRoomListener> roomAvailabilityListeners;
 
-    public PlayerDoorControl(Keeper keeper, List<Door> doors) {
-        super(keeper, keeper.getAvailableDoors(), doors);
+    public PlayerTrapControl(Keeper keeper, List<Trap> traps) {
+        super(keeper, keeper.getAvailableTraps(), traps);
     }
 
 //    public void init(List<IRoomController> doors) {
@@ -44,12 +44,12 @@ public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, R
 //        }
 //    }
     @Override
-    protected ResearchableEntity createDataType(Door type) {
-        return new ResearchableEntity(type.getDoorId(), ResearchableType.DOOR);
+    protected ResearchableEntity createDataType(Trap type) {
+        return new ResearchableEntity(type.getTrapId(), ResearchableType.TRAP);
     }
 
     @Override
-    public boolean setTypeAvailable(Door type, boolean available, boolean discovered) {
+    public boolean setTypeAvailable(Trap type, boolean available, boolean discovered) {
         boolean result = super.setTypeAvailable(type, available, discovered);
 
         // Notify listeners
@@ -107,7 +107,7 @@ public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, R
      */
     @Override
     public int getTypeCount() {
-        return doorCount;
+        return trapCount;
     }
 
     /**

@@ -360,6 +360,10 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById((short) availability.getTypeId()), true, available);
                 break;
             }
+            case TRAP: {
+                playerController.getTrapControl().setTypeAvailable(kwdFile.getTrapById((short) availability.getTypeId()), true, available);
+                break;
+            }
         }
     }
 
