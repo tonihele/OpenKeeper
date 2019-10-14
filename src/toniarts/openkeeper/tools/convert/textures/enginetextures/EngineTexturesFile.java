@@ -280,7 +280,7 @@ public class EngineTexturesFile implements Iterable<String> {
      * @return
      */
     private BufferedImage decompressTexture(long[] buf, EngineTextureEntry engineTextureEntry) {
-        BufferedImage img = new BufferedImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), BufferedImage.TYPE_INT_ARGB);
+        BufferedImage img = new BufferedImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), engineTextureEntry.isAlphaFlag() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
 
         // Decompress the texture
         if (decoder == null) {
