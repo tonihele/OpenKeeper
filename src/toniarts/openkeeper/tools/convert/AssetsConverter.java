@@ -71,8 +71,8 @@ import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesF
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  *
@@ -92,7 +92,7 @@ public abstract class AssetsConverter {
      */
     public enum ConvertProcess {
 
-        TEXTURES(5),
+        TEXTURES(6),
         MODELS(6),
         MOUSE_CURSORS(4),
         MUSIC_AND_SOUNDS(4),

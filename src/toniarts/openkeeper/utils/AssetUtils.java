@@ -36,10 +36,10 @@ import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
+import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
-import java.awt.image.RescaleOp;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -311,22 +311,22 @@ public class AssetUtils {
 
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
 
-            RescaleOp rop = null;
-            if (resource.getType() == ArtResource.ArtResourceType.ALPHA) {
-                float[] scales = {1f, 1f, 1f, 0.75f};
-                float[] offsets = new float[4];
-                rop = new RescaleOp(scales, offsets, null);
-            }
-
             // Get the first frame, the frames need to be same size
             BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + "0.png"))).openStream());
 
             // Create image big enough to fit all the frames
             int frames = resource.getData("frames");
             BufferedImage text = new BufferedImage(img.getWidth() * frames, img.getHeight(),
-                    BufferedImage.TYPE_INT_ARGB);
+                    resource.getType() == ArtResource.ArtResourceType.ALPHA ? BufferedImage.TYPE_INT_ARGB : img.getType());
             Graphics2D g = text.createGraphics();
-            g.drawImage(img, rop, 0, 0);
+
+            // If the source image doesn't have an alpha channel but the art resource wants one... Apply 75% opacity. See water
+            if (resource.getType() == ArtResource.ArtResourceType.ALPHA && !img.getColorModel().hasAlpha()) {
+                AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC, 0.75f);
+                g.setComposite(ac);
+            }
+            
+            g.drawImage(img, null, 0, 0);
             for (int x = 1; x < frames; x++) {
                 AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + x + ".png")));
                 if (asset != null) {
@@ -335,7 +335,7 @@ public class AssetUtils {
                     // use previous img
                     LOGGER.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{resource.getName(), x});
                 }
-                g.drawImage(img, rop, img.getWidth() * x, 0);
+                g.drawImage(img, null, img.getWidth() * x, 0);
             }
             g.dispose();
 
