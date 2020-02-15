@@ -114,8 +114,7 @@ public class SelectionBox extends AbstractBox
     }
 
     @Override
-    protected void duUpdateGeometryIndices()
-    {
+    protected void doUpdateGeometryIndices()    {
         if(getBuffer(Type.Index) == null)
         {
             setBuffer(Type.Index, 3, BufferUtils.createShortBuffer(GEOMETRY_INDICES_DATA));
@@ -123,8 +122,7 @@ public class SelectionBox extends AbstractBox
     }
 
     @Override
-    protected void duUpdateGeometryNormals()
-    {
+    protected void doUpdateGeometryNormals()    {
         if(getBuffer(Type.Normal) == null)
         {
             setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(GEOMETRY_NORMALS_DATA));
@@ -132,8 +130,7 @@ public class SelectionBox extends AbstractBox
     }
 
     @Override
-    protected void duUpdateGeometryTextures()
-    {
+    protected void doUpdateGeometryTextures()    {
         if(getBuffer(Type.TexCoord) == null)
         {
             setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(GEOMETRY_TEXTURE_DATA));
@@ -141,8 +138,7 @@ public class SelectionBox extends AbstractBox
     }
 
     @Override
-    protected void duUpdateGeometryVertices()
-    {
+    protected void doUpdateGeometryVertices()    {
         FloatBuffer fpb = BufferUtils.createVector3Buffer(20);
         Vector3f[] v = computeVertices();
         fpb.put(new float[]
