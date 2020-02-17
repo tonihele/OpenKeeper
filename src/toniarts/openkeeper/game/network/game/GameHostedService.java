@@ -351,27 +351,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void onAdded(short keeperId, PlayerSpell spell) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onAdded(keeperId, spell);
-        }
-    }
-
-    @Override
-    public void onRemoved(short keeperId, PlayerSpell spell) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onRemoved(keeperId, spell);
-        }
-    }
-
-    @Override
-    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onResearchStatusChanged(keeperId, spell);
-        }
-    }
-
-    @Override
     public void onGoldChange(short keeperId, int gold) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onGoldChange(keeperId, gold);
@@ -400,12 +379,44 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
-        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
-            if (gameSession.getKey().getKeeper().getId() == playerId) {
-                gameSession.getValue().onRoomAvailabilityChanged(playerId, room);
-                break;
-            }
+    public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onEntityAdded(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onEntityRemoved(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onResearchStatusChanged(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onPlayerSpellAdded(keeperId, playerSpell);
+        }
+    }
+
+    @Override
+    public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onPlayerSpellRemoved(keeperId, playerSpell);
+        }
+    }
+
+    @Override
+    public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
         }
     }
 
@@ -617,21 +628,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onAdded(short keeperId, PlayerSpell spell) {
-            getCallback().onAdded(keeperId, spell);
-        }
-
-        @Override
-        public void onRemoved(short keeperId, PlayerSpell spell) {
-            getCallback().onRemoved(keeperId, spell);
-        }
-
-        @Override
-        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-            getCallback().onResearchStatusChanged(keeperId, spell);
-        }
-
-        @Override
         public void onGoldChange(short keeperId, int gold) {
             getCallback().onGoldChange(keeperId, gold);
         }
@@ -713,8 +709,33 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
-            getCallback().onRoomAvailabilityChanged(playerId, room);
+        public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
+            getCallback().onEntityAdded(keeperId, researchableEntity);
+        }
+
+        @Override
+        public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+            getCallback().onEntityRemoved(keeperId, researchableEntity);
+        }
+
+        @Override
+        public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+            getCallback().onResearchStatusChanged(keeperId, researchableEntity);
+        }
+
+        @Override
+        public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
+            getCallback().onPlayerSpellAdded(keeperId, playerSpell);
+        }
+
+        @Override
+        public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
+            getCallback().onPlayerSpellRemoved(keeperId, playerSpell);
+        }
+
+        @Override
+        public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
+            getCallback().onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
         }
 
     }

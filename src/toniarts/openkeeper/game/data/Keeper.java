@@ -291,7 +291,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         availableCreatures = toReferenceList(in.readShortArray("availableCreatures", new short[0]));
         availableDoors = in.readSavableArrayList("availableDoors", new ArrayList<>());
         availableTraps = in.readSavableArrayList("availableTraps", new ArrayList<>());
-        currentResearch = (PlayerSpell) in.readSavable("currentResearch", null);
+        currentResearch = (ResearchableEntity) in.readSavable("currentResearch", null);
         destroyed = in.readBoolean("destroyed", destroyed);
         allies = new HashSet<>(toReferenceList(in.readShortArray("allies", new short[0])));
     }

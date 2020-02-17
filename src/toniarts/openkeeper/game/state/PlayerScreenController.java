@@ -943,6 +943,54 @@ public class PlayerScreenController implements IPlayerScreenController {
         }
     }
 
+    public void updateEntityResearch(ResearchableEntity researchableEntity) {
+        String itemId = getItemTypeId(researchableEntity);
+        Element researchableButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
+        if (researchableButton != null) {
+            ResearchEffectControl researchControl = researchableButton.getControl(ResearchEffectControl.class);
+            if (researchControl != null) {
+                float percentage = (float) researchableEntity.getResearch() / getResearchTime(researchableEntity);
+                researchControl.setResearch(percentage);
+            }
+        }
+    }
+
+    private int getResearchTime(ResearchableEntity researchableEntity) {
+        switch (researchableEntity.getResearchableType()) {
+            case TRAP:
+                return state.getKwdFile().getTrapById(researchableEntity.getId()).getResearchTime();
+            case DOOR:
+                return state.getKwdFile().getDoorById(researchableEntity.getId()).getResearchTime();
+            case ROOM:
+                return state.getKwdFile().getRoomById(researchableEntity.getId()).getResearchTime();
+            default: {
+                throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
+            }
+        }
+    }
+
+    private String getItemTypeId(ResearchableEntity researchableEntity) {
+        String prefix = null;
+        switch (researchableEntity.getResearchableType()) {
+            case TRAP: {
+                prefix = "trap_";
+                break;
+            }
+            case DOOR: {
+                prefix = "door_";
+                break;
+            }
+            case ROOM: {
+                prefix = "room_";
+                break;
+            }
+            default: {
+                throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
+            }
+        }
+
+        return prefix + researchableEntity.getId();
+    }
 
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
@@ -1082,7 +1130,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         }
 
         return createIcon(trap.getId(),
-                "door", "gui\\traps\\w-tba", null, null, false, false);
+                "trap", "gui\\traps\\w-tba", null, null, false, false);
     }
 
     public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {

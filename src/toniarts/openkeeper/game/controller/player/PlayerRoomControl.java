@@ -35,11 +35,10 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, ResearchableEntity> implements RoomListener {
+public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, ResearchableEntity, PlayerRoomListener> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;
-    private List<PlayerRoomListener> roomAvailabilityListeners;
     private final Map<Room, Set<IRoomController>> roomControllers = new HashMap<>();
     private IRoomController dungeonHeart;
 
@@ -67,13 +66,6 @@ public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, R
         }
 
         boolean result = super.setTypeAvailable(type, available, discovered);
-
-        // Notify listeners
-        if (result && roomAvailabilityListeners != null) {
-            for (PlayerRoomListener listener : roomAvailabilityListeners) {
-                listener.onRoomAvailabilityChanged(keeper.getId(), getDataType(type));
-            }
-        }
 
         return result;
     }
@@ -176,35 +168,22 @@ public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, R
     }
 
     /**
-     * Listen to room availability changes
-     *
-     * @param listener the listener
-     */
-    public void addListener(PlayerRoomListener listener) {
-        if (roomAvailabilityListeners == null) {
-            roomAvailabilityListeners = new ArrayList<>();
-        }
-        roomAvailabilityListeners.add(listener);
-    }
-
-    /**
-     * Stop listening to room availability changes
-     *
-     * @param listener the listener
-     */
-    public void removeListener(PlayerRoomListener listener) {
-        if (roomAvailabilityListeners != null) {
-            roomAvailabilityListeners.remove(listener);
-        }
-    }
-
-    /**
      * Returns the dungeon heart of the player
      *
      * @return the dungeon heart
      */
     public IRoomController getDungeonHeart() {
         return dungeonHeart;
+    }
+
+    @Override
+    protected void onAdded(PlayerRoomListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
+        playerListener.onEntityAdded(keeper.getId(), researchableEntity);
+    }
+
+    @Override
+    protected void onRemoved(PlayerRoomListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
+        playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
     }
 
 }

@@ -27,12 +27,12 @@ import toniarts.openkeeper.game.data.PlayerSpell;
 public interface PlayerSpellListener {
 
     @Asynchronous
-    void onAdded(short keeperId, PlayerSpell spell);
+    void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell);
 
     @Asynchronous
-    void onRemoved(short keeperId, PlayerSpell spell);
+    void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell);
 
     @Asynchronous
-    void onResearchStatusChanged(short keeperId, PlayerSpell spell);
+    void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell);
 
 }

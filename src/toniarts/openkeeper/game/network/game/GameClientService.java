@@ -278,27 +278,6 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onAdded(short keeperId, PlayerSpell spell) {
-            for (GameSessionListener l : listeners.getArray()) {
-                l.onAdded(keeperId, spell);
-            }
-        }
-
-        @Override
-        public void onRemoved(short keeperId, PlayerSpell spell) {
-            for (GameSessionListener l : listeners.getArray()) {
-                l.onRemoved(keeperId, spell);
-            }
-        }
-
-        @Override
-        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-            for (GameSessionListener l : listeners.getArray()) {
-                l.onResearchStatusChanged(keeperId, spell);
-            }
-        }
-
-        @Override
         public void onGoldChange(short keeperId, int gold) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onGoldChange(keeperId, gold);
@@ -411,9 +390,44 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
+        public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onRoomAvailabilityChanged(playerId, room);
+                l.onEntityAdded(keeperId, researchableEntity);
+            }
+        }
+
+        @Override
+        public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onEntityRemoved(keeperId, researchableEntity);
+            }
+        }
+
+        @Override
+        public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onResearchStatusChanged(keeperId, researchableEntity);
+            }
+        }
+
+        @Override
+        public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onPlayerSpellAdded(keeperId, playerSpell);
+            }
+        }
+
+        @Override
+        public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onPlayerSpellRemoved(keeperId, playerSpell);
+            }
+        }
+
+        @Override
+        public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
             }
         }
     }

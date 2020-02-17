@@ -16,13 +16,11 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
-import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * Holds and manages player's spells. In the original game the research status
@@ -32,43 +30,15 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, PlayerSpell> {
+public class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, PlayerSpell, PlayerSpellListener> {
 
-    private final KwdFile kwdFile;
-    private List<PlayerSpellListener> playerSpellListeners;
-
-    public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells, KwdFile kwdFile) {
+    public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells) {
         super(keeper, keeper.getAvailableSpells(), keeperSpells);
-
-        this.kwdFile = kwdFile;
     }
 
     @Override
     protected PlayerSpell createDataType(KeeperSpell type) {
         return new PlayerSpell(type.getId());
-    }
-
-    @Override
-    public boolean setTypeAvailable(KeeperSpell type, boolean available, boolean discovered) {
-        boolean result = super.setTypeAvailable(type, available, discovered);
-
-        PlayerSpell playerSpell = getDataType(type);
-        if (playerSpell != null && keeper.getCurrentResearch() == null) {
-            keeper.setCurrentResearch(playerSpell);
-        }
-
-        // Listeners
-        if (result && playerSpellListeners != null) {
-            for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                if (available) {
-                    playerSpellListener.onAdded(keeper.getId(), playerSpell);
-                } else {
-                    playerSpellListener.onRemoved(keeper.getId(), playerSpell);
-                }
-            }
-        }
-
-        return result;
     }
 
     @Override
@@ -85,109 +55,15 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
     public void setSpellDiscovered(KeeperSpell spell, boolean discovered) {
         PlayerSpell playerSpell = get(spell);
         playerSpell.setDiscovered(discovered);
-        if (discovered && playerSpell == keeper.getCurrentResearch()) {
-            setNextResearchTarget();
-        }
-        if (playerSpellListeners != null) {
-            for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                playerSpellListener.onAdded(keeper.getId(), playerSpell);
+        if (playerListeners != null) {
+            for (PlayerSpellListener playerSpellListener : playerListeners) {
+                onAdded(playerSpellListener, keeper, playerSpell);
             }
         }
     }
 
-    /**
-     * Researches current spell
-     *
-     * @param researchAmount the research amount
-     * @return returns the spell if it is researched completely
-     */
-    public PlayerSpell research(int researchAmount) {
-        PlayerSpell spell = (PlayerSpell) keeper.getCurrentResearch();
-        boolean advanceToNext = research(spell, kwdFile.getKeeperSpellById(spell.getKeeperSpellId()), researchAmount);
-        if (!advanceToNext && playerSpellListeners != null) {
-            for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                playerSpellListener.onResearchStatusChanged(keeper.getId(), spell);
-            }
-        }
-        //if (advanceToNext) {
-        //    setNextResearchTarget();
-        //}
-
-        // If research complete, return the spellbook
-        if (advanceToNext) {
-            return spell;
-        }
-        return null;
-    }
-
-    private static boolean research(PlayerSpell spell, KeeperSpell keeperSpell, int researchAmount) {
-        spell.setResearch(spell.getResearch() + researchAmount);
-        if (spell.isDiscovered() && spell.getResearch() >= keeperSpell.getBonusRTime()) {
-            //spell.setUpgraded(true);
-            spell.setResearch(0);
-            return true;
-        } else if (!spell.isDiscovered() && spell.getResearch() >= keeperSpell.getResearchTime()) {
-            //spell.setDiscovered(true);
-            spell.setResearch(0);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Determines can the player research any spells
-     *
-     * @return is there anything to research
-     */
-    public boolean isAnythingToReaseach() {
-        return keeper.getCurrentResearch() != null;
-    }
-
-    private void setNextResearchTarget() {
-        PlayerSpell nextToUpgrade = null;
-        PlayerSpell nextToReseach = null;
-        for (PlayerSpell spell : types.values()) {
-            if (!spell.isDiscovered() && nextToReseach == null) {
-                nextToReseach = spell;
-            } else if (spell.isDiscovered() && !spell.isUpgraded() && nextToUpgrade == null) {
-                nextToUpgrade = spell;
-            }
-
-            // Always prioritize discovering new over upgrading
-            if (nextToReseach != null) {
-                keeper.setCurrentResearch(nextToReseach);
-                return;
-            }
-        }
-
-        // See if anything to upgrade
-        keeper.setCurrentResearch(nextToUpgrade);
-    }
-
-    /**
-     * Listen to spell status changes
-     *
-     * @param listener the listener
-     */
-    public void addListener(PlayerSpellListener listener) {
-        if (playerSpellListeners == null) {
-            playerSpellListeners = new ArrayList<>();
-        }
-        playerSpellListeners.add(listener);
-    }
-
-    /**
-     * No longer listen to spell status changes
-     *
-     * @param listener the listener
-     */
-    public void removeListener(PlayerSpellListener listener) {
-        if (playerSpellListeners != null) {
-            playerSpellListeners.remove(listener);
-        }
-    }
-
-    public void onSpellbookAdded(KeeperSpell keeperSpell) {
+    @Override
+    public void onResearchResultsAdded(KeeperSpell keeperSpell) {
         PlayerSpell playerSpell = get(keeperSpell);
         if (playerSpell != null) {
             if (!playerSpell.isDiscovered()) {
@@ -196,22 +72,17 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
                 playerSpell.setUpgraded(true);
             }
 
-            // If it was the one we were researching, advance to next
-            if (playerSpell.equals(keeper.getCurrentResearch())) {
-                playerSpell.setResearch(0);
-                setNextResearchTarget();
-            }
-
             // Notify listeners
-            if (playerSpellListeners != null) {
-                for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                    playerSpellListener.onAdded(keeper.getId(), playerSpell);
+            if (playerListeners != null) {
+                for (PlayerSpellListener playerSpellListener : playerListeners) {
+                    onAdded(playerSpellListener, keeper, playerSpell);
                 }
             }
         }
     }
 
-    public void onSpellbookRemoved(KeeperSpell keeperSpell) {
+    @Override
+    public void onResearchResultsRemoved(KeeperSpell keeperSpell) {
         PlayerSpell playerSpell = get(keeperSpell);
         if (playerSpell != null) {
             if (playerSpell.isUpgraded()) {
@@ -221,12 +92,22 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
             }
 
             // Notify listeners
-            if (playerSpellListeners != null) {
-                for (PlayerSpellListener playerSpellListener : playerSpellListeners) {
-                    playerSpellListener.onRemoved(keeper.getId(), playerSpell);
+            if (playerListeners != null) {
+                for (PlayerSpellListener playerSpellListener : playerListeners) {
+                    onRemoved(playerSpellListener, keeper, playerSpell);
                 }
             }
         }
+    }
+
+    @Override
+    protected void onAdded(PlayerSpellListener playerListener, Keeper keeper, PlayerSpell researchableEntity) {
+        playerListener.onPlayerSpellAdded(keeper.getId(), researchableEntity);
+    }
+
+    @Override
+    protected void onRemoved(PlayerSpellListener playerListener, Keeper keeper, PlayerSpell researchableEntity) {
+        playerListener.onPlayerSpellRemoved(keeper.getId(), researchableEntity);
     }
 
 }

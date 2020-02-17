@@ -519,21 +519,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onAdded(short keeperId, PlayerSpell spell) {
-        screen.populateSpellTab();
-    }
-
-    @Override
-    public void onRemoved(short keeperId, PlayerSpell spell) {
-        screen.populateSpellTab();
-    }
-
-    @Override
-    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-        screen.updateSpellResearch(spell);
-    }
-
-    @Override
     public void onGoldChange(short keeperId, int gold) {
         screen.setGold(gold);
     }
@@ -554,8 +539,50 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
-        screen.populateRoomTab();
+    public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
+        screen.populateSpellTab();
+    }
+
+    @Override
+    public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
+        screen.populateSpellTab();
+    }
+
+    @Override
+    public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
+        screen.updateSpellResearch(playerSpell);
+    }
+
+    @Override
+    public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
+        populateTab(researchableEntity);
+    }
+
+    private void populateTab(ResearchableEntity researchableEntity) throws IllegalArgumentException {
+        switch (researchableEntity.getResearchableType()) {
+            case TRAP:
+            case DOOR: {
+                screen.populateManufactureTab();
+                break;
+            }
+            case ROOM: {
+                screen.populateRoomTab();
+                break;
+            }
+            default: {
+                throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
+            }
+        }
+    }
+
+    @Override
+    public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+        populateTab(researchableEntity);
+    }
+
+    @Override
+    public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+        screen.updateEntityResearch(researchableEntity);
     }
 
 }

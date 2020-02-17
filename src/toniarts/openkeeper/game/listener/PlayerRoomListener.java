@@ -16,17 +16,11 @@
  */
 package toniarts.openkeeper.game.listener;
 
-import com.jme3.network.service.rmi.Asynchronous;
-import toniarts.openkeeper.game.data.ResearchableEntity;
-
 /**
  * Listen for changes in keeper room availabilities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface PlayerRoomListener {
-
-    @Asynchronous
-    void onRoomAvailabilityChanged(short playerId, ResearchableEntity room);
+public interface PlayerRoomListener extends PlayerResearchableEntityListener {
 
 }

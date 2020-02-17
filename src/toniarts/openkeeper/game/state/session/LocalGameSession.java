@@ -395,27 +395,6 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onAdded(short keeperId, PlayerSpell spell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onAdded(keeperId, spell);
-        }
-    }
-
-    @Override
-    public void onRemoved(short keeperId, PlayerSpell spell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onRemoved(keeperId, spell);
-        }
-    }
-
-    @Override
-    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onResearchStatusChanged(keeperId, spell);
-        }
-    }
-
-    @Override
     public void onGoldChange(short keeperId, int gold) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onGoldChange(keeperId, gold);
@@ -444,9 +423,44 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, ResearchableEntity room) {
+    public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onRoomAvailabilityChanged(playerId, room);
+            listener.onPlayerSpellAdded(keeperId, playerSpell);
+        }
+    }
+
+    @Override
+    public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onPlayerSpellRemoved(keeperId, playerSpell);
+        }
+    }
+
+    @Override
+    public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
+        }
+    }
+
+    @Override
+    public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEntityAdded(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEntityRemoved(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onResearchStatusChanged(keeperId, researchableEntity);
         }
     }
 

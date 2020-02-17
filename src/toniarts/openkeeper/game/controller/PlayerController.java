@@ -23,12 +23,15 @@ import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
+import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
+import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -51,6 +54,7 @@ public class PlayerController implements IPlayerController {
     private final PlayerStatsControl statsControl;
     private final PlayerDoorControl doorControl;
     private final PlayerTrapControl trapControl;
+    private final PlayerResearchControl researchControl;
 
     public PlayerController(KwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
@@ -59,7 +63,7 @@ public class PlayerController implements IPlayerController {
         goldControl = new PlayerGoldControl(keeper);
         creatureControl = new PlayerCreatureControl(keeper, imp, kwdFile.getCreatureList());
         roomControl = new PlayerRoomControl(keeper, kwdFile.getRooms());
-        spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells(), kwdFile);
+        spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells());
         statsControl = new PlayerStatsControl();
         doorControl = new PlayerDoorControl(keeper, kwdFile.getDoors());
         trapControl = new PlayerTrapControl(keeper, kwdFile.getTraps());
@@ -68,9 +72,11 @@ public class PlayerController implements IPlayerController {
         if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
             manaControl = new PlayerManaControl(keeper, gameSettings);
             handControl = new PlayerHandControl(keeper, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND).getValue(), entityData);
+            researchControl = new PlayerResearchControl(keeper, kwdFile);
         } else {
             manaControl = null;
             handControl = null;
+            researchControl = null;
         }
     }
 
@@ -91,6 +97,16 @@ public class PlayerController implements IPlayerController {
         if (spellControl != null) {
             spellControl.addListener(listener);
         }
+        if (doorControl != null) {
+            doorControl.addListener(listener);
+        }
+        if (trapControl != null) {
+            trapControl.addListener(listener);
+        }
+        if (researchControl != null) {
+            researchControl.addListener((PlayerResearchableEntityListener) listener);
+            researchControl.addListener((PlayerSpellListener) listener);
+        }
     }
 
     @Override
@@ -104,6 +120,16 @@ public class PlayerController implements IPlayerController {
         }
         if (spellControl != null) {
             spellControl.removeListener(listener);
+        }
+        if (doorControl != null) {
+            doorControl.removeListener(listener);
+        }
+        if (trapControl != null) {
+            trapControl.removeListener(listener);
+        }
+        if (researchControl != null) {
+            researchControl.removeListener((PlayerResearchableEntityListener) listener);
+            researchControl.removeListener((PlayerSpellListener) listener);
         }
     }
 
@@ -150,6 +176,11 @@ public class PlayerController implements IPlayerController {
     @Override
     public PlayerTrapControl getTrapControl() {
         return trapControl;
+    }
+
+    @Override
+    public PlayerResearchControl getResearchControl() {
+        return researchControl;
     }
 
 }

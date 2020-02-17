@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
@@ -60,7 +61,7 @@ import toniarts.openkeeper.game.logic.LooseGoldSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
-import toniarts.openkeeper.game.logic.PlayerSpellSystem;
+import toniarts.openkeeper.game.logic.PlayerSpellbookSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -262,7 +263,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureTorturingSystem(entityData, this, gameSettings),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
-                new PlayerSpellSystem(entityData, kwdFile, playerControllers.values()),
+                new PlayerSpellbookSystem(entityData, kwdFile, playerControllers.values()),
                 this,
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ChickenSpawnSystem(gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
@@ -336,6 +337,14 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 if (player != null) {
                     setAvailability(player, availability);
                 }
+            }
+        }
+
+        // Initialize the player research
+        for (IPlayerController playerController : playerControllers.values()) {
+            PlayerResearchControl researchControl = playerController.getResearchControl();
+            if (researchControl != null) {
+                researchControl.initialize();
             }
         }
     }

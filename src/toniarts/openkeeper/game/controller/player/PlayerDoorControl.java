@@ -16,12 +16,11 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
-import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
-import toniarts.openkeeper.game.listener.PlayerRoomListener;
+import toniarts.openkeeper.game.listener.PlayerDoorListener;
 import toniarts.openkeeper.tools.convert.map.Door;
 
 /**
@@ -29,76 +28,18 @@ import toniarts.openkeeper.tools.convert.map.Door;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, ResearchableEntity> /*implements RoomListener*/ {
+public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, ResearchableEntity, PlayerDoorListener> /*implements RoomListener*/ {
 
     private int doorCount = 0;
-    private List<PlayerRoomListener> roomAvailabilityListeners;
 
     public PlayerDoorControl(Keeper keeper, List<Door> doors) {
         super(keeper, keeper.getAvailableDoors(), doors);
     }
 
-//    public void init(List<IRoomController> doors) {
-//        for (IRoomController roomController : doors) {
-//            onBuild(roomController);
-//        }
-//    }
     @Override
     protected ResearchableEntity createDataType(Door type) {
         return new ResearchableEntity(type.getDoorId(), ResearchableType.DOOR);
     }
-
-    @Override
-    public boolean setTypeAvailable(Door type, boolean available, boolean discovered) {
-        boolean result = super.setTypeAvailable(type, available, discovered);
-
-        // Notify listeners
-//        if (result && roomAvailabilityListeners != null) {
-//            for (PlayerRoomListener listener : roomAvailabilityListeners) {
-//                listener.onRoomAvailabilityChanged(keeper.getId(), type.getId(), available);
-//            }
-//        }
-
-        return result;
-    }
-
-//    @Override
-//    public void onBuild(IRoomController room) {
-//
-//        // Add to the list
-//        Set<IRoomController> roomSet = get(room.getRoom());
-//        if (roomSet == null) {
-//            roomSet = new LinkedHashSet<>();
-//            put(room.getRoom(), roomSet);
-//        }
-//        roomSet.add(room);
-//        roomCount++;
-//        if (dungeonHeart == null && room.isDungeonHeart()) {
-//            dungeonHeart = room;
-//            keeper.setDungeonHeartLocation(room.getRoomInstance().getCenter());
-//        }
-//    }
-//
-//    @Override
-//    public void onCaptured(IRoomController room) {
-//        onBuild(room);
-//    }
-//
-//    @Override
-//    public void onCapturedByEnemy(IRoomController room) {
-//        onSold(room);
-//    }
-//
-//    @Override
-//    public void onSold(IRoomController room) {
-//
-//        // Delete
-//        Set<IRoomController> roomSet = get(room.getRoom());
-//        if (roomSet != null) {
-//            roomSet.remove(room);
-//            roomCount--;
-//        }
-//    }
 
     /**
      * Get player door count
@@ -110,27 +51,14 @@ public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, R
         return doorCount;
     }
 
-    /**
-     * Listen to room availability changes
-     *
-     * @param listener the listener
-     */
-    public void addListener(PlayerRoomListener listener) {
-        if (roomAvailabilityListeners == null) {
-            roomAvailabilityListeners = new ArrayList<>();
-        }
-        roomAvailabilityListeners.add(listener);
+    @Override
+    protected void onAdded(PlayerDoorListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
+        playerListener.onEntityAdded(keeper.getId(), researchableEntity);
     }
 
-    /**
-     * Stop listening to room availability changes
-     *
-     * @param listener the listener
-     */
-    public void removeListener(PlayerRoomListener listener) {
-        if (roomAvailabilityListeners != null) {
-            roomAvailabilityListeners.remove(listener);
-        }
+    @Override
+    protected void onRemoved(PlayerDoorListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
+        playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
     }
 
 }

@@ -68,6 +68,10 @@ public class ResearchableEntity implements Savable {
         this.research = research;
     }
 
+    public ResearchableType getResearchableType() {
+        return researchableType;
+    }
+
     @Override
     public String toString() {
         return "ResearchableEntity{" + "id=" + id + ", researchableType=" + researchableType + ", discovered=" + discovered + ", research=" + research + '}';
