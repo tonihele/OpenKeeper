@@ -16,23 +16,11 @@
  */
 package toniarts.openkeeper.game.listener;
 
-import com.jme3.network.service.rmi.Asynchronous;
-import toniarts.openkeeper.game.data.PlayerSpell;
-
 /**
  * Listen for changes in keeper spell statuses
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface PlayerSpellListener {
-
-    @Asynchronous
-    void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell);
-
-    @Asynchronous
-    void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell);
-
-    @Asynchronous
-    void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell);
+public interface PlayerSpellListener extends PlayerResearchableEntityListener {
 
 }

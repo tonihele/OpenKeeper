@@ -22,6 +22,7 @@ import java.util.List;
 import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
 
 /**
  * Abstract base for player controls that have availabilities
@@ -32,7 +33,7 @@ import toniarts.openkeeper.game.data.ResearchableEntity;
  * @param <TListener> the type of listener used for listening changes in the
  * control data
  */
-public abstract class AbstractResearchablePlayerControl<K extends IIndexable & Comparable<K>, V extends ResearchableEntity, TListener>
+public abstract class AbstractResearchablePlayerControl<K extends IIndexable & Comparable<K>, V extends ResearchableEntity, TListener extends PlayerResearchableEntityListener>
         extends AbstractPlayerControl<K, V, V> {
 
     protected List<TListener> playerListeners;
@@ -88,9 +89,9 @@ public abstract class AbstractResearchablePlayerControl<K extends IIndexable & C
         if (result && playerListeners != null) {
             for (TListener playerListener : playerListeners) {
                 if (available) {
-                    onAdded(playerListener, keeper, researchableEntity);
+                    playerListener.onEntityAdded(keeper.getId(), researchableEntity);
                 } else {
-                    onRemoved(playerListener, keeper, researchableEntity);
+                    playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
                 }
             }
         }
@@ -114,7 +115,7 @@ public abstract class AbstractResearchablePlayerControl<K extends IIndexable & C
         // Notify listeners
         if (playerListeners != null) {
             for (TListener playerListener : playerListeners) {
-                onAdded(playerListener, keeper, researchableEntity);
+                playerListener.onEntityAdded(keeper.getId(), researchableEntity);
             }
         }
     }
@@ -130,7 +131,7 @@ public abstract class AbstractResearchablePlayerControl<K extends IIndexable & C
         // Notify listeners
         if (playerListeners != null) {
             for (TListener playerListener : playerListeners) {
-                onRemoved(playerListener, keeper, researchableEntity);
+                playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
             }
         }
     }
@@ -157,23 +158,5 @@ public abstract class AbstractResearchablePlayerControl<K extends IIndexable & C
             playerListeners.remove(listener);
         }
     }
-
-    /**
-     * Notify on entity added to the listener
-     *
-     * @param playerListener the listener
-     * @param keeper the keeper
-     * @param researchableEntity added entity
-     */
-    protected abstract void onAdded(TListener playerListener, Keeper keeper, V researchableEntity);
-
-    /**
-     * Notify on entity removed to the listener
-     *
-     * @param playerListener the listener
-     * @param keeper the keeper
-     * @param researchableEntity removed entity
-     */
-    protected abstract void onRemoved(TListener playerListener, Keeper keeper, V researchableEntity);
 
 }

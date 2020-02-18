@@ -19,10 +19,8 @@ package toniarts.openkeeper.game.controller.player;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
-import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
@@ -36,7 +34,6 @@ public class PlayerResearchControl {
     private final Keeper keeper;
     private final KwdFile kwdFile;
     protected List<PlayerResearchableEntityListener> researchListeners;
-    protected List<PlayerSpellListener> spellResearchListeners;
 
     public PlayerResearchControl(Keeper keeper, KwdFile kwdFile) {
         this.keeper = keeper;
@@ -60,24 +57,14 @@ public class PlayerResearchControl {
         return keeper.getCurrentResearch() != null;
     }
 
-    private static boolean researchSpell(PlayerSpell spell, KeeperSpell keeperSpell, int researchAmount) {
-        spell.setResearch(spell.getResearch() + researchAmount);
-        if (spell.isDiscovered() && spell.getResearch() >= keeperSpell.getBonusRTime()) {
-            spell.setUpgraded(true);
-            spell.setResearch(0);
-            return true;
-        } else if (!spell.isDiscovered() && spell.getResearch() >= keeperSpell.getResearchTime()) {
-            spell.setDiscovered(true);
-            spell.setResearch(0);
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean research(ResearchableEntity researchableEntity, int researchTime, int researchAmount) {
+    private static boolean research(ResearchableEntity researchableEntity, int researchTime, Integer upgradeResearchTime, int researchAmount) {
         researchableEntity.setResearch(researchableEntity.getResearch() + researchAmount);
-        if (researchableEntity.getResearch() >= researchTime) {
-            researchableEntity.setDiscovered(true);
+        if (researchableEntity.isDiscovered() && researchableEntity.isUpgradedable() && researchableEntity.getResearch() >= upgradeResearchTime) {
+            //spell.setUpgraded(true); - added with delay by the spellbook actually materializing
+            researchableEntity.setResearch(0);
+            return true;
+        } else if (!researchableEntity.isDiscovered() && researchableEntity.getResearch() >= researchTime) {
+            //spell.setDiscovered(true); - added with delay by the spellbook actually materializing
             researchableEntity.setResearch(0);
             return true;
         }
@@ -95,43 +82,28 @@ public class PlayerResearchControl {
         boolean advanceToNext = false;
         switch (researchableEntity.getResearchableType()) {
             case DOOR: {
-                advanceToNext = research(researchableEntity, kwdFile.getDoorById(researchableEntity.getId()).getResearchTime(), researchAmount);
+                advanceToNext = research(researchableEntity, kwdFile.getDoorById(researchableEntity.getId()).getResearchTime(), null, researchAmount);
                 break;
             }
             case TRAP: {
-                advanceToNext = research(researchableEntity, kwdFile.getTrapById(researchableEntity.getId()).getResearchTime(), researchAmount);
+                advanceToNext = research(researchableEntity, kwdFile.getTrapById(researchableEntity.getId()).getResearchTime(), null, researchAmount);
                 break;
             }
             case ROOM: {
-                advanceToNext = research(researchableEntity, kwdFile.getRoomById(researchableEntity.getId()).getResearchTime(), researchAmount);
+                advanceToNext = research(researchableEntity, kwdFile.getRoomById(researchableEntity.getId()).getResearchTime(), null, researchAmount);
                 break;
             }
             case SPELL: {
-                advanceToNext = researchSpell((PlayerSpell) researchableEntity, kwdFile.getKeeperSpellById(researchableEntity.getId()), researchAmount);
+                KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(researchableEntity.getId());
+                advanceToNext = research(researchableEntity, keeperSpell.getResearchTime(), keeperSpell.getBonusRTime(), researchAmount);
                 break;
             }
         }
 
         if (!advanceToNext) {
-            switch (researchableEntity.getResearchableType()) {
-                case DOOR:
-                case TRAP:
-                case ROOM: {
-                    if (researchListeners != null) {
-                        for (PlayerResearchableEntityListener researchableEntityListener : researchListeners) {
-                            researchableEntityListener.onResearchStatusChanged(keeper.getId(), researchableEntity);
-                        }
-                    }
-                    break;
-                }
-                case SPELL: {
-                    if (spellResearchListeners != null) {
-                        PlayerSpell playerSpell = (PlayerSpell) researchableEntity;
-                        for (PlayerSpellListener playerSpellListener : spellResearchListeners) {
-                            playerSpellListener.onPlayerSpellResearchStatusChanged(keeper.getId(), playerSpell);
-                        }
-                    }
-                    break;
+            if (researchListeners != null) {
+                for (PlayerResearchableEntityListener researchableEntityListener : researchListeners) {
+                    researchableEntityListener.onResearchStatusChanged(keeper.getId(), researchableEntity);
                 }
             }
         }
@@ -158,31 +130,21 @@ public class PlayerResearchControl {
         ResearchableEntity nextToUpgrade = null;
         ResearchableEntity nextToReseach = null;
 
-        // Spells
-        for (PlayerSpell spell : keeper.getAvailableSpells()) {
-            if (!spell.isDiscovered() && nextToReseach == null) {
-                nextToReseach = spell;
-            } else if (spell.isDiscovered() && !spell.isUpgraded() && nextToUpgrade == null) {
-                nextToUpgrade = spell;
-            }
-
-            // Always prioritize discovering new over upgrading
-            if (nextToReseach != null) {
-                keeper.setCurrentResearch(nextToReseach);
-                return;
-            }
-        }
-
-        // All the rest
-        List<ResearchableEntity> researchables = new ArrayList<>(keeper.getAvailableDoors().size() + keeper.getAvailableTraps().size() + keeper.getAvailableRooms().size());
+        // Process all in order
+        // Always check that it is not the current one, because they'll status will be updated with delay
+        List<ResearchableEntity> researchables = new ArrayList<>(keeper.getAvailableSpells().size() + keeper.getAvailableDoors().size() + keeper.getAvailableTraps().size() + keeper.getAvailableRooms().size());
+        researchables.addAll(keeper.getAvailableSpells());
         researchables.addAll(keeper.getAvailableDoors());
         researchables.addAll(keeper.getAvailableTraps());
         researchables.addAll(keeper.getAvailableRooms());
         for (ResearchableEntity researchableEntity : researchables) {
-            if (!researchableEntity.isDiscovered() && nextToReseach == null) {
+            if (!isEntityDiscovered(researchableEntity) && nextToReseach == null) {
                 nextToReseach = researchableEntity;
+            } else if (researchableEntity.isUpgradedable() && isEntityDiscovered(researchableEntity) && !isEntityUpgraded(researchableEntity) && nextToUpgrade == null) {
+                nextToUpgrade = researchableEntity;
             }
 
+            // Always prioritize discovering new over upgrading
             // See if we found a match
             if (nextToReseach != null) {
                 keeper.setCurrentResearch(nextToReseach);
@@ -192,6 +154,18 @@ public class PlayerResearchControl {
 
         // See if anything to upgrade
         keeper.setCurrentResearch(nextToUpgrade);
+    }
+
+    private boolean isEntityDiscovered(ResearchableEntity researchableEntity) {
+
+        // Basically it is discovered if it... well, is discovered, or it is the one we are currently researching (the status will update with delay)
+        return researchableEntity.isDiscovered() || researchableEntity.equals(keeper.getCurrentResearch());
+    }
+
+    private boolean isEntityUpgraded(ResearchableEntity researchableEntity) {
+
+        // Basically it is upgraded if it... well, is upgraded, or it is the one we are currently researching AND marked as discovered already (the status will update with delay)
+        return researchableEntity.isUpgraded() || (researchableEntity.isDiscovered() && researchableEntity.equals(keeper.getCurrentResearch()));
     }
 
     /**
@@ -214,29 +188,6 @@ public class PlayerResearchControl {
     public void removeListener(PlayerResearchableEntityListener listener) {
         if (researchListeners != null) {
             researchListeners.remove(listener);
-        }
-    }
-
-    /**
-     * Listen to type research changes
-     *
-     * @param listener the listener
-     */
-    public void addListener(PlayerSpellListener listener) {
-        if (spellResearchListeners == null) {
-            spellResearchListeners = new ArrayList<>();
-        }
-        spellResearchListeners.add(listener);
-    }
-
-    /**
-     * No longer listen to research changes
-     *
-     * @param listener the listener
-     */
-    public void removeListener(PlayerSpellListener listener) {
-        if (spellResearchListeners != null) {
-            spellResearchListeners.remove(listener);
         }
     }
 

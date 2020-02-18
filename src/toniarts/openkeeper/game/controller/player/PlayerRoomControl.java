@@ -176,14 +176,4 @@ public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, R
         return dungeonHeart;
     }
 
-    @Override
-    protected void onAdded(PlayerRoomListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
-        playerListener.onEntityAdded(keeper.getId(), researchableEntity);
-    }
-
-    @Override
-    protected void onRemoved(PlayerRoomListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
-        playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
-    }
-
 }

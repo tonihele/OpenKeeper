@@ -38,7 +38,6 @@ import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapTile;
@@ -336,7 +335,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         return keeper.getAvailableRooms();
     }
 
-    protected List<PlayerSpell> getAvailableKeeperSpells() {
+    protected List<ResearchableEntity> getAvailableKeeperSpells() {
 
         // TODO: cache, or something, maybe add the listeners here
         Keeper keeper = getPlayer();
@@ -539,27 +538,16 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
-        screen.populateSpellTab();
-    }
-
-    @Override
-    public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
-        screen.populateSpellTab();
-    }
-
-    @Override
-    public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
-        screen.updateSpellResearch(playerSpell);
-    }
-
-    @Override
     public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
         populateTab(researchableEntity);
     }
 
-    private void populateTab(ResearchableEntity researchableEntity) throws IllegalArgumentException {
+    private void populateTab(ResearchableEntity researchableEntity) {
         switch (researchableEntity.getResearchableType()) {
+            case SPELL: {
+                screen.populateSpellTab();
+                break;
+            }
             case TRAP:
             case DOOR: {
                 screen.populateManufactureTab();
@@ -568,9 +556,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             case ROOM: {
                 screen.populateRoomTab();
                 break;
-            }
-            default: {
-                throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
             }
         }
     }

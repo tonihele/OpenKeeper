@@ -29,8 +29,6 @@ import java.io.IOException;
  */
 public class PlayerSpell extends ResearchableEntity {
 
-    private boolean upgraded = false;
-
     public PlayerSpell() {
     }
 
@@ -42,16 +40,9 @@ public class PlayerSpell extends ResearchableEntity {
         super(keeperSpellId, discovered, ResearchableType.SPELL);
     }
 
-    public short getKeeperSpellId() {
-        return id;
-    }
-
-    public boolean isUpgraded() {
-        return upgraded;
-    }
-
-    public void setUpgraded(boolean upgraded) {
-        this.upgraded = upgraded;
+    @Override
+    public boolean isUpgradedable() {
+        return true;
     }
 
     @Override

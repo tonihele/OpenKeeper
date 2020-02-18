@@ -40,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -399,27 +398,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
-    @Override
-    public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onPlayerSpellAdded(keeperId, playerSpell);
-        }
-    }
-
-    @Override
-    public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onPlayerSpellRemoved(keeperId, playerSpell);
-        }
-    }
-
-    @Override
-    public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
-        }
-    }
-
     private class ServerMessageListener implements MessageListener<HostedConnection> {
 
         public ServerMessageListener() {
@@ -721,21 +699,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             getCallback().onResearchStatusChanged(keeperId, researchableEntity);
-        }
-
-        @Override
-        public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
-            getCallback().onPlayerSpellAdded(keeperId, playerSpell);
-        }
-
-        @Override
-        public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
-            getCallback().onPlayerSpellRemoved(keeperId, playerSpell);
-        }
-
-        @Override
-        public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
-            getCallback().onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
         }
 
     }

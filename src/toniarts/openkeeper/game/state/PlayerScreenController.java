@@ -80,7 +80,6 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -804,7 +803,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
-        for (final PlayerSpell spell : state.getAvailableKeeperSpells()) {
+        for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
                 ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
@@ -930,19 +929,6 @@ public class PlayerScreenController implements IPlayerScreenController {
         return name;
     }
 
-    public void updateSpellResearch(PlayerSpell spell) {
-        String itemId = "spell_" + spell.getKeeperSpellId();
-        Element spellButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
-        if (spellButton != null) {
-            ResearchEffectControl researchControl = spellButton.getControl(ResearchEffectControl.class);
-            if (researchControl != null) {
-                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
-                float percentage = (float) spell.getResearch() / (spell.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime());
-                researchControl.setResearch(percentage);
-            }
-        }
-    }
-
     public void updateEntityResearch(ResearchableEntity researchableEntity) {
         String itemId = getItemTypeId(researchableEntity);
         Element researchableButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
@@ -957,21 +943,27 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     private int getResearchTime(ResearchableEntity researchableEntity) {
         switch (researchableEntity.getResearchableType()) {
+            case SPELL:
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(researchableEntity.getId());
+                return researchableEntity.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime();
             case TRAP:
                 return state.getKwdFile().getTrapById(researchableEntity.getId()).getResearchTime();
             case DOOR:
                 return state.getKwdFile().getDoorById(researchableEntity.getId()).getResearchTime();
             case ROOM:
                 return state.getKwdFile().getRoomById(researchableEntity.getId()).getResearchTime();
-            default: {
-                throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
-            }
+            default:
+                throw new IllegalArgumentException("Invalid type!");
         }
     }
 
     private String getItemTypeId(ResearchableEntity researchableEntity) {
         String prefix = null;
         switch (researchableEntity.getResearchableType()) {
+            case SPELL: {
+                prefix = "spell_";
+                break;
+            }
             case TRAP: {
                 prefix = "trap_";
                 break;
@@ -984,9 +976,8 @@ public class PlayerScreenController implements IPlayerScreenController {
                 prefix = "room_";
                 break;
             }
-            default: {
-                throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
-            }
+            default:
+                throw new IllegalArgumentException("Invalid type!");
         }
 
         return prefix + researchableEntity.getId();
@@ -1091,8 +1082,8 @@ public class PlayerScreenController implements IPlayerScreenController {
                 "room", "gui\\rooms\\tba", null, null, false, false);
     }
 
-    private ControlBuilder createSpellIcon(final PlayerSpell spell) {
-        KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
+    private ControlBuilder createSpellIcon(final ResearchableEntity spell) {
+        KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
         if (spell.isDiscovered()) {
             String name = Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
             String hint = Utils.getMainTextResourceBundle().getString("1785")

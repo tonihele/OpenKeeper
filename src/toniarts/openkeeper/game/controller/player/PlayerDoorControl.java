@@ -51,14 +51,4 @@ public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, R
         return doorCount;
     }
 
-    @Override
-    protected void onAdded(PlayerDoorListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
-        playerListener.onEntityAdded(keeper.getId(), researchableEntity);
-    }
-
-    @Override
-    protected void onRemoved(PlayerDoorListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
-        playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
-    }
-
 }

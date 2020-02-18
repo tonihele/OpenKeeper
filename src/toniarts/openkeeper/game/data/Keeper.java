@@ -49,7 +49,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int maxMana;
     private Point dungeonHeartLocation;
     private List<ResearchableEntity> availableRooms = new ArrayList<>();
-    private List<PlayerSpell> availableSpells = new ArrayList<>();
+    private List<ResearchableEntity> availableSpells = new ArrayList<>();
     private List<Short> availableCreatures = new ArrayList<>();
     private List<ResearchableEntity> availableDoors = new ArrayList<>();
     private List<ResearchableEntity> availableTraps = new ArrayList<>();
@@ -223,7 +223,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         return availableRooms;
     }
 
-    public List<PlayerSpell> getAvailableSpells() {
+    public List<ResearchableEntity> getAvailableSpells() {
         return availableSpells;
     }
 

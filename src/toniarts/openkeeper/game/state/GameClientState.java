@@ -35,7 +35,6 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -545,6 +544,10 @@ public class GameClientState extends AbstractPauseAwareState {
         private List<ResearchableEntity> getResearchableEntitiesList(Keeper keeper, ResearchableEntity researchableEntity) {
             List<ResearchableEntity> researchableEntities = null;
             switch (researchableEntity.getResearchableType()) {
+                case SPELL: {
+                    researchableEntities = keeper.getAvailableSpells();
+                    break;
+                }
                 case DOOR: {
                     researchableEntities = keeper.getAvailableDoors();
                     break;
@@ -556,9 +559,6 @@ public class GameClientState extends AbstractPauseAwareState {
                 case TRAP: {
                     researchableEntities = keeper.getAvailableTraps();
                     break;
-                }
-                default: {
-                    throw new IllegalArgumentException("Only Door, Room or Trap types expected!");
                 }
             }
 
@@ -593,37 +593,6 @@ public class GameClientState extends AbstractPauseAwareState {
             }
 
             return null;
-        }
-
-        @Override
-        public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
-            setPlayerSpell(keeperId, playerSpell, () -> {
-                playerState.onPlayerSpellAdded(playerId, playerSpell);
-            });
-        }
-
-        private void setPlayerSpell(short keeperId, PlayerSpell playerSpell, Runnable notifier) {
-            Keeper keeper = getPlayer(keeperId);
-            setResearchableEntity(playerSpell, keeper.getAvailableSpells());
-
-            // FIXME: See in what thread we are
-            if (notifier != null && playerState != null && playerState.getPlayerId() == playerId) {
-                app.enqueue(notifier);
-            }
-        }
-
-        @Override
-        public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
-            setPlayerSpell(keeperId, playerSpell, () -> {
-                playerState.onPlayerSpellRemoved(playerId, playerSpell);
-            });
-        }
-
-        @Override
-        public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
-            setPlayerSpell(keeperId, playerSpell, () -> {
-                playerState.onPlayerSpellResearchStatusChanged(playerId, playerSpell);
-            });
         }
     }
 

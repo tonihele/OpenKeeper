@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.player;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 
@@ -30,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, PlayerSpell, PlayerSpellListener> {
+public class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, ResearchableEntity, PlayerSpellListener> {
 
     public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells) {
         super(keeper, keeper.getAvailableSpells(), keeperSpells);
@@ -53,18 +54,18 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
      * @param discovered discovery state
      */
     public void setSpellDiscovered(KeeperSpell spell, boolean discovered) {
-        PlayerSpell playerSpell = get(spell);
+        ResearchableEntity playerSpell = get(spell);
         playerSpell.setDiscovered(discovered);
         if (playerListeners != null) {
             for (PlayerSpellListener playerSpellListener : playerListeners) {
-                onAdded(playerSpellListener, keeper, playerSpell);
+                playerSpellListener.onEntityAdded(keeper.getId(), playerSpell);
             }
         }
     }
 
     @Override
     public void onResearchResultsAdded(KeeperSpell keeperSpell) {
-        PlayerSpell playerSpell = get(keeperSpell);
+        ResearchableEntity playerSpell = get(keeperSpell);
         if (playerSpell != null) {
             if (!playerSpell.isDiscovered()) {
                 playerSpell.setDiscovered(true);
@@ -75,7 +76,7 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
             // Notify listeners
             if (playerListeners != null) {
                 for (PlayerSpellListener playerSpellListener : playerListeners) {
-                    onAdded(playerSpellListener, keeper, playerSpell);
+                    playerSpellListener.onEntityAdded(keeper.getId(), playerSpell);
                 }
             }
         }
@@ -83,7 +84,7 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
 
     @Override
     public void onResearchResultsRemoved(KeeperSpell keeperSpell) {
-        PlayerSpell playerSpell = get(keeperSpell);
+        ResearchableEntity playerSpell = get(keeperSpell);
         if (playerSpell != null) {
             if (playerSpell.isUpgraded()) {
                 playerSpell.setUpgraded(false);
@@ -94,20 +95,10 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
             // Notify listeners
             if (playerListeners != null) {
                 for (PlayerSpellListener playerSpellListener : playerListeners) {
-                    onRemoved(playerSpellListener, keeper, playerSpell);
+                    playerSpellListener.onEntityRemoved(keeper.getId(), playerSpell);
                 }
             }
         }
-    }
-
-    @Override
-    protected void onAdded(PlayerSpellListener playerListener, Keeper keeper, PlayerSpell researchableEntity) {
-        playerListener.onPlayerSpellAdded(keeper.getId(), researchableEntity);
-    }
-
-    @Override
-    protected void onRemoved(PlayerSpellListener playerListener, Keeper keeper, PlayerSpell researchableEntity) {
-        playerListener.onPlayerSpellRemoved(keeper.getId(), researchableEntity);
     }
 
 }

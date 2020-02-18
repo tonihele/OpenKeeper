@@ -27,7 +27,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -419,27 +418,6 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void onSold(short keeperId, List<MapTile> tiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onSold(keeperId, tiles);
-        }
-    }
-
-    @Override
-    public void onPlayerSpellAdded(short keeperId, PlayerSpell playerSpell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onPlayerSpellAdded(keeperId, playerSpell);
-        }
-    }
-
-    @Override
-    public void onPlayerSpellRemoved(short keeperId, PlayerSpell playerSpell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onPlayerSpellRemoved(keeperId, playerSpell);
-        }
-    }
-
-    @Override
-    public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onPlayerSpellResearchStatusChanged(keeperId, playerSpell);
         }
     }
 

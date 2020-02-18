@@ -34,6 +34,7 @@ public class ResearchableEntity implements Savable {
     protected ResearchableType researchableType;
     protected boolean discovered = false;
     protected int research = 0;
+    protected boolean upgraded = false;
 
     public ResearchableEntity() {
     }
@@ -70,6 +71,18 @@ public class ResearchableEntity implements Savable {
 
     public ResearchableType getResearchableType() {
         return researchableType;
+    }
+
+    public boolean isUpgraded() {
+        return upgraded;
+    }
+
+    public void setUpgraded(boolean upgraded) {
+        this.upgraded = upgraded;
+    }
+
+    public boolean isUpgradedable() {
+        return false;
     }
 
     @Override

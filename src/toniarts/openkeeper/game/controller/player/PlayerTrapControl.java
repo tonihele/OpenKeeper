@@ -51,14 +51,4 @@ public class PlayerTrapControl extends AbstractResearchablePlayerControl<Trap, R
         return trapCount;
     }
 
-    @Override
-    protected void onAdded(PlayerTrapListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
-        playerListener.onEntityAdded(keeper.getId(), researchableEntity);
-    }
-
-    @Override
-    protected void onRemoved(PlayerTrapListener playerListener, Keeper keeper, ResearchableEntity researchableEntity) {
-        playerListener.onEntityRemoved(keeper.getId(), researchableEntity);
-    }
-
 }
