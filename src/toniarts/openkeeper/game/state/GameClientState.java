@@ -622,7 +622,7 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onPlayerSpellResearchStatusChanged(short keeperId, PlayerSpell playerSpell) {
             setPlayerSpell(keeperId, playerSpell, () -> {
-                playerState.onResearchStatusChanged(playerId, playerSpell);
+                playerState.onPlayerSpellResearchStatusChanged(playerId, playerSpell);
             });
         }
     }
