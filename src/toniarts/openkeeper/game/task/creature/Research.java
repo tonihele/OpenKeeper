@@ -30,15 +30,15 @@ import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Research spells for the keeper
+ * Research researchable entities for the keeper
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
+public class Research extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerResearchControl researchControl;
 
-    public ResearchSpells(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
+    public Research(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
             TaskManager taskManager, PlayerResearchControl researchControl) {
         super(navigationService, mapController, x, y, playerId, room, taskManager);
 
