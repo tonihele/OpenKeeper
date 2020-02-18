@@ -64,7 +64,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
-import toniarts.openkeeper.game.task.creature.ResearchSpells;
+import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
@@ -615,7 +615,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new ClaimLair(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
             }
             case RESEARCHER: {
-                return new ResearchSpells(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getSpellControl());
+                return new Research(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl());
             }
             case PRISONER: {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));

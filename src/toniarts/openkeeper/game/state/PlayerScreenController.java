@@ -80,7 +80,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
@@ -93,7 +93,7 @@ import toniarts.openkeeper.gui.nifty.WorkerEqualControl;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
-import toniarts.openkeeper.gui.nifty.jme.KeeperSpellResearchControl;
+import toniarts.openkeeper.gui.nifty.jme.ResearchEffectControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -122,6 +122,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     }
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
+    private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
     public float lastUpdate = 0;
 
     private final PlayerState state;
@@ -386,9 +387,9 @@ public class PlayerScreenController implements IPlayerScreenController {
         this.nifty = nifty;
         this.screen = screen;
 
-        new ControlDefinitionBuilder(KeeperSpellResearchControl.CONTROL_NAME) {
+        new ControlDefinitionBuilder(ResearchEffectControl.CONTROL_NAME) {
             {
-                controller(KeeperSpellResearchControl.class.getName());
+                controller(ResearchEffectControl.class.getName());
             }
         }.registerControlDefintion(nifty);
     }
@@ -739,6 +740,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 //            }
 //        });
         populateSpellTab();
+        populateManufactureTab();
 //        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
 //        contentPanel.removeAll();
 //        for (final Door door : state.getAvailableDoors()) {
@@ -761,6 +763,39 @@ public class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
     }
 
+    public void populateManufactureTab() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
+        contentPanel.removeAll();
+        for (final ResearchableEntity door : state.getAvailableDoors()) {
+            Element element = contentPanel.addElement(createDoorIcon(door));
+            setResearchEffect(door, element);
+        }
+        for (final ResearchableEntity trap : state.getAvailableTraps()) {
+            Element element = contentPanel.addElement(createTrapIcon(trap));
+            setResearchEffect(trap, element);
+        }
+    }
+
+    /**
+     * Sets research effect on top of the element if needed, the basic effect.
+     * Not to be used for keeper spells
+     *
+     * @param researchableEntity the entity the element is for
+     * @param element the Nifty element created for the entity
+     */
+    private void setResearchEffect(final ResearchableEntity researchableEntity, final Element element) {
+        if (!researchableEntity.isDiscovered()) {
+            ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
+                {
+                    parameter("color", Integer.toString(RESEARCH_COLOR.getRGB()));
+                    parameter("image", "");
+                }
+            }.build(element).getControl(ResearchEffectControl.class);
+            researchControl.initJme(state.app);
+        }
+    }
+
     /**
      * Populates the player spells tab
      */
@@ -768,15 +803,15 @@ public class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
-        for (final PlayerSpell spell : state.getAvailableKeeperSpells()) {
+        for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
-                KeeperSpellResearchControl researchControl = new ControlBuilder(KeeperSpellResearchControl.CONTROL_NAME) {
+                ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
                     {
-                        parameter("color", spell.isDiscovered() ? "" : Integer.toString(new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f).getRGB()));
+                        parameter("color", spell.isDiscovered() ? "" : Integer.toString(RESEARCH_COLOR.getRGB()));
                         parameter("image", spell.isDiscovered() ? ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
                     }
-                }.build(element).getControl(KeeperSpellResearchControl.class);
+                }.build(element).getControl(ResearchEffectControl.class);
                 researchControl.initJme(state.app);
             }
         }
@@ -789,8 +824,9 @@ public class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-room-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
-        for (final Room room : state.getAvailableRoomsToBuild()) {
-            contentPanel.addElement(createRoomIcon(room));
+        for (final ResearchableEntity room : state.getAvailableRoomsToBuild()) {
+            Element element = contentPanel.addElement(createRoomIcon(room));
+            setResearchEffect(room, element);
         }
     }
 
@@ -893,19 +929,59 @@ public class PlayerScreenController implements IPlayerScreenController {
         return name;
     }
 
-    public void updateSpellResearch(PlayerSpell spell) {
-        String itemId = "spell_" + spell.getKeeperSpellId();
-        Element spellButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
-        if (spellButton != null) {
-            KeeperSpellResearchControl researchControl = spellButton.getControl(KeeperSpellResearchControl.class);
+    public void updateEntityResearch(ResearchableEntity researchableEntity) {
+        String itemId = getItemTypeId(researchableEntity);
+        Element researchableButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
+        if (researchableButton != null) {
+            ResearchEffectControl researchControl = researchableButton.getControl(ResearchEffectControl.class);
             if (researchControl != null) {
-                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
-                float percentage = (float) spell.getResearch() / (spell.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime());
+                float percentage = (float) researchableEntity.getResearch() / getResearchTime(researchableEntity);
                 researchControl.setResearch(percentage);
             }
         }
     }
 
+    private int getResearchTime(ResearchableEntity researchableEntity) {
+        switch (researchableEntity.getResearchableType()) {
+            case SPELL:
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(researchableEntity.getId());
+                return researchableEntity.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime();
+            case TRAP:
+                return state.getKwdFile().getTrapById(researchableEntity.getId()).getResearchTime();
+            case DOOR:
+                return state.getKwdFile().getDoorById(researchableEntity.getId()).getResearchTime();
+            case ROOM:
+                return state.getKwdFile().getRoomById(researchableEntity.getId()).getResearchTime();
+            default:
+                throw new IllegalArgumentException("Invalid type!");
+        }
+    }
+
+    private String getItemTypeId(ResearchableEntity researchableEntity) {
+        String prefix = null;
+        switch (researchableEntity.getResearchableType()) {
+            case SPELL: {
+                prefix = "spell_";
+                break;
+            }
+            case TRAP: {
+                prefix = "trap_";
+                break;
+            }
+            case DOOR: {
+                prefix = "door_";
+                break;
+            }
+            case ROOM: {
+                prefix = "room_";
+                break;
+            }
+            default:
+                throw new IllegalArgumentException("Invalid type!");
+        }
+
+        return prefix + researchableEntity.getId();
+    }
 
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
@@ -991,17 +1067,23 @@ public class PlayerScreenController implements IPlayerScreenController {
         };
     }
 
-    private ControlBuilder createRoomIcon(final Room room) {
-        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
-        final String hint = Utils.getMainTextResourceBundle().getString("1783")
-                .replace("%1", name)
-                .replace("%2", room.getCost() + "");
-        return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(),
-                hint.replace("%21", room.getCost() + ""), true, false);
+    private ControlBuilder createRoomIcon(final ResearchableEntity roomInfo) {
+        Room room = state.getKwdFile().getRoomById(roomInfo.getId());
+        if (roomInfo.isDiscovered()) {
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
+            final String hint = Utils.getMainTextResourceBundle().getString("1783")
+                    .replace("%1", name)
+                    .replace("%2", room.getCost() + "");
+            return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(),
+                    hint.replace("%21", room.getCost() + ""), true, false);
+        }
+
+        return createIcon(room.getId(),
+                "room", "gui\\rooms\\tba", null, null, false, false);
     }
 
-    private ControlBuilder createSpellIcon(final PlayerSpell spell) {
-        KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getKeeperSpellId());
+    private ControlBuilder createSpellIcon(final ResearchableEntity spell) {
+        KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
         if (spell.isDiscovered()) {
             String name = Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
             String hint = Utils.getMainTextResourceBundle().getString("1785")
@@ -1014,20 +1096,32 @@ public class PlayerScreenController implements IPlayerScreenController {
                 "spell", "gui\\spells\\s-tba", null, null, false, false);
     }
 
-    private ControlBuilder createDoorIcon(final Door door) {
-        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
-        final String hint = Utils.getMainTextResourceBundle().getString("1783")
-                .replace("%1", name)
-                .replace("%2", door.getGoldCost() + "");
-        return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true, false);
+    private ControlBuilder createDoorIcon(final ResearchableEntity doorInfo) {
+        Door door = state.getKwdFile().getDoorById(doorInfo.getId());
+        if (doorInfo.isDiscovered()) {
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
+            final String hint = Utils.getMainTextResourceBundle().getString("1783")
+                    .replace("%1", name)
+                    .replace("%2", door.getGoldCost() + "");
+            return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true, false);
+        }
+
+        return createIcon(door.getId(),
+                "door", "gui\\traps\\w-tba", null, null, false, false);
     }
 
-    private ControlBuilder createTrapIcon(final Trap trap) {
-        String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
-        final String hint = Utils.getMainTextResourceBundle().getString("1784")
-                .replace("%1", name)
-                .replace("%2", trap.getManaCost() + "");
-        return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
+    private ControlBuilder createTrapIcon(final ResearchableEntity trapInfo) {
+        Trap trap = state.getKwdFile().getTrapById(trapInfo.getId());
+        if (trapInfo.isDiscovered()) {
+            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
+            final String hint = Utils.getMainTextResourceBundle().getString("1784")
+                    .replace("%1", name)
+                    .replace("%2", trap.getManaCost() + "");
+            return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
+        }
+
+        return createIcon(trap.getId(),
+                "trap", "gui\\traps\\w-tba", null, null, false, false);
     }
 
     public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {

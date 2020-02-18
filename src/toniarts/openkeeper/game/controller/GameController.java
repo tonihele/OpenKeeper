@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
@@ -60,7 +61,7 @@ import toniarts.openkeeper.game.logic.LooseGoldSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
-import toniarts.openkeeper.game.logic.PlayerSpellSystem;
+import toniarts.openkeeper.game.logic.PlayerSpellbookSystem;
 import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -262,7 +263,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureTorturingSystem(entityData, this, gameSettings),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
-                new PlayerSpellSystem(entityData, kwdFile, playerControllers.values()),
+                new PlayerSpellbookSystem(entityData, kwdFile, playerControllers.values()),
                 this,
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ChickenSpawnSystem(gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
@@ -314,7 +315,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 // Spells are all available for research unless otherwise stated
                 for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
                     if (spell.getBonusRTime() != 0) {
-                        playerController.getSpellControl().setTypeAvailable(spell, true);
+                        playerController.getSpellControl().setTypeAvailable(spell, true, false);
                     }
                 }
             }
@@ -338,27 +339,39 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 }
             }
         }
+
+        // Initialize the player research
+        for (IPlayerController playerController : playerControllers.values()) {
+            PlayerResearchControl researchControl = playerController.getResearchControl();
+            if (researchControl != null) {
+                researchControl.initialize();
+            }
+        }
     }
 
     private void setAvailability(Keeper player, Variable.Availability availability) {
         IPlayerController playerController = playerControllers.get(player.getId());
+        boolean available = availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE;
         switch (availability.getType()) {
             case CREATURE: {
-                playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), available);
                 break;
             }
             case ROOM: {
-                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE);
+                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), true, available);
                 break;
             }
             case SPELL: {
-                if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
-
-                    // Enable the spell, no need to research it
-                    playerController.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
-                } else {
-                    playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
-                }
+                playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), available, available);
+                break;
+            }
+            case DOOR: {
+                playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById((short) availability.getTypeId()), true, available);
+                break;
+            }
+            case TRAP: {
+                playerController.getTrapControl().setTypeAvailable(kwdFile.getTrapById((short) availability.getTypeId()), true, available);
+                break;
             }
         }
     }

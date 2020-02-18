@@ -21,7 +21,8 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 
 /**
  * Handles the object space
@@ -36,13 +37,13 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
 
     public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation);
 
-    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Short spellId);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, ResearchableType researchableType, Short researchTypeId);
 
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney);
 
     public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney);
 
-    public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell);
+    public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity);
 
     public EntityData getEntityData();
 

@@ -17,22 +17,26 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.data.ResearchableType;
 
 /**
- * Simple spellbook object
+ * Simple spellbook object. Spellbook holds research, that could be many
+ * different types
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class Spellbook implements EntityComponent {
 
-    public short keeperSpellId;
+    public ResearchableType type;
+    public short typeId;
 
     public Spellbook() {
         // For serialization
     }
 
-    public Spellbook(short keeperSpellId) {
-        this.keeperSpellId = keeperSpellId;
+    public Spellbook(ResearchableType type, short typeId) {
+        this.type = type;
+        this.typeId = typeId;
     }
 
 }

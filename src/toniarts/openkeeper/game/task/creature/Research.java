@@ -19,10 +19,10 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -30,24 +30,24 @@ import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Research spells for the keeper
+ * Research researchable entities for the keeper
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
+public class Research extends AbstractCapacityCriticalRoomTask {
 
-    private final PlayerSpellControl spellControl;
+    private final PlayerResearchControl researchControl;
 
-    public ResearchSpells(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerSpellControl spellControl) {
+    public Research(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
+            TaskManager taskManager, PlayerResearchControl researchControl) {
         super(navigationService, mapController, x, y, playerId, room, taskManager);
 
-        this.spellControl = spellControl;
+        this.researchControl = researchControl;
     }
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return (spellControl.isAnythingToReaseach() && !getRoom().isFullCapacity());
+        return (researchControl.isAnythingToReaseach() && !getRoom().getObjectControl(getRoomObjectType()).isFullCapacity());
     }
 
     @Override
@@ -68,11 +68,11 @@ public class ResearchSpells extends AbstractCapacityCriticalRoomTask {
             setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
             // Advance players spell research
-            PlayerSpell playerSpell = spellControl.research(creature.getResearchPerSecond());
-            if (playerSpell != null) {
+            ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerSecond());
+            if (researchableEntity != null) {
 
                 // Create a spell book
-                getRoomObjectControl().addItem(playerSpell, null);
+                getRoomObjectControl().addItem(researchableEntity, null);
             }
         }
     }

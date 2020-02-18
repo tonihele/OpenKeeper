@@ -36,8 +36,8 @@ import toniarts.openkeeper.game.data.Keeper;
  */
 public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>, V, T> {
 
-    private final List<K> typesAvailable = new ArrayList<>();
-    private final List<T> availabilitiesList;
+    protected final List<K> typesAvailable = new ArrayList<>();
+    protected final List<T> availabilitiesList;
     protected final Map<K, V> types = new LinkedHashMap<>();
     protected final Keeper keeper;
 
@@ -116,6 +116,10 @@ public abstract class AbstractPlayerControl<K extends IIndexable & Comparable<K>
 
     protected V remove(K key) {
         return types.remove(key);
+    }
+
+    protected boolean containsKey(K key) {
+        return types.containsKey(key);
     }
 
     /**

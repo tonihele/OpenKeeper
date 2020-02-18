@@ -20,7 +20,6 @@ import com.jme3.export.InputCapsule;
 import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.export.OutputCapsule;
-import com.jme3.export.Savable;
 import java.io.IOException;
 
 /**
@@ -28,12 +27,7 @@ import java.io.IOException;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpell implements Savable {
-
-    private short keeperSpellId;
-    private boolean upgraded = false;
-    private boolean discovered = false;
-    private int research = 0;
+public class PlayerSpell extends ResearchableEntity {
 
     public PlayerSpell() {
     }
@@ -43,84 +37,33 @@ public class PlayerSpell implements Savable {
     }
 
     public PlayerSpell(short keeperSpellId, boolean discovered) {
-        this.keeperSpellId = keeperSpellId;
-        this.discovered = discovered;
-    }
-
-    public short getKeeperSpellId() {
-        return keeperSpellId;
-    }
-
-    public boolean isUpgraded() {
-        return upgraded;
-    }
-
-    public void setUpgraded(boolean upgraded) {
-        this.upgraded = upgraded;
-    }
-
-    public boolean isDiscovered() {
-        return discovered;
-    }
-
-    public void setDiscovered(boolean discovered) {
-        this.discovered = discovered;
-    }
-
-    public int getResearch() {
-        return research;
-    }
-
-    public void setResearch(int research) {
-        this.research = research;
+        super(keeperSpellId, discovered, ResearchableType.SPELL);
     }
 
     @Override
-    public String toString() {
-        return "PlayerSpell{" + "keeperSpellId=" + keeperSpellId + ", upgraded=" + upgraded + ", discovered=" + discovered + ", research=" + research + '}';
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 5;
-        hash = 23 * hash + this.keeperSpellId;
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final PlayerSpell other = (PlayerSpell) obj;
-        if (this.keeperSpellId != other.keeperSpellId) {
-            return false;
-        }
+    public boolean isUpgradedable() {
         return true;
     }
 
     @Override
+    public String toString() {
+        return "PlayerSpell{" + "keeperSpellId=" + id + ", discovered=" + discovered + ", upgraded=" + upgraded + ", research=" + research + '}';
+    }
+
+    @Override
     public void write(JmeExporter ex) throws IOException {
+        super.write(ex);
+
         OutputCapsule out = ex.getCapsule(this);
-        out.write(keeperSpellId, "keeperSpellId", Integer.valueOf(0).shortValue());
         out.write(upgraded, "upgraded", false);
-        out.write(discovered, "discovered", false);
-        out.write(research, "research", 0);
     }
 
     @Override
     public void read(JmeImporter im) throws IOException {
+        super.read(im);
+
         InputCapsule in = im.getCapsule(this);
-        keeperSpellId = in.readShort("keeperSpellId", keeperSpellId);
         upgraded = in.readBoolean("upgraded", upgraded);
-        discovered = in.readBoolean("discovered", discovered);
-        research = in.readInt("research", research);
     }
 
 }

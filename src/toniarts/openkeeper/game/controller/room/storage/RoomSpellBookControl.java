@@ -26,7 +26,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<PlayerSpell> {
+public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<ResearchableEntity> {
 
     private int storedSpellBooks = 0;
 
@@ -59,7 +59,7 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Pla
     }
 
     @Override
-    public PlayerSpell addItem(PlayerSpell value, Point p) {
+    public ResearchableEntity addItem(ResearchableEntity value, Point p) {
         Collection<EntityId> spellBooks = null;
         if (p != null) {
             spellBooks = objectsByCoordinate.get(p);

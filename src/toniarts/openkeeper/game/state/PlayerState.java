@@ -38,16 +38,13 @@ import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -331,41 +328,30 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         // TODO make flash button
     }
 
-    protected List<Room> getAvailableRoomsToBuild() {
+    protected List<ResearchableEntity> getAvailableRoomsToBuild() {
 
         // TODO: cache, or something, maybe add the listeners here
-        GameClientState gameState = stateManager.getState(GameClientState.class);
         Keeper keeper = getPlayer();
-        List<Room> rooms = new ArrayList<>(keeper.getAvailableRooms().size());
-        keeper.getAvailableRooms().stream().forEach((id) -> {
-            rooms.add(gameState.getLevelData().getRoomById(id));
-        });
-        return rooms;
+        return keeper.getAvailableRooms();
     }
 
-    protected List<PlayerSpell> getAvailableKeeperSpells() {
+    protected List<ResearchableEntity> getAvailableKeeperSpells() {
 
         // TODO: cache, or something, maybe add the listeners here
         Keeper keeper = getPlayer();
         return keeper.getAvailableSpells();
     }
 
-    protected List<Door> getAvailableDoors() {
-        GameClientState gameState = stateManager.getState(GameClientState.class);
-        List<Door> doors = gameState.getLevelData().getDoors();
-        return doors;
+    protected List<ResearchableEntity> getAvailableDoors() {
+        // TODO: cache, or something, maybe add the listeners here
+        Keeper keeper = getPlayer();
+        return keeper.getAvailableDoors();
     }
 
-    protected List<Trap> getAvailableTraps() {
-        GameClientState gameState = stateManager.getState(GameClientState.class);
-        List<Trap> traps = new ArrayList<>();
-        for (Trap trap : gameState.getLevelData().getTraps()) {
-            if (trap.getGuiIcon() == null) {
-                continue;
-            }
-            traps.add(trap);
-        }
-        return traps;
+    protected List<ResearchableEntity> getAvailableTraps() {
+        // TODO: cache, or something, maybe add the listeners here
+        Keeper keeper = getPlayer();
+        return keeper.getAvailableTraps();
     }
 
     public void setPaused(boolean paused) {
@@ -532,21 +518,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onAdded(short keeperId, PlayerSpell spell) {
-        screen.populateSpellTab();
-    }
-
-    @Override
-    public void onRemoved(short keeperId, PlayerSpell spell) {
-        screen.populateSpellTab();
-    }
-
-    @Override
-    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-        screen.updateSpellResearch(spell);
-    }
-
-    @Override
     public void onGoldChange(short keeperId, int gold) {
         screen.setGold(gold);
     }
@@ -567,8 +538,36 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
-        screen.populateRoomTab();
+    public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
+        populateTab(researchableEntity);
+    }
+
+    private void populateTab(ResearchableEntity researchableEntity) {
+        switch (researchableEntity.getResearchableType()) {
+            case SPELL: {
+                screen.populateSpellTab();
+                break;
+            }
+            case TRAP:
+            case DOOR: {
+                screen.populateManufactureTab();
+                break;
+            }
+            case ROOM: {
+                screen.populateRoomTab();
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+        populateTab(researchableEntity);
+    }
+
+    @Override
+    public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+        screen.updateEntityResearch(researchableEntity);
     }
 
 }

@@ -85,7 +85,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
             playerControllersById.put(player.getKeeper().getId(), player);
 
             // Add initial rooms
-            for (Entry<Room, Set<IRoomController>> keeperRooms : player.getRoomControl().getTypes().entrySet()) {
+            for (Entry<Room, Set<IRoomController>> keeperRooms : player.getRoomControl().getRoomControllers().entrySet()) {
 
                 // See that should we add
                 for (IRoomController genericRoom : keeperRooms.getValue()) {
@@ -178,7 +178,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
                     // Ok, we have these, see sizes, I recon we really need a room that size, not summed up tiles
                     if (attraction.getRoomSize() > 0) {
                         boolean roomFound = false;
-                        for (IRoomController genericRoom : new ArrayList<>(player.getRoomControl().getTypes().get(room))) {
+                        for (IRoomController genericRoom : new ArrayList<>(player.getRoomControl().getRoomControllers().get(room))) {
                             if (attraction.getRoomSize() <= genericRoom.getRoomInstance().getCoordinates().size()) {
                                 roomFound = true;
                                 break; // Ok

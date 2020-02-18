@@ -27,7 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.CheatState;
@@ -394,27 +394,6 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onAdded(short keeperId, PlayerSpell spell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onAdded(keeperId, spell);
-        }
-    }
-
-    @Override
-    public void onRemoved(short keeperId, PlayerSpell spell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onRemoved(keeperId, spell);
-        }
-    }
-
-    @Override
-    public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-        for (GameSessionListener listener : listeners.getArray()) {
-            listener.onResearchStatusChanged(keeperId, spell);
-        }
-    }
-
-    @Override
     public void onGoldChange(short keeperId, int gold) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onGoldChange(keeperId, gold);
@@ -443,9 +422,23 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
+    public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onRoomAvailabilityChanged(playerId, roomId, available);
+            listener.onEntityAdded(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEntityRemoved(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onResearchStatusChanged(keeperId, researchableEntity);
         }
     }
 

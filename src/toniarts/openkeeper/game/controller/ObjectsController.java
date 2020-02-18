@@ -45,7 +45,8 @@ import toniarts.openkeeper.game.controller.object.ObjectController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
 import toniarts.openkeeper.game.controller.room.TempleController;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -129,42 +130,42 @@ public class ObjectsController implements IObjectsController {
 
     private void loadObject(Thing.Object objectThing) {
         loadObject(objectThing.getObjectId(), objectThing.getPlayerId(), objectThing.getPosX(), objectThing.getPosY(),
-                0, objectThing.getMoneyAmount(), (short) objectThing.getKeeperSpellId(), objectThing.getTriggerId() != 0 ? objectThing.getTriggerId() : null, null);
+                0, objectThing.getMoneyAmount(), ResearchableType.SPELL, (short) objectThing.getKeeperSpellId(), objectThing.getTriggerId() != 0 ? objectThing.getTriggerId() : null, null);
     }
 
     @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y) {
-        return loadObject(objectId, ownerId, x, y, 0, null, null, null, null);
+        return loadObject(objectId, ownerId, x, y, 0, null, null, null, null, null);
     }
 
     @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation) {
-        return loadObject(objectId, ownerId, x, y, rotation, null, null, null, null);
+        return loadObject(objectId, ownerId, x, y, rotation, null, null, null, null, null);
     }
 
     @Override
     public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation) {
-        return loadObject(objectId, ownerId, pos, rotation, null, null, null, null);
+        return loadObject(objectId, ownerId, pos, rotation, null, null, null, null, null);
     }
 
     @Override
-    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, Short spellId) {
-        return loadObject(objectId, ownerId, x, y, 0, money, spellId, null, null);
+    public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, ResearchableType researchableType, Short researchTypeId) {
+        return loadObject(objectId, ownerId, x, y, 0, money, researchableType, researchTypeId, null, null);
     }
 
-    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, Short spellId, Integer triggerId, Integer maxMoney) {
+    private EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation, Integer money, ResearchableType researchableType, Short researchTypeId, Integer triggerId, Integer maxMoney) {
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        return loadObject(objectId, ownerId, pos, rotation, money, spellId, triggerId, maxMoney);
+        return loadObject(objectId, ownerId, pos, rotation, money, researchableType, researchTypeId, triggerId, maxMoney);
     }
 
-    private EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Short spellId, Integer triggerId, Integer maxMoney) {
+    private EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation, Integer money, ResearchableType researchableType, Short researchTypeId, Integer triggerId, Integer maxMoney) {
         EntityId entity = entityData.createEntity();
-        loadObject(entity, objectId, ownerId, pos, rotation, money, maxMoney, spellId, triggerId);
+        loadObject(entity, objectId, ownerId, pos, rotation, money, maxMoney, researchableType, researchTypeId, triggerId);
 
         return entity;
     }
 
-    private void loadObject(EntityId entity, short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer maxMoney, Short spellId, Integer triggerId) {
+    private void loadObject(EntityId entity, short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer maxMoney, ResearchableType researchableType, Short researchTypeId, Integer triggerId) {
         entityData.setComponent(entity, new ObjectComponent(objectId));
         entityData.setComponent(entity, new Owner(ownerId));
 
@@ -178,7 +179,7 @@ public class ObjectsController implements IObjectsController {
             entityData.setComponent(entity, new Gold(money, (maxMoney == null ? (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue() : maxMoney)));
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
-            entityData.setComponent(entity, new Spellbook(spellId));
+            entityData.setComponent(entity, new Spellbook(researchableType, researchTypeId));
 
             // Hmm
             pos.y++;
@@ -214,17 +215,17 @@ public class ObjectsController implements IObjectsController {
 
     @Override
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney) {
-        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, 0, money, null, null, maxMoney);
+        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, 0, money, null, null, null, maxMoney);
     }
 
     @Override
     public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney) {
-        return loadObject(OBJECT_GOLD_ID, ownerId, x, y, 0, money, null, null, maxMoney);
+        return loadObject(OBJECT_GOLD_ID, ownerId, x, y, 0, money, null, null, null, maxMoney);
     }
 
     @Override
-    public EntityId addRoomSpellBook(short ownerId, int x, int y, PlayerSpell spell) {
-        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y, null, spell.getKeeperSpellId());
+    public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity) {
+        return loadObject(OBJECT_SPELL_BOOK_ID, ownerId, x, y, null, researchableEntity.getResearchableType(), researchableEntity.getId());
     }
 
     @Override
@@ -273,7 +274,7 @@ public class ObjectsController implements IObjectsController {
     public void transformToChicken(EntityId entityId) {
         Owner owner = entityData.getComponent(entityId, Owner.class);
         Position position = entityData.getComponent(entityId, Position.class);
-        loadObject(entityId, OBJECT_CHICKEN_ID, owner.ownerId, position.position, position.rotation, null, null, null, null);
+        loadObject(entityId, OBJECT_CHICKEN_ID, owner.ownerId, position.position, position.rotation, null, null, null, null, null);
     }
 
     @Override

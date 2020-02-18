@@ -35,7 +35,8 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.MapController;
 import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
@@ -385,58 +386,6 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onAdded(short keeperId, PlayerSpell spell) {
-            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
-            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
-                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
-            });
-            if (index < 0) {
-                spells.add(~index, spell);
-            } else {
-                spells.set(index, spell);
-            }
-
-            // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(() -> {
-                    playerState.onAdded(keeperId, spell);
-                });
-            }
-        }
-
-        @Override
-        public void onRemoved(short keeperId, PlayerSpell spell) {
-            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
-            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
-                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
-            });
-            spells.set(index, spell);
-
-            // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(() -> {
-                    playerState.onRemoved(keeperId, spell);
-                });
-            }
-        }
-
-        @Override
-        public void onResearchStatusChanged(short keeperId, PlayerSpell spell) {
-            List<PlayerSpell> spells = getPlayer(keeperId).getAvailableSpells();
-            int index = Collections.binarySearch(spells, spell, (PlayerSpell o1, PlayerSpell o2) -> {
-                return kwdFile.getKeeperSpellById(o1.getKeeperSpellId()).compareTo(kwdFile.getKeeperSpellById(o2.getKeeperSpellId()));
-            });
-            spells.set(index, spell);
-
-            // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(() -> {
-                    playerState.onResearchStatusChanged(keeperId, spell);
-                });
-            }
-        }
-
-        @Override
         public void onGoldChange(short keeperId, int gold) {
             getPlayer(keeperId).setGold(gold);
 
@@ -562,25 +511,89 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onRoomAvailabilityChanged(short playerId, short roomId, boolean available) {
-            List<Short> rooms = getPlayer(playerId).getAvailableRooms();
-            int index = Collections.binarySearch(rooms, roomId, (Short o1, Short o2) -> {
-                return kwdFile.getRoomById(o1).compareTo(kwdFile.getRoomById(o2));
-            });
-            if (index < 0 && available) {
-                rooms.add(~index, roomId);
-            } else if (index > -1 && !available) {
-                rooms.remove(index);
-            }
+        public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
+            setResearchableEntity(keeperId, researchableEntity, () -> {
+                    playerState.onEntityAdded(playerId, researchableEntity);
+                });
+        }
+
+        private void setResearchableEntity(short keeperId, ResearchableEntity researchableEntity, Runnable notifier) {
+            Keeper keeper = getPlayer(keeperId);
+            setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
 
             // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == playerId) {
-                app.enqueue(() -> {
-                    playerState.onRoomAvailabilityChanged(playerId, roomId, available);
-                });
+            if (notifier != null && playerState != null && playerState.getPlayerId() == playerId) {
+                app.enqueue(notifier);
             }
         }
 
+        @Override
+        public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
+            setResearchableEntity(keeperId, researchableEntity, () -> {
+                    playerState.onEntityRemoved(playerId, researchableEntity);
+                });
+        }
+
+        @Override
+        public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
+            setResearchableEntity(keeperId, researchableEntity, () -> {
+                    playerState.onResearchStatusChanged(playerId, researchableEntity);
+                });
+        }
+
+        private List<ResearchableEntity> getResearchableEntitiesList(Keeper keeper, ResearchableEntity researchableEntity) {
+            List<ResearchableEntity> researchableEntities = null;
+            switch (researchableEntity.getResearchableType()) {
+                case SPELL: {
+                    researchableEntities = keeper.getAvailableSpells();
+                    break;
+                }
+                case DOOR: {
+                    researchableEntities = keeper.getAvailableDoors();
+                    break;
+                }
+                case ROOM: {
+                    researchableEntities = keeper.getAvailableRooms();
+                    break;
+                }
+                case TRAP: {
+                    researchableEntities = keeper.getAvailableTraps();
+                    break;
+                }
+            }
+
+            return researchableEntities;
+        }
+
+        private <T extends ResearchableEntity> void setResearchableEntity(T researchableEntity, List<T> researchableEntities) {
+            int index = Collections.binarySearch(researchableEntities, researchableEntity, (ResearchableEntity o1, ResearchableEntity o2) -> {
+                return getResearchableEntityType(kwdFile, o1.getResearchableType(), o1.getId()).compareTo(getResearchableEntityType(kwdFile, o2.getResearchableType(), o2.getId()));
+            });
+            if (index < 0) {
+                researchableEntities.add(~index, researchableEntity);
+            } else if (index >= 0) {
+                researchableEntities.set(index, researchableEntity);
+            }
+        }
+
+        private Comparable getResearchableEntityType(KwdFile kwdFile, ResearchableType researchableType, short typeId) {
+            switch (researchableType) {
+                case DOOR: {
+                    return kwdFile.getDoorById(typeId);
+                }
+                case ROOM: {
+                    return kwdFile.getRoomById(typeId);
+                }
+                case SPELL: {
+                    return kwdFile.getKeeperSpellById(typeId);
+                }
+                case TRAP: {
+                    return kwdFile.getTrapById(typeId);
+                }
+            }
+
+            return null;
+        }
     }
 
     public IMapInformation getMapClientService() {
