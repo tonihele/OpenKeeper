@@ -86,6 +86,8 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
     public void onResearchResultsRemoved(KeeperSpell keeperSpell) {
         ResearchableEntity playerSpell = get(keeperSpell);
         if (playerSpell != null) {
+
+            // TODO: On add / removal we should really check our storages, what if we add an extra book we already have (or should we prevent it), what if we remove the extra books, we should still have everything
             if (playerSpell.isUpgraded()) {
                 playerSpell.setUpgraded(false);
             } else {
