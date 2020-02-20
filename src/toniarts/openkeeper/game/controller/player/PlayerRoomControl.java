@@ -118,6 +118,15 @@ public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, R
         return roomCount;
     }
 
+    @Override
+    public int getTypeCount(Room key) {
+        Set<IRoomController> rooms = roomControllers.get(key);
+        if (rooms != null) {
+            return rooms.size();
+        }
+        return 0;
+    }
+
     public boolean isPortalsOpen() {
         return portalsOpen;
     }
@@ -140,7 +149,7 @@ public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, R
         if (!types.isEmpty()) {
             for (Room room : new ArrayList<>(types.keySet())) {
                 Set<IRoomController> rooms = roomControllers.get(room);
-                if (!rooms.isEmpty()) {
+                if (rooms != null && !rooms.isEmpty()) {
                     for (IRoomController genericRoom : new ArrayList<>(rooms)) {
                         count += genericRoom.getRoomInstance().getCoordinates().size();
                     }
