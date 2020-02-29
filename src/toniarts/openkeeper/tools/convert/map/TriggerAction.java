@@ -17,9 +17,9 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Actions executed by the actual triggers
@@ -124,6 +124,8 @@ public class TriggerAction extends Trigger {
 
     public enum MakeType implements IValueEnum {
 
+        /* Used in GUI buttons, misc button type */
+        MISC(0),
         ROOM(1),
         CREATURE(2),
         DOOR(3),
