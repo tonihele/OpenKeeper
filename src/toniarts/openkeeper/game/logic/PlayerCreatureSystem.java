@@ -41,7 +41,8 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
     private final KwdFile kwdFile;
     private final EntitySet creatureEntities;
     private final Map<Short, PlayerCreatureControl> creatureControls = new HashMap<>(4);
-    private final Map<EntityId, Short> ownersByEntityId = new HashMap<>();
+    private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
+    private final Map<EntityId, Short> creatureIdsByEntityId = new HashMap<>();
 
     public PlayerCreatureSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers) {
         this.kwdFile = kwdFile;
@@ -69,7 +70,8 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             short ownerId = entity.get(Owner.class).ownerId;
             short creatureId = entity.get(CreatureComponent.class).creatureId;
-            ownersByEntityId.put(entity.getId(), ownerId);
+            ownerIdsByEntityId.put(entity.getId(), ownerId);
+            creatureIdsByEntityId.put(entity.getId(), creatureId);
             if (creatureControls.containsKey(ownerId)) {
                 creatureControls.get(ownerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(creatureId));
             }
@@ -78,9 +80,8 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
 
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            short ownerId = entity.get(Owner.class).ownerId;
-            short creatureId = entity.get(CreatureComponent.class).creatureId;
-            ownersByEntityId.remove(entity.getId());
+            short ownerId = ownerIdsByEntityId.remove(entity.getId());
+            short creatureId = creatureIdsByEntityId.remove(entity.getId());
             if (creatureControls.containsKey(ownerId)) {
                 creatureControls.get(ownerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(creatureId));
             }
@@ -90,14 +91,15 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
     private void processChangedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
             short newOwnerId = entity.get(Owner.class).ownerId;
-            short creatureId = entity.get(CreatureComponent.class).creatureId;
-            short oldOwnerId = ownersByEntityId.put(entity.getId(), newOwnerId);
-            if (newOwnerId != oldOwnerId) {
+            short newCreatureId = entity.get(CreatureComponent.class).creatureId;
+            short oldOwnerId = ownerIdsByEntityId.put(entity.getId(), newOwnerId);
+            short oldCreatureId = creatureIdsByEntityId.put(entity.getId(), newCreatureId);
+            if (newOwnerId != oldOwnerId || newCreatureId != oldCreatureId) {
                 if (creatureControls.containsKey(newOwnerId)) {
-                    creatureControls.get(newOwnerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(creatureId));
+                    creatureControls.get(newOwnerId).onCreatureAdded(entity.getId(), kwdFile.getCreature(newCreatureId));
                 }
                 if (creatureControls.containsKey(oldOwnerId)) {
-                    creatureControls.get(oldOwnerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(creatureId));
+                    creatureControls.get(oldOwnerId).onCreatureRemoved(entity.getId(), kwdFile.getCreature(oldCreatureId));
                 }
             }
         }
