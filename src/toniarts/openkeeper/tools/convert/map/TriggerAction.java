@@ -125,7 +125,7 @@ public class TriggerAction extends Trigger {
     public enum MakeType implements IValueEnum {
 
         /* Used in GUI buttons, misc button type */
-        MISC(0),
+        MISC_BUTTON(0),
         ROOM(1),
         CREATURE(2),
         DOOR(3),
