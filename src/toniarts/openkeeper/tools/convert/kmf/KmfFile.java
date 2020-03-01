@@ -103,7 +103,7 @@ public class KmfFile {
             }
 
             //KMSH/MESH, there are n amount of these
-            meshes = new ArrayList();
+            meshes = new ArrayList<>();
             String temp = "";
             byte[] buf = new byte[4];
             do {
@@ -158,7 +158,7 @@ public class KmfFile {
         int materialsCount = rawKmf.readUnsignedInteger();
 
         //Read the materials
-        materials = new ArrayList(materialsCount);
+        materials = new ArrayList<>(materialsCount);
         for (int i = 0; i < materialsCount; i++) {
             checkHeader(rawKmf, KMF_MATERIAL);
             materials.add(parseMat2(rawKmf));

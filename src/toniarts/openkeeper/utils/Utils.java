@@ -218,4 +218,21 @@ public class Utils {
         }
         return null;
     }
+
+    /**
+     * Formats enum name to human readable format
+     *
+     * @param <E> enum type
+     * @param enumMember enum value
+     * @return good loking enum name
+     */
+    public static <E extends Enum> String prettyPrintEnum(E enumMember) {
+        String[] splitted = enumMember.name().split("_");
+        String result = "";
+        for (String s : splitted) {
+            result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
+        }
+        return result.trim();
+    }
+
 }

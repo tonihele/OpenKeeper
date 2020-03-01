@@ -476,8 +476,8 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time) {
-            playerState.flashButton(targetId, buttonType, available, time);
+        public void onFlashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
+            playerState.flashButton(buttonType, targetId, targetButtonType, enabled, time);
         }
 
         @Override

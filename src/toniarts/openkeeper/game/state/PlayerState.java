@@ -324,7 +324,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         screen.setCinematicText(textId);
     }
 
-    public void flashButton(int id, TriggerAction.MakeType type, boolean enabled, int time) {
+    public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
         // TODO make flash button
     }
 

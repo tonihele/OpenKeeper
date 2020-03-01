@@ -191,10 +191,10 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void flashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time, short playerId) {
+    public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
-                listener.onFlashButton(targetId, buttonType, available, time);
+                listener.onFlashButton(buttonType, targetId, targetButtonType, enabled, time);
             }
         }
     }

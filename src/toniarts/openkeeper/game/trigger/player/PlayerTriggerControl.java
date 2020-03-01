@@ -289,9 +289,14 @@ public class PlayerTriggerControl extends TriggerControl {
                 TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
                         TriggerAction.MakeType.class);
                 short targetId = trigger.getUserData("targetId", short.class);
+                TriggerAction.ButtonType targetButtonType = null;
+                if (buttonType == TriggerAction.MakeType.MISC_BUTTON) {
+                    targetButtonType = ConversionUtils.parseEnum(targetId,
+                            TriggerAction.ButtonType.class);
+                }
                 available = trigger.getUserData("available", short.class) != 0;
                 int time = trigger.getUserData("value", int.class);
-                playerService.flashButton(targetId, buttonType, available, time, playerId);
+                playerService.flashButton(buttonType, targetId, targetButtonType, available, time, playerId);
 //                    playerState.flashButton(targetId, buttonType, available, time);
 //                }
                 break;

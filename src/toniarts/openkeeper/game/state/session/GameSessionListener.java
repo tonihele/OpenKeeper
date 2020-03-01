@@ -106,7 +106,7 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     public void onDoTransition(short pathId, Vector3f start);
 
     @Asynchronous
-    public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time);
+    public void onFlashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time);
 
     @Asynchronous
     public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time);
