@@ -65,14 +65,16 @@ public interface PlayerService {
     /**
      * Flash UI button for player
      *
+     * @param buttonType the button type
      * @param targetId the ID of the record, type specified by
      * {@link #TriggerAction.MakeType}
-     * @param buttonType the record type, TODO: create own enum for this
-     * @param available turn flashing on/off ?
+     * @param targetButtonType if the button type is
+     * {@link TriggerAction.MakeType#MISC_BUTTON} this specifies the button
+     * @param enabled turn flashing on/off ?
      * @param time time to flash
      * @param playerId the player ID whose button should flash
      */
-    public void flashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time, short playerId);
+    public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time, short playerId);
 
     /**
      * Rotate camera around a point

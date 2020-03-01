@@ -258,10 +258,10 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void flashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time, short playerId) {
+    public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
-                gameSession.getValue().onFlashButton(targetId, buttonType, available, time);
+                gameSession.getValue().onFlashButton(buttonType, targetId, targetButtonType, enabled, time);
                 break;
             }
         }
@@ -652,8 +652,8 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time) {
-            getCallback().onFlashButton(targetId, buttonType, available, time);
+        public void onFlashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
+            getCallback().onFlashButton(buttonType, targetId, targetButtonType, enabled, time);
         }
 
         @Override

@@ -20,6 +20,7 @@ import java.util.EnumSet;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Actions executed by the actual triggers
@@ -90,13 +91,9 @@ public class TriggerAction extends Trigger {
 
         @Override
         public String toString() {
-            String[] splitted = name().split("_");
-            String result = "";
-            for (String s : splitted) {
-                result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
-            }
-            return result.trim();
+            return Utils.prettyPrintEnum(this);
         }
+
         private final int id;
     }
 
@@ -124,7 +121,9 @@ public class TriggerAction extends Trigger {
 
     public enum MakeType implements IValueEnum {
 
-        /* Used in GUI buttons, misc button type */
+        /**
+         * Used in GUI buttons, misc button type, {@link ButtonType}
+         */
         MISC_BUTTON(0),
         ROOM(1),
         CREATURE(2),
@@ -143,12 +142,7 @@ public class TriggerAction extends Trigger {
 
         @Override
         public String toString() {
-            String[] splitted = name().split("_");
-            String result = "";
-            for (String s : splitted) {
-                result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
-            }
-            return result.trim();
+            return Utils.prettyPrintEnum(this);
         }
 
         private final int id;
@@ -280,5 +274,38 @@ public class TriggerAction extends Trigger {
         }
 
         return result;
+    }
+
+    /**
+     * UI's button types that can be referenced from the triggers
+     */
+    public enum ButtonType implements IValueEnum {
+
+        SELL_ROOM(255),
+        ZOOM_IN_OUT(253),
+        CREATURE_TAB(248),
+        GUI_MIN_MAX(247),
+        HORNY_TALISMAN(246),
+        MPD_TOOLBOX(245),
+        MPD_SINGLE_INVASION(244),
+        GOLD_VALUE(243),
+        MANA_VALUE(242),
+        MPD_CONTINUAL_INVASION(241);
+
+        private ButtonType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+
+        @Override
+        public String toString() {
+            return Utils.prettyPrintEnum(this);
+        }
+
+        private final int id;
     }
 }

@@ -340,9 +340,9 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onFlashButton(short targetId, TriggerAction.MakeType buttonType, boolean available, int time) {
+        public void onFlashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onFlashButton(targetId, buttonType, available, time);
+                l.onFlashButton(buttonType, targetId, targetButtonType, enabled, time);
             }
         }
 
