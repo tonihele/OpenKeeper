@@ -83,6 +83,9 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
     public void removeItem(EntityId object) {
         super.removeItem(object);
         lairs--;
+
+        // Lairs get removed for real
+        objectsController.getEntityData().removeEntity(object);
     }
 
     @Override
