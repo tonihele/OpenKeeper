@@ -324,7 +324,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Set player availabilities
         // TODO: the player customized game settings
         for (Variable.Availability availability : kwdFile.getAvailabilities()) {
-            if (availability.getPlayerId() == 0 && availability.getType() != Variable.Availability.AvailabilityType.SPELL) {
+            if (availability.getPlayerId() == 0) {
 
                 // All players
                 for (Keeper player : players.values()) {
@@ -351,26 +351,27 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
     private void setAvailability(Keeper player, Variable.Availability availability) {
         IPlayerController playerController = playerControllers.get(player.getId());
-        boolean available = availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE;
+        boolean available = availability.getValue() == Variable.Availability.AvailabilityValue.AVAILABLE || availability.getValue() == Variable.Availability.AvailabilityValue.RESEARCHABLE;
+        boolean discovered = availability.getValue() == Variable.Availability.AvailabilityValue.AVAILABLE;
         switch (availability.getType()) {
             case CREATURE: {
                 playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), available);
                 break;
             }
             case ROOM: {
-                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), true, available);
+                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), available, discovered);
                 break;
             }
             case SPELL: {
-                playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), available, available);
+                playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), available, discovered);
                 break;
             }
             case DOOR: {
-                playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById((short) availability.getTypeId()), true, available);
+                playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById((short) availability.getTypeId()), available, discovered);
                 break;
             }
             case TRAP: {
-                playerController.getTrapControl().setTypeAvailable(kwdFile.getTrapById((short) availability.getTypeId()), true, available);
+                playerController.getTrapControl().setTypeAvailable(kwdFile.getTrapById((short) availability.getTypeId()), available, discovered);
                 break;
             }
         }

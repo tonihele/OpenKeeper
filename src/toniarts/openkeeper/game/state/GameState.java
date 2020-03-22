@@ -302,13 +302,13 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                         break;
                     }
                     case SPELL: {
-                        if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
+                        //                       if (availability.getValue() == Variable.Availability.AvailabilityValue.ENABLE) {
 
                             // Enable the spell, no need to research it
 //                            player.getSpellControl().setSpellDiscovered(kwdFile.getKeeperSpellById(availability.getTypeId()), true);
-                        } else {
+ //                       } else {
 //                            player.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), false);
-                        }
+ //                       }
                     }
                 }
             }
