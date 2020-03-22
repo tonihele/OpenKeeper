@@ -142,10 +142,10 @@ public class Variable {
 
         public enum AvailabilityValue implements IValueEnum {
 
-            EMPTY(1),
-            DISABLE(2),
-            ENABLE(3),
-            EMPTY_ROOM(4);
+            UNAVAILABLE(1),
+            RESEARCHABLE(2),
+            AVAILABLE(3),
+            UNAVAILABLE_ROOM(4);
 
             private AvailabilityValue(int id) {
                 this.id = id;
