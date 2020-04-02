@@ -24,9 +24,7 @@ import com.jme3.network.Server;
 import com.jme3.network.serializing.Serializer;
 import com.jme3.network.serializing.serializers.EnumSerializer;
 import com.jme3.network.serializing.serializers.FieldSerializer;
-import com.jme3.network.service.AbstractHostedService;
 import com.jme3.network.service.HostedService;
-import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.base.DefaultEntityData;
@@ -87,6 +85,9 @@ import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
@@ -148,6 +149,9 @@ public class NetworkServer {
             Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());
             Serializer.registerClass(ViewType.class, new EnumSerializer());
             Serializer.registerClass(TaskType.class, new EnumSerializer());
+            Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
+            Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
+            Serializer.registerClass(ResearchableType.class, new EnumSerializer());
 
             // Our entity components
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
@@ -215,13 +219,6 @@ public class NetworkServer {
         initialize();
         server.addConnectionListener(new ServerConnectionListener(this));
 
-        // Adding a delay for the connectionAdded right after the serializer registration
-        // service gets to run let's the client get a small break in the buffer that should
-        // generally prevent the RpcCall messages from coming too quickly and getting processed
-        // before the SerializerRegistrationMessage has had a chance to process.
-        // This "feature" happens with Linux almost all the time
-        server.getServices().addService(new DelayService());
-
         server.getServices().addServices(new RpcHostedService(),
                 new RmiHostedService(),
                 new StreamingHostedService(),
@@ -286,42 +283,4 @@ public class NetworkServer {
         return System.nanoTime() - start;
     }
 
-    /**
-     * A known feature
-     *
-     * https://hub.jmonkeyengine.org/t/simethereal-questions/36899/51
-     */
-    private class DelayService extends AbstractHostedService {
-
-        private void safeSleep(long ms) {
-            try {
-                Thread.sleep(ms);
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Checked exceptions are lame", e);
-            }
-        }
-
-        @Override
-        protected void onInitialize(HostedServiceManager serviceManager) {
-            System.out.println("DelayService.onInitialize()");
-            //safeSleep(2000);
-            //System.out.println("DelayService.delay done");
-        }
-
-        @Override
-        public void start() {
-            System.out.println("DelayService.start()");
-            //safeSleep(2000);
-            //System.out.println("DelayService.delay done");
-        }
-
-        @Override
-        public void connectionAdded(Server server, HostedConnection hc) {
-            // Just in case
-            super.connectionAdded(server, hc);
-            System.out.println("DelayService.connectionAdded(" + hc + ")");
-            safeSleep(500);
-            System.out.println("DelayService.delay done");
-        }
-    }
 }
