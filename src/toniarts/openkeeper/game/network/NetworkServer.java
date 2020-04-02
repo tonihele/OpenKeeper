@@ -85,6 +85,9 @@ import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
@@ -146,6 +149,9 @@ public class NetworkServer {
             Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());
             Serializer.registerClass(ViewType.class, new EnumSerializer());
             Serializer.registerClass(TaskType.class, new EnumSerializer());
+            Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
+            Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
+            Serializer.registerClass(ResearchableType.class, new EnumSerializer());
 
             // Our entity components
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
