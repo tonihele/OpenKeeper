@@ -45,7 +45,6 @@ public abstract class LoadingState extends AbstractAppState {
     protected static final float BAR_X = 3.875f / 100;
     protected static final float BAR_Y = 92.830f / 100;
 
-    private final String name;
     protected Main app;
     protected Node rootNode;
     protected AssetManager assetManager;
@@ -53,15 +52,17 @@ public abstract class LoadingState extends AbstractAppState {
     protected InputManager inputManager;
     protected ViewPort viewPort;
     private Node titleScreen;
-    private Thread loadingThread;
+    private final Thread loadingThread;
     protected int imageWidth;
     protected int imageHeight;
     protected int progress = 0;
 
     private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
 
-    public LoadingState(String name) {
-        this.name = name;
+    public LoadingState(final Main app, String name) {
+        this.app = app;
+        loadingThread = new LoadingThread(name);
+        loadingThread.start();
     }
 
     @Override
@@ -79,9 +80,6 @@ public abstract class LoadingState extends AbstractAppState {
 
         // Load up the title screen
         setupTitleScreen();
-
-        loadingThread = new LoadingThread(this.name);
-        loadingThread.start();
     }
 
     /**

@@ -171,36 +171,40 @@ public class MovementSystem implements IGameLogicUpdatable {
     private void applySteering(EntityId entityId, ISteerableEntity steerableEntity, SteeringAcceleration<Vector2> steering, float tpf) {
 
         // We are done
-        if (steering.isZero()) {
+        if (steering.isZero()
+                && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
+                && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
             entityData.removeComponent(entityId, Navigation.class);
+            return;
         }
 
-        // Update position and linear velocity. Velocity is trimmed to maximum speed
-        if (steering.linear.isZero() && steering.angular != 0) {
-            steerableEntity.getLinearVelocity().setZero();
-        } else {
-            steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
+        // trim speed if have no forces
+        if (steering.linear.isZero() && !steerableEntity.getLinearVelocity().isZero()) {
+            steerableEntity.getLinearVelocity().scl(0.8f);
         }
+        // apply linear
+        steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
         steerableEntity.getPosition().add(steerableEntity.getLinearVelocity().x * tpf, steerableEntity.getLinearVelocity().y * tpf);
 
-        // Update angular velocity. Velocity is trimmed to maximum speed
-        steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity() + steering.angular * tpf);
-        if (steerableEntity.getAngularVelocity() > steerableEntity.getMaxAngularSpeed()) {
-            steerableEntity.setAngularVelocity(steerableEntity.getMaxAngularSpeed());
-        }
-
         // Update orientation and angular velocity
-        if (INDEPENDENT_FACING) {
-            steerableEntity.setOrientation(steerableEntity.getOrientation() + steerableEntity.getAngularVelocity() * tpf);
-        } else // If we haven't got any velocity, then we can do nothing.
-        {
-            if (!steerableEntity.getLinearVelocity().isZero()) {
-                float newOrientation = SteeringUtils.calculateVectorToAngle(steerableEntity.getLinearVelocity());
-                steerableEntity.setAngularVelocity((newOrientation - steerableEntity.getOrientation()) * tpf);
-                steerableEntity.setOrientation(newOrientation);
-            } else if (steerableEntity.getAngularVelocity() != 0) {
+        if (INDEPENDENT_FACING
+                || steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())) {
+            // trim speed if have no forces
+            if (steering.angular == 0 && steerableEntity.getAngularVelocity() != 0) {
+                steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity() * 0.7f);
+            }
+            // Update angular velocity. Velocity is trimmed to maximum speed
+            steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity()
+                    + limitAngular(steering.angular, steerableEntity.getMaxAngularAcceleration()) * tpf);
+            steerableEntity.setAngularVelocity(limitAngular(steerableEntity.getAngularVelocity(), steerableEntity.getMaxAngularSpeed()));
+            // apply
+            if (!isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
                 steerableEntity.setOrientation(steerableEntity.getOrientation() + steerableEntity.getAngularVelocity() * tpf);
             }
+        } else {
+            float newOrientation = SteeringUtils.calculateVectorToAngle(steerableEntity.getLinearVelocity());
+            steerableEntity.setAngularVelocity(newOrientation - steerableEntity.getOrientation());
+            steerableEntity.setOrientation(newOrientation);
         }
 
         // Also update the real components
@@ -208,6 +212,21 @@ public class MovementSystem implements IGameLogicUpdatable {
         oldPosition.position.x = steerableEntity.getPosition().x;
         oldPosition.position.z = steerableEntity.getPosition().y;
         entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
+    }
+
+    /**
+     * Limit angular speed or acceleration
+     *
+     * @param angular
+     * @param limit
+     * @return
+     */
+    public float limitAngular(float angular, float limit) {
+        return (Math.abs(angular) > limit) ? limit : angular;
+    }
+
+    public boolean isZeroAngular(float angular, float threshold) {
+        return Math.abs(angular) < threshold;
     }
 
     @Override

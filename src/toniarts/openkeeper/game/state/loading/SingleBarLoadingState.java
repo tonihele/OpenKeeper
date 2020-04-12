@@ -64,8 +64,8 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
         Collections.sort(AVAILABLE_WIDTHS);
     }
 
-    public SingleBarLoadingState(String name) {
-        super(name);
+    public SingleBarLoadingState(final Main app, String name) {
+        super(app, name);
     }
 
     @Override

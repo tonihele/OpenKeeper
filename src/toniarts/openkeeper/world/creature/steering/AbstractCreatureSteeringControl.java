@@ -32,6 +32,8 @@ import toniarts.openkeeper.world.object.HighlightControl;
 /**
  * Handles the moving logic of the visual creature object
  *
+ * @see toniarts.openkeeper.game.logic.MovementSystem
+ * @see toniarts.openkeeper.game.navigation.steering.SteerableEntity
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 @Deprecated
@@ -93,6 +95,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
         }
     }
 
+    @Deprecated
     protected boolean applySteering(SteeringAcceleration<Vector2> steering, float tpf) {
         // We are done
         // TODO: Call function?

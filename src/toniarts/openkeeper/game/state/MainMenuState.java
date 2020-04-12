@@ -249,7 +249,7 @@ public class MainMenuState extends AbstractAppState {
             if (menuNode == null) {
 
                 // Set up the loading screen
-                SingleBarLoadingState loader = new SingleBarLoadingState("Single Loading") {
+                SingleBarLoadingState loader = new SingleBarLoadingState(app, "Single Loading") {
 
                     @Override
                     public void onLoad() {

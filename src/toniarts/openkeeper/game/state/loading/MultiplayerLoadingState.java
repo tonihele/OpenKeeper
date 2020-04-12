@@ -67,8 +67,8 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
         Collections.sort(AVAILABLE_WIDTHS);
     }
 
-    public MultiplayerLoadingState(String name) {
-        super(name);
+    public MultiplayerLoadingState(final Main app, String name) {
+        super(app, name);
     }
 
     @Override

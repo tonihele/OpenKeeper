@@ -328,7 +328,7 @@ public class Main extends SimpleApplication {
         Nifty nifty = getNifty();
 
         // Initiate the title screen
-        TitleScreenState gameLoader = new TitleScreenState("Title Screen") {
+        TitleScreenState gameLoader = new TitleScreenState(this, "Title Screen") {
 
             @Override
             public void onLoad() {

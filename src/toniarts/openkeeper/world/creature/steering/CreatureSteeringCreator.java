@@ -34,6 +34,7 @@ import toniarts.openkeeper.world.pathfinding.PathFindable;
 /**
  * A steering factory, static methods for constructing steerings for creatures
  *
+ * @see toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 @Deprecated

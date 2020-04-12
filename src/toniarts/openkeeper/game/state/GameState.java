@@ -150,7 +150,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.stateManager = stateManager;
 
         // Set up the loading screen
-        SingleBarLoadingState loader = new SingleBarLoadingState("Singleplayer") {
+        SingleBarLoadingState loader = new SingleBarLoadingState(this.app, "Singleplayer") {
 
             @Override
             public void onLoad() {
