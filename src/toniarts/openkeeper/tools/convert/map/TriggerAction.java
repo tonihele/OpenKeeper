@@ -97,28 +97,6 @@ public class TriggerAction extends Trigger {
         private final int id;
     }
 
-    public enum CreatureFlag implements IFlagEnum {
-
-        WILL_FIGHT(0x001),
-        LEADER(0x002), // FIXME maybe
-        DIES_INSTANTLY(0x004),
-        WILL_BE_ATTACKED(0x008),
-        RETURN_TO_HERO_LAIR(0x010),
-        FREE_FRIENDS_ON_JAIL_BREAK(0x020),
-        ACT_AS_DROPPED(0x040),
-        START_AS_DYING(0x080);
-        private final long flagValue;
-
-        private CreatureFlag(long flagValue) {
-            this.flagValue = flagValue;
-        }
-
-        @Override
-        public long getFlagValue() {
-            return flagValue;
-        }
-    };
-
     public enum MakeType implements IValueEnum {
 
         /**
