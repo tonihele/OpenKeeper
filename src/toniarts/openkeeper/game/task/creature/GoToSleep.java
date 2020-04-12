@@ -35,7 +35,7 @@ public class GoToSleep extends AbstractTileTask {
     private final ICreatureController creature;
 
     public GoToSleep(final INavigationService navigationService, final IMapController mapController, ICreatureController creature) {
-        super(navigationService, mapController, creature.getLairLocation().x, creature.getLairLocation().y, creature.getOwnerId());
+        super(navigationService, mapController, creature.getLairLocation(), creature.getOwnerId());
         this.creature = creature;
     }
 

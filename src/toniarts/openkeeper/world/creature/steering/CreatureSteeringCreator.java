@@ -46,12 +46,12 @@ public class CreatureSteeringCreator {
         return navigateToPoint(worldState, pathFindable, creature, p, null);
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Point faceTarget) {
+    public static SteeringBehavior<Vector2> navigateToPoint(final WorldState worldState, final PathFindable pathFindable, final CreatureControl creature, final Point p, final Vector2 faceTarget) {
         GraphPath<TileData> outPath = worldState.findPath(WorldUtils.vectorToPoint(creature.getSpatial().getWorldTranslation()), p, pathFindable);
         return navigateToPoint(outPath, faceTarget, creature, p);
     }
 
-    public static SteeringBehavior<Vector2> navigateToPoint(GraphPath<TileData> outPath, final Point faceTarget, final CreatureControl creature, final Point p) {
+    public static SteeringBehavior<Vector2> navigateToPoint(GraphPath<TileData> outPath, final Vector2 faceTarget, final CreatureControl creature, final Point p) {
         if ((outPath != null && outPath.getCount() > 1) || faceTarget != null) {
 
             PrioritySteering<Vector2> prioritySteering = new PrioritySteering(creature);
@@ -83,8 +83,8 @@ public class CreatureSteeringCreator {
 
                 // Navigate
                 FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(creature,
-                        new LinePath<>(pathToArray(outPath), true), 2);
-                followPath.setDecelerationRadius(0.3f);
+                        new LinePath<>(pathToArray(outPath), true), 0.2f);
+                followPath.setDecelerationRadius(0.2f);
                 followPath.setArrivalTolerance(0.1f);
                 prioritySteering.add(followPath);
             }
@@ -93,11 +93,11 @@ public class CreatureSteeringCreator {
 
                 // Add reach orientation
                 ReachOrientation orient = new ReachOrientation(creature,
-                        new TargetLocation(WorldUtils.pointToVector2(faceTarget),
+                        new TargetLocation(faceTarget,
                                 WorldUtils.pointToVector2(p)));
-                orient.setDecelerationRadius(0.3f);
-                //orient.setTimeToTarget(0.001f);
-                orient.setAlignTolerance(0.2f);
+                orient.setDecelerationRadius(0.2f);
+                orient.setTimeToTarget(0.001f);
+                orient.setAlignTolerance(0.1f);
                 prioritySteering.add(orient);
             }
 

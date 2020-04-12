@@ -40,7 +40,7 @@ public class RescueCreatureTask extends AbstractTileTask {
     private final TaskManager taskManager;
 
     public RescueCreatureTask(final TaskManager taskManager, final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
-        super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
+        super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()), playerId);
         this.creature = creature;
         this.taskManager = taskManager;
     }

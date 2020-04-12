@@ -471,7 +471,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         float angleY = 0;
         Vector3f position = Vector3f.ZERO;
 
-        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0  && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
+        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
             name = "Torch1";
             angleY = -FastMath.HALF_PI;
             position = new Vector3f(0, TORCH_HEIGHT, -TILE_WIDTH / 2);

@@ -49,11 +49,8 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
             "M-LoadingScreen512x384.png", "M-LoadingScreen640x480.png", "M-LoadingScreen800x600.png");
     private static final List<Integer> AVAILABLE_WIDTHS = new ArrayList<>(AVAILABLE_SCREENS.size());
     private static final Map<Integer, String> SCREENS = new HashMap<>(AVAILABLE_SCREENS.size());
-    private static final float BAR_X = 3.875f;
-    private static final float BAR_Y = 75.25f;
-    private static final float BAR_WIDTH = 25.375f;
-    private static final float BAR_HEIGHT = 2.5f;
-    private static final float BAR_MARGIN = 5.825f;
+    private static final float BAR_OFFSET = 17.580f / 100;
+    private static final float BAR_MARGIN = 5.825f / 100;
     private final List<Geometry> progressBars = new ArrayList<>(4);
 
     static {
@@ -70,8 +67,8 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
         Collections.sort(AVAILABLE_WIDTHS);
     }
 
-    public MultiplayerLoadingState(final Main app) {
-        super(app);
+    public MultiplayerLoadingState(String name) {
+        super(name);
     }
 
     @Override
@@ -79,10 +76,10 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
         super.initialize(stateManager, app);
 
         for (short i = Player.KEEPER1_ID; i <= Player.KEEPER4_ID; i++) {
-            Geometry progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * (BAR_HEIGHT / 100)));
+            Geometry progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * BAR_HEIGHT));
             float margin = (i - Player.KEEPER1_ID) * BAR_MARGIN;
-            progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100),
-                    imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * ((BAR_Y + margin) / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
+            progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * BAR_X,
+                    imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y - BAR_OFFSET + margin)) - imageHeight * BAR_HEIGHT, 0);
             Material mat = new Material(assetManager,
                     "Common/MatDefs/Misc/Unshaded.j3md");
             Color c = MapThumbnailGenerator.getPlayerColor(i);
@@ -121,16 +118,14 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
      */
     @Override
     public void setProgress(final float progress, final short playerId) {
-
-        // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        if (initialized) {
+        // Since this method is called from another thread,
+        // we enqueue the changes to the progressbar to the update loop thread
+        if (initialized && this.progress != Math.round(progress * 100)) {
+            this.progress = Math.round(progress * 100);
             app.enqueue(() -> {
-
                 // Adjust the progress bar
                 Quad q = (Quad) progressBars.get(playerId - Player.KEEPER1_ID).getMesh();
-                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
-
-                return null;
+                q.updateGeometry(imageWidth * BAR_WIDTH * progress, q.getHeight());
             });
         }
     }

@@ -47,8 +47,8 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
     private boolean tagged;
     private boolean independentFacing = false;
     private float maxLinearSpeed = 1;
-    private float maxLinearAcceleration = 2;
-    private float maxAngularSpeed = 10.0f;
+    private float maxLinearAcceleration = 4;
+    private float maxAngularSpeed = 20.0f;
     private float maxAngularAcceleration = 20.0f;
     private float zeroLinearSpeedThreshold = 0.01f;
     private volatile boolean steeringReady = false;
@@ -83,53 +83,67 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
     }
 
     public void processSteeringTick(float tpf, Application app) {
-        if (steeringBehavior != null && steeringBehavior.isEnabled()) {
+        if (steeringBehavior != null && steeringBehavior.isEnabled() && !steeringReady) {
 
             // Calculate steering acceleration
             steeringBehavior.calculateSteering(steeringOutput);
 
-            /*
-             * Here you might want to add a motor control layer filtering steering accelerations.
-             *
-             * For instance, a car in a driving game has physical constraints on its movement: it cannot turn while stationary; the
-             * faster it moves, the slower it can turn (without going into a skid); it can brake much more quickly than it can
-             * accelerate; and it only moves in the direction it is facing (ignoring power slides).
-             */
             // Apply steering acceleration
-            applySteering(steeringOutput, tpf);
-            steeringReady = true;
+            steeringReady = applySteering(steeringOutput, tpf);
         }
     }
 
-    protected void applySteering(SteeringAcceleration<Vector2> steering, float tpf) {
+    protected boolean applySteering(SteeringAcceleration<Vector2> steering, float tpf) {
         // We are done
         // TODO: Call function?
-        if (steering.isZero()) {
+        if (steering.isZero() && linearVelocity.isZero(zeroLinearSpeedThreshold)
+                && isZeroAngular(angularVelocity, zeroLinearSpeedThreshold)) {
             steeringBehavior = null;
+            return false;
+        }
+        // trim speed if have no forces
+        if (steering.linear.isZero() && !linearVelocity.isZero()) {
+            linearVelocity.scl(0.8f);
         }
         // Update position and linear velocity. Velocity is trimmed to maximum speed
-        if (steering.linear.isZero() && steering.angular !=0) {
-            linearVelocity.setZero();
-        } else {
-            linearVelocity.mulAdd(steering.linear, tpf).limit(maxLinearSpeed);
+        linearVelocity.mulAdd(steering.linear, tpf).limit(maxLinearSpeed);
+        if (!linearVelocity.isZero(zeroLinearSpeedThreshold)) {
+            position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
         }
-        position.add(linearVelocity.x * tpf, linearVelocity.y * tpf);
+        // If we haven't got any velocity, then we can do nothing.
+        if (!independentFacing && !linearVelocity.isZero(zeroLinearSpeedThreshold)) {
+            float newOrientation = vectorToAngle(linearVelocity);
+            angularVelocity = (newOrientation - orientation);
+            orientation = newOrientation;
+            return true;
+        }
+
+        if (steering.angular == 0 && angularVelocity != 0) {
+            angularVelocity *= 0.9f;
+        }
         // Update angular velocity. Velocity is trimmed to maximum speed
-        angularVelocity += steering.angular * tpf;
-        if (angularVelocity > maxAngularSpeed) {
-            angularVelocity = maxAngularSpeed;
-        }
-        // Update orientation and angular velocity
-        if (independentFacing) {
+        angularVelocity += limitAngular(steering.angular, maxAngularAcceleration) * tpf;
+        angularVelocity = limitAngular(angularVelocity, maxAngularSpeed);
+        if (!isZeroAngular(angularVelocity, zeroLinearSpeedThreshold)) {
             orientation += angularVelocity * tpf;
-        } else // If we haven't got any velocity, then we can do nothing.
-         if (!linearVelocity.isZero()) {
-                float newOrientation = vectorToAngle(linearVelocity);
-                angularVelocity = (newOrientation - orientation) * tpf;
-                orientation = newOrientation;
-            } else if (angularVelocity != 0) {
-                orientation += angularVelocity * tpf;
-            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Limit angular speed or acceleration
+     *
+     * @param angular
+     * @param limit
+     * @return
+     */
+    public float limitAngular(float angular, float limit) {
+        return (Math.abs(angular) > limit) ? limit : angular;
+    }
+
+    public boolean isZeroAngular(float angular, float threshold) {
+        return Math.abs(angular) < threshold;
     }
 
     @Override
@@ -239,7 +253,7 @@ public abstract class AbstractCreatureSteeringControl extends HighlightControl i
 
     @Override
     public void setZeroLinearSpeedThreshold(float value) {
-        throw new UnsupportedOperationException();
+        zeroLinearSpeedThreshold = value;
     }
 
     public boolean isIndependentFacing() {

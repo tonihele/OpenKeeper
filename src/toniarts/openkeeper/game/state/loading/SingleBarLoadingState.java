@@ -47,10 +47,6 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
             "LoadingScreen512x384.png", "LoadingScreen640x480.png", "LoadingScreen800x600.png");
     private static final List<Integer> AVAILABLE_WIDTHS = new ArrayList<>(AVAILABLE_SCREENS.size());
     private static final Map<Integer, String> SCREENS = new HashMap<>(AVAILABLE_SCREENS.size());
-    private static final float BAR_X = 3.875f;
-    private static final float BAR_Y = 92.830f;
-    private static final float BAR_WIDTH = 25.375f;
-    private static final float BAR_HEIGHT = 2.5f;
     private static final Color BAR_COLOR = new Color(237, 100, 42);
     private Geometry progressBar;
 
@@ -68,8 +64,8 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
         Collections.sort(AVAILABLE_WIDTHS);
     }
 
-    public SingleBarLoadingState(final Main app) {
-        super(app);
+    public SingleBarLoadingState(String name) {
+        super(name);
     }
 
     @Override
@@ -77,9 +73,9 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
         super.initialize(stateManager, app);
 
         // Set the loading bar
-        progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * (BAR_HEIGHT / 100)));
-        progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * (BAR_X / 100),
-                imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * (BAR_Y / 100)) - imageHeight * (BAR_HEIGHT / 100), 0);
+        progressBar = new Geometry("ProgressBar", new Quad(0, imageHeight * BAR_HEIGHT));
+        progressBar.setLocalTranslation((Main.getUserSettings().getAppSettings().getWidth() - imageWidth) / 2 + imageWidth * BAR_X,
+                imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * BAR_Y) - imageHeight * BAR_HEIGHT, 0);
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
         mat.setColor("Color", new ColorRGBA(BAR_COLOR.getRed() / 255f, BAR_COLOR.getGreen() / 255f, BAR_COLOR.getBlue() / 255f, BAR_COLOR.getAlpha() / 255f));
@@ -108,16 +104,14 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
      * @param progress 0.0 to 1.0, 1 being complete
      */
     public void setProgress(final float progress) {
-
-        // Since this method is called from another thread, we enqueue the changes to the progressbar to the update loop thread
-        if (initialized) {
+        // Since this method is called from another thread,
+        // we enqueue the changes to the progressbar to the update loop thread
+        if (initialized && this.progress != Math.round(progress * 100)) {
+            this.progress = Math.round(progress * 100);
             app.enqueue(() -> {
-
                 // Adjust the progress bar
                 Quad q = (Quad) progressBar.getMesh();
-                q.updateGeometry(imageWidth * (BAR_WIDTH / 100) * progress, q.getHeight());
-
-                return null;
+                q.updateGeometry(imageWidth * BAR_WIDTH * progress, q.getHeight());
             });
         }
     }

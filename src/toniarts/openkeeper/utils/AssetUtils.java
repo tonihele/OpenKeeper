@@ -250,7 +250,7 @@ public class AssetUtils {
 
             if (mat == null) {
                 mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
-                int frames = resource.getData("frames");
+                int frames = resource.getData(ArtResource.KEY_FRAMES);
                 mat.setInt("NumberOfTiles", frames);
                 mat.setInt("Speed", frames); // FIXME: Just a guess work
 
@@ -315,7 +315,7 @@ public class AssetUtils {
             BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + "0.png"))).openStream());
 
             // Create image big enough to fit all the frames
-            int frames = resource.getData("frames");
+            int frames = resource.getData(ArtResource.KEY_FRAMES);
             BufferedImage text = new BufferedImage(img.getWidth() * frames, img.getHeight(),
                     resource.getType() == ArtResource.ArtResourceType.ALPHA ? BufferedImage.TYPE_INT_ARGB : img.getType());
             Graphics2D g = text.createGraphics();
@@ -344,7 +344,8 @@ public class AssetUtils {
             Texture tex = new Texture2D(loader.load(text, false));
             return tex;
         } else {
-            if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE) && resource.getData("width").intValue() > 1) {
+            if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
+                    && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
                 // only the unused sprites have a size of bigger than one
                 assetFolder = AssetsConverter.SPRITES_FOLDER + File.separator;
             }
@@ -617,7 +618,7 @@ public class AssetUtils {
      * @return generated mesh
      */
     public static Spatial createProceduralMesh(ArtResource resource) {
-        int id = resource.getData("id");
+        int id = resource.getData(ArtResource.KEY_ID);
 
         return new Node();
     }

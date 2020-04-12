@@ -123,7 +123,7 @@ public class VisualEffect {
                 case ADDITIVE_ALPHA:
                 case SPRITE:
                     EffectGeometry g = new EffectGeometry("effect");
-                    g.setFrames(Math.max(1, resource.getData("frames")));
+                    g.setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
 
                     Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                     g.setMaterial(material);
@@ -136,7 +136,7 @@ public class VisualEffect {
             }
 
             if (resource.getType() == ArtResourceType.MESH) {
-                model.setLocalScale(resource.getData("scale"));
+                model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
 
             } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
@@ -144,8 +144,8 @@ public class VisualEffect {
                 if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
-//                    resource.getData("fps");
-//                    resource.getData("frames");
+//                    resource.getData(ArtResource.KEY_FPS);
+//                    resource.getData(ArtResource.KEY_FRAMES);
 //                    channel.setSpeed(speed);
 //                    channel.setTime(time);
                     animControl.setEnabled(true);
@@ -172,8 +172,8 @@ public class VisualEffect {
                     if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.LAVA)
                             && effect.getHitLavaEffectId() != 0) {
                         VisualEffect.this.addEffect(effect.getHitLavaEffectId(), location);
-                    } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER) &&
-                            effect.getHitWaterEffectId() != 0) {
+                    } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER)
+                            && effect.getHitWaterEffectId() != 0) {
                         VisualEffect.this.addEffect(effect.getHitWaterEffectId(), location);
                     } else if (effect.getHitSolidEffectId() != 0) {
                         // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
@@ -260,7 +260,7 @@ public class VisualEffect {
                 emitter.setParticlesPerSec(0);
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 emitter.setMaterial(material);
-                emitter.setImagesX(Math.max(1, resource.getData("frames")));
+                emitter.setImagesX(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
                 emitter.setImagesY(1);
                 emitter.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
                 emitter.setInWorldSpace(false);
@@ -279,11 +279,11 @@ public class VisualEffect {
                 //
                 float scaleRatio = element.getScaleRatio() == 0 ? 1 : element.getScaleRatio();
                 if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-                    emitter.setEndSize(element.getMaxScale() * scaleRatio);
-                    emitter.setStartSize(element.getMinScale() * scaleRatio);
+                    emitter.setEndSize(element.getMaxScale());
+                    emitter.setStartSize(element.getMinScale());
                 } else {
-                    emitter.setStartSize(element.getMaxScale() * scaleRatio);
-                    emitter.setEndSize(element.getMinScale() * scaleRatio);
+                    emitter.setStartSize(element.getMaxScale());
+                    emitter.setEndSize(element.getMinScale());
                 }
                 //
                 emitter.setFacingVelocity(element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
@@ -325,7 +325,7 @@ public class VisualEffect {
                         } else if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.WATER)
                                 && element.getHitWaterElementId() != 0) {
                             VisualEffect.this.addEffectElement(element.getHitWaterElementId(), location);
-                        } else if (element.getHitSolidElementId() != 0 ) {
+                        } else if (element.getHitSolidElementId() != 0) {
                             // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                             if (element.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
                                 onDeath(location);
@@ -344,7 +344,7 @@ public class VisualEffect {
                 }
 
                 if (resource.getType() == ArtResourceType.MESH) {
-                    model.setLocalScale(resource.getData("scale"));
+                    model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
 
                 } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
@@ -352,8 +352,8 @@ public class VisualEffect {
                     if (animControl != null) {
 //                        AnimChannel channel = animControl.getChannel(0);
 //                        channel.setAnim(ANIM_NAME);
-//                        resource.getData("fps");
-//                        resource.getData("frames");
+//                        resource.getData(ArtResource.KEY_FPS);
+//                        resource.getData(ArtResource.KEY_FRAMES);
 //                        channel.setSpeed(speed);
 //                        channel.setTime(time);
                         animControl.setEnabled(true);
@@ -409,7 +409,7 @@ public class VisualEffect {
         while (iter.hasNext()) {
             Entry<EffectElement, Spatial> entry = iter.next();
             if (entry.getValue() instanceof ParticleEmitter) {
-                if (((ParticleEmitter)entry.getValue()).getNumVisibleParticles() == 0) {
+                if (((ParticleEmitter) entry.getValue()).getNumVisibleParticles() == 0) {
 
                     // Kill
                     entry.getValue().removeFromParent();

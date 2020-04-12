@@ -40,7 +40,7 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
     private final ITaskManager taskManager;
 
     public CaptureEnemyCreatureTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId, ITaskManager taskManager) {
-        super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()).x, WorldUtils.vectorToPoint(creature.getPosition()).y, playerId);
+        super(navigationService, mapController, WorldUtils.vectorToPoint(creature.getPosition()), playerId);
         this.creature = creature;
         this.taskManager = taskManager;
     }

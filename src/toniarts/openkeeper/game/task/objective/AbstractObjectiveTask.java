@@ -16,9 +16,11 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 
@@ -32,8 +34,8 @@ public abstract class AbstractObjectiveTask extends AbstractTileTask implements 
 
     private final Deque<ObjectiveTask> taskQueue = new ArrayDeque<>();
 
-    public AbstractObjectiveTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
-        super(navigationService, mapController, x, y, playerId);
+    public AbstractObjectiveTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        super(navigationService, mapController, p, playerId);
     }
 
     @Override

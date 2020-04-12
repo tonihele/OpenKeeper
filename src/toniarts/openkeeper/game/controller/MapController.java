@@ -285,8 +285,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isSelected(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isSelected(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -294,8 +294,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isTaggable(int x, int y) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isTaggable(Point p) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -304,8 +304,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isBuildable(int x, int y, short playerId, short roomId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isBuildable(Point p, short playerId, short roomId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -355,8 +355,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isClaimable(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isClaimable(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -385,9 +385,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isSellable(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
-        Point p = new Point(x, y);
+    public boolean isSellable(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile.getOwnerId() == playerId && getRoomCoordinates().containsKey(p)) {
 
             // We own it, see if sellable
@@ -398,8 +397,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isWater(int x, int y) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isWater(Point p) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -408,8 +407,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isLava(int x, int y) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isLava(Point p) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -522,8 +521,8 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isRepairableWall(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isRepairableWall(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
@@ -532,33 +531,33 @@ public final class MapController extends Container implements Savable, IMapContr
     }
 
     @Override
-    public boolean isClaimableWall(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isClaimableWall(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(x, y, playerId));
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(p, playerId));
     }
 
     @Override
-    public boolean isClaimableTile(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isClaimableTile(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(x, y, playerId));
+        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(p, playerId));
     }
 
     @Override
-    public boolean isClaimableRoom(int x, int y, short playerId) {
-        MapTile tile = getMapData().getTile(x, y);
+    public boolean isClaimableRoom(Point p, short playerId) {
+        MapTile tile = getMapData().getTile(p);
         if (tile == null) {
             return false;
         }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        return (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(x, y, playerId));
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(p, playerId));
     }
 
     @Override

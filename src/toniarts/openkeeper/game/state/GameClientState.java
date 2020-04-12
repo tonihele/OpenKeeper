@@ -196,12 +196,12 @@ public class GameClientState extends AbstractPauseAwareState {
         // Create the appropriate loaging screen
         IPlayerLoadingProgress loader;
         if (isMultiplayer()) {
-            loader = new MultiplayerLoadingState(app) {
+            loader = new MultiplayerLoadingState("Multiplayer") {
 
                 @Override
-                public Void onLoad() {
+                public void onLoad() {
 
-                    return onGameLoad();
+                    onGameLoad();
                 }
 
                 @Override
@@ -211,17 +211,15 @@ public class GameClientState extends AbstractPauseAwareState {
                 }
             };
         } else {
-            loader = new SingleBarLoadingState(app) {
+            loader = new SingleBarLoadingState("Singleplayer") {
 
                 @Override
-                public Void onLoad() {
-
-                    return onGameLoad();
+                public void onLoad() {
+                    onGameLoad();
                 }
 
                 @Override
                 public void onLoadComplete() {
-
                     onGameLoadComplete();
                 }
             };
@@ -238,7 +236,7 @@ public class GameClientState extends AbstractPauseAwareState {
         GameClientState.this.app.setViewProcessors();
     }
 
-    private Void onGameLoad() {
+    private void onGameLoad() {
         try {
 
             // The game is actually loaded elsewhere but for the visuals we need this
@@ -253,8 +251,6 @@ public class GameClientState extends AbstractPauseAwareState {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
         }
-
-        return null;
     }
 
     /**

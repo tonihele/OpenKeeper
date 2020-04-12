@@ -117,6 +117,10 @@ public class WorldUtils {
         return new Point(Math.round(x / MapLoader.TILE_WIDTH), Math.round(y / MapLoader.TILE_WIDTH));
     }
 
+    public static Vector2 vector3fToVector2(Vector3f v) {
+        return new Vector2(v.x, v.z);
+    }
+
     /**
      * Get surrounding tile coordinates
      *

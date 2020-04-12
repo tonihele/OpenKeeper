@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import java.awt.Point;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -38,8 +39,8 @@ public class CarryGoldToTreasuryTask extends AbstractRoomTask {
     private boolean executed = false;
 
     public CarryGoldToTreasuryTask(final INavigationService navigationService, final IMapController mapController,
-            int x, int y, short playerId, final IRoomController room, final IGameWorldController gameWorldController) {
-        super(navigationService, mapController, x, y, playerId, room);
+            Point p, short playerId, final IRoomController room, final IGameWorldController gameWorldController) {
+        super(navigationService, mapController, p, playerId, room);
         this.gameWorldController = gameWorldController;
     }
 

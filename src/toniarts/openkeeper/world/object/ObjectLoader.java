@@ -21,6 +21,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import toniarts.openkeeper.game.data.PlayerSpell;
@@ -51,7 +52,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
-    private static final Logger logger = Logger.getLogger(ObjectLoader.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ObjectLoader.class.getName());
 
     public ObjectLoader(@Nonnull KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;
@@ -120,15 +121,20 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
         // Load
         ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName());
-        nodeObject.addControl(objectControl);
+        Node nodeObject = null;
+        if (objectControl.getResource() != null) {
+            nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName());
+            nodeObject.addControl(objectControl);
 
-        // Move to the center of the tile
-        nodeObject.setLocalTranslation(pos.x, 0, pos.y);
-        nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
+            // Move to the center of the tile
+            nodeObject.setLocalTranslation(pos.x, 0, pos.y);
+            nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
 
-        // Orientation
-        nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
+            // Orientation
+            nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
+        } else {
+            LOGGER.log(Level.WARNING, "Resource not found for object {0}", objectControl.getObject().getName());
+        }
 
         return nodeObject;
     }

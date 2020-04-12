@@ -40,6 +40,10 @@ public interface PathFindable {
      */
     public static final float DEFAULT_COST = 1.0f;
 
+    public static final float DESTROY_COST = 1.7f;
+    public static final float ENEMY_DOOR_COST = 1.4f;
+    public static final float ATTACK_COST = 2.0f;
+
     /**
      * Can the entity travel from A to B?
      *

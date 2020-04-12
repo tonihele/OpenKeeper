@@ -115,9 +115,16 @@ public class CreatureAttack {
 
     /**
      * Executes the attack
+     *
+     * @return
      */
-    public void execute() {
-        recharge = (melee ? creature.meleeRecharge : rechargeTime);
+    public boolean execute() {
+        if (this.isExecutable()) {
+            recharge = (melee ? creature.meleeRecharge : rechargeTime);
+            return true;
+        }
+
+        return false;
     }
 
     /**

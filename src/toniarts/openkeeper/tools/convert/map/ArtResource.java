@@ -34,6 +34,17 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  */
 public class ArtResource {
 
+    public static final String KEY_ID = "id";
+    public static final String KEY_WIDTH = "width";
+    public static final String KEY_HEIGHT = "height";
+    public static final String KEY_FRAMES = "frames";
+    public static final String KEY_SCALE = "scale";
+    public static final String KEY_FPS = "fps";
+    public static final String KEY_START_DIST = "startDist";
+    public static final String KEY_END_DIST = "endDist";
+    public static final String KEY_START_AF = "startAf";
+    public static final String KEY_END_AF = "endAf";
+
     public enum ArtResourceFlag implements IFlagEnum {
 
         UNKNOWN(0x0001), // FIXME unknown flag. Maybe CAN_USE_ALTERNATIVE_ANIMATION

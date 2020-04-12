@@ -29,7 +29,6 @@ import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
 import java.util.Locale;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -41,6 +40,12 @@ import toniarts.openkeeper.Main;
  */
 public abstract class LoadingState extends AbstractAppState {
 
+    protected static final float BAR_WIDTH = 25.375f / 100;
+    protected static final float BAR_HEIGHT = 2.5f / 100;
+    protected static final float BAR_X = 3.875f / 100;
+    protected static final float BAR_Y = 92.830f / 100;
+
+    private final String name;
     protected Main app;
     protected Node rootNode;
     protected AssetManager assetManager;
@@ -48,15 +53,15 @@ public abstract class LoadingState extends AbstractAppState {
     protected InputManager inputManager;
     protected ViewPort viewPort;
     private Node titleScreen;
-    private final Thread loadingThread = new LoadingThread();
+    private Thread loadingThread;
     protected int imageWidth;
     protected int imageHeight;
+    protected int progress = 0;
 
     private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
 
-    public LoadingState(final Main app) {
-        this.app = app;
-        loadingThread.start();
+    public LoadingState(String name) {
+        this.name = name;
     }
 
     @Override
@@ -74,6 +79,9 @@ public abstract class LoadingState extends AbstractAppState {
 
         // Load up the title screen
         setupTitleScreen();
+
+        loadingThread = new LoadingThread(this.name);
+        loadingThread.start();
     }
 
     /**
@@ -166,10 +174,8 @@ public abstract class LoadingState extends AbstractAppState {
     /**
      * Add your loading logic here, <b>do NOT</b> manipulate the scene from
      * here!
-     *
-     * @return void
      */
-    abstract public Void onLoad();
+    abstract public void onLoad();
 
     /**
      * Called when loading is complete. Called in render thread.
@@ -178,15 +184,14 @@ public abstract class LoadingState extends AbstractAppState {
 
     private class LoadingThread extends Thread {
 
-        public LoadingThread() {
-            super("Loading");
+        public LoadingThread(String name) {
+            super(name);
         }
 
         @Override
         public void run() {
             try {
-                Callable<Void> loadingCallable = () -> onLoad();
-                loadingCallable.call();
+                onLoad();
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Failed to load!", ex);
             }

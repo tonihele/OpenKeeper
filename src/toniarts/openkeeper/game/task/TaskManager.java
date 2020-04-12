@@ -428,24 +428,24 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
             // Dig
-            if (mapController.isSelected(tile.getX(), tile.getY(), entry.getKey())) {
-                Task task = new DigTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+            if (mapController.isSelected(tile.getLocation(), entry.getKey())) {
+                Task task = new DigTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim wall
-            else if (mapController.isClaimableWall(tile.getX(), tile.getY(), entry.getKey())) {
-                Task task = new ClaimWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+            else if (mapController.isClaimableWall(tile.getLocation(), entry.getKey())) {
+                Task task = new ClaimWallTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim
-            else if (mapController.isClaimableTile(tile.getX(), tile.getY(), entry.getKey())) {
-                Task task = new ClaimTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+            else if (mapController.isClaimableTile(tile.getLocation(), entry.getKey())) {
+                Task task = new ClaimTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Repair wall
-            else if (mapController.isRepairableWall(tile.getX(), tile.getY(), entry.getKey())) {
-                Task task = new RepairWallTileTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+            else if (mapController.isRepairableWall(tile.getLocation(), entry.getKey())) {
+                Task task = new RepairWallTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim room
-            else if (mapController.isClaimableRoom(tile.getX(), tile.getY(), entry.getKey())) {
-                Task task = new ClaimRoomTask(navigationService, mapController, tile.getX(), tile.getY(), entry.getKey());
+            else if (mapController.isClaimableRoom(tile.getLocation(), entry.getKey())) {
+                Task task = new ClaimRoomTask(navigationService, mapController, tile.getLocation(), entry.getKey());
                 addTask(entry.getKey(), task);
             }
         }
@@ -470,19 +470,20 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Sort by distance & priority
         final Point currentLocation = creature.getCreatureCoordinates();
         List<Task> prioritisedTaskQueue = new ArrayList<>(taskQueue);
-        Collections.sort(prioritisedTaskQueue, new Comparator<Task>() {
+        Collections.sort(prioritisedTaskQueue, (Task t, Task t1) -> {
+            int result = Integer.compare(t.getAssigneeCount(), t1.getAssigneeCount());
+            if (result == 0) {
+                result = Integer.compare(
+                        WorldUtils.calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(),
+                        WorldUtils.calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority()
+                );
 
-            @Override
-            public int compare(Task t, Task t1) {
-                int result = Integer.compare(WorldUtils.calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(), WorldUtils.calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority());
                 if (result == 0) {
-
                     // If the same, compare by date added
                     return t.getTaskCreated().compareTo(t1.getTaskCreated());
                 }
-                return result;
             }
-
+            return result;
         });
 
         // Take the first available task from the sorted queue
@@ -609,16 +610,16 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
             case GOLD: {
-                return new CarryGoldToTreasuryTask(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, gameWorldController);
+                return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
             case LAIR: {
-                return new ClaimLair(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this);
+                return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
             }
             case RESEARCHER: {
-                return new Research(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl());
+                return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl());
             }
             case PRISONER: {
-                return new CarryEnemyCreatureToPrison(navigationService, mapController, target.x, target.y, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
+                return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
         }
         return null;

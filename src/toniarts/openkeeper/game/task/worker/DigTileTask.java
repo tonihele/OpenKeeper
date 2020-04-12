@@ -33,8 +33,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class DigTileTask extends AbstractTileTask {
 
-    public DigTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
-        super(navigationService, mapController, x, y, playerId);
+    public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        super(navigationService, mapController, p, playerId);
     }
 
     @Override
@@ -87,13 +87,14 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-
+//        if (creature.getMeleeAttack().execute()) {
         // TODO: is this a general case or even smart to do this like this...?
         if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
             setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
             creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
         }
+//        }
     }
 
     @Override
