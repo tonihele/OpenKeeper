@@ -1,11 +1,18 @@
 package toniarts.openkeeper.view.selection;
 
 import com.jme3.math.Vector2f;
+import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.function.Consumer;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * @author 7willuwe : Philip Willuweit
  */
-public class SelectionArea {
+public class SelectionArea implements Iterable<List<Point>> {
 
     private Vector2f start = new Vector2f();
     private Vector2f end = new Vector2f();
@@ -112,5 +119,72 @@ public class SelectionArea {
      */
     public float getDeltaY() {
         return (Math.abs(end.y - start.y) + 1) / scale;
+    }
+
+    @Override
+    public Iterator<List<Point>> iterator() {
+        return new SelectionArea.AreaIterator();
+    }
+
+    /**
+     * An optimized version of AbstractList.Itr
+     */
+    private class AreaIterator implements Iterator<List<Point>> {
+
+        private final Point cursor = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
+        private final Point start = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
+        private final Point end = WorldUtils.vectorToPoint(SelectionArea.this.getEnd());
+
+        @Override
+        public boolean hasNext() {
+            return cursor.x != (end.x + 1) && cursor.y != (end.y + 1);
+        }
+
+        @Override
+        public List<Point> next() {
+            List result = new ArrayList<>();
+
+            while (cursor.y >= start.y && cursor.x <= end.x) {
+                check();
+                result.add(new Point(cursor.x, cursor.y));
+
+                cursor.x++;
+                cursor.y--;
+            }
+
+            if (cursor.y < start.y) {
+                cursor.y = start.y + (cursor.x - start.x);
+                cursor.x = start.x;
+            }
+
+            if (cursor.x > end.x) {
+                cursor.y += (cursor.x - start.x) + 1;
+                cursor.x = start.x;
+            }
+
+            if (cursor.y > end.y) {
+                cursor.x = start.x + (cursor.y - end.y);
+                cursor.y = end.y;
+            }
+
+            return result;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void forEachRemaining(Consumer<? super List<Point>> consumer) {
+            throw new UnsupportedOperationException();
+        }
+
+        private void check() {
+            if (cursor.x > end.x || cursor.x < start.x
+                    || cursor.y > end.y || cursor.y < start.y) {
+                throw new NoSuchElementException();
+            }
+        }
     }
 }

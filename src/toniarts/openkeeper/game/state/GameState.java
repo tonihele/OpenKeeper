@@ -58,6 +58,7 @@ import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.PauseableScheduledThreadPoolExecutor;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.world.WorldState;
 
 /**
@@ -149,10 +150,10 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
         this.stateManager = stateManager;
 
         // Set up the loading screen
-        SingleBarLoadingState loader = new SingleBarLoadingState(this.app) {
+        SingleBarLoadingState loader = new SingleBarLoadingState(this.app, "Singleplayer") {
 
             @Override
-            public Void onLoad() {
+            public void onLoad() {
 
                 try {
 
@@ -240,8 +241,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Failed to load the game!", e);
                 }
-
-                return null;
             }
 
             private void setupPlayers() {
@@ -322,6 +321,14 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
                 // Enable player state
                 GameState.this.stateManager.getState(PlayerState.class).setEnabled(true);
                 GameState.this.stateManager.getState(SoundState.class).setEnabled(true);
+
+                // FIXME PlayerCameraState should initialized before we start
+                while (true) {
+                    PlayerCameraState state = stateManager.getState(PlayerCameraState.class);
+                    if (state != null && state.isInitialized()) {
+                        break;
+                    }
+                }
 
                 // Set initialized
                 GameState.this.initialized = true;

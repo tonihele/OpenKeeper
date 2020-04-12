@@ -21,6 +21,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Send to action point task
@@ -33,7 +34,7 @@ public class SendToActionPoint extends GoToTask {
     private boolean executed = false;
 
     public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, short playerId) {
-        super(navigationService, mapController, (int) actionPoint.getCenter().x, (int) actionPoint.getCenter().y, playerId);
+        super(navigationService, mapController, WorldUtils.vectorToPoint(actionPoint.getCenter()), playerId);
 
         this.actionPoint = actionPoint;
     }

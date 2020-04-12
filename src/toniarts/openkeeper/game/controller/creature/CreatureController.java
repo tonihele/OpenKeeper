@@ -762,8 +762,7 @@ public class CreatureController extends EntityController implements ICreatureCon
             // We need anyway to get out from water if we are tossed in such
             Vector3f pos = getPosition();
             if (pos != null) {
-                Point p = WorldUtils.vectorToPoint(pos);
-                return mapController.isWater(p.x, p.y);
+                return mapController.isWater(WorldUtils.vectorToPoint(pos));
             }
         }
         return mobile.canWalkOnWater;
@@ -777,8 +776,7 @@ public class CreatureController extends EntityController implements ICreatureCon
             // We need anyway to get out from lava if we are tossed in such
             Vector3f pos = getPosition();
             if (pos != null) {
-                Point p = WorldUtils.vectorToPoint(pos);
-                return mapController.isLava(p.x, p.y);
+                return mapController.isLava(WorldUtils.vectorToPoint(pos));
             }
         }
         return mobile.canWalkOnLava;

@@ -23,7 +23,9 @@ import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
 import java.awt.Point;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -32,7 +34,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapData implements Savable {
+public class MapData implements Savable, Iterable<MapTile> {
 
     private int width;
     private int height;
@@ -62,6 +64,10 @@ public class MapData implements Savable {
 
     public int getHeight() {
         return height;
+    }
+
+    public int getSize() {
+        return width * height;
     }
 
     /**
@@ -120,4 +126,45 @@ public class MapData implements Savable {
         height = tiles[0].length;
     }
 
+    @Override
+    public Iterator<MapTile> iterator() {
+        return new MapData.MapIterator();
+    }
+
+    private class MapIterator implements Iterator<MapTile> {
+
+        private final Point cursor = new Point();
+
+        @Override
+        public boolean hasNext() {
+            return cursor.x < MapData.this.width && cursor.y < MapData.this.height;
+        }
+
+        @Override
+        public MapTile next() {
+            if (cursor.y >= MapData.this.height || cursor.x >= MapData.this.width) {
+                throw new IndexOutOfBoundsException();
+            }
+
+            MapTile result = MapData.this.getTile(cursor);
+
+            cursor.x++;
+            if (cursor.x >= MapData.this.width) {
+                cursor.x = 0;
+                cursor.y++;
+            }
+
+            return result;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void forEachRemaining(Consumer<? super MapTile> consumer) {
+            throw new UnsupportedOperationException();
+        }
+    }
 }

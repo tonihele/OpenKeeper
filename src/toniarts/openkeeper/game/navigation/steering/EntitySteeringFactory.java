@@ -66,8 +66,8 @@ public class EntitySteeringFactory {
 
                 // Navigate
                 FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(steerable,
-                        new LinePath<>(SteeringUtils.pathToArray(path), true), 2);
-                followPath.setDecelerationRadius(0.3f);
+                        new LinePath<>(SteeringUtils.pathToArray(path), true), 0.2f);
+                followPath.setDecelerationRadius(0.2f);
                 followPath.setArrivalTolerance(0.1f);
                 prioritySteering.add(followPath);
             }
@@ -78,9 +78,9 @@ public class EntitySteeringFactory {
                 ReachOrientation orient = new ReachOrientation(steerable,
                         new TargetLocation(WorldUtils.pointToVector2(faceTarget),
                                 WorldUtils.pointToVector2(p)));
-                orient.setDecelerationRadius(0.3f);
-                //orient.setTimeToTarget(0.001f);
-                orient.setAlignTolerance(0.2f);
+                orient.setDecelerationRadius(0.2f);
+                orient.setTimeToTarget(0.001f);
+                orient.setAlignTolerance(0.1f);
                 prioritySteering.add(orient);
             }
 

@@ -170,4 +170,10 @@ public abstract class AbstractTask implements Task {
     public EntityId getTaskTarget() {
         return null;
     }
+
+    @Override
+    public boolean canExecute(ICreatureController creature) {
+        return true;
+    }
+
 }

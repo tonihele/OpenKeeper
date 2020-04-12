@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -32,8 +33,8 @@ public abstract class AbstractRoomTask extends AbstractTileTask {
 
     private final IRoomController room;
 
-    public AbstractRoomTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room) {
-        super(navigationService, mapController, x, y, playerId);
+    public AbstractRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room) {
+        super(navigationService, mapController, p, playerId);
 
         this.room = room;
     }

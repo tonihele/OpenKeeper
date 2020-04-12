@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -247,9 +248,7 @@ public class Settings {
     private final static int MAX_FPS = 200;
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(Main.TITLE).concat(File.separator);
     private final static String USER_SETTINGS_FILE = USER_HOME_FOLDER.concat("openkeeper.properties");
-    public final static List<String> OPENGL = new ArrayList<>(Arrays.asList(new String[]{AppSettings.LWJGL_OPENGL2,
-        AppSettings.LWJGL_OPENGL3, AppSettings.LWJGL_OPENGL33, AppSettings.LWJGL_OPENGL4, AppSettings.LWJGL_OPENGL41,
-        AppSettings.LWJGL_OPENGL42, AppSettings.LWJGL_OPENGL43, AppSettings.LWJGL_OPENGL44, AppSettings.LWJGL_OPENGL45}));
+    public final static List<String> OPENGL = Settings.getRenderers();
     public final static List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
     public final static List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     private static final Logger LOGGER = Logger.getLogger(Settings.class.getName());
@@ -298,6 +297,26 @@ public class Settings {
      */
     public AppSettings getAppSettings() {
         return settings;
+    }
+
+    /**
+     * @see com.​jme3.​system.AppSettings.LWJGL_OPENGL* constants
+     * @return list of avaliable renderers
+     */
+    public static List<String> getRenderers() {
+        List<String> renderers = new ArrayList<>();
+
+        try {
+            for (Field f : AppSettings.class.getFields()) {
+                if (f.getName().startsWith("LWJGL_OPENGL") && f.getType().equals(String.class)) {
+                    renderers.add((String) f.get(AppSettings.class));
+                }
+            }
+        } catch (IllegalAccessException | IllegalArgumentException | SecurityException ex) {
+            LOGGER.severe(ex.getMessage());
+        }
+
+        return renderers;
     }
 
     /**

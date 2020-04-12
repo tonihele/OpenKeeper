@@ -238,10 +238,10 @@ public class Party implements PathFindable {
             Terrain terrain = to.getTerrain();
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isWorkersAvailable()) {
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
-                    return 1.0f; // Dig our selves in
+                    return DESTROY_COST; // Dig our selves in
                 }
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
-                    return 2.0f; // It seems that everybody can attack reinforced walls i.e. ?
+                    return ATTACK_COST; // It seems that everybody can attack reinforced walls i.e. ?
                 }
             }
 
@@ -249,7 +249,7 @@ public class Party implements PathFindable {
             // FIXME: now just doors
             DoorControl doorControl = worldState.getThingLoader().getDoor(to.getLocation());
             if (doorControl != null && doorControl.getOwnerId() != getOwnerId()) {
-                return 1.5f;
+                return ENEMY_DOOR_COST;
             }
         }
         return cost;

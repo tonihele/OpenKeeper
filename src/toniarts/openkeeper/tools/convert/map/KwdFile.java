@@ -617,16 +617,12 @@ public final class KwdFile {
             terrain.setStartingHealth(file.readUnsignedShort());
             terrain.setMaxHealthTypeTerrainId(file.readUnsignedByte());
             terrain.setDestroyedTypeTerrainId(file.readUnsignedByte());
-            terrain.setTerrainLight(new Color(file.readUnsignedByte(),
-                    file.readUnsignedByte(),
-                    file.readUnsignedByte()));
+            terrain.setTerrainLight(readColor(file));
             terrain.setTextureFrames(file.readUnsignedByte());
 
             terrain.setSoundCategory(file.readString(32).trim());
             terrain.setMaxHealth(file.readUnsignedShort());
-            terrain.setAmbientLight(new Color(file.readUnsignedByte(),
-                    file.readUnsignedByte(),
-                    file.readUnsignedByte()));
+            terrain.setAmbientLight(readColor(file));
 
             terrain.setSoundCategoryFirstPerson(file.readString(32).trim());
             terrain.setUnk224(file.readUnsignedInteger());
@@ -665,8 +661,8 @@ public final class KwdFile {
         file.seek(pointer + 12);
         artResource.setType(file.readByteAsEnum(ArtResource.ArtResourceType.class));
         if (artResource.getType() == ArtResourceType.ANIMATING_MESH) {
-            artResource.setData("startAf", file.readUnsignedByte()); // if HAS_START_ANIMATION
-            artResource.setData("endAf", file.readUnsignedByte()); // if HAS_END_ANIMATION
+            artResource.setData(ArtResource.KEY_START_AF, file.readUnsignedByte()); // if HAS_START_ANIMATION
+            artResource.setData(ArtResource.KEY_END_AF, file.readUnsignedByte()); // if HAS_END_ANIMATION
         } else {
             artResource.setData("unknown_n", file.readUnsignedShort());
         }
@@ -681,9 +677,9 @@ public final class KwdFile {
             case SPRITE: // And alphas and images probably share the same attributes
             case ALPHA:
             case ADDITIVE_ALPHA:  // Images of different type
-                artResource.setData("width", file.readIntegerAsFloat());
-                artResource.setData("height", file.readIntegerAsFloat());
-                artResource.setData("frames", file.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
+                artResource.setData(ArtResource.KEY_WIDTH, file.readIntegerAsFloat());
+                artResource.setData(ArtResource.KEY_HEIGHT, file.readIntegerAsFloat());
+                artResource.setData(ArtResource.KEY_FRAMES, file.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
                 break;
 
             case TERRAIN_MESH:
@@ -693,20 +689,20 @@ public final class KwdFile {
                 break;
 
             case MESH:
-                artResource.setData("scale", file.readIntegerAsFloat());
-                artResource.setData("frames", file.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
+                artResource.setData(ArtResource.KEY_SCALE, file.readIntegerAsFloat());
+                artResource.setData(ArtResource.KEY_FRAMES, file.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
                 artResource.setData("unknown_1", file.readUnsignedInteger());
                 break;
 
             case ANIMATING_MESH:
-                artResource.setData("frames", file.readUnsignedInteger());
-                artResource.setData("fps", file.readUnsignedInteger());
-                artResource.setData("startDist", file.readUnsignedShort());
-                artResource.setData("endDist", file.readUnsignedShort());
+                artResource.setData(ArtResource.KEY_FRAMES, file.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_FPS, file.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_START_DIST, file.readUnsignedShort());
+                artResource.setData(ArtResource.KEY_END_DIST, file.readUnsignedShort());
                 break;
 
             case PROCEDURAL_MESH:
-                artResource.setData("id", file.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_ID, file.readUnsignedInteger());
                 artResource.setData("unknown_1", file.readUnsignedInteger());
                 artResource.setData("unknown_2", file.readUnsignedInteger());
                 break;
@@ -731,6 +727,17 @@ public final class KwdFile {
         }
 
         return artResource;
+    }
+
+    /**
+     * Reads color from file
+     *
+     * @param file the file stream to parse from
+     * @return an Color
+     * @throws IOException the reading may fail
+     */
+    private Color readColor(IResourceReader file) throws IOException {
+        return new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte());
     }
 
     /**
@@ -954,7 +961,7 @@ public final class KwdFile {
             room.setTerrainId(file.readUnsignedByte());
             room.setTileConstruction(file.readByteAsEnum(Room.TileConstruction.class));
             room.setCreatedCreatureId(file.readUnsignedByte());
-            room.setTorchColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte())); // This is the editor is rather weird
+            room.setTorchColor(readColor(file)); // This is the editor is rather weird
             List<Short> roomObjects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 short objectId = file.readUnsignedByte();
@@ -1683,7 +1690,7 @@ public final class KwdFile {
             effectElement.setHitSolidElementId(file.readUnsignedShort());
             effectElement.setHitWaterElementId(file.readUnsignedShort());
             effectElement.setHitLavaElementId(file.readUnsignedShort());
-            effectElement.setColor(new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte()));
+            effectElement.setColor(readColor(file));
             effectElement.setRandomColorIndex(file.readUnsignedByte());
             effectElement.setTableColorIndex(file.readUnsignedByte());
             effectElement.setFadePercentage(file.readUnsignedByte());
@@ -2130,7 +2137,7 @@ public final class KwdFile {
                     ((Thing.Camera) thing).setAnglePitch(file.readUnsignedShort());
                     ((Thing.Camera) thing).setId((short) file.readUnsignedShort());
 
-                    addThing((Thing.Camera) thing);
+                    addThing(thing);
                     break;
                 }
                 default: {
@@ -3168,7 +3175,8 @@ public final class KwdFile {
      * Skips the file to the correct position after an item is read<br>
      * <b>Use this with the common types!</b>
      *
-     * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long, long)
+     * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
+     * long)
      * @param header the header
      * @param file the file
      * @param offset the file offset before the last item was read

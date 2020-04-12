@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -37,9 +38,9 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
     private final ICreatureController creature;
     private boolean executed = false;
 
-    public CarryEnemyCreatureToPrison(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room,
+    public CarryEnemyCreatureToPrison(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
             TaskManager taskManager, ICreatureController creature) {
-        super(navigationService, mapController, x, y, playerId, room, taskManager);
+        super(navigationService, mapController, p, playerId, room, taskManager);
         this.creature = creature;
     }
 

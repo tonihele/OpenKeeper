@@ -61,6 +61,8 @@ public interface Task {
      */
     void executeTask(ICreatureController creature, float executionDuration);
 
+    boolean canExecute(ICreatureController creature);
+
     /**
      * How many workers have already been assigned to this task
      *

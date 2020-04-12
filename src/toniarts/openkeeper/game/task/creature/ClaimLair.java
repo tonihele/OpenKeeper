@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -38,8 +39,8 @@ public class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
     private boolean executed = false;
 
-    public ClaimLair(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId, IRoomController room, TaskManager taskManager) {
-        super(navigationService, mapController, x, y, playerId, room, taskManager);
+    public ClaimLair(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room, TaskManager taskManager) {
+        super(navigationService, mapController, p, playerId, room, taskManager);
     }
 
     @Override

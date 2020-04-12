@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.map;
 
+import java.awt.Point;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
@@ -43,52 +44,47 @@ public interface IMapInformation {
     /**
      * Determine if a tile at x & y is buildable by the player
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId the player
      * @param roomId the room to be build
      * @return is the tile buildable
      */
-    boolean isBuildable(int x, int y, short playerId, short roomId);
+    boolean isBuildable(Point p, short playerId, short roomId);
 
     /**
      * Determine if a tile (maybe a room) at x & y is claimable by the player
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId the player
      * @return is the tile claimable by you
      */
-    boolean isClaimable(int x, int y, short playerId);
+    boolean isClaimable(Point p, short playerId);
 
     /**
      * Determine if a tile at x & y is selected or not
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId selected by the player
      * @return is the tile selected
      */
-    boolean isSelected(int x, int y, short playerId);
+    boolean isSelected(Point p, short playerId);
 
     /**
      * Determine if a tile at x & y is selectable or not
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @return is the tile selectable
      */
-    boolean isTaggable(int x, int y);
+    boolean isTaggable(Point p);
 
     /**
      * Is the tile (building) sellable by us
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId the player, the seller
      * @return true if we can sell
      */
-    public boolean isSellable(int x, int y, short playerId);
+    public boolean isSellable(Point p, short playerId);
 
     /**
      * Get terrain in given tile. FIXME: I don't think we should use the KWD
@@ -102,59 +98,53 @@ public interface IMapInformation {
     /**
      * Is claimable wall at tile point
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId for the player
      * @return is the wall claimable
      */
-    public boolean isClaimableWall(int x, int y, short playerId);
+    public boolean isClaimableWall(Point p, short playerId);
 
     /**
      * Is claimable floor at tile point (not a room)
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId for the player
      * @return is the floor claimable
      */
-    public boolean isClaimableTile(int x, int y, short playerId);
+    public boolean isClaimableTile(Point p, short playerId);
 
     /**
      * Is repairable wall at tile point
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId for the player
      * @return is the wall repairable
      */
-    public boolean isRepairableWall(int x, int y, short playerId);
+    public boolean isRepairableWall(Point p, short playerId);
 
     /**
      * Is claimable room tile at tile point
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @param playerId for the player
      * @return is the room claimable
      */
-    public boolean isClaimableRoom(int x, int y, short playerId);
+    public boolean isClaimableRoom(Point p, short playerId);
 
     /**
      * Is water tile at the coordinates
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @return is the tile water
      */
-    public boolean isWater(int x, int y);
+    public boolean isWater(Point p);
 
     /**
      * Is water tile at the coordinates
      *
-     * @param x x coordinate
-     * @param y y coordinate
+     * @param p coordinate
      * @return is the tile lava
      */
-    public boolean isLava(int x, int y);
+    public boolean isLava(Point p);
 
 }

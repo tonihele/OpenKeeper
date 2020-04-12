@@ -134,20 +134,19 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         }
 
         // Go through the map
-        int tilesCount = getMapData().getWidth() * object.getMap().getHeight();
+        int index = 0;
+        int tilesCount = getMapData().getSize();
 
-        for (int y = 0; y < getMapData().getHeight(); y++) {
-            for (int x = 0; x < getMapData().getWidth(); x++) {
+        for (MapTile tile : getMapData()) {
 
-                try {
-                    handleTile(getMapData().getTile(x, y), terrain);
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
-                }
-
-                // Update progress
-                updateProgress((float) (y * object.getMap().getWidth() + x + 1) / tilesCount);
+            try {
+                handleTile(tile, terrain);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Failed to handle tile at " + tile.getLocation() + "!", e);
             }
+
+            // Update progress
+            updateProgress((float) ++index / tilesCount);
         }
 
         // Batch the terrain pages
@@ -282,7 +281,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
                         // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
                         // Now we have a random starting texture...
-                        int textureIndex = terrain.getTextureFrames() - (int) Math.ceil(tile.getHealthPercent() / (100f / terrain.getTextureFrames()));
+                        int textureIndex = Math.round((terrain.getTextureFrames() - 1) * (1 - tile.getHealthPercent() / 100f));
                         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
                         if (textureIndex > 0) {
 

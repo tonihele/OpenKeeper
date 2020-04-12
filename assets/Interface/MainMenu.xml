@@ -89,7 +89,7 @@
             </panel>
 
             <panel align="right" valign="bottom" childLayout="vertical" paddingRight="10px">
-                <text style="text" text="*PRE-ALPHA*" align="center"/>
+                <text style="text" text="${PROP.VERSION}" align="center"/>
                 <text style="text" text="Open Source Edition" align="center"/>
             </panel>
         </layer>

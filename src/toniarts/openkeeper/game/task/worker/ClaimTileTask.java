@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -31,8 +32,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ClaimTileTask extends AbstractTileTask {
 
-    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
-        super(navigationService, mapController, x, y, playerId);
+    public ClaimTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        super(navigationService, mapController, p, playerId);
     }
 
     @Override
@@ -42,7 +43,7 @@ public class ClaimTileTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return mapController.isClaimableTile(getTaskLocation().x, getTaskLocation().y, playerId);
+        return mapController.isClaimableTile(getTaskLocation(), playerId);
     }
 
     @Override

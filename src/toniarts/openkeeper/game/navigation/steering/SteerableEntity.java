@@ -36,8 +36,8 @@ public class SteerableEntity implements ISteerableEntity {
     private float angularVelocity;
     private boolean tagged;
     private float maxLinearSpeed = 1;
-    private float maxLinearAcceleration = 2;
-    private float maxAngularSpeed = 10.0f;
+    private float maxLinearAcceleration = 4;
+    private float maxAngularSpeed = 20.0f;
     private float maxAngularAcceleration = 20.0f;
     private float zeroLinearSpeedThreshold = 0.01f;
     private final float boundingRadius;

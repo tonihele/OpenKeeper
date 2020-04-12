@@ -36,7 +36,7 @@ public class CarryCreatureToLairTask extends AbstractTileTask {
     private boolean executed = false;
 
     public CarryCreatureToLairTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
-        super(navigationService, mapController, creature.getLairLocation().x, creature.getLairLocation().y, playerId);
+        super(navigationService, mapController, creature.getLairLocation(), playerId);
         this.creature = creature;
     }
 

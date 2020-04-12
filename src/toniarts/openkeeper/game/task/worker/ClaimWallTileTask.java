@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.MapTile;
@@ -29,14 +30,14 @@ import toniarts.openkeeper.game.task.TaskType;
  */
 public class ClaimWallTileTask extends DigTileTask {
 
-    public ClaimWallTileTask(final INavigationService navigationService, final IMapController mapController, int x, int y, short playerId) {
-        super(navigationService, mapController, x, y, playerId);
+    public ClaimWallTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        super(navigationService, mapController, p, playerId);
     }
 
     @Override
     public boolean isValid(ICreatureController creature) {
         MapTile tile = mapController.getMapData().getTile(getTaskLocation());
-        return mapController.isClaimableWall(getTaskLocation().x, getTaskLocation().y, playerId) && !tile.isSelected(playerId);
+        return mapController.isClaimableWall(getTaskLocation(), playerId) && !tile.isSelected(playerId);
     }
 
     @Override

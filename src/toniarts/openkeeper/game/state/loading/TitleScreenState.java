@@ -28,8 +28,8 @@ import toniarts.openkeeper.Main;
  */
 public abstract class TitleScreenState extends LoadingState {
 
-    public TitleScreenState(final Main app) {
-        super(app);
+    public TitleScreenState(final Main app, String name) {
+        super(app, name);
     }
 
     @Override

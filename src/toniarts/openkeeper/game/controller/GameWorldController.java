@@ -311,13 +311,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         int y2 = (int) Math.min(kwdFile.getMap().getHeight(), end.y + 1);
         for (int x = x1; x < x2; x++) {
             for (int y = y1; y < y2; y++) {
+                Point p = new Point(x, y);
 
                 // See that is this valid
-                if (!mapController.isBuildable(x, y, playerId, roomId)) {
+                if (!mapController.isBuildable(p, playerId, roomId)) {
                     continue;
                 }
 
-                Point p = new Point(x, y);
                 instancePlots.add(p);
             }
         }
@@ -432,14 +432,14 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         List<Map.Entry<Point, Integer>> moneyToReturnByPoint = new ArrayList<>();
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
             for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
+                Point p = new Point(x, y);
 
                 // See that is this valid
-                if (!mapController.isSellable(x, y, playerId)) {
+                if (!mapController.isSellable(p, playerId)) {
                     continue;
                 }
 
                 // Sell
-                Point p = new Point(x, y);
                 MapTile tile = mapController.getMapData().getTile(p);
                 if (tile == null) {
                     continue;
@@ -590,7 +590,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
          * add this to game loop queue to be executed. That would introduce a
          * delay though...
          */
-
         // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
         // And also no need to create a system for this which saves resources
         Position position = entityData.getComponent(entity, Position.class);

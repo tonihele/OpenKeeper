@@ -90,6 +90,7 @@ public class Main extends SimpleApplication {
 
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
+    public final static String VERSION = "*ALPHA*";
     public final static String TITLE = "OpenKeeper";
     private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
     private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
@@ -327,10 +328,10 @@ public class Main extends SimpleApplication {
         Nifty nifty = getNifty();
 
         // Initiate the title screen
-        TitleScreenState gameLoader = new TitleScreenState(this) {
+        TitleScreenState gameLoader = new TitleScreenState(this, "Title Screen") {
 
             @Override
-            public Void onLoad() {
+            public void onLoad() {
                 try {
                     // Asset loaders
                     // Sound
@@ -365,6 +366,7 @@ public class Main extends SimpleApplication {
                     // Nifty
                     nifty.setGlobalProperties(new Properties());
                     nifty.getGlobalProperties().setProperty("MULTI_CLICK_TIME", "1");
+                    nifty.getGlobalProperties().setProperty("VERSION", VERSION);
                     setupNiftyResourceBundles(nifty);
                     setupNiftySound(nifty);
 
@@ -400,7 +402,6 @@ public class Main extends SimpleApplication {
                     LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
                     app.stop();
                 }
-                return null;
             }
 
             @Override
@@ -481,13 +482,15 @@ public class Main extends SimpleApplication {
      */
     public static BufferedImage[] getApplicationIcons() {
         try {
-            return new BufferedImage[]{ImageIO.read(CursorFactory.class.getResource("icons/openkeeper256.png")),
+            return new BufferedImage[]{
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper256.png")),
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper128.png")),
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper64.png")),
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper48.png")),
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper32.png")),
                 ImageIO.read(CursorFactory.class.getResource("icons/openkeeper24.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper16.png"))};
+                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper16.png"))
+            };
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "Failed to load the application icons!", ex);
         }

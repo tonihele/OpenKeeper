@@ -38,7 +38,7 @@ public class FetchObjectTask extends AbstractTileTask {
     private final ObjectControl object;
 
     public FetchObjectTask(final INavigationService navigationService, final IMapController mapController, ObjectControl object, short playerId) {
-        super(navigationService, mapController, object.getObjectCoordinates().x, object.getObjectCoordinates().y, playerId);
+        super(navigationService, mapController, object.getObjectCoordinates(), playerId);
         this.object = object;
     }
 

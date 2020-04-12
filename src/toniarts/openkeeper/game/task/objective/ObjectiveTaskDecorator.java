@@ -54,6 +54,11 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
     }
 
     @Override
+    public boolean canExecute(ICreatureController creature) {
+        return true;
+    }
+
+    @Override
     public void assign(ICreatureController creature, boolean setToCreature) {
         task.assign(creature, false);
 
@@ -99,7 +104,6 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
     public Date getTaskCreated() {
         return task.getTaskCreated();
     }
-
 
     @Override
     public Point getTaskLocation() {

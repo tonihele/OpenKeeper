@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view;
 
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
@@ -175,14 +176,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             @Override
             protected SelectionHandler.ColorIndicator getColorIndicator() {
-                Vector2f pos;
+                Point p;
                 if (selectionHandler.isActive()) {
-                    pos = selectionHandler.getSelectionArea().getRealStart();
+                    p = WorldUtils.vectorToPoint(selectionHandler.getSelectionArea().getRealStart());
                 } else {
-                    pos = selectionHandler.getPointedTilePosition();
+                    p = WorldUtils.vectorToPoint(selectionHandler.getPointedTilePosition());
                 }
                 if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
-                    MapTile tile = gameClientState.getMapClientService().getMapData().getTile((int) pos.x, (int) pos.y);
+                    MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
                     if (tile != null) {
                         IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
                         return (status != IEntityViewControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
@@ -191,7 +192,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 }
                 if (interactionState.getType() == Type.SELL) {
                     return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM && !(gameClientState.getMapClientService().isTaggable((int) pos.x, (int) pos.y) || (gameClientState.getMapClientService().isBuildable((int) pos.x, (int) pos.y, player.getPlayerId(), (short) interactionState.getItemId()) && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+                } else if (interactionState.getType() == Type.ROOM
+                        && !(gameClientState.getMapClientService().isTaggable(p)
+                        || (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), (short) interactionState.getItemId())
+                        && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
@@ -205,7 +209,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 int buildablePlots = 0;
                 for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
                     for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-                        if (gameClientState.getMapClientService().isBuildable(x, y, player.getPlayerId(), room.getId())) {
+                        Point p = new Point(x, y);
+
+                        if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
                             buildablePlots++;
                         }
 
@@ -475,7 +481,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                && isOnMap && gameClientState.getMapClientService().isTaggable(p.x, p.y);
+                && isOnMap && gameClientState.getMapClientService().isTaggable(p);
     }
 
     private boolean isOnMap() {
@@ -590,13 +596,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         SelectionArea selectionArea = selectionHandler.getSelectionArea();
                         if (interactionState.getType() == Type.NONE
                                 || (interactionState.getType() == Type.ROOM
-                                && gameClientState.getMapClientService().isTaggable((int) selectionArea.getRealStart().x, (int) selectionArea.getRealStart().y))) {
+                                && gameClientState.getMapClientService().isTaggable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
 
                             // Determine if this is a select/deselect by the starting tile's status
-                            boolean select = !gameClientState.getMapClientService().isSelected((int) Math.max(0, selectionArea.getRealStart().x), (int) Math.max(0, selectionArea.getRealStart().y), player.getPlayerId());
+                            boolean select = !gameClientState.getMapClientService().isSelected(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId());
                             gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
-                        } else if (interactionState.getType() == Type.ROOM && gameClientState.getMapClientService().isBuildable((int) selectionArea.getRealStart().x,
-                                (int) selectionArea.getRealStart().y, player.getPlayerId(), (short) interactionState.getItemId())) {
+                        } else if (interactionState.getType() == Type.ROOM
+                                && gameClientState.getMapClientService().isBuildable(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId(), (short) interactionState.getItemId())) {
                             gameClientState.getGameClientService().build(selectionArea.getStart(), selectionArea.getEnd(), (short) interactionState.getItemId());
                         } else if (interactionState.getType() == Type.SELL) {
                             gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
@@ -681,7 +687,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         }
                         break;
                 }
-
 
                 if (evt.isPressed()) {
                     if (evt.getKeyCode() == KeyInput.KEY_C && keys.contains(KeyInput.KEY_LCONTROL) && keys.contains(KeyInput.KEY_LMENU)) {

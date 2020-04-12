@@ -70,7 +70,7 @@ public class UniversalArtResourceLoader {
             case ADDITIVE_ALPHA:
             case SPRITE:
                 result = new EffectGeometry("effect");
-                ((EffectGeometry) result).setFrames(Math.max(1, resource.getData("frames")));
+                ((EffectGeometry) result).setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 result.setMaterial(material);
