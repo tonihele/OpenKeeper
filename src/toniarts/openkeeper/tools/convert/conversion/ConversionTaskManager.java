@@ -70,8 +70,8 @@ public class ConversionTaskManager {
         });
     }
 
-    public void addTask(AssetsConverter.ConvertProcess conversion, IConversionTask task) {
-        taskNodes.put(conversion, new TaskNode(conversion.name(), task, !conversion.isOutdated()));
+    public void addTask(AssetsConverter.ConvertProcess conversion, IConversionTask task, boolean conversionNeeded) {
+        taskNodes.put(conversion, new TaskNode(conversion.name(), task, !conversionNeeded));
     }
 
     /**

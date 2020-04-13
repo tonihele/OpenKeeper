@@ -21,9 +21,12 @@ import com.jme3.system.AppSettings;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.conversion.ConversionTaskManager;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertFonts;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertHiScores;
@@ -88,14 +91,6 @@ public abstract class AssetsConverter {
             return name + "Version";
         }
 
-        protected void setOutdated(boolean outdated) {
-            this.outdated = outdated;
-        }
-
-        public boolean isOutdated() {
-            return this.outdated;
-        }
-
         @Override
         public String toString() {
             return super.toString().replace('_', ' ');
@@ -103,7 +98,6 @@ public abstract class AssetsConverter {
 
         private final int version;
         private final ConvertProcess[] dependencies;
-        private boolean outdated = false;
     }
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
@@ -139,19 +133,49 @@ public abstract class AssetsConverter {
      */
     protected abstract void updateStatus(Integer currentProgress, Integer totalProgress, ConvertProcess process);
 
-    public static boolean conversionNeeded(AppSettings settings) {
-        boolean needConversion = false;
-
+    /**
+     * Checks if asset conversion is needed
+     *
+     * @param settings the application settings
+     * @return true if asset conversion is needed
+     */
+    public static boolean isConversionNeeded(AppSettings settings) {
         for (ConvertProcess item : ConvertProcess.values()) {
-            String key = item.getSettingName();
-            boolean isOutdated = item.getVersion() > settings.getInteger(key);
-            item.setOutdated(isOutdated);
-            if (isOutdated) {
-                needConversion = true;
+            if (isConversionNeeded(item, settings)) {
+                return true;
             }
         }
 
-        return needConversion;
+        return false;
+    }
+
+    /**
+     * Checks if a specific asset conversion is needed
+     *
+     * @param convertProcess the process to check
+     * @param settings the application settings
+     * @return true if asset conversion is needed
+     */
+    public static boolean isConversionNeeded(ConvertProcess convertProcess, AppSettings settings) {
+        String key = convertProcess.getSettingName();
+        return convertProcess.getVersion() > settings.getInteger(key);
+    }
+
+    /**
+     * Get a list of asset conversion processes that should be executed
+     *
+     * @param settings the application settings
+     * @return list of conversion processes
+     */
+    public static List<ConvertProcess> getConversionNeeded(AppSettings settings) {
+        List<ConvertProcess> processes = new ArrayList<>();
+        for (ConvertProcess item : ConvertProcess.values()) {
+            if (isConversionNeeded(item, settings)) {
+                processes.add(item);
+            }
+        }
+
+        return processes;
     }
 
     public static void setConversionSettings(AppSettings settings) {
@@ -175,10 +199,13 @@ public abstract class AssetsConverter {
 
         // Create task manager for taking care of the conversion workflow
         ConversionTaskManager conversionTaskManager = new ConversionTaskManager();
+        AppSettings settings = Main.getSettings();
         for (ConvertProcess conversion : ConvertProcess.values()) {
-            conversionTaskManager.addTask(conversion, () -> {
-                createTask(conversion, assetFolder).executeTask();
-            });
+            conversionTaskManager.addTask(conversion,
+                    () -> {
+                        createTask(conversion, assetFolder).executeTask();
+                    },
+                    isConversionNeeded(conversion, settings));
         }
         conversionTaskManager.executeTasks();
 
