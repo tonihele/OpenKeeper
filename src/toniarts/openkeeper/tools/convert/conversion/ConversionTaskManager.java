@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -57,7 +58,16 @@ public class ConversionTaskManager {
     private boolean failure = false;
 
     public ConversionTaskManager() {
-        this.executorService = Executors.newFixedThreadPool(MAX_THREADS);
+        this.executorService = Executors.newFixedThreadPool(MAX_THREADS, new ThreadFactory() {
+
+            private final AtomicInteger threadIndex = new AtomicInteger(0);
+
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "AssetConversionTask_" + threadIndex.incrementAndGet());
+            }
+
+        });
     }
 
     public void addTask(AssetsConverter.ConvertProcess conversion, IConversionTask task) {

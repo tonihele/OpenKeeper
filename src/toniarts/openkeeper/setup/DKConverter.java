@@ -232,6 +232,8 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
         private final DKConverter frame;
 
         public Converter(String dungeonKeeperFolder, AssetManager assetManager, DKConverter frame) {
+            super("AssetsConverter");
+
             this.dungeonKeeperFolder = dungeonKeeperFolder;
             this.assetManager = assetManager;
             this.frame = frame;
