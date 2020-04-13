@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.conversion.task;
 
 /**
+ * Simple interface for signaling executable task
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

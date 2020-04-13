@@ -47,6 +47,10 @@ public abstract class ConversionTask implements IConversionTask {
     public final void executeTask() {
         try {
             internalExecuteTask();
+
+            for (IConversionTaskUpdate listener : listeners) {
+                listener.onComplete(getConvertProcess());
+            }
         } catch (Exception e) {
 
             for (IConversionTaskUpdate listener : listeners) {

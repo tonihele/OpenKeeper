@@ -19,12 +19,15 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
+ * Task status update interface
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IConversionTaskUpdate {
 
     public void onUpdateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process);
+
+    public void onComplete(AssetsConverter.ConvertProcess process);
 
     public void onError(Exception ex, AssetsConverter.ConvertProcess process);
 
