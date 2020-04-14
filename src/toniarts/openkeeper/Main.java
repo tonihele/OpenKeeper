@@ -199,7 +199,6 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
                 protected void continueOk() {
-                    AssetsConverter.setConversionSettings(Main.getSettings());
                     conversionOk = true;
                 }
             };

@@ -34,7 +34,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.conversion.graph.Graph;
 import toniarts.openkeeper.tools.convert.conversion.graph.TaskNode;
-import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
 
 /**
  * Handles all your asset conversion needs. The dataflow and multithreading.
@@ -70,19 +69,21 @@ public class ConversionTaskManager {
         });
     }
 
-    public void addTask(AssetsConverter.ConvertProcess conversion, IConversionTask task, boolean conversionNeeded) {
-        taskNodes.put(conversion, new TaskNode(conversion.name(), task, !conversionNeeded));
+    public void addTask(AssetsConverter.ConvertProcess conversion, IConversionTaskProvider task, boolean conversionNeeded) {
+        taskNodes.put(conversion, new TaskNode(conversion.ordinal(), conversion.name(), task, !conversionNeeded));
     }
 
     /**
      * Starts all the assigned tasks. Blocks until complete
+     *
+     * @return true if the conversion process was successful
      */
-    public void executeTasks() {
+    public boolean executeTasks() {
         createTaskGraph();
 
         // If we didn't have anything, just quit
         if (tasksToRun == 0) {
-            return;
+            return true;
         }
 
         // Get root nodes to start the processing
@@ -112,6 +113,8 @@ public class ConversionTaskManager {
         } catch (InterruptedException ex) {
             LOGGER.log(Level.SEVERE, "Conversion tasks failed to complete!", ex);
         }
+
+        return !failure;
     }
 
     private void createTaskGraph() {

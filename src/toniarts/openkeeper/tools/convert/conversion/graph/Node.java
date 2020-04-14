@@ -28,8 +28,13 @@ import java.util.Set;
  */
 public class Node<T extends Node> {
 
+    private final int id;
     private final Set<T> incomingEdges = new LinkedHashSet<>();
     private final Set<T> outgoingEdges = new LinkedHashSet<>();
+
+    public Node(int id) {
+        this.id = id;
+    }
 
     /**
      * Adds the node as an incoming edge to the node
@@ -83,6 +88,31 @@ public class Node<T extends Node> {
      */
     public boolean hasOutgoingNodes() {
         return !outgoingEdges.isEmpty();
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 71 * hash + this.id;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Node<?> other = (Node<?>) obj;
+        if (this.id != other.id) {
+            return false;
+        }
+        return true;
     }
 
 }

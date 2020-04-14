@@ -20,13 +20,19 @@ import com.jme3.asset.AssetManager;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
+ * Small utility GUI for displaying the asset conversion progress to the user
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -35,31 +41,45 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     private static volatile boolean convertDone = false;
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
-    private static final Logger logger = Logger.getLogger(DKConverter.class.getName());
+    private final Map<AssetsConverter.ConvertProcess, Progress> conversionProgresses = new HashMap<>();
     private int totalProcesses = 0;
     private int currentProcessNumber = 0;
-    private AssetsConverter.ConvertProcess currentProcess = null;
+
+    private static final Logger logger = Logger.getLogger(DKConverter.class.getName());
+
 
     /**
      * Creates new form DKConverter
+     * 
+     * @param dungeonKeeperFolder the Dungeon Keeper II folder
+     * @param assetManager jME asset manager
      */
     public DKConverter(String dungeonKeeperFolder, AssetManager assetManager) {
+        ToolTipManager.sharedInstance().setInitialDelay(0);
         initComponents();
 
         this.dungeonKeeperFolder = dungeonKeeperFolder;
         this.assetManager = assetManager;
         setIconImages(Arrays.asList(Main.getApplicationIcons()));
+
+        initConversion();
+    }
+
+    private void initConversion() {
+        List<AssetsConverter.ConvertProcess> processes = AssetsConverter.getConversionNeeded(Main.getSettings());
+        totalProcesses = processes.size();
+        totalProgressBar.setMaximum(totalProcesses);
+        totalProgressLabel.setText(createTotalProgressStatusText());
+
+        for (AssetsConverter.ConvertProcess process : processes) {
+            conversionProgresses.put(process, new Progress());
+        }
     }
 
     /**
      * Call to start the conversion
      */
     public void startConversion() {
-        for (AssetsConverter.ConvertProcess item : AssetsConverter.ConvertProcess.values()) {
-            if (item.isOutdated()) {
-                totalProcesses++;
-            }
-        }
 
         // Start conversion
         Converter converter = new Converter(dungeonKeeperFolder, assetManager, this);
@@ -76,8 +96,6 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
-        conversionProgressBar = new javax.swing.JProgressBar();
-        conversionStatusLabel = new javax.swing.JLabel();
         totalProgressLabel = new javax.swing.JLabel();
         totalProgressBar = new javax.swing.JProgressBar();
 
@@ -87,9 +105,9 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
 
         jLabel1.setText("<html>OpenKeeper needs the original Dungeon Keeper II files in order to work. Some of these files needs to be converted by the OpenKeeper to make them usable. This process might take awhile. It is however not done every time you start OpenKeeper, only when the process is changed due a version change etc.</html>");
 
-        conversionStatusLabel.setText("Converting files:");
+        totalProgressLabel.setText("Running conversion... (hover mouse for detailed progress)");
 
-        totalProgressLabel.setText("Total progress:");
+        totalProgressBar.setToolTipText("");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -99,29 +117,22 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                    .addComponent(conversionProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, 451, Short.MAX_VALUE)
-                    .addComponent(totalProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(totalProgressBar, javax.swing.GroupLayout.DEFAULT_SIZE, 467, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(totalProgressLabel)
-                            .addComponent(conversionStatusLabel))
-                        .addGap(0, 0, Short.MAX_VALUE)))
+                        .addComponent(totalProgressLabel)
+                        .addGap(0, 161, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(conversionStatusLabel)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(conversionProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(totalProgressLabel)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(totalProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(70, Short.MAX_VALUE))
+                .addComponent(totalProgressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
@@ -169,8 +180,6 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
         });
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JProgressBar conversionProgressBar;
-    private javax.swing.JLabel conversionStatusLabel;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JProgressBar totalProgressBar;
     private javax.swing.JLabel totalProgressLabel;
@@ -184,42 +193,89 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     protected abstract void continueOk();
 
     private void onError(Exception e) {
-        JOptionPane.showMessageDialog(this,
-                "Failed to convert the resources! " + e, "Error converting resources!", JOptionPane.ERROR_MESSAGE);
-
-        // Lift the curse and exit
         convertDone = true;
-        dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
-        dispose();
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(this,
+                    "Failed to convert the resources! " + e,
+                    "Error converting resources!",
+                    JOptionPane.ERROR_MESSAGE);
+
+            // Lift the curse and exit
+            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+            dispose();
+        });
     }
 
     private void onComplete() {
-
-        // Lift the curse and exit
         convertDone = true;
-        continueOk();
-        dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
-        dispose();
+        SwingUtilities.invokeLater(() -> {
+
+            // Lift the curse and exit
+            continueOk();
+            dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+            dispose();
+        });
     }
 
     private void updateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process) {
-        if (!process.equals(currentProcess)) {
+        conversionProgresses.get(process).current = currentProgress;
+        conversionProgresses.get(process).max = totalProgress;
+        SwingUtilities.invokeLater(() -> {
+            totalProgressBar.setToolTipText(createProgressTooltip());
+        });
+    }
+
+    private void onComplete(AssetsConverter.ConvertProcess process) {
+        conversionProgresses.get(process).done = true;
+        SwingUtilities.invokeLater(() -> {
             currentProcessNumber++;
-            currentProcess = process;
+            totalProgressBar.setValue(currentProcessNumber);
+            totalProgressBar.setToolTipText(createProgressTooltip());
+            totalProgressLabel.setText(createTotalProgressStatusText());
+        });
+    }
+
+    private String createProgressTooltip() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html>");
+        boolean first = true;
+        for (Map.Entry<AssetsConverter.ConvertProcess, Progress> entry : conversionProgresses.entrySet()) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append("<br/>");
+            }
+            sb.append("Converting ");
+            sb.append(entry.getKey().toString().toLowerCase());
+            if(entry.getValue().done) {
+                sb.append(" <b>(done)</b>");
+            }
+            else {
+                if(entry.getValue().current == null) {
+                    sb.append(" <i>(waiting)</i>");
+                } else {
+                    sb.append(" (");
+                    sb.append(entry.getValue().current);
+                    sb.append(" / ");
+                    sb.append(entry.getValue().max);
+                    sb.append(")");
+                }
+            }
         }
-        totalProgressBar.setMaximum(totalProcesses);
-        totalProgressBar.setValue(currentProcessNumber);
-        String progress = "Converting " + process.toString().toLowerCase();
-        if (currentProgress != null && totalProgress != null) {
-            progress += " (" + currentProgress + " / " + totalProgress + ")";
-            conversionProgressBar.setMaximum(totalProgress);
-            conversionProgressBar.setValue(currentProgress);
-        } else {
-            conversionProgressBar.setMaximum(1);
-            conversionProgressBar.setValue(0);
-        }
-        progress += "...";
-        conversionStatusLabel.setText(progress);
+        sb.append("</html>");
+
+        return sb.toString();
+    }
+
+    private String createTotalProgressStatusText() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Total progress (");
+        sb.append(currentProcessNumber);
+        sb.append(" / ");
+        sb.append(totalProcesses);
+        sb.append(") (hover mouse for detailed progress):");
+
+        return sb.toString();
     }
 
     /**
@@ -245,13 +301,26 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
 
                 // Create a converter
                 AssetsConverter assetsConverter = new AssetsConverter(dungeonKeeperFolder, assetManager) {
+
                     @Override
-                    protected void updateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process) {
+                    public void onUpdateStatus(Integer currentProgress, Integer totalProgress, AssetsConverter.ConvertProcess process) {
                         frame.updateStatus(currentProgress, totalProgress, process);
                     }
+
+                    @Override
+                    public void onComplete(AssetsConverter.ConvertProcess process) {
+                        frame.onComplete(process);
+                    }
+
+                    @Override
+                    public void onError(Exception ex, AssetsConverter.ConvertProcess process) {
+                        frame.onError(ex);
+                    }
+
                 };
-                assetsConverter.convertAssets();
-                frame.onComplete();
+                if (assetsConverter.convertAssets()) {
+                    frame.onComplete();
+                }
             } catch (Exception e) {
 
                 // Fug
@@ -263,5 +332,12 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
                 convertDone = true;
             }
         }
+    }
+
+    private static class Progress {
+
+        private Integer current;
+        private Integer max;
+        private boolean done = false;
     }
 }

@@ -14,17 +14,17 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.tools.convert.conversion.task;
+package toniarts.openkeeper.tools.convert.conversion;
+
+import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
 
 /**
- * Simple interface for signaling executable task
+ * Small interface to allow lazy providing of tasks
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IConversionTask {
+public interface IConversionTaskProvider {
 
-    public void executeTask();
-
-    public void addListener(IConversionTaskUpdate listener);
+    IConversionTask getTask();
 
 }

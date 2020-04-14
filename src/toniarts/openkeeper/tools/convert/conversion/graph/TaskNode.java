@@ -16,29 +16,29 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.graph;
 
-import java.util.Objects;
-import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
+import toniarts.openkeeper.tools.convert.conversion.IConversionTaskProvider;
 
 /**
  * Graph node that holds task related data
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskNode extends Node<TaskNode> implements IConversionTask {
+public class TaskNode extends Node<TaskNode> {
 
     private final String name;
-    private final IConversionTask task;
+    private final IConversionTaskProvider task;
     private boolean executed = false;
 
-    public TaskNode(String name, IConversionTask task, boolean executed) {
+    public TaskNode(int id, String name, IConversionTaskProvider task, boolean executed) {
+        super(id);
+
         this.name = name;
         this.task = task;
         this.executed = executed;
     }
 
-    @Override
     public void executeTask() {
-        task.executeTask();
+        task.getTask().executeTask();
 
         executed = true;
     }
@@ -50,31 +50,6 @@ public class TaskNode extends Node<TaskNode> implements IConversionTask {
     @Override
     public String toString() {
         return "TaskNode{" + "name=" + name + ", executed=" + executed + '}';
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 29 * hash + Objects.hashCode(this.name);
-        return hash;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final TaskNode other = (TaskNode) obj;
-        if (!Objects.equals(this.name, other.name)) {
-            return false;
-        }
-        return true;
     }
 
 }

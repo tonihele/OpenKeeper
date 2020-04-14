@@ -38,6 +38,7 @@ import toniarts.openkeeper.tools.convert.conversion.task.ConvertSounds;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertTexts;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertTextures;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
+import toniarts.openkeeper.tools.convert.conversion.task.IConversionTaskUpdate;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.utils.PathUtils;
@@ -51,7 +52,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AssetsConverter {
+public abstract class AssetsConverter implements IConversionTaskUpdate {
 
     /**
      * Conversion process enum, contains conversion version and dependency to
@@ -125,15 +126,6 @@ public abstract class AssetsConverter {
     }
 
     /**
-     * Callback for updates
-     *
-     * @param currentProgress current progress, maybe null if not certain yet
-     * @param totalProgress total progress, maybe null if not certain yet
-     * @param process the process we are currently doing
-     */
-    protected abstract void updateStatus(Integer currentProgress, Integer totalProgress, ConvertProcess process);
-
-    /**
      * Checks if asset conversion is needed
      *
      * @param settings the application settings
@@ -178,17 +170,17 @@ public abstract class AssetsConverter {
         return processes;
     }
 
-    public static void setConversionSettings(AppSettings settings) {
-        for (ConvertProcess item : ConvertProcess.values()) {
-            settings.putInteger(item.getSettingName(), item.getVersion());
-        }
+    private static void setConversionComplete(ConvertProcess process, AppSettings settings) {
+        settings.putInteger(process.getSettingName(), process.getVersion());
     }
 
     /**
      * Convert all the original DK II assets to our formats and copy to our
      * working folder
+     *
+     * @return true if the conversion process was successful
      */
-    public void convertAssets() {
+    public boolean convertAssets() {
         long start = System.currentTimeMillis();
         String currentFolder = getCurrentFolder();
         LOGGER.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
@@ -203,15 +195,40 @@ public abstract class AssetsConverter {
         for (ConvertProcess conversion : ConvertProcess.values()) {
             conversionTaskManager.addTask(conversion,
                     () -> {
-                        createTask(conversion, assetFolder).executeTask();
+                        IConversionTask task = createTask(conversion, assetFolder);
+                        task.addListener(new IConversionTaskUpdate() {
+
+                            @Override
+                            public void onUpdateStatus(Integer currentProgress, Integer totalProgress, ConvertProcess process) {
+                                AssetsConverter.this.onUpdateStatus(currentProgress, totalProgress, process);
+                            }
+
+                            @Override
+                            public void onComplete(ConvertProcess process) {
+
+                                // Mark the conversion complete
+                                setConversionComplete(process, settings);
+
+                                AssetsConverter.this.onComplete(process);
+                            }
+
+                            @Override
+                            public void onError(Exception ex, ConvertProcess process) {
+                                AssetsConverter.this.onError(ex, process);
+                            }
+
+                        });
+                        return task;
                     },
                     isConversionNeeded(conversion, settings));
         }
-        conversionTaskManager.executeTasks();
+        boolean success = conversionTaskManager.executeTasks();
 
         // Log the time taken
         long duration = System.currentTimeMillis() - start;
         LOGGER.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
+
+        return success;
     }
 
     private IConversionTask createTask(ConvertProcess conversion, String currentFolder) {
@@ -233,7 +250,7 @@ public abstract class AssetsConverter {
             case FONTS:
                 return new ConvertFonts(dungeonKeeperFolder, currentFolder.concat(FONTS_FOLDER).concat(File.separator), OVERWRITE_DATA);
             case MAP_THUMBNAILS:
-                return new ConvertFonts(dungeonKeeperFolder, currentFolder.concat(MAP_THUMBNAILS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertMapThumbnails(dungeonKeeperFolder, currentFolder.concat(MAP_THUMBNAILS_FOLDER).concat(File.separator), OVERWRITE_DATA);
         }
 
         throw new IllegalArgumentException("Conversion " + conversion + " not implemented!");

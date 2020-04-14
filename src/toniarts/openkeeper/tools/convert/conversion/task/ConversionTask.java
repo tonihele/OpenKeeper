@@ -68,4 +68,9 @@ public abstract class ConversionTask implements IConversionTask {
         }
     }
 
+    @Override
+    public void addListener(IConversionTaskUpdate listener) {
+        listeners.add(listener);
+    }
+
 }

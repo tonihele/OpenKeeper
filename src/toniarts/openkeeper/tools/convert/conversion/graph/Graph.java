@@ -18,8 +18,10 @@ package toniarts.openkeeper.tools.convert.conversion.graph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Serves as a kinda root for the graph and offers methods for construction of a
@@ -31,6 +33,7 @@ import java.util.Map;
 public class Graph<T extends Node> {
 
     private final Map<T, T> nodes = new HashMap<>();
+    private final Set<T> rootNodes = new HashSet<>();
 
     /**
      * Adds the node to the graph or gets the node if it already exists
@@ -39,7 +42,16 @@ public class Graph<T extends Node> {
      * @return the node
      */
     public T add(T node) {
-        return nodes.putIfAbsent(node, node);
+        if (nodes.containsKey(node)) {
+            return nodes.get(node);
+        } else {
+            nodes.put(node, node);
+
+            // Maintain the root nodes
+            rootNodes.add(node);
+
+            return node;
+        }
     }
 
     /**
@@ -59,6 +71,9 @@ public class Graph<T extends Node> {
     private void addEdges(T dependencyNode, T dependantNode) {
         dependencyNode.addOutgoingNode(dependantNode);
         dependantNode.addIncomingNode(dependencyNode);
+
+        // Maintain the root nodes
+        rootNodes.remove(dependantNode);
     }
 
     /**
@@ -67,14 +82,7 @@ public class Graph<T extends Node> {
      * @return all the root nodes
      */
     public List<T> getRootNodes() {
-        List<T> rootNodes = new ArrayList<>();
-        for (T node : nodes.values()) {
-            if (!node.hasIncomingNodes()) {
-                rootNodes.add(node);
-            }
-        }
-
-        return rootNodes;
+        return new ArrayList<>(rootNodes);
     }
 
 }
