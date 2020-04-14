@@ -305,11 +305,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void build(SelectionArea area, short playerId, short roomId) {
-//        int x1 = (int) Math.max(0, start.x);
-//        int x2 = (int) Math.min(kwdFile.getMap().getWidth(), end.x + 1);
-//        int y1 = (int) Math.max(0, start.y);
-//        int y2 = (int) Math.min(kwdFile.getMap().getHeight(), end.y + 1);
-        mapController.buildOrSellRoom(area, playerId, roomId);
+        if (mapController.isBuildable(area, playerId, roomId)) {
+            mapController.buildOrSellRoom(area, playerId, roomId);
+        }
     }
 
     @Override
@@ -332,11 +330,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // If this is a bridge, we only got the starting point(s) as valid so we need to determine valid bridge pieces by our ourselves
         Room room = kwdFile.getRoomById(roomId);
-//        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))
-//                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
-//            instancePlots = new ArrayList(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
-//        }
-
         // See that can we afford the building
         synchronized (GOLD_LOCK) {
             int cost = instancePlots.size() * room.getCost();
@@ -428,7 +421,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void sell(SelectionArea area, short playerId) {
-        mapController.buildOrSellRoom(area, playerId);
+        // FIXME does not work isSellable
+//        if (mapController.isSellable(area, playerId)) {
+            mapController.buildOrSellRoom(area, playerId);
+//        }
     }
 
     @Override

@@ -303,6 +303,14 @@ public final class MapController extends Container implements Savable, IMapContr
         return terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
     }
 
+    /**
+     * Does not check adjacent to own tile
+     *
+     * @param p location
+     * @param playerId
+     * @param roomId
+     * @return
+     */
     @Override
     public boolean isBuildable(Point p, short playerId, short roomId) {
         MapTile tile = getMapData().getTile(p);
@@ -326,8 +334,6 @@ public final class MapController extends Container implements Savable, IMapContr
         if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER))
                 || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
 
-            // We need to have an adjacent owned tile
-//            return hasAdjacentOwnedPath(tile.getLocation(), playerId);
             return true;
         }
 
@@ -998,11 +1004,16 @@ public final class MapController extends Container implements Savable, IMapContr
             }
 
             // See if we are dealing with bridges
-            if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER))
-                    || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+            if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
+                    && terrain.getFlags().contains(Terrain.TerrainFlag.WATER))
+                    || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)
+                    && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
 
                 // We need to have an adjacent owned tile
-                return hasAdjacentOwnedPath(tile.getLocation(), playerId);
+                boolean adjacent = hasAdjacentOwnedPath(tile.getLocation(), playerId);
+                if (adjacent) {
+                    return true;
+                }
             }
         }
 
