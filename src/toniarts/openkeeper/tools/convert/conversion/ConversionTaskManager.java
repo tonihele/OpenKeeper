@@ -92,7 +92,7 @@ public class ConversionTaskManager {
         sortNodesChildCountDesc(rootNodes);
             synchronized (graph) {
                 for (TaskNode node : rootNodes) {
-                    new TaskGraphTraverser().traverse(node);
+                    new TaskExecuterGraphTraverser().traverse(node);
                 }
             }
 
@@ -161,7 +161,7 @@ public class ConversionTaskManager {
          * and add the same tasks to the queue
          */
         synchronized (graph) {
-            new TaskGraphTraverser().traverse(node);
+            new TaskExecuterGraphTraverser().traverse(node);
         }
     }
 
@@ -191,7 +191,7 @@ public class ConversionTaskManager {
      *
      * @author Toni Helenius <helenius.toni@gmail.com>
      */
-    public class TaskGraphTraverser extends BreadthFirstTraverser<TaskNode> {
+    public class TaskExecuterGraphTraverser extends BreadthFirstTraverser<TaskNode> {
 
         public void traverse(TaskNode startNode) {
             traverse(startNode, (node) -> {
