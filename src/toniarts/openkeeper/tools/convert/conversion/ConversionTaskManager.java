@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.conversion;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -32,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.conversion.graph.BreadthFirstTraverser;
 import toniarts.openkeeper.tools.convert.conversion.graph.Graph;
 import toniarts.openkeeper.tools.convert.conversion.graph.TaskNode;
 
@@ -48,7 +48,6 @@ public class ConversionTaskManager {
     private static final Logger LOGGER = Logger.getLogger(ConversionTaskManager.class.getName());
 
     private final ExecutorService executorService;
-    private final Object waitObject = new Object();
     private final AtomicInteger tasksRunning = new AtomicInteger();
     private int tasksToRun = 0;
     private final Map<TaskNode, Future> runningTasks = new HashMap<>();
@@ -91,25 +90,14 @@ public class ConversionTaskManager {
 
         // Prioritize tasks so that have higher amount of dependendant (initial) tasks get the priority
         sortNodesChildCountDesc(rootNodes);
-        synchronized (waitObject) {
-            for (TaskNode node : rootNodes) {
-                if (isNeedForExecuting(node)) {
-                    executeTask(node);
+            synchronized (graph) {
+                for (TaskNode node : rootNodes) {
+                    new TaskGraphTraverser().traverse(node);
                 }
             }
 
-            try {
-
-                // Otherwise block and wait
-                waitObject.wait();
-
-            } catch (InterruptedException e) {
-                LOGGER.log(Level.SEVERE, "Failed to wait for task completion!", e);
-            }
-        }
-        executorService.shutdown();
         try {
-            executorService.awaitTermination(1, TimeUnit.HOURS);
+            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
         } catch (InterruptedException ex) {
             LOGGER.log(Level.SEVERE, "Conversion tasks failed to complete!", ex);
         }
@@ -150,7 +138,7 @@ public class ConversionTaskManager {
                 failure = true;
                 LOGGER.log(Level.SEVERE, "Task " + node + " failed! Aborting...", e);
 
-                releaseWaitLock();
+                executorService.shutdown();
             }
         });
         runningTasks.put(node, task);
@@ -158,13 +146,7 @@ public class ConversionTaskManager {
         // See if we have now set all the tasks to the execution queue
         int tasksRunningValue = tasksRunning.incrementAndGet();
         if (tasksRunningValue == tasksToRun) {
-            releaseWaitLock();
-        }
-    }
-
-    private void releaseWaitLock() {
-        synchronized (waitObject) {
-            waitObject.notifyAll();
+            executorService.shutdown();
         }
     }
 
@@ -173,15 +155,13 @@ public class ConversionTaskManager {
             return;
         }
 
-        // Get the next possible task
-        List<TaskNode> childNodes = new ArrayList<>(node.getOutgoingNodes());
-        sortNodesChildCountDesc(childNodes);
+        /**
+         * Get the next possible task<br>
+         * Synchronize since the finished tasks can enter here simultaneously
+         * and add the same tasks to the queue
+         */
         synchronized (graph) {
-            for (TaskNode childNode : childNodes) {
-                if (isNeedForExecuting(childNode) && canExecute(childNode)) {
-                    executeTask(childNode);
-                }
-            }
+            new TaskGraphTraverser().traverse(node);
         }
     }
 
@@ -203,6 +183,30 @@ public class ConversionTaskManager {
         Collections.sort(childNodes, (o1, o2) -> {
             return Integer.compare(o2.getOutgoingNodes().size(), o1.getOutgoingNodes().size());
         });
+    }
+
+    /**
+     * Traverses through tasks, but stops traversing if the node is not
+     * completed (adjacent tasks can't be run)
+     *
+     * @author Toni Helenius <helenius.toni@gmail.com>
+     */
+    public class TaskGraphTraverser extends BreadthFirstTraverser<TaskNode> {
+
+        public void traverse(TaskNode startNode) {
+            traverse(startNode, (node) -> {
+                if (isNeedForExecuting(node)) {
+                    executeTask(node);
+                }
+                return node.isExecuted();
+            });
+        }
+
+        @Override
+        protected boolean isVisitChildValid(TaskNode childNode) {
+            return canExecute(childNode);
+        }
+
     }
 
 }
