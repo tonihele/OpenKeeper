@@ -29,14 +29,10 @@
               <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
                   <Component id="jLabel1" alignment="0" pref="0" max="32767" attributes="0"/>
-                  <Component id="conversionProgressBar" alignment="0" pref="451" max="32767" attributes="0"/>
-                  <Component id="totalProgressBar" alignment="0" max="32767" attributes="0"/>
+                  <Component id="totalProgressBar" alignment="0" pref="467" max="32767" attributes="0"/>
                   <Group type="102" attributes="0">
-                      <Group type="103" groupAlignment="0" attributes="0">
-                          <Component id="totalProgressLabel" min="-2" max="-2" attributes="0"/>
-                          <Component id="conversionStatusLabel" min="-2" max="-2" attributes="0"/>
-                      </Group>
-                      <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                      <Component id="totalProgressLabel" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace min="0" pref="161" max="32767" attributes="0"/>
                   </Group>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
@@ -47,16 +43,12 @@
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
-              <EmptySpace max="-2" attributes="0"/>
-              <Component id="conversionStatusLabel" min="-2" max="-2" attributes="0"/>
-              <EmptySpace max="-2" attributes="0"/>
-              <Component id="conversionProgressBar" min="-2" max="-2" attributes="0"/>
+              <Component id="jLabel1" min="-2" pref="74" max="-2" attributes="0"/>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
               <Component id="totalProgressLabel" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="totalProgressBar" min="-2" max="-2" attributes="0"/>
-              <EmptySpace pref="28" max="32767" attributes="0"/>
+              <Component id="totalProgressBar" min="-2" pref="28" max="-2" attributes="0"/>
+              <EmptySpace max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -67,19 +59,15 @@
         <Property name="text" type="java.lang.String" value="&lt;html&gt;OpenKeeper needs the original Dungeon Keeper II files in order to work. Some of these files needs to be converted by the OpenKeeper to make them usable. This process might take awhile. It is however not done every time you start OpenKeeper, only when the process is changed due a version change etc.&lt;/html&gt;"/>
       </Properties>
     </Component>
-    <Component class="javax.swing.JProgressBar" name="conversionProgressBar">
-    </Component>
-    <Component class="javax.swing.JLabel" name="conversionStatusLabel">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="Converting files:"/>
-      </Properties>
-    </Component>
     <Component class="javax.swing.JLabel" name="totalProgressLabel">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Total progress:"/>
+        <Property name="text" type="java.lang.String" value="Running conversion... (hover mouse for detailed progress)"/>
       </Properties>
     </Component>
     <Component class="javax.swing.JProgressBar" name="totalProgressBar">
+      <Properties>
+        <Property name="toolTipText" type="java.lang.String" value=""/>
+      </Properties>
     </Component>
   </SubComponents>
 </Form>

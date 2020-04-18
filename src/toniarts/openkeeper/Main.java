@@ -186,7 +186,7 @@ public class Main extends SimpleApplication {
         }
 
         // If the folder is ok, check the conversion
-        if (folderOk && (AssetsConverter.conversionNeeded(Main.getSettings()))) {
+        if (folderOk && (AssetsConverter.isConversionNeeded(Main.getSettings()))) {
             LOGGER.info("Need to convert the assets!");
             saveSetup = true;
 
@@ -199,7 +199,6 @@ public class Main extends SimpleApplication {
             DKConverter frame = new DKConverter(getDkIIFolder(), assetManager) {
                 @Override
                 protected void continueOk() {
-                    AssetsConverter.setConversionSettings(Main.getSettings());
                     conversionOk = true;
                 }
             };
