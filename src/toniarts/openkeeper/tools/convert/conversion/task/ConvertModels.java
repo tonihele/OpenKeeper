@@ -21,9 +21,8 @@ import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.scene.Node;
 import java.io.File;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -93,7 +92,7 @@ public class ConvertModels extends ConversionTask {
 
         // Meshes are in the data folder, access the packed file
         WadFile wad = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Meshes.WAD"));
-        Map<String, KmfFile> kmfs = new HashMap<>();
+        Map<String, KmfFile> kmfs = new LinkedHashMap<>(wad.getWadFileEntryCount());
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
         AtomicInteger progress = new AtomicInteger(0);
         int total = wad.getWadFileEntryCount();
@@ -117,22 +116,7 @@ public class ConvertModels extends ConversionTask {
                 // If it is a regular model or animation, process it straight away
                 // Leave groups for later (since linking)
                 if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
-                    convertModel(assetManager, new Map.Entry<String, KmfFile>() {
-                        @Override
-                        public String getKey() {
-                            return entry;
-                        }
-
-                        @Override
-                        public KmfFile getValue() {
-                            return kmfFile;
-                        }
-
-                        @Override
-                        public KmfFile setValue(KmfFile value) {
-                            throw new UnsupportedOperationException("Plz, don't do this!");
-                        }
-                    }, destination, f, total, progress);
+                    convertModel(assetManager, entry, kmfFile, destination, f, total, progress);
                 } else {
 
                     // For later processing
@@ -146,7 +130,7 @@ public class ConvertModels extends ConversionTask {
 
         // And the groups (now they can be linked)
         for (Map.Entry<String, KmfFile> entry : kmfs.entrySet()) {
-            convertModel(assetManager, entry, destination, null, total, progress);
+            convertModel(assetManager, entry.getKey(), entry.getValue(), destination, null, total, progress);
         }
 
         executorService.shutdown();
@@ -161,14 +145,18 @@ public class ConvertModels extends ConversionTask {
      * Convert a single KMF to JME object
      *
      * @param assetManager assetManager, for finding stuff
-     * @param entry KMF / name entry
+     * @param name model name
+     * @param model the loaded KMF model
      * @param destination destination directory
+     * @param kmfFile the actual KMF file reference
+     * @param total the total amount to process
+     * @param progress current progress
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, Entry<String, KmfFile> entry, String destination, File kmfFile, int total, AtomicInteger progress) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, File kmfFile, int total, AtomicInteger progress) throws RuntimeException {
 
         // Remove the file extension from the file
-        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(entry.getKey()), entry.getValue(), true);
+        KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(name), model, true);
         KmfModelLoader kmfModelLoader = new KmfModelLoader();
         try {
             Node n = (Node) kmfModelLoader.load(ai);
@@ -177,7 +165,7 @@ public class ConvertModels extends ConversionTask {
             executorService.submit(() -> {
                 try {
                     BinaryExporter exporter = BinaryExporter.getInstance();
-                    File file = new File(destination.concat(entry.getKey().substring(0, entry.getKey().length() - 4)).concat(".j3o"));
+                    File file = new File(destination.concat(name.substring(0, name.length() - 4)).concat(".j3o"));
                     exporter.save(n, file);
 
                     // See if we can just delete the file straight
@@ -187,13 +175,13 @@ public class ConvertModels extends ConversionTask {
 
                     updateStatus(progress.incrementAndGet(), total);
                 } catch (Exception ex) {
-                    String msg = "Failed to export KMF entry " + entry.getKey() + "!";
+                    String msg = "Failed to export KMF entry " + name + "!";
                     LOGGER.log(Level.SEVERE, msg, ex);
                     throw new RuntimeException(msg, ex);
                 }
             });
         } catch (Exception ex) {
-            String msg = "Failed to convert KMF entry " + entry.getKey() + "!";
+            String msg = "Failed to convert KMF entry " + name + "!";
             LOGGER.log(Level.SEVERE, msg, ex);
             throw new RuntimeException(msg, ex);
         }
