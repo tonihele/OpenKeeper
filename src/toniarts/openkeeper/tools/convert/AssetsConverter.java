@@ -40,7 +40,6 @@ import toniarts.openkeeper.tools.convert.conversion.task.ConvertTextures;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTaskUpdate;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -273,23 +272,6 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
      */
     public static String getAssetsFolder() {
         return ABSOLUTE_ASSETS_FOLDER;
-    }
-
-    /**
-     * Loads up an instance of the engine textures catalog
-     *
-     * @param dungeonKeeperFolder DK II folder
-     * @return EngineTextures catalog
-     */
-    public static EngineTexturesFile getEngineTexturesFile(String dungeonKeeperFolder) {
-
-        // Get the engine textures file
-        try {
-            EngineTexturesFile etFile = new EngineTexturesFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
-            return etFile;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to open the EngineTextures file!", e);
-        }
     }
 
     /**
