@@ -44,7 +44,7 @@ import toniarts.openkeeper.tools.convert.conversion.graph.TaskNode;
  */
 public class ConversionTaskManager {
 
-    private final static int MAX_THREADS = Runtime.getRuntime().availableProcessors();
+    private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
     private static final Logger LOGGER = Logger.getLogger(ConversionTaskManager.class.getName());
 
     private final ExecutorService executorService;
