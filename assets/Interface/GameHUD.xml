@@ -56,7 +56,7 @@
                             <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${CALL.getTooltipText(2140)}" targetElement="tooltip" />
+                                    <onHover name="simpleHint" hintText="${menu.2140}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
@@ -91,7 +91,7 @@
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${CALL.getTooltipText(2144)}" targetElement="tooltip" />
+                                    <onHover name="simpleHint" hintText="${menu.2144}" targetElement="tooltip" />
                                     <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
