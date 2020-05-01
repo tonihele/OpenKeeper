@@ -235,7 +235,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
         if (nifty == null || screen == null || contentPanel == null) {
             throw new IllegalStateException("Element is not bound yet. Can't add tabs.");
         }
-        final Element tab = tabBuilder.build(nifty, screen, contentPanel);
+        final Element tab = tabBuilder.build(contentPanel);
         final Tab tabControl = tab.getNiftyControl(Tab.class);
         if (tabControl == null) {
             throw new IllegalStateException("Tab builder did not create a tab... WTF?!");

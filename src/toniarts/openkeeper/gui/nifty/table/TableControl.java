@@ -110,7 +110,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
                     }
                 });
             }
-        }.build(nifty, screen, headers);
+        }.build(headers);
 
         // Create the row control
         childRootElement = elmnt.findElementById("#child-root");
@@ -194,7 +194,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
                     }
                 });
             }
-        }.build(nifty, screen, childRootElement);
+        }.build(childRootElement);
 
         // Call the super
         super.bind(nifty, screen, elmnt, prmtrs);

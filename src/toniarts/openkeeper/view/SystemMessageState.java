@@ -21,13 +21,11 @@ import com.jme3.app.state.AppStateManager;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
-import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.spi.sound.SoundHandle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
-import static toniarts.openkeeper.game.state.PlayerScreenController.SCREEN_HUD_ID;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -42,7 +40,6 @@ public class SystemMessageState extends AbstractPauseAwareState {
     private static final float MESSAGE_LIFETIME = 60000f;
 
     private Main app;
-    private final Screen hud;
     private final Element systemMessagesQueue;
 
     public enum MessageType {
@@ -66,7 +63,6 @@ public class SystemMessageState extends AbstractPauseAwareState {
 
     public SystemMessageState(Element systemMessages, boolean enabled) {
         this.systemMessagesQueue = systemMessages;
-        this.hud = systemMessagesQueue.getNifty().getScreen(SCREEN_HUD_ID);
 
         // can be removed if system messages are correctly detached after quiting the game (like going back to main menu)
         this.removeAllMessages();
@@ -121,7 +117,7 @@ public class SystemMessageState extends AbstractPauseAwareState {
                 parameter("activeImage", activeIcon);
                 set("text", text);
             }
-        }.build(systemMessagesQueue.getNifty(), this.hud, systemMessagesQueue);
+        }.build(systemMessagesQueue);
         systemMessage.show();
     }
 
