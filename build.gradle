@@ -5,7 +5,7 @@ apply plugin: 'maven'
 apply plugin: 'idea'
 
 ext {
-    jmonkeyengine_version = '3.3.0-stable'
+    jmonkeyengine_version = '3.3.2-stable'
 }
 
 repositories {
@@ -15,7 +15,6 @@ repositories {
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
     maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     maven { url "https://jitpack.io" }
-    maven { url "http://nifty-gui.sourceforge.net/nifty-maven-repo" }
 }
 
 // NetBeans will automatically add "run" and "debug" tasks relying on the
