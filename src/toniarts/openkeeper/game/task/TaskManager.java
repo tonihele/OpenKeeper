@@ -676,6 +676,13 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private boolean assignTask(ICreatureController creature, Creature.JobType jobType, boolean assign) {
+        short owner = creature.getOwnerId();
+        if(owner == Player.NEUTRAL_PLAYER_ID || owner == Player.GOOD_PLAYER_ID) {
+            
+            // Currently no creature specific jobs offered for neutral or good players
+            return false;
+        }
+        
         switch (jobType) {
             case RESEARCH: {
                 return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
