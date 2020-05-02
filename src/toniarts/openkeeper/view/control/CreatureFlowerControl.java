@@ -198,7 +198,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             case CLAIM_LAIR:
             case GO_TO_SLEEP:
                 return "Textures/GUI/moods/SJ-Rest.png";
-            case RESEARCH_SPELL:
+            case RESEARCH:
                 return "Textures/GUI/moods/SJ-Library.png";
             case GO_TO_EAT:
                 return "Textures/GUI/moods/SJ-Hungry.png";

@@ -168,7 +168,7 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
                 return Utils.getMainTextResourceBundle().getString("2604");
             case RESCUE_CREATURE:
                 return Utils.getMainTextResourceBundle().getString("2617");
-            case RESEARCH_SPELL:
+            case RESEARCH:
                 return Utils.getMainTextResourceBundle().getString("2625");
             case GO_TO_EAT: {
                 return Utils.getMainTextResourceBundle().getString("2668");

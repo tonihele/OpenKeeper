@@ -25,7 +25,7 @@ public enum TaskType {
 
     CLAIM_LAIR,
     GO_TO_SLEEP,
-    RESEARCH_SPELL,
+    RESEARCH,
     GO_TO_LOCATION,
     KILL_PLAYER,
     CAPTURE_ENEMY_CREATURE,

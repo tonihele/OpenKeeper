@@ -80,7 +80,7 @@ public class Research extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public TaskType getTaskType() {
-        return TaskType.RESEARCH_SPELL;
+        return TaskType.RESEARCH;
     }
 
 }
