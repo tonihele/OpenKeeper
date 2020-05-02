@@ -27,7 +27,6 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioData;
 import com.jme3.audio.AudioNode;
-import com.jme3.bullet.BulletAppState;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
@@ -104,7 +103,7 @@ public abstract class WorldState extends AbstractAppState {
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
     private final Node thingsNode;
-    private final BulletAppState bulletAppState;
+    //private final BulletAppState bulletAppState;
     private final EffectManagerState effectManager;
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
@@ -128,8 +127,8 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // Create physics state
-        bulletAppState = new BulletAppState();
-        bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
+        //bulletAppState = new BulletAppState();
+        //bulletAppState.setThreadingType(BulletAppState.ThreadingType.PARALLEL);
 
         // Create the actual map
         thingLoader = new ThingLoader(this, kwdFile, assetManager);
@@ -251,7 +250,7 @@ public abstract class WorldState extends AbstractAppState {
         this.assetManager = app.getAssetManager();
 
         // Attach physics
-        this.stateManager.attach(bulletAppState);
+        //this.stateManager.attach(bulletAppState);
 
         // Effects
         this.stateManager.attach(effectManager);
@@ -270,7 +269,7 @@ public abstract class WorldState extends AbstractAppState {
         }
 
         // Physics away
-        stateManager.detach(bulletAppState);
+        //stateManager.detach(bulletAppState);
 
         // Effects
         this.stateManager.detach(effectManager);
