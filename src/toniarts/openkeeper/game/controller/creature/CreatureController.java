@@ -345,6 +345,13 @@ public class CreatureController extends EntityController implements ICreatureCon
             return (taskManager.assignTask(this, false));
         }
 
+        short owner = getOwnerId();
+        if (owner == Player.NEUTRAL_PLAYER_ID || owner == Player.GOOD_PLAYER_ID) {
+
+            // Currently no creature specific jobs offered for neutral or good players
+            return false;
+        }
+
         // See that is there a prefered job for us
         // FIXME: moods
         List<Creature.JobPreference> jobs = new ArrayList<>();
