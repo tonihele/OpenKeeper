@@ -31,7 +31,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
  */
 public abstract class AbstractRoomTask extends AbstractTileTask {
 
-    private final IRoomController room;
+    protected final IRoomController room;
 
     public AbstractRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room) {
         super(navigationService, mapController, p, playerId);

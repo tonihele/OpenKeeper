@@ -124,8 +124,6 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public Point getLairLocation();
 
-    public boolean isDragged();
-
     public boolean isUnconscious();
 
     public Point getCreatureCoordinates();

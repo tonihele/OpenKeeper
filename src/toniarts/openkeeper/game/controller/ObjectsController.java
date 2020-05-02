@@ -308,8 +308,11 @@ public class ObjectsController implements IObjectsController {
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
             return AbstractRoomController.ObjectType.GOLD;
         }
-        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK) || obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
             return AbstractRoomController.ObjectType.SPELL_BOOK;
+        }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+            return AbstractRoomController.ObjectType.SPECIAL;
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
             return AbstractRoomController.ObjectType.FOOD;

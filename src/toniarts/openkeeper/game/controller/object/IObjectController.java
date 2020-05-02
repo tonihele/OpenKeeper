@@ -37,6 +37,12 @@ public interface IObjectController extends IEntityController {
 
     public boolean isHaulable();
 
-    public void creaturePicksUp(ICreatureController creature);
+    /**
+     * Gives the object to the creature, or the creature picks up the object
+     *
+     * @param creature the creature interacting
+     * @return returns true if the object was consumed in the process
+     */
+    public boolean creaturePicksUp(ICreatureController creature);
 
 }

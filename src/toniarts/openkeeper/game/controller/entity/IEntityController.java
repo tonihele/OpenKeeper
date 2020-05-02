@@ -83,4 +83,11 @@ public interface IEntityController extends Comparable<IEntityController> {
      */
     public void setHaulable(ICreatureController creature);
 
+    /**
+     * Is the entity being dragged, or hauled
+     *
+     * @return true is hauled
+     */
+    public boolean isDragged();
+
 }

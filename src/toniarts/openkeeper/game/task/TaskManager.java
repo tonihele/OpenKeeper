@@ -77,6 +77,7 @@ import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
+import toniarts.openkeeper.game.task.worker.CarryObjectToStorageTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
@@ -646,6 +647,10 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case PRISONER: {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
+            case SPECIAL:
+            case SPELL_BOOK: {
+                return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
+            }
         }
         return null;
     }
@@ -687,7 +692,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private AbstractTask getObjectTask(IObjectController gameObject, short playerId) {
-        return new FetchObjectTask(navigationService, mapController, gameObject, playerId);
+        return new FetchObjectTask(this, navigationService, mapController, gameObject, playerId);
     }
 
     @Override

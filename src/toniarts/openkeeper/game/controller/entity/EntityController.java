@@ -188,6 +188,11 @@ public class EntityController implements IEntityController {
     }
 
     @Override
+    public boolean isDragged() {
+        return entityData.getComponent(entityId, HauledBy.class) != null;
+    }
+
+    @Override
     public int compareTo(IEntityController t) {
         return entityId.compareTo(t.getEntityId());
     }

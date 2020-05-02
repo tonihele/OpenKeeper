@@ -70,11 +70,13 @@ public class ObjectController extends EntityController implements IObjectControl
     }
 
     @Override
-    public void creaturePicksUp(ICreatureController creature) {
+    public boolean creaturePicksUp(ICreatureController creature) {
         if (isHaulable()) {
             setHaulable(creature);
+            return false;
         } else {
             creature.giveObject(this);
+            return true;
         }
     }
 

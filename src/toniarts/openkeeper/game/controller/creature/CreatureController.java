@@ -45,7 +45,6 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
-import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mobile;
@@ -887,11 +886,6 @@ public class CreatureController extends EntityController implements ICreatureCon
             }
         }
         return null;
-    }
-
-    @Override
-    public boolean isDragged() {
-        return entityData.getComponent(entityId, HauledBy.class) != null;
     }
 
     @Override

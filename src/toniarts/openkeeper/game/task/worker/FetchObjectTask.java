@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
+import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -35,9 +36,12 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class FetchObjectTask extends AbstractTileTask {
 
     private final IObjectController gameObject;
+    private final TaskManager taskManager;
 
-    public FetchObjectTask(final INavigationService navigationService, final IMapController mapController, final IObjectController objectController, short playerId) {
+    public FetchObjectTask(final TaskManager taskManager, final INavigationService navigationService, final IMapController mapController, final IObjectController objectController, short playerId) {
         super(navigationService, mapController, WorldUtils.vectorToPoint(objectController.getPosition()), playerId);
+
+        this.taskManager = taskManager;
         this.gameObject = objectController;
     }
 
@@ -48,7 +52,7 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull();
+        return gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull() && !gameObject.isDragged();
     }
 
     @Override
@@ -63,9 +67,11 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        gameObject.creaturePicksUp(creature);
+        if (!gameObject.creaturePicksUp(creature)) {
 
-        // TODO: perhaps chaining? everything except gold, maybe a new task class...? Fetch & deliver
+            // Object was not consumed in the process, haul the object to its rightful place
+            taskManager.assignClosestRoomTask(creature, gameObject.getType(), gameObject.getEntityId());
+        }
     }
 
     private boolean isPlayerCapacityFull() {
