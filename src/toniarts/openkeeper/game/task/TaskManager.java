@@ -471,6 +471,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Add the tasks to tile owner and only if the object is not already in storage
         short playerId = tile.getOwnerId();
+        if (!taskQueues.containsKey(playerId)) {
+            return;
+        }
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
             Entity entity = entityData.getEntity(entityId, ObjectComponent.class, Placeable.class);
             ObjectComponent objectComponent = entity.get(ObjectComponent.class);
