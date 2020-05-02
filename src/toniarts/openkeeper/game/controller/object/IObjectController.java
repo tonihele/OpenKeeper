@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.controller.object;
 
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
  * Controls game object entities
@@ -24,5 +26,17 @@ import toniarts.openkeeper.game.controller.entity.IEntityController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IObjectController extends IEntityController {
+
+    public int getPickUpPriority();
+
+    public AbstractRoomController.ObjectType getType();
+
+    public boolean isStoredInRoom();
+
+    public boolean isPickableByPlayerCreature(short playerId);
+
+    public boolean isHaulable();
+
+    public void creaturePicksUp(ICreatureController creature);
 
 }

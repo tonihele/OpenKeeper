@@ -67,6 +67,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -1060,15 +1061,6 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
     }
 
-    @Override
-    public void setHaulable(ICreatureController creature) {
-        if (creature != null) {
-            entityData.setComponent(entityId, new HauledBy(creature.getEntityId()));
-        } else {
-            entityData.removeComponent(entityId, HauledBy.class);
-        }
-    }
-
     private boolean isAlly(EntityId entity) {
         Owner otherOwner = entityData.getComponent(entity, Owner.class);
         if (otherOwner != null) {
@@ -1229,6 +1221,17 @@ public class CreatureController extends EntityController implements ICreatureCon
     public int getResearchPerSecond() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         return creatureComponent.researchPerSecond;
+    }
+
+    @Override
+    public void giveObject(IObjectController object) {
+        if (object.getType() == AbstractRoomController.ObjectType.GOLD) {
+            addGold(entityData.getComponent(object.getEntityId(), Gold.class).gold);
+            entityData.removeComponent(object.getEntityId(), Gold.class);
+            object.remove();
+        } else {
+            LOGGER.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
+        }
     }
 
 }

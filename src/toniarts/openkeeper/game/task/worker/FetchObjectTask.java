@@ -20,13 +20,12 @@ import com.jme3.math.Vector2f;
 import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.object.ObjectControl;
 
 /**
  * A task for creatures to get an object from the game world
@@ -35,11 +34,11 @@ import toniarts.openkeeper.world.object.ObjectControl;
  */
 public class FetchObjectTask extends AbstractTileTask {
 
-    private final ObjectControl object;
+    private final IObjectController gameObject;
 
-    public FetchObjectTask(final INavigationService navigationService, final IMapController mapController, ObjectControl object, short playerId) {
-        super(navigationService, mapController, object.getObjectCoordinates(), playerId);
-        this.object = object;
+    public FetchObjectTask(final INavigationService navigationService, final IMapController mapController, final IObjectController objectController, short playerId) {
+        super(navigationService, mapController, WorldUtils.vectorToPoint(objectController.getPosition()), playerId);
+        this.gameObject = objectController;
     }
 
     @Override
@@ -49,12 +48,12 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return object.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull();
+        return gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull();
     }
 
     @Override
     public int getPriority() {
-        return object.getObject().getPickUpPriority();
+        return gameObject.getPickUpPriority();
     }
 
     @Override
@@ -64,14 +63,13 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        //object.creaturePicksUp(creature);
+        gameObject.creaturePicksUp(creature);
 
         // TODO: perhaps chaining? everything except gold, maybe a new task class...? Fetch & deliver
     }
 
     private boolean isPlayerCapacityFull() {
-        // FIXME: Object type and capacity by the object type
-        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.GOLD, playerId)) {
+        for (IRoomController room : mapController.getRoomsByFunction(gameObject.getType(), playerId)) {
             if (!room.isFullCapacity()) {
                 return false;
             }
@@ -81,7 +79,7 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public boolean isRemovable() {
-        return object.getState() != ObjectControl.ObjectState.NORMAL;
+        return gameObject.isRemoved() || gameObject.isStoredInRoom();
     }
 
     @Override
@@ -92,7 +90,7 @@ public class FetchObjectTask extends AbstractTileTask {
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 97 * hash + Objects.hashCode(this.object);
+        hash = 97 * hash + Objects.hashCode(this.gameObject);
         return hash;
     }
 
@@ -105,7 +103,7 @@ public class FetchObjectTask extends AbstractTileTask {
             return false;
         }
         final FetchObjectTask other = (FetchObjectTask) obj;
-        if (!Objects.equals(this.object, other.object)) {
+        if (!Objects.equals(this.gameObject, other.gameObject)) {
             return false;
         }
         return true;

@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
@@ -31,8 +32,10 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -94,6 +97,11 @@ public class EntityController implements IEntityController {
     @Override
     public Vector3f getPosition() {
         return getPosition(entityData, entityId);
+    }
+
+    @Override
+    public MapTile getTile() {
+        return mapController.getMapData().getTile(WorldUtils.vectorToPoint(getPosition()));
     }
 
     public static Vector3f getPosition(EntityData entityData, EntityId entity) {
@@ -163,6 +171,20 @@ public class EntityController implements IEntityController {
         IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
         roomObjectControl.removeItem(entityId);
+    }
+
+    @Override
+    public boolean isRemoved() {
+        return entityData.getComponent(entityId, Position.class) != null || entityData.getComponent(entityId, InHand.class) != null;
+    }
+
+    @Override
+    public void setHaulable(ICreatureController creature) {
+        if (creature != null) {
+            entityData.setComponent(entityId, new HauledBy(creature.getEntityId()));
+        } else {
+            entityData.removeComponent(entityId, HauledBy.class);
+        }
     }
 
     @Override

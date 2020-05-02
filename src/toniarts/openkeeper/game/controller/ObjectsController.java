@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
@@ -42,6 +43,7 @@ import toniarts.openkeeper.game.controller.chicken.ChickenState;
 import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.object.ObjectController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController.OBJECT_HEART_ID;
 import toniarts.openkeeper.game.controller.room.TempleController;
@@ -166,7 +168,8 @@ public class ObjectsController implements IObjectsController {
     }
 
     private void loadObject(EntityId entity, short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer maxMoney, ResearchableType researchableType, Short researchTypeId, Integer triggerId) {
-        entityData.setComponent(entity, new ObjectComponent(objectId));
+        GameObject obj = kwdFile.getObject(objectId);
+        entityData.setComponent(entity, new ObjectComponent(objectId, getObjectType(obj)));
         entityData.setComponent(entity, new Owner(ownerId));
 
         // Move to the center of the tile
@@ -174,7 +177,6 @@ public class ObjectsController implements IObjectsController {
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
-        GameObject obj = kwdFile.getObject(objectId);
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
             entityData.setComponent(entity, new Gold(money, (maxMoney == null ? (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue() : maxMoney)));
         }
@@ -194,6 +196,9 @@ public class ObjectsController implements IObjectsController {
         }
         if (obj.getSpeed() > 0) {
             entityData.setComponent(entity, new Mobile(false, false, false, obj.getSpeed()));
+        }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.PLACEABLE)) {
+            entityData.setComponent(entity, new Placeable());
         }
 
         // Trigger
@@ -297,6 +302,20 @@ public class ObjectsController implements IObjectsController {
 
     private IChickenController createChickenControllerInternal(EntityId id) {
         return new ChickenController(id, entityData, kwdFile.getObject(OBJECT_EGG_ID), kwdFile.getObject(OBJECT_CHICKEN_ID), gameController.getNavigationService(), gameTimer, this, gameController.getGameWorldController().getMapController());
+    }
+
+    private static AbstractRoomController.ObjectType getObjectType(GameObject obj) {
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+            return AbstractRoomController.ObjectType.GOLD;
+        }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK) || obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPELL_BOOK)) {
+            return AbstractRoomController.ObjectType.SPELL_BOOK;
+        }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
+            return AbstractRoomController.ObjectType.FOOD;
+        }
+
+        return null;
     }
 
 }

@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
@@ -177,13 +178,6 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sleep();
 
     /**
-     * Assigns the given creature haul us
-     *
-     * @param creature the creature hauling us
-     */
-    public void setHaulable(ICreatureController creature);
-
-    /**
      * Set a target for us to follow
      *
      * @param target target to follow
@@ -231,5 +225,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return research per second
      */
     public int getResearchPerSecond();
+
+    /**
+     * Gives object to creature
+     *
+     * @param object the object, might be food, gold, or what ever
+     */
+    public void giveObject(IObjectController object);
 
 }

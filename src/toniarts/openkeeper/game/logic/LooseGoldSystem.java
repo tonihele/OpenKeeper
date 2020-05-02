@@ -40,7 +40,9 @@ import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * A simple state to scan the loose gold inside treasuries. The loose gold is
- * added to the treasury automatically if there is some room left
+ * added to the treasury automatically if there is some room left<br>
+ * TODO: extend to all object types so that everything is gradually put into
+ * storages
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

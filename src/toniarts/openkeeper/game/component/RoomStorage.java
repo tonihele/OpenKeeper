@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
  */
 public class RoomStorage implements EntityComponent {
 
+    // TODO: maybe replace with room ID
     public AbstractRoomController.ObjectType objectType;
 
     public RoomStorage() {

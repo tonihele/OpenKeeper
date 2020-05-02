@@ -41,15 +41,21 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -85,7 +91,6 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.object.ObjectControl;
 
 /**
  * Task manager for several players. Can assign creatures to different tasks.
@@ -96,6 +101,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
+    private final IObjectsController objectsController;
     private final ICreaturesController creaturesController;
     private final INavigationService navigationService;
     private final ILevelInfo levelInfo;
@@ -104,6 +110,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final EntitySet taskEntities;
     private final EntitySet unconsciousEntities;
     private final EntitySet corpseEntities;
+    private final EntitySet freeObjectEntities;
     private final Map<Short, Set<Task>> taskQueues;
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
@@ -112,11 +119,13 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
-    public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController, ICreaturesController creaturesController, INavigationService navigationService,
+    public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
+            IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
             Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
+        this.objectsController = objectsController;
         this.creaturesController = creaturesController;
         this.navigationService = navigationService;
         this.levelInfo = levelInfo;
@@ -153,6 +162,10 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Listen to corpse robbing missions
         corpseEntities = entityData.getEntities(CreatureComponent.class, Death.class);
         processAddedCorpseEntities(corpseEntities);
+
+        // Listen to object picking up missions
+        freeObjectEntities = entityData.getEntities(ObjectComponent.class, Position.class, Placeable.class);
+        processAddedFreeObjectEntities(freeObjectEntities);
     }
 
     @Override
@@ -181,6 +194,10 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         if (corpseEntities.applyChanges()) {
             processDeletedCorpseEntities(corpseEntities.getRemovedEntities());
             processAddedCorpseEntities(corpseEntities.getAddedEntities());
+        }
+        if (freeObjectEntities.applyChanges()) {
+            processDeletedFreeObjectEntities(freeObjectEntities.getRemovedEntities());
+            processAddedFreeObjectEntities(freeObjectEntities.getAddedEntities());
         }
     }
 
@@ -253,6 +270,22 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // TODO:
     }
 
+    private void processAddedFreeObjectEntities(Set<Entity> entities) {
+
+        // Add fetch object missions for changed objects
+        Set<MapTile> tilesToScan = new HashSet<>();
+        for (Entity entity : entities) {
+            tilesToScan.add(getEntityPosition(entity));
+        }
+        for (MapTile tile : tilesToScan) {
+            scanFetchObjectTasks(tile);
+        }
+    }
+
+    private void processDeletedFreeObjectEntities(Set<Entity> entities) {
+        // TODO:
+    }
+
     private void addListeners(Collection<IPlayerController> players) {
 
         // We want to be notified on tile changes, we are event based, not constantly scanning type
@@ -262,6 +295,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             public void onTilesChange(List<MapTile> updatedTiles) {
                 for (MapTile tile : updatedTiles) {
                     scanTerrainTasks(tile, true, true);
+                    scanFetchObjectTasks(tile);
                 }
             }
 
@@ -269,6 +303,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
                 // Not interested
             }
+
         });
 
         // Bridges! They open up new opportunities in new lands
@@ -369,25 +404,6 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
         });
-
-        // Get notified by object tasks
-        // TODO: pick uppable objects entityset listener
-//        this.worldState.getThingLoader().addListener(new ObjectListener() {
-//
-//            @Override
-//            public void onAdded(ObjectControl objectControl) {
-//                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-//                    entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
-//                }
-//            }
-//
-//            @Override
-//            public void onRemoved(ObjectControl objectControl) {
-//                for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-//                    entry.getValue().remove(getObjectTask(objectControl, entry.getKey()));
-//                }
-//            }
-//        });
     }
 
     private void scanInitialTasks() {
@@ -397,13 +413,6 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 scanTerrainTasks(mapController.getMapData().getTile(x, y), false, false);
             }
         }
-
-        // Object tasks
-//        for (ObjectControl objectControl : worldState.getThingLoader().getObjects()) {
-//            for (Entry<Short, Set<AbstractTask>> entry : taskQueues.entrySet()) {
-//                entry.getValue().add(getObjectTask(objectControl, entry.getKey()));
-//            }
-//        }
     }
 
     private void scanTerrainTasks(final MapTile tile, final boolean checkNeighbours, final boolean deleteObsolete) {
@@ -454,6 +463,19 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         if (checkNeighbours) {
             for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile.getLocation(), false)) {
                 scanTerrainTasks(mapController.getMapData().getTile(p), false, false);
+            }
+        }
+    }
+
+    private void scanFetchObjectTasks(MapTile tile) {
+
+        // Add the tasks to tile owner and only if the object is not already in storage
+        short playerId = tile.getOwnerId();
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, ObjectComponent.class, Placeable.class);
+            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+            if (objectComponent != null && objectComponent.objectType != null && entityData.getComponent(entityId, RoomStorage.class) == null) {
+                addTask(playerId, getObjectTask(objectsController.createController(entityId), playerId));
             }
         }
     }
@@ -661,8 +683,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return false;
     }
 
-    private AbstractTask getObjectTask(ObjectControl objectControl, short playerId) {
-        return new FetchObjectTask(navigationService, mapController, objectControl, playerId);
+    private AbstractTask getObjectTask(IObjectController gameObject, short playerId) {
+        return new FetchObjectTask(navigationService, mapController, gameObject, playerId);
     }
 
     @Override
@@ -743,6 +765,17 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         return task;
+    }
+
+    private MapTile getEntityPosition(Entity entity) {
+        MapTile mapTile = entityPositionLookup.getEntityLocation(entity.getId());
+
+        // If the entity is new, it might not be in the registry, rather unfortunatety problem...
+        if (mapTile == null) {
+            mapTile = mapController.getMapData().getTile(WorldUtils.vectorToPoint(EntityController.getPosition(entityData, entity.getId())));
+        }
+
+        return mapTile;
     }
 
 }
