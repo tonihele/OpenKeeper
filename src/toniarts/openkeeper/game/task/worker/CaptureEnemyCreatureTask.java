@@ -52,7 +52,7 @@ public class CaptureEnemyCreatureTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return this.creature.isUnconscious() && !isPrisonCapacityFull();
+        return this.creature.isUnconscious() && !isPrisonCapacityFull() && !this.creature.isDragged();
     }
 
     @Override
