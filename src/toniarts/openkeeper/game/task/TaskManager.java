@@ -369,6 +369,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             @Override
             public void onSold(short keeperId, List<MapTile> tiles) {
                 scanBridgeSurroundings(tiles);
+                for (MapTile tile : tiles) {
+                    scanFetchObjectTasks(tile);
+                }
             }
 
             private void scanBridgeSurroundings(List<MapTile> tiles) {
@@ -642,7 +645,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
             }
             case RESEARCHER: {
-                return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl());
+                return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
             }
             case PRISONER: {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));

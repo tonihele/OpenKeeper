@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<ResearchableEntity> {
+public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<EntityId> {
 
     private int storedSpellBooks = 0;
 
@@ -59,7 +59,7 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Res
     }
 
     @Override
-    public ResearchableEntity addItem(ResearchableEntity value, Point p) {
+    public EntityId addItem(EntityId value, Point p) {
         Collection<EntityId> spellBooks = null;
         if (p != null) {
             spellBooks = objectsByCoordinate.get(p);
@@ -78,13 +78,19 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Res
                 }
             }
         }
-        EntityId object = objectsController.addRoomSpellBook((short) 0, p.x, p.y, value);
+
+        // Set the position correctly
+        Position oldPos = objectsController.getEntityData().getComponent(value, Position.class);
+        Vector3f newPos = WorldUtils.pointToVector3f(p);
+        newPos.y = oldPos.position.y;
+        objectsController.getEntityData().setComponent(value, new Position(oldPos.rotation, newPos));
+
         if (spellBooks == null) {
             spellBooks = new ArrayList<>(getObjectsPerTile());
         }
-        spellBooks.add(object);
+        spellBooks.add(value);
         objectsByCoordinate.put(p, spellBooks);
-        setRoomStorageToItem(object, true);
+        setRoomStorageToItem(value, true);
         storedSpellBooks++;
         return null;
     }
