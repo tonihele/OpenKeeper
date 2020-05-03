@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
@@ -49,7 +50,9 @@ public class HaulingSystem implements IGameLogicUpdatable {
             HauledBy hauledBy = entity.get(HauledBy.class);
             Position position = entity.get(Position.class);
             Position haulerPosition = entityData.getComponent(hauledBy.entityId, Position.class);
-            entityData.setComponent(entity.getId(), new Position(position.rotation, haulerPosition.position.clone()));
+            Vector3f newPos = haulerPosition.position.clone();
+            newPos.y = position.position.y;
+            entityData.setComponent(entity.getId(), new Position(position.rotation, newPos));
         }
     }
 
