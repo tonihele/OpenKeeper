@@ -149,31 +149,31 @@ public class ModelViewerScreenController implements ScreenController {
         Element el = null;
         if (item instanceof Creature) {
             ControlBuilder cb = createCreatureControl((Creature) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof Room) {
             ControlBuilder cb = createRoomControl((Room) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof Terrain) {
             ControlBuilder cb = createTerrainControl((Terrain) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof Shot) {
             ControlBuilder cb = createShotControl((Shot) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof GameLevel) {
             ControlBuilder cb = createGameLevelControl((GameLevel) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof GameObject) {
             ControlBuilder cb = createObjectControl((GameObject) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof Trap) {
             ControlBuilder cb = createTrapControl((Trap) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof Door) {
             ControlBuilder cb = createDoorControl((Door) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         } else if (item instanceof Effect) {
             ControlBuilder cb = createEffectControl((Effect) item);
-            el = cb.build(nifty, screen, panel);
+            el = cb.build(panel);
         }
 
         if (el != null) {

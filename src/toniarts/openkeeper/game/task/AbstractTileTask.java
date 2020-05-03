@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.task;
 import java.awt.Point;
 import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**

@@ -182,6 +182,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             case CARRY_CREATURE_TO_LAIR:
             case CAPTURE_ENEMY_CREATURE:
             case CARRY_CREATURE_TO_JAIL:
+            case CARRY_OBJECT_TO_STORAGE:
             case RESCUE_CREATURE:
                 return "Textures/GUI/moods/SJ-Take_Crate.png";
             case CARRY_GOLD_TO_TREASURY:
@@ -198,7 +199,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             case CLAIM_LAIR:
             case GO_TO_SLEEP:
                 return "Textures/GUI/moods/SJ-Rest.png";
-            case RESEARCH_SPELL:
+            case RESEARCH:
                 return "Textures/GUI/moods/SJ-Library.png";
             case GO_TO_EAT:
                 return "Textures/GUI/moods/SJ-Hungry.png";

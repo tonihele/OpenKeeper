@@ -147,6 +147,8 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
                 return Utils.getMainTextResourceBundle().getString("2619");
             case CARRY_GOLD_TO_TREASURY:
                 return Utils.getMainTextResourceBundle().getString("2786");
+            case CARRY_OBJECT_TO_STORAGE:
+                return Utils.getMainTextResourceBundle().getString("2609"); // TODO: these are really awfully specific, we need to fine grain this
             case CLAIM_ROOM:
                 return Utils.getMainTextResourceBundle().getString("2602");
             case CLAIM_TILE:
@@ -157,7 +159,7 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
                 MapTile tile = mapInformation.getMapData().getTile(taskComponent.targetLocation);
                 return Utils.getMainTextResourceBundle().getString(tile.getGold() > 0 ? "2605" : "2600");
             case FETCH_OBJECT:
-                return Utils.getMainTextResourceBundle().getString("546");
+                return Utils.getMainTextResourceBundle().getString("2608");
             case GO_TO_LOCATION:
                 return Utils.getMainTextResourceBundle().getString("2670");
             case GO_TO_SLEEP:
@@ -168,7 +170,7 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
                 return Utils.getMainTextResourceBundle().getString("2604");
             case RESCUE_CREATURE:
                 return Utils.getMainTextResourceBundle().getString("2617");
-            case RESEARCH_SPELL:
+            case RESEARCH:
                 return Utils.getMainTextResourceBundle().getString("2625");
             case GO_TO_EAT: {
                 return Utils.getMainTextResourceBundle().getString("2668");

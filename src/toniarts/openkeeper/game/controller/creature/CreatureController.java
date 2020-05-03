@@ -45,7 +45,6 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
-import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mobile;
@@ -67,6 +66,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -343,6 +343,13 @@ public class CreatureController extends EntityController implements ICreatureCon
         // See if we have some available work
         if (isWorker()) {
             return (taskManager.assignTask(this, false));
+        }
+
+        short owner = getOwnerId();
+        if (owner == Player.NEUTRAL_PLAYER_ID || owner == Player.GOOD_PLAYER_ID) {
+
+            // Currently no creature specific jobs offered for neutral or good players
+            return false;
         }
 
         // See that is there a prefered job for us
@@ -882,11 +889,6 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public boolean isDragged() {
-        return entityData.getComponent(entityId, HauledBy.class) != null;
-    }
-
-    @Override
     public boolean isUnconscious() {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health != null) {
@@ -1053,15 +1055,6 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
     }
 
-    @Override
-    public void setHaulable(ICreatureController creature) {
-        if (creature != null) {
-            entityData.setComponent(entityId, new HauledBy(creature.getEntityId()));
-        } else {
-            entityData.removeComponent(entityId, HauledBy.class);
-        }
-    }
-
     private boolean isAlly(EntityId entity) {
         Owner otherOwner = entityData.getComponent(entity, Owner.class);
         if (otherOwner != null) {
@@ -1222,6 +1215,17 @@ public class CreatureController extends EntityController implements ICreatureCon
     public int getResearchPerSecond() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         return creatureComponent.researchPerSecond;
+    }
+
+    @Override
+    public void giveObject(IObjectController object) {
+        if (object.getType() == AbstractRoomController.ObjectType.GOLD) {
+            addGold(entityData.getComponent(object.getEntityId(), Gold.class).gold);
+            entityData.removeComponent(object.getEntityId(), Gold.class);
+            object.remove();
+        } else {
+            LOGGER.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
+        }
     }
 
 }

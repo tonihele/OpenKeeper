@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2020 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,29 +17,16 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
- * A base object component
+ * Just a tagging component for placeable items (i.e. workers can interact)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectComponent implements EntityComponent {
+public class Placeable implements EntityComponent {
 
-    public short objectId;
-
-    /**
-     * The object type, tied to room storage types also
-     */
-    public AbstractRoomController.ObjectType objectType;
-
-    public ObjectComponent() {
+    public Placeable() {
         // For serialization
-    }
-
-    public ObjectComponent(short objectId, AbstractRoomController.ObjectType objectType) {
-        this.objectId = objectId;
-        this.objectType = objectType;
     }
 
 }

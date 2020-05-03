@@ -17,8 +17,10 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -38,12 +40,14 @@ import toniarts.openkeeper.utils.WorldUtils;
 public class Research extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerResearchControl researchControl;
+    private final IObjectsController objectsController;
 
     public Research(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerResearchControl researchControl) {
+            TaskManager taskManager, PlayerResearchControl researchControl, IObjectsController objectsController) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.researchControl = researchControl;
+        this.objectsController = objectsController;
     }
 
     @Override
@@ -73,14 +77,20 @@ public class Research extends AbstractCapacityCriticalRoomTask {
             if (researchableEntity != null) {
 
                 // Create a spell book
-                getRoomObjectControl().addItem(researchableEntity, null);
+                EntityId entityId = objectsController.addRoomSpellBook((short) 0, getTaskLocation().x, getTaskLocation().y, researchableEntity);
+                entityId = (EntityId) getRoomObjectControl().addItem(entityId, null);
+                if (entityId != null) {
+
+                    // Failed add, wut
+                    objectsController.createController(entityId).remove();
+                }
             }
         }
     }
 
     @Override
     public TaskType getTaskType() {
-        return TaskType.RESEARCH_SPELL;
+        return TaskType.RESEARCH;
     }
 
 }

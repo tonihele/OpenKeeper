@@ -229,7 +229,13 @@ public class AnimationLoader {
         }
         attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
 
+        if(anim == null) {
+            LOGGER.log(Level.WARNING, "Animation null!");
+            return;
+        }
+        
         try {
+            
             // Get the anim node
             String animNodeName = anim.getName();
             if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {

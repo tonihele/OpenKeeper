@@ -18,12 +18,18 @@ package toniarts.openkeeper.game.controller.object;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Placeable;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
+ * Controller for object type entities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -36,6 +42,42 @@ public class ObjectController extends EntityController implements IObjectControl
         super(entityId, entityData, objectsController, mapController);
 
         this.object = object;
+    }
+
+    @Override
+    public int getPickUpPriority() {
+        return object.getPickUpPriority();
+    }
+
+    @Override
+    public AbstractRoomController.ObjectType getType() {
+        return entityData.getComponent(entityId, ObjectComponent.class).objectType;
+    }
+
+    @Override
+    public boolean isStoredInRoom() {
+        return entityData.getComponent(entityId, RoomStorage.class) != null;
+    }
+
+    @Override
+    public boolean isPickableByPlayerCreature(short playerId) {
+        return entityData.getComponent(entityId, Placeable.class) != null && getTile().getOwnerId() == playerId;
+    }
+
+    @Override
+    public boolean isHaulable() {
+        return entityData.getComponent(entityId, Placeable.class) != null && getType() != AbstractRoomController.ObjectType.GOLD;
+    }
+
+    @Override
+    public boolean creaturePicksUp(ICreatureController creature) {
+        if (isHaulable()) {
+            setHaulable(creature);
+            return false;
+        } else {
+            creature.giveObject(this);
+            return true;
+        }
     }
 
 }

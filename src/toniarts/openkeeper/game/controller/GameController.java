@@ -57,7 +57,7 @@ import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
-import toniarts.openkeeper.game.logic.LooseGoldSystem;
+import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
@@ -226,7 +226,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
         // Initialize tasks
-        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this, positionSystem);
+        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this, positionSystem);
 
         // The triggers
         partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
@@ -272,7 +272,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
-                new LooseGoldSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
+                new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
                 taskManager);
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");

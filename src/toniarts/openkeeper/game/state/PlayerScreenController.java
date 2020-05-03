@@ -298,7 +298,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                     {
                         style("textNormal");
                     }
-                }.build(nifty, nifty.getScreen(SCREEN_HUD_ID), optionsColumnOne);
+                }.build(optionsColumnOne);
 
                 items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
                 items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
@@ -314,7 +314,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
                 {
                 }
-            }.build(nifty, nifty.getScreen(SCREEN_HUD_ID), item.parent);
+            }.build(item.parent);
         }
 
         // Fix layout
@@ -417,7 +417,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                 Element contentPanel = screen.findElementById("creature-icon");
                 if (contentPanel != null) {
-                    createCreatureIcon(creature.getIcon1Resource().getName()).build(nifty, screen, contentPanel);
+                    createCreatureIcon(creature.getIcon1Resource().getName()).build(contentPanel);
                 }
 
                 contentPanel = screen.findElementById("creature-filter");
@@ -427,13 +427,13 @@ public class PlayerScreenController implements IPlayerScreenController {
                             {
                                 filename(creature.getFirstPersonFilterResource().getName());
                             }
-                        }.build(nifty, screen, contentPanel);
+                        }.build(contentPanel);
                     } else if (getFilterResourceName(creature.getCreatureId()) != null) {
                         new ImageBuilder() {
                             {
                                 filename(getFilterResourceName(creature.getCreatureId()));
                             }
-                        }.build(nifty, screen, contentPanel);
+                        }.build(contentPanel);
                     }
 
                     if (creature.getFirstPersonGammaEffect() != null) {
@@ -446,12 +446,12 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                     String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
                     if (ability != null) {
-                        createCreatureAbilityIcon(ability, 1).build(nifty, screen, contentPanel);
+                        createCreatureAbilityIcon(ability, 1).build(contentPanel);
                     }
 
                     ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
                     if (ability != null) {
-                        createCreatureAbilityIcon(ability, 2).build(nifty, screen, contentPanel);
+                        createCreatureAbilityIcon(ability, 2).build(contentPanel);
                     }
                 }
 
@@ -461,7 +461,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                         element.markForRemoval();
                     }
 
-                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(nifty, screen, contentPanel);
+                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
 
                     int index = 1;
                     for (Creature.Spell s : creature.getSpells()) {
@@ -660,7 +660,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 id("tab-workers");
             }
         };
-        element = cb.build(nifty, hud, workersPanel, 0);
+        element = cb.build(workersPanel, 0);
         WorkerAmountControl workerAmountControl = element.getControl(WorkerAmountControl.class);
 
         // Player creatures, the controller
@@ -1346,7 +1346,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                     id("creature_" + creature.getCreatureId());
                 }
             };
-            Element element = cb.build(nifty, hud, parent);
+            Element element = cb.build(parent);
             CreatureCardControl creatureCardControl = element.getControl(CreatureCardControl.class);
 
             // Add the event listener

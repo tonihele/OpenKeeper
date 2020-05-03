@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.controller.entity;
 
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.map.MapTile;
 
 /**
  * Common interface for all kinds of entities
@@ -31,6 +33,8 @@ public interface IEntityController extends Comparable<IEntityController> {
     public short getOwnerId();
 
     public Vector3f getPosition();
+
+    public MapTile getTile();
 
     public int getHealth();
 
@@ -64,5 +68,26 @@ public interface IEntityController extends Comparable<IEntityController> {
      * @see #remove()
      */
     public void removePosession();
+
+    /**
+     * Is the entity removed from the world (destroyed, dead...)
+     *
+     * @return true if the entity does not exist anymore
+     */
+    public boolean isRemoved();
+
+    /**
+     * Assigns the given creature haul us
+     *
+     * @param creature the creature hauling us
+     */
+    public void setHaulable(ICreatureController creature);
+
+    /**
+     * Is the entity being dragged, or hauled
+     *
+     * @return true is hauled
+     */
+    public boolean isDragged();
 
 }

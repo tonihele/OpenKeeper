@@ -21,79 +21,89 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
- * A simple state to scan the loose gold inside treasuries. The loose gold is
- * added to the treasury automatically if there is some room left
+ * A simple state to scan the loose objects inside rooms. The loose objects are
+ * added to the rooms automatically if there is some storage capacity left
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LooseGoldSystem implements IGameLogicUpdatable {
+public class LooseObjectSystem implements IGameLogicUpdatable {
 
-    private final EntitySet looseGoldEntities;
+    private final EntitySet looseObjectEntities;
 
     private final EntityData entityData;
-    private final SafeArrayList<EntityId> looseGoldEntityIds;
+    private final SafeArrayList<EntityId> looseObjectEntityIds;
     private final IMapController mapController;
     private final Map<Short, IPlayerController> playerControllers;
     private final IEntityPositionLookup entityPositionLookup;
 
-    public LooseGoldSystem(EntityData entityData, IMapController mapController, Map<Short, IPlayerController> playerControllers,
+    public LooseObjectSystem(EntityData entityData, IMapController mapController, Map<Short, IPlayerController> playerControllers,
             IEntityPositionLookup entityPositionLookup) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.playerControllers = playerControllers;
         this.entityPositionLookup = entityPositionLookup;
 
-        // TODO: Figure out a better way to flag loose gold
-        looseGoldEntities = entityData.getEntities(
-                new FieldFilter(ObjectComponent.class, "objectId", ObjectsController.OBJECT_GOLD_ID),
-                ObjectComponent.class, Gold.class, Position.class);
-        looseGoldEntityIds = new SafeArrayList<>(EntityId.class);
-        processAddedEntities(looseGoldEntities);
+        looseObjectEntities = entityData.getEntities(ObjectComponent.class, Position.class, Placeable.class);
+        looseObjectEntityIds = new SafeArrayList<>(EntityId.class);
+        processAddedEntities(looseObjectEntities);
     }
 
     @Override
     public void processTick(float tpf, double gameTime) {
 
         // Add new & remove old
-        if (looseGoldEntities.applyChanges()) {
+        if (looseObjectEntities.applyChanges()) {
 
-            processAddedEntities(looseGoldEntities.getAddedEntities());
+            processAddedEntities(looseObjectEntities.getAddedEntities());
 
-            processDeletedEntities(looseGoldEntities.getRemovedEntities());
+            processDeletedEntities(looseObjectEntities.getRemovedEntities());
 
         }
 
-        // Attach loose gold to rooms
-        for (EntityId entityId : looseGoldEntityIds.getArray()) {
+        // Attach loose objects to rooms
+        for (EntityId entityId : looseObjectEntityIds.getArray()) {
+            RoomStorage roomStorage = entityData.getComponent(entityId, RoomStorage.class);
+            if (roomStorage != null) {
+
+                // TODO: Dunno if this the best way, we always iterate through a lot of unnecessary objects
+                // Maybe storage should remove the placeable temporarily...
+                continue;
+            }
+
             MapTile mapTile = entityPositionLookup.getEntityLocation(entityId);
             if (mapTile == null) {
 
                 // No position yet, we get it next time
                 continue;
             }
+            if (mapTile.getOwnerId() != Player.GOOD_PLAYER_ID && mapTile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
+                continue;
+            }
+
             Point point = mapTile.getLocation();
             IRoomController roomController = mapController.getRoomControllerByCoordinates(point);
-            if (roomController != null && roomController.canStoreGold() && !roomController.isFullCapacity()) {
+            ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+            if (roomController != null && objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
                 short ownerId = roomController.getRoomInstance().getOwnerId();
-                if (ownerId != Player.GOOD_PLAYER_ID && ownerId != Player.NEUTRAL_PLAYER_ID) {
+                if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {
                     synchronized (GameWorldController.GOLD_LOCK) {
                         Gold gold = entityData.getComponent(entityId, Gold.class);
                         int goldLeft = (int) roomController.getObjectControl(AbstractRoomController.ObjectType.GOLD).addItem(gold.gold, point);
@@ -104,6 +114,8 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
                             entityData.setComponent(entityId, new Gold(goldLeft, gold.maxGold));
                         }
                     }
+                } else {
+                    roomController.getObjectControl(objectComponent.objectType).addItem(entityId, point);
                 }
             }
         }
@@ -111,15 +123,15 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            int index = Collections.binarySearch(looseGoldEntityIds, entity.getId());
-            looseGoldEntityIds.add(~index, entity.getId());
+            int index = Collections.binarySearch(looseObjectEntityIds, entity.getId());
+            looseObjectEntityIds.add(~index, entity.getId());
         }
     }
 
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            int index = Collections.binarySearch(looseGoldEntityIds, entity.getId());
-            looseGoldEntityIds.remove(index);
+            int index = Collections.binarySearch(looseObjectEntityIds, entity.getId());
+            looseObjectEntityIds.remove(index);
         }
     }
 
@@ -131,8 +143,8 @@ public class LooseGoldSystem implements IGameLogicUpdatable {
 
     @Override
     public void stop() {
-        looseGoldEntities.release();
-        looseGoldEntityIds.clear();
+        looseObjectEntities.release();
+        looseObjectEntities.clear();
     }
 
 }

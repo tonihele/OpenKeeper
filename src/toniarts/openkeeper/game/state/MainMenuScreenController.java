@@ -500,7 +500,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     unlockedLevel.text(button.getRenderer(TextRenderer.class).getOriginalText());
                     unlockedLevel.align(Align.Center);
 
-                    unlockedLevel.build(nifty, mpdScreen, mpdList, button);
+                    unlockedLevel.build(mpdList, button);
 
                     // remove the button
                     button.markForRemoval();
@@ -626,7 +626,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             hiscoreDesc.parameter("level", "${menu.2042}");
             hiscoreDesc.parameter("user", "${menu.83}");
             hiscoreDesc.style("nifty-hiscore-head");
-            hiscoreDesc.build(nifty, screen, hiscoreList);
+            hiscoreDesc.build(hiscoreList);
 
             int i = 0;
             for (HiScores.HiScoresEntry hiscore : HiScores.load().getEntries()) {
@@ -635,7 +635,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 hiscoreControl.parameter("score", hiscore.getScore() + "");
                 hiscoreControl.parameter("level", hiscore.getLevel());
                 hiscoreControl.parameter("user", hiscore.getName());
-                hiscoreControl.build(nifty, screen, hiscoreList);
+                hiscoreControl.build(hiscoreList);
             }
         }
     }
@@ -669,7 +669,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 control.parameter("image", imagePath);
                 control.parameter("click", action);
                 control.parameter("moviename", cutscene.moviename);
-                control.build(nifty, screen, movies);
+                control.build(movies);
             } else {
                 // modify movie list if changed
                 Element element = movies.findElementById("movie" + index);
@@ -682,7 +682,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     control.parameter("image", imagePath);
                     control.parameter("click", action);
                     control.parameter("moviename", cutscene.moviename);
-                    control.build(nifty, screen, movies, element);
+                    control.build(movies, element);
 
                     // remove the old element
                     element.markForRemoval();
@@ -1025,7 +1025,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 optionalVerticalScrollbar();
             }
         };
-        cb.build(nifty, screen, playersPanel);
+        cb.build(playersPanel);
     }
 
     @Override
