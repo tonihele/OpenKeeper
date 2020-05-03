@@ -52,7 +52,7 @@ public class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull() && !gameObject.isDragged();
+        return !isRemovable() && gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull() && !gameObject.isDragged();
     }
 
     @Override

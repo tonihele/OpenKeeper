@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
 import java.awt.Point;
+import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -89,6 +90,28 @@ public class CarryObjectToStorageTask extends AbstractCapacityCriticalRoomTask {
     @Override
     public TaskType getTaskType() {
         return TaskType.CARRY_OBJECT_TO_STORAGE;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 97 * hash + Objects.hashCode(this.gameObject);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final CarryObjectToStorageTask other = (CarryObjectToStorageTask) obj;
+        if (!Objects.equals(this.gameObject, other.gameObject)) {
+            return false;
+        }
+        return true;
     }
 
 }

@@ -179,6 +179,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         taskEntities.release();
         unconsciousEntities.release();
         corpseEntities.release();
+        freeObjectEntities.release();
     }
 
     @Override
@@ -274,12 +275,14 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private void processAddedFreeObjectEntities(Set<Entity> entities) {
 
         // Add fetch object missions for changed objects
-        Set<MapTile> tilesToScan = new HashSet<>();
         for (Entity entity : entities) {
-            tilesToScan.add(getEntityPosition(entity));
-        }
-        for (MapTile tile : tilesToScan) {
-            scanFetchObjectTasks(tile);
+            Point p = WorldUtils.vectorToPoint(entity.get(Position.class).position);
+            MapTile tile = mapController.getMapData().getTile(p);
+            short playerId = tile.getOwnerId();
+            if (!taskQueues.containsKey(playerId)) {
+                continue;
+            }
+            createFetchObjectTask(entity, playerId);
         }
     }
 
@@ -479,11 +482,15 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return;
         }
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
-            Entity entity = entityData.getEntity(entityId, ObjectComponent.class, Placeable.class);
-            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
-            if (objectComponent != null && objectComponent.objectType != null && entityData.getComponent(entityId, RoomStorage.class) == null) {
-                addTask(playerId, getObjectTask(objectsController.createController(entityId), playerId));
-            }
+            Entity entity = entityData.getEntity(entityId, ObjectComponent.class, Placeable.class, Position.class);
+            createFetchObjectTask(entity, playerId);
+        }
+    }
+
+    private void createFetchObjectTask(Entity entity, short playerId) {
+        ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+        if (objectComponent != null && objectComponent.objectType != null && entityData.getComponent(entity.getId(), RoomStorage.class) == null) {
+            addTask(playerId, getObjectTask(objectsController.createController(entity.getId()), playerId));
         }
     }
 

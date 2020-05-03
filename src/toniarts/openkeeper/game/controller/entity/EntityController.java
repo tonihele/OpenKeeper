@@ -175,7 +175,7 @@ public class EntityController implements IEntityController {
 
     @Override
     public boolean isRemoved() {
-        return entityData.getComponent(entityId, Position.class) != null || entityData.getComponent(entityId, InHand.class) != null;
+        return entityData.getComponent(entityId, Position.class) == null && entityData.getComponent(entityId, InHand.class) == null;
     }
 
     @Override
