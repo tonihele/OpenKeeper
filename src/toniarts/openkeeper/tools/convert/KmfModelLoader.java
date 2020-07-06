@@ -16,7 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import com.jme3.animation.AnimControl;
+import com.jme3.anim.AnimClip;
+import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
@@ -81,13 +82,13 @@ import toniarts.openkeeper.utils.TangentBinormalGenerator;
 public class KmfModelLoader implements AssetLoader {
 
     /* Some textures are broken */
-    private final static Map<String, String> textureFixes;
+    private final static Map<String, String> TEXTURE_FIXES;
     private static String dkIIFolder;
 
     static {
-        textureFixes = new HashMap<>(2);
-        textureFixes.put("Goblinbak", "GoblinBack");
-        textureFixes.put("Goblin2", "GoblinFront");
+        TEXTURE_FIXES = new HashMap<>(2);
+        TEXTURE_FIXES.put("Goblinbak", "GoblinBack");
+        TEXTURE_FIXES.put("Goblin2", "GoblinFront");
     }
     /**
      * If the material has multiple texture options, the material is named
@@ -103,7 +104,7 @@ public class KmfModelLoader implements AssetLoader {
     public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
-    private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
+    private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> MATERIAL_CACHE = new HashMap<>();
 
     public static void main(final String[] args) throws IOException {
 
@@ -152,7 +153,7 @@ public class KmfModelLoader implements AssetLoader {
             kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
         }
 
-        //Create a root
+        // Create a root
         Node root = new Node("Root");
 
         if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
@@ -184,7 +185,7 @@ public class KmfModelLoader implements AssetLoader {
      */
     private void createGroup(Node root, KmfFile kmfFile) {
 
-        //Go trough the models and add them
+        // Go trough the models and add them
         for (Grop grop : kmfFile.getGrops()) {
             String key = AssetsConverter.MODELS_FOLDER + File.separator + grop.getName() + ".j3o";
             AssetLinkNode modelLink = new AssetLinkNode(key, new ModelKey(key));
@@ -205,10 +206,10 @@ public class KmfModelLoader implements AssetLoader {
         File tempFile = File.createTempFile(prefix, "kmf");
         tempFile.deleteOnExit();
 
-        //Write the file
+        // Write the file
         try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
 
-            //Write in blocks
+            // Write in blocks
             byte[] buffer = new byte[2048];
             int tmp;
 
@@ -229,32 +230,32 @@ public class KmfModelLoader implements AssetLoader {
      */
     private void handleMesh(toniarts.openkeeper.tools.convert.kmf.Mesh sourceMesh, Map<Integer, List<Material>> materials, Node root) {
 
-        //Source mesh is node
+        // Source mesh is node
         Node node = new Node(sourceMesh.getName());
         node.setLocalTranslation(new Vector3f(sourceMesh.getPos().x, -sourceMesh.getPos().z, sourceMesh.getPos().y));
 
         int index = 0;
         for (MeshSprite meshSprite : sourceMesh.getSprites()) {
 
-            //Each sprite represents a geometry (+ mesh) since they each have their own material
+            // Each sprite represents a geometry (+ mesh) since they each have their own material
             Mesh mesh = new Mesh();
 
-            //Vertices, UV (texture coordinates), normals
+            // Vertices, UV (texture coordinates), normals
             Vector3f[] vertices = new Vector3f[meshSprite.getVertices().size()];
             Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
             Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
             int i = 0;
             for (MeshVertex meshVertex : meshSprite.getVertices()) {
 
-                //Vertice
+                // Vertice
                 javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
                 vertices[i] = new Vector3f(v.x, -v.z, v.y);
 
-                //Texture coordinate
+                // Texture coordinate
                 Uv uv = meshVertex.getUv();
                 texCoord[i] = new Vector2f(uv.getUv()[0] / 32768f, uv.getUv()[1] / 32768f);
 
-                //Normals
+                // Normals
                 v = meshVertex.getNormal();
                 normals[i] = new Vector3f(v.x, -v.z, v.y);
 
@@ -264,7 +265,7 @@ public class KmfModelLoader implements AssetLoader {
             // Triangles, we have LODs here
             VertexBuffer[] lodLevels = createIndices(meshSprite.getTriangles());
 
-            //Set the buffers
+            // Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(lodLevels[0]);
             mesh.setLodLevels(lodLevels);
@@ -275,12 +276,12 @@ public class KmfModelLoader implements AssetLoader {
             // Create geometry
             Geometry geom = createGeometry(index, sourceMesh.getName(), mesh, materials, meshSprite.getMaterialIndex());
 
-            //Attach the geometry to the node
+            // Attach the geometry to the node
             node.attachChild(geom);
             index++;
         }
 
-        //Attach the node to the root
+        // Attach the node to the root
         root.attachChild(node);
     }
 
@@ -293,7 +294,7 @@ public class KmfModelLoader implements AssetLoader {
      */
     private void handleAnim(Anim anim, Map<Integer, List<Material>> materials, Node root) {
 
-        //Source mesh is node
+        // Source mesh is node
         Node node = new Node(anim.getName());
         node.setUserData(FRAME_FACTOR_FUNCTION, anim.getFrameFactorFunction().name());
         node.setLocalTranslation(new Vector3f(anim.getPos().x, -anim.getPos().z, anim.getPos().y));
@@ -323,10 +324,10 @@ public class KmfModelLoader implements AssetLoader {
             Map<Integer, List<KmfModelLoader.FrameInfo>> frameInfos = new HashMap<>(anim.getFrames());
 
             //
-            //Each sprite represents a geometry (+ mesh) since they each have their own material
+            // Each sprite represents a geometry (+ mesh) since they each have their own material
             Mesh mesh = new Mesh();
 
-            //Vertices, UV (texture coordinates), normals
+            // Vertices, UV (texture coordinates), normals
             Vector3f[] vertices = new Vector3f[animSprite.getVertices().size()];
             Vector2f[] texCoord = new Vector2f[animSprite.getVertices().size()];
             Vector3f[] normals = new Vector3f[animSprite.getVertices().size()];
@@ -339,10 +340,10 @@ public class KmfModelLoader implements AssetLoader {
                 // Keep the last frame for creating the target pose
                 KmfModelLoader.FrameInfo previousFrame = null;
 
-                //Go through every frame
+                // Go through every frame
                 for (int frame = 0; frame < anim.getFrames(); frame++) {
 
-                    //Vertice
+                    // Vertice
                     int geomBase = anim.getItab()[frame >> 7][animVertex.getItabIndex()];
                     short geomOffset = anim.getOffsets()[animVertex.getItabIndex()][frame];
                     int geomIndex = geomBase + geomOffset;
@@ -427,11 +428,11 @@ public class KmfModelLoader implements AssetLoader {
                 }
                 vertices[i] = new Vector3f(baseCoord.x, -baseCoord.z, baseCoord.y);
 
-                //Texture coordinate
+                // Texture coordinate
                 Uv uv = animVertex.getUv();
                 texCoord[i] = new Vector2f(uv.getUv()[0] / 32768f, uv.getUv()[1] / 32768f);
 
-                //Normals
+                // Normals
                 javax.vecmath.Vector3f v = animVertex.getNormal();
                 normals[i] = new Vector3f(v.x, -v.z, v.y);
 
@@ -487,14 +488,10 @@ public class KmfModelLoader implements AssetLoader {
                 frameList.add(f);
             }
 
-            // Create a pose track for this mesh
-            PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[frameList.size()]));
-            poseTracks.add(poseTrack);
-
             // Create lod levels
             VertexBuffer[] lodLevels = createIndices(animSprite.getTriangles());
 
-            //Set the buffers
+            // Set the buffers
             mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(Type.BindPosePosition, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(lodLevels[0]);
@@ -507,19 +504,23 @@ public class KmfModelLoader implements AssetLoader {
             // Create geometry
             Geometry geom = createGeometry(index, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
 
-            //Attach the geometry to the node
+            // Create a pose track for this mesh
+            PoseTrack poseTrack = new PoseTrack(geom, times, frameList.toArray(new PoseFrame[frameList.size()]));
+            poseTracks.add(poseTrack);
+
+            // Attach the geometry to the node
             node.attachChild(geom);
             index++;
         }
 
         // Create the animation itself and attach the animation
-        com.jme3.animation.Animation animation = new com.jme3.animation.Animation("anim", (anim.getFrames() - 1) / 30f);
+        AnimClip animation = new AnimClip("anim");
         animation.setTracks(poseTracks.toArray(new PoseTrack[poseTracks.size()]));
-        AnimControl control = new AnimControl();
-        control.addAnim(animation);
-        node.addControl(control);
+        AnimComposer composer = new AnimComposer();
+        composer.addAnimClip(animation);
+        node.addControl(composer);
 
-        //Attach the node to the root
+        // Attach the node to the root
         root.attachChild(node);
     }
 
@@ -572,10 +573,10 @@ public class KmfModelLoader implements AssetLoader {
      */
     private Geometry createGeometry(int index, String name, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
 
-        //Create geometry
+        // Create geometry
         Geometry geom = new Geometry(index + "", mesh);
 
-        //Add LOD control
+        // Add LOD control
         LodControl lc = new LodControl();
         geom.addControl(lc);
 
@@ -645,10 +646,10 @@ public class KmfModelLoader implements AssetLoader {
             // Get the texture, the first one
             // There is a list of possible alternative textures
             String texture = mat.getTextures().get(0);
-            if (textureFixes.containsKey(texture)) {
+            if (TEXTURE_FIXES.containsKey(texture)) {
 
                 //Fix the texture entry
-                texture = textureFixes.get(texture);
+                texture = TEXTURE_FIXES.get(texture);
             }
 
             // See if the material is found already on the cache
@@ -656,7 +657,7 @@ public class KmfModelLoader implements AssetLoader {
             String materialKey = null;
             String fileName;
             if (generateMaterialFile) {
-                materialKey = materialCache.get(mat);
+                materialKey = MATERIAL_CACHE.get(mat);
                 if (materialKey != null) {
                     material = assetInfo.getManager().loadMaterial(materialKey);
                     setMaterialFlags(material, mat);
@@ -703,7 +704,7 @@ public class KmfModelLoader implements AssetLoader {
                 material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
             }
 
-            //Load up the texture and create the material
+            // Load up the texture and create the material
             Texture tex = loadTexture(texture, assetInfo);
             material.setTexture("DiffuseMap", tex);
             material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
@@ -731,10 +732,10 @@ public class KmfModelLoader implements AssetLoader {
 
                 // Get the texture
                 String alternativeTexture = mat.getTextures().get(k);
-                if (textureFixes.containsKey(alternativeTexture)) {
+                if (TEXTURE_FIXES.containsKey(alternativeTexture)) {
 
                     //Fix the texture entry
-                    alternativeTexture = textureFixes.get(alternativeTexture);
+                    alternativeTexture = TEXTURE_FIXES.get(alternativeTexture);
                 }
                 Texture alternativeTex = loadTexture(alternativeTexture, assetInfo);
 
@@ -767,7 +768,7 @@ public class KmfModelLoader implements AssetLoader {
 
                     // Put the first one to the cache
                     if (k == 0) {
-                        materialCache.put(mat, materialKey);
+                        MATERIAL_CACHE.put(mat, materialKey);
                     }
                 }
             }

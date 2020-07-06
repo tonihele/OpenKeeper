@@ -16,9 +16,11 @@
  */
 package toniarts.openkeeper.view.animation;
 
+import com.jme3.anim.AnimComposer;
+import static com.jme3.anim.AnimComposer.DEFAULT_LAYER;
+import com.jme3.anim.tween.Tweens;
+import com.jme3.anim.tween.action.BaseAction;
 import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
-import com.jme3.animation.AnimEventListener;
 import com.jme3.animation.LoopMode;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
@@ -40,6 +42,8 @@ public class AnimationLoader {
     private static final String START_ANIMATION_NAME = "Start";
     private static final String END_ANIMATION_NAME = "End";
     private static final String ANIM_NAME = "anim";
+    private static final String PLAY_ANIM_NAME = "animWithListeners";
+    private static final AnimEventListener ANIM_EVENT_LISTENER = new AnimEventListener();
     private static final Logger LOGGER = Logger.getLogger(AnimationLoader.class.getName());
 
     private AnimationLoader() {
@@ -62,37 +66,39 @@ public class AnimationLoader {
                     spatStart.setName(START_ANIMATION_NAME);
 
                     // Create kinda a custom animation control
-                    AnimControl animControl = spatStart.getControl(AnimControl.class);
+                    AnimComposer animControl = spatStart.getControl(AnimComposer.class);
                     if (animControl != null) {
                         animControl.setEnabled(false);
-                        animControl.addListener(new AnimEventListener() {
-
-                            @Override
-                            public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
-
-                                // Start the real animation
-                                Spatial spat = root.getChild(resource.getName());
-                                AnimControl animControl = spat.getControl(AnimControl.class);
-                                spat.setCullHint(Spatial.CullHint.Inherit);
-                                AnimChannel c = animControl.getChannel(0);
-                                LoopMode loopMode = c.getLoopMode();
-                                c.setAnim(ANIM_NAME, 0);
-                                if (loopMode != null) {
-                                    c.setLoopMode(loopMode);
-                                }
-                                animControl.setEnabled(true);
-
-                                // Hide us
-                                control.setEnabled(false);
-                                control.getSpatial().setCullHint(Spatial.CullHint.Always);
-                            }
-
-                            @Override
-                            public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
-
-                            }
-                        });
-                        animControl.createChannel();
+                        BaseAction myAction = new BaseAction(Tweens.sequence(animControl.action(ANIM_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "startAnimationDone", animControl, root, resource)));
+                        animControl.addAction(PLAY_ANIM_NAME, myAction);
+//                        animControl.addListener(new AnimEventListener() {
+//
+//                            @Override
+//                            public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
+//
+//                                // Start the real animation
+//                                Spatial spat = root.getChild(resource.getName());
+//                                AnimControl animControl = spat.getControl(AnimControl.class);
+//                                spat.setCullHint(Spatial.CullHint.Inherit);
+//                                AnimChannel c = animControl.getChannel(0);
+//                                LoopMode loopMode = c.getLoopMode();
+//                                c.setAnim(ANIM_NAME, 0);
+//                                if (loopMode != null) {
+//                                    c.setLoopMode(loopMode);
+//                                }
+//                                animControl.setEnabled(true);
+//
+//                                // Hide us
+//                                control.setEnabled(false);
+//                                control.getSpatial().setCullHint(Spatial.CullHint.Always);
+//                            }
+//
+//                            @Override
+//                            public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
+//
+//                            }
+//                        });
+                        //animControl.createChannel();
                     }
                 }
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
@@ -101,82 +107,86 @@ public class AnimationLoader {
                     spatEnd.setName(END_ANIMATION_NAME);
 
                     // Create kinda a custom animation control
-                    AnimControl animControl = spatEnd.getControl(AnimControl.class);
+                    AnimComposer animControl = spatEnd.getControl(AnimComposer.class);
                     if (animControl != null) {
                         animControl.setEnabled(false);
-                        animControl.addListener(new AnimEventListener() {
-
-                            @Override
-                            public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
-
-                                // Stop us
-                                control.setEnabled(false);
-
-                                // Signal stop
-                                animationControl.onAnimationStop();
-                            }
-
-                            @Override
-                            public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
-
-                            }
-                        });
-                        animControl.createChannel();
+                        BaseAction myAction = new BaseAction(Tweens.sequence(animControl.action(ANIM_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "endAnimationDone", animControl, animationControl)));
+                        animControl.addAction(PLAY_ANIM_NAME, myAction);
+//                        animControl.addListener(new AnimEventListener() {
+//
+//                            @Override
+//                            public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
+//
+//                                // Stop us
+//                                control.setEnabled(false);
+//
+//                                // Signal stop
+//                                animationControl.onAnimationStop();
+//                            }
+//
+//                            @Override
+//                            public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
+//
+//                            }
+//                        });
+//                        animControl.createChannel();
                     }
                 }
 
                 // Create kinda a custom animation control
-                AnimControl animControl = spat.getControl(AnimControl.class);
+                AnimComposer animControl = spat.getControl(AnimComposer.class);
                 if (animControl != null) {
                     animControl.setEnabled(false);
-                    animControl.addListener(new AnimEventListener() {
-
-                        private int cyclesCount = 0;
-
-                        @Override
-                        public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
-                            cyclesCount++;
-
-                            // Signal that the main animation cycle is done
-                            animationControl.onAnimationCycleDone();
-
-                            // See if we need to stop
-                            if (animationControl.isStopAnimation() || channel.getLoopMode() == LoopMode.DontLoop) {
-
-                                // Stop us
-                                control.setEnabled(false);
-
-                                // We need to stop
-                                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
-
-                                    // Hide us
-                                    control.getSpatial().setCullHint(Spatial.CullHint.Always);
-
-                                    Spatial spat = root.getChild(END_ANIMATION_NAME);
-                                    AnimControl animControl = spat.getControl(AnimControl.class);
-                                    spat.setCullHint(Spatial.CullHint.Inherit);
-                                    AnimChannel c = animControl.getChannel(0);
-                                    LoopMode loopMode = c.getLoopMode();
-                                    c.setAnim(ANIM_NAME, 0);
-                                    if (loopMode != null) {
-                                        c.setLoopMode(loopMode);
-                                    }
-                                    animControl.setEnabled(true);
-                                } else {
-
-                                    // Signal stop
-                                    animationControl.onAnimationStop();
-                                }
-                            }
-                        }
-
-                        @Override
-                        public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
-
-                        }
-                    });
-                    AnimChannel channel = animControl.createChannel();
-                    setLoopModeOnChannel(spat, channel);
+                    BaseAction myAction = new BaseAction(Tweens.sequence(animControl.action(ANIM_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "animationDone", animControl, animationControl, root, resource)));
+                    animControl.addAction(PLAY_ANIM_NAME, myAction);
+//                    animControl.addListener(new AnimEventListener() {
+//
+//                        private int cyclesCount = 0;
+//
+//                        @Override
+//                        public void onAnimCycleDone(AnimControl control, AnimChannel channel, String animName) {
+//                            cyclesCount++;
+//
+//                            // Signal that the main animation cycle is done
+//                            animationControl.onAnimationCycleDone();
+//
+//                            // See if we need to stop
+//                            if (animationControl.isStopAnimation() || channel.getLoopMode() == LoopMode.DontLoop) {
+//
+//                                // Stop us
+//                                control.setEnabled(false);
+//
+//                                // We need to stop
+//                                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+//
+//                                    // Hide us
+//                                    control.getSpatial().setCullHint(Spatial.CullHint.Always);
+//
+//                                    Spatial spat = root.getChild(END_ANIMATION_NAME);
+//                                    AnimControl animControl = spat.getControl(AnimControl.class);
+//                                    spat.setCullHint(Spatial.CullHint.Inherit);
+//                                    AnimChannel c = animControl.getChannel(0);
+//                                    LoopMode loopMode = c.getLoopMode();
+//                                    c.setAnim(ANIM_NAME, 0);
+//                                    if (loopMode != null) {
+//                                        c.setLoopMode(loopMode);
+//                                    }
+//                                    animControl.setEnabled(true);
+//                                } else {
+//
+//                                    // Signal stop
+//                                    animationControl.onAnimationStop();
+//                                }
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onAnimChange(AnimControl control, AnimChannel channel, String animName) {
+//
+//                        }
+//                    });
+//                    AnimChannel channel = animControl.createChannel();
+//                    setLoopModeOnChannel(spat, channel);
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, e.getMessage());
@@ -233,9 +243,9 @@ public class AnimationLoader {
             LOGGER.log(Level.WARNING, "Animation null!");
             return;
         }
-        
+
         try {
-            
+
             // Get the anim node
             String animNodeName = anim.getName();
             if (anim.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
@@ -248,17 +258,19 @@ public class AnimationLoader {
                 hideAllNodes(root);
 
                 // Show the anim
-                AnimControl animControl = spat.getControl(AnimControl.class);
+                AnimComposer animControl = spat.getControl(AnimComposer.class);
                 spat.setCullHint(Spatial.CullHint.Inherit);
                 if (animControl != null) { // Not all are anims
-                    AnimChannel channel = animControl.getChannel(0);
-                    LoopMode loopMode = channel.getLoopMode();
-                    channel.setAnim(ANIM_NAME, 0);
-                    if (loopMode != null) {
-                        channel.setLoopMode(loopMode);
-                    }
+                    animControl.setCurrentAction(PLAY_ANIM_NAME);
+                    //AnimChannel channel = animControl.getChannel(0);
+                    //LoopMode loopMode = channel.getLoopMode();
+//                    channel.setAnim(ANIM_NAME, 0);
+//                    if (loopMode != null) {
+//                        channel.setLoopMode(loopMode);
+//                    }
                     if (endFrame) {
-                        channel.setTime(Integer.MAX_VALUE);
+                        animControl.setTime(DEFAULT_LAYER, 0);
+//                        channel.setTime(Integer.MAX_VALUE);
                     }
                     animControl.setEnabled(true);
                 }
@@ -294,7 +306,7 @@ public class AnimationLoader {
             child.setCullHint(Spatial.CullHint.Always);
 
             // Also stop any animations
-            AnimControl animControl = (AnimControl) child.getControl(AnimControl.class);
+            AnimComposer animControl = child.getControl(AnimComposer.class);
             if (animControl != null) {
                 animControl.setEnabled(false);
             }
@@ -321,11 +333,83 @@ public class AnimationLoader {
 
     private static void setAnimSpeeds(Node node, float speed) {
         for (Spatial child : node.getChildren()) {
-            AnimControl animControl = child.getControl(AnimControl.class);
+            AnimComposer animControl = child.getControl(AnimComposer.class);
             if (animControl != null) {
-                animControl.getChannel(0).setSpeed(speed);
+                animControl.setGlobalSpeed(speed);
             }
         }
+    }
+
+    private static class AnimEventListener {
+
+        public AnimEventListener() {
+        }
+
+        public void startAnimationDone(AnimComposer control, Node root, ArtResource resource) {
+
+            // Start the real animation
+            Spatial spat = root.getChild(resource.getName());
+            AnimComposer animControl = spat.getControl(AnimComposer.class);
+            spat.setCullHint(Spatial.CullHint.Inherit);
+//            AnimChannel c = animControl.getChannel(0);
+//            LoopMode loopMode = c.getLoopMode();
+//            c.setAnim(ANIM_NAME, 0);
+//            if (loopMode != null) {
+//                c.setLoopMode(loopMode);
+//            }
+            animControl.setCurrentAction(PLAY_ANIM_NAME);
+            animControl.setEnabled(true);
+
+            // Hide us
+            control.setEnabled(false);
+            control.getSpatial().setCullHint(Spatial.CullHint.Always);
+        }
+
+        public void endAnimationDone(AnimComposer control, AnimationControl animationControl) {
+
+            // Stop us
+            control.setEnabled(false);
+
+            // Signal stop
+            animationControl.onAnimationStop();
+        }
+
+        public void animationDone(AnimComposer control, AnimationControl animationControl, Node root, ArtResource resource) {
+
+            // Signal that the main animation cycle is done
+            animationControl.onAnimationCycleDone();
+
+            // See if we need to stop
+            if (animationControl.isStopAnimation() /*|| channel.getLoopMode() == LoopMode.DontLoop*/) {
+
+                // Stop us
+                control.setEnabled(false);
+
+                // We need to stop
+                if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+
+                    // Hide us
+                    control.getSpatial().setCullHint(Spatial.CullHint.Always);
+
+                    Spatial spat = root.getChild(END_ANIMATION_NAME);
+                    AnimComposer animControl = spat.getControl(AnimComposer.class);
+                    spat.setCullHint(Spatial.CullHint.Inherit);
+                    //AnimChannel c = animControl.getChannel(0);
+                    //LoopMode loopMode = c.getLoopMode();
+//                    c.setAnim(ANIM_NAME, 0);
+//                    if (loopMode != null) {
+//                        c.setLoopMode(loopMode);
+//                    }
+                    animControl.setCurrentAction(PLAY_ANIM_NAME);
+                    animControl.setEnabled(true);
+                } else {
+
+                    // Signal stop
+                    animationControl.onAnimationStop();
+                }
+            }
+        }
+
     }
 
 }

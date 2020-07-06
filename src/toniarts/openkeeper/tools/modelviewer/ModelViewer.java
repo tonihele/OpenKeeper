@@ -16,8 +16,7 @@
  */
 package toniarts.openkeeper.tools.modelviewer;
 
-import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
+import com.jme3.anim.AnimComposer;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.audio.AudioNode;
@@ -80,7 +79,6 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
 
@@ -553,12 +551,20 @@ public class ModelViewer extends SimpleApplication {
         spat.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
-                AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
+                AnimComposer animControl = spatial.getControl(AnimComposer.class);
                 if (animControl != null) {
-                    AnimChannel channel = animControl.createChannel();
-                    channel.setAnim("anim");
-                    AnimationLoader.setLoopModeOnChannel(spatial, channel);
+                    animControl.setCurrentAction("anim");
+                    //AnimChannel channel = animControl.getAction(NODE_NAME).createChannel();
+                    //channel.setAnim("anim");
+                    // AnimationLoader.setLoopModeOnChannel(spatial, channel);
                 }
+
+//                AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
+//                if (animControl != null) {
+//                    AnimChannel channel = animControl.createChannel();
+//                    channel.setAnim("anim");
+//                    AnimationLoader.setLoopModeOnChannel(spatial, channel);
+//                }
             }
         });
     }
