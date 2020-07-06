@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.modelviewer;
 
+import com.jme3.asset.AssetInfo;
+import com.jme3.asset.TextureKey;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
@@ -412,10 +414,16 @@ public class ModelViewerScreenController implements ScreenController {
     }
 
     private String getResourceImageName(ArtResource resource) {
-        String result = (resource != null) ? resource.getName() + ".png" : "&mask&transparent.png";
+        String result = (resource != null && resource.getName() != null) ? resource.getName() + ".png" : "&mask&transparent.png";
 
-        return ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+        String textureName = ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                 + File.separator + result);
+
+        TextureKey textureKey = new TextureKey(textureName, false);
+        AssetInfo assetInfo = app.getAssetManager().locateAsset(textureKey);
+
+        return (assetInfo != null ? textureName : ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                + File.separator + "&mask&transparent.png"));
     }
 
     private String getResourceString(int id) {
