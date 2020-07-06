@@ -21,9 +21,9 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -167,7 +167,7 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
 //                            AnimControl animControl = spatial.getControl(AnimControl.class);
 //                            if (animControl != null) {
 //                                AnimChannel channel = animControl.createChannel();
-//                                channel.setAnim("anim");
+//                                channel.setAnim(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
 //                                AnimationLoader.setLoopModeOnChannel(spatial, channel);
 //
 //                                // Don't batch animated objects, seems not to work

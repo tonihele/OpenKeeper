@@ -16,7 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import com.jme3.animation.AnimControl;
+import com.jme3.anim.AnimClip;
+import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetLoader;
 import com.jme3.asset.MaterialKey;
@@ -80,7 +81,9 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class KmfModelLoader implements AssetLoader {
-    
+
+    // there's 1 kmf per animation so we only use 1 dummy JME animation clip
+    public static final String DUMMY_ANIM_CLIP_NAME = "dummyAnimClipName";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
 
     /* Some textures are broken */
@@ -431,10 +434,6 @@ public final class KmfModelLoader implements AssetLoader {
                 poseFrames.add(f);
             }
 
-            // Create a pose track for this mesh
-            var poseTrack = new PoseTrack(subMeshIndex, times, poseFrames.toArray(new PoseFrame[0]));
-            poseTracks.add(poseTrack);
-
             // Create lod levels
             VertexBuffer[] lodLevels = createIndices(animSprite.getTriangles());
 
@@ -451,17 +450,22 @@ public final class KmfModelLoader implements AssetLoader {
             // Create geometry
             Geometry geom = createGeometry(subMeshIndex, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
 
+            // Create a pose track for this mesh
+            var poseTrack = new PoseTrack(geom, times, poseFrames.toArray(new PoseFrame[0]));
+            poseTracks.add(poseTrack);
+
             //Attach the geometry to the node
             node.attachChild(geom);
             ++subMeshIndex;
         }
 
         // Create the animation itself and attach the animation
-        com.jme3.animation.Animation animation = new com.jme3.animation.Animation("anim", (anim.getFrames() - 1) / 30f);
+        var animation = new AnimClip(DUMMY_ANIM_CLIP_NAME);
         animation.setTracks(poseTracks.toArray(new PoseTrack[0]));
-        AnimControl control = new AnimControl();
-        control.addAnim(animation);
-        node.addControl(control);
+        var composer = new AnimComposer();
+        composer.addAnimClip(animation);
+        node.addControl(composer);
+        // we could also do setCurrentAction here but it wouldn't get serialized
 
         //Attach the node to the root
         root.attachChild(node);
