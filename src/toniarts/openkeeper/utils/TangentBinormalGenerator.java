@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2012 jMonkeyEngine
+ * Copyright (c) 2009-2019 jMonkeyEngine
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,12 +36,11 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.*;
-import com.jme3.scene.VertexBuffer.Format;
 import com.jme3.scene.VertexBuffer.Type;
-import com.jme3.scene.VertexBuffer.Usage;
 import com.jme3.scene.mesh.IndexBuffer;
 import com.jme3.util.BufferUtils;
 import static com.jme3.util.BufferUtils.*;
+import com.jme3.util.TangentUtils;
 import com.jme3.util.TempVars;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -81,7 +80,7 @@ public class TangentBinormalGenerator {
         public final Vector3f position;
         public final Vector3f normal;
         public final Vector2f texCoord;
-        public final ArrayList<Integer> indices = new ArrayList<Integer>();
+        public final List<Integer> indices = new ArrayList<>();
 
         public VertexInfo(Vector3f position, Vector3f normal, Vector2f texCoord) {
             this.position = position;
@@ -90,17 +89,19 @@ public class TangentBinormalGenerator {
         }
     }
 
-    /** Collects all the triangle data for one vertex.
+    /**
+     * Collects all the triangle data for one vertex.
      */
     private static class VertexData {
 
-        public final ArrayList<TriangleData> triangles = new ArrayList<TriangleData>();
+        public final List<TriangleData> triangles = new ArrayList<>();
 
         public VertexData() {
         }
     }
 
-    /** Keeps track of tangent, binormal, and normal for one triangle.
+    /**
+     * Keeps track of tangent, binormal, and normal for one triangle.
      */
     public static class TriangleData {
 
@@ -117,14 +118,12 @@ public class TangentBinormalGenerator {
         }
 
         public void setIndex(int[] index) {
-            for (int i = 0; i < index.length; i++) {
-                this.index[i] = index[i];
-            }
+            System.arraycopy(index, 0, this.index, 0, index.length);
         }
     }
 
     private static List<VertexData> initVertexData(int size) {
-        List<VertexData> vertices = new ArrayList<VertexData>(size);
+        List<VertexData> vertices = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             vertices.add(new VertexData());
         }
@@ -158,7 +157,7 @@ public class TangentBinormalGenerator {
     }
 
     public static void generateParallel(Spatial scene, ExecutorService executor) {
-        final Set<Mesh> meshes = new HashSet<Mesh>();
+        final Set<Mesh> meshes = new HashSet<>();
         scene.breadthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
@@ -174,7 +173,7 @@ public class TangentBinormalGenerator {
                 }
             }
         });
-        List<Future<?>> futures = new ArrayList<Future<?>>();
+        List<Future<?>> futures = new ArrayList<>();
         for (final Mesh m : meshes) {
             futures.add(executor.submit(new Runnable() {
                 @Override
@@ -228,23 +227,7 @@ public class TangentBinormalGenerator {
         processTriangleData(mesh, vertices, approxTangents, splitMirrored);
 
         //if the mesh has a bind pose, we need to generate the bind pose for the tangent buffer
-        if (mesh.getBuffer(Type.BindPosePosition) != null) {
-
-            VertexBuffer tangents = mesh.getBuffer(Type.Tangent);
-            if (tangents != null) {
-                VertexBuffer bindTangents = new VertexBuffer(Type.BindPoseTangent);
-                bindTangents.setupData(Usage.CpuOnly,
-                        4,
-                        Format.Float,
-                        BufferUtils.clone(tangents.getData()));
-
-                if (mesh.getBuffer(Type.BindPoseTangent) != null) {
-                    mesh.clearBuffer(Type.BindPoseTangent);
-                }
-                mesh.setBuffer(bindTangents);
-                tangents.setUsage(Usage.Stream);
-            }
-        }
+        TangentUtils.generateBindPoseTangentsIfNecessary(mesh);
     }
 
     public static void generate(Mesh mesh, boolean approxTangents) {
@@ -284,22 +267,22 @@ public class TangentBinormalGenerator {
         return vertices;
     }
 
-    //Don't remove splitmirorred boolean,It's not used right now, but i intend to
-    //make this method also split vertice with rotated tangent space and I'll
+    //Don't remove splitmirorred boolean. It's not used right now, but I intend to
+    //make this method also split vertices with rotated tangent space and I'll
     //add another splitRotated boolean
     private static List<VertexData> splitVertices(Mesh mesh, List<VertexData> vertexData, boolean splitMirorred) {
         int nbVertices = mesh.getBuffer(Type.Position).getNumElements();
-        List<VertexData> newVertices = new ArrayList<VertexData>();
-        Map<Integer, Integer> indiceMap = new HashMap<Integer, Integer>();
+        List<VertexData> newVertices = new ArrayList<>();
+        Map<Integer, Integer> indiceMap = new HashMap<>();
         FloatBuffer normalBuffer = mesh.getFloatBuffer(Type.Normal);
 
         for (int i = 0; i < vertexData.size(); i++) {
-            ArrayList<TriangleData> triangles = vertexData.get(i).triangles;
+            List<TriangleData> triangles = vertexData.get(i).triangles;
             Vector3f givenNormal = new Vector3f();
             populateFromBuffer(givenNormal, normalBuffer, i);
 
-            ArrayList<TriangleData> trianglesUp = new ArrayList<TriangleData>();
-            ArrayList<TriangleData> trianglesDown = new ArrayList<TriangleData>();
+            ArrayList<TriangleData> trianglesUp = new ArrayList<>();
+            ArrayList<TriangleData> trianglesDown = new ArrayList<>();
             for (int j = 0; j < triangles.size(); j++) {
                 TriangleData triangleData = triangles.get(j);
                 if (parity(givenNormal, triangleData.normal) > 0) {
@@ -646,8 +629,8 @@ public class TangentBinormalGenerator {
                 && (FastMath.abs(u.y - v.y) < tolerance);
     }
 
-    private static ArrayList<VertexInfo> linkVertices(Mesh mesh, boolean splitMirrored) {
-        ArrayList<VertexInfo> vertexMap = new ArrayList<VertexInfo>();
+    private static List<VertexInfo> linkVertices(Mesh mesh, boolean splitMirrored) {
+        List<VertexInfo> vertexMap = new ArrayList<>();
 
         FloatBuffer vertexBuffer = mesh.getFloatBuffer(Type.Position);
         FloatBuffer normalBuffer = mesh.getFloatBuffer(Type.Normal);
@@ -666,8 +649,8 @@ public class TangentBinormalGenerator {
 
             boolean found = false;
             //Nehon 07/07/2013
-            //Removed this part, joining splitted vertice to compute tangent space makes no sense to me
-            //separate vertice should have separate tangent space
+            //Removed this part, joining split vertices to compute tangent space makes no sense to me
+            //separate vertices should have separate tangent space
             if (!splitMirrored) {
                 for (int j = 0; j < vertexMap.size(); j++) {
                     VertexInfo vertexInfo = vertexMap.get(j);
@@ -692,7 +675,7 @@ public class TangentBinormalGenerator {
 
     private static void processTriangleData(Mesh mesh, List<VertexData> vertices,
             boolean approxTangent, boolean splitMirrored) {
-        ArrayList<VertexInfo> vertexMap = linkVertices(mesh, splitMirrored);
+        List<VertexInfo> vertexMap = linkVertices(mesh, splitMirrored);
 
         FloatBuffer tangents = BufferUtils.createFloatBuffer(vertices.size() * 4);
 
