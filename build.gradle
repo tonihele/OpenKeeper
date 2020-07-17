@@ -6,6 +6,7 @@ apply plugin: 'idea'
 
 ext {
     jmonkeyengine_version = '3.3.2-stable'
+    license = file("$rootDir/license.txt")
 }
 
 repositories {
