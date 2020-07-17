@@ -93,7 +93,7 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
 
     private void playAnimation(DoorViewState viewState) {
         if (!getDataObject().getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
-            AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
+            AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager, !initialized);
             isAnimationPlaying = true;
         }
     }
