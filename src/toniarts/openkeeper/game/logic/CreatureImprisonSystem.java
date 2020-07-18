@@ -62,7 +62,7 @@ public class CreatureImprisonSystem implements IGameLogicUpdatable {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
             if (gameTime - imprisoned.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
-                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth, health.unconscious));
+                entityData.setComponent(entity.getId(), new Health(Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth));
             }
         }
     }

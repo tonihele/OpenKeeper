@@ -59,6 +59,7 @@ import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -578,7 +579,7 @@ public class CreatureController extends EntityController implements ICreatureCon
 
             // TODO: now, instant action, substract the health
             Health enemyHealth = entityData.getComponent(attackTarget, Health.class);
-            entityData.setComponent(attackTarget, new Health(enemyHealth.ownLandHealthIncrease, enemyHealth.health - creatureMeleeAttack.damage, enemyHealth.maxHealth, enemyHealth.unconscious));
+            entityData.setComponent(attackTarget, new Health(enemyHealth.health - creatureMeleeAttack.damage, enemyHealth.maxHealth));
         }
     }
 
@@ -729,7 +730,7 @@ public class CreatureController extends EntityController implements ICreatureCon
 
     private static boolean isIncapacitated(EntityData entityData, EntityId entityId) {
         Health health = entityData.getComponent(entityId, Health.class);
-        if (health == null || health.unconscious) {
+        if (health == null || entityData.getComponent(entityId, Unconscious.class) != null) {
             return true;
         }
 
@@ -890,11 +891,7 @@ public class CreatureController extends EntityController implements ICreatureCon
 
     @Override
     public boolean isUnconscious() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        if (health != null) {
-            return health.unconscious;
-        }
-        return false;
+        return entityData.getComponent(entityId, Unconscious.class) != null;
     }
 
     @Override
@@ -1111,7 +1108,7 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
-        entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, (int) Math.floor(health.maxHealth * 0.2f), health.maxHealth, false));
+        entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
         entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
         stateMachine.changeState(CreatureState.IMPRISONED);
@@ -1207,7 +1204,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         // Increase health
         if (!isFullHealth()) {
             Health health = entityData.getComponent(entityId, Health.class);
-            entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, Math.max(health.health + creature.getAttributes().getHpFromChicken(), health.maxHealth), health.maxHealth, health.unconscious));
+            entityData.setComponent(entityId, new Health(Math.max(health.health + creature.getAttributes().getHpFromChicken(), health.maxHealth), health.maxHealth));
         }
     }
 

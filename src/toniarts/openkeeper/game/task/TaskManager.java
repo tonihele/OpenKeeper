@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -157,7 +158,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         processAddedTasks(taskEntities);
 
         // Listen to rescue/capture missions
-        unconsciousEntities = entityData.getEntities(new FieldFilter(Health.class, "unconscious", true), CreatureComponent.class, Health.class, Owner.class);
+        unconsciousEntities = entityData.getEntities(CreatureComponent.class, Health.class, Owner.class, Unconscious.class);
         processAddedUnconsciousEntities(unconsciousEntities);
 
         // Listen to corpse robbing missions

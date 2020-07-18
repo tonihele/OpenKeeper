@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.chicken.ChickenController;
@@ -190,9 +191,15 @@ public class ObjectsController implements IObjectsController {
             entityData.setComponent(entity, new Food());
         }
         if (obj.getHp() > 0) {
-            entityData.setComponent(entity, new Health(objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_HEALTH_REGENERATION_PER_SECOND).getValue() : 0,
+            entityData.setComponent(entity, new Health(
                     objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp(),
-                    objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp(), false));
+                    objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp()));
+
+            // Regeneration
+            int regen = objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_HEALTH_REGENERATION_PER_SECOND).getValue() : 0;
+            if (regen > 0) {
+                entityData.setComponent(entity, new Regeneration(regen, null));
+            }
         }
         if (obj.getSpeed() > 0) {
             entityData.setComponent(entity, new Mobile(false, false, false, obj.getSpeed()));

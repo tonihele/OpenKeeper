@@ -72,7 +72,7 @@ public class DecaySystem implements IGameLogicUpdatable {
     private void decay(EntityId entityId) {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health != null) {
-            entityData.setComponent(entityId, new Health(0, 0, health.maxHealth, false));
+            entityData.setComponent(entityId, new Health(0, health.maxHealth));
         } else {
 
             // Hmm, just outright remove it

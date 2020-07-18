@@ -132,7 +132,7 @@ public class SlapSystem implements IGameLogicUpdatable {
     private void handleObjectSlap(Entity entity, Interaction interaction) {
         if (interaction.dieWhenSlapped) {
             Health health = entityData.getComponent(entity.getId(), Health.class);
-            entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, 0, health.maxHealth, health.unconscious));
+            entityData.setComponent(entity.getId(), new Health(0, health.maxHealth));
         }
     }
 
@@ -149,7 +149,7 @@ public class SlapSystem implements IGameLogicUpdatable {
         if (damage != 0) {
             Health health = entityData.getComponent(entity.getId(), Health.class);
             if (health != null) {
-                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, health.health - damage, health.maxHealth, false));
+                entityData.setComponent(entity.getId(), new Health(health.health - damage, health.maxHealth));
             }
         }
 

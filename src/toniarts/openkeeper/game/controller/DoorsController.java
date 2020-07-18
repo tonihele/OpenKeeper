@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.door.DoorController;
@@ -119,7 +120,12 @@ public class DoorsController implements IDoorsController {
         }
 
         // Health
-        entityData.setComponent(entity, new Health(door.getHealthGain(), door.getHealth(), door.getHealth(), false));
+        entityData.setComponent(entity, new Health(door.getHealth(), door.getHealth()));
+
+        // Regeneration
+        if (door.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(door.getHealthGain(), null));
+        }
 
         // Trigger
         if (triggerId != null) {

@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
@@ -857,7 +858,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     private static boolean isEntityIncapacitated(EntityId entityId, EntityData entityData) {
         Health health = entityData.getComponent(entityId, Health.class);
-        if (health == null || health.unconscious) {
+        if (health == null || entityData.getComponent(entityId, Unconscious.class) != null) {
             return true;
         }
 
