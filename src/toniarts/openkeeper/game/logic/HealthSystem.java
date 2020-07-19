@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -101,37 +101,39 @@ public class HealthSystem implements IGameLogicUpdatable {
             // Normal health related routines
             Health health = entityData.getComponent(entityId, Health.class);
             Regeneration regeneration = entityData.getComponent(entityId, Regeneration.class);
-            if (health.health <= 0) {
+            if (health != null) {
+                if (health.health <= 0) {
 
-                // Death or destruction!!!!
-                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-                if (creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
-                    entityData.setComponent(entityId, new Health(0, health.maxHealth));
-                    entityData.setComponent(entityId, new Unconscious(gameTime));
-                    //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
-                    creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
-                    entityData.removeComponent(entityId, Navigation.class);
-                } else {
-                    entityPositionLookup.getEntityController(entityId).remove();
-                }
-            } else if (regeneration != null && health.health != health.maxHealth) {
-                MapTile tile = entityPositionLookup.getEntityLocation(entityId);
-                Owner owner = entityData.getComponent(entityId, Owner.class);
-                if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
-
-                    // In own land
-                    Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
-                    if (lastTimeOnOwnLand == null) {
-                        setTimeOwnOwnLand(regeneration, entityId, gameTime);
-                    } else if (gameTime - lastTimeOnOwnLand >= 1) {
-
-                        // Increase health
-                        entityData.setComponent(entityId, new Health(Math.max(health.health + regeneration.ownLandHealthIncrease, health.maxHealth), health.maxHealth));
+                    // Death or destruction!!!!
+                    CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                    if (creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+                        entityData.setComponent(entityId, new Health(0, health.maxHealth));
+                        entityData.setComponent(entityId, new Unconscious(gameTime));
+                        //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
+                        creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
+                        entityData.removeComponent(entityId, Navigation.class);
+                    } else {
+                        entityPositionLookup.getEntityController(entityId).remove();
                     }
-                } else {
+                } else if (regeneration != null && health.health != health.maxHealth) {
+                    IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+                    Owner owner = entityData.getComponent(entityId, Owner.class);
+                    if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
 
-                    // At someones elses land, reset counter
-                    setTimeOwnOwnLand(regeneration, entityId, null);
+                        // In own land
+                        Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
+                        if (lastTimeOnOwnLand == null) {
+                            setTimeOwnOwnLand(regeneration, entityId, gameTime);
+                        } else if (gameTime - lastTimeOnOwnLand >= 1) {
+
+                            // Increase health
+                            entityData.setComponent(entityId, new Health(Math.max(health.health + regeneration.ownLandHealthIncrease, health.maxHealth), health.maxHealth));
+                        }
+                    } else {
+
+                        // At someones elses land, reset counter
+                        setTimeOwnOwnLand(regeneration, entityId, null);
+                    }
                 }
             }
         }

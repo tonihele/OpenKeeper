@@ -40,7 +40,7 @@ import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerListener;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -528,12 +528,12 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     @Override
-    public void onBuild(short keeperId, List<MapTile> tiles) {
+    public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public void onSold(short keeperId, List<MapTile> tiles) {
+    public void onSold(short keeperId, List<IMapTileInformation> tiles) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

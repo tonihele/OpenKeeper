@@ -17,14 +17,14 @@
 package toniarts.openkeeper.game.navigation.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.indexed.IndexedAStarPathFinder;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  * The actual path finder
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapPathFinder extends IndexedAStarPathFinder<MapTile> {
+public class MapPathFinder extends IndexedAStarPathFinder<IMapTileInformation> {
 
     public MapPathFinder(MapIndexedGraph graph, boolean calculateMetrics) {
         super(graph, calculateMetrics);

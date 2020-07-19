@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.listener;
 import com.jme3.network.service.rmi.Asynchronous;
 import java.awt.Point;
 import java.util.List;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  * Listen to map (tile) changes
@@ -34,7 +34,7 @@ public interface MapListener {
      * @param updatedTiles the tiles that changed
      */
     @Asynchronous
-    public void onTilesChange(List<MapTile> updatedTiles);
+    public void onTilesChange(List<IMapTileInformation> updatedTiles);
 
     /**
      * Map tile should flash

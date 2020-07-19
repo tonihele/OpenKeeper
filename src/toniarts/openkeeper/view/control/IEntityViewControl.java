@@ -20,7 +20,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.Control;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -138,7 +138,7 @@ public interface IEntityViewControl<T, S> extends Control {
      * @param playerId the player who wants to drop
      * @return the result if the control were to be dropped here
      */
-    public DroppableStatus getDroppableStatus(MapTile tile, Terrain terrain, short playerId);
+    public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId);
 
     /**
      * Drop the control on the tile
@@ -149,7 +149,7 @@ public interface IEntityViewControl<T, S> extends Control {
      * {@link toniarts.openkeeper.view.control.IEntityViewControl} at the
      * position
      */
-    public void drop(MapTile tile, Vector2f coordinates, IEntityViewControl control);
+    public void drop(IMapTileInformation tile, Vector2f coordinates, IEntityViewControl control);
 
     /**
      * When the control is hovered upon

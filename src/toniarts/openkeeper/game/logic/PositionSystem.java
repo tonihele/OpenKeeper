@@ -41,7 +41,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -56,9 +56,9 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     private final IMapController mapController;
     private final IObjectsController objectsController;
     private final EntitySet positionedEntities;
-    private final Map<MapTile, Set<EntityId>> entitiesByMapTile = new HashMap<>();
-    private final Map<MapTile, Set<EntityId>> obstaclesByMapTile = new HashMap<>();
-    private final Map<EntityId, MapTile> mapTilesByEntities = new HashMap<>();
+    private final Map<IMapTileInformation, Set<EntityId>> entitiesByMapTile = new HashMap<>();
+    private final Map<IMapTileInformation, Set<EntityId>> obstaclesByMapTile = new HashMap<>();
+    private final Map<EntityId, IMapTileInformation> mapTilesByEntities = new HashMap<>();
     private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
     private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new HashMap<>();
@@ -95,9 +95,9 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         // Update
         for (Entity entity : entities) {
             Point p = WorldUtils.vectorToPoint(entity.get(Position.class).position);
-            MapTile currentMapTile = mapController.getMapData().getTile(p);
+            IMapTileInformation currentMapTile = mapController.getMapData().getTile(p);
 
-            MapTile previousMapTile = mapTilesByEntities.get(entity.getId());
+            IMapTileInformation previousMapTile = mapTilesByEntities.get(entity.getId());
             if (!currentMapTile.equals(previousMapTile)) {
 
                 // Moved
@@ -114,7 +114,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         }
     }
 
-    private void addEntityToTile(MapTile mapTile, Entity entity) {
+    private void addEntityToTile(IMapTileInformation mapTile, Entity entity) {
         Set<EntityId> entitiesInTile = entitiesByMapTile.get(mapTile);
         if (entitiesInTile == null) {
             entitiesInTile = new HashSet<>();
@@ -137,7 +137,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
         // Remove
         for (Entity entity : entities) {
-            MapTile mapTile = mapTilesByEntities.remove(entity.getId());
+            IMapTileInformation mapTile = mapTilesByEntities.remove(entity.getId());
             entitiesByMapTile.get(mapTile).remove(entity.getId());
             if (obstaclesByMapTile.containsKey(mapTile)) {
                 obstaclesByMapTile.get(mapTile).remove(entity.getId());
@@ -150,7 +150,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         // Add
         for (Entity entity : entities) {
             Point p = WorldUtils.vectorToPoint(entity.get(Position.class).position);
-            MapTile mapTile = mapController.getMapData().getTile(p);
+            IMapTileInformation mapTile = mapController.getMapData().getTile(p);
             mapTilesByEntities.put(entity.getId(), mapTile);
 
             addEntityToTile(mapTile, entity);
@@ -159,18 +159,18 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public List<EntityId> getEntitiesInLocation(Point p) {
-        MapTile mapTile = mapController.getMapData().getTile(p);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
         return getEntitiesInLocation(mapTile);
     }
 
     @Override
     public List<EntityId> getEntitiesInLocation(int x, int y) {
-        MapTile mapTile = mapController.getMapData().getTile(x, y);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
         return getEntitiesInLocation(mapTile);
     }
 
     @Override
-    public List<EntityId> getEntitiesInLocation(MapTile mapTile) {
+    public List<EntityId> getEntitiesInLocation(IMapTileInformation mapTile) {
         Set<EntityId> entityId = entitiesByMapTile.get(mapTile);
         if (entityId != null) {
             return new ArrayList<>(entityId);
@@ -180,24 +180,24 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     }
 
     @Override
-    public MapTile getEntityLocation(EntityId entityId) {
+    public IMapTileInformation getEntityLocation(EntityId entityId) {
         return mapTilesByEntities.get(entityId);
     }
 
     @Override
     public <T extends IEntityController> List<T> getEntityTypesInLocation(Point p, Class<T> clazz) {
-        MapTile mapTile = mapController.getMapData().getTile(p);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
         return getEntityTypesInLocation(mapTile, clazz);
     }
 
     @Override
     public <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
-        MapTile mapTile = mapController.getMapData().getTile(x, y);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
         return getEntityTypesInLocation(mapTile, clazz);
     }
 
     @Override
-    public <T extends IEntityController> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz) {
+    public <T extends IEntityController> List<T> getEntityTypesInLocation(IMapTileInformation mapTile, Class<T> clazz) {
         Set<EntityId> entityIds = entitiesByMapTile.get(mapTile);
         if (entityIds != null) {
             IEntityWrapper<T> entityWrapper = getEntityWrapper(clazz);
@@ -271,18 +271,18 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public boolean isTileBlocked(Point p, short playerId) {
-        MapTile mapTile = mapController.getMapData().getTile(p);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
         return isTileBlocked(mapTile, playerId);
     }
 
     @Override
     public boolean isTileBlocked(int x, int y, short playerId) {
-        MapTile mapTile = mapController.getMapData().getTile(x, y);
+        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
         return isTileBlocked(mapTile, playerId);
     }
 
     @Override
-    public boolean isTileBlocked(MapTile mapTile, short playerId) {
+    public boolean isTileBlocked(IMapTileInformation mapTile, short playerId) {
         Set<EntityId> entityIds = obstaclesByMapTile.get(mapTile);
         if (entityIds != null) {
             for (EntityId entityId : entityIds) {
@@ -311,7 +311,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
             Set<EntityId> sensedEntities = new HashSet<>();
 
             // Get creatures we sense
-            MapTile tile = getEntityLocation(id);
+            IMapTileInformation tile = getEntityLocation(id);
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
@@ -325,7 +325,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         });
     }
 
-    private void addSensedEntities(MapTile tile, int range, Set<EntityId> sensedEntities) {
+    private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
         if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
                 || range-- < 0) {
             return;

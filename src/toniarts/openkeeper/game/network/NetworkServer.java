@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
+import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -92,8 +93,6 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
@@ -146,8 +145,6 @@ public class NetworkServer {
             Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
             Serializer.registerClass(Thing.HeroParty.Objective.class, new EnumSerializer());
             Serializer.registerClass(ObjectiveType.class, new EnumSerializer());
-            Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
-            Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
             //Serializer.registerClass(CreatureState.class, new EnumSerializer());
             Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());

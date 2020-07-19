@@ -23,8 +23,8 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.data.ActionPoint;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -129,7 +129,7 @@ public class WorldUtils {
      * @param diagonal whether to also include diagonally attached tiles
      * @return surrounding tile coordinates
      */
-    public static Point[] getSurroundingTiles(MapData mapData, Point point, boolean diagonal) {
+    public static Point[] getSurroundingTiles(IMapDataInformation mapData, Point point, boolean diagonal) {
 
         // Get all surrounding tiles
         List<Point> tileCoords = new ArrayList<>(diagonal ? 9 : 5);
@@ -149,8 +149,8 @@ public class WorldUtils {
         return tileCoords.toArray(new Point[tileCoords.size()]);
     }
 
-    private static void addIfValidCoordinate(MapData mapData, final int x, final int y, List<Point> tileCoords) {
-        MapTile tile = mapData.getTile(x, y);
+    private static void addIfValidCoordinate(IMapDataInformation mapData, final int x, final int y, List<Point> tileCoords) {
+        IMapTileInformation tile = mapData.getTile(x, y);
         if (tile != null) {
             tileCoords.add(tile.getLocation());
         }

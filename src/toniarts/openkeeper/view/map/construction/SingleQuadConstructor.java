@@ -21,8 +21,8 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import static toniarts.openkeeper.view.map.MapViewController.TILE_WIDTH;
@@ -50,11 +50,11 @@ public class SingleQuadConstructor extends SingleTileConstructor {
      * @return the loaded model
      */
     @Override
-    public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
+    public Spatial construct(IMapDataInformation mapData, int x, int y, final Terrain terrain, final AssetManager assetManager, String modelName) {
 
         // If ownable, playerId is first. With fixed Hero Lair
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && terrain.getTerrainId() != 35) {
-            MapTile tile = mapData.getTile(x, y);
+            IMapTileInformation tile = mapData.getTile(x, y);
             modelName += tile.getOwnerId() - 1 + "_";
         }
 

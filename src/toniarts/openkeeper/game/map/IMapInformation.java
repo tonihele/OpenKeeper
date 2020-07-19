@@ -24,22 +24,23 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  * A kind of a map container with no editing functionalities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> the type of tiles held
  */
-public interface IMapInformation {
+public interface IMapInformation<T extends IMapTileInformation> {
 
     /**
      * Get the map data
      *
      * @return the map data
      */
-    MapData getMapData();
+    IMapDataInformation<T> getMapData();
 
     /**
      * Sets some specified map tiles in place (updates the map data)
      *
      * @param tiles tiles to set
      */
-    void setTiles(List<MapTile> tiles);
+    void setTiles(List<T> tiles);
 
     /**
      * Determine if a tile at x & y is buildable by the player
@@ -93,7 +94,7 @@ public interface IMapInformation {
      * @param tile the map tile
      * @return the terrain
      */
-    public Terrain getTerrain(MapTile tile);
+    public Terrain getTerrain(IMapTileInformation tile);
 
     /**
      * Is claimable wall at tile point

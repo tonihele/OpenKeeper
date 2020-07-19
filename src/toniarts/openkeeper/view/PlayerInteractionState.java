@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view;
 
-import com.badlogic.gdx.math.Vector2;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
@@ -47,7 +46,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
@@ -183,7 +182,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     p = WorldUtils.vectorToPoint(selectionHandler.getPointedTilePosition());
                 }
                 if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
-                    MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
+                    IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
                     if (tile != null) {
                         IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
                         return (status != IEntityViewControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
@@ -391,7 +390,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
             // Tile tooltip then
             p = selectionHandler.getPointedTileIndex();
-            MapTile tile = mapInformation.getMapData().getTile(p);
+            IMapTileInformation tile = mapInformation.getMapData().getTile(p);
             if (tile != null) {
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
@@ -619,7 +618,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         // Drop
                         IEntityViewControl entityViewControl = keeperHandState.getItem();
                         if (entityViewControl != null) {
-                            MapTile mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
+                            IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
                             if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                                 gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
                             }

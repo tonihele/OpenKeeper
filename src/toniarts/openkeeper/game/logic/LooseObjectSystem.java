@@ -35,7 +35,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
@@ -88,7 +88,7 @@ public class LooseObjectSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            MapTile mapTile = entityPositionLookup.getEntityLocation(entityId);
+            IMapTileInformation mapTile = entityPositionLookup.getEntityLocation(entityId);
             if (mapTile == null) {
 
                 // No position yet, we get it next time

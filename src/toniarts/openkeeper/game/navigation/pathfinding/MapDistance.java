@@ -17,7 +17,7 @@
 package toniarts.openkeeper.game.navigation.pathfinding;
 
 import com.badlogic.gdx.ai.pfa.Heuristic;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -25,10 +25,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapDistance implements Heuristic<MapTile> {
+public class MapDistance implements Heuristic<IMapTileInformation> {
 
     @Override
-    public float estimate(MapTile node, MapTile endNode) {
+    public float estimate(IMapTileInformation node, IMapTileInformation endNode) {
         return WorldUtils.calculateDistance(node.getLocation(), endNode.getLocation());
     }
 

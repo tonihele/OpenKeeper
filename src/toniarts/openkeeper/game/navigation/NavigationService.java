@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.navigation.pathfinding.MapDistance;
 import toniarts.openkeeper.game.navigation.pathfinding.MapIndexedGraph;
@@ -89,13 +89,13 @@ public class NavigationService implements INavigationService {
         return null;
     }
 
-    private void getAccessibleNeighbours(MapTile startTile, int radius, INavigable navigable, Set<Point> tiles, Set<Point> allowedTiles) {
+    private void getAccessibleNeighbours(IMapTileInformation startTile, int radius, INavigable navigable, Set<Point> tiles, Set<Point> allowedTiles) {
         if (radius > 0) {
             for (int y = startTile.getY() - 1; y <= startTile.getY() + 1; y++) {
                 for (int x = startTile.getX() - 1; x <= startTile.getX() + 1; x++) {
 
                     // If this is good, add and get neighbours
-                    MapTile tile = mapController.getMapData().getTile(x, y);
+                    IMapTileInformation tile = mapController.getMapData().getTile(x, y);
                     if (tile != null
                             && !tiles.contains(tile.getLocation())
                             && isAccessible(startTile, tile, navigable)
@@ -117,11 +117,11 @@ public class NavigationService implements INavigationService {
      * @return
      */
     @Override
-    public GraphPath<MapTile> findPath(Point start, Point end, INavigable navigable) {
+    public GraphPath<IMapTileInformation> findPath(Point start, Point end, INavigable navigable) {
         pathFindingMap.setPathFindable(navigable);
-        GraphPath<MapTile> outPath = new DefaultGraphPath<>();
-        MapTile startTile = mapController.getMapData().getTile(start.x, start.y);
-        MapTile endTile = mapController.getMapData().getTile(end.x, end.y);
+        GraphPath<IMapTileInformation> outPath = new DefaultGraphPath<>();
+        IMapTileInformation startTile = mapController.getMapData().getTile(start.x, start.y);
+        IMapTileInformation endTile = mapController.getMapData().getTile(end.x, end.y);
         if (startTile != null && endTile != null && pathFinder.searchNodePath(startTile, endTile, heuristic, outPath)) {
             return outPath;
         }
@@ -129,7 +129,7 @@ public class NavigationService implements INavigationService {
     }
 
     @Override
-    public boolean isAccessible(MapTile from, MapTile to, INavigable navigable) {
+    public boolean isAccessible(IMapTileInformation from, IMapTileInformation to, INavigable navigable) {
         Float cost = navigable.getCost(from, to, mapController, entityPositionLookup);
         return cost != null;
     }

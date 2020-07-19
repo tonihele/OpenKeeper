@@ -19,7 +19,7 @@ package toniarts.openkeeper.view.map.construction;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.game.map.MapData;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
@@ -45,7 +45,7 @@ public class WaterConstructor extends SingleTileConstructor {
      * @return a water / lava tile
      */
     @Override
-    public Spatial construct(MapData mapData, int x, int y, final Terrain terrain, AssetManager assetManager, String model) {
+    public Spatial construct(IMapDataInformation mapData, int x, int y, final Terrain terrain, AssetManager assetManager, String model) {
 
         // The bed
         // Figure out which piece by seeing the neighbours

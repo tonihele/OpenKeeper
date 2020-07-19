@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -185,7 +185,7 @@ public class GameServerState extends AbstractAppState {
             gameWorldController.addListener(playerActionListener);
 
             // Send the the initial game data
-            gameService.sendGameData(gameController.getPlayers(), mapController.getMapData());
+            gameService.sendGameData(gameController.getPlayers());
 
             // Set up a listener for the map
             mapController.addListener(mapListener);
@@ -337,7 +337,7 @@ public class GameServerState extends AbstractAppState {
     private class MapListenerImpl implements MapListener {
 
         @Override
-        public void onTilesChange(List<MapTile> updatedTiles) {
+        public void onTilesChange(List<IMapTileInformation> updatedTiles) {
             gameService.updateTiles(updatedTiles);
         }
 
@@ -353,12 +353,12 @@ public class GameServerState extends AbstractAppState {
     private class PlayerActionListenerImpl implements PlayerActionListener {
 
         @Override
-        public void onBuild(short keeperId, List<MapTile> tiles) {
+        public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
             gameService.onBuild(keeperId, tiles);
         }
 
         @Override
-        public void onSold(short keeperId, List<MapTile> tiles) {
+        public void onSold(short keeperId, List<IMapTileInformation> tiles) {
             gameService.onSold(keeperId, tiles);
         }
 

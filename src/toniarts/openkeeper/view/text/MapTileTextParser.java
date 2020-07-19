@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.TextUtils;
 
 /**
@@ -29,13 +29,13 @@ public class MapTileTextParser {
     public MapTileTextParser() {
     }
 
-    public String parseText(String text, MapTile mapTile) {
+    public String parseText(String text, IMapTileInformation mapTile) {
         return TextUtils.parseText(text, (index) -> {
             return getReplacement(index, mapTile);
         });
     }
     
-    protected String getReplacement(int index, MapTile mapTile) {
+    protected String getReplacement(int index, IMapTileInformation mapTile) {
         switch (index) {
             case 37:
                 return Integer.toString(mapTile.getHealthPercent());

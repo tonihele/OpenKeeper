@@ -67,7 +67,8 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -120,7 +121,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
@@ -345,7 +346,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // Build & mark
-        List<MapTile> buildTiles = new ArrayList<>(instancePlots.size());
+        List<IMapTileInformation> buildTiles = new ArrayList<>(instancePlots.size());
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
         for (Point p : instancePlots) {
@@ -353,7 +354,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             buildPlots.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)));
             updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
 
-            MapTile tile = mapController.getMapData().getTile(p);
+            IMapTileController tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
             buildTiles.add(tile);
@@ -366,7 +367,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             if (adjacentInstance != null && adjacentInstance.getRoom().equals(room) && !adjacentInstances.contains(adjacentInstance)) {
 
                 // Same room, see that we own it
-                MapTile tile = mapController.getMapData().getTile(p.x, p.y);
+                IMapTileController tile = mapController.getMapData().getTile(p.x, p.y);
                 if (tile.getOwnerId() == playerId) {
 
                     // Bingo!
@@ -426,7 +427,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
-        List<MapTile> soldTiles = new ArrayList<>();
+        List<IMapTileInformation> soldTiles = new ArrayList<>();
         Set<Point> updatableTiles = new HashSet<>();
         Set<RoomInstance> soldInstances = new HashSet<>();
         List<Point> roomCoordinates = new ArrayList<>();
@@ -441,7 +442,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 }
 
                 // Sell
-                MapTile tile = mapController.getMapData().getTile(p);
+                IMapTileController tile = mapController.getMapData().getTile(p);
                 if (tile == null) {
                     continue;
                 }
@@ -561,13 +562,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         listeners.remove(listener);
     }
 
-    private void notifyOnBuild(short playerId, List<MapTile> buildTiles) {
+    private void notifyOnBuild(short playerId, List<IMapTileInformation> buildTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onBuild(playerId, buildTiles);
         }
     }
 
-    private void notifyOnSold(short playerId, List<MapTile> soldTiles) {
+    private void notifyOnSold(short playerId, List<IMapTileInformation> soldTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onSold(playerId, soldTiles);
         }
@@ -795,7 +796,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         entityData.removeEntity(entity);
     }
 
-    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, MapTile tile) {
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         if (tile == null) {

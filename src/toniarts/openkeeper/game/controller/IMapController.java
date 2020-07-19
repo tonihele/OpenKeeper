@@ -19,13 +19,14 @@ import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 
 /**
  * Map related actions available to all players
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IMapController extends IMapInformation, IGameLogicUpdatable {
+public interface IMapController extends IMapInformation<IMapTileController>, IGameLogicUpdatable {
 
     /**
      * Set some tiles selected/undelected

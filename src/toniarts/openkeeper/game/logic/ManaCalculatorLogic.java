@@ -23,8 +23,8 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
@@ -78,10 +78,10 @@ public class ManaCalculatorLogic implements IGameLogicUpdatable {
     }
 
     private void calculateGainFromMapTiles() {
-        MapData mapData = mapController.getMapData();
+        IMapDataInformation mapData = mapController.getMapData();
         for (int x = 0; x < mapData.getWidth(); x++) {
             for (int y = 0; y < mapData.getHeight(); y++) {
-                MapTile tile = mapData.getTile(x, y);
+                IMapTileInformation tile = mapData.getTile(x, y);
                 if (manaGains.containsKey(tile.getOwnerId())) {
                     manaGains.put(tile.getOwnerId(), manaGains.get(tile.getOwnerId()) + tile.getManaGain());
                 }

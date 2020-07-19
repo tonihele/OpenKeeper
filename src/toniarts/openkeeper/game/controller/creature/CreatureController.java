@@ -73,7 +73,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -440,7 +440,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
-        GraphPath<MapTile> path = navigationService.findPath(currentLocation, destination, this);
+        GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getCreatureCoordinates(), destination});
             return true;

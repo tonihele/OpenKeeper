@@ -45,9 +45,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.common.EntityInstance;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -137,7 +137,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         int index = 0;
         int tilesCount = getMapData().getSize();
 
-        for (MapTile tile : getMapData()) {
+        for (IMapTileInformation tile : getMapData()) {
 
             try {
                 handleTile(tile, terrain);
@@ -170,11 +170,11 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         return map;
     }
 
-    public MapData getMapData() {
+    public IMapDataInformation<IMapTileInformation> getMapData() {
         return mapClientService.getMapData();
     }
 
-    private Terrain getTerrain(MapTile tile) {
+    private Terrain getTerrain(IMapTileInformation tile) {
         return kwdFile.getTerrain(tile.getTerrainId());
     }
 
@@ -216,7 +216,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : pointsToUpdate) {
-            MapTile tile = getMapData().getTile(point);
+            IMapTileInformation tile = getMapData().getTile(point);
 
             // Reconstruct and mark for patching
             // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
@@ -255,7 +255,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      *
      * @param node
      */
-    private void setTileMaterialToGeometries(final MapTile tile, final Node node) {
+    private void setTileMaterialToGeometries(final IMapTileInformation tile, final Node node) {
 
         // Change the material on geometries
         Terrain terrain = getTerrain(tile);
@@ -363,11 +363,11 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         }
     }
 
-    private Spatial getWallSpatial(MapTile tile, WallDirection direction) {
+    private Spatial getWallSpatial(IMapTileInformation tile, WallDirection direction) {
         Terrain terrain = getTerrain(tile);
         String modelName = terrain.getSideResource().getName();
         Point p = tile.getLocation();
-        MapTile neigbourTile;
+        IMapTileInformation neigbourTile;
         switch (direction) {
             case NORTH:
                 neigbourTile = getMapData().getTile(p.x, p.y - 1);
@@ -400,7 +400,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         return loadModel(modelName);
     }
 
-    private Spatial getRoomWall(MapTile tile, WallDirection direction) {
+    private Spatial getRoomWall(IMapTileInformation tile, WallDirection direction) {
         Point p = tile.getLocation();
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
         RoomInstance roomInstance = handleRoom(p, room, null);
@@ -415,7 +415,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param spatial the spatial
      * @param tile the tile
      */
-    private void setRandomTexture(final Spatial spatial, final MapTile tile) {
+    private void setRandomTexture(final Spatial spatial, final IMapTileInformation tile) {
 
         // Check the data on geometry, basically we could allow the players to play with different skins
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
@@ -464,7 +464,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param tile tile to handle
      * @param root the root node
      */
-    private void handleTile(MapTile tile, Node root) {
+    private void handleTile(IMapTileInformation tile, Node root) {
 
         // Get the terrain
         Terrain terrain = getTerrain(tile);
@@ -497,7 +497,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         }
     }
 
-    private void handleTorch(MapTile tile, Node pageNode) {
+    private void handleTorch(IMapTileInformation tile, Node pageNode) {
 
         // The rooms actually contain the torch model resource, but it is always the same,
         // and sometimes even null and there is still a torch. So I don't think they are used
@@ -549,7 +549,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     private boolean canPlaceTorch(int x, int y) {
-        MapTile tile = getMapData().getTile(x, y);
+        IMapTileInformation tile = getMapData().getTile(x, y);
         return (tile != null && getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.TORCH));
 
     }
@@ -590,7 +590,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param terrain DO NOT REMOVE. Need for construct water bed
      * @param pageNode page node
      */
-    private void handleTop(MapTile tile, Terrain terrain, Node pageNode) {
+    private void handleTop(IMapTileInformation tile, Terrain terrain, Node pageNode) {
 
         ArtResource model = terrain.getCompleteResource();
         Point p = tile.getLocation();
@@ -643,7 +643,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 //        tile.setTopNode(topTileNode);
     }
 
-    private void handleSide(MapTile tile, Node pageNode) {
+    private void handleSide(IMapTileInformation tile, Node pageNode) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
 
@@ -663,7 +663,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
     public void flashTile(boolean enabled, List<Point> points) {
         for (Point p : points) {
-            getMapData().getTile(p.x, p.y).setFlashed(enabled, playerId);
+//            getMapData().getTile(p.x, p.y).setFlashed(enabled, playerId);
         }
 
         updateTiles(points.toArray(new Point[points.size()]));
@@ -719,7 +719,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param tile the terrain tile
      * @return true if this is a room and it has its own walls
      */
-    private boolean hasRoomWalls(MapTile tile) {
+    private boolean hasRoomWalls(IMapTileInformation tile) {
         Terrain terrain = getTerrain(tile);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
@@ -743,7 +743,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param roomInstance the room instance
      */
     private void findRoom(Point p, RoomInstance roomInstance) {
-        MapTile tile = getMapData().getTile(p);
+        IMapTileInformation tile = getMapData().getTile(p);
 
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
@@ -780,7 +780,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      * @param entityInstance the batch instance
      */
     private void findTerrainBatch(Point p, EntityInstance<Terrain> entityInstance) {
-        MapTile tile = getMapData().getTile(p);
+        IMapTileInformation tile = getMapData().getTile(p);
 
         if (!terrainBatchCoordinates.containsKey(p)) {
 
@@ -975,7 +975,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private List<Point> getRoomWalls(Point p, RoomInstance roomInstance, WallDirection wallDirection) {
 
         // See if the starting point has a wall to the given direction
-        MapTile tile;
+        IMapTileInformation tile;
         if (wallDirection == WallDirection.NORTH) {
             tile = getMapData().getTile(p.x, p.y + 1);
         } else if (wallDirection == WallDirection.EAST) {

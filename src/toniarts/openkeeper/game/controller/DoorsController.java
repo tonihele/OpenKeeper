@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -142,7 +142,7 @@ public class DoorsController implements IDoorsController {
     }
 
     private boolean canTileSupportDoor(int x, int y, short ownerId) {
-        MapTile tile = mapController.getMapData().getTile(x, y);
+        IMapTileInformation tile = mapController.getMapData().getTile(x, y);
         Terrain terrain = mapController.getTerrain(tile);
 
         return (tile != null && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)

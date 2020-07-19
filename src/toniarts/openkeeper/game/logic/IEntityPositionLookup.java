@@ -21,7 +21,7 @@ import java.awt.Point;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  * Simple entity directory that offers handy lookup methods
@@ -53,7 +53,7 @@ public interface IEntityPositionLookup {
      * @param mapTile the map tile
      * @return list of entities in given location
      */
-    List<EntityId> getEntitiesInLocation(MapTile mapTile);
+    List<EntityId> getEntitiesInLocation(IMapTileInformation mapTile);
 
     /**
      * Get the map tile of an entity
@@ -61,13 +61,13 @@ public interface IEntityPositionLookup {
      * @param entityId the entity to look for
      * @return the entity location on a map tile basis
      */
-    MapTile getEntityLocation(EntityId entityId);
+    IMapTileInformation getEntityLocation(EntityId entityId);
 
     <T extends IEntityController> List<T> getEntityTypesInLocation(Point p, Class<T> clazz);
 
     <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz);
 
-    <T extends IEntityController> List<T> getEntityTypesInLocation(MapTile mapTile, Class<T> clazz);
+    <T extends IEntityController> List<T> getEntityTypesInLocation(IMapTileInformation mapTile, Class<T> clazz);
 
     /**
      * Get a entity controller for the entity. Tries to find a correct one with
@@ -118,7 +118,7 @@ public interface IEntityPositionLookup {
      * @param playerId the player ID of which entity is wanting to know
      * @return true if the tile is blocked
      */
-    boolean isTileBlocked(MapTile mapTile, short playerId);
+    boolean isTileBlocked(IMapTileInformation mapTile, short playerId);
 
     /**
      * Gets all the entities around given entity that you see or hear at this

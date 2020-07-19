@@ -35,13 +35,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.network.NetworkConstants;
-import toniarts.openkeeper.game.network.message.GameData;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
-import toniarts.openkeeper.game.network.streaming.StreamedMessageListener;
-import toniarts.openkeeper.game.network.streaming.StreamingClientService;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
@@ -98,14 +94,14 @@ public class GameClientService extends AbstractClientService
         rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);
 
         // Listen for the streaming messages
-        s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.GAME_DATA.ordinal(), (StreamedMessageListener<GameData>) (GameData data) -> {
-
-            LOGGER.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
-            for (GameSessionListener l : listeners.getArray()) {
-                l.onGameDataLoaded(data.getPlayers(), data.getMapData());
-            }
-
-        });
+//        s.getService(StreamingClientService.class).addListener(GameHostedService.MessageType.GAME_DATA.ordinal(), (StreamedMessageListener<GameData>) (GameData data) -> {
+//
+//            LOGGER.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{data});
+//            for (GameSessionListener l : listeners.getArray()) {
+//                l.onGameDataLoaded(data.getPlayers(), data.getMapData());
+//            }
+//
+//        });
 
         // Listen for other client progresses
         getClient().addMessageListener(new ClientMessageListener());
@@ -236,13 +232,13 @@ public class GameClientService extends AbstractClientService
     private class GameSessionCallback implements GameSessionListener {
 
         @Override
-        public void onGameDataLoaded(Collection<Keeper> players, MapData mapData) {
+        public void onGameDataLoaded(Collection<Keeper> players) {
 
             // This is dealt with streaming
-//            logger.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{mapData});
-//            for (GameSessionListener l : listeners) {
-//                l.onGameDataLoaded(mapData);
-//            }
+            LOGGER.log(Level.FINEST, "onGameDataLoaded({0})", new Object[]{players});
+            for (GameSessionListener l : listeners) {
+                l.onGameDataLoaded(players);
+            }
         }
 
         @Override
@@ -270,7 +266,7 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onTilesChange(List<MapTile> updatedTiles) {
+        public void onTilesChange(List<IMapTileInformation> updatedTiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onTilesChange(updatedTiles);
             }
@@ -291,14 +287,14 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onBuild(short keeperId, List<MapTile> tiles) {
+        public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onBuild(keeperId, tiles);
             }
         }
 
         @Override
-        public void onSold(short keeperId, List<MapTile> tiles) {
+        public void onSold(short keeperId, List<IMapTileInformation> tiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onSold(keeperId, tiles);
             }

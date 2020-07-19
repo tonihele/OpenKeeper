@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -159,14 +159,14 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     @Override
-    public DroppableStatus getDroppableStatus(MapTile tile, Terrain terrain, short playerId) {
+    public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
         return (tile.getOwnerId() == playerId
                 && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
                 && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
     }
 
     @Override
-    public void drop(MapTile tile, Vector2f coordinates, IEntityViewControl control) {
+    public void drop(IMapTileInformation tile, Vector2f coordinates, IEntityViewControl control) {
 
     }
 

@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.task.objective;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -37,7 +37,7 @@ public class ObjectiveDigTileTask extends DigTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        MapTile tile = mapController.getMapData().getTile(getTaskLocation());
+        IMapTileInformation tile = mapController.getMapData().getTile(getTaskLocation());
         Terrain terrain = mapController.getTerrain(tile);
         return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH) || terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE));
     }
