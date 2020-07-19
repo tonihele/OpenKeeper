@@ -58,6 +58,9 @@ public class GameServerState extends AbstractAppState {
     private Thread loader;
     private AppStateManager stateManager;
 
+    private final Object loadingObject = new Object();
+    private volatile boolean gameLoaded = false;
+
     private final String level;
     private final KwdFile kwdFile;
     private final toniarts.openkeeper.game.data.Level levelObject;
@@ -164,7 +167,7 @@ public class GameServerState extends AbstractAppState {
         private final List<Keeper> players;
 
         public GameLoader(List<Keeper> players) {
-            super("GameLoader");
+            super("GameDataServerLoader");
 
             this.players = players;
         }
@@ -194,11 +197,14 @@ public class GameServerState extends AbstractAppState {
                 playerController.addListener(gameService);
             }
 
-            // Start the actual game
-            gameController.startGame();
-
             // Nullify the thread object
             loader = null;
+
+            // Mark the server end ready
+            synchronized (loadingObject) {
+                gameLoaded = true;
+                loadingObject.notifyAll();
+            }
         }
     }
 
@@ -207,7 +213,24 @@ public class GameServerState extends AbstractAppState {
      */
     private class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
-        public GameSessionServiceListenerImpl() {
+        @Override
+        public void onStartGame() {
+
+            // Just make sure that the server has fully set up itself before we start the game
+            if (!gameLoaded) {
+                synchronized (loadingObject) {
+                    if (!gameLoaded) {
+                        try {
+                            loadingObject.wait();
+                        } catch (InterruptedException ex) {
+                            LOGGER.log(Level.SEVERE, "Failed to load the game.", ex);
+                        }
+                    }
+                }
+            }
+
+            // Start the actual game
+            gameController.startGame();
         }
 
         @Override

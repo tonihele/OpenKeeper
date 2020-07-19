@@ -258,7 +258,7 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
-//            logger.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{progress, keeperId});
+//            LOGGER.log(Level.FINEST, "onLoadStatusUpdate({0},{1})", new Object[]{progress, keeperId});
 //            for (GameSessionListener l : listeners.getArray()) {
 //                l.onLoadStatusUpdate(progress, keeperId);
 //            }

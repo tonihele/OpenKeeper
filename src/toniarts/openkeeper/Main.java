@@ -579,7 +579,7 @@ public class Main extends SimpleApplication {
     private void startGame() {
         if (params.containsKey("level")) {
             try {
-                LocalGameSession.CreateLocalGame(params.get("level"), false, stateManager, this);
+                LocalGameSession.createLocalGame(params.get("level"), false, stateManager, this);
             } catch (IOException ex) {
                 throw new RuntimeException("Failed to start the game!", ex);
             }

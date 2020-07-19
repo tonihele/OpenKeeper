@@ -197,13 +197,11 @@ public class GameClientState extends AbstractPauseAwareState {
 
                 @Override
                 public void onLoad() {
-
                     onGameLoad();
                 }
 
                 @Override
                 public void onLoadComplete() {
-
                     onGameLoadComplete();
                 }
             };
@@ -293,45 +291,79 @@ public class GameClientState extends AbstractPauseAwareState {
 
     private class GameSessionListenerImpl implements GameSessionListener {
 
+        private final Object mapDataLoadingObject = new Object();
+        private volatile boolean mapDataLoaded = false;
+
         @Override
         public void onGameDataLoaded(Collection<Keeper> players) {
 
-            // Now we have the game data, start loading the map
-            kwdFile.load();
-            AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
-            for (Keeper keeper : players) {
-                keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
-                GameClientState.this.players.put(keeper.getId(), keeper);
-                GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
-            }
-            playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId) {
+            // This might take awhile, don't block
+            Thread loadingThread = new Thread(() -> {
 
-                private float lastProgress = 0;
+                // Now we have the game data, start loading the map
+                kwdFile.load();
+                AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
+                for (Keeper keeper : players) {
+                    keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
+                    GameClientState.this.players.put(keeper.getId(), keeper);
+                    GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
+                }
 
-                @Override
-                protected void updateProgress(float progress) {
+                playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId,
+                        () -> {
+                            synchronized (mapDataLoadingObject) {
+                                mapDataLoaded = true;
+                                mapDataLoadingObject.notifyAll();
+                            }
+                        }) {
 
-                    // Update ourselves
-                    onLoadStatusUpdate(progress, playerId);
+                    private float lastProgress = 0;
 
-                    if (progress - lastProgress >= 0.01f) {
-                        gameClientService.loadStatus(progress);
-                        lastProgress = progress;
+                    @Override
+                    protected void updateProgress(float progress) {
+
+                        // Update ourselves
+                        onLoadStatusUpdate(progress, playerId);
+
+                        if (progress - lastProgress >= 0.01f) {
+                            gameClientService.loadStatus(progress);
+                            lastProgress = progress;
+                        }
+                    }
+                };
+                mapInformation = playerMapViewState.getMapInformation();
+                textParser = new TextParserService(mapInformation);
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser);
+
+                // Attach the states
+                stateManager.attach(playerMapViewState);
+                stateManager.attach(playerModelViewState);
+
+                // Wait until loaded
+                if (!mapDataLoaded) {
+                    synchronized (mapDataLoadingObject) {
+                        if (!mapDataLoaded) {
+                            try {
+                                mapDataLoadingObject.wait();
+                            } catch (InterruptedException ex) {
+                                Logger.getLogger(GameClientState.class.getName()).log(Level.SEVERE, "Map data loading interrupted!", ex);
+                            }
+                        }
                     }
                 }
-            };
-            mapInformation = playerMapViewState.getMapInformation();
-            textParser = new TextParserService(mapInformation);
-            playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser);
 
-            app.enqueue(() -> {
+                // Loaded up, send our ready signal on the next frame to ensure all the states are attached
+                app.enqueue(() -> {
 
-                // Prewarm the whole scene
-                app.getRenderManager().preloadScene(app.getRootNode());
+                    // Prewarm the whole scene
+                    app.getRenderManager().preloadScene(app.getRootNode());
 
-                // Signal our readiness
-                gameClientService.loadComplete();
-            });
+                    // Signal our readiness
+                    gameClientService.loadComplete();
+                });
+
+            }, "GameDataClientLoader");
+            loadingThread.start();
         }
 
         @Override
@@ -361,8 +393,6 @@ public class GameClientState extends AbstractPauseAwareState {
 
             app.enqueue(() -> {
                 playerState.setEnabled(true);
-                stateManager.attach(playerMapViewState);
-                stateManager.attach(playerModelViewState);
 
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {

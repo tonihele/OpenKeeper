@@ -21,6 +21,7 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityContainer;
@@ -74,21 +75,42 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
 
-    public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, EntityData entityData, short playerId) {
+    public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
-        this.mapTileContainer = new MapTileContainer(entityData, kwdFile);
-        this.mapInformation = new MapInformation(mapTileContainer, kwdFile);
-
-        // Effect manager
-        effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // World node
         worldNode = new Node("World");
         if (Main.isDebug()) {
             Debug.showNodeAxes(assetManager, worldNode, 10);
         }
+
+        // Make sure we load the whole map before we continue
+        this.mapTileContainer = new MapTileContainer(entityData, kwdFile) {
+
+            @Override
+            protected void onLoadComplete() {
+
+                // Don't block the caller, called from the render thread...
+                Thread mapLoaderThread = new Thread(() -> {
+
+                    Spatial map = mapLoader.load(assetManager, kwdFile);
+                    app.enqueue(() -> {
+                        worldNode.attachChild(map);
+
+                        loadCompleteNotifier.onLoadComplete();
+                    });
+                }, "GameClientMapLoader");
+                mapLoaderThread.start();
+            }
+
+        };
+
+        this.mapInformation = new MapInformation(mapTileContainer, kwdFile);
+
+        // Effect manager
+        effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // Create the actual map
         this.mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, playerId) {
@@ -99,7 +121,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             }
 
         };
-        worldNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
         this.flashTileControl = new FlashTileViewState(mapLoader);
     }
@@ -204,14 +225,22 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         return mapInformation;
     }
 
+    public interface ILoadCompleteNotifier {
+
+        void onLoadComplete();
+
+    }
+
     /**
      * Contains the map tiles
      */
-    private class MapTileContainer extends EntityContainer<IMapTileInformation> implements IMapDataInformation<IMapTileInformation> {
+    private abstract class MapTileContainer extends EntityContainer<IMapTileInformation> implements IMapDataInformation<IMapTileInformation> {
 
         private final int width;
         private final int height;
         private final IMapTileInformation[][] tiles;
+
+        private int tilesAdded = 0;
 
         public MapTileContainer(EntityData entityData, KwdFile kwdFile) {
             super(entityData, MapTile.class, Owner.class, Health.class, Gold.class, Mana.class);
@@ -230,6 +259,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             IMapTileInformation result = new MapTileInformation(e);
             Point p = result.getLocation();
             this.tiles[p.x][p.y] = result;
+
+            // Naive completion checker
+            tilesAdded++;
+            if (tilesAdded == getSize()) {
+                onLoadComplete();
+            }
 
             return result;
         }
@@ -292,6 +327,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         public void setTiles(List<IMapTileInformation> mapTiles) {
             throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
+
+        protected abstract void onLoadComplete();
 
     }
 

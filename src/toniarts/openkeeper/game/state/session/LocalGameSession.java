@@ -66,8 +66,8 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
      */
-    public static void CreateLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
-        CreateLocalGame(kwdFile, stateManager, campaign, app);
+    public static void createLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
+        createLocalGame(kwdFile, stateManager, campaign, app);
     }
 
     /**
@@ -79,7 +79,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param stateManager state manager instance for setting up the game
      * @throws java.io.IOException Problem with the map file
      */
-    public static void CreateLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
+    public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
 
         // Try to load the file
         String mapFile = ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd");
@@ -89,10 +89,10 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         }
         KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), file);
 
-        CreateLocalGame(kwdFile, stateManager, campaign, app);
+        createLocalGame(kwdFile, stateManager, campaign, app);
     }
 
-    private static void CreateLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app) {
+    private static void createLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app) {
 
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
@@ -141,6 +141,11 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void startGame() {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onGameStarted();
+        }
+
+        // Start the simulation
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onStartGame();
         }
     }
 

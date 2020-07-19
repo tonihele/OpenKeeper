@@ -172,35 +172,6 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         return getServiceManager().getService(EntityDataHostedService.class).getEntityData();
     }
 
-//    @Override
-//    public void sendGameData(Collection<Keeper> players, MapData mapData) {
-//        Thread thread = new Thread(() -> {
-//
-//            if (!readyToLoad) {
-//                synchronized (loadLock) {
-//                    if (!readyToLoad) {
-//                        try {
-//                            loadLock.wait();
-//                        } catch (InterruptedException ex) {
-//                            LOGGER.log(Level.SEVERE, "Game data sender interrupted!", ex);
-//                            return;
-//                        }
-//                    }
-//                }
-//            }
-//
-//            // We must block this until all clients are ready to receive
-//            try {
-//
-//                // Data is too big, stream the data
-//                getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.GAME_DATA.ordinal(), new GameData(new ArrayList<>(players), mapData), null);
-//            } catch (IOException ex) {
-//                LOGGER.log(Level.SEVERE, "Failed to send the game data to clients!", ex);
-//            }
-//
-//        }, "GameDataSender");
-//        thread.start();
-//    }
     @Override
     public void sendGameData(Collection<Keeper> players) {
 
@@ -219,6 +190,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     public void startGame() {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onGameStarted();
+        }
+
+        // Start the simulation
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onStartGame();
         }
     }
 

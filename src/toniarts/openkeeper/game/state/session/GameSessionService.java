@@ -44,6 +44,7 @@ public interface GameSessionService extends PlayerListener, PlayerService {
      *
      * @param players the players
      */
+    @Asynchronous
     public void sendGameData(Collection<Keeper> players);
 
     /**
