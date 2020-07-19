@@ -92,7 +92,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             @Override
             protected void onLoadComplete() {
 
-                // Don't block the caller, called from the render thread...
+                // Don't block the caller, might be called from the render thread...
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
@@ -123,6 +123,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         };
 
         this.flashTileControl = new FlashTileViewState(mapLoader);
+
+        // Start collecting the map entities
+        this.mapTileContainer.start();
     }
 
     @Override
@@ -130,9 +133,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         super.initialize(stateManager, app);
         this.app = (Main) app;
         this.stateManager = stateManager;
-
-        // The actual map data
-        this.mapTileContainer.start();
 
         // Effects
         this.stateManager.attach(effectManager);
