@@ -25,27 +25,21 @@ import com.simsilica.es.EntityComponent;
  */
 public class Health implements EntityComponent {
 
-//    public int ownLandHealthIncrease;
     public int health;
     public int maxHealth;
-//    public boolean unconscious;
 
     public Health() {
         // For serialization
     }
 
-    public Health(/*int ownLandHealthIncrease, */int health, int maxHealth/*, boolean unconscious*/) {
-//        this.ownLandHealthIncrease = ownLandHealthIncrease;
+    public Health(int health, int maxHealth) {
         this.health = health;
         this.maxHealth = maxHealth;
-//        this.unconscious = unconscious;
     }
 
     public Health(Health health) {
-//        this.ownLandHealthIncrease = health.ownLandHealthIncrease;
         this.health = health.health;
         this.maxHealth = health.maxHealth;
-//        this.unconscious = health.unconscious;
     }
 
 }
