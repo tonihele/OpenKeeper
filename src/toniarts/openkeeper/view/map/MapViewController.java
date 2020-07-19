@@ -101,12 +101,14 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     // private final WorldState worldState;
     //private final ObjectLoader objectLoader;
     // private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
+    private final Set<Point> flashedTiles = new HashSet<>();
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
+
     private static final Logger LOGGER = Logger.getLogger(MapViewController.class.getName());
 
     public MapViewController(AssetManager assetManager, KwdFile kwdFile, IMapInformation mapClientService, short playerId) {
@@ -259,7 +261,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // Change the material on geometries
         Terrain terrain = getTerrain(tile);
-        if (!tile.isFlashed(playerId) && !tile.isSelected(playerId)
+        if (!isFlashing(tile) && !tile.isSelected(playerId)
                 && !terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
             return;
         }
@@ -302,7 +304,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                         }
                     }
                 }
-                if (tile.isFlashed(playerId)) {
+                if (isFlashing(tile)) {
                     material.setColor("Ambient", COLOR_FLASH);
                     material.setBoolean("UseMaterialColors", true);
                 }
@@ -314,6 +316,10 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             }
 
         });
+    }
+
+    private boolean isFlashing(final IMapTileInformation tile) {
+        return flashedTiles.contains(tile.getLocation());
     }
 
     /**
@@ -662,8 +668,10 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     public void flashTile(boolean enabled, List<Point> points) {
-        for (Point p : points) {
-//            getMapData().getTile(p.x, p.y).setFlashed(enabled, playerId);
+        if (enabled) {
+            flashedTiles.addAll(points);
+        } else {
+            flashedTiles.removeAll(points);
         }
 
         updateTiles(points.toArray(new Point[points.size()]));
