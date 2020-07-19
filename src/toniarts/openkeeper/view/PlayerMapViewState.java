@@ -28,6 +28,7 @@ import com.simsilica.es.EntityData;
 import java.awt.Point;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
@@ -78,8 +79,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapTileContainer = new MapTileContainer(entityData, kwdFile);
-        // The actual map data
-        this.mapTileContainer.start();
         this.mapInformation = new MapInformation(mapTileContainer, kwdFile);
 
         // Effect manager
@@ -111,8 +110,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         this.app = (Main) app;
         this.stateManager = stateManager;
 
-//        // The actual map data
-//        this.mapTileContainer.start();
+        // The actual map data
+        this.mapTileContainer.start();
 
         // Effects
         this.stateManager.attach(effectManager);
@@ -162,38 +161,38 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     protected abstract void updateProgress(final float progress);
 
     @Override
-    public void onTilesChange(List<IMapTileInformation> updatedTiles) {
-        Point[] points = new Point[updatedTiles.size()];
-        for (int i = 0; i < updatedTiles.size(); i++) {
-            IMapTileInformation mapTile = updatedTiles.get(i);
-            points[i] = new Point(mapTile.getX(), mapTile.getY());
-        }
-
-        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
-        app.enqueue(() -> {
-            mapLoader.updateTiles(points);
-        });
+    public void onTilesChange(List<Point> updatedTiles) {
+//        Point[] points = new Point[updatedTiles.size()];
+//        for (int i = 0; i < updatedTiles.size(); i++) {
+//            IMapTileInformation mapTile = updatedTiles.get(i);
+//            points[i] = new Point(mapTile.getX(), mapTile.getY());
+//        }
+//
+//        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
+//        app.enqueue(() -> {
+//            mapLoader.updateTiles(points);
+//        });
     }
 
     @Override
-    public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
-        //mapClientService.setTiles(tiles);
-        Point[] updatableTiles = new Point[tiles.size()];
-        for (int i = 0; i < tiles.size(); i++) {
-            updatableTiles[i] = tiles.get(i).getLocation();
-        }
-
-        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
-        app.enqueue(() -> {
-            mapLoader.updateTiles(updatableTiles);
-        });
+    public void onBuild(short keeperId, List<Point> tiles) {
+//        mapClientService.setTiles(tiles);
+//        Point[] updatableTiles = new Point[tiles.size()];
+//        for (int i = 0; i < tiles.size(); i++) {
+//            updatableTiles[i] = tiles.get(i).getLocation();
+//        }
+//
+//        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
+//        app.enqueue(() -> {
+//            mapLoader.updateTiles(updatableTiles);
+//        });
     }
 
     @Override
-    public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+    public void onSold(short keeperId, List<Point> tiles) {
 
         // For now there is no difference between buying and selling
-        onBuild(keeperId, tiles);
+//        onBuild(keeperId, tiles);
     }
 
     @Override
@@ -236,11 +235,34 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         }
 
         @Override
-        protected void updateObject(IMapTileInformation object, Entity e) {
-            LOGGER.log(Level.FINEST, "MapTileContainer.updateObject({0})", e);
-            Point[] updatableTiles = new Point[1];
-            updatableTiles[0] = object.getLocation();
+        protected void updateObjects(Set<Entity> set) {
+            if (set.isEmpty()) {
+                return;
+            }
+
+            LOGGER.log(Level.FINEST, "MapTileContainer.updateObjects({0})", set.size());
+
+            // Collect the tiles
+            Point[] updatableTiles = new Point[set.size()];
+            int i = 0;
+            for (Entity e : set) {
+                IMapTileInformation object = getObject(e.getId());
+                if (object == null) {
+                    LOGGER.log(Level.WARNING, "Update: No matching object for entity:{0}", e);
+                    continue;
+                }
+                updatableTiles[i] = object.getLocation();
+                i++;
+            }
+
+            // Update the batch
             mapLoader.updateTiles(updatableTiles);
+        }
+
+        @Override
+        protected void updateObject(IMapTileInformation object, Entity e) {
+            throw new UnsupportedOperationException("Should use the batch method.");
+
         }
 
         @Override

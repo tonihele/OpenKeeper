@@ -17,8 +17,8 @@
 package toniarts.openkeeper.game.listener;
 
 import com.jme3.network.service.rmi.Asynchronous;
+import java.awt.Point;
 import java.util.List;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  *
@@ -27,9 +27,9 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 public interface PlayerActionListener {
 
     @Asynchronous
-    public void onBuild(short keeperId, List<IMapTileInformation> tiles);
+    public void onBuild(short keeperId, List<Point> tiles);
 
     @Asynchronous
-    public void onSold(short keeperId, List<IMapTileInformation> tiles);
+    public void onSold(short keeperId, List<Point> tiles);
 
 }

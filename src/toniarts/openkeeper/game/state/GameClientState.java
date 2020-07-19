@@ -37,7 +37,6 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -374,7 +373,7 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onTilesChange(List<IMapTileInformation> updatedTiles) {
+        public void onTilesChange(List<Point> updatedTiles) {
             //mapInformation.setTiles(updatedTiles);
             //playerMapViewState.onTilesChange(updatedTiles);
         }
@@ -407,12 +406,12 @@ public class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
+        public void onBuild(short keeperId, List<Point> tiles) {
             playerMapViewState.onBuild(keeperId, tiles);
         }
 
         @Override
-        public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+        public void onSold(short keeperId, List<Point> tiles) {
             playerMapViewState.onSold(keeperId, tiles);
         }
 

@@ -35,7 +35,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.state.CheatState;
@@ -266,7 +265,7 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onTilesChange(List<IMapTileInformation> updatedTiles) {
+        public void onTilesChange(List<Point> updatedTiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onTilesChange(updatedTiles);
             }
@@ -287,14 +286,14 @@ public class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
+        public void onBuild(short keeperId, List<Point> tiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onBuild(keeperId, tiles);
             }
         }
 
         @Override
-        public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+        public void onSold(short keeperId, List<Point> tiles) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onSold(keeperId, tiles);
             }

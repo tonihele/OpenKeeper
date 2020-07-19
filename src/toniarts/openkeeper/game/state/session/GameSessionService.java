@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerListener;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  * This is server's perspective of game flow things. The services we offer our
@@ -58,7 +57,7 @@ public interface GameSessionService extends PlayerListener, PlayerService {
      * @param updatedTiles the changed tiles
      */
     @Asynchronous
-    public void updateTiles(List<IMapTileInformation> updatedTiles);
+    public void updateTiles(List<Point> updatedTiles);
 
     /**
      * Map tiles should be set flashing

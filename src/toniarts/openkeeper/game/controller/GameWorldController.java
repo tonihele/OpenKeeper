@@ -346,7 +346,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // Build & mark
-        List<IMapTileInformation> buildTiles = new ArrayList<>(instancePlots.size());
+        List<Point> buildTiles = new ArrayList<>(instancePlots.size());
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
         for (Point p : instancePlots) {
@@ -357,7 +357,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             IMapTileController tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
-            buildTiles.add(tile);
+            buildTiles.add(tile.getLocation());
         }
 
         // See if we hit any of the adjacent rooms
@@ -427,7 +427,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
-        List<IMapTileInformation> soldTiles = new ArrayList<>();
+        List<Point> soldTiles = new ArrayList<>();
         Set<Point> updatableTiles = new HashSet<>();
         Set<RoomInstance> soldInstances = new HashSet<>();
         List<Point> roomCoordinates = new ArrayList<>();
@@ -446,7 +446,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                 if (tile == null) {
                     continue;
                 }
-                soldTiles.add(tile);
+                soldTiles.add(tile.getLocation());
 
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
@@ -562,13 +562,13 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         listeners.remove(listener);
     }
 
-    private void notifyOnBuild(short playerId, List<IMapTileInformation> buildTiles) {
+    private void notifyOnBuild(short playerId, List<Point> buildTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onBuild(playerId, buildTiles);
         }
     }
 
-    private void notifyOnSold(short playerId, List<IMapTileInformation> soldTiles) {
+    private void notifyOnSold(short playerId, List<Point> soldTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onSold(playerId, soldTiles);
         }

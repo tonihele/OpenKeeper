@@ -40,7 +40,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.state.CheatState;
@@ -224,7 +223,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void updateTiles(List<IMapTileInformation> updatedTiles) {
+    public void updateTiles(List<Point> updatedTiles) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onTilesChange(updatedTiles);
         }
@@ -367,14 +366,14 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
+    public void onBuild(short keeperId, List<Point> tiles) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onBuild(keeperId, tiles);
         }
     }
 
     @Override
-    public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+    public void onSold(short keeperId, List<Point> tiles) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onSold(keeperId, tiles);
         }
@@ -496,7 +495,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onTilesChange(List<IMapTileInformation> updatedTiles) {
+        public void onTilesChange(List<Point> updatedTiles) {
             getCallback().onTilesChange(updatedTiles);
         }
 
@@ -618,12 +617,12 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
+        public void onBuild(short keeperId, List<Point> tiles) {
             getCallback().onBuild(keeperId, tiles);
         }
 
         @Override
-        public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+        public void onSold(short keeperId, List<Point> tiles) {
             getCallback().onSold(keeperId, tiles);
         }
 

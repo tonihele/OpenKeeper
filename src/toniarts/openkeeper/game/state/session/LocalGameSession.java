@@ -28,7 +28,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
@@ -370,7 +369,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void updateTiles(List<IMapTileInformation> updatedTiles) {
+    public void updateTiles(List<Point> updatedTiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onTilesChange(updatedTiles);
         }
@@ -401,14 +400,14 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
+    public void onBuild(short keeperId, List<Point> tiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onBuild(keeperId, tiles);
         }
     }
 
     @Override
-    public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+    public void onSold(short keeperId, List<Point> tiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onSold(keeperId, tiles);
         }

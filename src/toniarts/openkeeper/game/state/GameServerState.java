@@ -37,7 +37,6 @@ import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -337,7 +336,7 @@ public class GameServerState extends AbstractAppState {
     private class MapListenerImpl implements MapListener {
 
         @Override
-        public void onTilesChange(List<IMapTileInformation> updatedTiles) {
+        public void onTilesChange(List<Point> updatedTiles) {
             gameService.updateTiles(updatedTiles);
         }
 
@@ -353,12 +352,12 @@ public class GameServerState extends AbstractAppState {
     private class PlayerActionListenerImpl implements PlayerActionListener {
 
         @Override
-        public void onBuild(short keeperId, List<IMapTileInformation> tiles) {
+        public void onBuild(short keeperId, List<Point> tiles) {
             gameService.onBuild(keeperId, tiles);
         }
 
         @Override
-        public void onSold(short keeperId, List<IMapTileInformation> tiles) {
+        public void onSold(short keeperId, List<Point> tiles) {
             gameService.onSold(keeperId, tiles);
         }
 

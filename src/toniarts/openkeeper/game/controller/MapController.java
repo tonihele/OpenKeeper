@@ -234,7 +234,7 @@ public final class MapController extends Container implements IMapController {
 
     @Override
     public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-        List<IMapTileInformation> updatableTiles = new ArrayList<>();
+        List<Point> updatableTiles = new ArrayList<>();
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
             for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
                 IMapTileController tile = getMapData().getTile(x, y);
@@ -246,7 +246,7 @@ public final class MapController extends Container implements IMapController {
                     continue;
                 }
                 tile.setSelected(select, playerId);
-                updatableTiles.add(tile);
+                updatableTiles.add(tile.getLocation());
             }
         }
         //Point[] tiles = updatableTiles.toArray(new Point[updatableTiles.size()]);
@@ -296,13 +296,13 @@ public final class MapController extends Container implements IMapController {
         mapInformation.setTiles(tiles);
     }
 
-    private void notifyTileChange(IMapTileController updatedTile) {
-        List<IMapTileInformation> mapTiles = new ArrayList<>(1);
+    private void notifyTileChange(Point updatedTile) {
+        List<Point> mapTiles = new ArrayList<>(1);
         mapTiles.add(updatedTile);
         notifyTileChange(mapTiles);
     }
 
-    private void notifyTileChange(List<IMapTileInformation> updatedTiles) {
+    private void notifyTileChange(List<Point> updatedTiles) {
         for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onTilesChange(updatedTiles);
         }
@@ -508,7 +508,7 @@ public final class MapController extends Container implements IMapController {
         }
 
         // Notify
-        notifyTileChange(tile);
+        notifyTileChange(tile.getLocation());
 
         return returnedGold;
     }
@@ -572,7 +572,7 @@ public final class MapController extends Container implements IMapController {
         }
 
         // Notify
-        notifyTileChange(tile);
+        notifyTileChange(tile.getLocation());
     }
 
     /**
@@ -619,7 +619,7 @@ public final class MapController extends Container implements IMapController {
 //                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
 //                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
                     // TODO: Claimed room wall tiles lose the claiming I think?
-                    notifyTileChange(roomTile);
+                    notifyTileChange(roomTile.getLocation());
                 }
 
                 // Notify
@@ -677,7 +677,7 @@ public final class MapController extends Container implements IMapController {
             tile.setOwnerId(playerId);
         }
 
-        notifyTileChange(tile);
+        notifyTileChange(tile.getLocation());
     }
 
     private float getLevelVariable(Variable.MiscVariable.MiscType variable) {
