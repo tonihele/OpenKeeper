@@ -503,12 +503,12 @@ public final class MapController extends Container implements IMapController {
 //            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
             // Notify
 //            notifyTileChange(point);
+            // Notify
+            notifyTileChange(tile.getLocation());
+
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 //            mapLoader.updateTiles(point);
         }
-
-        // Notify
-        notifyTileChange(tile.getLocation());
 
         return returnedGold;
     }
@@ -567,12 +567,11 @@ public final class MapController extends Container implements IMapController {
 //            mapLoader.updateTiles(mapLoader.getSurroundingTiles(tile.getLocation(), true));
             // Notify
 //            notifyTileChange(point);
+            // Notify
+            notifyTileChange(tile.getLocation());
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 //            mapLoader.updateTiles(point);
         }
-
-        // Notify
-        notifyTileChange(tile.getLocation());
     }
 
     /**
@@ -619,10 +618,10 @@ public final class MapController extends Container implements IMapController {
 //                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
 //                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
                     // TODO: Claimed room wall tiles lose the claiming I think?
-                    notifyTileChange(roomTile.getLocation());
                 }
 
                 // Notify
+                notifyTileChange(roomTiles);
                 IRoomController roomController = getRoomController(room);
                 roomController.captured(playerId);
                 notifyOnCapturedByEnemy(owner, roomController);
