@@ -29,8 +29,10 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  */
 public class MapTile implements EntityComponent {
 
+    // TODO: Get rid of these, not a correct place to store this information
     public Map<Short, Boolean> selection;
     public Map<Short, Boolean> flashing;
+
     public int randomTextureIndex;
 
     /* Refers to the room this tile holds */
