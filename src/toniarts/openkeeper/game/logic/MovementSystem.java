@@ -209,9 +209,13 @@ public class MovementSystem implements IGameLogicUpdatable {
 
         // Also update the real components
         Position oldPosition = entityData.getComponent(entityId, Position.class);
-        oldPosition.position.x = steerableEntity.getPosition().x;
-        oldPosition.position.z = steerableEntity.getPosition().y;
-        entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
+        if (oldPosition != null) {
+
+            // Re-use the vector, the position might be already removed from another thread
+            oldPosition.position.x = steerableEntity.getPosition().x;
+            oldPosition.position.z = steerableEntity.getPosition().y;
+            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
+        }
     }
 
     /**
