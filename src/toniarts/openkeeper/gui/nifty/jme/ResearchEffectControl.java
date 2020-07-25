@@ -17,24 +17,14 @@
 package toniarts.openkeeper.gui.nifty.jme;
 
 import com.jme3.app.SimpleApplication;
-import com.jme3.asset.AssetKey;
+import com.jme3.asset.AssetManager;
+import com.jme3.asset.TextureKey;
 import com.jme3.texture.Texture2D;
-import com.jme3.texture.plugins.AWTLoader;
-import com.jme3.ui.Picture;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.geom.Arc2D;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 
 /**
  * Draws a kinda progress effect image on top of a Nifty element
@@ -44,9 +34,8 @@ import javax.imageio.ImageIO;
 public class ResearchEffectControl extends AbstractNiftyJmeControl {
 
     public static final String CONTROL_NAME = "researchEffect";
-    private static final Logger LOGGER = Logger.getLogger(ResearchEffectControl.class.getName());
 
-    private Picture picture;
+    private ProgressIndicatorPicture picture;
     private boolean initialized = false;
     private float research = 0;
     private Color color;
@@ -76,7 +65,7 @@ public class ResearchEffectControl extends AbstractNiftyJmeControl {
     public void initJme(SimpleApplication app) {
         super.initJme(app);
 
-        picture = new Picture("ResearchIndicator");
+        picture = new ProgressIndicatorPicture("ResearchIndicator");
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
@@ -96,60 +85,31 @@ public class ResearchEffectControl extends AbstractNiftyJmeControl {
         if (!initialized && research > 0) {
             initialize();
         } else {
-
-            // TODO: should maybe limit the drawing when visible and only on some occasions etc.
-            drawTexture();
+            picture.setProgress(getApp().getAssetManager(), research);
         }
     }
 
     private void initialize() {
         initialized = true;
+        AssetManager assetManager = getApp().getAssetManager();
 
         // Make sure we are drawing on the right spot
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
+        picture.setProgress(assetManager, research);
 
-        // We need to have a texture before we attach the image
-        drawTexture();
+        // Set the color or the picture
+        if (image != null) {
+            TextureKey key = new TextureKey(image, false);
+            Texture2D tex = (Texture2D) assetManager.loadTexture(key);
+            picture.setTexture(assetManager, tex, true);
+        } else {
+            picture.setColor(assetManager, color, true);
+        }
 
         // Attach to scene
         getApp().getGuiNode().attachChild(picture);
-    }
-
-    private void drawTexture() {
-        BufferedImage img = null;
-        if (image != null) {
-            try {
-                img = ImageIO.read(getApp().getAssetManager().locateAsset(new AssetKey(image)).openStream());
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to load the backdrop image with " + image + "!", ex);
-            }
-        }
-        BufferedImage newImage = new BufferedImage(getControlWidth(), getControlHeight(), img != null ? img.getType() : BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = newImage.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.clip(getProgressShape(newImage.getWidth(), newImage.getHeight(), research));
-        if (img != null) {
-
-            // Draw the wanted image to the new image
-            g.drawImage(img, 0, 0, newImage.getWidth(), newImage.getHeight(), 0, 0, img.getWidth(), img.getHeight(), null);
-        } else {
-            g.setPaint(color);
-            g.fillRect(0, 0, newImage.getWidth(), newImage.getHeight());
-        }
-        g.dispose();
-
-        // Assign the texture
-        AWTLoader loader = new AWTLoader();
-        Texture2D tex = new Texture2D(loader.load(newImage, false));
-        picture.setTexture(getApp().getAssetManager(), tex, true);
-    }
-
-    private static Shape getProgressShape(int width, int height, float research) {
-        float angle = research * 360;
-        return new Arc2D.Float(-0.5f * width, -0.5f * height, 2 * width, 2 * height, -90, angle, Arc2D.PIE);
     }
 
 }

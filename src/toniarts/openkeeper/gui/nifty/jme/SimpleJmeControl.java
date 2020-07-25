@@ -47,7 +47,7 @@ public class SimpleJmeControl<T extends AbstractNiftyJmeControl> extends Abstrac
     }
 
     protected void setVisibility() {
-        getSpatial().setCullHint(jmeControl.isControlVisible() ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        getSpatial().setCullHint(jmeControl.isControlVisible() ? Spatial.CullHint.Never : Spatial.CullHint.Always);
     }
 
     @Override
