@@ -393,7 +393,11 @@ public class CreaturesController implements ICreaturesController {
         senses = new Senses(senses);
         threat = new Threat(threat);
         creatureMeleeAttack = new CreatureMeleeAttack(creatureMeleeAttack);
-        regeneration = new Regeneration(regeneration);
+        if (regeneration == null) {
+            regeneration = new Regeneration(0, null);
+        } else {
+            regeneration = new Regeneration(regeneration);
+        }
 
         // Set the new stats
         creatureExperience.level = level;
