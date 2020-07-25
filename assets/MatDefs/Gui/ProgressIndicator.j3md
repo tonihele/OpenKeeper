@@ -1,0 +1,24 @@
+MaterialDef ProgressIndicator {
+
+    MaterialParameters {
+        Texture2D Texture
+        Color Color (Color)
+        Boolean VertexColor (UseVertexColor)
+        Float Progress
+    }
+
+    Technique {
+        VertexShader GLSL150 GLSL100:   Shaders/Gui/ProgressIndicator.vert
+        FragmentShader GLSL150 GLSL100: Shaders/Gui/ProgressIndicator.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+        }
+
+        Defines {
+            TEXTURE : Texture
+            VERTEX_COLOR : VertexColor
+        }
+    }
+
+}
