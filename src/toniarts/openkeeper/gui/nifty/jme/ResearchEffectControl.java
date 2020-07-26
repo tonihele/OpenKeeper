@@ -101,7 +101,7 @@ public class ResearchEffectControl extends AbstractNiftyJmeControl {
 
         // Set the color or the picture
         if (image != null) {
-            TextureKey key = new TextureKey(image, false);
+            TextureKey key = new TextureKey(image, true);
             Texture2D tex = (Texture2D) assetManager.loadTexture(key);
             picture.setTexture(assetManager, tex, true);
         } else {
