@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -206,6 +207,11 @@ public class ObjectsController implements IObjectsController {
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.PLACEABLE)) {
             entityData.setComponent(entity, new Placeable());
+        }
+
+        // Mana flow
+        if (objectId == OBJECT_HEART_ID) {
+            entityData.setComponent(entity, new Mana((int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND).getValue()));
         }
 
         // Trigger

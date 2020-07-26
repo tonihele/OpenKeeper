@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
@@ -147,6 +148,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         entityData.removeComponent(entityId, Navigation.class);
         entityData.removeComponent(entityId, Interaction.class);
         entityData.removeComponent(entityId, Unconscious.class);
+        entityData.removeComponent(entityId, Mana.class);
         entityData.setComponent(entityId, new Death(gameTime));
     }
 

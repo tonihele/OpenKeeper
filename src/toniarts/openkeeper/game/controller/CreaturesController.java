@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
@@ -107,6 +108,8 @@ public class CreaturesController implements ICreaturesController {
     private final IGameController gameController;
     private final IMapController mapController;
     private final ILevelInfo levelInfo;
+
+    private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
 
     private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
@@ -283,6 +286,11 @@ public class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, threatComponent);
         if (regeneration.ownLandHealthIncrease > 0) {
             entityData.setComponent(entity, regeneration);
+        }
+
+        // Mana generation
+        if (kwdFile.getImp().equals(creature)) {
+            entityData.setComponent(entity, new Mana(MANA_GENERATION_IMP));
         }
 
         // Melee attack
