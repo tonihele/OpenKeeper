@@ -65,7 +65,7 @@ public class CreatureTorturingSystem implements IGameLogicUpdatable {
             if (gameTime - tortured.healthCheckTime >= 1) {
                 int healthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
                 entityData.setComponent(entity.getId(), new CreatureImprisoned(tortured.startTime, tortured.healthCheckTime + 1));
-                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth, health.unconscious));
+                entityData.setComponent(entity.getId(), new Health(Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth));
             }
 
             // TODO: Mood

@@ -24,7 +24,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.DEFAULT_COST;
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.WATER_COST;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -34,7 +34,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapIndexedGraph implements IndexedGraph<MapTile> {
+public class MapIndexedGraph implements IndexedGraph<IMapTileInformation> {
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
@@ -54,7 +54,7 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
     }
 
     @Override
-    public int getIndex(MapTile n) {
+    public int getIndex(IMapTileInformation n) {
         return n.getIndex();
     }
 
@@ -69,10 +69,10 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
     }
 
     @Override
-    public Array<Connection<MapTile>> getConnections(MapTile tile) {
+    public Array<Connection<IMapTileInformation>> getConnections(IMapTileInformation tile) {
 
         // The connections depend on the creature type
-        Array<Connection<MapTile>> connections = new Array<>(pathFindable.canMoveDiagonally() ? 8 : 4);
+        Array<Connection<IMapTileInformation>> connections = new Array<>(pathFindable.canMoveDiagonally() ? 8 : 4);
         boolean valids[] = new boolean[4];
 
         valids[0] = addIfValidCoordinate(tile, tile.getX(), tile.getY() - 1, connections); // North
@@ -98,14 +98,14 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
         return connections;
     }
 
-    private boolean addIfValidCoordinate(final MapTile startTile, final int x, final int y, final Array<Connection<MapTile>> connections) {
+    private boolean addIfValidCoordinate(final IMapTileInformation startTile, final int x, final int y, final Array<Connection<IMapTileInformation>> connections) {
 
         // Valid coordinate
-        MapTile tile = mapController.getMapData().getTile(x, y);
+        IMapTileInformation tile = mapController.getMapData().getTile(x, y);
         if (tile != null) {
             Float cost = pathFindable.getCost(startTile, tile, mapController, entityPositionLookup);
             if (cost != null) {
-                connections.add(new DefaultConnection<MapTile>(startTile, tile) {
+                connections.add(new DefaultConnection<IMapTileInformation>(startTile, tile) {
 
                     @Override
                     public float getCost() {
@@ -132,12 +132,12 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
      * @see #WATER_COST
      * @return {@code null} if the to tile is not accessible
      */
-    protected static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IMapController mapController,
+    protected static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
             IEntityPositionLookup entityPositionLookup) {
         return getCost(navigable, from, to, mapController, entityPositionLookup, true);
     }
 
-    private static Float getCost(final INavigable navigable, final MapTile from, final MapTile to, final IMapController mapController,
+    private static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
             IEntityPositionLookup entityPositionLookup, boolean checkDiagonal) {
         Terrain terrain = mapController.getTerrain(to);
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
@@ -158,8 +158,8 @@ public class MapIndexedGraph implements IndexedGraph<MapTile> {
                 [1,2][ l ]
                  */
                 boolean hasConnection = false;
-                MapTile hiCorner = mapController.getMapData().getTile(from.getLocation().y < to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y < to.getLocation().y ? from.getLocation().y : to.getLocation().y);
-                MapTile loCorner = mapController.getMapData().getTile(from.getLocation().y > to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y > to.getLocation().y ? from.getLocation().y : to.getLocation().y);
+                IMapTileInformation hiCorner = mapController.getMapData().getTile(from.getLocation().y < to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y < to.getLocation().y ? from.getLocation().y : to.getLocation().y);
+                IMapTileInformation loCorner = mapController.getMapData().getTile(from.getLocation().y > to.getLocation().y ? to.getLocation().x : from.getLocation().x, from.getLocation().y > to.getLocation().y ? from.getLocation().y : to.getLocation().y);
                 if (hiCorner != null && getCost(navigable, from, hiCorner, mapController, entityPositionLookup, false) != null) {
                     hasConnection = true;
                 } else if (loCorner != null && getCost(navigable, from, loCorner, mapController, entityPositionLookup, false) != null) {

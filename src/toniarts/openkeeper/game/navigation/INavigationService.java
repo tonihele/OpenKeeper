@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.navigation;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 
 /**
@@ -57,7 +57,7 @@ public interface INavigationService {
      * @param navigable the entity to find path for
      * @return output path, null if path not found
      */
-    GraphPath<MapTile> findPath(Point start, Point end, INavigable navigable);
+    GraphPath<IMapTileInformation> findPath(Point start, Point end, INavigable navigable);
 
     /**
      * Check if given tile is accessible by the given creature
@@ -67,6 +67,6 @@ public interface INavigationService {
      * @param navigable the entity to test with
      * @return is accessible
      */
-    boolean isAccessible(MapTile from, MapTile to, INavigable navigable);
+    boolean isAccessible(IMapTileInformation from, IMapTileInformation to, INavigable navigable);
 
 }

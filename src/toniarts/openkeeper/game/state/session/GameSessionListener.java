@@ -23,7 +23,6 @@ import java.util.Collection;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerListener;
-import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
@@ -37,10 +36,9 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      * Client should start to load the game data up visually
      *
      * @param players the players
-     * @param mapData the map data
      */
     @Asynchronous
-    public void onGameDataLoaded(Collection<Keeper> players, MapData mapData);
+    public void onGameDataLoaded(Collection<Keeper> players);
 
     /**
      * Signal that a player is ready and loaded up

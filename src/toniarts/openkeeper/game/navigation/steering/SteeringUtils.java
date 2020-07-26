@@ -21,7 +21,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import java.util.ArrayList;
 import java.util.List;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -53,9 +53,9 @@ public class SteeringUtils {
         return path;
     }
 
-    public static List<Vector2> pathToList(GraphPath<MapTile> inPath) {
+    public static List<Vector2> pathToList(GraphPath<IMapTileInformation> inPath) {
         List<Vector2> path = new ArrayList<>(inPath.getCount());
-        for (MapTile tile : inPath) {
+        for (IMapTileInformation tile : inPath) {
             path.add(WorldUtils.pointToVector2(tile.getLocation()));
         }
         return path;

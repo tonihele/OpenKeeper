@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.controller.entity;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  * Common interface for all kinds of entities
@@ -34,7 +34,7 @@ public interface IEntityController extends Comparable<IEntityController> {
 
     public Vector3f getPosition();
 
-    public MapTile getTile();
+    public IMapTileInformation getTile();
 
     public int getHealth();
 

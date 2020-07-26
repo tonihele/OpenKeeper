@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -111,7 +111,7 @@ public class ChickenController extends EntityController implements IChickenContr
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
-        GraphPath<MapTile> path = navigationService.findPath(currentLocation, destination, this);
+        GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getChickenCoordinates(), destination});
             return true;

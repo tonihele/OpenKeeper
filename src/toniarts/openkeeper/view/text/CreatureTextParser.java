@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.Utils;
 
@@ -156,7 +156,7 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
             case CLAIM_WALL:
                 return Utils.getMainTextResourceBundle().getString("2603");
             case DIG_TILE:
-                MapTile tile = mapInformation.getMapData().getTile(taskComponent.targetLocation);
+                IMapTileInformation tile = mapInformation.getMapData().getTile(taskComponent.targetLocation);
                 return Utils.getMainTextResourceBundle().getString(tile.getGold() > 0 ? "2605" : "2600");
             case FETCH_OBJECT:
                 return Utils.getMainTextResourceBundle().getString("2608");

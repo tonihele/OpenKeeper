@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -71,7 +71,7 @@ public class TextParserService implements TextParser {
     }
 
     @Override
-    public String parseText(String text, MapTile mapTile) {
+    public String parseText(String text, IMapTileInformation mapTile) {
         return mapTileTextParser.parseText(text, mapTile);
     }
 

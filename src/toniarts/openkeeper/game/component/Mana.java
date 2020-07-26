@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2020 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,22 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.listener;
+package toniarts.openkeeper.game.component;
 
-import com.jme3.network.service.rmi.Asynchronous;
-import java.awt.Point;
-import java.util.List;
+import com.simsilica.es.EntityComponent;
 
 /**
+ * Mana flow of entity
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface PlayerActionListener {
+public class Mana implements EntityComponent {
 
-    @Asynchronous
-    public void onBuild(short keeperId, List<Point> tiles);
+    public int manaGeneration;
 
-    @Asynchronous
-    public void onSold(short keeperId, List<Point> tiles);
+    public Mana() {
+        // For serialization
+    }
+
+    public Mana(int manaGeneration) {
+        this.manaGeneration = manaGeneration;
+    }
 
 }

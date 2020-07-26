@@ -37,7 +37,6 @@ import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
-import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -58,6 +57,9 @@ public class GameServerState extends AbstractAppState {
 
     private Thread loader;
     private AppStateManager stateManager;
+
+    private final Object loadingObject = new Object();
+    private volatile boolean gameLoaded = false;
 
     private final String level;
     private final KwdFile kwdFile;
@@ -165,7 +167,7 @@ public class GameServerState extends AbstractAppState {
         private final List<Keeper> players;
 
         public GameLoader(List<Keeper> players) {
-            super("GameLoader");
+            super("GameDataServerLoader");
 
             this.players = players;
         }
@@ -185,7 +187,7 @@ public class GameServerState extends AbstractAppState {
             gameWorldController.addListener(playerActionListener);
 
             // Send the the initial game data
-            gameService.sendGameData(gameController.getPlayers(), mapController.getMapData());
+            gameService.sendGameData(gameController.getPlayers());
 
             // Set up a listener for the map
             mapController.addListener(mapListener);
@@ -195,11 +197,14 @@ public class GameServerState extends AbstractAppState {
                 playerController.addListener(gameService);
             }
 
-            // Start the actual game
-            gameController.startGame();
-
             // Nullify the thread object
             loader = null;
+
+            // Mark the server end ready
+            synchronized (loadingObject) {
+                gameLoaded = true;
+                loadingObject.notifyAll();
+            }
         }
     }
 
@@ -208,7 +213,24 @@ public class GameServerState extends AbstractAppState {
      */
     private class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
-        public GameSessionServiceListenerImpl() {
+        @Override
+        public void onStartGame() {
+
+            // Just make sure that the server has fully set up itself before we start the game
+            if (!gameLoaded) {
+                synchronized (loadingObject) {
+                    if (!gameLoaded) {
+                        try {
+                            loadingObject.wait();
+                        } catch (InterruptedException ex) {
+                            LOGGER.log(Level.SEVERE, "Failed to load the game.", ex);
+                        }
+                    }
+                }
+            }
+
+            // Start the actual game
+            gameController.startGame();
         }
 
         @Override
@@ -337,7 +359,7 @@ public class GameServerState extends AbstractAppState {
     private class MapListenerImpl implements MapListener {
 
         @Override
-        public void onTilesChange(List<MapTile> updatedTiles) {
+        public void onTilesChange(List<Point> updatedTiles) {
             gameService.updateTiles(updatedTiles);
         }
 
@@ -353,12 +375,12 @@ public class GameServerState extends AbstractAppState {
     private class PlayerActionListenerImpl implements PlayerActionListener {
 
         @Override
-        public void onBuild(short keeperId, List<MapTile> tiles) {
+        public void onBuild(short keeperId, List<Point> tiles) {
             gameService.onBuild(keeperId, tiles);
         }
 
         @Override
-        public void onSold(short keeperId, List<MapTile> tiles) {
+        public void onSold(short keeperId, List<Point> tiles) {
             gameService.onSold(keeperId, tiles);
         }
 

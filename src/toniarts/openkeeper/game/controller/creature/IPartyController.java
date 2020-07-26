@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
@@ -98,7 +98,7 @@ public interface IPartyController extends INavigable {
     void create();
 
     @Override
-    default public Float getCost(MapTile from, MapTile to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
+    default public Float getCost(IMapTileInformation from, IMapTileInformation to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         return INavigable.super.getCost(from, to, mapController, entityPositionLookup);
     }
 

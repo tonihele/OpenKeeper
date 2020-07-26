@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
@@ -105,8 +106,13 @@ public class TrapsController implements ITrapsController {
 
         // Health and threat
         if (!blueprint) {
-            entityData.setComponent(entity, new Health(trap.getHealthGain(), trap.getHealth(), trap.getHealth(), false));
+            entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
             entityData.setComponent(entity, new Threat(trap.getThreat()));
+
+            // Regeneration
+            if (trap.getHealthGain() > 0) {
+                entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
+            }
         }
 
         // Add some interaction properties

@@ -30,6 +30,12 @@ import toniarts.openkeeper.game.state.CheatState;
 public interface GameSessionServiceListener {
 
     /**
+     * We should start the game, players have loaded
+     */
+    @Asynchronous
+    public void onStartGame();
+
+    /**
      * Build a building to the wanted area
      *
      * @param start start coordinates

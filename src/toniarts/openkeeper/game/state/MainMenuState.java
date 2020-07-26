@@ -403,7 +403,7 @@ public class MainMenuState extends AbstractAppState {
         if ("campaign".equals(type.toLowerCase())) {
 
             // Create the level state
-            LocalGameSession.CreateLocalGame(selectedLevel.getKwdFile(), true, stateManager, app);
+            LocalGameSession.createLocalGame(selectedLevel.getKwdFile(), true, stateManager, app);
         } else {
             LOGGER.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;

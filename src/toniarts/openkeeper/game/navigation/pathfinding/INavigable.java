@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.navigation.pathfinding;
 
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 
 /**
  * A simple interface for an entity that can use path finding
@@ -48,7 +48,7 @@ public interface INavigable {
      * @see #WATER_COST
      * @return {@code null} if the to tile is not accessible
      */
-    default public Float getCost(final MapTile from, final MapTile to, final IMapController mapController,
+    default public Float getCost(final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
             final IEntityPositionLookup entityPositionLookup) {
         return MapIndexedGraph.getCost(this, from, to, mapController, entityPositionLookup);
     }

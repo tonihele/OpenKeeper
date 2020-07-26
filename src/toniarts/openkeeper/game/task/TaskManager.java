@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -64,8 +65,8 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
@@ -157,7 +158,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         processAddedTasks(taskEntities);
 
         // Listen to rescue/capture missions
-        unconsciousEntities = entityData.getEntities(new FieldFilter(Health.class, "unconscious", true), CreatureComponent.class, Health.class, Owner.class);
+        unconsciousEntities = entityData.getEntities(CreatureComponent.class, Health.class, Owner.class, Unconscious.class);
         processAddedUnconsciousEntities(unconsciousEntities);
 
         // Listen to corpse robbing missions
@@ -277,7 +278,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Add fetch object missions for changed objects
         for (Entity entity : entities) {
             Point p = WorldUtils.vectorToPoint(entity.get(Position.class).position);
-            MapTile tile = mapController.getMapData().getTile(p);
+            IMapTileInformation tile = mapController.getMapData().getTile(p);
             short playerId = tile.getOwnerId();
             if (!taskQueues.containsKey(playerId)) {
                 continue;
@@ -296,8 +297,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         this.mapController.addListener(new MapListener() {
 
             @Override
-            public void onTilesChange(List<MapTile> updatedTiles) {
-                for (MapTile tile : updatedTiles) {
+            public void onTilesChange(List<Point> updatedTiles) {
+                for (Point tile : updatedTiles) {
                     scanTerrainTasks(tile, true, true);
                     scanFetchObjectTasks(tile);
                 }
@@ -350,10 +351,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                             // Scan all the adjacent tiles for tasks
                             for (Point adjacentPoint : adjacentPoints) {
-                                MapTile mapTile = mapController.getMapData().getTile(adjacentPoint);
-                                if (mapTile != null) {
-                                    scanTerrainTasks(mapTile, false, true);
-                                }
+                                scanTerrainTasks(adjacentPoint, false, true);
                             }
                         }
                     }
@@ -365,22 +363,22 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         this.gameWorldController.addListener(new PlayerActionListener() {
 
             @Override
-            public void onBuild(short keeperId, List<MapTile> tiles) {
+            public void onBuild(short keeperId, List<Point> tiles) {
                 scanBridgeSurroundings(tiles);
             }
 
             @Override
-            public void onSold(short keeperId, List<MapTile> tiles) {
+            public void onSold(short keeperId, List<Point> tiles) {
                 scanBridgeSurroundings(tiles);
-                for (MapTile tile : tiles) {
+                for (Point tile : tiles) {
                     scanFetchObjectTasks(tile);
                 }
             }
 
-            private void scanBridgeSurroundings(List<MapTile> tiles) {
+            private void scanBridgeSurroundings(List<Point> tiles) {
 
                 // Check first to see if we are on land or water
-                Terrain terrain = mapController.getTerrain(tiles.get(0));
+                Terrain terrain = mapController.getTerrain(mapController.getMapData().getTile(tiles.get(0)));
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                     Room room = levelInfo.getLevelData().getRoomByTerrain(terrain.getTerrainId());
                     if (!(room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))) {
@@ -391,20 +389,19 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 // Just gather the adjacent tiles to the brigde
-                Set<MapTile> roomPoints = new HashSet<>(tiles);
-                Set<MapTile> adjacentPoints = new HashSet<>();
-                for (MapTile tile : roomPoints) {
-                    for (Point adjacentPoint : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile.getLocation(), false)) {
-                        MapTile mapTile = mapController.getMapData().getTile(adjacentPoint);
-                        if (mapTile != null) {
-                            if (!roomPoints.contains(mapTile)) {
-                                adjacentPoints.add(mapTile);
+                Set<Point> roomPoints = new HashSet<>(tiles);
+                Set<Point> adjacentPoints = new HashSet<>();
+                for (Point tile : roomPoints) {
+                    for (Point adjacentPoint : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile, false)) {
+                        if (adjacentPoint != null) {
+                            if (!roomPoints.contains(adjacentPoint)) {
+                                adjacentPoints.add(adjacentPoint);
                             }
                         }
                     }
 
                     // Scan all the adjacent tiles for tasks
-                    for (MapTile mapTile : adjacentPoints) {
+                    for (Point mapTile : adjacentPoints) {
                         scanTerrainTasks(mapTile, false, true);
                     }
                 }
@@ -414,15 +411,15 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void scanInitialTasks() {
-        MapData mapData = mapController.getMapData();
+        IMapDataInformation mapData = mapController.getMapData();
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                scanTerrainTasks(mapController.getMapData().getTile(x, y), false, false);
+                scanTerrainTasks(mapController.getMapData().getTile(x, y).getLocation(), false, false);
             }
         }
     }
 
-    private void scanTerrainTasks(final MapTile tile, final boolean checkNeighbours, final boolean deleteObsolete) {
+    private void scanTerrainTasks(final Point tile, final boolean checkNeighbours, final boolean deleteObsolete) {
         for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
             // Scan existing tasks that are they valid, should be only one tile task per tile?
@@ -444,40 +441,40 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
             // Dig
-            if (mapController.isSelected(tile.getLocation(), entry.getKey())) {
-                Task task = new DigTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
+            if (mapController.isSelected(tile, entry.getKey())) {
+                Task task = new DigTileTask(navigationService, mapController, tile, entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim wall
-            else if (mapController.isClaimableWall(tile.getLocation(), entry.getKey())) {
-                Task task = new ClaimWallTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
+            else if (mapController.isClaimableWall(tile, entry.getKey())) {
+                Task task = new ClaimWallTileTask(navigationService, mapController, tile, entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim
-            else if (mapController.isClaimableTile(tile.getLocation(), entry.getKey())) {
-                Task task = new ClaimTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
+            else if (mapController.isClaimableTile(tile, entry.getKey())) {
+                Task task = new ClaimTileTask(navigationService, mapController, tile, entry.getKey());
                 addTask(entry.getKey(), task);
             } // Repair wall
-            else if (mapController.isRepairableWall(tile.getLocation(), entry.getKey())) {
-                Task task = new RepairWallTileTask(navigationService, mapController, tile.getLocation(), entry.getKey());
+            else if (mapController.isRepairableWall(tile, entry.getKey())) {
+                Task task = new RepairWallTileTask(navigationService, mapController, tile, entry.getKey());
                 addTask(entry.getKey(), task);
             } // Claim room
-            else if (mapController.isClaimableRoom(tile.getLocation(), entry.getKey())) {
-                Task task = new ClaimRoomTask(navigationService, mapController, tile.getLocation(), entry.getKey());
+            else if (mapController.isClaimableRoom(tile, entry.getKey())) {
+                Task task = new ClaimRoomTask(navigationService, mapController, tile, entry.getKey());
                 addTask(entry.getKey(), task);
             }
         }
 
         // See the neighbours
         if (checkNeighbours) {
-            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile.getLocation(), false)) {
-                scanTerrainTasks(mapController.getMapData().getTile(p), false, false);
+            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile, false)) {
+                scanTerrainTasks(p, false, false);
             }
         }
     }
 
-    private void scanFetchObjectTasks(MapTile tile) {
+    private void scanFetchObjectTasks(Point tile) {
 
         // Add the tasks to tile owner and only if the object is not already in storage
-        short playerId = tile.getOwnerId();
+        short playerId = mapController.getMapData().getTile(tile).getOwnerId();
         if (!taskQueues.containsKey(playerId)) {
             return;
         }
@@ -603,7 +600,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             // Assign
             if (!coordinates.isEmpty()) {
                 Point target = Utils.getRandomItem(coordinates);
-                GraphPath<MapTile> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
+                GraphPath<IMapTileInformation> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 
                     // Assign the task
@@ -785,8 +782,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return task;
     }
 
-    private MapTile getEntityPosition(Entity entity) {
-        MapTile mapTile = entityPositionLookup.getEntityLocation(entity.getId());
+    private IMapTileInformation getEntityPosition(Entity entity) {
+        IMapTileInformation mapTile = entityPositionLookup.getEntityLocation(entity.getId());
 
         // If the entity is new, it might not be in the registry, rather unfortunatety problem...
         if (mapTile == null) {

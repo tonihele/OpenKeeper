@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -226,7 +226,7 @@ public class PartyController implements IPartyController {
     }
 
     @Override
-    public Float getCost(MapTile from, MapTile to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
+    public Float getCost(IMapTileInformation from, IMapTileInformation to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         Float cost = IPartyController.super.getCost(from, to, mapController, entityPositionLookup);
         if (cost == null) {
 

@@ -35,7 +35,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -100,7 +100,7 @@ public class EntityController implements IEntityController {
     }
 
     @Override
-    public MapTile getTile() {
+    public IMapTileInformation getTile() {
         return mapController.getMapData().getTile(WorldUtils.vectorToPoint(getPosition()));
     }
 

@@ -29,11 +29,12 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -119,7 +120,12 @@ public class DoorsController implements IDoorsController {
         }
 
         // Health
-        entityData.setComponent(entity, new Health(door.getHealthGain(), door.getHealth(), door.getHealth(), false));
+        entityData.setComponent(entity, new Health(door.getHealth(), door.getHealth()));
+
+        // Regeneration
+        if (door.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(door.getHealthGain(), null));
+        }
 
         // Trigger
         if (triggerId != null) {
@@ -136,7 +142,7 @@ public class DoorsController implements IDoorsController {
     }
 
     private boolean canTileSupportDoor(int x, int y, short ownerId) {
-        MapTile tile = mapController.getMapData().getTile(x, y);
+        IMapTileInformation tile = mapController.getMapData().getTile(x, y);
         Terrain terrain = mapController.getTerrain(tile);
 
         return (tile != null && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)

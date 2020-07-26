@@ -28,8 +28,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
@@ -68,8 +66,8 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
      */
-    public static void CreateLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
-        CreateLocalGame(kwdFile, stateManager, campaign, app);
+    public static void createLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
+        createLocalGame(kwdFile, stateManager, campaign, app);
     }
 
     /**
@@ -81,7 +79,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param stateManager state manager instance for setting up the game
      * @throws java.io.IOException Problem with the map file
      */
-    public static void CreateLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
+    public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
 
         // Try to load the file
         String mapFile = ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd");
@@ -91,10 +89,10 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         }
         KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), file);
 
-        CreateLocalGame(kwdFile, stateManager, campaign, app);
+        createLocalGame(kwdFile, stateManager, campaign, app);
     }
 
-    private static void CreateLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app) {
+    private static void createLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app) {
 
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
@@ -119,29 +117,23 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void sendGameData(Collection<Keeper> players, MapData mapData) {
+    public void sendGameData(Collection<Keeper> players) {
         BinaryExporter exporter = BinaryExporter.getInstance();
         BinaryImporter importer = BinaryImporter.getInstance();
 
         // Clone the data so it really is different as in normal multiplayer it is
         for (GameSessionListener listener : listeners.getArray()) {
-            try (ByteArrayOutputStream mapStream = new ByteArrayOutputStream()) {
-                exporter.save(mapData, mapStream);
-
-                List<Keeper> copiedPlayers = new ArrayList<>(players.size());
-                for (Keeper player : players) {
-                    try (ByteArrayOutputStream playerStream = new ByteArrayOutputStream()) {
-                        exporter.save(player, playerStream);
-                        copiedPlayers.add((Keeper) importer.load(playerStream.toByteArray()));
-                    } catch (IOException ex) {
-                        LOGGER.log(Level.SEVERE, "Failed to serialize the players!", ex);
-                    }
+            List<Keeper> copiedPlayers = new ArrayList<>(players.size());
+            for (Keeper player : players) {
+                try (ByteArrayOutputStream playerStream = new ByteArrayOutputStream()) {
+                    exporter.save(player, playerStream);
+                    copiedPlayers.add((Keeper) importer.load(playerStream.toByteArray()));
+                } catch (IOException ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to serialize the players!", ex);
                 }
-
-                listener.onGameDataLoaded(copiedPlayers, (MapData) importer.load(mapStream.toByteArray()));
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to serialize the map data!", ex);
             }
+
+            listener.onGameDataLoaded(copiedPlayers);
         }
     }
 
@@ -149,6 +141,11 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void startGame() {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onGameStarted();
+        }
+
+        // Start the simulation
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onStartGame();
         }
     }
 
@@ -377,7 +374,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void updateTiles(List<MapTile> updatedTiles) {
+    public void updateTiles(List<Point> updatedTiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onTilesChange(updatedTiles);
         }
@@ -408,14 +405,14 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
-    public void onBuild(short keeperId, List<MapTile> tiles) {
+    public void onBuild(short keeperId, List<Point> tiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onBuild(keeperId, tiles);
         }
     }
 
     @Override
-    public void onSold(short keeperId, List<MapTile> tiles) {
+    public void onSold(short keeperId, List<Point> tiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onSold(keeperId, tiles);
         }

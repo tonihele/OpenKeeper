@@ -48,11 +48,13 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
@@ -106,6 +108,8 @@ public class CreaturesController implements ICreaturesController {
     private final IGameController gameController;
     private final IMapController mapController;
     private final ILevelInfo levelInfo;
+
+    private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
 
     private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
@@ -222,7 +226,7 @@ public class CreaturesController implements ICreaturesController {
         EntityId entity = entityData.createEntity();
 
         // Create health, unless dead body
-        Health healthComponent = healthPercentage != null ? new Health(0, healthPercentage, 100, false) : null;
+        Health healthComponent = healthPercentage != null ? new Health(healthPercentage, 100) : null;
 
         Gold goldComponent = new Gold(money, 0);
         Senses sensesComponent = healthComponent != null ? new Senses(creature.getAttributes().getDistanceCanHear(), creature.getAttributes().getDistanceCanSee()) : null;
@@ -261,8 +265,11 @@ public class CreaturesController implements ICreaturesController {
         CreatureState creatureState = entrance ? CreatureState.ENTERING_DUNGEON : getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
         entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
 
+        // Regeneration
+        Regeneration regeneration = new Regeneration();
+
         // Set every attribute by the level of the created creature
-        setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack);
+        setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack, regeneration);
 
         entityData.setComponent(entity, creatureComponent);
         entityData.setComponent(entity, creatureExperience);
@@ -277,6 +284,14 @@ public class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new Owner(ownerId));
         entityData.setComponent(entity, goldComponent);
         entityData.setComponent(entity, threatComponent);
+        if (regeneration.ownLandHealthIncrease > 0) {
+            entityData.setComponent(entity, regeneration);
+        }
+
+        // Mana generation
+        if (kwdFile.getImp().equals(creature)) {
+            entityData.setComponent(entity, new Mana(MANA_GENERATION_IMP));
+        }
 
         // Melee attack
         entityData.setComponent(entity, creatureMeleeAttack);
@@ -376,6 +391,7 @@ public class CreaturesController implements ICreaturesController {
         Senses senses = entityData.getComponent(entityId, Senses.class);
         Threat threat = entityData.getComponent(entityId, Threat.class);
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        Regeneration regeneration = entityData.getComponent(entityId, Regeneration.class);
 
         // Create a new versions of them
         creatureComponent = new CreatureComponent(creatureComponent);
@@ -385,19 +401,29 @@ public class CreaturesController implements ICreaturesController {
         senses = new Senses(senses);
         threat = new Threat(threat);
         creatureMeleeAttack = new CreatureMeleeAttack(creatureMeleeAttack);
+        if (regeneration == null) {
+            regeneration = new Regeneration(0, null);
+        } else {
+            regeneration = new Regeneration(regeneration);
+        }
 
         // Set the new stats
         creatureExperience.level = level;
         creatureExperience.experience = experience;
 
         // Update stats
-        setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack);
+        setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack, regeneration);
 
         // Set the new components to the entity
         entityData.setComponents(entityId, creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack);
+        if (regeneration.ownLandHealthIncrease > 0) {
+            entityData.setComponent(entityId, regeneration);
+        } else {
+            entityData.removeComponent(entityId, Regeneration.class);
+        }
     }
 
-    private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack) {
+    private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack, Regeneration regeneration) {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureExperience.level);
         Creature.Attributes attributes = creature.getAttributes();
@@ -406,7 +432,7 @@ public class CreaturesController implements ICreaturesController {
             int prevMaxHealth = healthComponent.maxHealth;
             healthComponent.maxHealth = attributes.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
             healthComponent.health = healthComponent.maxHealth * healthComponent.health / prevMaxHealth;
-            healthComponent.ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
+            regeneration.ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
         }
         creatureComponent.fear = attributes.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
         threatComponent.threat = attributes.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);

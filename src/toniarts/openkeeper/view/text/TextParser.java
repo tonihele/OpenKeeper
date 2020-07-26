@@ -19,7 +19,7 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import java.util.Collection;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -40,7 +40,7 @@ public interface TextParser {
 
     String parseText(String text, Entity entity, GameObject gameObject);
 
-    String parseText(String text, MapTile mapTile);
+    String parseText(String text, IMapTileInformation mapTile);
 
     Collection<Class<? extends EntityComponent>> getWatchedComponents();
 

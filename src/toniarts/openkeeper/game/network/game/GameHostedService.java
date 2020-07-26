@@ -31,7 +31,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
 import java.awt.Point;
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -41,12 +40,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.NetworkConstants;
-import toniarts.openkeeper.game.network.message.GameData;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
-import toniarts.openkeeper.game.network.streaming.StreamingHostedService;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
@@ -178,33 +173,17 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void sendGameData(Collection<Keeper> players, MapData mapData) {
-        Thread thread = new Thread(() -> {
+    public void sendGameData(Collection<Keeper> players) {
 
-            if (!readyToLoad) {
-                synchronized (loadLock) {
-                    if (!readyToLoad) {
-                        try {
-                            loadLock.wait();
-                        } catch (InterruptedException ex) {
-                            LOGGER.log(Level.SEVERE, "Game data sender interrupted!", ex);
-                            return;
-                        }
-                    }
-                }
-            }
+        // Hmm, for now this, update the entities
+        entityUpdater = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "EntityDataUpdater"));
+        entityUpdater.scheduleAtFixedRate(() -> {
+            getServiceManager().getService(EntityDataHostedService.class).sendUpdates();
+        }, 0, GameLoop.INTERVAL_FPS_60, TimeUnit.NANOSECONDS);
 
-            // We must block this until all clients are ready to receive
-            try {
-
-                // Data is too big, stream the data
-                getServiceManager().getService(StreamingHostedService.class).sendData(MessageType.GAME_DATA.ordinal(), new GameData(new ArrayList<>(players), mapData), null);
-            } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to send the game data to clients!", ex);
-            }
-
-        }, "GameDataSender");
-        thread.start();
+        for (GameSessionImpl gameSession : this.players.values()) {
+            gameSession.onGameDataLoaded(players);
+        }
     }
 
     @Override
@@ -213,15 +192,14 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             gameSession.onGameStarted();
         }
 
-        // Hmm, for now this, update the entities
-        entityUpdater = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "EntityDataUpdater"));
-        entityUpdater.scheduleAtFixedRate(() -> {
-            getServiceManager().getService(EntityDataHostedService.class).sendUpdates();
-        }, 0, GameLoop.INTERVAL_FPS_60, TimeUnit.NANOSECONDS);
+        // Start the simulation
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onStartGame();
+        }
     }
 
     @Override
-    public void updateTiles(List<MapTile> updatedTiles) {
+    public void updateTiles(List<Point> updatedTiles) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onTilesChange(updatedTiles);
         }
@@ -364,14 +342,14 @@ public class GameHostedService extends AbstractHostedConnectionService implement
     }
 
     @Override
-    public void onBuild(short keeperId, List<MapTile> tiles) {
+    public void onBuild(short keeperId, List<Point> tiles) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onBuild(keeperId, tiles);
         }
     }
 
     @Override
-    public void onSold(short keeperId, List<MapTile> tiles) {
+    public void onSold(short keeperId, List<Point> tiles) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onSold(keeperId, tiles);
         }
@@ -473,9 +451,8 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onGameDataLoaded(Collection<Keeper> players, MapData mapData) {
-
-            // We send this as a streamed message, to all, super big
+        public void onGameDataLoaded(Collection<Keeper> players) {
+            getCallback().onGameDataLoaded(new ArrayList<>(players));
         }
 
         @Override
@@ -494,7 +471,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onTilesChange(List<MapTile> updatedTiles) {
+        public void onTilesChange(List<Point> updatedTiles) {
             getCallback().onTilesChange(updatedTiles);
         }
 
@@ -616,12 +593,12 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
-        public void onBuild(short keeperId, List<MapTile> tiles) {
+        public void onBuild(short keeperId, List<Point> tiles) {
             getCallback().onBuild(keeperId, tiles);
         }
 
         @Override
-        public void onSold(short keeperId, List<MapTile> tiles) {
+        public void onSold(short keeperId, List<Point> tiles) {
             getCallback().onSold(keeperId, tiles);
         }
 

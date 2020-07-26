@@ -26,8 +26,8 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -111,7 +111,7 @@ public class ActionPointTriggerControl extends TriggerControl {
                 playerId = trigger.getUserData("playerId", short.class);
                 value = trigger.getUserData("value", int.class);
 
-                MapData map = mapController.getMapData();
+                IMapDataInformation map = mapController.getMapData();
                 for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
                     for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
                         if (playerId == map.getTile(x, y).getOwnerId()) {
@@ -142,7 +142,7 @@ public class ActionPointTriggerControl extends TriggerControl {
                 map = mapController.getMapData();
                 for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
                     for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        MapTile tile = map.getTile(x, y);
+                        IMapTileInformation tile = map.getTile(x, y);
 
                         if (playerId != 0 && playerId != tile.getOwnerId() || targetId != tile.getTerrainId()) {
                             continue;

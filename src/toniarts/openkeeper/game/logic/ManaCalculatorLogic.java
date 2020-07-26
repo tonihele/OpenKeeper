@@ -16,86 +16,60 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import toniarts.openkeeper.game.controller.IMapController;
+import java.util.Set;
+import toniarts.openkeeper.game.component.Mana;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
-import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
- * Calculates mana for all players. TODO: maybe listener based, that only reacts
- * to changes? TODO: Posession, Players, Entity based?
+ * Calculates mana for all players
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ManaCalculatorLogic implements IGameLogicUpdatable {
 
     private float tick = 0;
+    private final EntitySet manaEntities;
+    private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
+    private final Map<EntityId, Integer> manaGenerationByEntityId = new HashMap<>();
     private final Map<Short, PlayerManaControl> manaControls = new HashMap<>(4);
-    private final Map<Short, PlayerCreatureControl> creatureControls = new HashMap<>(4);
     private final Map<Short, Integer> manaGains;
     private final Map<Short, Integer> manaLosses;
-    private final IMapController mapController;
-    private final int manaGainBase;
-    private final static int MANA_LOSE_PER_IMP = 7;  // I don't find in Creature.java
 
-    public ManaCalculatorLogic(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Collection<IPlayerController> playerControllers, IMapController mapController) {
-        this.mapController = mapController;
+    public ManaCalculatorLogic(Collection<IPlayerController> playerControllers, EntityData entityData) {
         for (IPlayerController playerController : playerControllers) {
             PlayerManaControl manaControl = playerController.getManaControl();
             if (manaControl != null) {
                 manaControls.put(playerController.getKeeper().getId(), manaControl);
-                creatureControls.put(playerController.getKeeper().getId(), playerController.getCreatureControl());
             }
         }
         manaGains = new HashMap<>(manaControls.size());
         manaLosses = new HashMap<>(manaControls.size());
-        manaGainBase = (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_MANA_GENERATION_INCREASE_PER_SECOND).getValue();
+
+        // Listen for mana entities
+        manaEntities = entityData.getEntities(Mana.class, Owner.class);
+        processAddedEntities(manaEntities);
     }
 
     @Override
     public void processTick(float tpf, double gameTime) {
         tick += tpf;
         if (tick >= 1) {
-            reset();
-            calculateGainFromMapTiles();
-            calculateLooseFromCreatures();
-            updateManaControls(tpf);
+            updateManaSources();
+            updateManaControls();
             tick -= 1;
         }
     }
 
-    private void reset() {
-        for (Short playerId : manaControls.keySet()) {
-            manaGains.put(playerId, manaGainBase);
-            manaLosses.put(playerId, 0);
-        }
-    }
-
-    private void calculateGainFromMapTiles() {
-        MapData mapData = mapController.getMapData();
-        for (int x = 0; x < mapData.getWidth(); x++) {
-            for (int y = 0; y < mapData.getHeight(); y++) {
-                MapTile tile = mapData.getTile(x, y);
-                if (manaGains.containsKey(tile.getOwnerId())) {
-                    manaGains.put(tile.getOwnerId(), manaGains.get(tile.getOwnerId()) + tile.getManaGain());
-                }
-            }
-        }
-    }
-
-    private void calculateLooseFromCreatures() {
-        for (Short playerId : manaControls.keySet()) {
-            manaLosses.put(playerId, creatureControls.get(playerId).getImpCount() * MANA_LOSE_PER_IMP);
-        }
-    }
-
-    private void updateManaControls(float tpf) {
+    private void updateManaControls() {
         for (Map.Entry<Short, PlayerManaControl> entry : manaControls.entrySet()) {
             entry.getValue().updateMana(manaGains.getOrDefault(entry.getKey(), 0), manaLosses.getOrDefault(entry.getKey(), 0));
         }
@@ -108,6 +82,93 @@ public class ManaCalculatorLogic implements IGameLogicUpdatable {
 
     @Override
     public void stop() {
+        manaEntities.release();
+    }
 
+    private void updateManaSources() {
+        if (manaEntities.applyChanges()) {
+
+            processAddedEntities(manaEntities.getAddedEntities());
+
+            processDeletedEntities(manaEntities.getRemovedEntities());
+
+            processChangedEntities(manaEntities.getChangedEntities());
+        }
+    }
+
+    private void processAddedEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            short ownerId = entity.get(Owner.class).ownerId;
+            int manaGeneration = entity.get(Mana.class).manaGeneration;
+            ownerIdsByEntityId.put(entity.getId(), ownerId);
+            manaGenerationByEntityId.put(entity.getId(), manaGeneration);
+
+            addManaGenerationToPlayer(ownerId, manaGeneration);
+        }
+    }
+
+    private void processDeletedEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            short ownerId = ownerIdsByEntityId.remove(entity.getId());
+            int manaGeneration = manaGenerationByEntityId.remove(entity.getId());
+
+            removeManaGenerationFromPlayer(ownerId, manaGeneration);
+        }
+    }
+
+    private void processChangedEntities(Set<Entity> entities) {
+        for (Entity entity : entities) {
+            short newOwnerId = entity.get(Owner.class).ownerId;
+            int newManaGeneration = entity.get(Mana.class).manaGeneration;
+            short oldOwnerId = ownerIdsByEntityId.put(entity.getId(), newOwnerId);
+            int oldManaGeneration = manaGenerationByEntityId.put(entity.getId(), newManaGeneration);
+
+            if (newOwnerId != oldOwnerId || newManaGeneration != oldManaGeneration) {
+                addManaGenerationToPlayer(newOwnerId, newManaGeneration);
+                removeManaGenerationFromPlayer(oldOwnerId, oldManaGeneration);
+            }
+        }
+    }
+
+    private void removeManaGenerationFromPlayer(short playerId, int manaGeneration) {
+        if (manaGeneration == 0) {
+            return;
+        }
+
+        // Substract the mana generation from appropriate slot
+        if (manaControls.containsKey(playerId)) {
+            if (manaGeneration < 0) {
+                substractMana(manaLosses, playerId, -manaGeneration);
+            } else {
+                substractMana(manaGains, playerId, manaGeneration);
+            }
+        }
+    }
+
+    private void addManaGenerationToPlayer(short playerId, int manaGeneration) {
+        if (manaGeneration == 0) {
+            return;
+        }
+
+        // Add the mana generation from appropriate slot
+        if (manaControls.containsKey(playerId)) {
+            if (manaGeneration < 0) {
+                addMana(manaLosses, playerId, -manaGeneration);
+            } else {
+                addMana(manaGains, playerId, manaGeneration);
+            }
+        }
+    }
+
+    private static void substractMana(Map<Short, Integer> manaValues, short playerId, int manaGeneration) {
+        manaValues.merge(playerId, manaGeneration, (t, u) -> {
+            return t - u;
+        });
+    }
+
+    private static void addMana(Map<Short, Integer> manaValues, short playerId, int manaGeneration) {
+        manaValues.merge(playerId, manaGeneration, (t, u) -> {
+            return t + u;
+        });
     }
 }

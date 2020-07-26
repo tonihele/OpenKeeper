@@ -23,6 +23,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
@@ -64,7 +65,8 @@ public class CreatureRecuperatingSystem implements IGameLogicUpdatable {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
-                entityData.setComponent(entity.getId(), new Health(health.ownLandHealthIncrease, Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth, false));
+                entityData.setComponent(entity.getId(), new Health(Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth));
+                entityData.removeComponent(entity.getId(), Unconscious.class);
             }
 
             // TODO: mood

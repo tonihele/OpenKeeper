@@ -18,8 +18,8 @@ package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -45,10 +45,10 @@ abstract class SingleTileConstructor {
      * @param terrain terrain tile to compare with
      * @return are the tiles same
      */
-    protected boolean hasSameTile(MapData mapData, int x, int y, Terrain terrain) {
+    protected boolean hasSameTile(IMapDataInformation mapData, int x, int y, Terrain terrain) {
 
         // Check for out of bounds
-        MapTile tile = mapData.getTile(x, y);
+        IMapTileInformation tile = mapData.getTile(x, y);
         if (tile == null) {
             return false;
         }
@@ -57,8 +57,8 @@ abstract class SingleTileConstructor {
                 || (bridgeTerrain != null && bridgeTerrain.getTerrainId() == terrain.getTerrainId()));
     }
 
-    protected boolean isSolidTile(MapData mapData, int x, int y) {
-        MapTile tile = mapData.getTile(x, y);
+    protected boolean isSolidTile(IMapDataInformation mapData, int x, int y) {
+        IMapTileInformation tile = mapData.getTile(x, y);
         if (tile == null) {
             return false;
         }
@@ -77,6 +77,6 @@ abstract class SingleTileConstructor {
         return spatial;
     }
 
-    abstract public Spatial construct(MapData mapData, int x, int y, final Terrain terrain,
+    abstract public Spatial construct(IMapDataInformation mapData, int x, int y, final Terrain terrain,
             final AssetManager assetManager, String model);
 }

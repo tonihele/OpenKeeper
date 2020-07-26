@@ -24,7 +24,7 @@ import java.util.List;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -92,14 +92,14 @@ public class KillPlayer extends AbstractObjectiveTask {
     private void createSubTasks() {
 
         // See if we can navigate there
-        GraphPath<MapTile> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), creature.getParty() != null ? creature.getParty() : creature);
+        GraphPath<IMapTileInformation> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), creature.getParty() != null ? creature.getParty() : creature);
         if (outPath != null) {
-            Iterator<MapTile> iter = outPath.iterator();
-            MapTile lastPoint = null;
+            Iterator<IMapTileInformation> iter = outPath.iterator();
+            IMapTileInformation lastPoint = null;
             boolean first = true;
             int i = 0;
             while (iter.hasNext()) {
-                MapTile tile = iter.next();
+                IMapTileInformation tile = iter.next();
                 if (!navigationService.isAccessible(lastPoint, tile, creature)) {
 
                     // Add task to last accessible point

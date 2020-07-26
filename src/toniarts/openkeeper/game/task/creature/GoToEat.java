@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.game.task.TaskType;
@@ -86,7 +86,7 @@ public class GoToEat extends AbstractTask {
 
     @Override
     public Point getTaskLocation() {
-        MapTile tile = entityPositionLookup.getEntityLocation(target);
+        IMapTileInformation tile = entityPositionLookup.getEntityLocation(target);
         if (tile != null) {
             return tile.getLocation();
         }

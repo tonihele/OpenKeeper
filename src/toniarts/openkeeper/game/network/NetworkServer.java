@@ -62,6 +62,8 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
+import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -73,6 +75,7 @@ import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
@@ -82,6 +85,7 @@ import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -89,8 +93,6 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
-import toniarts.openkeeper.game.map.MapData;
-import toniarts.openkeeper.game.map.MapTile;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
@@ -143,8 +145,6 @@ public class NetworkServer {
             Serializer.registerClass(Tile.BridgeTerrainType.class, new EnumSerializer());
             Serializer.registerClass(Thing.HeroParty.Objective.class, new EnumSerializer());
             Serializer.registerClass(ObjectiveType.class, new EnumSerializer());
-            Serializer.registerClass(MapData.class, new FieldSerializer()); // FIXME: Savable serializer would be better...
-            Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(GameData.class, new FieldSerializer());
             //Serializer.registerClass(CreatureState.class, new EnumSerializer());
             Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());
@@ -183,6 +183,8 @@ public class NetworkServer {
             Serializer.registerClass(Health.class, new FieldSerializer());
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
+            Serializer.registerClass(Mana.class, new FieldSerializer());
+            Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(Mobile.class, new FieldSerializer());
             Serializer.registerClass(Navigation.class, new FieldSerializer());
             Serializer.registerClass(ObjectComponent.class, new FieldSerializer());
@@ -194,6 +196,7 @@ public class NetworkServer {
             Serializer.registerClass(PlayerObjective.class, new FieldSerializer());
             Serializer.registerClass(PortalGem.class, new FieldSerializer());
             Serializer.registerClass(Position.class, new FieldSerializer());
+            Serializer.registerClass(Regeneration.class, new FieldSerializer());
             Serializer.registerClass(RoomStorage.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
@@ -203,6 +206,7 @@ public class NetworkServer {
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
+            Serializer.registerClass(Unconscious.class, new FieldSerializer());
         }
     }
 

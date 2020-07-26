@@ -22,7 +22,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.ChickenAi;
@@ -31,12 +30,15 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.map.MapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -58,8 +60,6 @@ public class HealthSystem implements IGameLogicUpdatable {
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
     private final int timeToDeath;
-    private final Map<EntityId, Double> timeOnOwnLandByEntityId = new HashMap<>();
-    private final Map<EntityId, Double> timeUnconsciousByEntityId = new HashMap<>();
 
     public HealthSystem(EntityData entityData, KwdFile kwdFile, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -89,48 +89,52 @@ public class HealthSystem implements IGameLogicUpdatable {
 
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
-            Health health = entityData.getComponent(entityId, Health.class);
+            Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
 
             // From unconsciousness we start the countdown to death
-            if (health.unconscious) {
-                if (gameTime - timeUnconsciousByEntityId.get(entityId) >= timeToDeath) {
+            if (unconscious != null) {
+                if (gameTime - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId, gameTime);
                 }
                 continue;
             }
 
             // Normal health related routines
-            if (health.health <= 0) {
+            Health health = entityData.getComponent(entityId, Health.class);
+            Regeneration regeneration = entityData.getComponent(entityId, Regeneration.class);
+            if (health != null) {
+                if (health.health <= 0) {
 
-                // Death or destruction!!!!
-                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-                if (creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
-                    entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, 0, health.maxHealth, true));
-                    //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
-                    creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
-                    entityData.removeComponent(entityId, Navigation.class);
-                    timeUnconsciousByEntityId.put(entityId, gameTime);
-                } else {
-                    entityPositionLookup.getEntityController(entityId).remove();
-                }
-            } else if (health.ownLandHealthIncrease > 0 && health.health != health.maxHealth) {
-                MapTile tile = entityPositionLookup.getEntityLocation(entityId);
-                Owner owner = entityData.getComponent(entityId, Owner.class);
-                if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
-
-                    // In own land
-                    Double lastTimeOnOwnLand = timeOnOwnLandByEntityId.get(entityId);
-                    if (lastTimeOnOwnLand == null) {
-                        timeOnOwnLandByEntityId.put(entityId, gameTime);
-                    } else if (gameTime - lastTimeOnOwnLand >= 1) {
-
-                        // Increase health
-                        entityData.setComponent(entityId, new Health(health.ownLandHealthIncrease, Math.max(health.health + health.ownLandHealthIncrease, health.maxHealth), health.maxHealth, false));
+                    // Death or destruction!!!!
+                    CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                    if (creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
+                        entityData.setComponent(entityId, new Health(0, health.maxHealth));
+                        entityData.setComponent(entityId, new Unconscious(gameTime));
+                        //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
+                        creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
+                        entityData.removeComponent(entityId, Navigation.class);
+                    } else {
+                        entityPositionLookup.getEntityController(entityId).remove();
                     }
-                } else {
+                } else if (regeneration != null && health.health != health.maxHealth) {
+                    IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+                    Owner owner = entityData.getComponent(entityId, Owner.class);
+                    if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
 
-                    // At someones elses land, reset counter
-                    timeOnOwnLandByEntityId.replace(entityId, null);
+                        // In own land
+                        Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
+                        if (lastTimeOnOwnLand == null) {
+                            setTimeOwnOwnLand(regeneration, entityId, gameTime);
+                        } else if (gameTime - lastTimeOnOwnLand >= 1) {
+
+                            // Increase health
+                            entityData.setComponent(entityId, new Health(Math.max(health.health + regeneration.ownLandHealthIncrease, health.maxHealth), health.maxHealth));
+                        }
+                    } else {
+
+                        // At someones elses land, reset counter
+                        setTimeOwnOwnLand(regeneration, entityId, null);
+                    }
                 }
             }
         }
@@ -143,6 +147,8 @@ public class HealthSystem implements IGameLogicUpdatable {
         entityData.removeComponent(entityId, ObjectViewState.class);
         entityData.removeComponent(entityId, Navigation.class);
         entityData.removeComponent(entityId, Interaction.class);
+        entityData.removeComponent(entityId, Unconscious.class);
+        entityData.removeComponent(entityId, Mana.class);
         entityData.setComponent(entityId, new Death(gameTime));
     }
 
@@ -157,8 +163,6 @@ public class HealthSystem implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(entityIds, entity.getId());
             entityIds.remove(index);
-            timeOnOwnLandByEntityId.remove(entity.getId());
-            timeUnconsciousByEntityId.remove(entity.getId());
         }
     }
 
@@ -167,8 +171,17 @@ public class HealthSystem implements IGameLogicUpdatable {
 
             // If the health is changed (either by us or damage)...
             // Reset the health regen counter
-            timeOnOwnLandByEntityId.replace(entity.getId(), null);
+            Regeneration regeneration = entityData.getComponent(entity.getId(), Regeneration.class);
+            if (regeneration != null && regeneration.timeOnOwnLand != null) {
+                setTimeOwnOwnLand(regeneration, entity.getId(), null);
+            }
         }
+    }
+
+    private void setTimeOwnOwnLand(Regeneration regeneration, EntityId entityId, Double time) {
+        regeneration = new Regeneration(regeneration);
+        regeneration.timeOnOwnLand = time;
+        entityData.setComponent(entityId, regeneration);
     }
 
     @Override
@@ -179,8 +192,6 @@ public class HealthSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         healthEntities.release();
-        timeOnOwnLandByEntityId.clear();
-        timeUnconsciousByEntityId.clear();
     }
 
 }
