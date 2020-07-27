@@ -5,7 +5,7 @@ An open source remake of the Dungeon Keeper II game and engine.
 
 Goal is to fully implement the game (version 1.7 with 3 bonus packs) as open source cross platform version, with minimal or no changes at all, using the original game assets. So it will require the original game to play / develop. Future development could have fan made graphics (to at least enable standalone version) and features.
 
-OpenKeeper is written in Java using [JMonkeyEngine](http://jmonkeyengine.org/). Currently we are using JME 3.2 + Java 8.
+OpenKeeper is written in Java using [JMonkeyEngine](http://jmonkeyengine.org/). Currently we are using JME 3.3 + Java 8.
 
 [![Build Status](https://travis-ci.org/tonihele/OpenKeeper.svg)](https://travis-ci.org/tonihele/OpenKeeper)
 
@@ -14,7 +14,7 @@ OpenKeeper is written in Java using [JMonkeyEngine](http://jmonkeyengine.org/). 
 Contact
 ========
 
-We have a super secret lair at [IRC channel #OpenKeeper on Freenode](https://webchat.freenode.net/?channels=OpenKeeper). Feel free to idle there. For more persistent discussion and/or feedback, try [this forum at keeperklan.com](https://keeperklan.com/forums/101-OpenKeeper). Also we have opened a [Discord channel](https://discord.gg/e2Dnqkn).
+For persistent discussion and/or feedback, try [this forum at keeperklan.com](https://keeperklan.com/forums/101-OpenKeeper). Also we have opened a [Discord channel](https://discord.gg/e2Dnqkn).
 
 Contributing
 =============
