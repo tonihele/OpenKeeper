@@ -19,7 +19,6 @@ package toniarts.openkeeper.video.tgq;
 import java.awt.image.BufferedImage;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.BitReader;
@@ -42,7 +41,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private final int height;
     private final int frameIndex;
     private final int[] dequantizationTable = new int[64];
-    private final static short scanTable[] = { // zigzagDirect
+    private final static short[] SCAN_TABLE = { // zigzagDirect
         0, 1, 8, 16, 9, 2, 3, 10,
         17, 24, 32, 25, 18, 11, 4, 5,
         12, 19, 26, 33, 40, 48, 41, 34,
@@ -52,15 +51,15 @@ public class TgqFrame implements Comparable<TgqFrame> {
         58, 59, 52, 45, 38, 31, 39, 46,
         53, 60, 61, 54, 47, 55, 62, 63
     };
-    private final static short[] scanTablePermutated = new short[64];
+    private final static short[] SCAN_TABLE_PERMUTATED = new short[64];
 
     static {
         for (int i = 0; i < 64; i++) {
-            short j = scanTable[i];
-            scanTablePermutated[i] = j;
+            short j = SCAN_TABLE[i];
+            SCAN_TABLE_PERMUTATED[i] = j;
         }
     }
-    private final static int[] baseTable = {
+    private final static int[] BASE_TABLE = {
         4096, 2953, 3135, 3483, 4096, 5213, 7568, 14846,
         2953, 2129, 2260, 2511, 2953, 3759, 5457, 10703,
         3135, 2260, 2399, 2666, 3135, 3990, 5793, 11363,
@@ -69,7 +68,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         5213, 3759, 3990, 4433, 5213, 6635, 9633, 18895,
         7568, 5457, 5793, 6436, 7568, 9633, 13985, 27432,
         14846, 10703, 11363, 12625, 14846, 18895, 27432, 53809};
-    private final static int[] baseTable2 = {
+    private final static int[] BASE_TABLE2 = {
         8, 16, 19, 22, 26, 27, 29, 34,
         16, 16, 22, 24, 27, 29, 34, 37,
         19, 22, 26, 27, 29, 34, 34, 38,
@@ -80,13 +79,13 @@ public class TgqFrame implements Comparable<TgqFrame> {
         27, 29, 35, 38, 46, 56, 69, 83};
     private final static int DC_VLC_BITS = 9;
     private final static int TEX_VLC_BITS = 28;
-    private static final short[][] dcLuminanceVlc = {
+    private static final short[][] DC_LUMINANCE_VLC = {
         {18, 15, 0}, {-1, -1, 0}, {-1, -1, 1}, {-1, -1, 2}, {-1, -1, 3}, {-1, -1, 4},
         {-1, -1, 5}, {-1, -1, 6}, {-1, -1, 7}, {-1, -1, 8}, {9, -1, 0}, {8, 10, 0},
         {7, 11, 0}, {6, 12, 0}, {5, 13, 0}, {17, 14, 0}, {18, 15, 0}, {1, 4, 0},
         {2, 3, 0}
     };
-    private static final short[][] dcCrominanceVlc = {
+    private static final short[][] DC_CROMINANCE_VLC = {
         {18, 16, 0}, {-1, -1, 0}, {-1, -1, 1}, {-1, -1, 2}, {-1, -1, 3}, {-1, -1, 4},
         {-1, -1, 5}, {-1, -1, 6}, {-1, -1, 7}, {-1, -1, 8}, {9, -1, 0}, {8, 10, 0},
         {7, 11, 0}, {6, 12, 0}, {5, 13, 0}, {4, 14, 0}, {3, 15, 0}, {18, 16, 0},
@@ -95,7 +94,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private static final short DCT_ESCAPE = -2;
     private static final short EOB = -5; /* end of block */
 
-    public static final short dctCoeff[][] = {
+    private static final short[][] DCT_COEFF = {
         {128, 141, 0, 0}, {-1, -1, EOB, EOB}, {-1, -1, 0, 1}, {-1, -1, 1, 1}, {-1, -1, 0, 2}, {-1, -1, 2, 1},
         {-1, -1, 0, 3}, {-1, -1, 3, 1}, {-1, -1, 4, 1}, {-1, -1, 1, 2}, {-1, -1, 5, 1}, {-1, -1, 6, 1},
         {-1, -1, 7, 1}, {-1, -1, 0, 4}, {-1, -1, 2, 2}, {-1, -1, 8, 1}, {-1, -1, 9, 1}, {-1, -1, DCT_ESCAPE, DCT_ESCAPE},
@@ -155,12 +154,10 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
     private static final Logger logger = Logger.getLogger(TgqFrame.class.getName());
 
-    public TgqFrame(byte[] data, int frameIndex) {
+    public TgqFrame(ByteBuffer buf, int frameIndex) {
         this.frameIndex = frameIndex;
 
         // Read width & height from the header
-        ByteBuffer buf = ByteBuffer.wrap(data);
-        buf.order(ByteOrder.LITTLE_ENDIAN);
         width = buf.getShort();
         height = buf.getShort();
 
@@ -196,9 +193,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
         // This is different from the specs -> can use integer math
         int qScale = (215 - 2 * quantizer) * 5;
-        dequantizationTable[0] = (baseTable[0] * baseTable2[0]) >> 11;
+        dequantizationTable[0] = (BASE_TABLE[0] * BASE_TABLE2[0]) >> 11;
         for (int i = 1; i < 64; i++) {
-            dequantizationTable[i] = (baseTable[i] * baseTable2[i] * qScale + 32) >> 14;
+            dequantizationTable[i] = (BASE_TABLE[i] * BASE_TABLE2[i] * qScale + 32) >> 14;
         }
     }
 
@@ -230,7 +227,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         block[0] = dc * dequantizationTable[0];
 
         // Quantify and encode AC coefficients
-        short[] vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
+        short[] vlc = decodeVlc(bitReader, TEX_VLC_BITS, DCT_COEFF);
         int i = 0;
         int j;
         while (vlc[2] != EOB) {
@@ -247,7 +244,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
                     level = bitReader.readNBit(8);
                 }
                 i += run;
-                j = scanTablePermutated[i];
+                j = SCAN_TABLE_PERMUTATED[i];
                 if (level < 0) {
                     level = -level;
                     level = (level * dequantizationTable[j]) >> 4;
@@ -261,14 +258,14 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
                 i += vlc[2] + 1;
                 level = vlc[3];
-                j = scanTablePermutated[i];
+                j = SCAN_TABLE_PERMUTATED[i];
                 level = (level * dequantizationTable[j]) >> 4;
                 level = (level - 1) | 1;
                 level = toSigned(level, bitReader.read1Bit());
             }
 
             block[j] = level;
-            vlc = decodeVlc(bitReader, TEX_VLC_BITS, dctCoeff);
+            vlc = decodeVlc(bitReader, TEX_VLC_BITS, DCT_COEFF);
         }
     }
 
@@ -276,9 +273,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int code;
 
         if (component == 0) {
-            code = decodeVlc(bitReader, DC_VLC_BITS, dcLuminanceVlc)[2];
+            code = decodeVlc(bitReader, DC_VLC_BITS, DC_LUMINANCE_VLC)[2];
         } else {
-            code = decodeVlc(bitReader, DC_VLC_BITS, dcCrominanceVlc)[2];
+            code = decodeVlc(bitReader, DC_VLC_BITS, DC_CROMINANCE_VLC)[2];
         }
         if (code < 0) {
             logger.severe("Invalid DC code!");

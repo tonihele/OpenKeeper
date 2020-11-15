@@ -41,7 +41,7 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
     private int codedSamples;
     private ByteBuffer pcm;
 
-    public EAAudioFrame(EAAudioHeader header, byte[] data, int frameIndex) {
+    public EAAudioFrame(EAAudioHeader header, ByteBuffer data, int frameIndex) {
         this.header = header;
         this.frameIndex = frameIndex;
 
@@ -49,7 +49,7 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
         decodeFrame(data);
     }
 
-    private void decodeFrame(byte[] data) {
+    private void decodeFrame(ByteBuffer buf) {
         if (header.getCompression() == EAAudioHeader.Compression.EA_XA_ADPCM) {
 
             // Always 2 channels!
@@ -57,13 +57,10 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
                 throw new RuntimeException(header.getCompression() + " required 2 channels!");
             }
 
-            ByteBuffer buf = ByteBuffer.wrap(data);
-            buf.order(ByteOrder.LITTLE_ENDIAN);
-
             // 12 bytes header
             codedSamples = buf.getInt();
             codedSamples -= codedSamples % 28;
-            numberOfSamples = (data.length - 12) / 30 * 28;
+            numberOfSamples = (buf.capacity() - 12) / 30 * 28;
             short currentLeftSample = buf.getShort();
             short previousLeftSample = buf.getShort();
             short currentRightSample = buf.getShort();
