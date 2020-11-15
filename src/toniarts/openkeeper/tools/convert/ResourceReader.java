@@ -17,9 +17,14 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,39 +35,67 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Resource reader is a convenience wrapper around any Dungeon Keeper 2 resource
+ * file. Provides easy to use functions to read the binary files to java. The
+ * resources are Little Endian.
  *
  * @author archdemon
  */
 public class ResourceReader implements IResourceReader {
 
-    private final RandomAccessFile file;
+    private final SeekableByteChannel file;
 
     private static final Logger LOGGER = Logger.getLogger(ResourceReader.class.getName());
 
-    public ResourceReader(File file) throws FileNotFoundException {
-        this.file = new RandomAccessFile(file, "r");
+    public ResourceReader(File file) throws IOException {
+        this(file.toPath());
     }
 
-    public ResourceReader(String filename) throws FileNotFoundException {
-        this(new File(filename));
+    public ResourceReader(String filename) throws IOException {
+        this(Paths.get(filename));
+    }
+
+    public ResourceReader(Path path) throws IOException {
+        file = Files.newByteChannel(path, StandardOpenOption.READ);
+    }
+
+    @Override
+    public IResourceChunkReader readChunk(int size) throws IOException {
+        ByteBuffer buffer = allocateBuffer(size);
+        readChunk(buffer);
+        buffer.flip();
+
+        return new ResourceChunkReader(buffer);
+    }
+
+    @Override
+    public void readChunk(ByteBuffer buffer) throws IOException {
+        file.read(buffer);
+    }
+
+    private ByteBuffer allocateBuffer(int size) {
+        ByteBuffer buffer = ByteBuffer.allocate(size);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+
+        return buffer;
     }
 
     @Override
     public int read(byte[] b) throws IOException {
-        return this.file.read(b);
+        return file.read(ByteBuffer.wrap(b));
     }
 
     @Override
     public byte[] read(int length) throws IOException {
-        byte[] bytes = new byte[length];
+        ByteBuffer buffer = ByteBuffer.allocate(length);
 
-        int result = this.file.read(bytes);
+        int result = file.read(buffer);
         if (result != length) {
             String message = "Error reading byte array. Expect %s bytes and %s given";
             throw new IOException(String.format(message, length, result));
         }
 
-        return bytes;
+        return buffer.array();
     }
 
     /**
@@ -133,12 +166,16 @@ public class ResourceReader implements IResourceReader {
 
     @Override
     public short readUnsignedByte() throws IOException {
-        return (short) this.file.readUnsignedByte();
+        return (short) (readByte() & 0xFF);
     }
 
     @Override
     public byte readByte() throws IOException {
-        return this.file.readByte();
+        ByteBuffer buffer = ByteBuffer.allocate(1);
+        file.read(buffer);
+        buffer.rewind();
+
+        return buffer.get();
     }
 
     @Override
@@ -171,7 +208,11 @@ public class ResourceReader implements IResourceReader {
      */
     @Override
     public short readRealShort() throws IOException {
-        return this.file.readShort();
+        ByteBuffer buffer = ByteBuffer.allocate(2);
+        file.read(buffer);
+        buffer.rewind();
+
+        return buffer.getShort();
     }
 
     @Override
@@ -293,6 +334,7 @@ public class ResourceReader implements IResourceReader {
      */
     @Override
     public Date readTimestamp() throws IOException {
+
         // Dates are in UTC
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         cal.set(Calendar.YEAR, this.readUnsignedShort());
@@ -358,29 +400,30 @@ public class ResourceReader implements IResourceReader {
 
     @Override
     public int skipBytes(int size) throws IOException {
-        int result = this.file.skipBytes(size);
+        long expectedPosition = this.file.position() + size;
+        this.file.position(expectedPosition);
 
-        if (result != size) {
+        if (expectedPosition != this.file.position()) {
             String message = "Error skipping bytes. Expect %s bytes and %s given";
-            throw new IOException(String.format(message, size, result));
+            throw new IOException(String.format(message, size, expectedPosition));
         }
 
-        return result;
+        return size;
     }
 
     @Override
     public long getFilePointer() throws IOException {
-        return this.file.getFilePointer();
+        return this.file.position();
     }
 
     @Override
     public void seek(long pos) throws IOException {
-        this.file.seek(pos);
+        this.file.position(pos);
     }
 
     @Override
     public long length() throws IOException {
-        return this.file.length();
+        return this.file.size();
     }
 
     /**

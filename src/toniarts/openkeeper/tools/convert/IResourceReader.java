@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -205,4 +206,7 @@ public interface IResourceReader extends Closeable {
 
     int skipBytes(int size) throws IOException;
 
+    IResourceChunkReader readChunk(int size) throws IOException;
+
+    void readChunk(ByteBuffer buffer) throws IOException;
 }
