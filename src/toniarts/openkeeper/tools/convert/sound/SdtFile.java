@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.utils.PathUtils;
@@ -56,12 +57,14 @@ public class SdtFile {
         try (IResourceReader rawSdt = new ResourceReader(file)) {
 
             // Header
-            int count = rawSdt.readUnsignedInteger();
+            IResourceChunkReader rawSdtReader = rawSdt.readChunk(4);
+            int count = rawSdtReader.readUnsignedInteger();
 
             // Read the files
+            rawSdtReader = rawSdt.readChunk(4 * count);
             int[] entriesOffsets = new int[count];
             for (int i = 0; i < entriesOffsets.length; i++) {
-                entriesOffsets[i] = rawSdt.readUnsignedInteger();
+                entriesOffsets[i] = rawSdtReader.readUnsignedInteger();
             }
 
             entries = new SdtFileEntry[count];
@@ -69,17 +72,18 @@ public class SdtFile {
 
                 // Go to the start of the entry
                 rawSdt.seek(entriesOffsets[i]);
+                rawSdtReader = rawSdt.readChunk(40);
 
                 SdtFileEntry entry = new SdtFileEntry();
-                entry.setHeaderSize(rawSdt.readUnsignedInteger());
-                entry.setDataSize(rawSdt.readUnsignedInteger());
-                entry.setName(rawSdt.readString(16).trim());
-                entry.setSampleRate(rawSdt.readUnsignedShort());
-                entry.setBitsPerSample(rawSdt.readUnsignedByte());
-                entry.setType(rawSdt.readByteAsEnum(SdtFileEntry.SoundType.class));
-                entry.setUnknown3(rawSdt.readUnsignedInteger());
-                entry.setnSamples(rawSdt.readUnsignedInteger());
-                entry.setUnknown4(rawSdt.readUnsignedInteger());
+                entry.setHeaderSize(rawSdtReader.readUnsignedInteger());
+                entry.setDataSize(rawSdtReader.readUnsignedInteger());
+                entry.setName(rawSdtReader.readString(16).trim());
+                entry.setSampleRate(rawSdtReader.readUnsignedShort());
+                entry.setBitsPerSample(rawSdtReader.readUnsignedByte());
+                entry.setType(rawSdtReader.readByteAsEnum(SdtFileEntry.SoundType.class));
+                entry.setUnknown3(rawSdtReader.readUnsignedInteger());
+                entry.setnSamples(rawSdtReader.readUnsignedInteger());
+                entry.setUnknown4(rawSdtReader.readUnsignedInteger());
                 entry.setDataOffset(rawSdt.getFilePointer());
 
                 // Skip entries of size 0, there seems to be these BLANKs
@@ -109,8 +113,9 @@ public class SdtFile {
                 extractFileData(entry, destination, rawSdt);
             }
         } catch (Exception e) {
+
             // Fug
-            throw new RuntimeException("Faile to read the WAD file!", e);
+            throw new RuntimeException("Faile to read the SDT file!", e);
         }
     }
 
@@ -125,6 +130,7 @@ public class SdtFile {
         if (entry == null) {
             return;
         }
+
         // Fix file extension
         String filename = fixFileExtension(entry);
 

@@ -19,7 +19,6 @@ package toniarts.openkeeper.tools.convert.str;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -29,6 +28,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 
@@ -79,19 +79,21 @@ public class StrFile {
         try (IResourceReader rawStr = new ResourceReader(file)) {
 
             // Check the header
-            String header = rawStr.readString(4);
+            IResourceChunkReader rawStrReader = rawStr.readChunk(12);
+            String header = rawStrReader.readString(4);
             if (!STR_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + STR_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
             // Header... 12 bytes, must be added to offsets
-            fileId = rawStr.readUnsignedInteger();
-            int offsetsCount = rawStr.readUnsignedInteger();
+            fileId = rawStrReader.readUnsignedInteger();
+            int offsetsCount = rawStrReader.readUnsignedInteger();
 
             // Read the offsets
+            rawStrReader = rawStr.readChunk(offsetsCount * 4);
             List<Integer> offsets = new ArrayList<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
-                offsets.add(rawStr.readUnsignedInteger());
+                offsets.add(rawStrReader.readUnsignedInteger());
             }
 
             // Make a copy because offsets in some languages (like german) are not sorted!
@@ -101,16 +103,16 @@ public class StrFile {
             // Decode the entries
             entries = new LinkedHashMap<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
+
                 // Seek to the data and read it
                 rawStr.seek(offsets.get(i) + STR_HEADER_SIZE);
                 int j = Collections.binarySearch(offsetsCopy, offsets.get(i));
                 int dataLength = (int) (j < offsetsCopy.size() - 1 ? offsetsCopy.get(j + 1) - offsets.get(i) : rawStr.length() - offsets.get(i) - STR_HEADER_SIZE);
 
-                byte[] data = new byte[dataLength];
-                int dataRead = rawStr.read(data);
+                IResourceChunkReader data = rawStr.readChunk(dataLength);
                 // FIXME should we throws Exception?
-                if (dataRead < dataLength) {
-                    LOGGER.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, dataRead});
+                if (data.length() < dataLength) {
+                    LOGGER.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, data.length()});
                 }
 
                 // Encode the string
@@ -147,10 +149,9 @@ public class StrFile {
      * @param data the entry bytes
      * @return returns null if error occured, otherwise the decoded string
      */
-    private String decodeEntry(final byte[] data) {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(data);
-        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        StringBuilder buffer = new StringBuilder(data.length);
+    private String decodeEntry(final IResourceChunkReader data) {
+        ByteBuffer byteBuffer = data.getByteBuffer();
+        StringBuilder buffer = new StringBuilder(data.length());
 
         // Loop through the bytes
         int chunkType;

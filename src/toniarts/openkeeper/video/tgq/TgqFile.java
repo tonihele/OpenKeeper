@@ -139,7 +139,7 @@ public abstract class TgqFile implements AutoCloseable {
             case SCCl_TAG: {
 
                 // Number of audio data tags
-                numberOfAudioStreamChunks = file.readUnsignedInteger();
+                numberOfAudioStreamChunks = file.readChunk(4).readUnsignedInteger();
 
                 gotFrame = true;
                 break;

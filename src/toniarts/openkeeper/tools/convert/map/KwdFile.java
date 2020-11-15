@@ -3209,22 +3209,6 @@ public final class KwdFile {
      * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
      * long)
      * @param header the header
-     * @param file the file
-     * @param offset the file offset before the last item was read
-     */
-    private void checkOffset(KwdHeader header, IResourceReader file, long offset) throws IOException {
-        file.checkOffset(header.getItemSize(), offset);
-    }
-
-    /**
-     * Not all the data types are of the length that suits us, do our best to
-     * ignore it<br>
-     * Skips the file to the correct position after an item is read<br>
-     * <b>Use this with the common types!</b>
-     *
-     * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
-     * long)
-     * @param header the header
      * @param reader the buffer
      * @param offset the file offset before the last item was read
      */

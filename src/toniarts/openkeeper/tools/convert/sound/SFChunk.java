@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
@@ -197,25 +199,27 @@ public class SFChunk {
     protected Type type = null;
     protected SubType subType = null;
     protected long size; // in bytes
-    protected List data = new ArrayList<>();
+    protected final List data = new ArrayList<>();
 
-    protected HashMap<SubType, SFChunk> childs = new HashMap<>();
+    protected Map<SubType, SFChunk> children = new HashMap<>();
 
     public SFChunk(IResourceReader file) throws IOException {
-        String code = file.readString(4);
-        size = file.readUnsignedIntegerAsLong();
+        IResourceChunkReader fileReader = file.readChunk(8);
+        String code = fileReader.readString(4);
+        size = fileReader.readUnsignedIntegerAsLong();
         long pointer = file.getFilePointer();
         //data = new byte[(int)size];
         //file.read(data);
+        fileReader = file.readChunk((int) size);
         try {
             type = Type.valueOf(code);
-            code = file.readString(4);
+            code = fileReader.readString(4);
             subType = SubType.valueOf(code);
 
             while (!isEOC(file, pointer)) {
                 // this is container for other types
                 SFChunk child = new SFChunk(file);
-                childs.put(child.getSubType(), child);
+                children.put(child.getSubType(), child);
             }
 
             if (file.getFilePointer() != pointer + size) {
@@ -238,13 +242,13 @@ public class SFChunk {
                     case ISFT: // szTools : e.g. ":Preditor 2.00a:Vienna SF Studio 2.0:"
                         //data = new ArrayList<>();
                         while (!isEOC(file, pointer)) {
-                            data.add(file.readString((int) size));
+                            data.add(fileReader.readString((int) size));
                         }
                         break;
 
                     case smpl:
                         while (!isEOC(file, pointer)) {
-                            data.add(file.readRealShort());
+                            data.add(fileReader.readShort());
                         }
                         //byte d = new byte[(int) size];
                         //file.read((byte[])data);
@@ -253,61 +257,61 @@ public class SFChunk {
                     case ifil:
                     case iver:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfVersionTag(file));
+                            data.add(new sfVersionTag(fileReader));
                         }
                         break;
 
                     case phdr:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfPresetHeader(file));
+                            data.add(new sfPresetHeader(fileReader));
                         }
                         break;
 
                     case pbag:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfPresetBag(file));
+                            data.add(new sfPresetBag(fileReader));
                         }
                         break;
 
                     case pmod:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfModList(file));
+                            data.add(new sfModList(fileReader));
                         }
                         break;
 
                     case pgen:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfGenList(file));
+                            data.add(new sfGenList(fileReader));
                         }
                         break;
 
                     case inst:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfInst(file));
+                            data.add(new sfInst(fileReader));
                         }
                         break;
 
                     case ibag:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfInstBag(file));
+                            data.add(new sfInstBag(fileReader));
                         }
                         break;
 
                     case imod:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfInstModList(file));
+                            data.add(new sfInstModList(fileReader));
                         }
                         break;
 
                     case igen:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfInstGenList(file));
+                            data.add(new sfInstGenList(fileReader));
                         }
                         break;
 
                     case shdr:
                         while (!isEOC(file, pointer)) {
-                            data.add(new sfSample(file));
+                            data.add(new sfSample(fileReader));
                         }
                         break;
                 }
@@ -325,8 +329,8 @@ public class SFChunk {
         return subType;
     }
 
-    public HashMap<SubType, SFChunk> getChilds() {
-        return childs;
+    public Map<SubType, SFChunk> getChilds() {
+        return children;
     }
 
     /**
@@ -353,8 +357,8 @@ public class SFChunk {
         if (!data.isEmpty()) {
             result += ", data=" + data;
         }
-        if (!childs.isEmpty()) {
-            result += ", childs=" + childs;
+        if (!children.isEmpty()) {
+            result += ", childs=" + children;
         }
         result += '}';
 
@@ -366,7 +370,7 @@ public class SFChunk {
         protected int major;
         protected int minor;
 
-        protected sfVersionTag(IResourceReader file) throws IOException {
+        protected sfVersionTag(IResourceChunkReader file) throws IOException {
             major = file.readShort();
             minor = file.readShort();
         }
@@ -387,7 +391,7 @@ public class SFChunk {
         protected long dwGenre;
         protected long dwMorphology;
 
-        protected sfPresetHeader(IResourceReader file) throws IOException {
+        protected sfPresetHeader(IResourceChunkReader file) throws IOException {
             achPresetName = file.readVaryingLengthString(20);
             wPreset = file.readUnsignedShort();
             wBank = file.readUnsignedShort();
@@ -411,7 +415,7 @@ public class SFChunk {
         protected int wGenNdx;
         protected int wModNdx;
 
-        protected sfPresetBag(IResourceReader file) throws IOException {
+        protected sfPresetBag(IResourceChunkReader file) throws IOException {
             wGenNdx = file.readUnsignedShort();
             wModNdx = file.readUnsignedShort();
         }
@@ -427,7 +431,7 @@ public class SFChunk {
         protected String achInstName;
         protected int wInstBagNdx;
 
-        protected sfInst(IResourceReader file) throws IOException {
+        protected sfInst(IResourceChunkReader file) throws IOException {
             achInstName = file.readVaryingLengthString(20);
             wInstBagNdx = file.readUnsignedShort();
         }
@@ -443,7 +447,7 @@ public class SFChunk {
         protected int wInstGenNdx;
         protected int wInstModNdx;
 
-        protected sfInstBag(IResourceReader file) throws IOException {
+        protected sfInstBag(IResourceChunkReader file) throws IOException {
             wInstGenNdx = file.readUnsignedShort();
             wInstModNdx = file.readUnsignedShort();
         }
@@ -467,7 +471,7 @@ public class SFChunk {
         protected int wSampleLink;
         protected SFSampleLink sfSampleType;
 
-        protected sfSample(IResourceReader file) throws IOException {
+        protected sfSample(IResourceChunkReader file) throws IOException {
             achSampleName = file.readVaryingLengthString(20);
             dwStart = file.readUnsignedIntegerAsLong();
             dwEnd = file.readUnsignedIntegerAsLong();
@@ -495,7 +499,7 @@ public class SFChunk {
         protected short byLo;
         protected short byHi;
 
-        protected rangesType(IResourceReader file) throws IOException {
+        protected rangesType(IResourceChunkReader file) throws IOException {
             byLo = file.readUnsignedByte();
             byHi = file.readUnsignedByte();
         }
@@ -507,9 +511,9 @@ public class SFChunk {
         protected short shAmount;
         protected int wAmount;
 
-        protected genAmountType(IResourceReader file) throws IOException {
+        protected genAmountType(IResourceChunkReader file) throws IOException {
             ranges = new rangesType(file);
-            shAmount = file.readRealShort();
+            shAmount = file.readShort();
             wAmount = file.readUnsignedShort();
         }
     }
@@ -522,7 +526,7 @@ public class SFChunk {
         protected boolean p; // Polarity
         protected ModulatorTypes bType = null; // A 6 bit value specifying the continuity of the controller
 
-        protected SFModulator(IResourceReader file) throws IOException {
+        protected SFModulator(IResourceChunkReader file) throws IOException {
             int bits = file.readUnsignedShort();
 
             bIndex = ConversionUtils.parseEnum(ConversionUtils.bits(bits, 0, 7), Modulators.class);
@@ -541,7 +545,7 @@ public class SFChunk {
         protected boolean p;
         protected byte bType;
 
-        protected SFGenerator(IResourceReader file) throws IOException {
+        protected SFGenerator(IResourceChunkReader file) throws IOException {
             int bits = file.readUnsignedShort();
 
             bIndex = ConversionUtils.parseEnum(ConversionUtils.bits(bits, 0, 7), Generators.class);
@@ -560,7 +564,7 @@ public class SFChunk {
         protected boolean p;
         protected byte bType;
 
-        protected SFTransform(IResourceReader file) throws IOException {
+        protected SFTransform(IResourceChunkReader file) throws IOException {
             int bits = file.readUnsignedShort();
 
             bIndex = ConversionUtils.parseEnum(ConversionUtils.bits(bits, 0, 7), Transforms.class);
@@ -579,10 +583,10 @@ public class SFChunk {
         protected SFModulator sfModAmtSrcOper;
         protected SFTransform sfModTransOper;
 
-        protected sfModList(IResourceReader file) throws IOException {
+        protected sfModList(IResourceChunkReader file) throws IOException {
             sfModSrcOper = new SFModulator(file);
             sfModDestOper = new SFGenerator(file);
-            modAmount = file.readRealShort();
+            modAmount = file.readShort();
             sfModAmtSrcOper = new SFModulator(file);
             sfModTransOper = new SFTransform(file);
         }
@@ -600,7 +604,7 @@ public class SFChunk {
         protected SFGenerator sfGenOper;
         protected genAmountType genAmount;
 
-        protected sfGenList(IResourceReader file) throws IOException {
+        protected sfGenList(IResourceChunkReader file) throws IOException {
             sfGenOper = new SFGenerator(file);
             genAmount = new genAmountType(file);
         }
@@ -619,10 +623,10 @@ public class SFChunk {
         protected SFModulator sfModAmtSrcOper;
         protected SFTransform sfModTransOper;
 
-        protected sfInstModList(IResourceReader file) throws IOException {
+        protected sfInstModList(IResourceChunkReader file) throws IOException {
             sfModSrcOper = new SFModulator(file);
             sfModDestOper = new SFGenerator(file);
-            modAmount = file.readRealShort();
+            modAmount = file.readShort();
             sfModAmtSrcOper = new SFModulator(file);
             sfModTransOper = new SFTransform(file);
         }
@@ -640,7 +644,7 @@ public class SFChunk {
         protected SFGenerator sfGenOper;
         protected genAmountType genAmount;
 
-        protected sfInstGenList(IResourceReader file) throws IOException {
+        protected sfInstGenList(IResourceChunkReader file) throws IOException {
             sfGenOper = new SFGenerator(file);
             genAmount = new genAmountType(file);
         }

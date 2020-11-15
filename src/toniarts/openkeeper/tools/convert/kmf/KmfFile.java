@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 
@@ -84,53 +84,56 @@ public class KmfFile {
 
     public KmfFile(File file) {
 
-        //Read the file
+        // Read the file
         try (IResourceReader rawKmf = new ResourceReader(file)) {
 
-            //Read the identifier
-            checkHeader(rawKmf, KMF_HEADER_IDENTIFIER);
-            rawKmf.skipBytes(4);
-            version = rawKmf.readUnsignedInteger();
+            IResourceChunkReader rawKmfReader = rawKmf.readChunk(28);
 
-            //KMSH/HEAD
-            checkHeader(rawKmf, KMF_HEAD);
-            parseHead(rawKmf);
+            // Read the identifier
+            checkHeader(rawKmfReader, KMF_HEADER_IDENTIFIER);
+            rawKmfReader.skipBytes(4);
+            version = rawKmfReader.readUnsignedInteger();
 
-            //KMSH/MATL
+            // KMSH/HEAD
+            checkHeader(rawKmfReader, KMF_HEAD);
+            parseHead(rawKmfReader);
+
+            rawKmfReader = rawKmf.readAll();
+
+            // KMSH/MATL
             if (type != Type.GROP) {
-                checkHeader(rawKmf, KMF_MATERIALS);
-                parseMatl(rawKmf);
+                checkHeader(rawKmfReader, KMF_MATERIALS);
+                parseMatl(rawKmfReader);
             }
 
-            //KMSH/MESH, there are n amount of these
+            // KMSH/MESH, there are n amount of these
             meshes = new ArrayList<>();
             String temp = "";
-            byte[] buf = new byte[4];
             do {
-                if (rawKmf.read(buf) == -1) {
+                if (!rawKmfReader.hasRemaining()) {
                     break; // EOF
                 }
-                temp = ConversionUtils.toString(buf);
+                temp = rawKmfReader.readString(4);
                 if (KMF_MESH.equals(temp)) {
-                    meshes.add(parseMesh(rawKmf));
+                    meshes.add(parseMesh(rawKmfReader));
                 } else {
                     break;
                 }
             } while (true);
 
-            //KMSH/ANIM
+            // KMSH/ANIM
             if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
-                anim = parseAnim(rawKmf);
+                anim = parseAnim(rawKmfReader);
             }
 
-            //KMSH/GROP
+            // KMSH/GROP
             if (type == Type.GROP && KMF_GROP.equals(temp)) {
-                grops = parseGrop(rawKmf);
+                grops = parseGrop(rawKmfReader);
             }
 
         } catch (IOException e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
     }
@@ -141,7 +144,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on HEAD
      */
-    private void parseHead(IResourceReader rawKmf) throws IOException {
+    private void parseHead(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
         this.type = Type.toType(rawKmf.readUnsignedInteger());
         int unknown = rawKmf.readUnsignedInteger();
@@ -153,11 +156,11 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on MATL
      */
-    private void parseMatl(IResourceReader rawKmf) throws IOException {
+    private void parseMatl(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
         int materialsCount = rawKmf.readUnsignedInteger();
 
-        //Read the materials
+        // Read the materials
         materials = new ArrayList<>(materialsCount);
         for (int i = 0; i < materialsCount; i++) {
             checkHeader(rawKmf, KMF_MATERIAL);
@@ -171,16 +174,16 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on MATL
      */
-    private Material parseMat2(IResourceReader rawKmf) throws IOException {
+    private Material parseMat2(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
-        //Create the material
+        // Create the material
         Material m = new Material();
 
-        //Now we should have the name
+        // Now we should have the name
         m.setName(rawKmf.readVaryingLengthStrings(1).get(0));
 
-        //Textures
+        // Textures
         int texturesCount = rawKmf.readUnsignedInteger();
         m.setTextures(rawKmf.readVaryingLengthStrings(texturesCount));
 
@@ -188,7 +191,7 @@ public class KmfFile {
         m.setBrightness(rawKmf.readFloat());
         m.setGamma(rawKmf.readFloat());
 
-        //Environment map
+        // Environment map
         m.setEnvironmentMappingTexture(rawKmf.readVaryingLengthStrings(1).get(0));
 
         return m;
@@ -200,7 +203,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on mesh
      */
-    private Mesh parseMesh(IResourceReader rawKmf) throws IOException {
+    private Mesh parseMesh(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
         //KMSH/MESH/HEAD
@@ -243,7 +246,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on mesh
      */
-    private List<MeshControl> parseMeshControls(IResourceReader rawKmf) throws IOException {
+    private List<MeshControl> parseMeshControls(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
         int controlCount = rawKmf.readUnsignedInteger();
@@ -266,7 +269,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on sprite
      */
-    private List<MeshSprite> parseMeshSprites(IResourceReader rawKmf, int sprsCount, int lodCount) throws IOException {
+    private List<MeshSprite> parseMeshSprites(IResourceChunkReader rawKmf, int sprsCount, int lodCount) throws IOException {
         rawKmf.skipBytes(4);
         List<MeshSprite> sprites = new ArrayList<>(sprsCount);
 
@@ -338,7 +341,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on geom
      */
-    private List<Vector3f> parseMeshGeoms(IResourceReader rawKmf, int geomCount) throws IOException {
+    private List<Vector3f> parseMeshGeoms(IResourceChunkReader rawKmf, int geomCount) throws IOException {
         rawKmf.skipBytes(4);
         List<Vector3f> geometries = new ArrayList<>(geomCount);
 
@@ -358,7 +361,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on ANIM
      */
-    private Anim parseAnim(IResourceReader rawKmf) throws IOException {
+    private Anim parseAnim(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
         //KMSH/ANIM/HEAD
@@ -459,7 +462,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on mesh
      */
-    private List<AnimControl> parseAnimControls(IResourceReader rawKmf) throws IOException {
+    private List<AnimControl> parseAnimControls(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
         int controlCount = rawKmf.readUnsignedInteger();
@@ -483,7 +486,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on sprite
      */
-    private List<AnimSprite> parseAnimSprites(IResourceReader rawKmf, int sprsCount, int lodCount) throws IOException {
+    private List<AnimSprite> parseAnimSprites(IResourceChunkReader rawKmf, int sprsCount, int lodCount) throws IOException {
         rawKmf.skipBytes(4);
         List<AnimSprite> sprites = new ArrayList<>(sprsCount);
 
@@ -558,7 +561,7 @@ public class KmfFile {
      *
      * @param rawKmf kmf file starting on grop
      */
-    private List<Grop> parseGrop(IResourceReader rawKmf) throws IOException {
+    private List<Grop> parseGrop(IResourceChunkReader rawKmf) throws IOException {
         rawKmf.skipBytes(4);
 
         //KMSH/GROP/HEAD
@@ -590,7 +593,7 @@ public class KmfFile {
      * @param expectedHeader header that is expected
      * @throws RuntimeException if the extracted header doesn't mach the expected header
      */
-    private void checkHeader(IResourceReader rawKmf, String expectedHeader) throws RuntimeException, IOException {
+    private void checkHeader(IResourceChunkReader rawKmf, String expectedHeader) throws RuntimeException, IOException {
         String extractedHeader = rawKmf.readString(4);
         if (!expectedHeader.equals(extractedHeader)) {
             throw new RuntimeException("Header should be " + expectedHeader + " and it was " + extractedHeader + "! Cancelling!");

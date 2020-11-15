@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.utils.PathUtils;
@@ -44,7 +46,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class WadFile {
 
-    private final File file;
+    private final Path file;
     private final Map<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
     private static final int WAD_HEADER_VERSION = 2;
@@ -58,59 +60,49 @@ public class WadFile {
      * @param file the wad file to read
      */
     public WadFile(File file) {
-        this.file = file;
+        this.file = file.toPath();
 
         // Read the file
         try (IResourceReader rawWad = new ResourceReader(file)) {
 
             // Check the header
-            String header = rawWad.readString(4);
+            IResourceChunkReader reader = rawWad.readChunk(8);
+            String header = reader.readString(4);
             if (!WAD_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + WAD_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
 
             // See the version
-            int version = rawWad.readUnsignedInteger();
+            int version = reader.readUnsignedInteger();
             if (WAD_HEADER_VERSION != version) {
                 throw new RuntimeException("Version header should be " + WAD_HEADER_VERSION + " and it was " + version + "! Cancelling!");
             }
 
             // Seek
             rawWad.seek(0x48);
+            reader = rawWad.readChunk(16);
 
-            int files = rawWad.readUnsignedInteger();
-            int nameOffset = rawWad.readUnsignedInteger();
-            int nameSize = rawWad.readUnsignedInteger();
-            int unknown = rawWad.readUnsignedInteger();
+            int files = reader.readUnsignedInteger();
+            int nameOffset = reader.readUnsignedInteger();
+            int nameSize = reader.readUnsignedInteger();
+            int unknown = reader.readUnsignedInteger();
 
             // Loop through the file count
+            reader = rawWad.readChunk(40 * files);
             List<WadFileEntry> entries = new ArrayList<>(files);
             for (int i = 0; i < files; i++) {
                 WadFileEntry wadInfo = new WadFileEntry();
-                wadInfo.setUnk1(rawWad.readUnsignedInteger());
-                wadInfo.setNameOffset(rawWad.readUnsignedInteger());
-                wadInfo.setNameSize(rawWad.readUnsignedInteger());
-                wadInfo.setOffset(rawWad.readUnsignedInteger());
-                wadInfo.setCompressedSize(rawWad.readUnsignedInteger());
-                int typeIndex = rawWad.readUnsignedInteger();
-                switch (typeIndex) {
-                    case 0: {
-                        wadInfo.setType(WadFileEntry.WadFileEntryType.NOT_COMPRESSED);
-                        break;
-                    }
-                    case 4: {
-                        wadInfo.setType(WadFileEntry.WadFileEntryType.COMPRESSED);
-                        break;
-                    }
-                    default: {
-                        wadInfo.setType(WadFileEntry.WadFileEntryType.UNKOWN);
-                    }
-                }
-                wadInfo.setSize(rawWad.readUnsignedInteger());
+                wadInfo.setUnk1(reader.readUnsignedInteger());
+                wadInfo.setNameOffset(reader.readUnsignedInteger());
+                wadInfo.setNameSize(reader.readUnsignedInteger());
+                wadInfo.setOffset(reader.readUnsignedInteger());
+                wadInfo.setCompressedSize(reader.readUnsignedInteger());
+                wadInfo.setType(reader.readIntegerAsEnum(WadFileEntry.WadFileEntryType.class));
+                wadInfo.setSize(reader.readUnsignedInteger());
                 int[] unknown2 = new int[3];
-                unknown2[0] = rawWad.readUnsignedInteger();
-                unknown2[1] = rawWad.readUnsignedInteger();
-                unknown2[2] = rawWad.readUnsignedInteger();
+                unknown2[0] = reader.readUnsignedInteger();
+                unknown2[1] = reader.readUnsignedInteger();
+                unknown2[2] = reader.readUnsignedInteger();
                 wadInfo.setUnknown2(unknown2);
                 entries.add(wadInfo);
             }

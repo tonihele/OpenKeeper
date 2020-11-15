@@ -27,10 +27,12 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.utils.PathUtils;
@@ -47,17 +49,20 @@ public class EngineTexturesFile implements Iterable<String> {
 
     private static final boolean DECOMPRESSION_ENABLED = true;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
+    private static final String ENGINE_TEXTURE_HEADER_IDENTIFIER = "TCHC";
 
-    private final File file;
+    private final int version;
+
+    private final Path file;
     private EngineTextureDecoder decoder;
-    private final HashMap<String, EngineTextureEntry> engineTextureEntries;
+    private final Map<String, EngineTextureEntry> engineTextureEntries;
 
     private static final Logger LOGGER = Logger.getLogger(EngineTexturesFile.class.getName());
 
     public EngineTexturesFile(File file) {
-        this.file = file;
+        this.file = file.toPath();
 
-        //Read the names from the DIR file in the same folder
+        // Read the names from the DIR file in the same folder
         File dirFile = new File(file.toString().substring(0, file.toString().length() - 3).concat("dir"));
         try (IResourceReader rawDir = new ResourceReader(dirFile)) {
 
@@ -70,41 +75,49 @@ public class EngineTexturesFile implements Iterable<String> {
             // ENTRY:
             // string name
             // int offset <- data offset in the DAT file
+            IResourceChunkReader dirReader = rawDir.readChunk(16);
+            String header = dirReader.readString(4);
+            if (!ENGINE_TEXTURE_HEADER_IDENTIFIER.equals(header)) {
+                throw new RuntimeException("Header should be " + ENGINE_TEXTURE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
+            }
+            int size = dirReader.readInteger();
+            version = dirReader.readInteger();
 
-            //Read the entries
-            rawDir.skipBytes(12);
-            int numberOfEntries = rawDir.readUnsignedInteger();
+            // Read the entries
+            int numberOfEntries = dirReader.readUnsignedInteger();
             engineTextureEntries = new HashMap<>(numberOfEntries);
 
+            dirReader = rawDir.readChunk(size);
             try (IResourceReader rawTextures = new ResourceReader(file)) {
                 do {
-                    String name = ConversionUtils.convertFileSeparators(rawDir.readVaryingLengthStrings(1).get(0));
-                    int offset = rawDir.readUnsignedInteger();
+                    String name = ConversionUtils.convertFileSeparators(dirReader.readVaryingLengthStrings(1).get(0));
+                    int offset = dirReader.readUnsignedInteger();
 
-                    //Read the actual data from the DAT file from the offset specified by the DIR file
+                    // Read the actual data from the DAT file from the offset specified by the DIR file
                     rawTextures.seek(offset);
+                    IResourceChunkReader rawTexturesReader = rawTextures.readChunk(40);
 
-                    //Read the header
+                    // Read the header
                     EngineTextureEntry entry = new EngineTextureEntry();
-                    entry.setResX(rawTextures.readUnsignedInteger());
-                    entry.setResY(rawTextures.readUnsignedInteger());
-                    entry.setSize(rawTextures.readUnsignedInteger() - 8); // - 8 since the size is from here now on
-                    entry.setsResX(rawTextures.readUnsignedShort());
-                    entry.setsResY(rawTextures.readUnsignedShort());
-                    entry.setAlphaFlag(rawTextures.readUnsignedInteger() >> 7 != 0);
+                    entry.setResX(rawTexturesReader.readUnsignedInteger());
+                    entry.setResY(rawTexturesReader.readUnsignedInteger());
+                    entry.setSize(rawTexturesReader.readUnsignedInteger() - 8); // - 8 since the size is from here now on
+                    entry.setsResX(rawTexturesReader.readUnsignedShort());
+                    entry.setsResY(rawTexturesReader.readUnsignedShort());
+                    entry.setAlphaFlag(rawTexturesReader.readUnsignedInteger() >> 7 != 0);
                     entry.setDataStartLocation(rawTextures.getFilePointer());
 
-                    //Put the entry to the hash
+                    // Put the entry to the hash
                     engineTextureEntries.put(name, entry);
-                } while (rawDir.getFilePointer() != rawDir.length());
+                } while (dirReader.hasRemaining());
             } catch (IOException e) {
 
-                //Fug
+                // Fug
                 throw new RuntimeException("Failed to open the file " + file + "!", e);
             }
         } catch (IOException e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to open the file " + dirFile + "!", e);
         }
     }
@@ -125,7 +138,7 @@ public class EngineTexturesFile implements Iterable<String> {
      */
     public void extractFileData(String destination) {
 
-        //Open the Texture file for extraction
+        // Open the Texture file for extraction
         try (IResourceReader rawTextures = new ResourceReader(file)) {
 
             for (String textureEntry : engineTextureEntries.keySet()) {
@@ -148,12 +161,12 @@ public class EngineTexturesFile implements Iterable<String> {
      */
     public File extractFileData(String textureEntry, String destination, boolean overwrite) {
 
-        //Open the Texture file for extraction
+        // Open the Texture file for extraction
         try (IResourceReader rawTextures = new ResourceReader(file)) {
             return extractFileData(textureEntry, destination, rawTextures, overwrite);
         } catch (IOException e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
         }
     }
@@ -169,20 +182,20 @@ public class EngineTexturesFile implements Iterable<String> {
      */
     private File extractFileData(String textureEntry, String destination, IResourceReader rawTextures, boolean overwrite) {
 
-        //See that the destination is formatted correctly and create it if it does not exist
+        // See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
 
         File destinationFile = new File(dest.concat(textureEntry).concat(".png"));
         if (!overwrite && destinationFile.exists()) {
 
-            //Skip
+            // Skip
             LOGGER.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
             return destinationFile;
         }
         Path destinationFolder = destinationFile.toPath();
         destinationFolder.getParent().toFile().mkdirs();
 
-        //Write to the file
+        // Write to the file
         try (OutputStream outputStream = new FileOutputStream(destinationFile)) {
             getFileData(textureEntry, rawTextures).writeTo(outputStream);
             return destinationFile;
@@ -201,7 +214,7 @@ public class EngineTexturesFile implements Iterable<String> {
     private ByteArrayOutputStream getFileData(String textureEntry, IResourceReader rawTextures) {
         ByteArrayOutputStream result = null;
 
-        //Get the file
+        // Get the file
         EngineTextureEntry engineTextureEntry = engineTextureEntries.get(textureEntry);
         if (engineTextureEntry == null) {
             throw new RuntimeException("File " + textureEntry + " not found from the texture archive!");
@@ -209,30 +222,32 @@ public class EngineTexturesFile implements Iterable<String> {
 
         try {
 
-            //We should decompress the texture
+            // We should decompress the texture
             BufferedImage image;
             if (DECOMPRESSION_ENABLED) {
 
-                //Seek to the file we want and read it
+                // Seek to the file we want and read it
                 rawTextures.seek(engineTextureEntry.getDataStartLocation());
+
+                IResourceChunkReader rawTexturesReader = rawTextures.readChunk(engineTextureEntry.getSize());
                 int count = (engineTextureEntry.getSize()) / 4;
                 long[] buf = new long[count];
                 for (int i = 0; i < count; i++) {
-                    buf[i] = rawTextures.readUnsignedIntegerAsLong();
+                    buf[i] = rawTexturesReader.readUnsignedIntegerAsLong();
                 }
 
                 // Use the monstrous decompression routine
                 image = decompressTexture(buf, engineTextureEntry);
             } else {
 
-                //Use our chess board texture
+                // Use our chess board texture
                 image = generateChessBoard(engineTextureEntry);
             }
             result = new ByteArrayOutputStream();
             ImageIO.write(image, "png", result);
         } catch (IOException e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Faile to read the engine texture file!", e);
         }
 
@@ -250,7 +265,7 @@ public class EngineTexturesFile implements Iterable<String> {
         Graphics g = img.getGraphics();
         g.setColor(Color.GRAY);
 
-        //Draw the chess board
+        // Draw the chess board
         for (int x = 0; x < engineTextureEntry.getResX(); x += CHESS_BOARD_GRID_SIZE) {
             for (int y = 0; y < engineTextureEntry.getResY(); y += CHESS_BOARD_GRID_SIZE) {
                 if (g.getColor() == Color.GRAY) {
@@ -261,7 +276,7 @@ public class EngineTexturesFile implements Iterable<String> {
                 g.fillRect(x, y, CHESS_BOARD_GRID_SIZE, CHESS_BOARD_GRID_SIZE);
             }
 
-            //Change color for each row again so that the starting color is different
+            // Change color for each row again so that the starting color is different
             if (g.getColor() == Color.GRAY) {
                 g.setColor(Color.DARK_GRAY);
             } else {

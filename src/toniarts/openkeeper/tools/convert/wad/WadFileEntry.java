@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.wad;
 
+import toniarts.openkeeper.tools.convert.IValueEnum;
+
 /**
  * Stores the wad file entry structure<br>
  * Converted to JAVA from C code, C code by anonymous
@@ -24,11 +26,21 @@ package toniarts.openkeeper.tools.convert.wad;
  */
 public class WadFileEntry {
 
-    public enum WadFileEntryType {
+    public enum WadFileEntryType implements IValueEnum {
 
-        NOT_COMPRESSED, // 0
-        COMPRESSED, // 4
-        UNKOWN;
+        NOT_COMPRESSED(0),
+        COMPRESSED(4);
+
+        private WadFileEntryType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+
+        private final int id;
     }
     private int unk1;
     private int nameOffset;

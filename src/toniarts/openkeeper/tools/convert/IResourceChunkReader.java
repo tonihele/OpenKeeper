@@ -37,7 +37,7 @@ public interface IResourceChunkReader extends Comparable<ByteBuffer> {
      */
     boolean hasRemaining();
 
-    long length();
+    int length();
 
     byte[] read(int length);
 

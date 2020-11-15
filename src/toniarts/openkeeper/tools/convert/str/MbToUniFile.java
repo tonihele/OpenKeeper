@@ -18,9 +18,8 @@ package toniarts.openkeeper.tools.convert.str;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.CharBuffer;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 
@@ -52,23 +51,22 @@ public class MbToUniFile {
         try (IResourceReader rawCodepage = new ResourceReader(file)) {
 
             // Check the header
-            String header = rawCodepage.readString(4);
+            IResourceChunkReader rawCodepageReader = rawCodepage.readChunk(8);
+            String header = rawCodepageReader.readString(4);
             if (!CODEPAGE_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + CODEPAGE_HEADER_IDENTIFIER + " and it was " + header + "! Cancelling!");
             }
-            singleCount = rawCodepage.readUnsignedByte();
-            unknown1 = rawCodepage.readUnsignedByte();
-            count1 = rawCodepage.readUnsignedByte();
-            count2 = rawCodepage.readUnsignedByte();
-            byte[] data = rawCodepage.read((int) (rawCodepage.length() - rawCodepage.getFilePointer()));
+            singleCount = rawCodepageReader.readUnsignedByte();
+            unknown1 = rawCodepageReader.readUnsignedByte();
+            count1 = rawCodepageReader.readUnsignedByte();
+            count2 = rawCodepageReader.readUnsignedByte();
+            IResourceChunkReader data = rawCodepage.readChunk((int) (rawCodepage.length() - rawCodepage.getFilePointer()));
 
             threshold = 255 - singleCount;
             count = (((count1 - 1) + 257) * 255) - threshold * 254 + count2;
 
             // Put the code page to byte buffer for fast access, it is a small file
-            ByteBuffer buf = ByteBuffer.wrap(data).asReadOnlyBuffer();
-            buf.order(ByteOrder.LITTLE_ENDIAN);
-            charBuffer = buf.asCharBuffer();
+            charBuffer = data.getByteBuffer().asCharBuffer();
         } catch (IOException e) {
 
             // Fug

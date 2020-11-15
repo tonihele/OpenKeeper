@@ -50,7 +50,7 @@ public class ResourceChunkReader implements IResourceChunkReader {
     }
 
     @Override
-    public long length() {
+    public int length() {
         return buffer.capacity();
     }
 

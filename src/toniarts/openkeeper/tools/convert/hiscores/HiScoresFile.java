@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 
@@ -41,16 +42,17 @@ public class HiScoresFile {
      */
     public HiScoresFile(File file) {
 
-        //Read the file
+        // Read the file
         try (IResourceReader data = new ResourceReader(file)) {
 
-            //Read the entries, no header, just entries till the end
+            // Read the entries, no header, just entries till the end
+            IResourceChunkReader reader = data.readAll();
             hiScoresEntries = new ArrayList<>();
-            while (data.getFilePointer() < data.length()) {
+            while (reader.hasRemaining()) {
                 HiScoresEntry entry = new HiScoresEntry();
-                entry.setScore(data.readUnsignedInteger());
-                entry.setName(data.readVaryingLengthStringUtf16(32).trim());
-                entry.setLevel(data.readVaryingLengthStringUtf16(32).trim());
+                entry.setScore(reader.readUnsignedInteger());
+                entry.setName(reader.readVaryingLengthStringUtf16(32).trim());
+                entry.setLevel(reader.readVaryingLengthStringUtf16(32).trim());
 
                 hiScoresEntries.add(entry);
             }
