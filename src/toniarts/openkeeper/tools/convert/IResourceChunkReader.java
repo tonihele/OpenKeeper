@@ -176,12 +176,24 @@ public interface IResourceChunkReader extends Comparable<ByteBuffer> {
      */
     ByteBuffer getByteBuffer();
 
+    /**
+     * @see ByteBuffer#position()
+     */
     int position();
 
+    /**
+     * @see ByteBuffer#position(int)
+     */
     void position(int pos);
 
+    /**
+     * @see ByteBuffer#mark()
+     */
     void mark();
 
+    /**
+     * @see ByteBuffer#reset()
+     */
     void reset();
 
 }
