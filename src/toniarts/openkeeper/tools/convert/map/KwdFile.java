@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
@@ -159,7 +160,8 @@ public final class KwdFile {
         try {
             readFileContents(file);
         } catch (Exception e) {
-            //Fug
+
+            // Fug
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
         this.basePath = PathUtils.fixFilePath(basePath);
@@ -245,64 +247,75 @@ public final class KwdFile {
      * @throws IOException may fail reading
      */
     private KwdHeader readKwdHeader(IResourceReader data) throws IOException {
+        long startOffset = data.getFilePointer();
+        int headerSize = 28;
 
         KwdHeader header = new KwdHeader();
-        header.setId(data.readIntegerAsEnum(MapDataTypeEnum.class));
-        int size = data.readUnsignedInteger(); // Bytes in the real size indicator, well seems to be 4 always
+        IResourceChunkReader reader = data.readChunk(8);
+        header.setId(reader.readIntegerAsEnum(MapDataTypeEnum.class));
+        int size = reader.readUnsignedInteger(); // Bytes in the real size indicator, well seems to be 4 always
+        reader = data.readChunk(size);
+        int dataSize = 0;
         if (size == 2) {
-            header.setSize(data.readUnsignedShort());
+            dataSize = reader.readUnsignedShort();
+            headerSize -= 2;
         } else if (size == 4) {
-            header.setSize(data.readUnsignedInteger());
+            dataSize = reader.readUnsignedInteger();
         }
-        header.setCheckOne(data.readUnsignedInteger());
-        header.setHeaderEndOffset(data.readUnsignedInteger());
-        //Mark the position
-        long offset = data.getFilePointer();
+        header.setSize(dataSize);
+        reader = data.readChunk(8);
+        header.setCheckOne(reader.readUnsignedInteger());
+        header.setHeaderEndOffset(reader.readUnsignedInteger());
 
+        // Read the actual header
+        int headerPayloadSize = (int) (header.getHeaderEndOffset() - (data.getFilePointer() - startOffset - headerSize));
+        reader = data.readChunk(headerPayloadSize);
+
+        header.setHeaderSize(headerSize + headerPayloadSize - 8); // Minus the check & data size
         switch (header.getId()) {
             case MAP:
-                header.setHeaderSize(36);
-                header.setWidth(data.readUnsignedInteger());
-                header.setHeight(data.readUnsignedInteger());
+                header.setWidth(reader.readUnsignedInteger());
+                header.setHeight(reader.readUnsignedInteger());
                 break;
 
             case TRIGGERS:
-                header.setHeaderSize(60);
-                header.setItemCount(data.readUnsignedInteger() + data.readUnsignedInteger());
-                header.setUnknown(data.readUnsignedInteger());
+                header.setItemCount(reader.readUnsignedInteger() + reader.readUnsignedInteger());
+                header.setUnknown(reader.readUnsignedInteger());
 
-                header.setDateCreated(data.readTimestamp());
-                header.setDateModified(data.readTimestamp());
+                header.setDateCreated(reader.readTimestamp());
+                header.setDateModified(reader.readTimestamp());
                 break;
 
             case LEVEL:
-                header.setItemCount(data.readUnsignedShort());
-                header.setHeight(data.readUnsignedShort());
-                header.setUnknown(data.readUnsignedInteger());
+                header.setItemCount(reader.readUnsignedShort());
+                header.setHeight(reader.readUnsignedShort());
+                header.setUnknown(reader.readUnsignedInteger());
 
-                header.setDateCreated(data.readTimestamp());
-                header.setDateModified(data.readTimestamp());
+                header.setDateCreated(reader.readTimestamp());
+                header.setDateModified(reader.readTimestamp());
                 break;
             default:
-                header.setItemCount(data.readUnsignedInteger());
-                header.setUnknown(data.readUnsignedInteger());
+                header.setItemCount(reader.readUnsignedInteger());
+                header.setUnknown(reader.readUnsignedInteger());
 
-                header.setDateCreated(data.readTimestamp());
-                header.setDateModified(data.readTimestamp());
+                header.setDateCreated(reader.readTimestamp());
+                header.setDateModified(reader.readTimestamp());
                 break;
         }
 
-        if (data.getFilePointer() != offset + header.getHeaderEndOffset()) {
+        if (data.getFilePointer() != startOffset + header.getHeaderSize()) {
             LOGGER.warning("Incorrect parsing of file header");
         }
-        //header.setHeaderSize(28 + header.getHeaderEndOffset());
-        header.setCheckTwo(data.readUnsignedInteger());
-        header.setDataSize(data.readUnsignedInteger());
+
+        // Not part of the header, part of the data really
+        header.setCheckTwo(reader.readUnsignedInteger());
+        header.setDataSize(reader.readUnsignedInteger());
 
         return header;
     }
 
     private void readFileContents(KwdHeader header, IResourceReader data) throws IOException {
+
         // Handle all the cases (we kinda skip the globals with this logic, so no need)
         // All readers must read the whole data they intend to read
         switch (header.getId()) {
@@ -413,13 +426,15 @@ public final class KwdFile {
         if (map == null) {
             map = new GameMap(header.getWidth(), header.getHeight());
         }
+
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int y = 0; y < map.getHeight(); y++) {
             for (int x = 0; x < map.getWidth(); x++) {
                 Tile tile = new Tile();
-                tile.setTerrainId(file.readUnsignedByte());
-                tile.setPlayerId(file.readUnsignedByte());
-                tile.setFlag(file.readByteAsEnum(Tile.BridgeTerrainType.class));
-                tile.setUnknown(file.readUnsignedByte());
+                tile.setTerrainId(reader.readUnsignedByte());
+                tile.setPlayerId(reader.readUnsignedByte());
+                tile.setFlag(reader.readByteAsEnum(Tile.BridgeTerrainType.class));
+                tile.setUnknown(reader.readUnsignedByte());
                 map.setTile(x, y, tile);
             }
         }
@@ -442,114 +457,115 @@ public final class KwdFile {
             LOGGER.warning("Overrides players!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int playerIndex = 0; playerIndex < header.getItemCount(); playerIndex++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Player player = new Player();
-            player.setStartingGold(file.readInteger());
-            player.setAi(file.readInteger() == 1);
+            player.setStartingGold(reader.readInteger());
+            player.setAi(reader.readInteger() == 1);
 
             AI ai = new AI();
-            ai.setAiType(file.readByteAsEnum(AI.AIType.class));
-            ai.setSpeed(file.readUnsignedByte());
-            ai.setOpenness(file.readUnsignedByte());
-            ai.setRemoveCallToArmsIfTotalCreaturesLessThan(file.readUnsignedByte());
-            ai.setBuildLostRoomAfterSeconds(file.readUnsignedByte());
+            ai.setAiType(reader.readByteAsEnum(AI.AIType.class));
+            ai.setSpeed(reader.readUnsignedByte());
+            ai.setOpenness(reader.readUnsignedByte());
+            ai.setRemoveCallToArmsIfTotalCreaturesLessThan(reader.readUnsignedByte());
+            ai.setBuildLostRoomAfterSeconds(reader.readUnsignedByte());
             short[] unknown1 = new short[3];
             for (int i = 0; i < unknown1.length; i++) {
-                unknown1[i] = file.readUnsignedByte();
+                unknown1[i] = reader.readUnsignedByte();
             }
             ai.setUnknown1(unknown1);
-            ai.setCreateEmptyAreasWhenIdle(file.readInteger() == 1);
-            ai.setBuildBiggerLairAfterClaimingPortal(file.readInteger() == 1);
-            ai.setSellCapturedRoomsIfLowOnGold(file.readInteger() == 1);
-            ai.setMinTimeBeforePlacingResearchedRoom(file.readUnsignedByte());
-            ai.setDefaultSize(file.readUnsignedByte());
-            ai.setTilesLeftBetweenRooms(file.readUnsignedByte());
-            ai.setDistanceBetweenRoomsThatShouldBeCloseMan(file.readByteAsEnum(AI.Distance.class));
-            ai.setCorridorStyle(file.readByteAsEnum(AI.CorridorStyle.class));
-            ai.setWhenMoreSpaceInRoomRequired(file.readByteAsEnum(AI.RoomExpandPolicy.class));
-            ai.setDigToNeutralRoomsWithinTilesOfHeart(file.readUnsignedByte());
+            ai.setCreateEmptyAreasWhenIdle(reader.readInteger() == 1);
+            ai.setBuildBiggerLairAfterClaimingPortal(reader.readInteger() == 1);
+            ai.setSellCapturedRoomsIfLowOnGold(reader.readInteger() == 1);
+            ai.setMinTimeBeforePlacingResearchedRoom(reader.readUnsignedByte());
+            ai.setDefaultSize(reader.readUnsignedByte());
+            ai.setTilesLeftBetweenRooms(reader.readUnsignedByte());
+            ai.setDistanceBetweenRoomsThatShouldBeCloseMan(reader.readByteAsEnum(AI.Distance.class));
+            ai.setCorridorStyle(reader.readByteAsEnum(AI.CorridorStyle.class));
+            ai.setWhenMoreSpaceInRoomRequired(reader.readByteAsEnum(AI.RoomExpandPolicy.class));
+            ai.setDigToNeutralRoomsWithinTilesOfHeart(reader.readUnsignedByte());
             List<Short> buildOrder = new ArrayList<>(15);
             for (int i = 0; i < 15; i++) {
-                buildOrder.add(file.readUnsignedByte());
+                buildOrder.add(reader.readUnsignedByte());
             }
             ai.setBuildOrder(buildOrder);
-            ai.setFlexibility(file.readUnsignedByte());
-            ai.setDigToNeutralRoomsWithinTilesOfClaimedArea(file.readUnsignedByte());
-            ai.setRemoveCallToArmsAfterSeconds(file.readUnsignedShort());
-            ai.setBoulderTrapsOnLongCorridors(file.readInteger() == 1);
-            ai.setBoulderTrapsOnRouteToBreachPoints(file.readInteger() == 1);
-            ai.setTrapUseStyle(file.readUnsignedByte());
-            ai.setDoorTrapPreference(file.readUnsignedByte());
-            ai.setDoorUsage(file.readByteAsEnum(AI.DoorUsagePolicy.class));
-            ai.setChanceOfLookingToUseTrapsAndDoors(file.readUnsignedByte());
-            ai.setRequireMinLevelForCreatures(file.readInteger() == 1);
-            ai.setRequireTotalThreatGreaterThanTheEnemy(file.readInteger() == 1);
-            ai.setRequireAllRoomTypesPlaced(file.readInteger() == 1);
-            ai.setRequireAllKeeperSpellsResearched(file.readInteger() == 1);
-            ai.setOnlyAttackAttackers(file.readInteger() == 1);
-            ai.setNeverAttack(file.readInteger() == 1);
-            ai.setMinLevelForCreatures(file.readUnsignedByte());
-            ai.setTotalThreatGreaterThanTheEnemy(file.readUnsignedByte());
-            ai.setFirstAttemptToBreachRoom(file.readByteAsEnum(AI.BreachRoomPolicy.class));
-            ai.setFirstDigToEnemyPoint(file.readByteAsEnum(AI.DigToPolicy.class));
-            ai.setBreachAtPointsSimultaneously(file.readUnsignedByte());
-            ai.setUsePercentageOfTotalCreaturesInFirstFightAfterBreach(file.readUnsignedByte());
-            ai.setManaValue(file.readUnsignedShort());
-            ai.setPlaceCallToArmsWhereThreatValueIsGreaterThan(file.readUnsignedShort());
-            ai.setRemoveCallToArmsIfLessThanEnemyCreatures(file.readUnsignedByte());
-            ai.setRemoveCallToArmsIfLessThanEnemyCreaturesWithinTiles(file.readUnsignedByte());
-            ai.setPullCreaturesFromFightIfOutnumberedAndUnableToDropReinforcements(file.readInteger() == 1);
-            ai.setThreatValueOfDroppedCreaturesIsPercentageOfEnemyThreatValue(file.readUnsignedByte());
-            ai.setSpellStyle(file.readUnsignedByte());
-            ai.setAttemptToImprisonPercentageOfEnemyCreatures(file.readUnsignedByte());
-            ai.setIfCreatureHealthIsPercentageAndNotInOwnRoomMoveToLairOrTemple(file.readUnsignedByte());
-            ai.setGoldValue(file.readUnsignedShort());
-            ai.setTryToMakeUnhappyOnesHappy(file.readInteger() == 1);
-            ai.setTryToMakeAngryOnesHappy(file.readInteger() == 1);
-            ai.setDisposeOfAngryCreatures(file.readInteger() == 1);
-            ai.setDisposeOfRubbishCreaturesIfBetterOnesComeAlong(file.readInteger() == 1);
-            ai.setDisposalMethod(file.readByteAsEnum(AI.CreatureDisposalPolicy.class));
-            ai.setMaximumNumberOfImps(file.readUnsignedByte());
-            ai.setWillNotSlapCreatures(file.readUnsignedByte() == 0);
-            ai.setAttackWhenNumberOfCreaturesIsAtLeast(file.readUnsignedByte());
-            ai.setUseLightningIfEnemyIsInWater(file.readInteger() == 1);
-            ai.setUseSightOfEvil(file.readByteAsEnum(AI.SightOfEvilUsagePolicy.class));
-            ai.setUseSpellsInBattle(file.readUnsignedByte());
-            ai.setSpellsPowerPreference(file.readUnsignedByte());
-            ai.setUseCallToArms(file.readByteAsEnum(AI.CallToArmsUsagePolicy.class));
+            ai.setFlexibility(reader.readUnsignedByte());
+            ai.setDigToNeutralRoomsWithinTilesOfClaimedArea(reader.readUnsignedByte());
+            ai.setRemoveCallToArmsAfterSeconds(reader.readUnsignedShort());
+            ai.setBoulderTrapsOnLongCorridors(reader.readInteger() == 1);
+            ai.setBoulderTrapsOnRouteToBreachPoints(reader.readInteger() == 1);
+            ai.setTrapUseStyle(reader.readUnsignedByte());
+            ai.setDoorTrapPreference(reader.readUnsignedByte());
+            ai.setDoorUsage(reader.readByteAsEnum(AI.DoorUsagePolicy.class));
+            ai.setChanceOfLookingToUseTrapsAndDoors(reader.readUnsignedByte());
+            ai.setRequireMinLevelForCreatures(reader.readInteger() == 1);
+            ai.setRequireTotalThreatGreaterThanTheEnemy(reader.readInteger() == 1);
+            ai.setRequireAllRoomTypesPlaced(reader.readInteger() == 1);
+            ai.setRequireAllKeeperSpellsResearched(reader.readInteger() == 1);
+            ai.setOnlyAttackAttackers(reader.readInteger() == 1);
+            ai.setNeverAttack(reader.readInteger() == 1);
+            ai.setMinLevelForCreatures(reader.readUnsignedByte());
+            ai.setTotalThreatGreaterThanTheEnemy(reader.readUnsignedByte());
+            ai.setFirstAttemptToBreachRoom(reader.readByteAsEnum(AI.BreachRoomPolicy.class));
+            ai.setFirstDigToEnemyPoint(reader.readByteAsEnum(AI.DigToPolicy.class));
+            ai.setBreachAtPointsSimultaneously(reader.readUnsignedByte());
+            ai.setUsePercentageOfTotalCreaturesInFirstFightAfterBreach(reader.readUnsignedByte());
+            ai.setManaValue(reader.readUnsignedShort());
+            ai.setPlaceCallToArmsWhereThreatValueIsGreaterThan(reader.readUnsignedShort());
+            ai.setRemoveCallToArmsIfLessThanEnemyCreatures(reader.readUnsignedByte());
+            ai.setRemoveCallToArmsIfLessThanEnemyCreaturesWithinTiles(reader.readUnsignedByte());
+            ai.setPullCreaturesFromFightIfOutnumberedAndUnableToDropReinforcements(reader.readInteger() == 1);
+            ai.setThreatValueOfDroppedCreaturesIsPercentageOfEnemyThreatValue(reader.readUnsignedByte());
+            ai.setSpellStyle(reader.readUnsignedByte());
+            ai.setAttemptToImprisonPercentageOfEnemyCreatures(reader.readUnsignedByte());
+            ai.setIfCreatureHealthIsPercentageAndNotInOwnRoomMoveToLairOrTemple(reader.readUnsignedByte());
+            ai.setGoldValue(reader.readUnsignedShort());
+            ai.setTryToMakeUnhappyOnesHappy(reader.readInteger() == 1);
+            ai.setTryToMakeAngryOnesHappy(reader.readInteger() == 1);
+            ai.setDisposeOfAngryCreatures(reader.readInteger() == 1);
+            ai.setDisposeOfRubbishCreaturesIfBetterOnesComeAlong(reader.readInteger() == 1);
+            ai.setDisposalMethod(reader.readByteAsEnum(AI.CreatureDisposalPolicy.class));
+            ai.setMaximumNumberOfImps(reader.readUnsignedByte());
+            ai.setWillNotSlapCreatures(reader.readUnsignedByte() == 0);
+            ai.setAttackWhenNumberOfCreaturesIsAtLeast(reader.readUnsignedByte());
+            ai.setUseLightningIfEnemyIsInWater(reader.readInteger() == 1);
+            ai.setUseSightOfEvil(reader.readByteAsEnum(AI.SightOfEvilUsagePolicy.class));
+            ai.setUseSpellsInBattle(reader.readUnsignedByte());
+            ai.setSpellsPowerPreference(reader.readUnsignedByte());
+            ai.setUseCallToArms(reader.readByteAsEnum(AI.CallToArmsUsagePolicy.class));
             short[] unknown2 = new short[2];
             for (int i = 0; i < unknown2.length; i++) {
-                unknown2[i] = file.readUnsignedByte();
+                unknown2[i] = reader.readUnsignedByte();
             }
             ai.setUnknown2(unknown2);
-            ai.setMineGoldUntilGoldHeldIsGreaterThan(file.readUnsignedShort());
-            ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(file.readUnsignedShort());
-            ai.setStartingMana(file.readUnsignedInteger());
-            ai.setExploreUpToTilesToFindSpecials(file.readUnsignedShort());
-            ai.setImpsToTilesRatio(file.readUnsignedShort());
-            ai.setBuildAreaStartX(file.readUnsignedShort());
-            ai.setBuildAreaStartY(file.readUnsignedShort());
-            ai.setBuildAreaEndX(file.readUnsignedShort());
-            ai.setBuildAreaEndY(file.readUnsignedShort());
-            ai.setLikelyhoodToMovingCreaturesToLibraryForResearching(file.readByteAsEnum(AI.MoveToResearchPolicy.class));
-            ai.setChanceOfExploringToFindSpecials(file.readUnsignedByte());
-            ai.setChanceOfFindingSpecialsWhenExploring(file.readUnsignedByte());
-            ai.setFateOfImprisonedCreatures(file.readByteAsEnum(AI.ImprisonedCreatureFatePolicy.class));
+            ai.setMineGoldUntilGoldHeldIsGreaterThan(reader.readUnsignedShort());
+            ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(reader.readUnsignedShort());
+            ai.setStartingMana(reader.readUnsignedInteger());
+            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedShort());
+            ai.setImpsToTilesRatio(reader.readUnsignedShort());
+            ai.setBuildAreaStartX(reader.readUnsignedShort());
+            ai.setBuildAreaStartY(reader.readUnsignedShort());
+            ai.setBuildAreaEndX(reader.readUnsignedShort());
+            ai.setBuildAreaEndY(reader.readUnsignedShort());
+            ai.setLikelyhoodToMovingCreaturesToLibraryForResearching(reader.readByteAsEnum(AI.MoveToResearchPolicy.class));
+            ai.setChanceOfExploringToFindSpecials(reader.readUnsignedByte());
+            ai.setChanceOfFindingSpecialsWhenExploring(reader.readUnsignedByte());
+            ai.setFateOfImprisonedCreatures(reader.readByteAsEnum(AI.ImprisonedCreatureFatePolicy.class));
             player.setAiAttributes(ai);
 
-            player.setTriggerId(file.readUnsignedShort());
-            player.setPlayerId(file.readUnsignedByte());
-            player.setStartingCameraX(file.readUnsignedShort());
-            player.setStartingCameraY(file.readUnsignedShort());
+            player.setTriggerId(reader.readUnsignedShort());
+            player.setPlayerId(reader.readUnsignedByte());
+            player.setStartingCameraX(reader.readUnsignedShort());
+            player.setStartingCameraY(reader.readUnsignedShort());
 
-            player.setName(file.readString(32).trim());
+            player.setName(reader.readString(32).trim());
 
             // Add to the hash by the player ID
             players.put(player.getPlayerId(), player);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -570,62 +586,63 @@ public final class KwdFile {
             LOGGER.warning("Overrides terrain!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Terrain terrain = new Terrain();
 
-            terrain.setName(file.readString(32).trim());
-            terrain.setCompleteResource(readArtResource(file));
-            terrain.setSideResource(readArtResource(file));
-            terrain.setTopResource(readArtResource(file));
-            terrain.setTaggedTopResource(readArtResource(file));
-            terrain.setStringIds(readStringId(file));
-            terrain.setDepth(file.readIntegerAsFloat());
-            terrain.setLightHeight(file.readIntegerAsFloat());
-            terrain.setFlags(file.readIntegerAsFlag(Terrain.TerrainFlag.class));
-            terrain.setDamage(file.readUnsignedShort());
-            terrain.setEditorTextureId(file.readUnsignedShort());
-            terrain.setUnk198(file.readUnsignedShort());
-            terrain.setGoldValue(file.readUnsignedShort());
-            terrain.setManaGain(file.readUnsignedShort());
-            terrain.setMaxManaGain(file.readUnsignedShort());
-            terrain.setTooltipStringId(file.readUnsignedShort());
-            terrain.setNameStringId(file.readUnsignedShort());
-            terrain.setMaxHealthEffectId(file.readUnsignedShort());
-            terrain.setDestroyedEffectId(file.readUnsignedShort());
-            terrain.setGeneralDescriptionStringId(file.readUnsignedShort());
-            terrain.setStrengthStringId(file.readUnsignedShort());
-            terrain.setWeaknessStringId(file.readUnsignedShort());
+            terrain.setName(reader.readString(32).trim());
+            terrain.setCompleteResource(readArtResource(reader));
+            terrain.setSideResource(readArtResource(reader));
+            terrain.setTopResource(readArtResource(reader));
+            terrain.setTaggedTopResource(readArtResource(reader));
+            terrain.setStringIds(readStringId(reader));
+            terrain.setDepth(reader.readIntegerAsFloat());
+            terrain.setLightHeight(reader.readIntegerAsFloat());
+            terrain.setFlags(reader.readIntegerAsFlag(Terrain.TerrainFlag.class));
+            terrain.setDamage(reader.readUnsignedShort());
+            terrain.setEditorTextureId(reader.readUnsignedShort());
+            terrain.setUnk198(reader.readUnsignedShort());
+            terrain.setGoldValue(reader.readUnsignedShort());
+            terrain.setManaGain(reader.readUnsignedShort());
+            terrain.setMaxManaGain(reader.readUnsignedShort());
+            terrain.setTooltipStringId(reader.readUnsignedShort());
+            terrain.setNameStringId(reader.readUnsignedShort());
+            terrain.setMaxHealthEffectId(reader.readUnsignedShort());
+            terrain.setDestroyedEffectId(reader.readUnsignedShort());
+            terrain.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            terrain.setStrengthStringId(reader.readUnsignedShort());
+            terrain.setWeaknessStringId(reader.readUnsignedShort());
             int[] unk1ae = new int[16];
             for (int x = 0; x < unk1ae.length; x++) {
-                unk1ae[x] = file.readUnsignedShort();
+                unk1ae[x] = reader.readUnsignedShort();
             }
             terrain.setUnk1ae(unk1ae);
-            terrain.setWibbleH(file.readUnsignedByte());
+            terrain.setWibbleH(reader.readUnsignedByte());
             short[] leanH = new short[3];
             for (int x = 0; x < leanH.length; x++) {
-                leanH[x] = file.readUnsignedByte();
+                leanH[x] = reader.readUnsignedByte();
             }
             terrain.setLeanH(leanH);
-            terrain.setWibbleV(file.readUnsignedByte());
+            terrain.setWibbleV(reader.readUnsignedByte());
             short[] leanV = new short[3];
             for (int x = 0; x < leanV.length; x++) {
-                leanV[x] = file.readUnsignedByte();
+                leanV[x] = reader.readUnsignedByte();
             }
             terrain.setLeanV(leanV);
-            terrain.setTerrainId(file.readUnsignedByte());
-            terrain.setStartingHealth(file.readUnsignedShort());
-            terrain.setMaxHealthTypeTerrainId(file.readUnsignedByte());
-            terrain.setDestroyedTypeTerrainId(file.readUnsignedByte());
-            terrain.setTerrainLight(readColor(file));
-            terrain.setTextureFrames(file.readUnsignedByte());
+            terrain.setTerrainId(reader.readUnsignedByte());
+            terrain.setStartingHealth(reader.readUnsignedShort());
+            terrain.setMaxHealthTypeTerrainId(reader.readUnsignedByte());
+            terrain.setDestroyedTypeTerrainId(reader.readUnsignedByte());
+            terrain.setTerrainLight(readColor(reader));
+            terrain.setTextureFrames(reader.readUnsignedByte());
 
-            terrain.setSoundCategory(file.readString(32).trim());
-            terrain.setMaxHealth(file.readUnsignedShort());
-            terrain.setAmbientLight(readColor(file));
+            terrain.setSoundCategory(reader.readString(32).trim());
+            terrain.setMaxHealth(reader.readUnsignedShort());
+            terrain.setAmbientLight(readColor(reader));
 
-            terrain.setSoundCategoryFirstPerson(file.readString(32).trim());
-            terrain.setUnk224(file.readUnsignedInteger());
+            terrain.setSoundCategoryFirstPerson(reader.readString(32).trim());
+            terrain.setUnk224(reader.readUnsignedInteger());
 
             // Add to the hash by the terrain ID
             terrainTiles.put(terrain.getTerrainId(), terrain);
@@ -639,7 +656,7 @@ public final class KwdFile {
             }
 
             // Check file offset
-            checkOffset(header, file, offset);
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -647,80 +664,80 @@ public final class KwdFile {
      * Reads and parses an ArtResource object from the current file location (84
      * bytes)
      *
-     * @param file the file stream to parse from
+     * @param reader the resource reader
      * @return an ArtResource
      */
-    private ArtResource readArtResource(IResourceReader file) throws IOException {
+    private ArtResource readArtResource(IResourceChunkReader reader) throws IOException {
         ArtResource artResource = new ArtResource();
 
         // Read the data
-        artResource.setName(file.readString(64).trim());
-        artResource.setFlags(file.readIntegerAsFlag(ArtResource.ArtResourceFlag.class));
+        artResource.setName(reader.readString(64).trim());
+        artResource.setFlags(reader.readIntegerAsFlag(ArtResource.ArtResourceFlag.class));
 
-        long pointer = file.getFilePointer();
-        file.seek(pointer + 12);
-        artResource.setType(file.readByteAsEnum(ArtResource.ArtResourceType.class));
+        reader.mark();
+        reader.position(reader.position() + 12);
+        artResource.setType(reader.readByteAsEnum(ArtResource.ArtResourceType.class));
         if (artResource.getType() == ArtResourceType.ANIMATING_MESH) {
-            artResource.setData(ArtResource.KEY_START_AF, file.readUnsignedByte()); // if HAS_START_ANIMATION
-            artResource.setData(ArtResource.KEY_END_AF, file.readUnsignedByte()); // if HAS_END_ANIMATION
+            artResource.setData(ArtResource.KEY_START_AF, reader.readUnsignedByte()); // if HAS_START_ANIMATION
+            artResource.setData(ArtResource.KEY_END_AF, reader.readUnsignedByte()); // if HAS_END_ANIMATION
         } else {
-            artResource.setData("unknown_n", file.readUnsignedShort());
+            artResource.setData("unknown_n", reader.readUnsignedShort());
         }
-        artResource.setSometimesOne(file.readUnsignedByte());
+        artResource.setSometimesOne(reader.readUnsignedByte());
 
-        file.seek(pointer);
+        reader.reset();
         switch (artResource.getType()) {
             case NONE: // skip empty type
-                file.readAndCheckNull(12);
+                reader.readAndCheckNull(12);
                 break;
 
             case SPRITE: // And alphas and images probably share the same attributes
             case ALPHA:
             case ADDITIVE_ALPHA:  // Images of different type
-                artResource.setData(ArtResource.KEY_WIDTH, file.readIntegerAsFloat());
-                artResource.setData(ArtResource.KEY_HEIGHT, file.readIntegerAsFloat());
-                artResource.setData(ArtResource.KEY_FRAMES, file.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
+                artResource.setData(ArtResource.KEY_WIDTH, reader.readIntegerAsFloat());
+                artResource.setData(ArtResource.KEY_HEIGHT, reader.readIntegerAsFloat());
+                artResource.setData(ArtResource.KEY_FRAMES, reader.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
                 break;
 
             case TERRAIN_MESH:
-                artResource.setData("unknown_1", file.readUnsignedInteger());
-                artResource.setData("unknown_2", file.readUnsignedInteger());
-                artResource.setData("unknown_3", file.readUnsignedInteger());
+                artResource.setData("unknown_1", reader.readUnsignedInteger());
+                artResource.setData("unknown_2", reader.readUnsignedInteger());
+                artResource.setData("unknown_3", reader.readUnsignedInteger());
                 break;
 
             case MESH:
-                artResource.setData(ArtResource.KEY_SCALE, file.readIntegerAsFloat());
-                artResource.setData(ArtResource.KEY_FRAMES, file.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
-                artResource.setData("unknown_1", file.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_SCALE, reader.readIntegerAsFloat());
+                artResource.setData(ArtResource.KEY_FRAMES, reader.readUnsignedInteger()); // if (ANIMATING_TEXTURE)
+                artResource.setData("unknown_1", reader.readUnsignedInteger());
                 break;
 
             case ANIMATING_MESH:
-                artResource.setData(ArtResource.KEY_FRAMES, file.readUnsignedInteger());
-                artResource.setData(ArtResource.KEY_FPS, file.readUnsignedInteger());
-                artResource.setData(ArtResource.KEY_START_DIST, file.readUnsignedShort());
-                artResource.setData(ArtResource.KEY_END_DIST, file.readUnsignedShort());
+                artResource.setData(ArtResource.KEY_FRAMES, reader.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_FPS, reader.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_START_DIST, reader.readUnsignedShort());
+                artResource.setData(ArtResource.KEY_END_DIST, reader.readUnsignedShort());
                 break;
 
             case PROCEDURAL_MESH:
-                artResource.setData(ArtResource.KEY_ID, file.readUnsignedInteger());
-                artResource.setData("unknown_1", file.readUnsignedInteger());
-                artResource.setData("unknown_2", file.readUnsignedInteger());
+                artResource.setData(ArtResource.KEY_ID, reader.readUnsignedInteger());
+                artResource.setData("unknown_1", reader.readUnsignedInteger());
+                artResource.setData("unknown_2", reader.readUnsignedInteger());
                 break;
 
             case MESH_COLLECTION: // FIXME nothing todo ?! has just the name, reference to GROP meshes probably
             case UNKNOWN:
-                artResource.setData("unknown_1", file.readUnsignedInteger());
-                artResource.setData("unknown_2", file.readUnsignedInteger());
-                artResource.setData("unknown_3", file.readUnsignedInteger());
+                artResource.setData("unknown_1", reader.readUnsignedInteger());
+                artResource.setData("unknown_2", reader.readUnsignedInteger());
+                artResource.setData("unknown_3", reader.readUnsignedInteger());
                 break;
 
             default:
-                file.readAndCheckNull(12);
+                reader.readAndCheckNull(12);
                 LOGGER.log(Level.WARNING, "Unknown artResource type {0}", artResource.getType());
                 break;
         }
+        reader.skipBytes(4);
 
-        file.skipBytes(4);
         // If it has no name or the type is not known, return null
         if (artResource.getName().isEmpty() || artResource.getType() == null) {
             return null;
@@ -732,32 +749,31 @@ public final class KwdFile {
     /**
      * Reads color from file
      *
-     * @param file the file stream to parse from
-     * @return an Color
-     * @throws IOException the reading may fail
+     * @param reader the file stream to parse from
+     * @return a Color
      */
-    private Color readColor(IResourceReader file) throws IOException {
-        return new Color(file.readUnsignedByte(), file.readUnsignedByte(), file.readUnsignedByte());
+    private Color readColor(IResourceChunkReader reader) {
+        return new Color(reader.readUnsignedByte(), reader.readUnsignedByte(), reader.readUnsignedByte());
     }
 
     /**
      * Reads and parses an StringId object from the current file location
      *
-     * @param file the file stream to parse from
+     * @param reader the file stream to parse from
      * @return an StringId
      */
-    private StringId readStringId(IResourceReader file) throws IOException {
+    private StringId readStringId(IResourceChunkReader reader) {
 
         // Read the IDs
         int[] ids = new int[5];
         for (int i = 0; i < ids.length; i++) {
-            ids[i] = file.readUnsignedInteger();
+            ids[i] = reader.readUnsignedInteger();
         }
 
         // And the unknowns
         short[] x14 = new short[4];
         for (int i = 0; i < x14.length; i++) {
-            x14[i] = file.readUnsignedByte();
+            x14[i] = reader.readUnsignedByte();
         }
 
         return new StringId(ids, x14);
@@ -780,51 +796,52 @@ public final class KwdFile {
             LOGGER.warning("Overrides doors!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Door door = new Door();
 
-            door.setName(file.readString(32).trim());
-            door.setMesh(readArtResource(file));
-            door.setGuiIcon(readArtResource(file));
-            door.setEditorIcon(readArtResource(file));
-            door.setFlowerIcon(readArtResource(file));
-            door.setOpenResource(readArtResource(file));
-            door.setCloseResource(readArtResource(file));
-            door.setHeight(file.readIntegerAsFloat());
-            door.setHealthGain(file.readUnsignedShort());
-            door.setUnknown1(file.readUnsignedShort());
-            door.setUnknown2(file.readUnsignedInteger());
-            door.setResearchTime(file.readUnsignedShort());
-            door.setMaterial(file.readByteAsEnum(Material.class));
-            door.setTrapTypeId(file.readUnsignedByte());
-            door.setFlags(file.readIntegerAsFlag(DoorFlag.class));
-            door.setHealth(file.readUnsignedShort());
-            door.setGoldCost(file.readUnsignedShort());
+            door.setName(reader.readString(32).trim());
+            door.setMesh(readArtResource(reader));
+            door.setGuiIcon(readArtResource(reader));
+            door.setEditorIcon(readArtResource(reader));
+            door.setFlowerIcon(readArtResource(reader));
+            door.setOpenResource(readArtResource(reader));
+            door.setCloseResource(readArtResource(reader));
+            door.setHeight(reader.readIntegerAsFloat());
+            door.setHealthGain(reader.readUnsignedShort());
+            door.setUnknown1(reader.readUnsignedShort());
+            door.setUnknown2(reader.readUnsignedInteger());
+            door.setResearchTime(reader.readUnsignedShort());
+            door.setMaterial(reader.readByteAsEnum(Material.class));
+            door.setTrapTypeId(reader.readUnsignedByte());
+            door.setFlags(reader.readIntegerAsFlag(DoorFlag.class));
+            door.setHealth(reader.readUnsignedShort());
+            door.setGoldCost(reader.readUnsignedShort());
             short[] unknown3 = new short[2];
             for (int x = 0; x < unknown3.length; x++) {
-                unknown3[x] = file.readUnsignedByte();
+                unknown3[x] = reader.readUnsignedByte();
             }
             door.setUnknown3(unknown3);
-            door.setDeathEffectId(file.readUnsignedShort());
-            door.setManufToBuild(file.readUnsignedInteger());
-            door.setManaCost(file.readUnsignedShort());
-            door.setTooltipStringId(file.readUnsignedShort());
-            door.setNameStringId(file.readUnsignedShort());
-            door.setGeneralDescriptionStringId(file.readUnsignedShort());
-            door.setStrengthStringId(file.readUnsignedShort());
-            door.setWeaknessStringId(file.readUnsignedShort());
-            door.setDoorId(file.readUnsignedByte());
-            door.setOrderInEditor(file.readUnsignedByte());
-            door.setManufCrateObjectId(file.readUnsignedByte());
-            door.setKeyObjectId(file.readUnsignedByte());
+            door.setDeathEffectId(reader.readUnsignedShort());
+            door.setManufToBuild(reader.readUnsignedInteger());
+            door.setManaCost(reader.readUnsignedShort());
+            door.setTooltipStringId(reader.readUnsignedShort());
+            door.setNameStringId(reader.readUnsignedShort());
+            door.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            door.setStrengthStringId(reader.readUnsignedShort());
+            door.setWeaknessStringId(reader.readUnsignedShort());
+            door.setDoorId(reader.readUnsignedByte());
+            door.setOrderInEditor(reader.readUnsignedByte());
+            door.setManufCrateObjectId(reader.readUnsignedByte());
+            door.setKeyObjectId(reader.readUnsignedByte());
 
-            door.setSoundCategory(file.readString(32).trim());
+            door.setSoundCategory(reader.readString(32).trim());
 
             doors.put(door.getDoorId(), door);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -845,64 +862,65 @@ public final class KwdFile {
             LOGGER.warning("Overrides traps!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Trap trap = new Trap();
 
-            trap.setName(file.readString(32).trim());
-            trap.setMeshResource(readArtResource(file));
-            trap.setGuiIcon(readArtResource(file));
-            trap.setEditorIcon(readArtResource(file));
-            trap.setFlowerIcon(readArtResource(file));
-            trap.setFireResource(readArtResource(file));
-            trap.setHeight(file.readIntegerAsFloat());
-            trap.setRechargeTime(file.readIntegerAsFloat());
-            trap.setChargeTime(file.readIntegerAsFloat());
-            trap.setThreatDuration(file.readIntegerAsFloat());
-            trap.setManaCostToFire(file.readUnsignedInteger());
-            trap.setIdleEffectDelay(file.readIntegerAsFloat());
-            trap.setTriggerData(file.readUnsignedInteger());
-            trap.setShotData1(file.readUnsignedInteger());
-            trap.setShotData2(file.readUnsignedInteger());
-            trap.setResearchTime(file.readUnsignedShort());
-            trap.setThreat(file.readUnsignedShort());
-            trap.setFlags(file.readIntegerAsFlag(Trap.TrapFlag.class));
-            trap.setHealth(file.readUnsignedShort());
-            trap.setManaCost(file.readUnsignedShort());
-            trap.setPowerlessEffectId(file.readUnsignedShort());
-            trap.setIdleEffectId(file.readUnsignedShort());
-            trap.setDeathEffectId(file.readUnsignedShort());
-            trap.setManufToBuild(file.readUnsignedShort());
-            trap.setGeneralDescriptionStringId(file.readUnsignedShort());
-            trap.setStrengthStringId(file.readUnsignedShort());
-            trap.setWeaknessStringId(file.readUnsignedShort());
-            trap.setManaUsage(file.readUnsignedShort());
+            trap.setName(reader.readString(32).trim());
+            trap.setMeshResource(readArtResource(reader));
+            trap.setGuiIcon(readArtResource(reader));
+            trap.setEditorIcon(readArtResource(reader));
+            trap.setFlowerIcon(readArtResource(reader));
+            trap.setFireResource(readArtResource(reader));
+            trap.setHeight(reader.readIntegerAsFloat());
+            trap.setRechargeTime(reader.readIntegerAsFloat());
+            trap.setChargeTime(reader.readIntegerAsFloat());
+            trap.setThreatDuration(reader.readIntegerAsFloat());
+            trap.setManaCostToFire(reader.readUnsignedInteger());
+            trap.setIdleEffectDelay(reader.readIntegerAsFloat());
+            trap.setTriggerData(reader.readUnsignedInteger());
+            trap.setShotData1(reader.readUnsignedInteger());
+            trap.setShotData2(reader.readUnsignedInteger());
+            trap.setResearchTime(reader.readUnsignedShort());
+            trap.setThreat(reader.readUnsignedShort());
+            trap.setFlags(reader.readIntegerAsFlag(Trap.TrapFlag.class));
+            trap.setHealth(reader.readUnsignedShort());
+            trap.setManaCost(reader.readUnsignedShort());
+            trap.setPowerlessEffectId(reader.readUnsignedShort());
+            trap.setIdleEffectId(reader.readUnsignedShort());
+            trap.setDeathEffectId(reader.readUnsignedShort());
+            trap.setManufToBuild(reader.readUnsignedShort());
+            trap.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            trap.setStrengthStringId(reader.readUnsignedShort());
+            trap.setWeaknessStringId(reader.readUnsignedShort());
+            trap.setManaUsage(reader.readUnsignedShort());
             short[] unknown4 = new short[2];
             for (int x = 0; x < unknown4.length; x++) {
-                unknown4[x] = file.readUnsignedByte();
+                unknown4[x] = reader.readUnsignedByte();
             }
             trap.setUnknown4(unknown4);
-            trap.setTooltipStringId(file.readUnsignedShort());
-            trap.setNameStringId(file.readUnsignedShort());
-            trap.setShotsWhenArmed(file.readUnsignedByte());
-            trap.setTriggerType(file.readByteAsEnum(Trap.TriggerType.class));
-            trap.setTrapId(file.readUnsignedByte());
-            trap.setShotTypeId(file.readUnsignedByte());
-            trap.setManufCrateObjectId(file.readUnsignedByte());
+            trap.setTooltipStringId(reader.readUnsignedShort());
+            trap.setNameStringId(reader.readUnsignedShort());
+            trap.setShotsWhenArmed(reader.readUnsignedByte());
+            trap.setTriggerType(reader.readByteAsEnum(Trap.TriggerType.class));
+            trap.setTrapId(reader.readUnsignedByte());
+            trap.setShotTypeId(reader.readUnsignedByte());
+            trap.setManufCrateObjectId(reader.readUnsignedByte());
 
-            trap.setSoundCategory(file.readString(32).trim());
-            trap.setMaterial(file.readByteAsEnum(Material.class));
-            trap.setOrderInEditor(file.readUnsignedByte());
-            trap.setShotOffset(file.readIntegerAsFloat(),
-                    file.readIntegerAsFloat(),
-                    file.readIntegerAsFloat());
-            trap.setShotDelay(file.readIntegerAsFloat());
-            trap.setHealthGain(file.readUnsignedShort());
+            trap.setSoundCategory(reader.readString(32).trim());
+            trap.setMaterial(reader.readByteAsEnum(Material.class));
+            trap.setOrderInEditor(reader.readUnsignedByte());
+            trap.setShotOffset(reader.readIntegerAsFloat(),
+                    reader.readIntegerAsFloat(),
+                    reader.readIntegerAsFloat());
+            trap.setShotDelay(reader.readIntegerAsFloat());
+            trap.setHealthGain(reader.readUnsignedShort());
 
             traps.put(trap.getTrapId(), trap);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -924,58 +942,59 @@ public final class KwdFile {
             LOGGER.warning("Overrides rooms!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Room room = new Room();
 
-            room.setName(file.readString(32).trim());
-            room.setGuiIcon(readArtResource(file));
-            room.setEditorIcon(readArtResource(file));
-            room.setCompleteResource(readArtResource(file));
-            room.setStraightResource(readArtResource(file));
-            room.setInsideCornerResource(readArtResource(file));
-            room.setUnknownResource(readArtResource(file));
-            room.setOutsideCornerResource(readArtResource(file));
-            room.setWallResource(readArtResource(file));
-            room.setCapResource(readArtResource(file));
-            room.setCeilingResource(readArtResource(file));
-            room.setCeilingHeight(file.readIntegerAsFloat());
-            room.setResearchTime(file.readUnsignedShort());
-            room.setTorchIntensity(file.readUnsignedShort());
-            room.setFlags(file.readIntegerAsFlag(Room.RoomFlag.class));
-            room.setTooltipStringId(file.readUnsignedShort());
-            room.setNameStringId(file.readUnsignedShort());
-            room.setCost(file.readUnsignedShort());
-            room.setFightEffectId(file.readUnsignedShort());
-            room.setGeneralDescriptionStringId(file.readUnsignedShort());
-            room.setStrengthStringId(file.readUnsignedShort());
-            room.setTorchHeight(file.readShortAsFloat());
+            room.setName(reader.readString(32).trim());
+            room.setGuiIcon(readArtResource(reader));
+            room.setEditorIcon(readArtResource(reader));
+            room.setCompleteResource(readArtResource(reader));
+            room.setStraightResource(readArtResource(reader));
+            room.setInsideCornerResource(readArtResource(reader));
+            room.setUnknownResource(readArtResource(reader));
+            room.setOutsideCornerResource(readArtResource(reader));
+            room.setWallResource(readArtResource(reader));
+            room.setCapResource(readArtResource(reader));
+            room.setCeilingResource(readArtResource(reader));
+            room.setCeilingHeight(reader.readIntegerAsFloat());
+            room.setResearchTime(reader.readUnsignedShort());
+            room.setTorchIntensity(reader.readUnsignedShort());
+            room.setFlags(reader.readIntegerAsFlag(Room.RoomFlag.class));
+            room.setTooltipStringId(reader.readUnsignedShort());
+            room.setNameStringId(reader.readUnsignedShort());
+            room.setCost(reader.readUnsignedShort());
+            room.setFightEffectId(reader.readUnsignedShort());
+            room.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            room.setStrengthStringId(reader.readUnsignedShort());
+            room.setTorchHeight(reader.readShortAsFloat());
             List<Integer> roomEffects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
-                int effectId = file.readUnsignedShort();
+                int effectId = reader.readUnsignedShort();
                 roomEffects.add(effectId);
             }
             room.setEffects(roomEffects);
-            room.setRoomId(file.readUnsignedByte());
-            room.setReturnPercentage(file.readUnsignedByte());
-            room.setTerrainId(file.readUnsignedByte());
-            room.setTileConstruction(file.readByteAsEnum(Room.TileConstruction.class));
-            room.setCreatedCreatureId(file.readUnsignedByte());
-            room.setTorchColor(readColor(file)); // This is the editor is rather weird
+            room.setRoomId(reader.readUnsignedByte());
+            room.setReturnPercentage(reader.readUnsignedByte());
+            room.setTerrainId(reader.readUnsignedByte());
+            room.setTileConstruction(reader.readByteAsEnum(Room.TileConstruction.class));
+            room.setCreatedCreatureId(reader.readUnsignedByte());
+            room.setTorchColor(readColor(reader)); // This is the editor is rather weird
             List<Short> roomObjects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
-                short objectId = file.readUnsignedByte();
+                short objectId = reader.readUnsignedByte();
                 roomObjects.add(objectId);
             }
             room.setObjects(roomObjects);
 
-            room.setSoundCategory(file.readString(32).trim());
-            room.setOrderInEditor(file.readUnsignedByte());
-            room.setTorchRadius(file.readIntegerAsFloat());
-            room.setTorch(readArtResource(file));
-            room.setRecommendedSizeX(file.readUnsignedByte());
-            room.setRecommendedSizeY(file.readUnsignedByte());
-            room.setHealthGain(file.readShort());
+            room.setSoundCategory(reader.readString(32).trim());
+            room.setOrderInEditor(reader.readUnsignedByte());
+            room.setTorchRadius(reader.readIntegerAsFloat());
+            room.setTorch(readArtResource(reader));
+            room.setRecommendedSizeX(reader.readUnsignedByte());
+            room.setRecommendedSizeY(reader.readUnsignedByte());
+            room.setHealthGain(reader.readShort());
 
             // Add to the hash by the room ID
             rooms.put(room.getRoomId(), room);
@@ -983,8 +1002,8 @@ public final class KwdFile {
             // And by the terrain ID
             roomsByTerrainId.put(room.getTerrainId(), room);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -996,7 +1015,7 @@ public final class KwdFile {
      */
     private void readMapInfo(KwdHeader header, IResourceReader data) throws IOException {
 
-        //Additional header data
+        // Additional header data
         if (gameLevel == null) {
             LOGGER.info("Reading level info!");
             gameLevel = new GameLevel();
@@ -1004,68 +1023,69 @@ public final class KwdFile {
             LOGGER.warning("Overrides level!");
         }
 
-        //Property data
-        String name = data.readStringUtf16(64).trim();
+        // Property data
+        IResourceChunkReader reader = data.readChunk(header.dataSize + 8);
+        String name = reader.readStringUtf16(64).trim();
         if (name != null && !name.isEmpty() && name.toLowerCase().endsWith(".kwd")) {
             name = name.substring(0, name.length() - 4);
         }
         gameLevel.setName(name);
-        gameLevel.setDescription(data.readStringUtf16(1024).trim());
-        gameLevel.setAuthor(data.readStringUtf16(64).trim());
-        gameLevel.setEmail(data.readStringUtf16(64).trim());
-        gameLevel.setInformation(data.readStringUtf16(1024).trim());
+        gameLevel.setDescription(reader.readStringUtf16(1024).trim());
+        gameLevel.setAuthor(reader.readStringUtf16(64).trim());
+        gameLevel.setEmail(reader.readStringUtf16(64).trim());
+        gameLevel.setInformation(reader.readStringUtf16(1024).trim());
 
-        gameLevel.setTriggerId(data.readUnsignedShort());
-        gameLevel.setTicksPerSec(data.readUnsignedShort());
+        gameLevel.setTriggerId(reader.readUnsignedShort());
+        gameLevel.setTicksPerSec(reader.readUnsignedShort());
         short[] x01184 = new short[520];
         for (int x = 0; x < x01184.length; x++) {
-            x01184[x] = data.readUnsignedByte();
+            x01184[x] = reader.readUnsignedByte();
         }
         gameLevel.setX01184(x01184);
         // I don't know if we need the index, level 19 & 3 has messages, but they are rare
         List<String> messages = new ArrayList<>();
         for (int x = 0; x < 512; x++) {
-            String message = data.readStringUtf16(20).trim();
+            String message = reader.readStringUtf16(20).trim();
             if (!message.isEmpty()) {
                 messages.add(message);
             }
         }
         gameLevel.setMessages(messages);
 
-        gameLevel.setLvlFlags(data.readShortAsFlag(LevFlag.class));
-        gameLevel.setSoundCategory(data.readString(32).trim());
-        gameLevel.setTalismanPieces(data.readUnsignedByte());
+        gameLevel.setLvlFlags(reader.readShortAsFlag(LevFlag.class));
+        gameLevel.setSoundCategory(reader.readString(32).trim());
+        gameLevel.setTalismanPieces(reader.readUnsignedByte());
 
         for (int x = 0; x < 4; x++) {
-            LevelReward reward = data.readByteAsEnum(LevelReward.class);
+            LevelReward reward = reader.readByteAsEnum(LevelReward.class);
             gameLevel.addRewardPrev(reward);
         }
 
         for (int x = 0; x < 4; x++) {
-            LevelReward reward = data.readByteAsEnum(LevelReward.class);
+            LevelReward reward = reader.readByteAsEnum(LevelReward.class);
             gameLevel.addRewardNext(reward);
         }
 
-        gameLevel.setSoundTrack(data.readUnsignedByte());
-        gameLevel.setTextTableId(data.readByteAsEnum(TextTable.class));
-        gameLevel.setTextTitleId(data.readUnsignedShort());
-        gameLevel.setTextPlotId(data.readUnsignedShort());
-        gameLevel.setTextDebriefId(data.readUnsignedShort());
-        gameLevel.setTextObjectvId(data.readUnsignedShort());
-        gameLevel.setX063c3(data.readUnsignedShort());
-        gameLevel.setTextSubobjctvId1(data.readUnsignedShort());
-        gameLevel.setTextSubobjctvId2(data.readUnsignedShort());
-        gameLevel.setTextSubobjctvId3(data.readUnsignedShort());
-        gameLevel.setSpeclvlIdx(data.readUnsignedShort());
+        gameLevel.setSoundTrack(reader.readUnsignedByte());
+        gameLevel.setTextTableId(reader.readByteAsEnum(TextTable.class));
+        gameLevel.setTextTitleId(reader.readUnsignedShort());
+        gameLevel.setTextPlotId(reader.readUnsignedShort());
+        gameLevel.setTextDebriefId(reader.readUnsignedShort());
+        gameLevel.setTextObjectvId(reader.readUnsignedShort());
+        gameLevel.setX063c3(reader.readUnsignedShort());
+        gameLevel.setTextSubobjctvId1(reader.readUnsignedShort());
+        gameLevel.setTextSubobjctvId2(reader.readUnsignedShort());
+        gameLevel.setTextSubobjctvId3(reader.readUnsignedShort());
+        gameLevel.setSpeclvlIdx(reader.readUnsignedShort());
 
-        // Swap the arrays for more convenient data format
+        // Swap the arrays for more convenient reader format
         short[] textIntrdcOverrdObj = new short[8];
         for (int x = 0; x < textIntrdcOverrdObj.length; x++) {
-            textIntrdcOverrdObj[x] = data.readUnsignedByte();
+            textIntrdcOverrdObj[x] = reader.readUnsignedByte();
         }
         int[] textIntrdcOverrdId = new int[8];
         for (int x = 0; x < textIntrdcOverrdId.length; x++) {
-            textIntrdcOverrdId[x] = data.readUnsignedShort();
+            textIntrdcOverrdId[x] = reader.readUnsignedShort();
         }
         Map<Short, Integer> introductionOverrideTextIds = new HashMap<>(8);
         for (int x = 0; x < textIntrdcOverrdObj.length; x++) {
@@ -1076,36 +1096,38 @@ public final class KwdFile {
         }
         gameLevel.setIntroductionOverrideTextIds(introductionOverrideTextIds);
 
-        gameLevel.setTerrainPath(data.readString(32).trim());
-        // Some very old files are smaller, namely the FrontEnd3DLevel map in some version
+        gameLevel.setTerrainPath(reader.readString(32).trim());
+        // Some very old readers are smaller, namely the FrontEnd3DLevel map in some version
         if (header.dataSize > HEADER_SIZE) {
-            gameLevel.setOneShotHornyLev(data.readUnsignedByte());
-            gameLevel.setPlayerCount(data.readUnsignedByte());
-            gameLevel.addRewardPrev(data.readByteAsEnum(LevelReward.class));
-            gameLevel.addRewardNext(data.readByteAsEnum(LevelReward.class));
-            gameLevel.setSpeechHornyId(data.readUnsignedShort());
-            gameLevel.setSpeechPrelvlId(data.readUnsignedShort());
-            gameLevel.setSpeechPostlvlWin(data.readUnsignedShort());
-            gameLevel.setSpeechPostlvlLost(data.readUnsignedShort());
-            gameLevel.setSpeechPostlvlNews(data.readUnsignedShort());
-            gameLevel.setSpeechPrelvlGenr(data.readUnsignedShort());
-            gameLevel.setHeroName(data.readStringUtf16(32).trim());
+            gameLevel.setOneShotHornyLev(reader.readUnsignedByte());
+            gameLevel.setPlayerCount(reader.readUnsignedByte());
+            gameLevel.addRewardPrev(reader.readByteAsEnum(LevelReward.class));
+            gameLevel.addRewardNext(reader.readByteAsEnum(LevelReward.class));
+            gameLevel.setSpeechHornyId(reader.readUnsignedShort());
+            gameLevel.setSpeechPrelvlId(reader.readUnsignedShort());
+            gameLevel.setSpeechPostlvlWin(reader.readUnsignedShort());
+            gameLevel.setSpeechPostlvlLost(reader.readUnsignedShort());
+            gameLevel.setSpeechPostlvlNews(reader.readUnsignedShort());
+            gameLevel.setSpeechPrelvlGenr(reader.readUnsignedShort());
+            gameLevel.setHeroName(reader.readStringUtf16(32).trim());
         }
 
         // Paths and the unknown array
-        int checkThree = data.readUnsignedInteger();
+        int checkThree = reader.readUnsignedInteger();
         if (checkThree != 222) {
-            throw new RuntimeException("Level file is corrupted");
+            throw new RuntimeException("Level reader is corrupted");
         }
-        // the last part of file have size contentSize
-        int contentSize = data.readUnsignedInteger();
+
+        // The last part of reader has size contentSize
+        int contentSize = reader.readUnsignedInteger();
+        reader = data.readChunk(contentSize);
         boolean customOverrides = false;
         List<FilePath> paths = new ArrayList<>(header.getItemCount());
         for (int x = 0; x < header.getItemCount(); x++) {
-            FilePath filePath = new FilePath();
-            filePath.setId(data.readIntegerAsEnum(MapDataTypeEnum.class));
-            filePath.setUnknown2(data.readInteger());
-            String path = data.readString(64).trim();
+            FilePath readerPath = new FilePath();
+            readerPath.setId(reader.readIntegerAsEnum(MapDataTypeEnum.class));
+            readerPath.setUnknown2(reader.readInteger());
+            String path = reader.readString(64).trim();
 
             // Tweak the paths
             // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
@@ -1115,33 +1137,33 @@ public final class KwdFile {
             }
 
             // See if the globals are present
-            if (filePath.getId() == MapDataTypeEnum.GLOBALS) {
+            if (readerPath.getId() == MapDataTypeEnum.GLOBALS) {
                 customOverrides = true;
                 LOGGER.info("The map uses custom overrides!");
             }
 
-            filePath.setPath(path);
+            readerPath.setPath(path);
 
-            paths.add(filePath);
+            paths.add(readerPath);
         }
         gameLevel.setPaths(paths);
 
         // Hmm, seems that normal maps don't refer the effects nor effect elements
         if (!customOverrides) {
-            FilePath file = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_EDITOR_FOLDER + "Effects.kwd");
-            if (!gameLevel.getPaths().contains(file)) {
-                gameLevel.getPaths().add(file);
+            FilePath filePath = new FilePath(MapDataTypeEnum.EFFECTS, PathUtils.DKII_EDITOR_FOLDER + "Effects.kwd");
+            if (!gameLevel.getPaths().contains(filePath)) {
+                gameLevel.getPaths().add(filePath);
             }
 
-            file = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_EDITOR_FOLDER + "EffectElements.kwd");
-            if (!gameLevel.getPaths().contains(file)) {
-                gameLevel.getPaths().add(file);
+            filePath = new FilePath(MapDataTypeEnum.EFFECT_ELEMENTS, PathUtils.DKII_EDITOR_FOLDER + "EffectElements.kwd");
+            if (!gameLevel.getPaths().contains(filePath)) {
+                gameLevel.getPaths().add(filePath);
             }
         }
 
         int[] unknown = new int[header.getHeight()];
         for (int x = 0; x < unknown.length; x++) {
-            unknown[x] = data.readUnsignedInteger();
+            unknown[x] = reader.readUnsignedInteger();
         }
         gameLevel.setUnknown(unknown);
     }
@@ -1163,107 +1185,108 @@ public final class KwdFile {
             LOGGER.warning("Overrides creatures!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Creature creature = new Creature();
 
-            creature.setName(file.readString(32).trim());
+            creature.setName(reader.readString(32).trim());
             // 39 ArtResources (with IMPs these are not 100% same)
-            creature.setUnknown1Resource(file.read(84));  // all 0: Maiden Of The Nest, Prince Balder, Horny. Other the same
-            creature.setAnimation(AnimationType.WALK, readArtResource(file));
-            creature.setAnimation(AnimationType.RUN, readArtResource(file));
-            creature.setAnimation(AnimationType.DRAGGED, readArtResource(file));
-            creature.setAnimation(AnimationType.RECOIL_FORWARDS, readArtResource(file));
-            creature.setAnimation(AnimationType.MELEE_ATTACK, readArtResource(file));
-            creature.setAnimation(AnimationType.CAST_SPELL, readArtResource(file));
-            creature.setAnimation(AnimationType.DIE, readArtResource(file));
-            creature.setAnimation(AnimationType.HAPPY, readArtResource(file));
-            creature.setAnimation(AnimationType.ANGRY, readArtResource(file));
-            creature.setAnimation(AnimationType.STUNNED, readArtResource(file));
-            creature.setAnimation(AnimationType.IN_HAND, readArtResource(file));
-            creature.setAnimation(AnimationType.SLEEPING, readArtResource(file));
-            creature.setAnimation(AnimationType.EATING, readArtResource(file));
-            creature.setAnimation(AnimationType.RESEARCHING, readArtResource(file));
-            creature.setAnimation(AnimationType.NULL_2, readArtResource(file));
-            creature.setAnimation(AnimationType.NULL_1, readArtResource(file));
-            creature.setAnimation(AnimationType.TORTURED_WHEEL, readArtResource(file));
-            creature.setAnimation(AnimationType.NULL_3, readArtResource(file));
-            creature.setAnimation(AnimationType.DRINKING, readArtResource(file));
-            creature.setAnimation(AnimationType.IDLE_1, readArtResource(file));
-            creature.setAnimation(AnimationType.RECOIL_BACKWARDS, readArtResource(file));
-            creature.setAnimation(AnimationType.MANUFACTURING, readArtResource(file));
-            creature.setAnimation(AnimationType.PRAYING, readArtResource(file));
-            creature.setAnimation(AnimationType.FALLBACK, readArtResource(file));
-            creature.setAnimation(AnimationType.TORTURED_CHAIR, readArtResource(file));
-            creature.setAnimation(AnimationType.TORTURED_CHAIR_SKELETON, readArtResource(file));
-            creature.setAnimation(AnimationType.GET_UP, readArtResource(file));
-            creature.setAnimation(AnimationType.DANCE, readArtResource(file));
-            creature.setAnimation(AnimationType.DRUNK, readArtResource(file));
-            creature.setAnimation(AnimationType.ENTRANCE, readArtResource(file));
-            creature.setAnimation(AnimationType.IDLE_2, readArtResource(file));
-            creature.setAnimation(AnimationType.SPECIAL_1, readArtResource(file));
-            creature.setAnimation(AnimationType.SPECIAL_2, readArtResource(file));
-            creature.setAnimation(AnimationType.DRUNKED_WALK, readArtResource(file));
-            creature.setAnimation(AnimationType.ROAR, readArtResource(file)); // FIXME
-            creature.setAnimation(AnimationType.NULL_4, readArtResource(file));
+            creature.setUnknown1Resource(reader.read(84));  // all 0: Maiden Of The Nest, Prince Balder, Horny. Other the same
+            creature.setAnimation(AnimationType.WALK, readArtResource(reader));
+            creature.setAnimation(AnimationType.RUN, readArtResource(reader));
+            creature.setAnimation(AnimationType.DRAGGED, readArtResource(reader));
+            creature.setAnimation(AnimationType.RECOIL_FORWARDS, readArtResource(reader));
+            creature.setAnimation(AnimationType.MELEE_ATTACK, readArtResource(reader));
+            creature.setAnimation(AnimationType.CAST_SPELL, readArtResource(reader));
+            creature.setAnimation(AnimationType.DIE, readArtResource(reader));
+            creature.setAnimation(AnimationType.HAPPY, readArtResource(reader));
+            creature.setAnimation(AnimationType.ANGRY, readArtResource(reader));
+            creature.setAnimation(AnimationType.STUNNED, readArtResource(reader));
+            creature.setAnimation(AnimationType.IN_HAND, readArtResource(reader));
+            creature.setAnimation(AnimationType.SLEEPING, readArtResource(reader));
+            creature.setAnimation(AnimationType.EATING, readArtResource(reader));
+            creature.setAnimation(AnimationType.RESEARCHING, readArtResource(reader));
+            creature.setAnimation(AnimationType.NULL_2, readArtResource(reader));
+            creature.setAnimation(AnimationType.NULL_1, readArtResource(reader));
+            creature.setAnimation(AnimationType.TORTURED_WHEEL, readArtResource(reader));
+            creature.setAnimation(AnimationType.NULL_3, readArtResource(reader));
+            creature.setAnimation(AnimationType.DRINKING, readArtResource(reader));
+            creature.setAnimation(AnimationType.IDLE_1, readArtResource(reader));
+            creature.setAnimation(AnimationType.RECOIL_BACKWARDS, readArtResource(reader));
+            creature.setAnimation(AnimationType.MANUFACTURING, readArtResource(reader));
+            creature.setAnimation(AnimationType.PRAYING, readArtResource(reader));
+            creature.setAnimation(AnimationType.FALLBACK, readArtResource(reader));
+            creature.setAnimation(AnimationType.TORTURED_CHAIR, readArtResource(reader));
+            creature.setAnimation(AnimationType.TORTURED_CHAIR_SKELETON, readArtResource(reader));
+            creature.setAnimation(AnimationType.GET_UP, readArtResource(reader));
+            creature.setAnimation(AnimationType.DANCE, readArtResource(reader));
+            creature.setAnimation(AnimationType.DRUNK, readArtResource(reader));
+            creature.setAnimation(AnimationType.ENTRANCE, readArtResource(reader));
+            creature.setAnimation(AnimationType.IDLE_2, readArtResource(reader));
+            creature.setAnimation(AnimationType.SPECIAL_1, readArtResource(reader));
+            creature.setAnimation(AnimationType.SPECIAL_2, readArtResource(reader));
+            creature.setAnimation(AnimationType.DRUNKED_WALK, readArtResource(reader));
+            creature.setAnimation(AnimationType.ROAR, readArtResource(reader)); // FIXME
+            creature.setAnimation(AnimationType.NULL_4, readArtResource(reader));
 
-            creature.setIcon1Resource(readArtResource(file));
-            creature.setIcon2Resource(readArtResource(file));
+            creature.setIcon1Resource(readArtResource(reader));
+            creature.setIcon2Resource(readArtResource(reader));
             //
-            creature.setUnkcec(file.readUnsignedShort());
-            creature.setUnkcee(file.readUnsignedInteger());
-            creature.setUnkcf2(file.readUnsignedInteger());
-            creature.setOrderInEditor(file.readUnsignedByte());
-            creature.setAngerStringIdGeneral(file.readUnsignedShort());
-            creature.setShotDelay(file.readIntegerAsFloat());
-            creature.setOlhiEffectId(file.readUnsignedShort());
-            creature.setIntroductionStringId(file.readUnsignedShort());
-            creature.getAttributes().setPerceptionRange(file.readIntegerAsFloat());
-            creature.setAngerStringIdLair(file.readUnsignedShort());
-            creature.setAngerStringIdFood(file.readUnsignedShort());
-            creature.setAngerStringIdPay(file.readUnsignedShort());
-            creature.setAngerStringIdWork(file.readUnsignedShort());
-            creature.setAngerStringIdSlap(file.readUnsignedShort());
-            creature.setAngerStringIdHeld(file.readUnsignedShort());
-            creature.setAngerStringIdLonely(file.readUnsignedShort());
-            creature.setAngerStringIdHatred(file.readUnsignedShort());
-            creature.setAngerStringIdTorture(file.readUnsignedShort());
+            creature.setUnkcec(reader.readUnsignedShort());
+            creature.setUnkcee(reader.readUnsignedInteger());
+            creature.setUnkcf2(reader.readUnsignedInteger());
+            creature.setOrderInEditor(reader.readUnsignedByte());
+            creature.setAngerStringIdGeneral(reader.readUnsignedShort());
+            creature.setShotDelay(reader.readIntegerAsFloat());
+            creature.setOlhiEffectId(reader.readUnsignedShort());
+            creature.setIntroductionStringId(reader.readUnsignedShort());
+            creature.getAttributes().setPerceptionRange(reader.readIntegerAsFloat());
+            creature.setAngerStringIdLair(reader.readUnsignedShort());
+            creature.setAngerStringIdFood(reader.readUnsignedShort());
+            creature.setAngerStringIdPay(reader.readUnsignedShort());
+            creature.setAngerStringIdWork(reader.readUnsignedShort());
+            creature.setAngerStringIdSlap(reader.readUnsignedShort());
+            creature.setAngerStringIdHeld(reader.readUnsignedShort());
+            creature.setAngerStringIdLonely(reader.readUnsignedShort());
+            creature.setAngerStringIdHatred(reader.readUnsignedShort());
+            creature.setAngerStringIdTorture(reader.readUnsignedShort());
 
-            creature.setTranslationSoundGategory(file.readString(32).trim());
-            creature.getAttributes().setShuffleSpeed(file.readIntegerAsFloat());
-            creature.setCloneCreatureId(file.readUnsignedByte());
-            creature.setFirstPersonGammaEffect(file.readByteAsEnum(Creature.GammaEffect.class));
-            creature.setFirstPersonWalkCycleScale(file.readUnsignedByte());
-            creature.setIntroCameraPathIndex(file.readUnsignedByte());
-            creature.setUnk2e2(file.readUnsignedByte());
-            creature.setPortraitResource(readArtResource(file));
-            creature.setLight(readLight(file));
+            creature.setTranslationSoundGategory(reader.readString(32).trim());
+            creature.getAttributes().setShuffleSpeed(reader.readIntegerAsFloat());
+            creature.setCloneCreatureId(reader.readUnsignedByte());
+            creature.setFirstPersonGammaEffect(reader.readByteAsEnum(Creature.GammaEffect.class));
+            creature.setFirstPersonWalkCycleScale(reader.readUnsignedByte());
+            creature.setIntroCameraPathIndex(reader.readUnsignedByte());
+            creature.setUnk2e2(reader.readUnsignedByte());
+            creature.setPortraitResource(readArtResource(reader));
+            creature.setLight(readLight(reader));
             Attraction[] attractions = new Attraction[2];
             for (int x = 0; x < attractions.length; x++) {
                 Attraction attraction = creature.new Attraction();
-                attraction.setPresent(file.readUnsignedInteger());
-                attraction.setRoomId(file.readUnsignedShort());
-                attraction.setRoomSize(file.readUnsignedShort());
+                attraction.setPresent(reader.readUnsignedInteger());
+                attraction.setRoomId(reader.readUnsignedShort());
+                attraction.setRoomSize(reader.readUnsignedShort());
                 attractions[x] = attraction;
             }
             creature.setAttractions(attractions);
-            creature.setFirstPersonWaddleScale(file.readIntegerAsFloat());
-            creature.setFirstPersonOscillateScale(file.readIntegerAsFloat());
+            creature.setFirstPersonWaddleScale(reader.readIntegerAsFloat());
+            creature.setFirstPersonOscillateScale(reader.readIntegerAsFloat());
             List<Spell> spells = new ArrayList<>(3);
             for (int x = 0; x < 3; x++) {
                 Spell spell = creature.new Spell();
-                spell.setShotOffset(file.readIntegerAsFloat(),
-                        file.readIntegerAsFloat(),
-                        file.readIntegerAsFloat());
-                spell.setX0c(file.readUnsignedByte());
-                spell.setPlayAnimation(file.readUnsignedByte() == 1);
-                spell.setX0e(file.readUnsignedByte()); // This value can changed when you not change anything on map, only save it
-                spell.setX0f(file.readUnsignedByte());
-                spell.setShotDelay(file.readIntegerAsFloat());
-                spell.setX14(file.readUnsignedByte());
-                spell.setX15(file.readUnsignedByte());
-                spell.setCreatureSpellId(file.readUnsignedByte());
-                spell.setLevelAvailable(file.readUnsignedByte());
+                spell.setShotOffset(reader.readIntegerAsFloat(),
+                        reader.readIntegerAsFloat(),
+                        reader.readIntegerAsFloat());
+                spell.setX0c(reader.readUnsignedByte());
+                spell.setPlayAnimation(reader.readUnsignedByte() == 1);
+                spell.setX0e(reader.readUnsignedByte()); // This value can changed when you not change anything on map, only save it
+                spell.setX0f(reader.readUnsignedByte());
+                spell.setShotDelay(reader.readIntegerAsFloat());
+                spell.setX14(reader.readUnsignedByte());
+                spell.setX15(reader.readUnsignedByte());
+                spell.setCreatureSpellId(reader.readUnsignedByte());
+                spell.setLevelAvailable(reader.readUnsignedByte());
                 if (spell.getCreatureSpellId() != 0) {
                     spells.add(spell);
                 }
@@ -1272,181 +1295,181 @@ public final class KwdFile {
             Creature.Resistance[] resistances = new Creature.Resistance[4];
             for (int x = 0; x < resistances.length; x++) {
                 Creature.Resistance resistance = creature.new Resistance();
-                resistance.setAttackType(file.readByteAsEnum(Creature.AttackType.class));
-                resistance.setValue(file.readUnsignedByte());
+                resistance.setAttackType(reader.readByteAsEnum(Creature.AttackType.class));
+                resistance.setValue(reader.readUnsignedByte());
                 resistances[x] = resistance;
             }
             creature.setResistances(resistances);
-            creature.setHappyJobs(readJobPreferences(3, creature, file));
-            creature.setUnhappyJobs(readJobPreferences(2, creature, file));
-            creature.setAngryJobs(readJobPreferences(3, creature, file));
+            creature.setHappyJobs(readJobPreferences(3, creature, reader));
+            creature.setUnhappyJobs(readJobPreferences(2, creature, reader));
+            creature.setAngryJobs(readJobPreferences(3, creature, reader));
             Creature.JobType[] hateJobs = new Creature.JobType[2];
             for (int x = 0; x < hateJobs.length; x++) {
-                hateJobs[x] = file.readIntegerAsEnum(Creature.JobType.class);
+                hateJobs[x] = reader.readIntegerAsEnum(Creature.JobType.class);
             }
             creature.setHateJobs(hateJobs);
             JobAlternative[] alternatives = new JobAlternative[3];
             for (int x = 0; x < alternatives.length; x++) {
                 JobAlternative alternative = creature.new JobAlternative();
-                alternative.setJobType(file.readIntegerAsEnum(Creature.JobType.class));
-                alternative.setMoodChange(file.readUnsignedShort());
-                alternative.setManaChange(file.readUnsignedShort());
+                alternative.setJobType(reader.readIntegerAsEnum(Creature.JobType.class));
+                alternative.setMoodChange(reader.readUnsignedShort());
+                alternative.setManaChange(reader.readUnsignedShort());
                 alternatives[x] = alternative;
             }
             creature.setAlternativeJobs(alternatives);
             creature.setAnimationOffsets(OffsetType.PORTAL_ENTRANCE,
-                    file.readIntegerAsFloat(),
-                    file.readIntegerAsFloat(),
-                    file.readIntegerAsFloat()
+                    reader.readIntegerAsFloat(),
+                    reader.readIntegerAsFloat(),
+                    reader.readIntegerAsFloat()
             );
-            creature.setUnkea0(file.readInteger());
-            creature.getAttributes().setHeight(file.readIntegerAsFloat());
-            creature.setUnkea8(file.readIntegerAsFloat());
-            creature.setUnk3ab(file.readUnsignedInteger());
-            creature.getAttributes().setEyeHeight(file.readIntegerAsFloat());
-            creature.getAttributes().setSpeed(file.readIntegerAsFloat());
-            creature.getAttributes().setRunSpeed(file.readIntegerAsFloat());
-            creature.getAttributes().setHungerRate(file.readIntegerAsFloat());
-            creature.getAttributes().setTimeAwake(file.readUnsignedInteger());
-            creature.getAttributes().setTimeSleep(file.readUnsignedInteger());
-            creature.getAttributes().setDistanceCanSee(file.readIntegerAsFloat());
-            creature.getAttributes().setDistanceCanHear(file.readIntegerAsFloat());
-            creature.getAttributes().setStunDuration(file.readIntegerAsFloat());
-            creature.getAttributes().setGuardDuration(file.readIntegerAsFloat());
-            creature.getAttributes().setIdleDuration(file.readIntegerAsFloat());
-            creature.getAttributes().setSlapFearlessDuration(file.readIntegerAsFloat());
-            creature.setUnkee0(file.readInteger());
-            creature.setUnkee4(file.readInteger());
-            creature.getAttributes().setPossessionManaCost(file.readShort());
-            creature.getAttributes().setOwnLandHealthIncrease(file.readShort());
-            creature.setMeleeRange(file.readIntegerAsFloat());
-            creature.setUnkef0(file.readUnsignedInteger());
-            creature.getAttributes().setTortureTimeToConvert(file.readIntegerAsFloat());
-            creature.setMeleeRecharge(file.readIntegerAsFloat());
+            creature.setUnkea0(reader.readInteger());
+            creature.getAttributes().setHeight(reader.readIntegerAsFloat());
+            creature.setUnkea8(reader.readIntegerAsFloat());
+            creature.setUnk3ab(reader.readUnsignedInteger());
+            creature.getAttributes().setEyeHeight(reader.readIntegerAsFloat());
+            creature.getAttributes().setSpeed(reader.readIntegerAsFloat());
+            creature.getAttributes().setRunSpeed(reader.readIntegerAsFloat());
+            creature.getAttributes().setHungerRate(reader.readIntegerAsFloat());
+            creature.getAttributes().setTimeAwake(reader.readUnsignedInteger());
+            creature.getAttributes().setTimeSleep(reader.readUnsignedInteger());
+            creature.getAttributes().setDistanceCanSee(reader.readIntegerAsFloat());
+            creature.getAttributes().setDistanceCanHear(reader.readIntegerAsFloat());
+            creature.getAttributes().setStunDuration(reader.readIntegerAsFloat());
+            creature.getAttributes().setGuardDuration(reader.readIntegerAsFloat());
+            creature.getAttributes().setIdleDuration(reader.readIntegerAsFloat());
+            creature.getAttributes().setSlapFearlessDuration(reader.readIntegerAsFloat());
+            creature.setUnkee0(reader.readInteger());
+            creature.setUnkee4(reader.readInteger());
+            creature.getAttributes().setPossessionManaCost(reader.readShort());
+            creature.getAttributes().setOwnLandHealthIncrease(reader.readShort());
+            creature.setMeleeRange(reader.readIntegerAsFloat());
+            creature.setUnkef0(reader.readUnsignedInteger());
+            creature.getAttributes().setTortureTimeToConvert(reader.readIntegerAsFloat());
+            creature.setMeleeRecharge(reader.readIntegerAsFloat());
             // The flags is actually very big, pushing the boundaries, a true uint32, need to -> long
-            creature.setFlags(file.readIntegerAsFlag(Creature.CreatureFlag.class));
-            creature.getAttributes().setExpForNextLevel(file.readUnsignedShort());
-            creature.setJobClass(file.readByteAsEnum(Creature.JobClass.class));
-            creature.setFightStyle(file.readByteAsEnum(Creature.FightStyle.class));
-            creature.getAttributes().setExpPerSecond(file.readUnsignedShort());
-            creature.getAttributes().setExpPerSecondTraining(file.readUnsignedShort());
-            creature.getAttributes().setResearchPerSecond(file.readUnsignedShort());
-            creature.getAttributes().setManufacturePerSecond(file.readUnsignedShort());
-            creature.getAttributes().setHp(file.readUnsignedShort());
-            creature.getAttributes().setHpFromChicken(file.readUnsignedShort());
-            creature.getAttributes().setFear(file.readUnsignedShort());
-            creature.getAttributes().setThreat(file.readUnsignedShort());
-            creature.setMeleeDamage(file.readUnsignedShort());
-            creature.getAttributes().setSlapDamage(file.readUnsignedShort());
-            creature.getAttributes().setManaGenPrayer(file.readUnsignedShort());
-            creature.setUnk3cb(file.readUnsignedShort());
-            creature.getAttributes().setPay(file.readUnsignedShort());
-            creature.getAttributes().setMaxGoldHeld(file.readUnsignedShort());
-            creature.setUnk3cc(file.readShortAsFloat());
-            creature.getAttributes().setDecomposeValue(file.readUnsignedShort());
-            creature.setNameStringId(file.readUnsignedShort());
-            creature.setTooltipStringId(file.readUnsignedShort());
-            creature.getAttributes().setAngerNoLair(file.readShort());
-            creature.getAttributes().setAngerNoFood(file.readShort());
-            creature.getAttributes().setAngerNoPay(file.readShort());
-            creature.getAttributes().setAngerNoWork(file.readShort());
-            creature.getAttributes().setAngerSlap(file.readShort());
-            creature.getAttributes().setAngerInHand(file.readShort());
-            creature.getAttributes().setInitialGoldHeld(file.readShort());
-            creature.setEntranceEffectId(file.readUnsignedShort());
-            creature.setGeneralDescriptionStringId(file.readUnsignedShort());
-            creature.setStrengthStringId(file.readUnsignedShort());
-            creature.setWeaknessStringId(file.readUnsignedShort());
-            creature.setSlapEffectId(file.readUnsignedShort());
-            creature.setDeathEffectId(file.readUnsignedShort());
-            creature.setMelee1Swipe(file.readByteAsEnum(Creature.Swipe.class));
-            creature.setMelee2Swipe(file.readByteAsEnum(Creature.Swipe.class));
-            creature.setMelee3Swipe(file.readByteAsEnum(Creature.Swipe.class));
-            creature.setSpellSwipe(file.readByteAsEnum(Creature.Swipe.class));
-            creature.setFirstPersonSpecialAbility1(file.readByteAsEnum(Creature.SpecialAbility.class));
-            creature.setFirstPersonSpecialAbility2(file.readByteAsEnum(Creature.SpecialAbility.class));
+            creature.setFlags(reader.readIntegerAsFlag(Creature.CreatureFlag.class));
+            creature.getAttributes().setExpForNextLevel(reader.readUnsignedShort());
+            creature.setJobClass(reader.readByteAsEnum(Creature.JobClass.class));
+            creature.setFightStyle(reader.readByteAsEnum(Creature.FightStyle.class));
+            creature.getAttributes().setExpPerSecond(reader.readUnsignedShort());
+            creature.getAttributes().setExpPerSecondTraining(reader.readUnsignedShort());
+            creature.getAttributes().setResearchPerSecond(reader.readUnsignedShort());
+            creature.getAttributes().setManufacturePerSecond(reader.readUnsignedShort());
+            creature.getAttributes().setHp(reader.readUnsignedShort());
+            creature.getAttributes().setHpFromChicken(reader.readUnsignedShort());
+            creature.getAttributes().setFear(reader.readUnsignedShort());
+            creature.getAttributes().setThreat(reader.readUnsignedShort());
+            creature.setMeleeDamage(reader.readUnsignedShort());
+            creature.getAttributes().setSlapDamage(reader.readUnsignedShort());
+            creature.getAttributes().setManaGenPrayer(reader.readUnsignedShort());
+            creature.setUnk3cb(reader.readUnsignedShort());
+            creature.getAttributes().setPay(reader.readUnsignedShort());
+            creature.getAttributes().setMaxGoldHeld(reader.readUnsignedShort());
+            creature.setUnk3cc(reader.readShortAsFloat());
+            creature.getAttributes().setDecomposeValue(reader.readUnsignedShort());
+            creature.setNameStringId(reader.readUnsignedShort());
+            creature.setTooltipStringId(reader.readUnsignedShort());
+            creature.getAttributes().setAngerNoLair(reader.readShort());
+            creature.getAttributes().setAngerNoFood(reader.readShort());
+            creature.getAttributes().setAngerNoPay(reader.readShort());
+            creature.getAttributes().setAngerNoWork(reader.readShort());
+            creature.getAttributes().setAngerSlap(reader.readShort());
+            creature.getAttributes().setAngerInHand(reader.readShort());
+            creature.getAttributes().setInitialGoldHeld(reader.readShort());
+            creature.setEntranceEffectId(reader.readUnsignedShort());
+            creature.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            creature.setStrengthStringId(reader.readUnsignedShort());
+            creature.setWeaknessStringId(reader.readUnsignedShort());
+            creature.setSlapEffectId(reader.readUnsignedShort());
+            creature.setDeathEffectId(reader.readUnsignedShort());
+            creature.setMelee1Swipe(reader.readByteAsEnum(Creature.Swipe.class));
+            creature.setMelee2Swipe(reader.readByteAsEnum(Creature.Swipe.class));
+            creature.setMelee3Swipe(reader.readByteAsEnum(Creature.Swipe.class));
+            creature.setSpellSwipe(reader.readByteAsEnum(Creature.Swipe.class));
+            creature.setFirstPersonSpecialAbility1(reader.readByteAsEnum(Creature.SpecialAbility.class));
+            creature.setFirstPersonSpecialAbility2(reader.readByteAsEnum(Creature.SpecialAbility.class));
             short[] unkf48 = new short[3];
             for (int x = 0; x < unkf48.length; x++) {
-                unkf48[x] = file.readUnsignedByte();
+                unkf48[x] = reader.readUnsignedByte();
             }
             creature.setUnkf48(unkf48);
-            creature.setCreatureId(file.readUnsignedByte());
+            creature.setCreatureId(reader.readUnsignedByte());
             short[] unk3ea = new short[2];
             for (int x = 0; x < unk3ea.length; x++) {
-                unk3ea[x] = file.readUnsignedByte();
+                unk3ea[x] = reader.readUnsignedByte();
             }
             creature.setUnk3ea(unk3ea);
-            creature.getAttributes().setHungerFill(file.readUnsignedByte());
-            creature.getAttributes().setUnhappyThreshold(file.readUnsignedByte());
-            creature.setMeleeAttackType(file.readByteAsEnum(Creature.AttackType.class));
-            creature.setUnk3eb2(file.readUnsignedByte());
-            creature.setLairObjectId(file.readUnsignedByte());
-            creature.setUnk3f1(file.readUnsignedByte());
-            creature.setDeathFallDirection(file.readByteAsEnum(Creature.DeathFallDirection.class));
-            creature.setUnk3f2(file.readUnsignedByte());
+            creature.getAttributes().setHungerFill(reader.readUnsignedByte());
+            creature.getAttributes().setUnhappyThreshold(reader.readUnsignedByte());
+            creature.setMeleeAttackType(reader.readByteAsEnum(Creature.AttackType.class));
+            creature.setUnk3eb2(reader.readUnsignedByte());
+            creature.setLairObjectId(reader.readUnsignedByte());
+            creature.setUnk3f1(reader.readUnsignedByte());
+            creature.setDeathFallDirection(reader.readByteAsEnum(Creature.DeathFallDirection.class));
+            creature.setUnk3f2(reader.readUnsignedByte());
 
-            creature.setSoundCategory(file.readString(32).trim());
-            creature.setMaterial(file.readByteAsEnum(Material.class));
-            creature.setFirstPersonFilterResource(readArtResource(file));
-            creature.setUnkfcb(file.readUnsignedShort());
-            creature.setUnk4(file.readIntegerAsFloat());
-            creature.setAnimation(AnimationType.DRUNKED_IDLE, readArtResource(file));
-            creature.setSpecial1Swipe(file.readByteAsEnum(Creature.Swipe.class));
-            creature.setSpecial2Swipe(file.readByteAsEnum(Creature.Swipe.class));
-            creature.setFirstPersonMeleeResource(readArtResource(file));
-            creature.setUnk6(file.readUnsignedInteger());
-            creature.getAttributes().setTortureHpChange(file.readShort());
-            creature.getAttributes().setTortureMoodChange(file.readShort());
-            creature.setAnimation(AnimationType.SWIPE, readArtResource(file));
-            creature.setAnimation(AnimationType.IDLE_3, readArtResource(file));
-            creature.setAnimation(AnimationType.IDLE_4, readArtResource(file));
-            creature.setAnimation(AnimationType.IDLE_3_1, readArtResource(file));
-            creature.setAnimation(AnimationType.IDLE_4_1, readArtResource(file));
-            creature.setAnimation(AnimationType.DIG, readArtResource(file));
+            creature.setSoundCategory(reader.readString(32).trim());
+            creature.setMaterial(reader.readByteAsEnum(Material.class));
+            creature.setFirstPersonFilterResource(readArtResource(reader));
+            creature.setUnkfcb(reader.readUnsignedShort());
+            creature.setUnk4(reader.readIntegerAsFloat());
+            creature.setAnimation(AnimationType.DRUNKED_IDLE, readArtResource(reader));
+            creature.setSpecial1Swipe(reader.readByteAsEnum(Creature.Swipe.class));
+            creature.setSpecial2Swipe(reader.readByteAsEnum(Creature.Swipe.class));
+            creature.setFirstPersonMeleeResource(readArtResource(reader));
+            creature.setUnk6(reader.readUnsignedInteger());
+            creature.getAttributes().setTortureHpChange(reader.readShort());
+            creature.getAttributes().setTortureMoodChange(reader.readShort());
+            creature.setAnimation(AnimationType.SWIPE, readArtResource(reader));
+            creature.setAnimation(AnimationType.IDLE_3, readArtResource(reader));
+            creature.setAnimation(AnimationType.IDLE_4, readArtResource(reader));
+            creature.setAnimation(AnimationType.IDLE_3_1, readArtResource(reader));
+            creature.setAnimation(AnimationType.IDLE_4_1, readArtResource(reader));
+            creature.setAnimation(AnimationType.DIG, readArtResource(reader));
 
             OffsetType[] offsetTypes = new OffsetType[]{OffsetType.FALL_BACK_GET_UP,
                 OffsetType.PRAYING, OffsetType.CORPSE, OffsetType.OFFSET_5,
                 OffsetType.OFFSET_6, OffsetType.OFFSET_7, OffsetType.OFFSET_8};
             for (OffsetType type : offsetTypes) {
                 creature.setAnimationOffsets(type,
-                        file.readIntegerAsFloat(),
-                        file.readIntegerAsFloat(),
-                        file.readIntegerAsFloat()
+                        reader.readIntegerAsFloat(),
+                        reader.readIntegerAsFloat(),
+                        reader.readIntegerAsFloat()
                 );
             }
-            creature.setAnimation(AnimationType.BACK_OFF, readArtResource(file));
+            creature.setAnimation(AnimationType.BACK_OFF, readArtResource(reader));
             X1323[] x1323s = new X1323[48];
             for (int x = 0; x < x1323s.length; x++) {
                 X1323 x1323 = creature.new X1323();
-                x1323.setX00(file.readUnsignedShort());
-                x1323.setX02(file.readUnsignedShort());
+                x1323.setX00(reader.readUnsignedShort());
+                x1323.setX02(reader.readUnsignedShort());
                 x1323s[x] = x1323;
             }
             creature.setX1323(x1323s);
-            creature.setAnimation(AnimationType.STAND_STILL, readArtResource(file));
-            creature.setAnimation(AnimationType.STEALTH_WALK, readArtResource(file));
-            creature.setAnimation(AnimationType.DEATH_POSE, readArtResource(file));
-            creature.setUniqueNameTextId(file.readUnsignedShort());
+            creature.setAnimation(AnimationType.STAND_STILL, readArtResource(reader));
+            creature.setAnimation(AnimationType.STEALTH_WALK, readArtResource(reader));
+            creature.setAnimation(AnimationType.DEATH_POSE, readArtResource(reader));
+            creature.setUniqueNameTextId(reader.readUnsignedShort());
             int[] x14e1 = new int[2];
             for (int x = 0; x < x14e1.length; x++) {
-                x14e1[x] = file.readUnsignedInteger();
+                x14e1[x] = reader.readUnsignedInteger();
             }
             creature.setX14e1(x14e1);
-            creature.setFirstPersonSpecialAbility1Count(file.readUnsignedInteger());
-            creature.setFirstPersonSpecialAbility2Count(file.readUnsignedInteger());
-            creature.setUniqueResource(readArtResource(file));
-            creature.setFlags3(file.readIntegerAsFlag(Creature.CreatureFlag3.class));
+            creature.setFirstPersonSpecialAbility1Count(reader.readUnsignedInteger());
+            creature.setFirstPersonSpecialAbility2Count(reader.readUnsignedInteger());
+            creature.setUniqueResource(readArtResource(reader));
+            creature.setFlags3(reader.readIntegerAsFlag(Creature.CreatureFlag3.class));
 
-            // The normal file stops here, but if it is the bigger one, continue
+            // The normal reader stops here, but if it is the bigger one, continue
             if (header.getItemSize() > CREATURE_SIZE) {
                 short[] unknownExtraBytes = new short[80];
                 for (int x = 0; x < unknownExtraBytes.length; x++) {
-                    unknownExtraBytes[x] = file.readUnsignedByte();
+                    unknownExtraBytes[x] = reader.readUnsignedByte();
                 }
                 creature.setUnknownExtraBytes(unknownExtraBytes);
-                creature.setFlags2(file.readIntegerAsFlag(Creature.CreatureFlag2.class));
-                creature.setUnknown(file.readUnsignedShort());
-                creature.setUnknown_1(file.readShortAsFloat());
+                creature.setFlags2(reader.readIntegerAsFlag(Creature.CreatureFlag2.class));
+                creature.setUnknown(reader.readUnsignedShort());
+                creature.setUnknown_1(reader.readShortAsFloat());
             }
 
             // Add to the hash by the creature ID
@@ -1464,8 +1487,8 @@ public final class KwdFile {
                 dwarf = creature;
             }
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -1477,19 +1500,18 @@ public final class KwdFile {
      * instance
      * @param file the file to read the data from
      * @return job preferences
-     * @throws IOException may fail
      */
-    private Creature.JobPreference[] readJobPreferences(int count, Creature creature, IResourceReader file) throws IOException {
+    private Creature.JobPreference[] readJobPreferences(int count, Creature creature, IResourceChunkReader reader) {
         Creature.JobPreference[] preferences = new Creature.JobPreference[count];
         for (int x = 0; x < preferences.length; x++) {
             Creature.JobPreference jobPreference = creature.new JobPreference();
-            jobPreference.setJobType(file.readIntegerAsEnum(Creature.JobType.class));
-            jobPreference.setMoodChange(file.readUnsignedShort());
-            jobPreference.setManaChange(file.readUnsignedShort());
-            jobPreference.setChance(file.readUnsignedByte());
-            jobPreference.setX09(file.readUnsignedByte());
-            jobPreference.setX0a(file.readUnsignedByte());
-            jobPreference.setX0b(file.readUnsignedByte());
+            jobPreference.setJobType(reader.readIntegerAsEnum(Creature.JobType.class));
+            jobPreference.setMoodChange(reader.readUnsignedShort());
+            jobPreference.setManaChange(reader.readUnsignedShort());
+            jobPreference.setChance(reader.readUnsignedByte());
+            jobPreference.setX09(reader.readUnsignedByte());
+            jobPreference.setX0a(reader.readUnsignedByte());
+            jobPreference.setX0b(reader.readUnsignedByte());
             preferences[x] = jobPreference;
         }
         return preferences;
@@ -1499,20 +1521,20 @@ public final class KwdFile {
      * Reads and parses an Light object from the current file location (24
      * bytes)
      *
-     * @param file the file stream to parse from
+     * @param reader the file stream to parse from
      * @return a Light
      */
-    private Light readLight(IResourceReader file) throws IOException {
+    private Light readLight(IResourceChunkReader reader) {
         Light light = new Light();
 
         // Read the data
-        light.setmKPos(file.readIntegerAsFloat(),
-                file.readIntegerAsFloat(),
-                file.readIntegerAsFloat());
-        light.setRadius(file.readIntegerAsFloat());
-        light.setFlags(file.readIntegerAsFlag(Light.LightFlag.class));
-        light.setColor(file.readUnsignedByte(), file.readUnsignedByte(),
-                file.readUnsignedByte(), file.readUnsignedByte());
+        light.setmKPos(reader.readIntegerAsFloat(),
+                reader.readIntegerAsFloat(),
+                reader.readIntegerAsFloat());
+        light.setRadius(reader.readIntegerAsFloat());
+        light.setFlags(reader.readIntegerAsFlag(Light.LightFlag.class));
+        light.setColor(reader.readUnsignedByte(), reader.readUnsignedByte(),
+                reader.readUnsignedByte(), reader.readUnsignedByte());
 
         return light;
     }
@@ -1534,52 +1556,53 @@ public final class KwdFile {
             LOGGER.warning("Overrides objects!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             GameObject object = new GameObject();
 
-            object.setName(file.readString(32).trim());
-            object.setMeshResource(readArtResource(file));
-            object.setGuiIconResource(readArtResource(file));
-            object.setInHandIconResource(readArtResource(file));
-            object.setInHandMeshResource(readArtResource(file));
-            object.setkUnknownResource(readArtResource(file));
+            object.setName(reader.readString(32).trim());
+            object.setMeshResource(readArtResource(reader));
+            object.setGuiIconResource(readArtResource(reader));
+            object.setInHandIconResource(readArtResource(reader));
+            object.setInHandMeshResource(readArtResource(reader));
+            object.setkUnknownResource(readArtResource(reader));
             List<ArtResource> additionalResources = new ArrayList<>(4);
             for (int x = 0; x < 4; x++) {
-                ArtResource resource = readArtResource(file);
+                ArtResource resource = readArtResource(reader);
                 if (resource != null) {
                     additionalResources.add(resource);
                 }
             }
             object.setAdditionalResources(additionalResources);
-            object.setLight(readLight(file));
-            object.setWidth(file.readIntegerAsFloat());
-            object.setHeight(file.readIntegerAsFloat());
-            object.setMass(file.readIntegerAsFloat());
-            object.setSpeed(file.readIntegerAsFloat());
-            object.setAirFriction(file.readIntegerAsDouble());
-            object.setMaterial(file.readByteAsEnum(Material.class));
+            object.setLight(readLight(reader));
+            object.setWidth(reader.readIntegerAsFloat());
+            object.setHeight(reader.readIntegerAsFloat());
+            object.setMass(reader.readIntegerAsFloat());
+            object.setSpeed(reader.readIntegerAsFloat());
+            object.setAirFriction(reader.readIntegerAsDouble());
+            object.setMaterial(reader.readByteAsEnum(Material.class));
             short[] unknown3 = new short[3];
             for (int x = 0; x < unknown3.length; x++) {
-                unknown3[x] = file.readUnsignedByte();
+                unknown3[x] = reader.readUnsignedByte();
             }
             object.setUnknown3(unknown3);
-            object.setFlags(file.readIntegerAsFlag(GameObject.ObjectFlag.class));
-            object.setHp(file.readUnsignedShort());
-            object.setMaxAngle(file.readUnsignedShort());
-            object.setX34c(file.readUnsignedShort());
-            object.setManaValue(file.readUnsignedShort());
-            object.setTooltipStringId(file.readUnsignedShort());
-            object.setNameStringId(file.readUnsignedShort());
-            object.setSlapEffectId(file.readUnsignedShort());
-            object.setDeathEffectId(file.readUnsignedShort());
-            object.setMiscEffectId(file.readUnsignedShort());
-            object.setObjectId(file.readUnsignedByte());
-            object.setStartState(file.readByteAsEnum(GameObject.State.class));
-            object.setRoomCapacity(file.readUnsignedByte());
-            object.setPickUpPriority(file.readUnsignedByte());
+            object.setFlags(reader.readIntegerAsFlag(GameObject.ObjectFlag.class));
+            object.setHp(reader.readUnsignedShort());
+            object.setMaxAngle(reader.readUnsignedShort());
+            object.setX34c(reader.readUnsignedShort());
+            object.setManaValue(reader.readUnsignedShort());
+            object.setTooltipStringId(reader.readUnsignedShort());
+            object.setNameStringId(reader.readUnsignedShort());
+            object.setSlapEffectId(reader.readUnsignedShort());
+            object.setDeathEffectId(reader.readUnsignedShort());
+            object.setMiscEffectId(reader.readUnsignedShort());
+            object.setObjectId(reader.readUnsignedByte());
+            object.setStartState(reader.readByteAsEnum(GameObject.State.class));
+            object.setRoomCapacity(reader.readUnsignedByte());
+            object.setPickUpPriority(reader.readUnsignedByte());
 
-            object.setSoundCategory(file.readString(32).trim());
+            object.setSoundCategory(reader.readString(32).trim());
 
             // Add to the hash by the object ID
             objects.put(object.getObjectId(), object);
@@ -1589,8 +1612,8 @@ public final class KwdFile {
                 levelGem = object;
             }
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -1611,41 +1634,42 @@ public final class KwdFile {
             LOGGER.warning("Overrides creature spells!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             CreatureSpell creatureSpell = new CreatureSpell();
 
-            creatureSpell.setName(file.readString(32).trim());
-            creatureSpell.setEditorIcon(readArtResource(file));
-            creatureSpell.setGuiIcon(readArtResource(file));
-            creatureSpell.setShotData1(file.readUnsignedInteger());
-            creatureSpell.setShotData2(file.readUnsignedInteger());
-            creatureSpell.setRange(file.readIntegerAsFloat());
-            creatureSpell.setFlags(file.readIntegerAsFlag(CreatureSpell.CreatureSpellFlag.class));
-            creatureSpell.setCombatPoints(file.readUnsignedShort());
-            creatureSpell.setSoundEvent(file.readUnsignedShort());
-            creatureSpell.setNameStringId(file.readUnsignedShort());
-            creatureSpell.setTooltipStringId(file.readUnsignedShort());
-            creatureSpell.setGeneralDescriptionStringId(file.readUnsignedShort());
-            creatureSpell.setStrengthStringId(file.readUnsignedShort());
-            creatureSpell.setWeaknessStringId(file.readUnsignedShort());
-            creatureSpell.setCreatureSpellId(file.readUnsignedByte());
-            creatureSpell.setShotTypeId(file.readUnsignedByte());
-            creatureSpell.setAlternativeShotId(file.readUnsignedByte());
-            creatureSpell.setAlternativeRoomId(file.readUnsignedByte());
-            creatureSpell.setRechargeTime(file.readIntegerAsFloat());
-            creatureSpell.setAlternativeShot(file.readByteAsEnum(CreatureSpell.AlternativeShot.class));
+            creatureSpell.setName(reader.readString(32).trim());
+            creatureSpell.setEditorIcon(readArtResource(reader));
+            creatureSpell.setGuiIcon(readArtResource(reader));
+            creatureSpell.setShotData1(reader.readUnsignedInteger());
+            creatureSpell.setShotData2(reader.readUnsignedInteger());
+            creatureSpell.setRange(reader.readIntegerAsFloat());
+            creatureSpell.setFlags(reader.readIntegerAsFlag(CreatureSpell.CreatureSpellFlag.class));
+            creatureSpell.setCombatPoints(reader.readUnsignedShort());
+            creatureSpell.setSoundEvent(reader.readUnsignedShort());
+            creatureSpell.setNameStringId(reader.readUnsignedShort());
+            creatureSpell.setTooltipStringId(reader.readUnsignedShort());
+            creatureSpell.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            creatureSpell.setStrengthStringId(reader.readUnsignedShort());
+            creatureSpell.setWeaknessStringId(reader.readUnsignedShort());
+            creatureSpell.setCreatureSpellId(reader.readUnsignedByte());
+            creatureSpell.setShotTypeId(reader.readUnsignedByte());
+            creatureSpell.setAlternativeShotId(reader.readUnsignedByte());
+            creatureSpell.setAlternativeRoomId(reader.readUnsignedByte());
+            creatureSpell.setRechargeTime(reader.readIntegerAsFloat());
+            creatureSpell.setAlternativeShot(reader.readByteAsEnum(CreatureSpell.AlternativeShot.class));
             short[] data3 = new short[27];
             for (int x = 0; x < data3.length; x++) {
-                data3[x] = file.readUnsignedByte();
+                data3[x] = reader.readUnsignedByte();
             }
             creatureSpell.setUnused(data3);
 
             // Add to the list
             creatureSpells.put(creatureSpell.getCreatureSpellId(), creatureSpell);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -1666,41 +1690,42 @@ public final class KwdFile {
             LOGGER.warning("Overrides effect elements!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             EffectElement effectElement = new EffectElement();
 
-            effectElement.setName(file.readString(32).trim());
-            effectElement.setArtResource(readArtResource(file));
-            effectElement.setMass(file.readIntegerAsFloat());
-            effectElement.setAirFriction(file.readIntegerAsDouble());
-            effectElement.setElasticity(file.readIntegerAsDouble());
-            effectElement.setMinSpeedXy(file.readIntegerAsFloat());
-            effectElement.setMaxSpeedXy(file.readIntegerAsFloat());
-            effectElement.setMinSpeedYz(file.readIntegerAsFloat());
-            effectElement.setMaxSpeedYz(file.readIntegerAsFloat());
-            effectElement.setMinScale(file.readIntegerAsFloat());
-            effectElement.setMaxScale(file.readIntegerAsFloat());
-            effectElement.setScaleRatio(file.readIntegerAsFloat());
-            effectElement.setFlags(file.readIntegerAsFlag(EffectElement.EffectElementFlag.class));
-            effectElement.setEffectElementId(file.readUnsignedShort());
-            effectElement.setMinHp(file.readUnsignedShort());
-            effectElement.setMaxHp(file.readUnsignedShort());
-            effectElement.setDeathElementId(file.readUnsignedShort());
-            effectElement.setHitSolidElementId(file.readUnsignedShort());
-            effectElement.setHitWaterElementId(file.readUnsignedShort());
-            effectElement.setHitLavaElementId(file.readUnsignedShort());
-            effectElement.setColor(readColor(file));
-            effectElement.setRandomColorIndex(file.readUnsignedByte());
-            effectElement.setTableColorIndex(file.readUnsignedByte());
-            effectElement.setFadePercentage(file.readUnsignedByte());
-            effectElement.setNextEffectId(file.readUnsignedShort());
+            effectElement.setName(reader.readString(32).trim());
+            effectElement.setArtResource(readArtResource(reader));
+            effectElement.setMass(reader.readIntegerAsFloat());
+            effectElement.setAirFriction(reader.readIntegerAsDouble());
+            effectElement.setElasticity(reader.readIntegerAsDouble());
+            effectElement.setMinSpeedXy(reader.readIntegerAsFloat());
+            effectElement.setMaxSpeedXy(reader.readIntegerAsFloat());
+            effectElement.setMinSpeedYz(reader.readIntegerAsFloat());
+            effectElement.setMaxSpeedYz(reader.readIntegerAsFloat());
+            effectElement.setMinScale(reader.readIntegerAsFloat());
+            effectElement.setMaxScale(reader.readIntegerAsFloat());
+            effectElement.setScaleRatio(reader.readIntegerAsFloat());
+            effectElement.setFlags(reader.readIntegerAsFlag(EffectElement.EffectElementFlag.class));
+            effectElement.setEffectElementId(reader.readUnsignedShort());
+            effectElement.setMinHp(reader.readUnsignedShort());
+            effectElement.setMaxHp(reader.readUnsignedShort());
+            effectElement.setDeathElementId(reader.readUnsignedShort());
+            effectElement.setHitSolidElementId(reader.readUnsignedShort());
+            effectElement.setHitWaterElementId(reader.readUnsignedShort());
+            effectElement.setHitLavaElementId(reader.readUnsignedShort());
+            effectElement.setColor(readColor(reader));
+            effectElement.setRandomColorIndex(reader.readUnsignedByte());
+            effectElement.setTableColorIndex(reader.readUnsignedByte());
+            effectElement.setFadePercentage(reader.readUnsignedByte());
+            effectElement.setNextEffectId(reader.readUnsignedShort());
 
             // Add to the hash by the effect element ID
             effectElements.put(effectElement.getEffectElementId(), effectElement);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -1721,62 +1746,63 @@ public final class KwdFile {
             LOGGER.warning("Overrides effects!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             Effect effect = new Effect();
 
-            effect.setName(file.readString(32).trim());
-            effect.setArtResource(readArtResource(file));
-            effect.setLight(readLight(file));
-            effect.setMass(file.readIntegerAsFloat());
-            effect.setAirFriction(file.readIntegerAsDouble());
-            effect.setElasticity(file.readIntegerAsDouble());
-            effect.setRadius(file.readIntegerAsFloat());
-            effect.setMinSpeedXy(file.readIntegerAsFloat());
-            effect.setMaxSpeedXy(file.readIntegerAsFloat());
-            effect.setMinSpeedYz(file.readIntegerAsFloat());
-            effect.setMaxSpeedYz(file.readIntegerAsFloat());
-            effect.setMinScale(file.readIntegerAsFloat());
-            effect.setMaxScale(file.readIntegerAsFloat());
-            effect.setFlags(file.readIntegerAsFlag(Effect.EffectFlag.class));
-            effect.setEffectId(file.readUnsignedShort());
-            effect.setMinHp(file.readUnsignedShort());
-            effect.setMaxHp(file.readUnsignedShort());
-            effect.setFadeDuration(file.readUnsignedShort());
-            effect.setNextEffectId(file.readUnsignedShort());
-            effect.setDeathEffectId(file.readUnsignedShort());
-            effect.setHitSolidEffectId(file.readUnsignedShort());
-            effect.setHitWaterEffectId(file.readUnsignedShort());
-            effect.setHitLavaEffectId(file.readUnsignedShort());
+            effect.setName(reader.readString(32).trim());
+            effect.setArtResource(readArtResource(reader));
+            effect.setLight(readLight(reader));
+            effect.setMass(reader.readIntegerAsFloat());
+            effect.setAirFriction(reader.readIntegerAsDouble());
+            effect.setElasticity(reader.readIntegerAsDouble());
+            effect.setRadius(reader.readIntegerAsFloat());
+            effect.setMinSpeedXy(reader.readIntegerAsFloat());
+            effect.setMaxSpeedXy(reader.readIntegerAsFloat());
+            effect.setMinSpeedYz(reader.readIntegerAsFloat());
+            effect.setMaxSpeedYz(reader.readIntegerAsFloat());
+            effect.setMinScale(reader.readIntegerAsFloat());
+            effect.setMaxScale(reader.readIntegerAsFloat());
+            effect.setFlags(reader.readIntegerAsFlag(Effect.EffectFlag.class));
+            effect.setEffectId(reader.readUnsignedShort());
+            effect.setMinHp(reader.readUnsignedShort());
+            effect.setMaxHp(reader.readUnsignedShort());
+            effect.setFadeDuration(reader.readUnsignedShort());
+            effect.setNextEffectId(reader.readUnsignedShort());
+            effect.setDeathEffectId(reader.readUnsignedShort());
+            effect.setHitSolidEffectId(reader.readUnsignedShort());
+            effect.setHitWaterEffectId(reader.readUnsignedShort());
+            effect.setHitLavaEffectId(reader.readUnsignedShort());
             List<Integer> generateIds = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
-                int id = file.readUnsignedShort();
+                int id = reader.readUnsignedShort();
                 if (id > 0) {
                     generateIds.add(id);
                 }
             }
             effect.setGenerateIds(generateIds);
-            effect.setOuterOriginRange(file.readUnsignedShort());
-            effect.setLowerHeightLimit(file.readUnsignedShort());
-            effect.setUpperHeightLimit(file.readUnsignedShort());
-            effect.setOrientationRange(file.readUnsignedShort());
-            effect.setSpriteSpinRateRange(file.readUnsignedShort());
-            effect.setWhirlpoolRate(file.readUnsignedShort());
-            effect.setDirectionalSpread(file.readUnsignedShort());
-            effect.setCircularPathRate(file.readUnsignedShort());
-            effect.setInnerOriginRange(file.readUnsignedShort());
-            effect.setGenerateRandomness(file.readUnsignedShort());
-            effect.setMisc2(file.readUnsignedShort());
-            effect.setMisc3(file.readUnsignedShort());
-            effect.setGenerationType(file.readByteAsEnum(Effect.GenerationType.class));
-            effect.setElementsPerTurn(file.readUnsignedByte());
-            effect.setUnknown3(file.readUnsignedShort());
+            effect.setOuterOriginRange(reader.readUnsignedShort());
+            effect.setLowerHeightLimit(reader.readUnsignedShort());
+            effect.setUpperHeightLimit(reader.readUnsignedShort());
+            effect.setOrientationRange(reader.readUnsignedShort());
+            effect.setSpriteSpinRateRange(reader.readUnsignedShort());
+            effect.setWhirlpoolRate(reader.readUnsignedShort());
+            effect.setDirectionalSpread(reader.readUnsignedShort());
+            effect.setCircularPathRate(reader.readUnsignedShort());
+            effect.setInnerOriginRange(reader.readUnsignedShort());
+            effect.setGenerateRandomness(reader.readUnsignedShort());
+            effect.setMisc2(reader.readUnsignedShort());
+            effect.setMisc3(reader.readUnsignedShort());
+            effect.setGenerationType(reader.readByteAsEnum(Effect.GenerationType.class));
+            effect.setElementsPerTurn(reader.readUnsignedByte());
+            effect.setUnknown3(reader.readUnsignedShort());
 
             // Add to the hash by the effect ID
             effects.put(effect.getEffectId(), effect);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -1797,49 +1823,50 @@ public final class KwdFile {
             LOGGER.warning("Overrides keeper spells!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
             KeeperSpell keeperSpell = new KeeperSpell();
 
-            keeperSpell.setName(file.readString(32).trim());
-            keeperSpell.setGuiIcon(readArtResource(file));
-            keeperSpell.setEditorIcon(readArtResource(file));
-            keeperSpell.setXc8(file.readInteger());
-            keeperSpell.setRechargeTime(file.readIntegerAsFloat());
-            keeperSpell.setShotData1(file.readInteger());
-            keeperSpell.setShotData2(file.readInteger());
-            keeperSpell.setResearchTime(file.readUnsignedShort());
-            keeperSpell.setTargetRule(file.readByteAsEnum(KeeperSpell.TargetRule.class));
-            keeperSpell.setOrderInEditor(file.readUnsignedByte());
-            keeperSpell.setFlags(file.readIntegerAsFlag(KeeperSpell.KeeperSpellFlag.class));
-            keeperSpell.setXe0Unreferenced(file.readUnsignedShort());
-            keeperSpell.setManaDrain(file.readUnsignedShort());
-            keeperSpell.setTooltipStringId(file.readUnsignedShort());
-            keeperSpell.setNameStringId(file.readUnsignedShort());
-            keeperSpell.setGeneralDescriptionStringId(file.readUnsignedShort());
-            keeperSpell.setStrengthStringId(file.readUnsignedShort());
-            keeperSpell.setWeaknessStringId(file.readUnsignedShort());
-            keeperSpell.setKeeperSpellId(file.readUnsignedByte());
-            keeperSpell.setCastRule(file.readByteAsEnum(KeeperSpell.CastRule.class));
-            keeperSpell.setShotTypeId(file.readUnsignedByte());
+            keeperSpell.setName(reader.readString(32).trim());
+            keeperSpell.setGuiIcon(readArtResource(reader));
+            keeperSpell.setEditorIcon(readArtResource(reader));
+            keeperSpell.setXc8(reader.readInteger());
+            keeperSpell.setRechargeTime(reader.readIntegerAsFloat());
+            keeperSpell.setShotData1(reader.readInteger());
+            keeperSpell.setShotData2(reader.readInteger());
+            keeperSpell.setResearchTime(reader.readUnsignedShort());
+            keeperSpell.setTargetRule(reader.readByteAsEnum(KeeperSpell.TargetRule.class));
+            keeperSpell.setOrderInEditor(reader.readUnsignedByte());
+            keeperSpell.setFlags(reader.readIntegerAsFlag(KeeperSpell.KeeperSpellFlag.class));
+            keeperSpell.setXe0Unreferenced(reader.readUnsignedShort());
+            keeperSpell.setManaDrain(reader.readUnsignedShort());
+            keeperSpell.setTooltipStringId(reader.readUnsignedShort());
+            keeperSpell.setNameStringId(reader.readUnsignedShort());
+            keeperSpell.setGeneralDescriptionStringId(reader.readUnsignedShort());
+            keeperSpell.setStrengthStringId(reader.readUnsignedShort());
+            keeperSpell.setWeaknessStringId(reader.readUnsignedShort());
+            keeperSpell.setKeeperSpellId(reader.readUnsignedByte());
+            keeperSpell.setCastRule(reader.readByteAsEnum(KeeperSpell.CastRule.class));
+            keeperSpell.setShotTypeId(reader.readUnsignedByte());
 
-            keeperSpell.setSoundCategory(file.readString(32).trim());
-            keeperSpell.setBonusRTime(file.readUnsignedShort());
-            keeperSpell.setBonusShotTypeId(file.readUnsignedByte());
-            keeperSpell.setBonusShotData1(file.readInteger());
-            keeperSpell.setBonusShotData2(file.readInteger());
-            keeperSpell.setManaCost(file.readInteger());
-            keeperSpell.setBonusIcon(readArtResource(file));
+            keeperSpell.setSoundCategory(reader.readString(32).trim());
+            keeperSpell.setBonusRTime(reader.readUnsignedShort());
+            keeperSpell.setBonusShotTypeId(reader.readUnsignedByte());
+            keeperSpell.setBonusShotData1(reader.readInteger());
+            keeperSpell.setBonusShotData2(reader.readInteger());
+            keeperSpell.setManaCost(reader.readInteger());
+            keeperSpell.setBonusIcon(readArtResource(reader));
 
-            keeperSpell.setSoundCategoryGui(file.readString(32).trim());
-            keeperSpell.setHandAnimId(file.readByteAsEnum(KeeperSpell.HandAnimId.class));
-            keeperSpell.setNoGoHandAnimId(file.readByteAsEnum(KeeperSpell.HandAnimId.class));
+            keeperSpell.setSoundCategoryGui(reader.readString(32).trim());
+            keeperSpell.setHandAnimId(reader.readByteAsEnum(KeeperSpell.HandAnimId.class));
+            keeperSpell.setNoGoHandAnimId(reader.readByteAsEnum(KeeperSpell.HandAnimId.class));
 
             // Add to the hash by the keeper spell ID
             keeperSpells.put(keeperSpell.getKeeperSpellId(), keeperSpell);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -1860,13 +1887,14 @@ public final class KwdFile {
             LOGGER.warning("Overrides things!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
             Thing thing = null;
             int[] thingTag = new int[2];
             for (int x = 0; x < thingTag.length; x++) {
-                thingTag[x] = file.readUnsignedInteger();
+                thingTag[x] = reader.readUnsignedInteger();
             }
-            long offset = file.getFilePointer();
+            long offset = reader.position();
 
             // Figure out the type
             switch (thingTag[0]) {
@@ -1874,18 +1902,18 @@ public final class KwdFile {
 
                     // Object (door & trap crates, objects...)
                     thing = new Thing.Object();
-                    ((Thing.Object) thing).setPosX(file.readInteger());
-                    ((Thing.Object) thing).setPosY(file.readInteger());
+                    ((Thing.Object) thing).setPosX(reader.readInteger());
+                    ((Thing.Object) thing).setPosY(reader.readInteger());
                     short unknown1[] = new short[4];
                     for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = file.readUnsignedByte();
+                        unknown1[x] = reader.readUnsignedByte();
                     }
                     ((Thing.Object) thing).setUnknown1(unknown1);
-                    ((Thing.Object) thing).setKeeperSpellId(file.readInteger());
-                    ((Thing.Object) thing).setMoneyAmount(file.readInteger());
-                    ((Thing.Object) thing).setTriggerId(file.readUnsignedShort());
-                    ((Thing.Object) thing).setObjectId(file.readUnsignedByte());
-                    ((Thing.Object) thing).setPlayerId(file.readUnsignedByte());
+                    ((Thing.Object) thing).setKeeperSpellId(reader.readInteger());
+                    ((Thing.Object) thing).setMoneyAmount(reader.readInteger());
+                    ((Thing.Object) thing).setTriggerId(reader.readUnsignedShort());
+                    ((Thing.Object) thing).setObjectId(reader.readUnsignedByte());
+                    ((Thing.Object) thing).setPlayerId(reader.readUnsignedByte());
 
                     addThing((Thing.Object) thing);
                     break;
@@ -1894,13 +1922,13 @@ public final class KwdFile {
 
                     // Trap
                     thing = new Thing.Trap();
-                    ((Thing.Trap) thing).setPosX(file.readInteger());
-                    ((Thing.Trap) thing).setPosY(file.readInteger());
-                    ((Thing.Trap) thing).setUnknown1(file.readInteger());
-                    ((Thing.Trap) thing).setNumberOfShots(file.readUnsignedByte());
-                    ((Thing.Trap) thing).setTrapId(file.readUnsignedByte());
-                    ((Thing.Trap) thing).setPlayerId(file.readUnsignedByte());
-                    ((Thing.Trap) thing).setUnknown2(file.readUnsignedByte());
+                    ((Thing.Trap) thing).setPosX(reader.readInteger());
+                    ((Thing.Trap) thing).setPosY(reader.readInteger());
+                    ((Thing.Trap) thing).setUnknown1(reader.readInteger());
+                    ((Thing.Trap) thing).setNumberOfShots(reader.readUnsignedByte());
+                    ((Thing.Trap) thing).setTrapId(reader.readUnsignedByte());
+                    ((Thing.Trap) thing).setPlayerId(reader.readUnsignedByte());
+                    ((Thing.Trap) thing).setUnknown2(reader.readUnsignedByte());
 
                     addThing((Thing.Trap) thing);
                     break;
@@ -1909,16 +1937,16 @@ public final class KwdFile {
 
                     // Door
                     thing = new Thing.Door();
-                    ((Thing.Door) thing).setPosX(file.readInteger());
-                    ((Thing.Door) thing).setPosY(file.readInteger());
-                    ((Thing.Door) thing).setUnknown1(file.readInteger());
-                    ((Thing.Door) thing).setTriggerId(file.readUnsignedShort());
-                    ((Thing.Door) thing).setDoorId(file.readUnsignedByte());
-                    ((Thing.Door) thing).setPlayerId(file.readUnsignedByte());
-                    ((Thing.Door) thing).setFlag(file.readByteAsEnum(Thing.Door.DoorFlag.class));
+                    ((Thing.Door) thing).setPosX(reader.readInteger());
+                    ((Thing.Door) thing).setPosY(reader.readInteger());
+                    ((Thing.Door) thing).setUnknown1(reader.readInteger());
+                    ((Thing.Door) thing).setTriggerId(reader.readUnsignedShort());
+                    ((Thing.Door) thing).setDoorId(reader.readUnsignedByte());
+                    ((Thing.Door) thing).setPlayerId(reader.readUnsignedByte());
+                    ((Thing.Door) thing).setFlag(reader.readByteAsEnum(Thing.Door.DoorFlag.class));
                     short unknown2[] = new short[3];
                     for (int x = 0; x < unknown2.length; x++) {
-                        unknown2[x] = file.readUnsignedByte();
+                        unknown2[x] = reader.readUnsignedByte();
                     }
                     ((Thing.Door) thing).setUnknown2(unknown2);
 
@@ -1929,17 +1957,17 @@ public final class KwdFile {
 
                     // ActionPoint
                     thing = new ActionPoint();
-                    ((ActionPoint) thing).setStartX(file.readInteger());
-                    ((ActionPoint) thing).setStartY(file.readInteger());
-                    ((ActionPoint) thing).setEndX(file.readInteger());
-                    ((ActionPoint) thing).setEndY(file.readInteger());
-                    ((ActionPoint) thing).setWaitDelay(file.readUnsignedShort());
-                    ((ActionPoint) thing).setFlags(file.readShortAsFlag(ActionPointFlag.class));
-                    ((ActionPoint) thing).setTriggerId(file.readUnsignedShort());
-                    ((ActionPoint) thing).setId(file.readUnsignedByte());
-                    ((ActionPoint) thing).setNextWaypointId(file.readUnsignedByte());
+                    ((ActionPoint) thing).setStartX(reader.readInteger());
+                    ((ActionPoint) thing).setStartY(reader.readInteger());
+                    ((ActionPoint) thing).setEndX(reader.readInteger());
+                    ((ActionPoint) thing).setEndY(reader.readInteger());
+                    ((ActionPoint) thing).setWaitDelay(reader.readUnsignedShort());
+                    ((ActionPoint) thing).setFlags(reader.readShortAsFlag(ActionPointFlag.class));
+                    ((ActionPoint) thing).setTriggerId(reader.readUnsignedShort());
+                    ((ActionPoint) thing).setId(reader.readUnsignedByte());
+                    ((ActionPoint) thing).setNextWaypointId(reader.readUnsignedByte());
 
-                    ((ActionPoint) thing).setName(file.readString(32).trim());
+                    ((ActionPoint) thing).setName(reader.readString(32).trim());
 
                     addThing((Thing.ActionPoint) thing);
                     break;
@@ -1948,16 +1976,16 @@ public final class KwdFile {
 
                     // Neutral creature
                     thing = new Thing.NeutralCreature();
-                    ((NeutralCreature) thing).setPosX(file.readInteger());
-                    ((NeutralCreature) thing).setPosY(file.readInteger());
-                    ((NeutralCreature) thing).setPosZ(file.readInteger());
-                    ((NeutralCreature) thing).setGoldHeld(file.readUnsignedShort());
-                    ((NeutralCreature) thing).setLevel(file.readUnsignedByte());
-                    ((NeutralCreature) thing).setFlags(file.readByteAsFlag(Thing.Creature.CreatureFlag.class));
-                    ((NeutralCreature) thing).setInitialHealth(file.readInteger());
-                    ((NeutralCreature) thing).setTriggerId(file.readUnsignedShort());
-                    ((NeutralCreature) thing).setCreatureId(file.readUnsignedByte());
-                    ((NeutralCreature) thing).setUnknown1(file.readUnsignedByte());
+                    ((NeutralCreature) thing).setPosX(reader.readInteger());
+                    ((NeutralCreature) thing).setPosY(reader.readInteger());
+                    ((NeutralCreature) thing).setPosZ(reader.readInteger());
+                    ((NeutralCreature) thing).setGoldHeld(reader.readUnsignedShort());
+                    ((NeutralCreature) thing).setLevel(reader.readUnsignedByte());
+                    ((NeutralCreature) thing).setFlags(reader.readByteAsFlag(Thing.Creature.CreatureFlag.class));
+                    ((NeutralCreature) thing).setInitialHealth(reader.readInteger());
+                    ((NeutralCreature) thing).setTriggerId(reader.readUnsignedShort());
+                    ((NeutralCreature) thing).setCreatureId(reader.readUnsignedByte());
+                    ((NeutralCreature) thing).setUnknown1(reader.readUnsignedByte());
 
                     addThing((Thing.NeutralCreature) thing);
                     break;
@@ -1966,24 +1994,24 @@ public final class KwdFile {
 
                     // Good creature
                     thing = new Thing.GoodCreature();
-                    ((GoodCreature) thing).setPosX(file.readInteger());
-                    ((GoodCreature) thing).setPosY(file.readInteger());
-                    ((GoodCreature) thing).setPosZ(file.readInteger());
-                    ((GoodCreature) thing).setGoldHeld(file.readUnsignedShort());
-                    ((GoodCreature) thing).setLevel(file.readUnsignedByte());
-                    ((GoodCreature) thing).setFlags(file.readByteAsFlag(Thing.Creature.CreatureFlag.class));
-                    ((GoodCreature) thing).setObjectiveTargetActionPointId(file.readInteger());
-                    ((GoodCreature) thing).setInitialHealth(file.readInteger());
-                    ((GoodCreature) thing).setTriggerId(file.readUnsignedShort());
-                    ((GoodCreature) thing).setObjectiveTargetPlayerId(file.readUnsignedByte());
-                    ((GoodCreature) thing).setObjective(file.readByteAsEnum(Thing.HeroParty.Objective.class));
-                    ((GoodCreature) thing).setCreatureId(file.readUnsignedByte());
+                    ((GoodCreature) thing).setPosX(reader.readInteger());
+                    ((GoodCreature) thing).setPosY(reader.readInteger());
+                    ((GoodCreature) thing).setPosZ(reader.readInteger());
+                    ((GoodCreature) thing).setGoldHeld(reader.readUnsignedShort());
+                    ((GoodCreature) thing).setLevel(reader.readUnsignedByte());
+                    ((GoodCreature) thing).setFlags(reader.readByteAsFlag(Thing.Creature.CreatureFlag.class));
+                    ((GoodCreature) thing).setObjectiveTargetActionPointId(reader.readInteger());
+                    ((GoodCreature) thing).setInitialHealth(reader.readInteger());
+                    ((GoodCreature) thing).setTriggerId(reader.readUnsignedShort());
+                    ((GoodCreature) thing).setObjectiveTargetPlayerId(reader.readUnsignedByte());
+                    ((GoodCreature) thing).setObjective(reader.readByteAsEnum(Thing.HeroParty.Objective.class));
+                    ((GoodCreature) thing).setCreatureId(reader.readUnsignedByte());
                     short unknown1[] = new short[2];
                     for (int x = 0; x < unknown1.length; x++) {
-                        unknown1[x] = file.readUnsignedByte();
+                        unknown1[x] = reader.readUnsignedByte();
                     }
                     ((GoodCreature) thing).setUnknown1(unknown1);
-                    ((GoodCreature) thing).setFlags2(file.readByteAsFlag(Thing.Creature.CreatureFlag2.class));
+                    ((GoodCreature) thing).setFlags2(reader.readByteAsFlag(Thing.Creature.CreatureFlag2.class));
 
                     addThing((Thing.GoodCreature) thing);
                     break;
@@ -1992,17 +2020,17 @@ public final class KwdFile {
 
                     // Creature
                     thing = new Thing.KeeperCreature();
-                    ((KeeperCreature) thing).setPosX(file.readInteger());
-                    ((KeeperCreature) thing).setPosY(file.readInteger());
-                    ((KeeperCreature) thing).setPosZ(file.readInteger());
-                    ((KeeperCreature) thing).setGoldHeld(file.readUnsignedShort());
-                    ((KeeperCreature) thing).setLevel(file.readUnsignedByte());
-                    ((KeeperCreature) thing).setFlags(file.readByteAsFlag(KeeperCreature.CreatureFlag.class));
-                    ((KeeperCreature) thing).setInitialHealth(file.readInteger());
-                    ((KeeperCreature) thing).setObjectiveTargetActionPointId(file.readInteger());
-                    ((KeeperCreature) thing).setTriggerId(file.readUnsignedShort());
-                    ((KeeperCreature) thing).setCreatureId(file.readUnsignedByte());
-                    ((KeeperCreature) thing).setPlayerId(file.readUnsignedByte());
+                    ((KeeperCreature) thing).setPosX(reader.readInteger());
+                    ((KeeperCreature) thing).setPosY(reader.readInteger());
+                    ((KeeperCreature) thing).setPosZ(reader.readInteger());
+                    ((KeeperCreature) thing).setGoldHeld(reader.readUnsignedShort());
+                    ((KeeperCreature) thing).setLevel(reader.readUnsignedByte());
+                    ((KeeperCreature) thing).setFlags(reader.readByteAsFlag(KeeperCreature.CreatureFlag.class));
+                    ((KeeperCreature) thing).setInitialHealth(reader.readInteger());
+                    ((KeeperCreature) thing).setObjectiveTargetActionPointId(reader.readInteger());
+                    ((KeeperCreature) thing).setTriggerId(reader.readUnsignedShort());
+                    ((KeeperCreature) thing).setCreatureId(reader.readUnsignedByte());
+                    ((KeeperCreature) thing).setPlayerId(reader.readUnsignedByte());
 
                     addThing((Thing.KeeperCreature) thing);
                     break;
@@ -2012,32 +2040,32 @@ public final class KwdFile {
                     // HeroParty
                     thing = new HeroParty();
 
-                    ((HeroParty) thing).setName(file.readString(32).trim());
-                    ((HeroParty) thing).setTriggerId(file.readUnsignedShort());
-                    ((HeroParty) thing).setId(file.readUnsignedByte());
-                    ((HeroParty) thing).setX23(file.readInteger());
-                    ((HeroParty) thing).setX27(file.readInteger());
+                    ((HeroParty) thing).setName(reader.readString(32).trim());
+                    ((HeroParty) thing).setTriggerId(reader.readUnsignedShort());
+                    ((HeroParty) thing).setId(reader.readUnsignedByte());
+                    ((HeroParty) thing).setX23(reader.readInteger());
+                    ((HeroParty) thing).setX27(reader.readInteger());
                     List<GoodCreature> heroPartyMembers = new ArrayList<>(16);
                     for (int x = 0; x < 16; x++) {
                         GoodCreature creature = new GoodCreature();
-                        creature.setPosX(file.readInteger());
-                        creature.setPosY(file.readInteger());
-                        creature.setPosZ(file.readInteger());
-                        creature.setGoldHeld(file.readUnsignedShort());
-                        creature.setLevel(file.readUnsignedByte());
-                        creature.setFlags(file.readByteAsFlag(KeeperCreature.CreatureFlag.class));
-                        creature.setObjectiveTargetActionPointId(file.readInteger());
-                        creature.setInitialHealth(file.readInteger());
-                        creature.setTriggerId(file.readUnsignedShort());
-                        creature.setObjectiveTargetPlayerId(file.readUnsignedByte());
-                        creature.setObjective(file.readByteAsEnum(Thing.HeroParty.Objective.class));
-                        creature.setCreatureId(file.readUnsignedByte());
+                        creature.setPosX(reader.readInteger());
+                        creature.setPosY(reader.readInteger());
+                        creature.setPosZ(reader.readInteger());
+                        creature.setGoldHeld(reader.readUnsignedShort());
+                        creature.setLevel(reader.readUnsignedByte());
+                        creature.setFlags(reader.readByteAsFlag(KeeperCreature.CreatureFlag.class));
+                        creature.setObjectiveTargetActionPointId(reader.readInteger());
+                        creature.setInitialHealth(reader.readInteger());
+                        creature.setTriggerId(reader.readUnsignedShort());
+                        creature.setObjectiveTargetPlayerId(reader.readUnsignedByte());
+                        creature.setObjective(reader.readByteAsEnum(Thing.HeroParty.Objective.class));
+                        creature.setCreatureId(reader.readUnsignedByte());
                         short unknown1[] = new short[2];
                         for (int index = 0; index < unknown1.length; index++) {
-                            unknown1[index] = file.readUnsignedByte();
+                            unknown1[index] = reader.readUnsignedByte();
                         }
                         creature.setUnknown1(unknown1);
-                        creature.setFlags2(file.readByteAsFlag(Thing.Creature.CreatureFlag2.class));
+                        creature.setFlags2(reader.readByteAsFlag(Thing.Creature.CreatureFlag2.class));
 
                         // If creature id is 0, it is safe to say this is not a valid entry
                         if (creature.getCreatureId() > 0) {
@@ -2053,12 +2081,12 @@ public final class KwdFile {
 
                     // Dead body
                     thing = new Thing.DeadBody();
-                    ((Thing.DeadBody) thing).setPosX(file.readInteger());
-                    ((Thing.DeadBody) thing).setPosY(file.readInteger());
-                    ((Thing.DeadBody) thing).setPosZ(file.readInteger());
-                    ((Thing.DeadBody) thing).setGoldHeld(file.readUnsignedShort());
-                    ((Thing.DeadBody) thing).setCreatureId(file.readUnsignedByte());
-                    ((Thing.DeadBody) thing).setPlayerId(file.readUnsignedByte());
+                    ((Thing.DeadBody) thing).setPosX(reader.readInteger());
+                    ((Thing.DeadBody) thing).setPosY(reader.readInteger());
+                    ((Thing.DeadBody) thing).setPosZ(reader.readInteger());
+                    ((Thing.DeadBody) thing).setGoldHeld(reader.readUnsignedShort());
+                    ((Thing.DeadBody) thing).setCreatureId(reader.readUnsignedByte());
+                    ((Thing.DeadBody) thing).setPlayerId(reader.readUnsignedByte());
 
                     addThing((Thing.DeadBody) thing);
                     break;
@@ -2067,25 +2095,25 @@ public final class KwdFile {
 
                     // Effect generator
                     thing = new Thing.EffectGenerator();
-                    ((Thing.EffectGenerator) thing).setPosX(file.readInteger());
-                    ((Thing.EffectGenerator) thing).setPosY(file.readInteger());
-                    ((Thing.EffectGenerator) thing).setX08(file.readInteger());
-                    ((Thing.EffectGenerator) thing).setX0c(file.readInteger());
-                    ((Thing.EffectGenerator) thing).setX10(file.readUnsignedShort());
-                    ((Thing.EffectGenerator) thing).setX12(file.readUnsignedShort());
+                    ((Thing.EffectGenerator) thing).setPosX(reader.readInteger());
+                    ((Thing.EffectGenerator) thing).setPosY(reader.readInteger());
+                    ((Thing.EffectGenerator) thing).setX08(reader.readInteger());
+                    ((Thing.EffectGenerator) thing).setX0c(reader.readInteger());
+                    ((Thing.EffectGenerator) thing).setX10(reader.readUnsignedShort());
+                    ((Thing.EffectGenerator) thing).setX12(reader.readUnsignedShort());
                     List<Integer> effectIds = new ArrayList<>(4);
                     for (int x = 0; x < 4; x++) {
-                        int effectId = file.readUnsignedShort();
+                        int effectId = reader.readUnsignedShort();
                         if (effectId > 0) {
                             effectIds.add(effectId);
                         }
                     }
                     ((Thing.EffectGenerator) thing).setEffectIds(effectIds);
-                    ((Thing.EffectGenerator) thing).setFrequency(file.readUnsignedByte());
-                    ((Thing.EffectGenerator) thing).setId(file.readUnsignedByte());
+                    ((Thing.EffectGenerator) thing).setFrequency(reader.readUnsignedByte());
+                    ((Thing.EffectGenerator) thing).setId(reader.readUnsignedByte());
                     short[] pad = new short[6];
                     for (int x = 0; x < pad.length; x++) {
-                        pad[x] = file.readUnsignedByte();
+                        pad[x] = reader.readUnsignedByte();
                     }
                     ((Thing.EffectGenerator) thing).setPad(pad);
 
@@ -2096,15 +2124,15 @@ public final class KwdFile {
 
                     // Room
                     thing = new Thing.Room();
-                    ((Thing.Room) thing).setPosX(file.readInteger());
-                    ((Thing.Room) thing).setPosY(file.readInteger());
-                    ((Thing.Room) thing).setX08(file.readInteger());
-                    ((Thing.Room) thing).setX0c(file.readUnsignedShort());
-                    ((Thing.Room) thing).setDirection(file.readByteAsEnum(Thing.Room.Direction.class));
-                    ((Thing.Room) thing).setX0f(file.readUnsignedByte());
-                    ((Thing.Room) thing).setInitialHealth(file.readUnsignedShort());
-                    ((Thing.Room) thing).setRoomType(file.readByteAsEnum(Thing.Room.RoomType.class));
-                    ((Thing.Room) thing).setPlayerId(file.readUnsignedByte());
+                    ((Thing.Room) thing).setPosX(reader.readInteger());
+                    ((Thing.Room) thing).setPosY(reader.readInteger());
+                    ((Thing.Room) thing).setX08(reader.readInteger());
+                    ((Thing.Room) thing).setX0c(reader.readUnsignedShort());
+                    ((Thing.Room) thing).setDirection(reader.readByteAsEnum(Thing.Room.Direction.class));
+                    ((Thing.Room) thing).setX0f(reader.readUnsignedByte());
+                    ((Thing.Room) thing).setInitialHealth(reader.readUnsignedShort());
+                    ((Thing.Room) thing).setRoomType(reader.readByteAsEnum(Thing.Room.RoomType.class));
+                    ((Thing.Room) thing).setPlayerId(reader.readUnsignedByte());
 
                     addThing((Thing.Room) thing);
                     break;
@@ -2113,29 +2141,29 @@ public final class KwdFile {
 
                     // TODO: decode values
                     thing = new Thing.Camera();
-                    ((Thing.Camera) thing).setPosition(file.readIntegerAsFloat(),
-                            file.readIntegerAsFloat(),
-                            file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setPositionMinClipExtent(file.readIntegerAsFloat(),
-                            file.readIntegerAsFloat(),
-                            file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setPositionMaxClipExtent(file.readIntegerAsFloat(),
-                            file.readIntegerAsFloat(),
-                            file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setViewDistanceValue(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setViewDistanceMin(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setViewDistanceMax(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setZoomValue(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setZoomValueMin(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setZoomValueMax(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setLensValue(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setLensValueMin(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setLensValueMax(file.readIntegerAsFloat());
-                    ((Thing.Camera) thing).setFlags(file.readIntegerAsFlag(Thing.Camera.CameraFlag.class));
-                    ((Thing.Camera) thing).setAngleYaw(file.readUnsignedShort());
-                    ((Thing.Camera) thing).setAngleRoll(file.readUnsignedShort());
-                    ((Thing.Camera) thing).setAnglePitch(file.readUnsignedShort());
-                    ((Thing.Camera) thing).setId((short) file.readUnsignedShort());
+                    ((Thing.Camera) thing).setPosition(reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setPositionMinClipExtent(reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setPositionMaxClipExtent(reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat(),
+                            reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setViewDistanceValue(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setViewDistanceMin(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setViewDistanceMax(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setZoomValue(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setZoomValueMin(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setZoomValueMax(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setLensValue(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setLensValueMin(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setLensValueMax(reader.readIntegerAsFloat());
+                    ((Thing.Camera) thing).setFlags(reader.readIntegerAsFlag(Thing.Camera.CameraFlag.class));
+                    ((Thing.Camera) thing).setAngleYaw(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setAngleRoll(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setAnglePitch(reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setId((short) reader.readUnsignedShort());
 
                     addThing(thing);
                     break;
@@ -2143,13 +2171,13 @@ public final class KwdFile {
                 default: {
 
                     // Just skip the bytes
-                    file.skipBytes(thingTag[1]);
+                    reader.skipBytes(thingTag[1]);
                     LOGGER.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
                 }
             }
 
-            // Check file offset
-            file.checkOffset(thingTag[1], offset);
+            // Check reader offset
+            checkOffset(thingTag[1], reader, offset);
         }
     }
 
@@ -2179,53 +2207,54 @@ public final class KwdFile {
             LOGGER.warning("Overrides shots!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            long offset = file.getFilePointer();
+            long offset = reader.position();
 
             // One shot is 239 bytes
             Shot shot = new Shot();
 
-            shot.setName(file.readString(32).trim());
-            shot.setMeshResource(readArtResource(file));
-            shot.setLight(readLight(file));
-            shot.setAirFriction(file.readIntegerAsDouble());
-            shot.setMass(file.readIntegerAsFloat());
-            shot.setSpeed(file.readIntegerAsFloat());
-            shot.setData1(file.readUnsignedInteger());
-            shot.setData2(file.readUnsignedInteger());
-            shot.setShotProcessFlags(file.readIntegerAsFlag(Shot.ShotProcessFlag.class));
-            shot.setRadius(file.readIntegerAsFloat());
-            shot.setFlags(file.readIntegerAsFlag(Shot.ShotFlag.class));
-            shot.setGeneralEffectId(file.readUnsignedShort());
-            shot.setCreationEffectId(file.readUnsignedShort());
-            shot.setDeathEffectId(file.readUnsignedShort());
-            shot.setTimedEffectId(file.readUnsignedShort());
-            shot.setHitSolidEffectId(file.readUnsignedShort());
-            shot.setHitLavaEffectId(file.readUnsignedShort());
-            shot.setHitWaterEffect(file.readUnsignedShort());
-            shot.setHitThingEffectId(file.readUnsignedShort());
-            shot.setHealth(file.readUnsignedShort());
-            shot.setShotId(file.readUnsignedByte());
-            shot.setDeathShotId(file.readUnsignedByte());
-            shot.setTimedDelay(file.readUnsignedByte());
-            shot.setHitSolidShotId(file.readUnsignedByte());
-            shot.setHitLavaShotId(file.readUnsignedByte());
-            shot.setHitWaterShotId(file.readUnsignedByte());
-            shot.setHitThingShotId(file.readUnsignedByte());
-            shot.setDamageType(file.readByteAsEnum(Shot.DamageType.class));
-            shot.setCollideType(file.readByteAsEnum(Shot.CollideType.class));
-            shot.setProcessType(file.readByteAsEnum(Shot.ProcessType.class));
-            shot.setAttackCategory(file.readByteAsEnum(Shot.AttackCategory.class));
+            shot.setName(reader.readString(32).trim());
+            shot.setMeshResource(readArtResource(reader));
+            shot.setLight(readLight(reader));
+            shot.setAirFriction(reader.readIntegerAsDouble());
+            shot.setMass(reader.readIntegerAsFloat());
+            shot.setSpeed(reader.readIntegerAsFloat());
+            shot.setData1(reader.readUnsignedInteger());
+            shot.setData2(reader.readUnsignedInteger());
+            shot.setShotProcessFlags(reader.readIntegerAsFlag(Shot.ShotProcessFlag.class));
+            shot.setRadius(reader.readIntegerAsFloat());
+            shot.setFlags(reader.readIntegerAsFlag(Shot.ShotFlag.class));
+            shot.setGeneralEffectId(reader.readUnsignedShort());
+            shot.setCreationEffectId(reader.readUnsignedShort());
+            shot.setDeathEffectId(reader.readUnsignedShort());
+            shot.setTimedEffectId(reader.readUnsignedShort());
+            shot.setHitSolidEffectId(reader.readUnsignedShort());
+            shot.setHitLavaEffectId(reader.readUnsignedShort());
+            shot.setHitWaterEffect(reader.readUnsignedShort());
+            shot.setHitThingEffectId(reader.readUnsignedShort());
+            shot.setHealth(reader.readUnsignedShort());
+            shot.setShotId(reader.readUnsignedByte());
+            shot.setDeathShotId(reader.readUnsignedByte());
+            shot.setTimedDelay(reader.readUnsignedByte());
+            shot.setHitSolidShotId(reader.readUnsignedByte());
+            shot.setHitLavaShotId(reader.readUnsignedByte());
+            shot.setHitWaterShotId(reader.readUnsignedByte());
+            shot.setHitThingShotId(reader.readUnsignedByte());
+            shot.setDamageType(reader.readByteAsEnum(Shot.DamageType.class));
+            shot.setCollideType(reader.readByteAsEnum(Shot.CollideType.class));
+            shot.setProcessType(reader.readByteAsEnum(Shot.ProcessType.class));
+            shot.setAttackCategory(reader.readByteAsEnum(Shot.AttackCategory.class));
 
-            shot.setSoundCategory(file.readString(32).trim());
-            shot.setThreat(file.readUnsignedShort());
-            shot.setBurnDuration(file.readIntegerAsFloat());
+            shot.setSoundCategory(reader.readString(32).trim());
+            shot.setThreat(reader.readUnsignedShort());
+            shot.setBurnDuration(reader.readIntegerAsFloat());
 
             // Add to the hash by the shot ID
             shots.put(shot.getShotId(), shot);
 
-            // Check file offset
-            checkOffset(header, file, offset);
+            // Check reader offset
+            checkOffset(header, reader, offset);
         }
     }
 
@@ -2246,119 +2275,120 @@ public final class KwdFile {
             LOGGER.warning("Overrides triggers!");
         }
 
+        IResourceChunkReader reader = file.readChunk((int) header.size - header.headerSize);
         for (int i = 0; i < header.getItemCount(); i++) {
             Trigger trigger = null;
             int[] triggerTag = new int[2];
             for (int x = 0; x < triggerTag.length; x++) {
-                triggerTag[x] = file.readUnsignedInteger();
+                triggerTag[x] = reader.readUnsignedInteger();
             }
-            long offset = file.getFilePointer();
+            long offset = reader.position();
 
             // Figure out the type
             switch (triggerTag[0]) {
                 case TRIGGER_GENERIC: {
-                    long start = file.getFilePointer();
-                    file.seek(start + triggerTag[1] - 2);
+                    reader.mark();
+                    reader.skipBytes(triggerTag[1] - 2);
 
                     trigger = new TriggerGeneric(this);
-                    ((TriggerGeneric) trigger).setType(file.readByteAsEnum(TriggerGeneric.TargetType.class));
-                    trigger.setRepeatTimes(file.readUnsignedByte());
+                    ((TriggerGeneric) trigger).setType(reader.readByteAsEnum(TriggerGeneric.TargetType.class));
+                    trigger.setRepeatTimes(reader.readUnsignedByte());
 
-                    file.seek(start);
+                    reader.reset();
                     switch (((TriggerGeneric) trigger).getType()) {
                         case AP_CONGREGATE_IN:
                         case AP_POSESSED_CREATURE_ENTERS:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // creatureId, objectId
-                            trigger.setUserData("targetType", file.readUnsignedByte()); // 3 = Creature, 6 = Object
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // creatureId, objectId
+                            trigger.setUserData("targetType", reader.readUnsignedByte()); // 3 = Creature, 6 = Object
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case AP_SLAB_TYPES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("terrainId", file.readUnsignedByte());
-                            file.readAndCheckNull(1); // file.skipBytes(1); // 0 = None
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("terrainId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(1); // reader.skipBytes(1); // 0 = None
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case AP_TAG_PART_OF:
                         case AP_TAG_ALL_OF:
                         case AP_CLAIM_PART_OF:
                         case AP_CLAIM_ALL_OF:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            // trigger.setUserData("targetId", file.readUnsignedByte()); // 0 = None
-                            // trigger.setUserData("targetType", file.readUnsignedByte()); // 0 = None
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            // trigger.setUserData("targetId", reader.readUnsignedByte()); // 0 = None
+                            // trigger.setUserData("targetType", reader.readUnsignedByte()); // 0 = None
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PLAYER_DUNGEON_BREACHED:
                         case PLAYER_ENEMY_BREACHED:
-                            trigger.setUserData("playerId", file.readUnsignedByte()); // 0 = Any
-                            file.readAndCheckNull(7); // file.skipBytes(7);
+                            trigger.setUserData("playerId", reader.readUnsignedByte()); // 0 = Any
+                            reader.readAndCheckNull(7); // reader.skipBytes(7);
                             break;
 
                         case PLAYER_KILLED:
-                            trigger.setUserData("playerId", file.readUnsignedByte()); // 0 = Any
-                            file.readAndCheckNull(3); // file.skipBytes(7);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // FIXME unknown value
+                            trigger.setUserData("playerId", reader.readUnsignedByte()); // 0 = Any
+                            reader.readAndCheckNull(3); // reader.skipBytes(7);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
                             break;
 
                         case PLAYER_CREATURE_PICKED_UP:
                         case PLAYER_CREATURE_SLAPPED:
                         case PLAYER_CREATURE_SACKED:
-                            trigger.setUserData("creatureId", file.readUnsignedByte()); // 0 = Any
-                            file.readAndCheckNull(7); // file.skipBytes(7);
+                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                            reader.readAndCheckNull(7); // reader.skipBytes(7);
                             break;
 
                         case PLAYER_CREATURE_DROPPED:
-                            trigger.setUserData("creatureId", file.readUnsignedByte()); // 0 = Any
-                            trigger.setUserData("roomId", file.readUnsignedByte()); // 0 = Any
-                            file.readAndCheckNull(6); // file.skipBytes(6);
+                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                            trigger.setUserData("roomId", reader.readUnsignedByte()); // 0 = Any
+                            reader.readAndCheckNull(6); // reader.skipBytes(6);
                             break;
 
                         case PLAYER_CREATURES:
                         case PLAYER_HAPPY_CREATURES:
                         case PLAYER_ANGRY_CREATURES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("creatureId", file.readUnsignedByte());
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", reader.readUnsignedByte());
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PLAYER_CREATURES_KILLED:
                         case PLAYER_KILLS_CREATURES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // playerId
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // playerId
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PLAYER_ROOMS:
                         case PLAYER_ROOM_SLABS:
                         case PLAYER_ROOM_SIZE:
                         case PLAYER_ROOM_FURNITURE:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("roomId", file.readUnsignedByte());
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("roomId", reader.readUnsignedByte());
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PLAYER_DOORS:
                         case PLAYER_TRAPS:
                         case PLAYER_KEEPER_SPELL:
                         case PLAYER_DESTROYS:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // doorId, trapId, keeperSpellId,
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // doorId, trapId, keeperSpellId,
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PLAYER_SLAPS:
@@ -2367,21 +2397,21 @@ public final class KwdFile {
                         case PLAYER_MANA:
                         case PLAYER_CREATURES_GROUPED:
                         case PLAYER_CREATURES_DYING:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            file.readAndCheckNull(1); // file.skipBytes(1);
-                            // trigger.setUserData("targetId", file.readUnsignedByte()); // = 0
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            reader.readAndCheckNull(1); // reader.skipBytes(1);
+                            // trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PLAYER_CREATURES_AT_LEVEL:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             // FIXME some bug in editor
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // = 0, must be a level
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", file.readUnsignedByte()); // level also
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0, must be a level
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                            trigger.setUserData("playerId", reader.readUnsignedByte()); // level also
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case LEVEL_PAY_DAY:
@@ -2404,12 +2434,12 @@ public final class KwdFile {
                         case CREATURE_PICKS_UP_PORTAL_GEM:
                         case CREATURE_HUNGER_SATED:
                         case PARTY_CREATED:
-                            file.readAndCheckNull(8); // file.skipBytes(8);
+                            reader.readAndCheckNull(8); // reader.skipBytes(8);
                             break;
 
                         case CREATURE_CREATED:
-                            file.readAndCheckNull(4); // file.skipBytes(4);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // FIXME unknown value
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
                             break;
 
                         case LEVEL_PLAYED:
@@ -2419,96 +2449,96 @@ public final class KwdFile {
                         case CREATURE_HEALTH:
                         case LEVEL_TIME:
                         case LEVEL_CREATURES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            file.readAndCheckNull(3); // file.skipBytes(3);
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case PARTY_MEMBERS_KILLED:
                         case PARTY_MEMBERS_INCAPACITATED:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("unknown", file.readUnsignedByte()); // FIXME unknown value
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("unknown", reader.readUnsignedByte()); // FIXME unknown value
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case GUI_BUTTON_PRESSED:
                             // Misc Button = 0, Room = 1, Creature = 2, Door = 3, Trap = 4, Keeper Spell = 5
-                            trigger.setUserData("targetType", file.readUnsignedByte());
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // buttonId, roomId, creatureId ...
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // FIXME unknown value
+                            trigger.setUserData("targetType", reader.readUnsignedByte());
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // buttonId, roomId, creatureId ...
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
                             break;
 
                         case FLAG:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // flagId
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
-                            trigger.setUserData("flagId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // flagId
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
+                            trigger.setUserData("flagId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         case TIMER:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(file.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", file.readUnsignedByte()); // timerId
-                            trigger.setUserData("flag", file.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
-                            trigger.setUserData("timerId", file.readUnsignedByte());
-                            trigger.setUserData("value", file.readUnsignedInteger());
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // timerId
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
+                            trigger.setUserData("timerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
                         default:
-                            file.readAndCheckNull(8); // file.skipBytes(8);
+                            reader.readAndCheckNull(8); // reader.skipBytes(8);
                             LOGGER.warning("Unsupported Type of TriggerGeneric");
                             break;
 
                     }
 
-                    trigger.setId(file.readUnsignedShort());
-                    trigger.setIdNext(file.readUnsignedShort()); // SiblingID
-                    trigger.setIdChild(file.readUnsignedShort()); // ChildID
+                    trigger.setId(reader.readUnsignedShort());
+                    trigger.setIdNext(reader.readUnsignedShort()); // SiblingID
+                    trigger.setIdChild(reader.readUnsignedShort()); // ChildID
 
-                    file.skipBytes(2);
+                    reader.skipBytes(2);
                     break;
                 }
                 case TRIGGER_ACTION: {
 
-                    long start = file.getFilePointer();
-                    file.seek(start + triggerTag[1] - 2);
+                    reader.mark();
+                    reader.skipBytes(triggerTag[1] - 2);
 
                     trigger = new TriggerAction(this);
-                    ((TriggerAction) trigger).setType(file.readByteAsEnum(TriggerAction.ActionType.class));
-                    trigger.setRepeatTimes(file.readUnsignedByte());
+                    ((TriggerAction) trigger).setType(reader.readByteAsEnum(TriggerAction.ActionType.class));
+                    trigger.setRepeatTimes(reader.readUnsignedByte());
 
-                    file.seek(start);
+                    reader.reset();
                     switch (((TriggerAction) trigger).getType()) {
                         // in levels triggers
                         case ALTER_TERRAIN_TYPE:
-                            trigger.setUserData("terrainId", file.readUnsignedByte());
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("posX", file.readUnsignedShort());
-                            trigger.setUserData("posY", file.readUnsignedShort());
+                            trigger.setUserData("terrainId", reader.readUnsignedByte());
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("posX", reader.readUnsignedShort());
+                            trigger.setUserData("posY", reader.readUnsignedShort());
                             break;
 
                         case COLLAPSE_HERO_GATE:
-                            file.readAndCheckNull(4); // file.skipBytes(4);
-                            trigger.setUserData("posX", file.readUnsignedShort());
-                            trigger.setUserData("posY", file.readUnsignedShort());
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
+                            trigger.setUserData("posX", reader.readUnsignedShort());
+                            trigger.setUserData("posY", reader.readUnsignedShort());
                             break;
 
                         case CHANGE_ROOM_OWNER:
-                            file.readAndCheckNull(1); // file.skipBytes(1);
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("posX", file.readUnsignedShort());
-                            trigger.setUserData("posY", file.readUnsignedShort());
+                            reader.readAndCheckNull(1); // reader.skipBytes(1);
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("posX", reader.readUnsignedShort());
+                            trigger.setUserData("posY", reader.readUnsignedShort());
                             break;
 
                         case SET_ALLIANCE:
-                            trigger.setUserData("playerOneId", file.readUnsignedByte());
-                            trigger.setUserData("playerTwoId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Create, !0 = Break
-                            file.readAndCheckNull(5); // file.skipBytes(5);
+                            trigger.setUserData("playerOneId", reader.readUnsignedByte());
+                            trigger.setUserData("playerTwoId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Create, !0 = Break
+                            reader.readAndCheckNull(5); // reader.skipBytes(5);
                             break;
 
                         case SET_CREATURE_MOODS:
@@ -2518,68 +2548,68 @@ public final class KwdFile {
                         case ALTER_SPEED:  // 0 = Walk, !0 = Run
                         case SET_FIGHT_FLAG: // 0 = Don`t Fight, !0 = Fight
                         case SET_PORTAL_STATUS: // 0 = Closed, !0 = Open
-                            trigger.setUserData("available", file.readUnsignedByte());  // 0 = Off, !0 = On
-                            file.readAndCheckNull(7); // file.skipBytes(7);
+                            trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
+                            reader.readAndCheckNull(7); // reader.skipBytes(7);
                             break;
 
                         case SET_SLAPS_LIMIT:
-                            file.readAndCheckNull(4); // file.skipBytes(4);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // limit 4 bytes, 0 = Off
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes, 0 = Off
                             break;
 
                         case INITIALIZE_TIMER:
-                            trigger.setUserData("timerId", file.readUnsignedByte()); // timerId + 1, 16 - Time Limit
-                            file.readAndCheckNull(3); // file.skipBytes(3);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // limit 4 bytes, only for Time limit (max 100 s)
+                            trigger.setUserData("timerId", reader.readUnsignedByte()); // timerId + 1, 16 - Time Limit
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes, only for Time limit (max 100 s)
                             break;
 
                         case FLAG:
-                            trigger.setUserData("flagId", file.readUnsignedByte()); // flagId + 1, 128 - level score
-                            trigger.setUserData("flag", file.readUnsignedByte()); // flag = Equal = 12 | Plus = 20 | Minus = 36
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // limit 4 bytes
+                            trigger.setUserData("flagId", reader.readUnsignedByte()); // flagId + 1, 128 - level score
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // flag = Equal = 12 | Plus = 20 | Minus = 36
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes
                             break;
 
                         case MAKE:
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("type", file.readUnsignedByte()); // type = TriggerAction.MakeType.
-                            trigger.setUserData("targetId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Unavailable, !0 = Available
-                            file.readAndCheckNull(4); // file.skipBytes(4);
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("type", reader.readUnsignedByte()); // type = TriggerAction.MakeType.
+                            trigger.setUserData("targetId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Unavailable, !0 = Available
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
                             break;
                         // in player triggers
                         case DISPLAY_SLAB_OWNER:
                             // FIXME Show wrong values in editor
-                            trigger.setUserData("available", file.readUnsignedByte());  // 0 = Off, !0 = On
-                            //((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.toUnsignedInteger(file)); // limit 4 bytes
+                            trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
+                            //((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.toUnsignedInteger(reader)); // limit 4 bytes
                             // 1635984
-                            file.readAndCheckNull(7); // file.skipBytes(7);
+                            reader.readAndCheckNull(7); // reader.skipBytes(7);
                             break;
 
                         case DISPLAY_NEXT_ROOM_TYPE: // 0 = Off or roomId
                         case MAKE_OBJECTIVE: // 0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert
                         case ZOOM_TO_ACTION_POINT: // actionPointId
-                            trigger.setUserData("targetId", file.readUnsignedByte());
-                            file.readAndCheckNull(7); // file.skipBytes(7);
+                            trigger.setUserData("targetId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(7); // reader.skipBytes(7);
                             break;
 
                         case DISPLAY_OBJECTIVE:
-                            trigger.setUserData("objectiveId", file.readUnsignedInteger()); // objectiveId, limit 32767
-                            trigger.setUserData("actionPointId", file.readUnsignedByte()); // if != 0 => Zoom To AP = this
-                            file.readAndCheckNull(3); // file.skipBytes(3);
+                            trigger.setUserData("objectiveId", reader.readUnsignedInteger()); // objectiveId, limit 32767
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte()); // if != 0 => Zoom To AP = this
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
                             break;
 
                         case PLAY_SPEECH:
-                            trigger.setUserData("speechId", file.readUnsignedInteger()); // speechId, limit 32767
-                            trigger.setUserData("text", file.readUnsignedByte()); // 0 = Show Text, !0 = Without text
-                            trigger.setUserData("introduction", file.readUnsignedByte()); // 0 = No Introduction, !0 = Introduction
-                            trigger.setUserData("pathId", file.readUnsignedShort()); // pathId
+                            trigger.setUserData("speechId", reader.readUnsignedInteger()); // speechId, limit 32767
+                            trigger.setUserData("text", reader.readUnsignedByte()); // 0 = Show Text, !0 = Without text
+                            trigger.setUserData("introduction", reader.readUnsignedByte()); // 0 = No Introduction, !0 = Introduction
+                            trigger.setUserData("pathId", reader.readUnsignedShort()); // pathId
                             break;
 
                         case DISPLAY_TEXT_STRING:
-                            trigger.setUserData("textId", file.readUnsignedInteger()); // textId, limit 32767
+                            trigger.setUserData("textId", reader.readUnsignedInteger()); // textId, limit 32767
                             // FIXME Maybe Zoom to AP X
-                            file.readAndCheckNull(4); // file.skipBytes(4);
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
                             break;
                         // creature triggers
                         case ATTACH_PORTAL_GEM:
@@ -2591,129 +2621,129 @@ public final class KwdFile {
                         case FORCE_FIRST_PERSON:
                         case LOSE_SUBOBJECTIVE:
                         case WIN_SUBOBJECTIVE:
-                            file.readAndCheckNull(8); // file.skipBytes(8); // no other parameters
+                            reader.readAndCheckNull(8); // reader.skipBytes(8); // no other parameters
                             break;
 
                         case SET_MUSIC_LEVEL: // level
                         case SHOW_HEALTH_FLOWER: // limit Seconds
-                            trigger.setUserData("value", file.readUnsignedInteger());
-                            file.readAndCheckNull(4); // file.skipBytes(4);
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
                             break;
 
                         case SET_TIME_LIMIT:
-                            trigger.setUserData("timerId", file.readUnsignedByte()); // timerId + 1, 16 - Time Limit
-                            file.readAndCheckNull(3); // file.skipBytes(3);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // Seconds
+                            trigger.setUserData("timerId", reader.readUnsignedByte()); // timerId + 1, 16 - Time Limit
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
                             break;
 
                         case FOLLOW_CAMERA_PATH:
-                            trigger.setUserData("pathId", file.readUnsignedByte());
-                            trigger.setUserData("actionPointId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Show Ceiling, !0 = Hide Ceiling
-                            file.readAndCheckNull(5); // file.skipBytes(5);
+                            trigger.setUserData("pathId", reader.readUnsignedByte());
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Show Ceiling, !0 = Hide Ceiling
+                            reader.readAndCheckNull(5); // reader.skipBytes(5);
                             break;
 
                         case FLASH_BUTTON:
-                            trigger.setUserData("type", file.readUnsignedByte()); // TriggerAction.MakeType.
-                            trigger.setUserData("targetId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Off, !0 & !time = Until selected
-                            file.readAndCheckNull(1); // file.skipBytes(1);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // Seconds
+                            trigger.setUserData("type", reader.readUnsignedByte()); // TriggerAction.MakeType.
+                            trigger.setUserData("targetId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 & !time = Until selected
+                            reader.readAndCheckNull(1); // reader.skipBytes(1);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
                             break;
 
                         case FLASH_ACTION_POINT:
-                            trigger.setUserData("actionPointId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Off, !0 & !time = Until switched off
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("value", file.readUnsignedInteger()); // Seconds
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 & !time = Until switched off
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
                             break;
 
                         case REVEAL_ACTION_POINT:
-                            trigger.setUserData("actionPointId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Reveal, !0 = Conceal
-                            file.readAndCheckNull(6); // file.skipBytes(6);
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Reveal, !0 = Conceal
+                            reader.readAndCheckNull(6); // reader.skipBytes(6);
                             break;
 
                         case ROTATE_AROUND_ACTION_POINT:
-                            trigger.setUserData("actionPointId", file.readUnsignedByte());
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Relative, !0 = Absolute
-                            trigger.setUserData("angle", file.readUnsignedShort()); // degrees
-                            trigger.setUserData("time", file.readUnsignedInteger()); // seconds
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Relative, !0 = Absolute
+                            trigger.setUserData("angle", reader.readUnsignedShort()); // degrees
+                            trigger.setUserData("time", reader.readUnsignedInteger()); // seconds
                             break;
 
                         case CREATE_CREATURE:
-                            trigger.setUserData("creatureId", file.readUnsignedByte());
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("level", file.readUnsignedByte());
-                            trigger.setUserData("flag", file.readUnsignedByte()); // TriggerAction.CreatureFlag.
-                            trigger.setUserData("posX", file.readUnsignedShort());
-                            trigger.setUserData("posY", file.readUnsignedShort());
+                            trigger.setUserData("creatureId", reader.readUnsignedByte());
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("level", reader.readUnsignedByte());
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // TriggerAction.CreatureFlag.
+                            trigger.setUserData("posX", reader.readUnsignedShort());
+                            trigger.setUserData("posY", reader.readUnsignedShort());
                             break;
 
                         case SET_OBJECTIVE:
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            trigger.setUserData("type", file.readUnsignedByte()); // Creature.JobType
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("actionPointId", file.readUnsignedInteger()); // for type = SEND_TO_ACTION_POINT
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("type", reader.readUnsignedByte()); // Creature.JobType
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("actionPointId", reader.readUnsignedInteger()); // for type = SEND_TO_ACTION_POINT
                             break;
 
                         case CREATE_HERO_PARTY:
-                            trigger.setUserData("partyId", file.readUnsignedByte()); // partyId + 1
-                            trigger.setUserData("type", file.readUnsignedByte()); // 0 = None, 1 = IP, 2 = IP Random
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("actionPointId", file.readUnsignedByte()); //
-                            file.readAndCheckNull(3); // file.skipBytes(3);
+                            trigger.setUserData("partyId", reader.readUnsignedByte()); // partyId + 1
+                            trigger.setUserData("type", reader.readUnsignedByte()); // 0 = None, 1 = IP, 2 = IP Random
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte()); //
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
                             break;
 
                         case TOGGLE_EFFECT_GENERATOR:
-                            trigger.setUserData("generatorId", file.readUnsignedByte()); // generatorId + 1
-                            trigger.setUserData("available", file.readUnsignedByte()); // 0 = Off, !0 = On
-                            file.readAndCheckNull(6); // file.skipBytes(6);
+                            trigger.setUserData("generatorId", reader.readUnsignedByte()); // generatorId + 1
+                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 = On
+                            reader.readAndCheckNull(6); // reader.skipBytes(6);
                             break;
 
                         case GENERATE_CREATURE:
-                            trigger.setUserData("creatureId", file.readUnsignedByte()); // creatureId + 1
-                            trigger.setUserData("level", file.readUnsignedByte());
-                            file.readAndCheckNull(6); // file.skipBytes(6);
+                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // creatureId + 1
+                            trigger.setUserData("level", reader.readUnsignedByte());
+                            reader.readAndCheckNull(6); // reader.skipBytes(6);
                             break;
 
                         case INFORMATION:
-                            trigger.setUserData("informationId", file.readUnsignedInteger());
-                            trigger.setUserData("actionPointId", file.readUnsignedByte());
-                            file.readAndCheckNull(3); // file.skipBytes(3);
+                            trigger.setUserData("informationId", reader.readUnsignedInteger());
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
                             break;
 
                         case SEND_TO_AP:
-                            file.readAndCheckNull(4); // file.skipBytes(4);
-                            trigger.setUserData("actionPointId", file.readUnsignedByte());
-                            file.readAndCheckNull(3); // file.skipBytes(3);
+                            reader.readAndCheckNull(4); // reader.skipBytes(4);
+                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(3); // reader.skipBytes(3);
                             break;
 
                         case CREATE_PORTAL_GEM:
-                            trigger.setUserData("objectId", file.readUnsignedByte());
-                            trigger.setUserData("playerId", file.readUnsignedByte());
-                            file.readAndCheckNull(2); // file.skipBytes(2);
-                            trigger.setUserData("posX", file.readUnsignedShort()); // posX + 1
-                            trigger.setUserData("posY", file.readUnsignedShort()); // posY + 1
+                            trigger.setUserData("objectId", reader.readUnsignedByte());
+                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(2); // reader.skipBytes(2);
+                            trigger.setUserData("posX", reader.readUnsignedShort()); // posX + 1
+                            trigger.setUserData("posY", reader.readUnsignedShort()); // posY + 1
                             break;
 
                         default:
-                            file.readAndCheckNull(8); // file.skipBytes(8);
+                            reader.readAndCheckNull(8); // reader.skipBytes(8);
                             LOGGER.warning("Unsupported Type of TriggerAction");
                             break;
                     }
 
-                    trigger.setId(file.readUnsignedShort()); // ID
-                    trigger.setIdNext(file.readUnsignedShort()); // SiblingID
-                    trigger.setIdChild(file.readUnsignedShort()); // ChildID
+                    trigger.setId(reader.readUnsignedShort()); // ID
+                    trigger.setIdNext(reader.readUnsignedShort()); // SiblingID
+                    trigger.setIdChild(reader.readUnsignedShort()); // ChildID
 
-                    file.skipBytes(2);
+                    reader.skipBytes(2);
                     break;
                 }
                 default: {
 
                     // Just skip the bytes
-                    file.skipBytes(triggerTag[1]);
+                    reader.skipBytes(triggerTag[1]);
                     LOGGER.log(Level.WARNING, "Unsupported trigger type {0}!", triggerTag[0]);
                 }
             }
@@ -2723,8 +2753,8 @@ public final class KwdFile {
                 triggers.put(trigger.getId(), trigger);
             }
 
-            // Check file offset
-            file.checkOffset(triggerTag[1], offset);
+            // Check reader offset
+            checkOffset(triggerTag[1], reader, offset);
         }
     }
 
@@ -2752,15 +2782,16 @@ public final class KwdFile {
             LOGGER.info("Overrides variables!");
         }
 
+        IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
-            int id = file.readInteger();
+            int id = reader.readInteger();
 
             switch (id) {
                 case Variable.CREATURE_POOL:
                     Variable.CreaturePool creaturePool = new Variable.CreaturePool();
-                    creaturePool.setCreatureId(file.readInteger());
-                    creaturePool.setValue(file.readInteger());
-                    creaturePool.setPlayerId(file.readInteger());
+                    creaturePool.setCreatureId(reader.readInteger());
+                    creaturePool.setValue(reader.readInteger());
+                    creaturePool.setPlayerId(reader.readInteger());
 
                     // Add
                     Map<Integer, CreaturePool> playerCreaturePool = creaturePools.get(creaturePool.getPlayerId());
@@ -2773,10 +2804,10 @@ public final class KwdFile {
 
                 case Variable.AVAILABILITY:
                     Variable.Availability availability = new Variable.Availability();
-                    availability.setType(file.readShortAsEnum(Variable.Availability.AvailabilityType.class));
-                    availability.setPlayerId(file.readUnsignedShort());
-                    availability.setTypeId(file.readInteger());
-                    availability.setValue(file.readIntegerAsEnum(Variable.Availability.AvailabilityValue.class));
+                    availability.setType(reader.readShortAsEnum(Variable.Availability.AvailabilityType.class));
+                    availability.setPlayerId(reader.readUnsignedShort());
+                    availability.setTypeId(reader.readInteger());
+                    availability.setValue(reader.readIntegerAsEnum(Variable.Availability.AvailabilityValue.class));
 
                     // Add
                     availabilities.add(availability);
@@ -2784,16 +2815,16 @@ public final class KwdFile {
 
                 case Variable.SACRIFICES_ID: // not changeable (in editor you can, but changes will not save)
                     Variable.Sacrifice sacrifice = new Variable.Sacrifice();
-                    sacrifice.setType1(file.readByteAsEnum(Variable.SacrificeType.class));
-                    sacrifice.setId1(file.readUnsignedByte());
-                    sacrifice.setType2(file.readByteAsEnum(Variable.SacrificeType.class));
-                    sacrifice.setId2(file.readUnsignedByte());
-                    sacrifice.setType3(file.readByteAsEnum(Variable.SacrificeType.class));
-                    sacrifice.setId3(file.readUnsignedByte());
+                    sacrifice.setType1(reader.readByteAsEnum(Variable.SacrificeType.class));
+                    sacrifice.setId1(reader.readUnsignedByte());
+                    sacrifice.setType2(reader.readByteAsEnum(Variable.SacrificeType.class));
+                    sacrifice.setId2(reader.readUnsignedByte());
+                    sacrifice.setType3(reader.readByteAsEnum(Variable.SacrificeType.class));
+                    sacrifice.setId3(reader.readUnsignedByte());
 
-                    sacrifice.setRewardType(file.readByteAsEnum(Variable.SacrificeRewardType.class));
-                    sacrifice.setSpeechId(file.readUnsignedByte());
-                    sacrifice.setRewardValue(file.readInteger());
+                    sacrifice.setRewardType(reader.readByteAsEnum(Variable.SacrificeRewardType.class));
+                    sacrifice.setSpeechId(reader.readUnsignedByte());
+                    sacrifice.setRewardValue(reader.readInteger());
 
                     // Add
                     sacrifices.add(sacrifice);
@@ -2801,9 +2832,9 @@ public final class KwdFile {
 
                 case Variable.CREATURE_STATS_ID:
                     Variable.CreatureStats creatureStats = new Variable.CreatureStats();
-                    creatureStats.setStatId(file.readIntegerAsEnum(Variable.CreatureStats.StatType.class));
-                    creatureStats.setValue(file.readInteger());
-                    creatureStats.setLevel(file.readInteger());
+                    creatureStats.setStatId(reader.readIntegerAsEnum(Variable.CreatureStats.StatType.class));
+                    creatureStats.setValue(reader.readInteger());
+                    creatureStats.setLevel(reader.readInteger());
 
                     // Add
                     Map<StatType, CreatureStats> stats = creatureStatistics.get(creatureStats.getLevel());
@@ -2816,9 +2847,9 @@ public final class KwdFile {
 
                 case Variable.CREATURE_FIRST_PERSON_ID:
                     Variable.CreatureFirstPerson creatureFirstPerson = new Variable.CreatureFirstPerson();
-                    creatureFirstPerson.setStatId(file.readIntegerAsEnum(Variable.CreatureStats.StatType.class));
-                    creatureFirstPerson.setValue(file.readInteger());
-                    creatureFirstPerson.setLevel(file.readInteger());
+                    creatureFirstPerson.setStatId(reader.readIntegerAsEnum(Variable.CreatureStats.StatType.class));
+                    creatureFirstPerson.setValue(reader.readInteger());
+                    creatureFirstPerson.setLevel(reader.readInteger());
 
                     // Add
                     Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
@@ -2835,9 +2866,9 @@ public final class KwdFile {
                 case Variable.UNKNOWN_77: // FIXME unknownn value
                     Variable.Unknown unknown = new Variable.Unknown();
                     unknown.setVariableId(id);
-                    unknown.setValue(file.readInteger());
-                    unknown.setUnknown1(file.readInteger());
-                    unknown.setUnknown2(file.readInteger());
+                    unknown.setValue(reader.readInteger());
+                    unknown.setUnknown1(reader.readInteger());
+                    unknown.setUnknown2(reader.readInteger());
 
                     // Add
                     unknownVariables.add(unknown);
@@ -2847,9 +2878,9 @@ public final class KwdFile {
                     Variable.MiscVariable miscVariable = new Variable.MiscVariable();
                     miscVariable.setVariableId(ConversionUtils.parseEnum(id,
                             Variable.MiscVariable.MiscType.class));
-                    miscVariable.setValue(file.readInteger());
-                    miscVariable.setUnknown1(file.readInteger());
-                    miscVariable.setUnknown2(file.readInteger());
+                    miscVariable.setValue(reader.readInteger());
+                    miscVariable.setUnknown1(reader.readInteger());
+                    miscVariable.setUnknown2(reader.readInteger());
 
                     // Add
                     variables.put(miscVariable.getVariableId(), miscVariable);
@@ -3178,11 +3209,32 @@ public final class KwdFile {
      * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
      * long)
      * @param header the header
-     * @param file the file
+     * @param reader the buffer
      * @param offset the file offset before the last item was read
      */
-    private void checkOffset(KwdHeader header, IResourceReader file, long offset) throws IOException {
-        file.checkOffset(header.getItemSize(), offset);
+    private void checkOffset(KwdHeader header, IResourceChunkReader reader, long offset) throws IOException {
+        checkOffset(header.getItemSize(), reader, offset);
+    }
+
+    /**
+     * Not all the data types are of the length that suits us, do our best to
+     * ignore it<br>
+     * Skips the file to the correct position after an item is read<br>
+     * <b>Use this with the common types!</b>
+     *
+     * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
+     * long)
+     * @param itemSize the item size
+     * @param reader the buffer
+     * @param offset the file offset before the last item was read
+     */
+    private void checkOffset(long itemSize, IResourceChunkReader reader, long offset) throws IOException {
+        long expected = offset + itemSize;
+        if (reader.position() != expected) {
+            LOGGER.log(Level.WARNING, "Record size differs from expected! Buffer offset is {0} and should be {1}!",
+                    new Object[]{reader.position(), expected});
+            reader.position((int) expected);
+        }
     }
 
     /**
@@ -3332,6 +3384,11 @@ public final class KwdFile {
          */
         public long getItemSize() {
             return (getSize() - getHeaderSize()) / getItemCount();
+        }
+
+        @Override
+        public String toString() {
+            return "KwdHeader{" + "id=" + id + ", itemCount=" + itemCount + ", width=" + width + ", height=" + height + ", dateCreated=" + dateCreated + ", dateModified=" + dateModified + '}';
         }
     }
 }

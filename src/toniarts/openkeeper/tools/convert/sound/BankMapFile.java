@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.sound;
 
 import java.io.File;
 import java.io.IOException;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 
@@ -51,14 +52,16 @@ public class BankMapFile {
     public BankMapFile(File file) {
         this.file = file;
 
-        //Read the file
+        // Read the file
         try (IResourceReader rawMap = new ResourceReader(file)) {
-            //Header
+
+            // Header
+            IResourceChunkReader rawMapReader = rawMap.readChunk(28);
             int[] check = new int[]{
-                rawMap.readInteger(),
-                rawMap.readInteger(),
-                rawMap.readInteger(),
-                rawMap.readInteger()
+                rawMapReader.readInteger(),
+                rawMapReader.readInteger(),
+                rawMapReader.readInteger(),
+                rawMapReader.readInteger()
             };
             for (int i = 0; i < HEADER_ID.length; i++) {
                 if (check[i] != HEADER_ID[i]) {
@@ -66,30 +69,32 @@ public class BankMapFile {
                 }
             }
 
-            unknown1 = rawMap.readUnsignedInteger();
-            unknown2 = rawMap.readUnsignedIntegerAsLong();
-            int count = rawMap.readUnsignedInteger();
+            unknown1 = rawMapReader.readUnsignedInteger();
+            unknown2 = rawMapReader.readUnsignedIntegerAsLong();
+            int count = rawMapReader.readUnsignedInteger();
 
-            //Read the entries
+            // Read the entries
+            rawMapReader = rawMap.readChunk(11 * count);
             entries = new BankMapFileEntry[count];
             for (int i = 0; i < entries.length; i++) {
 
-                //Entries are 11 bytes of size
+                // Entries are 11 bytes of size
                 BankMapFileEntry entry = new BankMapFileEntry();
-                entry.setUnknown1(rawMap.readUnsignedIntegerAsLong());
-                entry.setUnknown2(rawMap.readInteger());
-                entry.setUnknown3(rawMap.readUnsignedShort());
-                entry.setUnknown4(rawMap.readUnsignedByte());
+                entry.setUnknown1(rawMapReader.readUnsignedIntegerAsLong());
+                entry.setUnknown2(rawMapReader.readInteger());
+                entry.setUnknown3(rawMapReader.readUnsignedShort());
+                entry.setUnknown4(rawMapReader.readUnsignedByte());
 
                 entries[i] = entry;
             }
 
             // After the entries there are names (that point to the SDT archives it seems)
             // It seems the amount is the same as entries
+            rawMapReader = rawMap.readAll();
             for (BankMapFileEntry entry : entries) {
                 // 4 bytes = length of the name (including the null terminator)
-                int length = rawMap.readUnsignedInteger();
-                entry.setName(rawMap.readString(length).trim());
+                int length = rawMapReader.readUnsignedInteger();
+                entry.setName(rawMapReader.readString(length).trim());
             }
 
         } catch (IOException e) {

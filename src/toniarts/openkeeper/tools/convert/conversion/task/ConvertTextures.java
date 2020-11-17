@@ -136,6 +136,7 @@ public class ConvertTextures extends ConversionTask {
             Matcher matcher = pattern.matcher(textureFile);
             boolean found = matcher.find();
             if (found && Integer.parseInt(matcher.group("mipmaplevel")) == 0) {
+
                 // Highest resolution, extract and rename
                 File f = etFile.extractFileData(textureFile, destination, overwriteData);
                 File newFile = new File(f.toString().replaceFirst("MM" + matcher.group("mipmaplevel"), ""));

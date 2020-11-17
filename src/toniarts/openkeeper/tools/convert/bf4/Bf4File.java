@@ -32,7 +32,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.imageio.stream.MemoryCacheImageInputStream;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
@@ -77,19 +77,21 @@ public class Bf4File implements Iterable<Bf4Entry> {
         try (IResourceReader rawBf4 = new ResourceReader(file)) {
 
             // Check the header
-            String header = rawBf4.readString(4);
+            IResourceChunkReader rawBf4Reader = rawBf4.readChunk(8);
+            String header = rawBf4Reader.readString(4);
             if (!BF4_HEADER_IDENTIFIER.equals(header)) {
                 throw new RuntimeException("Header should be " + BF4_HEADER_IDENTIFIER
                         + " and it was " + header + "! Cancelling!");
             }
-            maxWidth = rawBf4.readUnsignedByte(); // This is know to be bogus value
-            maxHeight = rawBf4.readUnsignedByte();
-            int offsetsCount = rawBf4.readUnsignedShort();
+            maxWidth = rawBf4Reader.readUnsignedByte(); // This is know to be bogus value
+            maxHeight = rawBf4Reader.readUnsignedByte();
+            int offsetsCount = rawBf4Reader.readUnsignedShort();
 
             // Read the offsets
+            rawBf4Reader = rawBf4.readChunk(offsetsCount * 4);
             List<Integer> offsets = new ArrayList<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
-                offsets.add(rawBf4.readUnsignedInteger());
+                offsets.add(rawBf4Reader.readUnsignedInteger());
             }
 
             // Read the font entries
@@ -117,21 +119,23 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * @throws IOException may fail
      */
     private Bf4Entry readFontEntry(IResourceReader rawBf4) throws IOException {
+        IResourceChunkReader rawBf4Reader = rawBf4.readChunk(24);
+
         Bf4Entry entry = new Bf4Entry();
 
-        entry.setCharacter(rawBf4.readStringUtf16(1).charAt(0));
-        entry.setUnknown1(rawBf4.readUnsignedShort());
-        entry.setDataSize(rawBf4.readInteger());
-        entry.setTotalSize(rawBf4.readUnsignedInteger());
-        entry.setFlag(rawBf4.readByteAsEnum(FontEntryFlag.class));
-        entry.setUnknown2(rawBf4.readUnsignedByte());
-        entry.setUnknown3(rawBf4.readUnsignedByte());
-        entry.setUnknown4(rawBf4.readUnsignedByte());
-        entry.setWidth(rawBf4.readUnsignedShort());
-        entry.setHeight(rawBf4.readUnsignedShort());
-        entry.setOffsetX(rawBf4.readByte());
-        entry.setOffsetY(rawBf4.readByte());
-        entry.setOuterWidth(rawBf4.readShort());
+        entry.setCharacter(rawBf4Reader.readStringUtf16(1).charAt(0));
+        entry.setUnknown1(rawBf4Reader.readUnsignedShort());
+        entry.setDataSize(rawBf4Reader.readInteger());
+        entry.setTotalSize(rawBf4Reader.readUnsignedInteger());
+        entry.setFlag(rawBf4Reader.readByteAsEnum(FontEntryFlag.class));
+        entry.setUnknown2(rawBf4Reader.readUnsignedByte());
+        entry.setUnknown3(rawBf4Reader.readUnsignedByte());
+        entry.setUnknown4(rawBf4Reader.readUnsignedByte());
+        entry.setWidth(rawBf4Reader.readUnsignedShort());
+        entry.setHeight(rawBf4Reader.readUnsignedShort());
+        entry.setOffsetX(rawBf4Reader.readByte());
+        entry.setOffsetY(rawBf4Reader.readByte());
+        entry.setOuterWidth(rawBf4Reader.readShort());
 
         if (entry.getWidth() > 0 && entry.getHeight() > 0) {
             byte[] bytes = rawBf4.read(entry.getDataSize());
@@ -309,7 +313,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
      *
      * @return the number of entries with font image
      */
-    public int getGlyphCount() {
+    public final int getGlyphCount() {
         return glyphCount;
     }
 

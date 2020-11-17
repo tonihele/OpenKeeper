@@ -20,7 +20,7 @@ package toniarts.openkeeper.tools.convert;
  * A small interface for enums that have an ID value in the map files<br>
  * Can be easily converted to enum values then.
  *
- * @see KwdFile.#parseEnum(int, java.lang.Class)
+ * @see IResourceChunkReader
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IValueEnum {

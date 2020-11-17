@@ -22,10 +22,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.spr.SprEntry.SprEntryHeader;
 
 /**
  *
@@ -42,9 +46,9 @@ public class SprFile {
     public final static int[] PALETTE = getHalftonePalette();
 
     private final static String PSFB = "PSFB";
-    private SprHeader header;
+    private final SprHeader header;
     private File sprFile;
-    private SprEntry[] sprites;
+    private final List<SprEntry> sprites;
 
     private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
 
@@ -53,22 +57,37 @@ public class SprFile {
 
         try (IResourceReader data = new ResourceReader(sprFile)) {
 
+            IResourceChunkReader dataReader = data.readChunk(8);
             header = new SprHeader();
-            header.tag = data.readString(4);
+            header.tag = dataReader.readString(4);
 
             if (!header.tag.equals(PSFB)) {
                 LOGGER.log(Level.SEVERE, "This is not sprite file");
                 throw new RuntimeException("This is not sprite file");
             }
 
-            header.framesCount = data.readUnsignedInteger();
-            sprites = new SprEntry[header.framesCount];
+            header.framesCount = dataReader.readUnsignedInteger();
 
-            for (int i = 0; i < sprites.length; i++) {
-                SprEntry sprite = new SprEntry(data);
-                sprites[i] = sprite;
+            // Read the entries
+            dataReader = data.readChunk(8 * header.framesCount);
+            sprites = new ArrayList<>(header.framesCount);
+            for (int i = 0; i < header.framesCount; i++) {
+                SprEntry sprite = new SprEntry();
+                SprEntryHeader entryHeader = sprite.new SprEntryHeader();
+                entryHeader.width = dataReader.readUnsignedShort();
+                entryHeader.height = dataReader.readUnsignedShort();
+                entryHeader.offset = dataReader.readUnsignedIntegerAsLong();
+                sprite.header = entryHeader;
+
+                sprites.add(sprite);
             }
 
+            // Read the image data for the entries
+            long dataPos = data.getFilePointer();
+            dataReader = data.readAll();
+            for (SprEntry sprite : sprites) {
+                sprite.readData(dataPos, dataReader);
+            }
         } catch (Exception e) {
 
             //Fug

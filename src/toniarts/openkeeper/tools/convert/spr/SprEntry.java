@@ -20,7 +20,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 
 /**
  *
@@ -28,24 +28,19 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  */
 public class SprEntry {
 
-    private class SprEntryHeader {
+    protected class SprEntryHeader {
 
         int width;
         int height;
         long offset;
     }
-    private SprEntryHeader header;
+    protected SprEntryHeader header;
     protected ByteArrayOutputStream buffer;
 
-    public SprEntry(IResourceReader file) throws IOException {
-        header = new SprEntryHeader();
-        header.width = file.readUnsignedShort();
-        header.height = file.readUnsignedShort();
-        header.offset = file.readUnsignedIntegerAsLong();
+    protected void readData(long dataPos, IResourceChunkReader dataReader) throws IOException {
 
-        long pointer = file.getFilePointer();
-
-        file.seek(header.offset);
+        // Get the actual data payload
+        dataReader.position((int) (header.offset - dataPos));
 
         BufferedImage image = new BufferedImage(header.width, header.height, BufferedImage.TYPE_INT_ARGB);
         int y = 0, x = 0, w = 0;
@@ -53,7 +48,7 @@ public class SprEntry {
 
         while (y < header.height) {
 
-            color = file.readUnsignedByte();
+            color = dataReader.readUnsignedByte();
 
             if (w == 0) {
                 if (color < 0x80) {
@@ -74,9 +69,8 @@ public class SprEntry {
             }
         }
 
-        file.seek(pointer);
-
         buffer = new ByteArrayOutputStream();
         ImageIO.write(image, "png", buffer);
     }
+
 }

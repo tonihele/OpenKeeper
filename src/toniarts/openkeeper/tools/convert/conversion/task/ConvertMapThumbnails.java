@@ -67,40 +67,43 @@ public class ConvertMapThumbnails extends ConversionTask {
 
         // Make sure it exists
         destFolder.mkdirs();
-        try {
 
-            // Get the skirmish/mp maps
-            File f = new File(dungeonKeeperFolder + PathUtils.DKII_MAPS_FOLDER);
-            File[] files = f.listFiles(new FilenameFilter() {
+        // Get the skirmish/mp maps
+        File f = new File(dungeonKeeperFolder + PathUtils.DKII_MAPS_FOLDER);
+        File[] files = f.listFiles(new FilenameFilter() {
 
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.toLowerCase().endsWith(".kwd");
-                }
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".kwd");
+            }
 
-            });
+        });
 
-            // Read them
-            List<KwdFile> maps = new ArrayList<>(files.length);
-            for (File file : files) {
+        // Read them
+        List<KwdFile> maps = new ArrayList<>(files.length);
+        for (File file : files) {
+            try {
                 KwdFile kwd = new KwdFile(dungeonKeeperFolder, file, false);
                 if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
                         || kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
                     maps.add(kwd);
                 }
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Failed to open map file: " + file + "!", ex); // Not fatal
             }
+        }
 
-            // Go through the map files
-            int i = 0;
-            int total = maps.size();
-            for (KwdFile kwd : maps) {
-                updateStatus(i, total);
+        // Go through the map files
+        int i = 0;
+        int total = maps.size();
+        for (KwdFile kwd : maps) {
+            updateStatus(i, total);
+            try {
                 genererateMapThumbnail(kwd, destination);
-                i++;
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Failed to create a thumbnail from map: " + kwd.getGameLevel().getLevelName() + "!", ex); // Not fatal
             }
-        } catch (Exception ex) {
-            String msg = "Failed to process the map thumbnails to " + destination + "!";
-            LOGGER.log(Level.WARNING, msg, ex); // Not fatal
+            i++;
         }
     }
 

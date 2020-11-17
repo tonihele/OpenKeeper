@@ -31,7 +31,7 @@ public class MapLoader {
 
     public static void main(String[] args) {
 
-        //Take Dungeon Keeper 2 root folder as parameter
+        // Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
@@ -42,7 +42,7 @@ public class MapLoader {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        //Load the map
+        // Load the map
         KwdFile kwd = new KwdFile(dkIIFolder, new File(args[0]));
     }
 }
