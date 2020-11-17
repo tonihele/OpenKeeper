@@ -234,7 +234,7 @@ public final class KwdFile {
         try {
             file = new File(ConversionUtils.getRealFileName(basePath, path.getPath()));
             readFileContents(file);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
     }
