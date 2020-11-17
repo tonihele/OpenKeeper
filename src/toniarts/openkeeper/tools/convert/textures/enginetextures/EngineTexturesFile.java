@@ -95,7 +95,7 @@ public class EngineTexturesFile implements Iterable<String> {
 
                     // Read the actual data from the DAT file from the offset specified by the DIR file
                     rawTextures.seek(offset);
-                    IResourceChunkReader rawTexturesReader = rawTextures.readChunk(40);
+                    IResourceChunkReader rawTexturesReader = rawTextures.readChunk(20);
 
                     // Read the header
                     EngineTextureEntry entry = new EngineTextureEntry();
