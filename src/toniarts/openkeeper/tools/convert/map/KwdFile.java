@@ -159,9 +159,9 @@ public final class KwdFile {
         // Read the file
         try {
             readFileContents(file);
-        } catch (IOException e) {
+        } catch (Exception e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
         this.basePath = PathUtils.fixFilePath(basePath);
