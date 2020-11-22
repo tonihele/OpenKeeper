@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -67,10 +66,10 @@ public class ConvertSounds extends ConversionTask {
 
         // Find all the sound files
         final List<Path> sdtFiles = new ArrayList<>();
-        File dataDir = null;
+        Path dataDir = null;
         try {
-            dataDir = new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
-            Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
+            dataDir = Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
+            Files.walkFileTree(dataDir, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
@@ -101,7 +100,7 @@ public class ConvertSounds extends ConversionTask {
 
             // Get a relative path
             Path path = Paths.get(file.toString().substring(0, file.toString().length() - 4));
-            Path relative = dataDir.toPath().relativize(path);
+            Path relative = dataDir.relativize(path);
             String dest = destination;
             dest += relative.toString();
 

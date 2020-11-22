@@ -79,7 +79,7 @@ public class ConvertPaths extends ConversionTask {
         }
         int i = 0;
         int total = wad.getWadFileEntryCount();
-        File tmpdir = new File(System.getProperty("java.io.tmpdir"));
+        String tmpdir = System.getProperty("java.io.tmpdir");
         BinaryExporter exporter = BinaryExporter.getInstance();
         for (final String entry : wad.getWadFileEntries()) {
             try {
@@ -90,7 +90,7 @@ public class ConvertPaths extends ConversionTask {
                 if (entry.toLowerCase().endsWith(".kcs")) {
 
                     // Extract each file to temp
-                    Path f = wad.extractFileData(entry, tmpdir.toString());
+                    Path f = wad.extractFileData(entry, tmpdir);
                     f.toFile().deleteOnExit();
 
                     // Open the entry

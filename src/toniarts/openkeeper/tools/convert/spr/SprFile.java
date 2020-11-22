@@ -17,12 +17,13 @@
 package toniarts.openkeeper.tools.convert.spr;
 
 import java.awt.Color;
-import java.io.File;
+import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -146,8 +147,11 @@ public class SprFile {
     public void extract(String destination, String fileName) throws FileNotFoundException, IOException {
         int i = 0;
         for (SprEntry sprite : sprites) {
-            OutputStream outputStream = new FileOutputStream(destination + File.separator + fileName + "#" + i++ + ".png");
-            sprite.buffer.writeTo(outputStream);
+            Path destinationFile = Paths.get(destination, fileName + "#" + i++ + ".png");
+            try (OutputStream out = Files.newOutputStream(destinationFile);
+                    BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                sprite.buffer.writeTo(bout);
+            }
         }
     }
 }

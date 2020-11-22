@@ -114,7 +114,7 @@ public class ConvertModels extends ConversionTask {
             try {
 
                 // See if we already have this model
-                if (!overwriteData && new File(destination.concat(entry.substring(0, entry.length() - 4)).concat(".j3o")).exists()) {
+                if (!overwriteData && Files.exists(Paths.get(destination, entry.substring(0, entry.length() - 4).concat(".j3o")))) {
                     LOGGER.log(Level.INFO, "File {0} already exists, skipping!", entry);
                     updateStatus(progress.incrementAndGet(), total);
                     continue;

@@ -19,8 +19,8 @@ package toniarts.openkeeper.tools.convert.wad;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -194,7 +194,7 @@ public class WadFile {
         }
 
         // Write to the file
-        try (FileOutputStream out = new FileOutputStream(destinationFile.toFile());
+        try (OutputStream out = Files.newOutputStream(destinationFile);
                 BufferedOutputStream bout = new BufferedOutputStream(out)) {
             getFileData(fileName, rawWad).writeTo(bout);
         } catch (IOException e) {

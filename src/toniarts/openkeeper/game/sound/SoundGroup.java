@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.sound;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -78,8 +79,8 @@ public class SoundGroup {
                     throw new RuntimeException("Sdt file " + archiveFilename + " does not exist");
                 }
 
-                String relative = new File(PathUtils.getDKIIFolder()
-                        + PathUtils.DKII_SFX_FOLDER).toPath().relativize(sdt.getFile()).toString();
+                String relative = Paths.get(PathUtils.getDKIIFolder(), PathUtils.DKII_SFX_FOLDER)
+                        .relativize(sdt.getFile()).toString();
 
                 try {
                     String soundFilename = relative.substring(0, relative.length() - 4) + File.separator

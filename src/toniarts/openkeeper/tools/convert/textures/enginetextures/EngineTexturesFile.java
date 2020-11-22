@@ -21,8 +21,8 @@ import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -199,7 +199,7 @@ public class EngineTexturesFile implements Iterable<String> {
         }
 
         // Write to the file
-        try (FileOutputStream out = new FileOutputStream(destinationFile.toFile());
+        try (OutputStream out = Files.newOutputStream(destinationFile);
                 BufferedOutputStream bout = new BufferedOutputStream(out)) {
             getFileData(textureEntry, rawTextures).writeTo(bout);
         } catch (IOException e) {

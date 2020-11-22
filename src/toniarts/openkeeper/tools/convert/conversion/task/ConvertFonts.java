@@ -16,15 +16,16 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
@@ -129,8 +130,8 @@ public class ConvertFonts extends ConversionTask {
                     }
                 };
                 ImageIO.write(fc.getFontImage(), "png", new File(imageFileName));
-                try (OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(descriptionFileName))) {
-                    out.write(fc.getDescription());
+                try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(descriptionFileName), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    bw.write(fc.getDescription());
                 }
 
                 i++;

@@ -46,6 +46,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.ArrayDeque;
@@ -565,9 +566,9 @@ public class Main extends SimpleApplication {
      * @return the resource bundle
      */
     public static ResourceBundle getResourceBundle(String baseName) {
-        File file = new File(AssetsConverter.getAssetsFolder());
+        Path file = Paths.get(AssetsConverter.getAssetsFolder());
         try {
-            URL[] urls = {file.toURI().toURL()};
+            URL[] urls = {file.toUri().toURL()};
             ClassLoader loader = new URLClassLoader(urls);
             return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader, new UTF8Control());
         } catch (Exception e) {

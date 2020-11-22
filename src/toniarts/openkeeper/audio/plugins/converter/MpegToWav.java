@@ -16,10 +16,13 @@
  */
 package toniarts.openkeeper.audio.plugins.converter;
 
-import java.io.FileInputStream;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import toniarts.openkeeper.audio.plugins.decoder.AudioInformation;
 import toniarts.openkeeper.audio.plugins.decoder.Decoder;
 import toniarts.openkeeper.audio.plugins.decoder.MediaInformation;
@@ -54,11 +57,12 @@ public class MpegToWav {
             return;
         }
 
-        try (FileInputStream fin = new FileInputStream(args[0])) {
+        try (InputStream in = Files.newInputStream(Paths.get(args[0]));
+                BufferedInputStream bin = new BufferedInputStream(in)) {
 
             MpxReader reader = new MpxReader();
-            MediaInformation info = reader.readInformation(fin, true);
-            Decoder decoder = reader.getDecoder(fin, true);
+            MediaInformation info = reader.readInformation(bin, true);
+            Decoder decoder = reader.getDecoder(bin, true);
 
             try (RandomAccessFile fout = new RandomAccessFile(args[1], "rw")) {
                 System.out.printf("Decoding %s into %s ...\n", args[0], args[1]);

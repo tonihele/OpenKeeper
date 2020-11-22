@@ -17,7 +17,6 @@
 package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
@@ -70,13 +69,12 @@ public class ConvertTexts extends ConversionTask {
         updateStatus(null, null);
         Path destinationFolder = Paths.get(destination);
         AssetUtils.deleteFolder(destinationFolder);
-        String dataDirectory = dungeonKeeperFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
+        Path dataDirectory = Paths.get(dungeonKeeperFolder, PathUtils.DKII_TEXT_DEFAULT_FOLDER);
 
         // Find all the STR files
         final List<Path> srtFiles = new ArrayList<>();
-        File dataDir = new File(dataDirectory);
         try {
-            Files.walkFileTree(dataDir.toPath(), EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(dataDirectory, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 

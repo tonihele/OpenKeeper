@@ -18,13 +18,16 @@ package toniarts.openkeeper.game.data;
 
 import com.jme3.input.KeyInput;
 import com.jme3.system.AppSettings;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -266,10 +269,11 @@ public class Settings {
         if (!this.settings.containsKey("Width") || !this.settings.containsKey("Height")) {
             this.settings.setResolution(800, 600); // Default resolution
         }
-        File settingsFile = new File(USER_SETTINGS_FILE);
-        if (settingsFile.exists()) {
-            try (InputStream is = new FileInputStream(settingsFile)) {
-                this.settings.load(is);
+        Path settingsFile = Paths.get(USER_SETTINGS_FILE);
+        if (Files.exists(settingsFile)) {
+            try (InputStream in = Files.newInputStream(settingsFile);
+                    BufferedInputStream bin = new BufferedInputStream(in)) {
+                settings.load(bin);
             } catch (IOException ex) {
                 LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
             }
@@ -300,8 +304,8 @@ public class Settings {
     }
 
     /**
-     * @see com.​jme3.​system.AppSettings.LWJGL_OPENGL* constants
-     * @return list of avaliable renderers
+     * @see com.jme3.system.AppSettings LWJGL_OPENGL constants
+     * @return list of available renderers
      */
     public static List<String> getRenderers() {
         List<String> renderers = new ArrayList<>();
@@ -325,8 +329,11 @@ public class Settings {
      * @throws java.io.IOException may fail to save
      */
     public void save() throws IOException {
-        try (OutputStream os = new FileOutputStream(new File(USER_SETTINGS_FILE))) {
-            settings.save(os);
+        try (OutputStream out = Files.newOutputStream(Paths.get(USER_SETTINGS_FILE));
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            settings.save(bout);
+        } catch (IOException ex) {
+            LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to save!", ex);
         }
     }
 

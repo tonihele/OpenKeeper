@@ -183,9 +183,9 @@ public class ConvertTextures extends ConversionTask {
             if (entry.endsWith(".444")) {
                 LoadingScreenFile lsf = new LoadingScreenFile(wad.getFileData(entry));
                 try {
-                    File destFile = new File(destination + entry);
-                    String destFilename = destFile.getCanonicalPath();
-                    destFile.getParentFile().mkdirs();
+                    Path destFile = Paths.get(destination, entry);
+                    String destFilename = destFile.toRealPath().toString();
+                    Files.createDirectories(destFile.getParent());
                     ImageIO.write(lsf.getImage(), "png", new File(destFilename.substring(0, destFilename.length() - 3).concat("png")));
                 } catch (IOException ex) {
                     throw new RuntimeException("Failed to save the wad entry " + entry + "!", ex);
