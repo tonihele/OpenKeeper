@@ -19,11 +19,11 @@ package toniarts.openkeeper.tools.convert.textures.enginetextures;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -36,7 +36,6 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -160,7 +159,7 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param overwrite overwrite destination file
      * @return returns the extracted file
      */
-    public File extractFileData(String textureEntry, String destination, boolean overwrite) {
+    public Path extractFileData(String textureEntry, String destination, boolean overwrite) {
 
         // Open the Texture file for extraction
         try (IResourceReader rawTextures = new ResourceReader(file)) {
@@ -181,28 +180,33 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param overwrite overwrite destination file
      *
      */
-    private File extractFileData(String textureEntry, String destination, IResourceReader rawTextures, boolean overwrite) {
+    private Path extractFileData(String textureEntry, String destination, IResourceReader rawTextures, boolean overwrite) {
 
         // See that the destination is formatted correctly and create it if it does not exist
-        String dest = PathUtils.fixFilePath(destination);
+        Path destinationFile = Paths.get(destination, textureEntry.concat(".png"));
 
-        File destinationFile = new File(dest.concat(textureEntry).concat(".png"));
-        if (!overwrite && destinationFile.exists()) {
+        if (!overwrite && Files.exists(destinationFile)) {
 
             // Skip
             LOGGER.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
+
             return destinationFile;
         }
-        Path destinationFolder = destinationFile.toPath();
-        destinationFolder.getParent().toFile().mkdirs();
+        try {
+            Files.createDirectories(destinationFile.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create destination folder to " + destinationFile + "!", e);
+        }
 
         // Write to the file
-        try (OutputStream outputStream = new FileOutputStream(destinationFile)) {
-            getFileData(textureEntry, rawTextures).writeTo(outputStream);
-            return destinationFile;
+        try (FileOutputStream out = new FileOutputStream(destinationFile.toFile());
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            getFileData(textureEntry, rawTextures).writeTo(bout);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to " + destinationFile + "!", e);
         }
+
+        return destinationFile;
     }
 
     /**

@@ -68,7 +68,7 @@ public class ConvertPaths extends ConversionTask {
     private void convertPaths(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
 
         // Paths are in the data folder, access the packed file
         WadFile wad;

@@ -16,19 +16,19 @@
  */
 package toniarts.openkeeper.tools.convert.sound;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT archive<br>
@@ -136,17 +136,19 @@ public class SdtFile {
         String filename = fixFileExtension(entry);
 
         // See that the destination is formatted correctly and create it if it does not exist
-        String dest = PathUtils.fixFilePath(destination);
-        File destinationFolder = new File(dest);
-        destinationFolder.mkdirs();
-
-        dest = dest.concat(filename);
+        Path destinationFile = Paths.get(destination, filename);
+        try {
+            Files.createDirectories(destinationFile.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create destination folder to " + destinationFile + "!", e);
+        }
 
         // Write to the file
-        try (OutputStream outputStream = new FileOutputStream(dest)) {
-            getFileData(entry, rawSdt).writeTo(outputStream);
+        try (FileOutputStream out = new FileOutputStream(destinationFile.toFile());
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            getFileData(entry, rawSdt).writeTo(bout);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write to " + dest + "!", e);
+            throw new RuntimeException("Failed to write to " + destinationFile + "!", e);
         }
     }
 

@@ -67,12 +67,13 @@ public class ConvertFonts extends ConversionTask {
     private void convertFonts(final String dungeonKeeperFolder, final String destination) {
         LOGGER.log(Level.INFO, "Extracting fonts to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        Path destFolder = Paths.get(destination);
+        AssetUtils.deleteFolder(destFolder);
 
         try {
 
             // Make sure the folder exists
-            new File(destination).mkdirs();
+            Files.createDirectories(destFolder);
 
             // Find all the font files
             final List<Path> bf4Files = new ArrayList<>();

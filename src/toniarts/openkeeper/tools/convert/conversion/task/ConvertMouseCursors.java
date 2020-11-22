@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,7 +59,7 @@ public class ConvertMouseCursors extends ConversionTask {
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
 
         // Mouse cursors are PNG files in the Sprite.WAD
         WadFile wadFile;
@@ -71,9 +70,14 @@ public class ConvertMouseCursors extends ConversionTask {
         }
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
-        File destinationFolder = new File(getAssetsFolder().concat(SPRITES_FOLDER).concat(File.separator));
+        Path destinationFolder = Paths.get(getAssetsFolder(), SPRITES_FOLDER);
         AssetUtils.deleteFolder(destinationFolder);
-        destinationFolder.mkdirs();
+        try {
+            Files.createDirectories(destinationFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + destinationFolder + "!", ex);
+        }
+        String destinationFolderAsString = destinationFolder.toString();
 
         for (String fileName : wadFile.getWadFileEntries()) {
             updateStatus(i, total);
@@ -87,7 +91,7 @@ public class ConvertMouseCursors extends ConversionTask {
                 // Extract the spr and delete it afterwards
                 SprFile sprFile = new SprFile(extracted);
                 try {
-                    sprFile.extract(destinationFolder.getPath(), fileName.substring(0, fileName.length() - 4));
+                    sprFile.extract(destinationFolderAsString, fileName.substring(0, fileName.length() - 4));
                     Files.delete(extracted);
                 } catch (Exception ex) {
                     LOGGER.log(Level.SEVERE, "Error Sprite: {0}", ex);

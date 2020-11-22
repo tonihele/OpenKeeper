@@ -18,6 +18,7 @@ package toniarts.openkeeper.video.tgq;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
@@ -67,14 +68,15 @@ public abstract class TgqFile implements AutoCloseable {
         }
 
         // Take a movie file as parameter
-        if (!new File(args[0]).exists()) {
+        Path file = Paths.get(args[1]);
+        if (!Files.exists(file)) {
             throw new RuntimeException("Movie file doesn't exist!");
         }
 
-        new File(args[1]).mkdirs();
+        Files.createDirectories(file);
 
         // Create the video parser
-        try (TgqFile tgq = new TgqFile(Paths.get(args[0])) {
+        try (TgqFile tgq = new TgqFile(file) {
             @Override
             protected void addVideoFrame(TgqFrame frame) {
                 File outputfile = new File(args[1].concat("Frame").concat(frame.getFrameIndex() + "").concat(".png"));

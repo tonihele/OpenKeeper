@@ -18,6 +18,8 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -78,7 +80,7 @@ public class ConvertTextures extends ConversionTask {
     private void convertTextures(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         WadFile frontEnd;
         WadFile engineTextures;
@@ -139,19 +141,24 @@ public class ConvertTextures extends ConversionTask {
             if (found && Integer.parseInt(matcher.group("mipmaplevel")) == 0) {
 
                 // Highest resolution, extract and rename
-                File f = etFile.extractFileData(textureFile, destination, overwriteData);
-                File newFile = new File(f.toString().replaceFirst("MM" + matcher.group("mipmaplevel"), ""));
-                if (overwriteData && newFile.exists()) {
-                    newFile.delete();
-                } else if (!overwriteData && newFile.exists()) {
+                Path f = etFile.extractFileData(textureFile, destination, overwriteData);
+                Path newFile = Paths.get(f.toString().replaceFirst("MM" + matcher.group("mipmaplevel"), ""));
+                try {
+                    if (overwriteData && Files.exists(newFile)) {
+                        Files.delete(newFile);
+                    } else if (!overwriteData && Files.exists(newFile)) {
 
-                    // Delete the extracted file
-                    LOGGER.log(Level.INFO, "File {0} already exists, skipping!", newFile);
-                    f.delete();
-                    updateStatus(progress.incrementAndGet(), total);
-                    return;
+                        // Delete the extracted file
+                        LOGGER.log(Level.INFO, "File {0} already exists, skipping!", newFile);
+                        Files.delete(f);
+                        updateStatus(progress.incrementAndGet(), total);
+
+                        return;
+                    }
+                    Files.move(f, newFile);
+                } catch (IOException ex) {
+                    throw new RuntimeException("Failed to handle " + textureFile + "!", ex);
                 }
-                f.renameTo(newFile);
             } else if (!found) {
 
                 // No mipmap levels, just extract

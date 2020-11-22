@@ -65,11 +65,16 @@ public class ConvertMapThumbnails extends ConversionTask {
     private void generateMapThumbnails(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null);
-        File destFolder = new File(destination);
+        Path destFolder = Paths.get(destination);
         AssetUtils.deleteFolder(destFolder);
 
-        // Make sure it exists
-        destFolder.mkdirs();
+        try {
+
+            // Make sure it exists
+            Files.createDirectories(destFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + destFolder + "!", ex);
+        }
 
         // Get the skirmish/mp maps
         List<KwdFile> maps = new ArrayList<>();

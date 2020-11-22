@@ -88,12 +88,16 @@ public class ConvertModels extends ConversionTask {
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
         LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
 
         // Create the materials folder or else the material file saving fails
-        File materialFolder = new File(getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER));
+        Path materialFolder = Paths.get(getAssetsFolder(), AssetsConverter.MATERIALS_FOLDER);
         AssetUtils.deleteFolder(materialFolder);
-        materialFolder.mkdirs();
+        try {
+            Files.createDirectories(materialFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + materialFolder + "!", ex);
+        }
 
         // Meshes are in the data folder, access the packed file
         WadFile wad;

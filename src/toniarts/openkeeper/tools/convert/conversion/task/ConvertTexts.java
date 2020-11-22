@@ -68,7 +68,8 @@ public class ConvertTexts extends ConversionTask {
     private void convertTexts(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        Path destinationFolder = Paths.get(destination);
+        AssetUtils.deleteFolder(destinationFolder);
         String dataDirectory = dungeonKeeperFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
 
         // Find all the STR files
@@ -95,7 +96,11 @@ public class ConvertTexts extends ConversionTask {
         }
 
         // Convert the STR files to JAVA native resource bundles
-        new File(destination).mkdirs(); // Ensure that the folder exists
+        try {
+            Files.createDirectories(destinationFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + destinationFolder + "!", ex);
+        }
         int i = 0;
         int total = srtFiles.size();
         MbToUniFile codePage = null;
