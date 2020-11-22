@@ -19,7 +19,7 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -116,7 +116,7 @@ public class ConvertTexts extends ConversionTask {
             String fileName = file.getFileName().toString();
             fileName = fileName.substring(0, fileName.length() - 3);
             Path dictFile = Paths.get(destination, fileName + "properties");
-            try (BufferedWriter bw = Files.newBufferedWriter(dictFile, Charset.forName("UTF-8"), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            try (BufferedWriter bw = Files.newBufferedWriter(dictFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 for (Map.Entry<Integer, String> entry : strFile.getEntriesAsSet()) {
                     bw.write(entry.getKey().toString());
                     bw.write("=");
