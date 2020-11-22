@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
+import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -43,6 +44,6 @@ public class MapLoader {
         }
 
         // Load the map
-        KwdFile kwd = new KwdFile(dkIIFolder, new File(args[0]));
+        KwdFile kwd = new KwdFile(dkIIFolder, Paths.get(args[0]));
     }
 }

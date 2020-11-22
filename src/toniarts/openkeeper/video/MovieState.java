@@ -30,7 +30,6 @@ import com.jme3.input.controls.TouchTrigger;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Quad;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -80,7 +79,7 @@ public abstract class MovieState extends AbstractAppState {
         this.app.getGuiNode().attachChild(movieScreen);
 
         // Create the player
-        player = new TgqPlayer(new File(movie)) {
+        player = new TgqPlayer(Paths.get(movie)) {
             @Override
             protected void onPlayingEnd() {
                 app.getStateManager().detach(MovieState.this);

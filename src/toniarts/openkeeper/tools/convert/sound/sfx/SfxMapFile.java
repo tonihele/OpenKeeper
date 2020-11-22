@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.sound.sfx;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
@@ -39,10 +39,10 @@ public class SfxMapFile {
     private final int unknown_1; // not used
     private final int unknown_2; // not used
 
-    private final File file;
+    private final Path file;
     private SfxMapFileEntry[] entries;
 
-    public SfxMapFile(File file) {
+    public SfxMapFile(Path file) {
         this.file = file;
 
         // Read the file
@@ -58,7 +58,7 @@ public class SfxMapFile {
             };
             for (int i = 0; i < HEADER_ID.length; i++) {
                 if (check[i] != HEADER_ID[i]) {
-                    throw new RuntimeException(file.getName() + ": The file header is not valid");
+                    throw new RuntimeException(file.toString() + ": The file header is not valid");
                 }
             }
 
@@ -158,7 +158,7 @@ public class SfxMapFile {
 
     @Override
     public String toString() {
-        return "SfxFile{" + "file=" + file.getName()
+        return "SfxFile{" + "file=" + file.toString()
                 + ", entries=" + Arrays.toString(entries) + "}";
     }
 }

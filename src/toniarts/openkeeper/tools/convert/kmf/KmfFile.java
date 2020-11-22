@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.kmf;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -82,7 +82,7 @@ public class KmfFile {
     private static final String KMF_GROP = "GROP";
     private static final String KMF_GROP_ELEM = "ELEM";
 
-    public KmfFile(File file) {
+    public KmfFile(Path file) {
 
         // Read the file
         try (IResourceReader rawKmf = new ResourceReader(file)) {

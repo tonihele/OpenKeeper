@@ -17,7 +17,8 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -32,7 +33,7 @@ public class WadExtractor {
 
     public static void main(String[] args) {
 
-        //Take Dungeon Keeper 2 root folder as parameter
+        // Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
@@ -43,13 +44,13 @@ public class WadExtractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String dataFolder = dkIIFolder+ PathUtils.DKII_DATA_FOLDER;
+        final Path dataFolder = Paths.get(dkIIFolder, PathUtils.DKII_DATA_FOLDER, "Meshes.WAD");
 
-        //And the destination
+        // And the destination
         String destination = PathUtils.fixFilePath(args[0]);
 
-        //Extract the meshes
-        WadFile wad = new WadFile(new File(dataFolder + "Meshes.WAD"));
+        // Extract the meshes
+        WadFile wad = new WadFile(dataFolder);
         wad.extractFileData(destination.concat("meshes"));
     }
 }

@@ -32,6 +32,7 @@ import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -103,8 +104,9 @@ public class MainMenuState extends AbstractAppState {
      * (has its own loading screen here)
      * @param assetManager asset manager for loading the screen
      * @param app the main application
+     * @throws java.io.IOException may fail to load the main menu map scene
      */
-    public MainMenuState(final boolean enabled, final AssetManager assetManager, final Main app) {
+    public MainMenuState(final boolean enabled, final AssetManager assetManager, final Main app) throws IOException {
         listener = new MainMenuInteraction(this);
         super.setEnabled(enabled);
 
@@ -122,11 +124,10 @@ public class MainMenuState extends AbstractAppState {
      * @param loadingScreen optional loading screen
      * @param assetManager asset manager
      */
-    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) {
+    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) throws IOException {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), new File(Main.getDkIIFolder()
-                + PathUtils.DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd"));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(ConversionUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -253,7 +254,11 @@ public class MainMenuState extends AbstractAppState {
 
                     @Override
                     public void onLoad() {
-                        loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);
+                        try {
+                            loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);
+                        } catch (IOException ex) {
+                            LOGGER.log(Level.SEVERE, "Failed to load the main menu scene!", ex);
+                        }
                     }
 
                     @Override

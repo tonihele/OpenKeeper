@@ -46,6 +46,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -136,7 +138,7 @@ public class KmfModelLoader implements AssetLoader {
             }
         };
 
-        ModelViewer app = new ModelViewer(new File(args[0]), dkIIFolder);
+        ModelViewer app = new ModelViewer(Paths.get(args[0]), dkIIFolder);
         app.start();
     }
 
@@ -201,14 +203,14 @@ public class KmfModelLoader implements AssetLoader {
      * @return random access file
      * @throws IOException
      */
-    public static File inputStreamToFile(InputStream is, String prefix) throws IOException {
+    public static Path inputStreamToFile(InputStream is, String prefix) throws IOException {
         File tempFile = File.createTempFile(prefix, "kmf");
         tempFile.deleteOnExit();
 
-        //Write the file
+        // Write the file
         try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
 
-            //Write in blocks
+            // Write in blocks
             byte[] buffer = new byte[2048];
             int tmp;
 
@@ -217,7 +219,7 @@ public class KmfModelLoader implements AssetLoader {
             }
         }
 
-        return tempFile;
+        return tempFile.toPath();
     }
 
     /**

@@ -21,6 +21,10 @@ import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.scene.Node;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
@@ -91,9 +96,14 @@ public class ConvertModels extends ConversionTask {
         materialFolder.mkdirs();
 
         // Meshes are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Meshes.WAD"));
+        WadFile wad;
+        try {
+            wad = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Meshes.WAD")));
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not open the meshes.wad archive!", ex);
+        }
         Map<String, KmfFile> kmfs = new LinkedHashMap<>(wad.getWadFileEntryCount());
-        File tmpdir = new File(System.getProperty("java.io.tmpdir"));
+        Path tmpdir = Paths.get(System.getProperty("java.io.tmpdir"));
         AtomicInteger progress = new AtomicInteger(0);
         int total = wad.getWadFileEntryCount();
         for (final String entry : wad.getWadFileEntries()) {
@@ -107,8 +117,8 @@ public class ConvertModels extends ConversionTask {
                 }
 
                 // Extract each file to temp
-                File f = wad.extractFileData(entry, tmpdir.toString());
-                f.deleteOnExit();
+                Path f = wad.extractFileData(entry, tmpdir.toString());
+                f.toFile().deleteOnExit();
 
                 // Parse
                 final KmfFile kmfFile = new KmfFile(f);
@@ -153,7 +163,7 @@ public class ConvertModels extends ConversionTask {
      * @param progress current progress
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, File kmfFile, int total, AtomicInteger progress) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, Path kmfFile, int total, AtomicInteger progress) throws RuntimeException {
 
         // Remove the file extension from the file
         KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(name), model, true);
@@ -170,7 +180,7 @@ public class ConvertModels extends ConversionTask {
 
                     // See if we can just delete the file straight
                     if (kmfFile != null) {
-                        kmfFile.delete();
+                        Files.delete(kmfFile);
                     }
 
                     updateStatus(progress.incrementAndGet(), total);

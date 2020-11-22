@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -47,12 +48,12 @@ public class SprFile {
 
     private final static String PSFB = "PSFB";
     private final SprHeader header;
-    private File sprFile;
+    private Path sprFile;
     private final List<SprEntry> sprites;
 
     private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
 
-    public SprFile(File file) {
+    public SprFile(Path file) {
         this.sprFile = file;
 
         try (IResourceReader data = new ResourceReader(sprFile)) {
@@ -91,7 +92,7 @@ public class SprFile {
         } catch (Exception e) {
 
             //Fug
-            throw new RuntimeException("Failed to read the file " + file.getName() + "!", e);
+            throw new RuntimeException("Failed to read the file " + file.toString() + "!", e);
         }
     }
 

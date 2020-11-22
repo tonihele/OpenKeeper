@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.controller;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -200,7 +200,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             if (level != null) {
 
                 kwdFile = new KwdFile(Main.getDkIIFolder(),
-                        new File(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
+                        Paths.get(ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
 
             } else {
                 kwdFile.load();

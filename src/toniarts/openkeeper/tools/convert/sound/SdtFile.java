@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -41,7 +42,7 @@ public class SdtFile {
 
     private static final Pattern FILE_EXTENSION_PATTERN = Pattern.compile("([^\\s]+(\\.(?i)(mp2|wav))$)");
 
-    private final File file;
+    private final Path file;
     private final SdtFileEntry[] entries;
 
     /**
@@ -50,7 +51,7 @@ public class SdtFile {
      *
      * @param file the sdt file to read
      */
-    public SdtFile(File file) {
+    public SdtFile(Path file) {
         this.file = file;
 
         // Read the file
@@ -254,12 +255,12 @@ public class SdtFile {
         return entries;
     }
 
-    public File getFile() {
+    public Path getFile() {
         return file;
     }
 
     @Override
     public String toString() {
-        return file.getName();
+        return file.toString();
     }
 }

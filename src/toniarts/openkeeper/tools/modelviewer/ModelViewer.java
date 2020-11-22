@@ -50,6 +50,7 @@ import de.lessvoid.nifty.controls.ListBox;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -121,7 +122,7 @@ public class ModelViewer extends SimpleApplication {
     private DirectionalLight dl;
     private NiftyJmeDisplay niftyDisplay;
     private ModelViewerScreenController screen;
-    private File kmfModel = null;
+    private Path kmfModel = null;
     private boolean wireframe = false;
     private boolean rotate = true;
     private boolean showNormals = false;
@@ -178,7 +179,7 @@ public class ModelViewer extends SimpleApplication {
         app.start();
     }
 
-    public ModelViewer(File kmfModel, String dkFolder) {
+    public ModelViewer(Path kmfModel, String dkFolder) {
         this();
         this.kmfModel = kmfModel;
         dkIIFolder = dkFolder;
@@ -407,7 +408,7 @@ public class ModelViewer extends SimpleApplication {
             case MAPS: {
                 // Load the selected map
                 String file = (String) selection + ".kwd";
-                KwdFile kwd = new KwdFile(dkIIFolder, new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + file));
+                KwdFile kwd = new KwdFile(dkIIFolder, Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, file));
                 Node spat = (Node) new MapLoader(this.getAssetManager(), kwd,
                         new EffectManagerState(kwd, this.getAssetManager()), null,
                         new ObjectLoader(kwd, null)) {
@@ -690,7 +691,7 @@ public class ModelViewer extends SimpleApplication {
 
             // Read Alcatraz.kwd by default
             kwdFile = new KwdFile(dkIIFolder,
-                    new File(dkIIFolder + PathUtils.DKII_MAPS_FOLDER + "Alcatraz.kwd"));
+                    Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, "Alcatraz.kwd"));
         }
 
         return kwdFile;

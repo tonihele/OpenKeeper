@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.str;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.CharBuffer;
+import java.nio.file.Path;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ResourceReader;
@@ -47,7 +47,7 @@ public class MbToUniFile {
     private final int threshold;
     private final int count;
 
-    public MbToUniFile(File file) {
+    public MbToUniFile(Path file) {
         try (IResourceReader rawCodepage = new ResourceReader(file)) {
 
             // Check the header

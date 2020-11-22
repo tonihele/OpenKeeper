@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.kcs;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -46,7 +46,7 @@ public class KcsFile {
      *
      * @param file the kcs file to read
      */
-    public KcsFile(File file) {
+    public KcsFile(Path file) {
 
         // Read the file
         try (IResourceReader rawKcs = new ResourceReader(file)) {

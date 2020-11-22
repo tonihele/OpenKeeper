@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.str;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -60,7 +60,7 @@ public class StrFile {
      *
      * @param file the str file to read
      */
-    public StrFile(File file) {
+    public StrFile(Path file) {
         this(readCodePage(file), file);
     }
 
@@ -72,7 +72,7 @@ public class StrFile {
      * @param codePage the code page
      * @param file the str file to read
      */
-    public StrFile(MbToUniFile codePage, File file) {
+    public StrFile(MbToUniFile codePage, Path file) {
         this.codePage = codePage;
 
         // Read the file
@@ -137,17 +137,17 @@ public class StrFile {
      * @return code page as char buffer
      * @throws RuntimeException may fail miserably
      */
-    private static MbToUniFile readCodePage(File file) throws RuntimeException {
+    private static MbToUniFile readCodePage(Path file) throws RuntimeException {
 
         // We also need the codepage, assume it is in the same directory
-        return new MbToUniFile(new File(file.getParent().concat(File.separator).concat("MBToUni.dat")));
+        return new MbToUniFile(file.getParent().resolve("MBToUni.dat"));
     }
 
     /**
      * Decodes one entry in STR file
      *
      * @param data the entry bytes
-     * @return returns null if error occured, otherwise the decoded string
+     * @return returns null if error occurred, otherwise the decoded string
      */
     private String decodeEntry(final IResourceChunkReader data) {
         ByteBuffer byteBuffer = data.getByteBuffer();

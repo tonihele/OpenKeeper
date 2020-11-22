@@ -50,12 +50,11 @@ public class MapSelector {
     public MapSelector() {
 
         // Get the maps
-        DirectoryStream.Filter<Path> filter = (Path entry) -> entry.getFileName().toString().toLowerCase().endsWith(".kwd") && !Files.isDirectory(entry);
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER), filter)) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path file : stream) {
 
                 // Read the map
-                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file.toFile(), false);
+                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
                 GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
                 if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
                     skirmishMaps.add(gameMapContainer);

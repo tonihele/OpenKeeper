@@ -22,6 +22,9 @@ import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -68,7 +71,12 @@ public class ConvertPaths extends ConversionTask {
         AssetUtils.deleteFolder(new File(destination));
 
         // Paths are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Paths.WAD"));
+        WadFile wad;
+        try {
+            wad = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Paths.WAD")));
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to open the Paths.wad archive!", ex);
+        }
         int i = 0;
         int total = wad.getWadFileEntryCount();
         File tmpdir = new File(System.getProperty("java.io.tmpdir"));
@@ -82,8 +90,8 @@ public class ConvertPaths extends ConversionTask {
                 if (entry.toLowerCase().endsWith(".kcs")) {
 
                     // Extract each file to temp
-                    File f = wad.extractFileData(entry, tmpdir.toString());
-                    f.deleteOnExit();
+                    Path f = wad.extractFileData(entry, tmpdir.toString());
+                    f.toFile().deleteOnExit();
 
                     // Open the entry
                     KcsFile kcsFile = new KcsFile(f);

@@ -65,7 +65,7 @@ public class ConvertSounds extends ConversionTask {
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
 
         // Find all the sound files
-        final List<File> sdtFiles = new ArrayList<>();
+        final List<Path> sdtFiles = new ArrayList<>();
         File dataDir = null;
         try {
             dataDir = new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
@@ -73,12 +73,12 @@ public class ConvertSounds extends ConversionTask {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
-                    //Get all the SDT files
-                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".sdt")) {
-                        sdtFiles.add(file.toFile());
+                    // Get all the SDT files
+                    if (file.getFileName().toString().toLowerCase().endsWith(".sdt") && attrs.isRegularFile()) {
+                        sdtFiles.add(file);
                     }
 
-                    //Always continue
+                    // Always continue
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -92,21 +92,21 @@ public class ConvertSounds extends ConversionTask {
         // FIXME: We should try to figure out the map files, but at least merge the sound track files
         int i = 0;
         int total = sdtFiles.size();
-        for (File file : sdtFiles) {
+        for (Path file : sdtFiles) {
             updateStatus(i, total);
             i++;
 
             SdtFile sdt = new SdtFile(file);
 
-            //Get a relative path
+            // Get a relative path
             String path = file.toString().substring(0, file.toString().length() - 4);
             Path relative = dataDir.toPath().relativize(new File(path).toPath());
             String dest = destination;
             dest += relative.toString();
 
-            //Remove the actual file name
+            // Remove the actual file name
             //dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
-            //Extract
+            // Extract
             sdt.extractFileData(dest);
         }
     }

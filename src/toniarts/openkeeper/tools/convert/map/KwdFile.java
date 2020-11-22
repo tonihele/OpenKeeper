@@ -17,8 +17,9 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.awt.Color;
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -141,7 +142,7 @@ public final class KwdFile {
      * @param basePath path to DK II main path (or where ever is the "root")
      * @param file the KWD file to read
      */
-    public KwdFile(String basePath, File file) {
+    public KwdFile(String basePath, Path file) {
         this(basePath, file, true);
     }
 
@@ -153,7 +154,7 @@ public final class KwdFile {
      * @param load whether to actually load the map data, or just get the
      * general info
      */
-    public KwdFile(String basePath, File file, boolean load) {
+    public KwdFile(String basePath, Path file, boolean load) {
 
         // Load the actual main map info (paths to catalogs most importantly)
         // Read the file
@@ -183,7 +184,7 @@ public final class KwdFile {
         }
     }
 
-    private void readFileContents(File file) throws IOException {
+    private void readFileContents(Path file) throws IOException {
         try (IResourceReader data = new ResourceReader(file)) {
             while (data.getFilePointer() < data.length()) {
 
@@ -230,9 +231,9 @@ public final class KwdFile {
     }
 
     private void readFilePath(FilePath path) {
-        File file = null;
+        Path file = null;
         try {
-            file = new File(ConversionUtils.getRealFileName(basePath, path.getPath()));
+            file = Paths.get(ConversionUtils.getRealFileName(basePath, path.getPath()));
             readFileContents(file);
         } catch (Exception e) {
             throw new RuntimeException("Failed to read the file " + file + "!", e);

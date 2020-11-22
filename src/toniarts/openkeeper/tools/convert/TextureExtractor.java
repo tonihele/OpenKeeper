@@ -17,6 +17,8 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -30,7 +32,7 @@ public class TextureExtractor {
 
     public static void main(String[] args) {
 
-        //Take Dungeon Keeper 2 root folder as parameter
+        // Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !new File(args[1]).exists()) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
@@ -41,13 +43,13 @@ public class TextureExtractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String cacheFolder = dkIIFolder.concat("DK2TextureCache").concat(File.separator);
+        final Path cacheFolder = Paths.get(dkIIFolder, "DK2TextureCache", "EngineTextures.dat");
 
         //And the destination
         String destination = PathUtils.fixFilePath(args[0]);
 
         //Extract the meshes
-        EngineTexturesFile etFile = new EngineTexturesFile(new File(cacheFolder + "EngineTextures.dat"));
+        EngineTexturesFile etFile = new EngineTexturesFile(cacheFolder);
         etFile.extractFileData(destination);
     }
 }

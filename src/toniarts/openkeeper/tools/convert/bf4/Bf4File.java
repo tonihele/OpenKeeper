@@ -24,9 +24,9 @@ import java.awt.image.MultiPixelPackedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -71,7 +71,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
      *
      * @param file the bf4 file to read
      */
-    public Bf4File(File file) {
+    public Bf4File(Path file) {
 
         // Read the file
         try (IResourceReader rawBf4 = new ResourceReader(file)) {

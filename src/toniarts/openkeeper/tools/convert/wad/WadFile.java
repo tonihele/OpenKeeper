@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -59,8 +60,8 @@ public class WadFile {
      *
      * @param file the wad file to read
      */
-    public WadFile(File file) {
-        this.file = file.toPath();
+    public WadFile(Path file) {
+        this.file = file;
 
         // Read the file
         try (IResourceReader rawWad = new ResourceReader(file)) {
@@ -181,7 +182,7 @@ public class WadFile {
      * @param destination destination directory
      * @param rawWad the opened WAD file
      */
-    private File extractFileData(String fileName, String destination, IResourceReader rawWad) {
+    private Path extractFileData(String fileName, String destination, IResourceReader rawWad) {
 
         // See that the destination is formatted correctly and create it if it does not exist
         String dest = PathUtils.fixFilePath(destination);
@@ -198,10 +199,11 @@ public class WadFile {
         // Write to the file
         try (OutputStream outputStream = new FileOutputStream(dest)) {
             getFileData(fileName, rawWad).writeTo(outputStream);
-            return new File(dest);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to " + dest + "!", e);
         }
+
+        return Paths.get(dest);
     }
 
     /**
@@ -211,7 +213,7 @@ public class WadFile {
      * @param destination destination directory
      * @return the file for the extracted contents
      */
-    public File extractFileData(String fileName, String destination) {
+    public Path extractFileData(String fileName, String destination) {
 
         // Open the WAD for extraction
         try (IResourceReader rawWad = new ResourceReader(file)) {

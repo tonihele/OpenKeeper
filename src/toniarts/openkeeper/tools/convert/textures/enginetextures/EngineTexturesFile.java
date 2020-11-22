@@ -25,6 +25,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -59,11 +60,11 @@ public class EngineTexturesFile implements Iterable<String> {
 
     private static final Logger LOGGER = Logger.getLogger(EngineTexturesFile.class.getName());
 
-    public EngineTexturesFile(File file) {
-        this.file = file.toPath();
+    public EngineTexturesFile(Path file) {
+        this.file = file;
 
         // Read the names from the DIR file in the same folder
-        File dirFile = new File(file.toString().substring(0, file.toString().length() - 3).concat("dir"));
+        Path dirFile = Paths.get(file.toString().substring(0, file.toString().length() - 3) + "dir");
         try (IResourceReader rawDir = new ResourceReader(dirFile)) {
 
             // File format:

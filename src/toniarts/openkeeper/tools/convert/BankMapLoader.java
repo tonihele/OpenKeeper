@@ -21,11 +21,11 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -40,7 +40,7 @@ public class BankMapLoader {
 
     public static void main(String[] args) throws IOException {
 
-        //Take Dungeon Keeper 2 root folder as parameter
+        // Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 1 || !new File(args[0]).exists()) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null)
@@ -51,27 +51,26 @@ public class BankMapLoader {
             dkIIFolder = PathUtils.fixFilePath(args[0]);
         }
 
-        final String soundFolder = dkIIFolder + PathUtils.DKII_SFX_FOLDER;
+        final Path soundFolder = Paths.get(dkIIFolder, PathUtils.DKII_SFX_FOLDER);
 
-        //Find all the bank.map files
-        final List<File> bankMapFiles = new ArrayList<>();
-        File dataDir = new File(soundFolder);
-        Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
+        // Find all the bank.map files
+        final List<Path> bankMapFiles = new ArrayList<>();
+        Files.walkFileTree(soundFolder, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
-                //Get all the SDT files
-                if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith("bank.map")) {
-                    bankMapFiles.add(file.toFile());
+                // Get all the SDT files
+                if (file.getFileName().toString().toLowerCase().endsWith("bank.map") && attrs.isRegularFile()) {
+                    bankMapFiles.add(file);
                 }
 
-                //Always continue
+                // Always continue
                 return FileVisitResult.CONTINUE;
             }
         });
 
-        //Just open up the bank map files for fun
-        for (File file : bankMapFiles) {
+        // Just open up the bank map files for fun
+        for (Path file : bankMapFiles) {
             BankMapFile bankMap = new BankMapFile(file);
             if (bankMap != null) {
                 continue; // For debugging

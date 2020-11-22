@@ -16,11 +16,13 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.hiscores.HiScoresEntry;
 import toniarts.openkeeper.tools.convert.hiscores.HiScoresFile;
 
@@ -54,7 +56,7 @@ public class ConvertHiScores extends ConversionTask {
         try {
 
             // Load the original
-            File file = new File(dungeonKeeperFolder + "Data/Settings/HiScores.dat");
+            Path file = Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, "Data/Settings/HiScores.dat"));
             HiScoresFile originalHiScores = new HiScoresFile(file);
 
             // Convert it!

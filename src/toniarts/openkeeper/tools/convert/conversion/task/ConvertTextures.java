@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -82,8 +83,8 @@ public class ConvertTextures extends ConversionTask {
         WadFile frontEnd;
         WadFile engineTextures;
         try {
-            frontEnd = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, PathUtils.DKII_DATA_FOLDER + "FrontEnd.WAD")));
-            engineTextures = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, PathUtils.DKII_DATA_FOLDER + "EngineTextures.WAD")));
+            frontEnd = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "FrontEnd.WAD")));
+            engineTextures = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "EngineTextures.WAD")));
         } catch (IOException e) {
             throw new RuntimeException("Failed to open a WAD file!", e);
         }
@@ -120,7 +121,7 @@ public class ConvertTextures extends ConversionTask {
 
         // Get the engine textures file
         try {
-            EngineTexturesFile etFile = new EngineTexturesFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
+            EngineTexturesFile etFile = new EngineTexturesFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
             return etFile;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the EngineTextures file!", e);

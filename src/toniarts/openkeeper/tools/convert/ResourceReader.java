@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -40,10 +39,6 @@ public class ResourceReader implements IResourceReader {
     private final SeekableByteChannel file;
 
     private static final Logger LOGGER = Logger.getLogger(ResourceReader.class.getName());
-
-    public ResourceReader(File file) throws IOException {
-        this(file.toPath());
-    }
 
     public ResourceReader(String filename) throws IOException {
         this(Paths.get(filename));

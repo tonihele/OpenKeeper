@@ -79,7 +79,7 @@ public class SoundGroup {
                 }
 
                 String relative = new File(PathUtils.getDKIIFolder()
-                        + PathUtils.DKII_SFX_FOLDER).toPath().relativize(sdt.getFile().toPath()).toString();
+                        + PathUtils.DKII_SFX_FOLDER).toPath().relativize(sdt.getFile()).toString();
 
                 try {
                     String soundFilename = relative.substring(0, relative.length() - 4) + File.separator
@@ -88,7 +88,9 @@ public class SoundGroup {
                     SoundFile sf = new SoundFile(this, soundId, soundFilename);
                     files.add(sf);
                 } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, ex.getMessage() + " in file " + sdt.getFile().getName() + " with id " + soundId, ex);
+                    LOGGER.log(Level.SEVERE, ex, () -> {
+                        return "Error in file " + sdt.getFile().toString() + " with id " + soundId;
+                    });
                 }
             }
         }

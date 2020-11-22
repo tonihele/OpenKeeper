@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.hiscores;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -40,7 +40,7 @@ public class HiScoresFile {
      *
      * @param file the HiScores file to read
      */
-    public HiScoresFile(File file) {
+    public HiScoresFile(Path file) {
 
         // Read the file
         try (IResourceReader data = new ResourceReader(file)) {
