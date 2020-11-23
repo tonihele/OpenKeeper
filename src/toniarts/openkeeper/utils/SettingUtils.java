@@ -31,7 +31,7 @@ import java.util.logging.Logger;
 public class SettingUtils {
 
     private static final Logger LOGGER = Logger.getLogger(SettingUtils.class.getName());
-    private final static String SETTINGS_FILE = "openkeeper.properties";
+    private final static Path SETTINGS_FILE = Paths.get("openkeeper.properties");
     private final AppSettings settings;
     private final static SettingUtils instance;
 
@@ -55,19 +55,18 @@ public class SettingUtils {
     private void loadSettings() {
 
         // Init the application settings which contain just the conversion & folder data
-        Path settingsFile = Paths.get(SETTINGS_FILE);
-        if (Files.exists(settingsFile)) {
-            try (InputStream in = Files.newInputStream(settingsFile);
+        if (Files.exists(SETTINGS_FILE)) {
+            try (InputStream in = Files.newInputStream(SETTINGS_FILE);
                     BufferedInputStream bin = new BufferedInputStream(in)) {
                 settings.load(bin);
             } catch (IOException ex) {
-                LOGGER.log(Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
+                LOGGER.log(Level.WARNING, "Settings file failed to load from " + SETTINGS_FILE + "!", ex);
             }
         }
     }
 
     public void saveSettings() {
-        try (OutputStream out = Files.newOutputStream(Paths.get(SETTINGS_FILE));
+        try (OutputStream out = Files.newOutputStream(SETTINGS_FILE);
                 BufferedOutputStream bout = new BufferedOutputStream(out)) {
             settings.save(bout);
         } catch (IOException ex) {
