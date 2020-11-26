@@ -157,6 +157,7 @@ public class ConvertTextures extends ConversionTask {
                     }
                     Files.move(f, newFile);
                 } catch (IOException ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to handle " + textureFile + "!", ex);
                     throw new RuntimeException("Failed to handle " + textureFile + "!", ex);
                 }
             } else if (!found) {
@@ -183,11 +184,11 @@ public class ConvertTextures extends ConversionTask {
             if (entry.endsWith(".444")) {
                 LoadingScreenFile lsf = new LoadingScreenFile(wad.getFileData(entry));
                 try {
-                    Path destFile = Paths.get(destination, entry);
-                    String destFilename = destFile.toRealPath().toString();
+                    Path destFile = Paths.get(destination, entry.substring(0, entry.length() - 3).concat("png"));
                     Files.createDirectories(destFile.getParent());
-                    ImageIO.write(lsf.getImage(), "png", new File(destFilename.substring(0, destFilename.length() - 3).concat("png")));
+                    ImageIO.write(lsf.getImage(), "png", destFile.toFile());
                 } catch (IOException ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to save the wad entry " + entry + "!", ex);
                     throw new RuntimeException("Failed to save the wad entry " + entry + "!", ex);
                 }
             } else {
