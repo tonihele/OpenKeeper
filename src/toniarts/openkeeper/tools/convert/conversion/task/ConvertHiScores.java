@@ -62,8 +62,9 @@ public class ConvertHiScores extends ConversionTask {
             // Convert it!
             HiScores hiScores = new HiScores();
             for (HiScoresEntry entry : originalHiScores.getHiScoresEntries()) {
-                hiScores.add(entry.getScore(), entry.getName(), entry.getLevel());
+                hiScores.addWithoutSaving(entry.getScore(), entry.getName(), entry.getLevel());
             }
+            hiScores.save();
             updateStatus(1, 1);
         } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "Can not convert HiScores!", ex);

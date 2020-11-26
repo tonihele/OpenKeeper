@@ -20,8 +20,9 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.scene.Node;
-import java.io.File;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -88,7 +89,13 @@ public class ConvertModels extends ConversionTask {
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
         LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(Paths.get(destination));
+        Path dest = Paths.get(destination);
+        AssetUtils.deleteFolder(dest);
+        try {
+            Files.createDirectories(dest);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + dest + "!", ex);
+        }
 
         // Create the materials folder or else the material file saving fails
         Path materialFolder = Paths.get(getAssetsFolder(), AssetsConverter.MATERIALS_FOLDER);
@@ -179,8 +186,10 @@ public class ConvertModels extends ConversionTask {
             executorService.submit(() -> {
                 try {
                     BinaryExporter exporter = BinaryExporter.getInstance();
-                    File file = new File(destination.concat(name.substring(0, name.length() - 4)).concat(".j3o"));
-                    exporter.save(n, file);
+                    try (OutputStream out = Files.newOutputStream(Paths.get(destination, name.substring(0, name.length() - 4).concat(".j3o")));
+                            BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                        exporter.save(n, bout);
+                    }
 
                     // See if we can just delete the file straight
                     if (kmfFile != null) {

@@ -23,8 +23,13 @@ import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.export.binary.BinaryImporter;
-import java.io.File;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -117,8 +122,8 @@ public class HiScores implements Savable {
      * @return HiScores object
      */
     public static HiScores load() {
-        try {
-            HiScores hiScores = (HiScores) BinaryImporter.getInstance().load(getFile());
+        try (InputStream is = Files.newInputStream(getFile())) {
+            HiScores hiScores = (HiScores) BinaryImporter.getInstance().load(is);
 
             // Ensure that the entries are in order, and remove excess data
             Collections.sort(hiScores.entries);
@@ -127,21 +132,23 @@ public class HiScores implements Savable {
             return hiScores;
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Failed to load HiScores data!", ex);
+
             return new HiScores();
         }
     }
 
-    private void save() {
+    public void save() {
         trimList();
-        try {
-            BinaryExporter.getInstance().save(this, getFile());
+        try (OutputStream out = Files.newOutputStream(getFile());
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            BinaryExporter.getInstance().save(this, bout);
         } catch (IOException ex) {
             logger.log(Level.SEVERE, "Failed to save HiScores data!", ex);
         }
     }
 
-    private static File getFile() {
-        return new File(AssetsConverter.getCurrentFolder().concat(HISCORES_FILENAME));
+    private static Path getFile() {
+        return Paths.get(AssetsConverter.getCurrentFolder(), HISCORES_FILENAME);
     }
 
     /**
@@ -162,6 +169,22 @@ public class HiScores implements Savable {
      * @return true if the entry was added
      */
     public boolean add(int score, String name, String level) {
+        return add(score, name, level, true);
+    }
+
+    /**
+     * Adds the HiScore entry, you need to manually save after use. Bulk add
+     *
+     * @param score score
+     * @param name name
+     * @param level level
+     * @return true if the entry was added
+     */
+    public boolean addWithoutSaving(int score, String name, String level) {
+        return add(score, name, level, false);
+    }
+
+    private boolean add(int score, String name, String level, boolean save) {
         HiScoresEntry entry = new HiScoresEntry(score, name, level);
 
         // See do we even get to the list
@@ -175,7 +198,10 @@ public class HiScores implements Savable {
             index = ~index;
         }
         entries.add(index, entry);
-        save();
+        if (save) {
+            save();
+        }
+
         return true;
     }
 

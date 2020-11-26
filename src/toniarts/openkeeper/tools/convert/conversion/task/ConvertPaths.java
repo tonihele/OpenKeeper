@@ -21,8 +21,10 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import java.io.File;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -68,7 +70,13 @@ public class ConvertPaths extends ConversionTask {
     private void convertPaths(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(Paths.get(destination));
+        Path dest = Paths.get(destination);
+        AssetUtils.deleteFolder(dest);
+        try {
+            Files.createDirectories(dest);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + dest + "!", ex);
+        }
 
         // Paths are in the data folder, access the packed file
         WadFile wad;
@@ -116,7 +124,10 @@ public class ConvertPaths extends ConversionTask {
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
                     // Save it
-                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat(CameraSweepDataLoader.FILE_EXTENSION)));
+                    try (OutputStream out = Files.newOutputStream(Paths.get(destination, entry.substring(0, entry.length() - 3).concat(CameraSweepDataLoader.FILE_EXTENSION)));
+                            BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                        exporter.save(cameraSweepData, bout);
+                    }
                 } else if (entry.toLowerCase().endsWith(".txt")) {
 
                     // The text file is nice to have, it is an info text

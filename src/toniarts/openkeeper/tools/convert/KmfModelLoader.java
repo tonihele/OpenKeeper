@@ -46,6 +46,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -763,9 +765,11 @@ public class KmfModelLoader implements AssetLoader {
                     m.setKey(new MaterialKey(materialKey));
 
                     // Save
-                    File materialFile = new File(materialLocation);
                     J3MExporter exporter = new J3MExporter();
-                    exporter.save(m, materialFile);
+                    try (OutputStream out = Files.newOutputStream(Paths.get(materialLocation));
+                            BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                        exporter.save(m, bout);
+                    }
 
                     // Put the first one to the cache
                     if (k == 0) {
