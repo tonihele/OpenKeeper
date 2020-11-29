@@ -68,7 +68,16 @@ public class ConvertTextures extends ConversionTask {
 
     @Override
     public void internalExecuteTask() {
-        convertTextures(dungeonKeeperFolder, destination);
+        try {
+            convertTextures(dungeonKeeperFolder, destination);
+        } finally {
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            } catch (InterruptedException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to wait textures conversion complete!", ex);
+            }
+        }
     }
 
     /**
@@ -104,13 +113,6 @@ public class ConvertTextures extends ConversionTask {
         executorService.submit(() -> {
             extractTextureContainer(progress, total, engineTextures, destination);
         });
-
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to wait textures conversion complete!", ex);
-        }
     }
 
     /**
@@ -158,12 +160,21 @@ public class ConvertTextures extends ConversionTask {
                     Files.move(f, newFile);
                 } catch (IOException ex) {
                     LOGGER.log(Level.SEVERE, "Failed to handle " + textureFile + "!", ex);
-                    throw new RuntimeException("Failed to handle " + textureFile + "!", ex);
+                    onError(new RuntimeException("Failed to handle " + textureFile + "!", ex));
+
+                    return;
                 }
             } else if (!found) {
+                try {
 
-                // No mipmap levels, just extract
-                etFile.extractFileData(textureFile, destination, overwriteData);
+                    // No mipmap levels, just extract
+                    etFile.extractFileData(textureFile, destination, overwriteData);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to extract the texture file entry " + textureFile + "!", ex);
+                    onError(new RuntimeException("Failed to save the texture file entry " + textureFile + "!", ex));
+
+                    return;
+                }
             }
             updateStatus(progress.incrementAndGet(), total);
         }
@@ -189,10 +200,19 @@ public class ConvertTextures extends ConversionTask {
                     ImageIO.write(lsf.getImage(), "png", destFile.toFile());
                 } catch (IOException ex) {
                     LOGGER.log(Level.SEVERE, "Failed to save the wad entry " + entry + "!", ex);
-                    throw new RuntimeException("Failed to save the wad entry " + entry + "!", ex);
+                    onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
+
+                    return;
                 }
             } else {
-                wad.extractFileData(entry, destination);
+                try {
+                    wad.extractFileData(entry, destination);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to extract the wad entry " + entry + "!", ex);
+                    onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
+
+                    return;
+                }
             }
 
             updateStatus(progress.incrementAndGet(), total);

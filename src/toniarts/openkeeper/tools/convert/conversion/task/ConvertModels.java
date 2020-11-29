@@ -77,7 +77,16 @@ public class ConvertModels extends ConversionTask {
 
     @Override
     public void internalExecuteTask() {
-        convertModels(dungeonKeeperFolder, destination, assetManager);
+        try {
+            convertModels(dungeonKeeperFolder, destination, assetManager);
+        } finally {
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            } catch (InterruptedException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to wait model saving complete!", ex);
+            }
+        }
     }
 
     /**
@@ -143,6 +152,11 @@ public class ConvertModels extends ConversionTask {
                     // For later processing
                     kmfs.put(entry, kmfFile);
                 }
+
+                // See if model conversion already failed
+                if (isInError()) {
+                    return;
+                }
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Failed to create a file for WAD entry " + entry + "!", ex);
                 throw ex;
@@ -152,13 +166,11 @@ public class ConvertModels extends ConversionTask {
         // And the groups (now they can be linked)
         for (Map.Entry<String, KmfFile> entry : kmfs.entrySet()) {
             convertModel(assetManager, entry.getKey(), entry.getValue(), destination, null, total, progress);
-        }
 
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to wait model saving complete!", ex);
+            // See if model conversion already failed
+            if (isInError()) {
+                return;
+            }
         }
     }
 
@@ -200,7 +212,7 @@ public class ConvertModels extends ConversionTask {
                 } catch (Exception ex) {
                     String msg = "Failed to export KMF entry " + name + "!";
                     LOGGER.log(Level.SEVERE, msg, ex);
-                    throw new RuntimeException(msg, ex);
+                    onError(new RuntimeException(msg, ex));
                 }
             });
         } catch (Exception ex) {

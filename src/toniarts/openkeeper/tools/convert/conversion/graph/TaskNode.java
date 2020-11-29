@@ -37,7 +37,7 @@ public class TaskNode extends Node<TaskNode> {
         this.executed = executed;
     }
 
-    public void executeTask() {
+    public void executeTask() throws Exception {
         task.getTask().executeTask();
 
         executed = true;
