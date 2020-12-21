@@ -22,9 +22,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Reads Dungeon Keeper II model file to a data structure<br>
@@ -86,55 +87,69 @@ public class KmfFile {
 
         // Read the file
         try (IResourceReader rawKmf = new FileResourceReader(file)) {
-
-            IResourceChunkReader rawKmfReader = rawKmf.readChunk(28);
-
-            // Read the identifier
-            checkHeader(rawKmfReader, KMF_HEADER_IDENTIFIER);
-            rawKmfReader.skipBytes(4);
-            version = rawKmfReader.readUnsignedInteger();
-
-            // KMSH/HEAD
-            checkHeader(rawKmfReader, KMF_HEAD);
-            parseHead(rawKmfReader);
-
-            rawKmfReader = rawKmf.readAll();
-
-            // KMSH/MATL
-            if (type != Type.GROP) {
-                checkHeader(rawKmfReader, KMF_MATERIALS);
-                parseMatl(rawKmfReader);
-            }
-
-            // KMSH/MESH, there are n amount of these
-            meshes = new ArrayList<>();
-            String temp = "";
-            do {
-                if (!rawKmfReader.hasRemaining()) {
-                    break; // EOF
-                }
-                temp = rawKmfReader.readString(4);
-                if (KMF_MESH.equals(temp)) {
-                    meshes.add(parseMesh(rawKmfReader));
-                } else {
-                    break;
-                }
-            } while (true);
-
-            // KMSH/ANIM
-            if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
-                anim = parseAnim(rawKmfReader);
-            }
-
-            // KMSH/GROP
-            if (type == Type.GROP && KMF_GROP.equals(temp)) {
-                grops = parseGrop(rawKmfReader);
-            }
-
+            parseKmfFile(rawKmf);
         } catch (IOException e) {
 
             // Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
+        }
+    }
+
+    public KmfFile(byte[] data) {
+
+        // Read the file
+        try (IResourceReader rawKmf = new ByteArrayResourceReader(data)) {
+            parseKmfFile(rawKmf);
+        } catch (IOException e) {
+
+            // Fug
+            throw new RuntimeException("Failed to parse KMF data!", e);
+        }
+    }
+
+    private void parseKmfFile(final IResourceReader rawKmf) throws RuntimeException, IOException {
+        IResourceChunkReader rawKmfReader = rawKmf.readChunk(28);
+
+        // Read the identifier
+        checkHeader(rawKmfReader, KMF_HEADER_IDENTIFIER);
+        rawKmfReader.skipBytes(4);
+        version = rawKmfReader.readUnsignedInteger();
+
+        // KMSH/HEAD
+        checkHeader(rawKmfReader, KMF_HEAD);
+        parseHead(rawKmfReader);
+
+        rawKmfReader = rawKmf.readAll();
+
+        // KMSH/MATL
+        if (type != Type.GROP) {
+            checkHeader(rawKmfReader, KMF_MATERIALS);
+            parseMatl(rawKmfReader);
+        }
+
+        // KMSH/MESH, there are n amount of these
+        meshes = new ArrayList<>();
+        String temp = "";
+        do {
+            if (!rawKmfReader.hasRemaining()) {
+                break; // EOF
+            }
+            temp = rawKmfReader.readString(4);
+            if (KMF_MESH.equals(temp)) {
+                meshes.add(parseMesh(rawKmfReader));
+            } else {
+                break;
+            }
+        } while (true);
+
+        // KMSH/ANIM
+        if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
+            anim = parseAnim(rawKmfReader);
+        }
+
+        // KMSH/GROP
+        if (type == Type.GROP && KMF_GROP.equals(temp)) {
+            grops = parseGrop(rawKmfReader);
         }
     }
 

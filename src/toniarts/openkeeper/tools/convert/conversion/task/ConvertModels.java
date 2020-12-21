@@ -123,7 +123,6 @@ public class ConvertModels extends ConversionTask {
             throw new RuntimeException("Could not open the meshes.wad archive!", ex);
         }
         Map<String, KmfFile> kmfs = new LinkedHashMap<>(wad.getWadFileEntryCount());
-        Path tmpdir = Paths.get(System.getProperty("java.io.tmpdir"));
         AtomicInteger progress = new AtomicInteger(0);
         int total = wad.getWadFileEntryCount();
         for (final String entry : wad.getWadFileEntries()) {
@@ -136,17 +135,13 @@ public class ConvertModels extends ConversionTask {
                     continue;
                 }
 
-                // Extract each file to temp
-                Path f = wad.extractFileData(entry, tmpdir.toString());
-                f.toFile().deleteOnExit();
-
                 // Parse
-                final KmfFile kmfFile = new KmfFile(f);
+                final KmfFile kmfFile = new KmfFile(wad.getFileData(entry));
 
                 // If it is a regular model or animation, process it straight away
                 // Leave groups for later (since linking)
                 if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
-                    convertModel(assetManager, entry, kmfFile, destination, f, total, progress);
+                    convertModel(assetManager, entry, kmfFile, destination, total, progress);
                 } else {
 
                     // For later processing
@@ -165,7 +160,7 @@ public class ConvertModels extends ConversionTask {
 
         // And the groups (now they can be linked)
         for (Map.Entry<String, KmfFile> entry : kmfs.entrySet()) {
-            convertModel(assetManager, entry.getKey(), entry.getValue(), destination, null, total, progress);
+            convertModel(assetManager, entry.getKey(), entry.getValue(), destination, total, progress);
 
             // See if model conversion already failed
             if (isInError()) {
@@ -181,12 +176,11 @@ public class ConvertModels extends ConversionTask {
      * @param name model name
      * @param model the loaded KMF model
      * @param destination destination directory
-     * @param kmfFile the actual KMF file reference
      * @param total the total amount to process
      * @param progress current progress
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, Path kmfFile, int total, AtomicInteger progress) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, int total, AtomicInteger progress) throws RuntimeException {
 
         // Remove the file extension from the file
         KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(name), model, true);
@@ -201,11 +195,6 @@ public class ConvertModels extends ConversionTask {
                     try (OutputStream out = Files.newOutputStream(Paths.get(destination, name.substring(0, name.length() - 4).concat(".j3o")));
                             BufferedOutputStream bout = new BufferedOutputStream(out)) {
                         exporter.save(n, bout);
-                    }
-
-                    // See if we can just delete the file straight
-                    if (kmfFile != null) {
-                        Files.delete(kmfFile);
                     }
 
                     updateStatus(progress.incrementAndGet(), total);
