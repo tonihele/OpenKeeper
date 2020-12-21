@@ -83,19 +83,19 @@ public class ConvertMouseCursors extends ConversionTask {
             updateStatus(i, total);
             i++;
 
-            // Extract the file
-            Path extracted = wadFile.extractFileData(fileName, destination);
-
             if (fileName.toLowerCase().endsWith(".spr")) {
 
                 // Extract the spr and delete it afterwards
-                SprFile sprFile = new SprFile(extracted);
+                SprFile sprFile = new SprFile(wadFile.getFileData(fileName));
                 try {
                     sprFile.extract(destinationFolderAsString, fileName.substring(0, fileName.length() - 4));
-                    Files.delete(extracted);
                 } catch (Exception ex) {
                     LOGGER.log(Level.SEVERE, "Error Sprite: {0}", ex);
                 }
+            } else {
+
+                // Extract the file
+                wadFile.extractFileData(fileName, destination);
             }
         }
     }
