@@ -30,7 +30,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.spr.SprEntry.SprEntryHeader;
 
 /**
@@ -57,7 +57,7 @@ public class SprFile {
     public SprFile(Path file) {
         this.sprFile = file;
 
-        try (IResourceReader data = new ResourceReader(sprFile)) {
+        try (IResourceReader data = new FileResourceReader(sprFile)) {
 
             IResourceChunkReader dataReader = data.readChunk(8);
             header = new SprHeader();

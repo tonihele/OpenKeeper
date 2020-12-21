@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT archive<br>
@@ -55,7 +55,7 @@ public class SdtFile {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawSdt = new ResourceReader(file)) {
+        try (IResourceReader rawSdt = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawSdtReader = rawSdt.readChunk(4);
@@ -109,7 +109,7 @@ public class SdtFile {
     public void extractFileData(String destination) {
 
         // Open the SDT for extraction
-        try (IResourceReader rawSdt = new ResourceReader(file)) {
+        try (IResourceReader rawSdt = new FileResourceReader(file)) {
             for (SdtFileEntry entry : entries) {
                 extractFileData(entry, destination, rawSdt);
             }

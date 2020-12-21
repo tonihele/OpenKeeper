@@ -17,7 +17,6 @@
 package toniarts.openkeeper.tools.convert.textures.loadingscreens;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
@@ -34,9 +33,9 @@ public class LoadingScreenFile {
 
     private final BufferedImage image;
 
-    public LoadingScreenFile(ByteArrayOutputStream fileData) {
+    public LoadingScreenFile(byte[] fileData) {
 
-        ByteBuffer buf = ByteBuffer.wrap(fileData.toByteArray());
+        ByteBuffer buf = ByteBuffer.wrap(fileData);
         buf.order(ByteOrder.LITTLE_ENDIAN);
 
         //Read the header

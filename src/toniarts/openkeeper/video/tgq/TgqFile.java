@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Parses a DK II movie file<br>
@@ -106,7 +106,7 @@ public abstract class TgqFile implements AutoCloseable {
     }
 
     public TgqFile(Path file) throws IOException {
-        this.file = new ResourceReader(file);
+        this.file = new FileResourceReader(file);
     }
 
     @Override

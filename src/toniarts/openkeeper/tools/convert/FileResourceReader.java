@@ -34,19 +34,19 @@ import java.util.logging.Logger;
  *
  * @author archdemon
  */
-public class ResourceReader implements IResourceReader {
+public class FileResourceReader implements IResourceReader {
 
     private final SeekableByteChannel file;
     private final ByteBuffer buf;
 
     private static final int DEFAULT_BUFFER_SIZE = 8192;
-    private static final Logger LOGGER = Logger.getLogger(ResourceReader.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(FileResourceReader.class.getName());
 
-    public ResourceReader(String filename) throws IOException {
+    public FileResourceReader(String filename) throws IOException {
         this(Paths.get(filename));
     }
 
-    public ResourceReader(Path path) throws IOException {
+    public FileResourceReader(Path path) throws IOException {
         file = Files.newByteChannel(path, StandardOpenOption.READ);
         buf = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);
         buf.order(ByteOrder.LITTLE_ENDIAN);
@@ -131,7 +131,7 @@ public class ResourceReader implements IResourceReader {
     /**
      * End of file
      *
-     * @return true if filepointer >= length of file
+     * @return true if file pointer >= length of file
      * @throws IOException
      */
     @Override

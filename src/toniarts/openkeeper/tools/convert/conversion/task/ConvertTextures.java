@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -125,7 +125,7 @@ public class ConvertTextures extends ConversionTask {
 
         // Get the engine textures file
         try {
-            EngineTexturesFile etFile = new EngineTexturesFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
+            EngineTexturesFile etFile = new EngineTexturesFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(FileSystems.getDefault().getSeparator()).concat("EngineTextures.dat"))));
             return etFile;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the EngineTextures file!", e);

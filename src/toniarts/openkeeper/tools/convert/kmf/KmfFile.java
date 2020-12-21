@@ -24,7 +24,7 @@ import java.util.List;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Reads Dungeon Keeper II model file to a data structure<br>
@@ -85,7 +85,7 @@ public class KmfFile {
     public KmfFile(Path file) {
 
         // Read the file
-        try (IResourceReader rawKmf = new ResourceReader(file)) {
+        try (IResourceReader rawKmf = new FileResourceReader(file)) {
 
             IResourceChunkReader rawKmfReader = rawKmf.readChunk(28);
 

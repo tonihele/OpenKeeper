@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Dungeon Keeper II *Bank.map files. The map files contain sound playback events of some sorts<br>
@@ -53,7 +53,7 @@ public class BankMapFile {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawMap = new ResourceReader(file)) {
+        try (IResourceReader rawMap = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawMapReader = rawMap.readChunk(28);

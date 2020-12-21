@@ -32,9 +32,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Stores the wad file structure and contains the methods to handle the WAD archive<br>
@@ -64,7 +64,7 @@ public class WadFile {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawWad = new ResourceReader(file)) {
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
 
             // Check the header
             IResourceChunkReader reader = rawWad.readChunk(8);
@@ -163,7 +163,7 @@ public class WadFile {
     public void extractFileData(String destination) {
 
         // Open the WAD for extraction
-        try (IResourceReader rawWad = new ResourceReader(file)) {
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
 
             for (String fileName : wadFileEntries.keySet()) {
                 extractFileData(fileName, destination, rawWad);
@@ -214,7 +214,7 @@ public class WadFile {
     public Path extractFileData(String fileName, String destination) {
 
         // Open the WAD for extraction
-        try (IResourceReader rawWad = new ResourceReader(file)) {
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
             return extractFileData(fileName, destination, rawWad);
         } catch (Exception e) {
 
@@ -269,11 +269,11 @@ public class WadFile {
      * @param fileName the file to extract
      * @return the file data
      */
-    public ByteArrayOutputStream getFileData(String fileName) {
+    public byte[] getFileData(String fileName) {
 
         // Open the WAD for extraction
-        try (IResourceReader rawWad = new ResourceReader(file)) {
-            return getFileData(fileName, rawWad);
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
+            return getFileData(fileName, rawWad).toByteArray();
         } catch (Exception e) {
 
             // Fug

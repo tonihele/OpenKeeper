@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
@@ -173,7 +173,7 @@ public final class KwdFile {
         } else {
 
             // We need map width & height if not loaded fully, I couldn't figure out where, except the map data
-            try (IResourceReader data = new ResourceReader(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
+            try (IResourceReader data = new FileResourceReader(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
                 KwdHeader header = readKwdHeader(data);
                 map = new GameMap(header.getWidth(), header.getHeight());
             } catch (Exception e) {
@@ -185,7 +185,7 @@ public final class KwdFile {
     }
 
     private void readFileContents(Path file) throws IOException {
-        try (IResourceReader data = new ResourceReader(file)) {
+        try (IResourceReader data = new FileResourceReader(file)) {
             while (data.getFilePointer() < data.length()) {
 
                 // Read header (and put the file pointer to the data start)
@@ -3207,8 +3207,7 @@ public final class KwdFile {
      * Skips the file to the correct position after an item is read<br>
      * <b>Use this with the common types!</b>
      *
-     * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
-     * long)
+     * @see toniarts.openkeeper.tools.convert.FileResourceReader#checkOffset(long, long)
      * @param header the header
      * @param reader the buffer
      * @param offset the file offset before the last item was read
@@ -3223,8 +3222,7 @@ public final class KwdFile {
      * Skips the file to the correct position after an item is read<br>
      * <b>Use this with the common types!</b>
      *
-     * @see toniarts.openkeeper.tools.convert.ResourceReader#checkOffset(long,
-     * long)
+     * @see toniarts.openkeeper.tools.convert.FileResourceReader#checkOffset(long, long)
      * @param itemSize the item size
      * @param reader the buffer
      * @param offset the file offset before the last item was read

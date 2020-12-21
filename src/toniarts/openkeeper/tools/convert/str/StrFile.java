@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Reads the Dungeon Keeper 2 STR files<br>
@@ -76,7 +76,7 @@ public class StrFile {
         this.codePage = codePage;
 
         // Read the file
-        try (IResourceReader rawStr = new ResourceReader(file)) {
+        try (IResourceReader rawStr = new FileResourceReader(file)) {
 
             // Check the header
             IResourceChunkReader rawStrReader = rawStr.readChunk(12);

@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  *
@@ -46,7 +46,7 @@ public class SfxMapFile {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawMap = new ResourceReader(file)) {
+        try (IResourceReader rawMap = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawMapReader = rawMap.readChunk(28);

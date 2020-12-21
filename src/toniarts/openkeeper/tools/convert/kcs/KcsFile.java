@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Stores the KCS file entries<br>
@@ -49,7 +49,7 @@ public class KcsFile {
     public KcsFile(Path file) {
 
         // Read the file
-        try (IResourceReader rawKcs = new ResourceReader(file)) {
+        try (IResourceReader rawKcs = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawKcsReader = rawKcs.readChunk(4);
