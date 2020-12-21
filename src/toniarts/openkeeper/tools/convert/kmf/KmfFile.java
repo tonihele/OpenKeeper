@@ -100,7 +100,7 @@ public class KmfFile {
         // Read the file
         try (IResourceReader rawKmf = new ByteArrayResourceReader(data)) {
             parseKmfFile(rawKmf);
-        } catch (IOException e) {
+        } catch (Exception e) {
 
             // Fug
             throw new RuntimeException("Failed to parse KMF data!", e);

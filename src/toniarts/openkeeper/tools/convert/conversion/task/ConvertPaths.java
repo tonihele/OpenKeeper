@@ -87,7 +87,6 @@ public class ConvertPaths extends ConversionTask {
         }
         int i = 0;
         int total = wad.getWadFileEntryCount();
-        String tmpdir = System.getProperty("java.io.tmpdir");
         BinaryExporter exporter = BinaryExporter.getInstance();
         for (final String entry : wad.getWadFileEntries()) {
             try {
@@ -97,12 +96,8 @@ public class ConvertPaths extends ConversionTask {
                 // Convert all the KCS entries
                 if (entry.toLowerCase().endsWith(".kcs")) {
 
-                    // Extract each file to temp
-                    Path f = wad.extractFileData(entry, tmpdir);
-                    f.toFile().deleteOnExit();
-
                     // Open the entry
-                    KcsFile kcsFile = new KcsFile(f);
+                    KcsFile kcsFile = new KcsFile(wad.getFileData(entry));
 
                     // Convert
                     List<CameraSweepDataEntry> entries = new ArrayList<>(kcsFile.getKcsEntries().size());
