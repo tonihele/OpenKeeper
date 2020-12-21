@@ -85,7 +85,14 @@ public class ByteArrayResourceReader implements IResourceReader {
 
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
-        ByteBuffer buf = ByteBuffer.wrap(buffer.array(), buffer.position(), size);
+        if (buffer.remaining() < size) {
+            String message = "Error reading byte array. Expect %s bytes and %s given";
+            throw new IOException(String.format(message, size, buffer.remaining()));
+        }
+        byte[] bytes = new byte[size];
+        System.arraycopy(buffer.array(), buffer.position(), bytes, 0, size);
+
+        ByteBuffer buf = ByteBuffer.wrap(bytes);
         buf.order(ByteOrder.LITTLE_ENDIAN);
 
         // Advance marker
