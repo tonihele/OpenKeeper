@@ -18,8 +18,11 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -62,35 +65,33 @@ public class ConvertMapThumbnails extends ConversionTask {
     private void generateMapThumbnails(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null);
-        File destFolder = new File(destination);
+        Path destFolder = Paths.get(destination);
         AssetUtils.deleteFolder(destFolder);
 
-        // Make sure it exists
-        destFolder.mkdirs();
+        try {
+
+            // Make sure it exists
+            Files.createDirectories(destFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + destFolder + "!", ex);
+        }
 
         // Get the skirmish/mp maps
-        File f = new File(dungeonKeeperFolder + PathUtils.DKII_MAPS_FOLDER);
-        File[] files = f.listFiles(new FilenameFilter() {
-
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".kwd");
-            }
-
-        });
-
-        // Read them
-        List<KwdFile> maps = new ArrayList<>(files.length);
-        for (File file : files) {
-            try {
-                KwdFile kwd = new KwdFile(dungeonKeeperFolder, file, false);
-                if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
-                        || kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
-                    maps.add(kwd);
+        List<KwdFile> maps = new ArrayList<>();
+        try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(dungeonKeeperFolder, PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
+            for (Path path : paths) {
+                try {
+                    KwdFile kwd = new KwdFile(dungeonKeeperFolder, path, false);
+                    if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
+                            || kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                        maps.add(kwd);
+                    }
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Failed to open map file: " + path + "!", ex); // Not fatal
                 }
-            } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Failed to open map file: " + file + "!", ex); // Not fatal
             }
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Failed to search for the map files!", ex);
         }
 
         // Go through the map files
@@ -101,7 +102,7 @@ public class ConvertMapThumbnails extends ConversionTask {
             try {
                 genererateMapThumbnail(kwd, destination);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Failed to create a thumbnail from map: " + kwd.getGameLevel().getLevelName() + "!", ex); // Not fatal
+                LOGGER.log(Level.WARNING, "Failed to create a thumbnail from map: " + kwd.getGameLevel().getName() + "!", ex); // Not fatal
             }
             i++;
         }

@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -65,7 +68,16 @@ public class ConvertTextures extends ConversionTask {
 
     @Override
     public void internalExecuteTask() {
-        convertTextures(dungeonKeeperFolder, destination);
+        try {
+            convertTextures(dungeonKeeperFolder, destination);
+        } finally {
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            } catch (InterruptedException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to wait textures conversion complete!", ex);
+            }
+        }
     }
 
     /**
@@ -77,13 +89,13 @@ public class ConvertTextures extends ConversionTask {
     private void convertTextures(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         WadFile frontEnd;
         WadFile engineTextures;
         try {
-            frontEnd = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, PathUtils.DKII_DATA_FOLDER + "FrontEnd.WAD")));
-            engineTextures = new WadFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, PathUtils.DKII_DATA_FOLDER + "EngineTextures.WAD")));
+            frontEnd = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "FrontEnd.WAD")));
+            engineTextures = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "EngineTextures.WAD")));
         } catch (IOException e) {
             throw new RuntimeException("Failed to open a WAD file!", e);
         }
@@ -101,13 +113,6 @@ public class ConvertTextures extends ConversionTask {
         executorService.submit(() -> {
             extractTextureContainer(progress, total, engineTextures, destination);
         });
-
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to wait textures conversion complete!", ex);
-        }
     }
 
     /**
@@ -120,7 +125,7 @@ public class ConvertTextures extends ConversionTask {
 
         // Get the engine textures file
         try {
-            EngineTexturesFile etFile = new EngineTexturesFile(new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(File.separator).concat("EngineTextures.dat"))));
+            EngineTexturesFile etFile = new EngineTexturesFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(FileSystems.getDefault().getSeparator()).concat("EngineTextures.dat"))));
             return etFile;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the EngineTextures file!", e);
@@ -138,23 +143,38 @@ public class ConvertTextures extends ConversionTask {
             if (found && Integer.parseInt(matcher.group("mipmaplevel")) == 0) {
 
                 // Highest resolution, extract and rename
-                File f = etFile.extractFileData(textureFile, destination, overwriteData);
-                File newFile = new File(f.toString().replaceFirst("MM" + matcher.group("mipmaplevel"), ""));
-                if (overwriteData && newFile.exists()) {
-                    newFile.delete();
-                } else if (!overwriteData && newFile.exists()) {
+                Path f = etFile.extractFileData(textureFile, destination, overwriteData);
+                Path newFile = Paths.get(f.toString().replaceFirst("MM" + matcher.group("mipmaplevel"), ""));
+                try {
+                    if (overwriteData && Files.exists(newFile)) {
+                        Files.delete(newFile);
+                    } else if (!overwriteData && Files.exists(newFile)) {
 
-                    // Delete the extracted file
-                    LOGGER.log(Level.INFO, "File {0} already exists, skipping!", newFile);
-                    f.delete();
-                    updateStatus(progress.incrementAndGet(), total);
+                        // Delete the extracted file
+                        LOGGER.log(Level.INFO, "File {0} already exists, skipping!", newFile);
+                        Files.delete(f);
+                        updateStatus(progress.incrementAndGet(), total);
+
+                        return;
+                    }
+                    Files.move(f, newFile);
+                } catch (IOException ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to handle " + textureFile + "!", ex);
+                    onError(new RuntimeException("Failed to handle " + textureFile + "!", ex));
+
                     return;
                 }
-                f.renameTo(newFile);
             } else if (!found) {
+                try {
 
-                // No mipmap levels, just extract
-                etFile.extractFileData(textureFile, destination, overwriteData);
+                    // No mipmap levels, just extract
+                    etFile.extractFileData(textureFile, destination, overwriteData);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to extract the texture file entry " + textureFile + "!", ex);
+                    onError(new RuntimeException("Failed to save the texture file entry " + textureFile + "!", ex));
+
+                    return;
+                }
             }
             updateStatus(progress.incrementAndGet(), total);
         }
@@ -175,15 +195,24 @@ public class ConvertTextures extends ConversionTask {
             if (entry.endsWith(".444")) {
                 LoadingScreenFile lsf = new LoadingScreenFile(wad.getFileData(entry));
                 try {
-                    File destFile = new File(destination + entry);
-                    String destFilename = destFile.getCanonicalPath();
-                    destFile.getParentFile().mkdirs();
-                    ImageIO.write(lsf.getImage(), "png", new File(destFilename.substring(0, destFilename.length() - 3).concat("png")));
+                    Path destFile = Paths.get(destination, entry.substring(0, entry.length() - 3).concat("png"));
+                    Files.createDirectories(destFile.getParent());
+                    ImageIO.write(lsf.getImage(), "png", destFile.toFile());
                 } catch (IOException ex) {
-                    throw new RuntimeException("Failed to save the wad entry " + entry + "!", ex);
+                    LOGGER.log(Level.SEVERE, "Failed to save the wad entry " + entry + "!", ex);
+                    onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
+
+                    return;
                 }
             } else {
-                wad.extractFileData(entry, destination);
+                try {
+                    wad.extractFileData(entry, destination);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Failed to extract the wad entry " + entry + "!", ex);
+                    onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
+
+                    return;
+                }
             }
 
             updateStatus(progress.incrementAndGet(), total);

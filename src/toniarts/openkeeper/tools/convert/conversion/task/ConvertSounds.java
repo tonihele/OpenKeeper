@@ -16,11 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -61,24 +61,24 @@ public class ConvertSounds extends ConversionTask {
     private void convertSounds(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
 
         // Find all the sound files
-        final List<File> sdtFiles = new ArrayList<>();
-        File dataDir = null;
+        final List<Path> sdtFiles = new ArrayList<>();
+        Path dataDir = null;
         try {
-            dataDir = new File(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
-            Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
+            dataDir = Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
+            Files.walkFileTree(dataDir, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
-                    //Get all the SDT files
-                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".sdt")) {
-                        sdtFiles.add(file.toFile());
+                    // Get all the SDT files
+                    if (file.getFileName().toString().toLowerCase().endsWith(".sdt") && attrs.isRegularFile()) {
+                        sdtFiles.add(file);
                     }
 
-                    //Always continue
+                    // Always continue
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -92,21 +92,21 @@ public class ConvertSounds extends ConversionTask {
         // FIXME: We should try to figure out the map files, but at least merge the sound track files
         int i = 0;
         int total = sdtFiles.size();
-        for (File file : sdtFiles) {
+        for (Path file : sdtFiles) {
             updateStatus(i, total);
             i++;
 
             SdtFile sdt = new SdtFile(file);
 
-            //Get a relative path
-            String path = file.toString().substring(0, file.toString().length() - 4);
-            Path relative = dataDir.toPath().relativize(new File(path).toPath());
+            // Get a relative path
+            Path path = Paths.get(file.toString().substring(0, file.toString().length() - 4));
+            Path relative = dataDir.relativize(path);
             String dest = destination;
             dest += relative.toString();
 
-            //Remove the actual file name
+            // Remove the actual file name
             //dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
-            //Extract
+            // Extract
             sdt.extractFileData(dest);
         }
     }

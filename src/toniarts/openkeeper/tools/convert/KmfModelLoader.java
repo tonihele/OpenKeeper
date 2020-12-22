@@ -18,7 +18,6 @@ package toniarts.openkeeper.tools.convert;
 
 import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetInfo;
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
@@ -39,13 +38,16 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,7 +59,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
-import static toniarts.openkeeper.tools.convert.KmfModelLoader.inputStreamToFile;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.AnimSprite;
 import toniarts.openkeeper.tools.convert.kmf.AnimVertex;
@@ -108,7 +109,7 @@ public class KmfModelLoader implements AssetLoader {
     public static void main(final String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[1]).exists()) {
+        if (args.length != 2 || !Files.exists(Paths.get(args[1]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
@@ -117,26 +118,7 @@ public class KmfModelLoader implements AssetLoader {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
-            @Override
-            public InputStream openStream() {
-                try {
-                    final File file = new File(dkIIFolder);
-                    key = new AssetKey() {
-                        @Override
-                        public String getName() {
-                            return file.toPath().getFileName().toString();
-                        }
-                    };
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException ex) {
-                    logger.log(Level.SEVERE, null, ex);
-                }
-                return null;
-            }
-        };
-
-        ModelViewer app = new ModelViewer(new File(args[0]), dkIIFolder);
+        ModelViewer app = new ModelViewer(Paths.get(args[0]), dkIIFolder);
         app.start();
     }
 
@@ -149,10 +131,10 @@ public class KmfModelLoader implements AssetLoader {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
             generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
         } else {
-            kmfFile = new KmfFile(inputStreamToFile(assetInfo.openStream(), assetInfo.getKey().getName()));
+            kmfFile = new KmfFile(readAssetStream(assetInfo));
         }
 
-        //Create a root
+        // Create a root
         Node root = new Node("Root");
 
         if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
@@ -193,31 +175,21 @@ public class KmfModelLoader implements AssetLoader {
         }
     }
 
-    /**
-     * Converts input stream to a file by writing it to a temp file (yeah...)
-     *
-     * @param is the InputStream
-     * @param prefix temp file prefix
-     * @return random access file
-     * @throws IOException
-     */
-    public static File inputStreamToFile(InputStream is, String prefix) throws IOException {
-        File tempFile = File.createTempFile(prefix, "kmf");
-        tempFile.deleteOnExit();
+    private byte[] readAssetStream(AssetInfo assetInfo) throws IOException {
+        try (InputStream is = assetInfo.openStream();
+                BufferedInputStream bis = new BufferedInputStream(is);
+                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 
-        //Write the file
-        try (BufferedOutputStream output = new BufferedOutputStream(new FileOutputStream(tempFile))) {
-
-            //Write in blocks
-            byte[] buffer = new byte[2048];
-            int tmp;
-
-            while ((tmp = is.read(buffer)) != -1) {
-                output.write(buffer, 0, tmp);
+            // TODO: Java 9 has readAll, if it is buffered use it
+            int read;
+            final int bufLen = 8192;
+            byte[] buf = new byte[bufLen];
+            while ((read = bis.read(buf, 0, bufLen)) != -1) {
+                output.write(buf, 0, read);
             }
-        }
 
-        return tempFile;
+            return output.toByteArray();
+        }
     }
 
     /**
@@ -685,13 +657,14 @@ public class KmfModelLoader implements AssetLoader {
                     materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(fileName).concat(".j3m"));
 
                     // See if it exists
-                    File file = new File(materialLocation).getCanonicalFile();
-                    if (file.exists()) {
-                        if (!file.getName().equals(fileName.concat(".j3m"))) {
+                    Path file = Paths.get(materialLocation);
+                    if (Files.exists(file)) {
+                        file = file.toRealPath();
+                        if (!file.getFileName().toString().equals(fileName.concat(".j3m"))) {
 
                             // Case sensitivity issue
-                            materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(file.getName());
-                            materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(file.getName()));
+                            materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(file.getFileName().toString());
+                            materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(file.getFileName().toString()));
                         }
                         material = assetInfo.getManager().loadMaterial(materialKey);
                     }
@@ -761,9 +734,11 @@ public class KmfModelLoader implements AssetLoader {
                     m.setKey(new MaterialKey(materialKey));
 
                     // Save
-                    File materialFile = new File(materialLocation);
                     J3MExporter exporter = new J3MExporter();
-                    exporter.save(m, materialFile);
+                    try (OutputStream out = Files.newOutputStream(Paths.get(materialLocation));
+                            BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                        exporter.save(m, bout);
+                    }
 
                     // Put the first one to the cache
                     if (k == 0) {

@@ -16,13 +16,14 @@
  */
 package toniarts.openkeeper.tools.convert.kcs;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
 
 /**
  * Stores the KCS file entries<br>
@@ -38,7 +39,7 @@ import toniarts.openkeeper.tools.convert.ResourceReader;
  */
 public class KcsFile {
 
-    private final List<KcsEntry> kcsEntries;
+    private List<KcsEntry> kcsEntries;
 
     /**
      * Constructs a new Kcs file reader<br>
@@ -46,35 +47,51 @@ public class KcsFile {
      *
      * @param file the kcs file to read
      */
-    public KcsFile(File file) {
+    public KcsFile(Path file) {
 
         // Read the file
-        try (IResourceReader rawKcs = new ResourceReader(file)) {
-
-            // Header
-            IResourceChunkReader rawKcsReader = rawKcs.readChunk(4);
-            int numOfEntries = rawKcsReader.readUnsignedInteger();
-            rawKcs.skipBytes(12); // 12 bytes of emptiness?
-
-            // Read the entries
-            rawKcsReader = rawKcs.readChunk(numOfEntries * 56);
-            kcsEntries = new ArrayList<>(numOfEntries);
-            for (int i = 0; i < numOfEntries; i++) {
-
-                // Entries have 56 bytes in them
-                KcsEntry entry = new KcsEntry();
-                entry.setPosition(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
-                entry.setDirection(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
-                entry.setLeft(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
-                entry.setUp(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
-                entry.setLens(rawKcsReader.readFloat());
-                entry.setNear(rawKcsReader.readFloat());
-                kcsEntries.add(entry);
-            }
+        try (IResourceReader rawKcs = new FileResourceReader(file)) {
+            parseKcsFile(rawKcs);
         } catch (IOException e) {
 
-            //Fug
+            // Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
+        }
+    }
+
+    public KcsFile(byte[] data) {
+
+        // Read the file
+        try (IResourceReader rawKcs = new ByteArrayResourceReader(data)) {
+            parseKcsFile(rawKcs);
+        } catch (Exception e) {
+
+            // Fug
+            throw new RuntimeException("Failed to parse KCS data!", e);
+        }
+    }
+
+    private void parseKcsFile(final IResourceReader rawKcs) throws IOException {
+
+        // Header
+        IResourceChunkReader rawKcsReader = rawKcs.readChunk(4);
+        int numOfEntries = rawKcsReader.readUnsignedInteger();
+        rawKcs.skipBytes(12); // 12 bytes of emptiness?
+
+        // Read the entries
+        rawKcsReader = rawKcs.readChunk(numOfEntries * 56);
+        kcsEntries = new ArrayList<>(numOfEntries);
+        for (int i = 0; i < numOfEntries; i++) {
+
+            // Entries have 56 bytes in them
+            KcsEntry entry = new KcsEntry();
+            entry.setPosition(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
+            entry.setDirection(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
+            entry.setLeft(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
+            entry.setUp(rawKcsReader.readFloat(), rawKcsReader.readFloat(), rawKcsReader.readFloat());
+            entry.setLens(rawKcsReader.readFloat());
+            entry.setNear(rawKcsReader.readFloat());
+            kcsEntries.add(entry);
         }
     }
 

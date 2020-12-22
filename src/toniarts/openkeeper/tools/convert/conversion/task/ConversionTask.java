@@ -30,6 +30,8 @@ public abstract class ConversionTask implements IConversionTask {
     protected final String dungeonKeeperFolder;
     protected final String destination;
     protected final boolean overwriteData;
+    private boolean inError = false;
+    private Exception error;
 
     private final List<IConversionTaskUpdate> listeners = new ArrayList<>();
 
@@ -44,22 +46,40 @@ public abstract class ConversionTask implements IConversionTask {
     protected abstract void internalExecuteTask();
 
     @Override
-    public final void executeTask() {
+    public final void executeTask() throws Exception {
         try {
             internalExecuteTask();
-
-            for (IConversionTaskUpdate listener : listeners) {
-                listener.onComplete(getConvertProcess());
-            }
         } catch (Exception e) {
-
-            for (IConversionTaskUpdate listener : listeners) {
-                listener.onError(e, getConvertProcess());
-            }
-
-            // Re-throw
-            throw e;
+            handleError(e);
         }
+
+        // See if errored
+        if (isInError()) {
+            handleError(error);
+        }
+
+        // Completed succesfully
+        for (IConversionTaskUpdate listener : listeners) {
+            listener.onComplete(getConvertProcess());
+        }
+    }
+
+    private void handleError(Exception e) throws Exception {
+        for (IConversionTaskUpdate listener : listeners) {
+            listener.onError(e, getConvertProcess());
+        }
+
+        // Re-throw
+        throw e;
+    }
+
+    protected boolean isInError() {
+        return inError;
+    }
+
+    protected void onError(Exception e) {
+        inError = true;
+        error = e;
     }
 
     protected void updateStatus(Integer currentProgress, Integer totalProgress) {

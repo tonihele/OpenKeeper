@@ -16,11 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.sound;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Dungeon Keeper II *Bank.map files. The map files contain sound playback events of some sorts<br>
@@ -41,7 +41,7 @@ public class BankMapFile {
     private final int unknown1; // 0 or 1 // not used
     private final long unknown2; // 0, 32769, 0xFFFFFFFF // not used
     //
-    private final File file;
+    private final Path file;
     private final BankMapFileEntry[] entries;
 
     /**
@@ -49,11 +49,11 @@ public class BankMapFile {
      *
      * @param file the *Bank.map file to read
      */
-    public BankMapFile(File file) {
+    public BankMapFile(Path file) {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawMap = new ResourceReader(file)) {
+        try (IResourceReader rawMap = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawMapReader = rawMap.readChunk(28);
@@ -65,7 +65,7 @@ public class BankMapFile {
             };
             for (int i = 0; i < HEADER_ID.length; i++) {
                 if (check[i] != HEADER_ID[i]) {
-                    throw new RuntimeException(file.getName() + ": The file header is not valid");
+                    throw new RuntimeException(file.toString() + ": The file header is not valid");
                 }
             }
 
@@ -110,6 +110,6 @@ public class BankMapFile {
 
     @Override
     public String toString() {
-        return file.getName();
+        return file.toString();
     }
 }

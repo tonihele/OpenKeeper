@@ -20,7 +20,12 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.scene.Node;
-import java.io.File;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
@@ -71,7 +77,16 @@ public class ConvertModels extends ConversionTask {
 
     @Override
     public void internalExecuteTask() {
-        convertModels(dungeonKeeperFolder, destination, assetManager);
+        try {
+            convertModels(dungeonKeeperFolder, destination, assetManager);
+        } finally {
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+            } catch (InterruptedException ex) {
+                LOGGER.log(Level.SEVERE, "Failed to wait model saving complete!", ex);
+            }
+        }
     }
 
     /**
@@ -83,44 +98,59 @@ public class ConvertModels extends ConversionTask {
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
         LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        Path dest = Paths.get(destination);
+        AssetUtils.deleteFolder(dest);
+        try {
+            Files.createDirectories(dest);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + dest + "!", ex);
+        }
 
         // Create the materials folder or else the material file saving fails
-        File materialFolder = new File(getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER));
+        Path materialFolder = Paths.get(getAssetsFolder(), AssetsConverter.MATERIALS_FOLDER);
         AssetUtils.deleteFolder(materialFolder);
-        materialFolder.mkdirs();
+        try {
+            Files.createDirectories(materialFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + materialFolder + "!", ex);
+        }
 
         // Meshes are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Meshes.WAD"));
+        WadFile wad;
+        try {
+            wad = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Meshes.WAD")));
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not open the meshes.wad archive!", ex);
+        }
         Map<String, KmfFile> kmfs = new LinkedHashMap<>(wad.getWadFileEntryCount());
-        File tmpdir = new File(System.getProperty("java.io.tmpdir"));
         AtomicInteger progress = new AtomicInteger(0);
         int total = wad.getWadFileEntryCount();
         for (final String entry : wad.getWadFileEntries()) {
             try {
 
                 // See if we already have this model
-                if (!overwriteData && new File(destination.concat(entry.substring(0, entry.length() - 4)).concat(".j3o")).exists()) {
+                if (!overwriteData && Files.exists(Paths.get(destination, entry.substring(0, entry.length() - 4).concat(".j3o")))) {
                     LOGGER.log(Level.INFO, "File {0} already exists, skipping!", entry);
                     updateStatus(progress.incrementAndGet(), total);
                     continue;
                 }
 
-                // Extract each file to temp
-                File f = wad.extractFileData(entry, tmpdir.toString());
-                f.deleteOnExit();
-
                 // Parse
-                final KmfFile kmfFile = new KmfFile(f);
+                final KmfFile kmfFile = new KmfFile(wad.getFileData(entry));
 
                 // If it is a regular model or animation, process it straight away
                 // Leave groups for later (since linking)
                 if (kmfFile.getType() == KmfFile.Type.MESH || kmfFile.getType() == KmfFile.Type.ANIM) {
-                    convertModel(assetManager, entry, kmfFile, destination, f, total, progress);
+                    convertModel(assetManager, entry, kmfFile, destination, total, progress);
                 } else {
 
                     // For later processing
                     kmfs.put(entry, kmfFile);
+                }
+
+                // See if model conversion already failed
+                if (isInError()) {
+                    return;
                 }
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Failed to create a file for WAD entry " + entry + "!", ex);
@@ -130,14 +160,12 @@ public class ConvertModels extends ConversionTask {
 
         // And the groups (now they can be linked)
         for (Map.Entry<String, KmfFile> entry : kmfs.entrySet()) {
-            convertModel(assetManager, entry.getKey(), entry.getValue(), destination, null, total, progress);
-        }
+            convertModel(assetManager, entry.getKey(), entry.getValue(), destination, total, progress);
 
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-        } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to wait model saving complete!", ex);
+            // See if model conversion already failed
+            if (isInError()) {
+                return;
+            }
         }
     }
 
@@ -148,12 +176,11 @@ public class ConvertModels extends ConversionTask {
      * @param name model name
      * @param model the loaded KMF model
      * @param destination destination directory
-     * @param kmfFile the actual KMF file reference
      * @param total the total amount to process
      * @param progress current progress
      * @throws RuntimeException May fail
      */
-    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, File kmfFile, int total, AtomicInteger progress) throws RuntimeException {
+    private void convertModel(AssetManager assetManager, String name, KmfFile model, String destination, int total, AtomicInteger progress) throws RuntimeException {
 
         // Remove the file extension from the file
         KmfAssetInfo ai = new KmfAssetInfo(assetManager, new AssetKey(name), model, true);
@@ -165,19 +192,16 @@ public class ConvertModels extends ConversionTask {
             executorService.submit(() -> {
                 try {
                     BinaryExporter exporter = BinaryExporter.getInstance();
-                    File file = new File(destination.concat(name.substring(0, name.length() - 4)).concat(".j3o"));
-                    exporter.save(n, file);
-
-                    // See if we can just delete the file straight
-                    if (kmfFile != null) {
-                        kmfFile.delete();
+                    try (OutputStream out = Files.newOutputStream(Paths.get(destination, name.substring(0, name.length() - 4).concat(".j3o")));
+                            BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                        exporter.save(n, bout);
                     }
 
                     updateStatus(progress.incrementAndGet(), total);
                 } catch (Exception ex) {
                     String msg = "Failed to export KMF entry " + name + "!";
                     LOGGER.log(Level.SEVERE, msg, ex);
-                    throw new RuntimeException(msg, ex);
+                    onError(new RuntimeException(msg, ex));
                 }
             });
         } catch (Exception ex) {

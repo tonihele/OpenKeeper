@@ -16,12 +16,16 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.SPRITES_FOLDER;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.spr.SprFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -55,33 +59,43 @@ public class ConvertMouseCursors extends ConversionTask {
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        AssetUtils.deleteFolder(Paths.get(destination));
 
         // Mouse cursors are PNG files in the Sprite.WAD
-        WadFile wadFile = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Sprite.WAD"));
+        WadFile wadFile;
+        try {
+            wadFile = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Sprite.WAD")));
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not open the Sprite.wad archive!", ex);
+        }
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
-        File destinationFolder = new File(getAssetsFolder().concat(SPRITES_FOLDER).concat(File.separator));
+        Path destinationFolder = Paths.get(getAssetsFolder(), SPRITES_FOLDER);
         AssetUtils.deleteFolder(destinationFolder);
-        destinationFolder.mkdirs();
+        try {
+            Files.createDirectories(destinationFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + destinationFolder + "!", ex);
+        }
+        String destinationFolderAsString = destinationFolder.toString();
 
         for (String fileName : wadFile.getWadFileEntries()) {
             updateStatus(i, total);
             i++;
 
-            // Extract the file
-            File extracted = wadFile.extractFileData(fileName, destination);
-
             if (fileName.toLowerCase().endsWith(".spr")) {
 
                 // Extract the spr and delete it afterwards
-                SprFile sprFile = new SprFile(extracted);
+                SprFile sprFile = new SprFile(wadFile.getFileData(fileName));
                 try {
-                    sprFile.extract(destinationFolder.getPath(), fileName.substring(0, fileName.length() - 4));
-                    extracted.delete();
+                    sprFile.extract(destinationFolderAsString, fileName.substring(0, fileName.length() - 4));
                 } catch (Exception ex) {
                     LOGGER.log(Level.SEVERE, "Error Sprite: {0}", ex);
                 }
+            } else {
+
+                // Extract the file
+                wadFile.extractFileData(fileName, destination);
             }
         }
     }

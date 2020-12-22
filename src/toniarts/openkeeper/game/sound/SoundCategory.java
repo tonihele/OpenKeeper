@@ -18,6 +18,9 @@ package toniarts.openkeeper.game.sound;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -28,8 +31,8 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxGroupEntry;
-import toniarts.openkeeper.tools.convert.sound.sfx.SfxMapFileEntry;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxMapFile;
+import toniarts.openkeeper.tools.convert.sound.sfx.SfxMapFileEntry;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -88,24 +91,27 @@ public class SoundCategory {
 
     @Nullable
     public SfxMapFile getSfxMapFile() {
-        File f = new File(PathUtils.getDKIIFolder() + folder
-                + name.toLowerCase() + "SFX.map");
-        if (f.exists()) {
+        try {
+            Path f = Paths.get(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(), folder + name.toLowerCase() + "SFX.map"));
+
             return new SfxMapFile(f);
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, ex, () -> {
+                return String.format("Sfx file of category {0} does not exist", name);
+            });
         }
 
-        LOGGER.log(Level.SEVERE, "Sfx file of category {0} not exits", name);
         return null;
     }
 
     public BankMapFile getBankMapFile() {
-        File f = new File(PathUtils.getDKIIFolder() + folder
-                + name.toLowerCase() + "BANK.map");
-        if (f.exists()) {
-            return new BankMapFile(f);
-        }
+        try {
+            Path f = Paths.get(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(), folder + name.toLowerCase() + "BANK.map"));
 
-        throw new RuntimeException("Bank file of category " + name + " not exits");
+            return new BankMapFile(f);
+        } catch (IOException ex) {
+            throw new RuntimeException("Bank file of category " + name + " does not exist", ex);
+        }
     }
 
     /**
@@ -119,9 +125,9 @@ public class SoundCategory {
         // FIXME I don`t know what better HD or HW, but quantity HW less than HD, but size HW more than HD
         for (String part : new String[]{"HD.sdt", "HW.sdt"}) {
             try {
-                File f = new File(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(),
+                Path f = Paths.get(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(),
                         PathUtils.DKII_SFX_FOLDER + archiveFilename + part));
-                if (f.exists()) {
+                if (Files.exists(f)) {
                     return new SdtFile(f);
                 }
             } catch (IOException ex) {

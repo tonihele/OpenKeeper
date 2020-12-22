@@ -21,12 +21,12 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
-
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 import toniarts.openkeeper.utils.PathUtils;
@@ -42,8 +42,8 @@ public class Bf4Extractor {
 
     public static void main(String[] args) throws IOException {
 
-        //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[1]).exists()) {
+        // Take Dungeon Keeper 2 root folder as parameter
+        if (args.length != 2 || !Files.exists(Paths.get(args[1]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
             {
@@ -53,36 +53,35 @@ public class Bf4Extractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String textFolder = dkIIFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
+        final Path textFolder = Paths.get(dkIIFolder, PathUtils.DKII_TEXT_DEFAULT_FOLDER);
 
-        //And the destination
+        // And the destination
         String destination = PathUtils.fixFilePath(args[0]);
 
-        //Find all the font files
-        final List<File> bf4Files = new ArrayList<>();
-        File dataDir = new File(textFolder);
-        Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
+        // Find all the font files
+        final List<Path> bf4Files = new ArrayList<>();
+        Files.walkFileTree(textFolder, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
-                //Get all the BF4 files
-                if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".bf4")) {
-                    bf4Files.add(file.toFile());
+                // Get all the BF4 files
+                if (file.getFileName().toString().toLowerCase().endsWith(".bf4") && attrs.isRegularFile()) {
+                    bf4Files.add(file);
                 }
 
-                //Always continue
+                // Always continue
                 return FileVisitResult.CONTINUE;
             }
         });
 
-        //Extract the fonts bitmaps
-        for (File file : bf4Files) {
+        // Extract the fonts bitmaps
+        for (Path file : bf4Files) {
             Bf4File bf4 = new Bf4File(file);
 
             for (Bf4Entry entry : bf4) {
                 if (entry.getImage() != null) {
-                    String baseDir = destination + ConversionUtils.stripFileName(file.getName()) + File.separator;
-                    new File(baseDir).mkdirs();
+                    String baseDir = destination + ConversionUtils.stripFileName(file.toString()) + File.separator;
+                    Files.createDirectories(Paths.get(baseDir));
                     ImageIO.write(entry.getImage(), "png", new File(baseDir
                             + ConversionUtils.stripFileName(entry.toString()) + "_"
                             + Integer.toString(entry.getCharacter()) + ".png"));

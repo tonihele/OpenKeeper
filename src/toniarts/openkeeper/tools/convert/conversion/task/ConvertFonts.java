@@ -16,14 +16,16 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,22 +68,23 @@ public class ConvertFonts extends ConversionTask {
     private void convertFonts(final String dungeonKeeperFolder, final String destination) {
         LOGGER.log(Level.INFO, "Extracting fonts to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        Path destFolder = Paths.get(destination);
+        AssetUtils.deleteFolder(destFolder);
 
         try {
 
             // Make sure the folder exists
-            new File(destination).mkdirs();
+            Files.createDirectories(destFolder);
 
             // Find all the font files
-            final List<File> bf4Files = new ArrayList<>();
-            Files.walkFileTree(new File(dungeonKeeperFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER).toPath(), new SimpleFileVisitor<Path>() {
+            final List<Path> bf4Files = new ArrayList<>();
+            Files.walkFileTree(Paths.get(dungeonKeeperFolder, PathUtils.DKII_TEXT_DEFAULT_FOLDER), new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
-                    //Get all the BF4 files
-                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".bf4")) {
-                        bf4Files.add(file.toFile());
+                    // Get all the BF4 files
+                    if (file.getFileName().toString().toLowerCase().endsWith(".bf4") && attrs.isRegularFile()) {
+                        bf4Files.add(file);
                     }
 
                     // Always continue
@@ -93,7 +96,7 @@ public class ConvertFonts extends ConversionTask {
             int i = 0;
             int total = bf4Files.size();
             Pattern pattern = Pattern.compile("FONT_(?<name>\\D+)(?<size>\\d+)", Pattern.CASE_INSENSITIVE);
-            for (File file : bf4Files) {
+            for (Path file : bf4Files) {
                 updateStatus(i, total);
 
                 // The file names
@@ -101,10 +104,10 @@ public class ConvertFonts extends ConversionTask {
 
                 final String imageFileName;
                 final String descriptionFileName;
-                Matcher matcher = pattern.matcher(file.getName());
+                Matcher matcher = pattern.matcher(file.getFileName().toString());
                 boolean found = matcher.find();
                 if (!found) {
-                    LOGGER.log(Level.SEVERE, "Font name {0} not recognized!", file.getName());
+                    LOGGER.log(Level.SEVERE, "Font name {0} not recognized!", file.getFileName());
                     throw new RuntimeException("Unknown font name!");
                 } else {
                     fontSize = Integer.parseInt(matcher.group("size"));
@@ -127,8 +130,8 @@ public class ConvertFonts extends ConversionTask {
                     }
                 };
                 ImageIO.write(fc.getFontImage(), "png", new File(imageFileName));
-                try (OutputStreamWriter out = new OutputStreamWriter(new FileOutputStream(descriptionFileName))) {
-                    out.write(fc.getDescription());
+                try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(descriptionFileName), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                    bw.write(fc.getDescription());
                 }
 
                 i++;

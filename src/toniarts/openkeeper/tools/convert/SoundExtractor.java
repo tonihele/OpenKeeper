@@ -16,18 +16,17 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SFFile;
-
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxMapFile;
 import toniarts.openkeeper.utils.PathUtils;
@@ -43,8 +42,8 @@ public class SoundExtractor {
 
     public static void main(String[] args) throws IOException {
 
-        //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[1]).exists()) {
+        // Take Dungeon Keeper 2 root folder as parameter
+        if (args.length != 2 || !Files.exists(Paths.get(args[1]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null || args.length == 0)
             {
@@ -54,21 +53,20 @@ public class SoundExtractor {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
 
-        final String soundFolder = dkIIFolder + PathUtils.DKII_SFX_FOLDER;
+        final Path soundFolder = Paths.get(dkIIFolder, PathUtils.DKII_SFX_FOLDER);
 
-        //And the destination
+        // And the destination
         String destination = PathUtils.fixFilePath(args[0]);
 
-        //Find all the sound files
-        final List<File> sdtFiles = new ArrayList<>();
-        File dataDir = new File(soundFolder);
-        //Find all the bank.map files
-        final List<File> bankMapFiles = new ArrayList<>();
-        //Find all the bank.map files
-        final List<File> sfxMapFiles = new ArrayList<>();
-        //Find all the bank.map files
-        final List<File> sf2Files = new ArrayList<>();
-        Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitor<Path>() {
+        // Find all the sound files
+        final List<Path> sdtFiles = new ArrayList<>();
+        // Find all the bank.map files
+        final List<Path> bankMapFiles = new ArrayList<>();
+        // Find all the bank.map files
+        final List<Path> sfxMapFiles = new ArrayList<>();
+        // Find all the bank.map files
+        final List<Path> sf2Files = new ArrayList<>();
+        Files.walkFileTree(soundFolder, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
@@ -76,13 +74,13 @@ public class SoundExtractor {
                 if (attrs.isRegularFile()) {
                     String filename = file.getFileName().toString().toLowerCase();
                     if (filename.endsWith(".sdt")){
-                        sdtFiles.add(file.toFile());
+                        sdtFiles.add(file);
                     } else if (filename.endsWith(".sf2")) {
-                        sf2Files.add(file.toFile());
+                        sf2Files.add(file);
                     } else if (filename.endsWith("bank.map")) {
-                        bankMapFiles.add(file.toFile());
+                        bankMapFiles.add(file);
                     } else if (filename.endsWith("sfx.map")) {
-                        sfxMapFiles.add(file.toFile());
+                        sfxMapFiles.add(file);
                     }
                 }
 
@@ -92,34 +90,34 @@ public class SoundExtractor {
         });
 
         // TODO unpack files
-        //Just open up the bank map files for fun
-        for (File file : bankMapFiles) {
+        // Just open up the bank map files for fun
+        for (Path file : bankMapFiles) {
             BankMapFile bankMap = new BankMapFile(file);
-            //System.out.println(bankMap);
+            // System.out.println(bankMap);
         }
-        //Just open up the sfx map files for fun
-        for (File file : sfxMapFiles) {
+        // Just open up the sfx map files for fun
+        for (Path file : sfxMapFiles) {
             SfxMapFile sfxMap = new SfxMapFile(file);
             //System.out.println(sfxMap);
         }
-        //Just open up the sf2 map files for fun
-        for (File file : sf2Files) {
+        // Just open up the sf2 map files for fun
+        for (Path file : sf2Files) {
             SFFile sf2File = new SFFile(file);
             //System.out.println(sf2File);
         }
-        //Extract the sounds
-        for (File file : sdtFiles) {
+        // Extract the sounds
+        for (Path file : sdtFiles) {
             SdtFile sdt = new SdtFile(file);
 
-            //Get a relative path
-            Path relative = dataDir.toPath().relativize(file.toPath());
+            // Get a relative path
+            Path relative = soundFolder.relativize(file);
             String dest = destination;
             dest += relative.toString();
 
-            //Remove the actual file name
-            dest = dest.substring(0, dest.length() - file.toPath().getFileName().toString().length());
+            // Remove the actual file name
+            dest = dest.substring(0, dest.length() - file.getFileName().toString().length());
 
-            //Extract
+            // Extract
             sdt.extractFileData(dest);
         }
     }

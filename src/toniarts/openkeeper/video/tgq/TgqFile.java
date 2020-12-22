@@ -18,12 +18,15 @@ package toniarts.openkeeper.video.tgq;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Parses a DK II movie file<br>
@@ -65,14 +68,15 @@ public abstract class TgqFile implements AutoCloseable {
         }
 
         // Take a movie file as parameter
-        if (!new File(args[0]).exists()) {
+        Path file = Paths.get(args[1]);
+        if (!Files.exists(file)) {
             throw new RuntimeException("Movie file doesn't exist!");
         }
 
-        new File(args[1]).mkdirs();
+        Files.createDirectories(file);
 
         // Create the video parser
-        try (TgqFile tgq = new TgqFile(new File(args[0])) {
+        try (TgqFile tgq = new TgqFile(file) {
             @Override
             protected void addVideoFrame(TgqFrame frame) {
                 File outputfile = new File(args[1].concat("Frame").concat(frame.getFrameIndex() + "").concat(".png"));
@@ -101,8 +105,8 @@ public abstract class TgqFile implements AutoCloseable {
         }
     }
 
-    public TgqFile(File file) throws IOException {
-        this.file = new ResourceReader(file);
+    public TgqFile(Path file) throws IOException {
+        this.file = new FileResourceReader(file);
     }
 
     @Override

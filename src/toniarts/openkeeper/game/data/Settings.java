@@ -18,13 +18,15 @@ package toniarts.openkeeper.game.data;
 
 import com.jme3.input.KeyInput;
 import com.jme3.system.AppSettings;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -246,8 +248,8 @@ public class Settings {
     private final static Settings INSTANCE;
     private final AppSettings settings;
     private final static int MAX_FPS = 200;
-    private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(Main.TITLE).concat(File.separator);
-    private final static String USER_SETTINGS_FILE = USER_HOME_FOLDER.concat("openkeeper.properties");
+    private final static Path USER_HOME_FOLDER = Paths.get(System.getProperty("user.home"), ".".concat(Main.TITLE));
+    private final static Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
     public final static List<String> OPENGL = Settings.getRenderers();
     public final static List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
     public final static List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
@@ -266,12 +268,12 @@ public class Settings {
         if (!this.settings.containsKey("Width") || !this.settings.containsKey("Height")) {
             this.settings.setResolution(800, 600); // Default resolution
         }
-        File settingsFile = new File(USER_SETTINGS_FILE);
-        if (settingsFile.exists()) {
-            try (InputStream is = new FileInputStream(settingsFile)) {
-                this.settings.load(is);
+        if (Files.exists(USER_SETTINGS_FILE)) {
+            try (InputStream in = Files.newInputStream(USER_SETTINGS_FILE);
+                    BufferedInputStream bin = new BufferedInputStream(in)) {
+                settings.load(bin);
             } catch (IOException ex) {
-                LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
+                LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
             }
         }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
@@ -300,8 +302,8 @@ public class Settings {
     }
 
     /**
-     * @see com.​jme3.​system.AppSettings.LWJGL_OPENGL* constants
-     * @return list of avaliable renderers
+     * @see com.jme3.system.AppSettings LWJGL_OPENGL constants
+     * @return list of available renderers
      */
     public static List<String> getRenderers() {
         List<String> renderers = new ArrayList<>();
@@ -325,8 +327,11 @@ public class Settings {
      * @throws java.io.IOException may fail to save
      */
     public void save() throws IOException {
-        try (OutputStream os = new FileOutputStream(new File(USER_SETTINGS_FILE))) {
-            settings.save(os);
+        try (OutputStream out = Files.newOutputStream(USER_SETTINGS_FILE);
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            settings.save(bout);
+        } catch (IOException ex) {
+            LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to save!", ex);
         }
     }
 

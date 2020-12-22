@@ -45,6 +45,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -219,8 +222,16 @@ public class Main extends SimpleApplication {
     private static void initSettings(Main app) {
 
         // Create some folders
-        new File(USER_HOME_FOLDER).mkdirs();
-        new File(SCREENSHOTS_FOLDER).mkdirs();
+        try {
+            Files.createDirectories(Paths.get(USER_HOME_FOLDER));
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to create folder " + USER_HOME_FOLDER + "!", ex);
+        }
+        try {
+            Files.createDirectories(Paths.get(SCREENSHOTS_FOLDER));
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "Failed to create folder " + SCREENSHOTS_FOLDER + "!", ex);
+        }
 
         // Init the user settings (which in JME are app settings)
         app.settings = Settings.getInstance().getAppSettings();
@@ -371,8 +382,8 @@ public class Main extends SimpleApplication {
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", PathUtils.getBytesFromInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"))));
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", PathUtils.getBytesFromInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", Files.readAllBytes(Paths.get(Main.this.getClass().getResource("/Interface/MainMenu.xml").toURI()))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", Files.readAllBytes(Paths.get(Main.this.getClass().getResource("/Interface/GameHUD.xml").toURI()))));
 
                     // Validate the XML, great for debuging purposes
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
@@ -555,9 +566,9 @@ public class Main extends SimpleApplication {
      * @return the resource bundle
      */
     public static ResourceBundle getResourceBundle(String baseName) {
-        File file = new File(AssetsConverter.getAssetsFolder());
+        Path file = Paths.get(AssetsConverter.getAssetsFolder());
         try {
-            URL[] urls = {file.toURI().toURL()};
+            URL[] urls = {file.toUri().toURL()};
             ClassLoader loader = new URLClassLoader(urls);
             return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader, new UTF8Control());
         } catch (Exception e) {

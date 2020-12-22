@@ -23,7 +23,7 @@ package toniarts.openkeeper.tools.convert.conversion.task;
  */
 public interface IConversionTask {
 
-    public void executeTask();
+    public void executeTask() throws Exception;
 
     public void addListener(IConversionTaskUpdate listener);
 

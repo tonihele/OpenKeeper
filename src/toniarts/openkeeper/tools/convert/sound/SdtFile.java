@@ -16,18 +16,19 @@
  */
 package toniarts.openkeeper.tools.convert.sound;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
-import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT archive<br>
@@ -41,7 +42,7 @@ public class SdtFile {
 
     private static final Pattern FILE_EXTENSION_PATTERN = Pattern.compile("([^\\s]+(\\.(?i)(mp2|wav))$)");
 
-    private final File file;
+    private final Path file;
     private final SdtFileEntry[] entries;
 
     /**
@@ -50,11 +51,11 @@ public class SdtFile {
      *
      * @param file the sdt file to read
      */
-    public SdtFile(File file) {
+    public SdtFile(Path file) {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawSdt = new ResourceReader(file)) {
+        try (IResourceReader rawSdt = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawSdtReader = rawSdt.readChunk(4);
@@ -108,7 +109,7 @@ public class SdtFile {
     public void extractFileData(String destination) {
 
         // Open the SDT for extraction
-        try (IResourceReader rawSdt = new ResourceReader(file)) {
+        try (IResourceReader rawSdt = new FileResourceReader(file)) {
             for (SdtFileEntry entry : entries) {
                 extractFileData(entry, destination, rawSdt);
             }
@@ -135,17 +136,19 @@ public class SdtFile {
         String filename = fixFileExtension(entry);
 
         // See that the destination is formatted correctly and create it if it does not exist
-        String dest = PathUtils.fixFilePath(destination);
-        File destinationFolder = new File(dest);
-        destinationFolder.mkdirs();
-
-        dest = dest.concat(filename);
+        Path destinationFile = Paths.get(destination, filename);
+        try {
+            Files.createDirectories(destinationFile.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create destination folder to " + destinationFile + "!", e);
+        }
 
         // Write to the file
-        try (OutputStream outputStream = new FileOutputStream(dest)) {
-            getFileData(entry, rawSdt).writeTo(outputStream);
+        try (OutputStream out = Files.newOutputStream(destinationFile);
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            getFileData(entry, rawSdt).writeTo(bout);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write to " + dest + "!", e);
+            throw new RuntimeException("Failed to write to " + destinationFile + "!", e);
         }
     }
 
@@ -254,12 +257,12 @@ public class SdtFile {
         return entries;
     }
 
-    public File getFile() {
+    public Path getFile() {
         return file;
     }
 
     @Override
     public String toString() {
-        return file.getName();
+        return file.toString();
     }
 }

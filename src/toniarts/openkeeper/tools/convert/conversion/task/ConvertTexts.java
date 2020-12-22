@@ -16,16 +16,16 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -67,23 +67,23 @@ public class ConvertTexts extends ConversionTask {
     private void convertTexts(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
-        String dataDirectory = dungeonKeeperFolder + PathUtils.DKII_TEXT_DEFAULT_FOLDER;
+        Path destinationFolder = Paths.get(destination);
+        AssetUtils.deleteFolder(destinationFolder);
+        Path dataDirectory = Paths.get(dungeonKeeperFolder, PathUtils.DKII_TEXT_DEFAULT_FOLDER);
 
         // Find all the STR files
-        final List<File> srtFiles = new ArrayList<>();
-        File dataDir = new File(dataDirectory);
+        final List<Path> srtFiles = new ArrayList<>();
         try {
-            Files.walkFileTree(dataDir.toPath(), EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(dataDirectory, EnumSet.noneOf(FileVisitOption.class), 1, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 
-                    //Get all the STR files
-                    if (attrs.isRegularFile() && file.getFileName().toString().toLowerCase().endsWith(".str")) {
-                        srtFiles.add(file.toFile());
+                    // Get all the STR files
+                    if (file.getFileName().toString().toLowerCase().endsWith(".str") && attrs.isRegularFile()) {
+                        srtFiles.add(file);
                     }
 
-                    //Always continue
+                    // Always continue
                     return FileVisitResult.CONTINUE;
                 }
             });
@@ -94,11 +94,15 @@ public class ConvertTexts extends ConversionTask {
         }
 
         // Convert the STR files to JAVA native resource bundles
-        new File(destination).mkdirs(); // Ensure that the folder exists
+        try {
+            Files.createDirectories(destinationFolder);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + destinationFolder + "!", ex);
+        }
         int i = 0;
         int total = srtFiles.size();
         MbToUniFile codePage = null;
-        for (File file : srtFiles) {
+        for (Path file : srtFiles) {
             updateStatus(i, total);
             i++;
 
@@ -112,12 +116,15 @@ public class ConvertTexts extends ConversionTask {
             }
 
             // Write the properties
-            String fileName = file.getName();
+            String fileName = file.getFileName().toString();
             fileName = fileName.substring(0, fileName.length() - 3);
-            File dictFile = new File(destination.concat(fileName).concat("properties"));
-            try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(dictFile, false), "UTF-8"))) {
+            Path dictFile = Paths.get(destination, fileName + "properties");
+            try (BufferedWriter bw = Files.newBufferedWriter(dictFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 for (Map.Entry<Integer, String> entry : strFile.getEntriesAsSet()) {
-                    pw.println(entry.getKey() + "=" + entry.getValue());
+                    bw.write(entry.getKey().toString());
+                    bw.write("=");
+                    bw.write(entry.getValue());
+                    bw.newLine();
                 }
             } catch (IOException ex) {
                 String msg = "Failed to save the dictionary file to " + dictFile + "!";

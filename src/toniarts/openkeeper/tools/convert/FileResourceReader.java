@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -35,28 +34,45 @@ import java.util.logging.Logger;
  *
  * @author archdemon
  */
-public class ResourceReader implements IResourceReader {
+public class FileResourceReader implements IResourceReader {
 
     private final SeekableByteChannel file;
+    private final ByteBuffer buf;
 
-    private static final Logger LOGGER = Logger.getLogger(ResourceReader.class.getName());
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final Logger LOGGER = Logger.getLogger(FileResourceReader.class.getName());
 
-    public ResourceReader(File file) throws IOException {
-        this(file.toPath());
-    }
-
-    public ResourceReader(String filename) throws IOException {
+    public FileResourceReader(String filename) throws IOException {
         this(Paths.get(filename));
     }
 
-    public ResourceReader(Path path) throws IOException {
+    public FileResourceReader(Path path) throws IOException {
         file = Files.newByteChannel(path, StandardOpenOption.READ);
+        buf = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);
+        buf.order(ByteOrder.LITTLE_ENDIAN);
     }
 
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
         ByteBuffer buffer = allocateBuffer(size);
-        file.read(buffer);
+        int sizeLeft = size;
+        while (sizeLeft >= DEFAULT_BUFFER_SIZE) {
+            int read = file.read(buf);
+            if (read <= 0) {
+                sizeLeft = 0;
+                break;
+            } else {
+                sizeLeft -= read;
+            }
+            buf.flip();
+            buffer.put(buf);
+            buf.flip();
+        }
+        if (sizeLeft > 0) {
+
+            // Read the rest
+            file.read(buffer);
+        }
         buffer.flip();
 
         return new ResourceChunkReader(buffer);
@@ -73,7 +89,7 @@ public class ResourceReader implements IResourceReader {
     }
 
     private ByteBuffer allocateBuffer(int size) {
-        ByteBuffer buffer = ByteBuffer.allocate(size);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(size);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         return buffer;
@@ -115,7 +131,7 @@ public class ResourceReader implements IResourceReader {
     /**
      * End of file
      *
-     * @return true if filepointer >= length of file
+     * @return true if file pointer >= length of file
      * @throws IOException
      */
     @Override

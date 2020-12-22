@@ -44,6 +44,11 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -325,7 +330,7 @@ public class AssetUtils {
                 AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC, 0.75f);
                 g.setComposite(ac);
             }
-            
+
             g.drawImage(img, null, 0, 0);
             for (int x = 1; x < frames; x++) {
                 AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + x + ".png")));
@@ -629,30 +634,47 @@ public class AssetUtils {
      * @param file
      * @return true if the file or folder was deleted
      */
-    public static boolean deleteFolder(final File file) {
-        File[] fileList = null;
-
+    public static boolean deleteFolder(final Path file) {
         if (file == null) {
             return false;
         }
 
-        if (file.isFile()) {
-            return file.delete();
-        }
-
-        if (!file.isDirectory()) {
+        if (!Files.exists(file)) {
             return false;
         }
 
-        fileList = file.listFiles();
-        if (fileList != null && fileList.length > 0) {
-            for (File f : fileList) {
-                if (!deleteFolder(f)) {
-                    return false;
-                }
+        try {
+            if (Files.isRegularFile(file)) {
+                Files.delete(file);
+
+                return true;
             }
+
+            Files.walkFileTree(file, new SimpleFileVisitor<Path>() {
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+
+                    return FileVisitResult.CONTINUE;
+                }
+
+            });
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, ex, () -> {
+                return "Failed to delete file/folder " + file + "!";
+            });
+
+            return false;
         }
 
-        return file.delete();
+        return true;
     }
 }

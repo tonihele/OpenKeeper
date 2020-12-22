@@ -17,20 +17,21 @@
 package toniarts.openkeeper.utils;
 
 import com.jme3.system.AppSettings;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 
 public class SettingUtils {
 
     private static final Logger LOGGER = Logger.getLogger(SettingUtils.class.getName());
-    private final static String SETTINGS_FILE = "openkeeper.properties";
+    private final static Path SETTINGS_FILE = Paths.get("openkeeper.properties");
     private final AppSettings settings;
     private final static SettingUtils instance;
 
@@ -54,21 +55,22 @@ public class SettingUtils {
     private void loadSettings() {
 
         // Init the application settings which contain just the conversion & folder data
-        File settingsFile = new File(SETTINGS_FILE);
-        if (settingsFile.exists()) {
-            try (InputStream is = new FileInputStream(settingsFile)) {
-                settings.load(is);
+        if (Files.exists(SETTINGS_FILE)) {
+            try (InputStream in = Files.newInputStream(SETTINGS_FILE);
+                    BufferedInputStream bin = new BufferedInputStream(in)) {
+                settings.load(bin);
             } catch (IOException ex) {
-                LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + settingsFile + "!", ex);
+                LOGGER.log(Level.WARNING, "Settings file failed to load from " + SETTINGS_FILE + "!", ex);
             }
         }
     }
 
     public void saveSettings() {
-        try (OutputStream os = new FileOutputStream(new File(SETTINGS_FILE))) {
-            settings.save(os);
+        try (OutputStream out = Files.newOutputStream(SETTINGS_FILE);
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            settings.save(bout);
         } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.WARNING, "Settings file failed to save!", ex);
+            LOGGER.log(Level.WARNING, "Settings file failed to save!", ex);
         }
     }
 }

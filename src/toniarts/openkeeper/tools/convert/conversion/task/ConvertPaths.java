@@ -21,7 +21,12 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
-import java.io.File;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -65,13 +70,23 @@ public class ConvertPaths extends ConversionTask {
     private void convertPaths(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(new File(destination));
+        Path dest = Paths.get(destination);
+        AssetUtils.deleteFolder(dest);
+        try {
+            Files.createDirectories(dest);
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to create destination folder " + dest + "!", ex);
+        }
 
         // Paths are in the data folder, access the packed file
-        WadFile wad = new WadFile(new File(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER + "Paths.WAD"));
+        WadFile wad;
+        try {
+            wad = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Paths.WAD")));
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to open the Paths.wad archive!", ex);
+        }
         int i = 0;
         int total = wad.getWadFileEntryCount();
-        File tmpdir = new File(System.getProperty("java.io.tmpdir"));
         BinaryExporter exporter = BinaryExporter.getInstance();
         for (final String entry : wad.getWadFileEntries()) {
             try {
@@ -81,12 +96,8 @@ public class ConvertPaths extends ConversionTask {
                 // Convert all the KCS entries
                 if (entry.toLowerCase().endsWith(".kcs")) {
 
-                    // Extract each file to temp
-                    File f = wad.extractFileData(entry, tmpdir.toString());
-                    f.deleteOnExit();
-
                     // Open the entry
-                    KcsFile kcsFile = new KcsFile(f);
+                    KcsFile kcsFile = new KcsFile(wad.getFileData(entry));
 
                     // Convert
                     List<CameraSweepDataEntry> entries = new ArrayList<>(kcsFile.getKcsEntries().size());
@@ -108,7 +119,10 @@ public class ConvertPaths extends ConversionTask {
                     CameraSweepData cameraSweepData = new CameraSweepData(entries);
 
                     // Save it
-                    exporter.save(cameraSweepData, new File(destination.concat(entry.substring(0, entry.length() - 3)).concat(CameraSweepDataLoader.FILE_EXTENSION)));
+                    try (OutputStream out = Files.newOutputStream(Paths.get(destination, entry.substring(0, entry.length() - 3).concat(CameraSweepDataLoader.FILE_EXTENSION)));
+                            BufferedOutputStream bout = new BufferedOutputStream(out)) {
+                        exporter.save(cameraSweepData, bout);
+                    }
                 } else if (entry.toLowerCase().endsWith(".txt")) {
 
                     // The text file is nice to have, it is an info text

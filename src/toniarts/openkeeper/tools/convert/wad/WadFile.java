@@ -16,12 +16,14 @@
  */
 package toniarts.openkeeper.tools.convert.wad;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -30,10 +32,9 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.ResourceReader;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the wad file structure and contains the methods to handle the WAD archive<br>
@@ -59,11 +60,11 @@ public class WadFile {
      *
      * @param file the wad file to read
      */
-    public WadFile(File file) {
-        this.file = file.toPath();
+    public WadFile(Path file) {
+        this.file = file;
 
         // Read the file
-        try (IResourceReader rawWad = new ResourceReader(file)) {
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
 
             // Check the header
             IResourceChunkReader reader = rawWad.readChunk(8);
@@ -162,7 +163,7 @@ public class WadFile {
     public void extractFileData(String destination) {
 
         // Open the WAD for extraction
-        try (IResourceReader rawWad = new ResourceReader(file)) {
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
 
             for (String fileName : wadFileEntries.keySet()) {
                 extractFileData(fileName, destination, rawWad);
@@ -181,27 +182,26 @@ public class WadFile {
      * @param destination destination directory
      * @param rawWad the opened WAD file
      */
-    private File extractFileData(String fileName, String destination, IResourceReader rawWad) {
+    private Path extractFileData(String fileName, String destination, IResourceReader rawWad) {
 
         // See that the destination is formatted correctly and create it if it does not exist
-        String dest = PathUtils.fixFilePath(destination);
+        Path destinationFile = Paths.get(destination, fileName);
 
-        String mkdir = dest;
-        if (fileName.contains(File.separator)) {
-            mkdir += fileName.substring(0, fileName.lastIndexOf(File.separator) + 1);
+        try {
+            Files.createDirectories(destinationFile.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create destination folder to " + destinationFile + "!", e);
         }
-
-        File destinationFolder = new File(mkdir);
-        destinationFolder.mkdirs();
-        dest = dest.concat(fileName);
 
         // Write to the file
-        try (OutputStream outputStream = new FileOutputStream(dest)) {
-            getFileData(fileName, rawWad).writeTo(outputStream);
-            return new File(dest);
+        try (OutputStream out = Files.newOutputStream(destinationFile);
+                BufferedOutputStream bout = new BufferedOutputStream(out)) {
+            getFileData(fileName, rawWad).writeTo(bout);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write to " + dest + "!", e);
+            throw new RuntimeException("Failed to write to " + destinationFile + "!", e);
         }
+
+        return destinationFile;
     }
 
     /**
@@ -211,10 +211,10 @@ public class WadFile {
      * @param destination destination directory
      * @return the file for the extracted contents
      */
-    public File extractFileData(String fileName, String destination) {
+    public Path extractFileData(String fileName, String destination) {
 
         // Open the WAD for extraction
-        try (IResourceReader rawWad = new ResourceReader(file)) {
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
             return extractFileData(fileName, destination, rawWad);
         } catch (Exception e) {
 
@@ -269,11 +269,11 @@ public class WadFile {
      * @param fileName the file to extract
      * @return the file data
      */
-    public ByteArrayOutputStream getFileData(String fileName) {
+    public byte[] getFileData(String fileName) {
 
         // Open the WAD for extraction
-        try (IResourceReader rawWad = new ResourceReader(file)) {
-            return getFileData(fileName, rawWad);
+        try (IResourceReader rawWad = new FileResourceReader(file)) {
+            return getFileData(fileName, rawWad).toByteArray();
         } catch (Exception e) {
 
             // Fug

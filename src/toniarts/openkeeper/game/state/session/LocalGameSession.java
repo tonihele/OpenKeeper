@@ -16,9 +16,11 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.awt.Point;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -77,17 +79,17 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
      * @param level the level to load
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
+     * @param app the main app
      * @throws java.io.IOException Problem with the map file
      */
     public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
 
         // Try to load the file
-        String mapFile = ConversionUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd");
-        File file = new File(mapFile);
-        if (!file.exists()) {
-            throw new FileNotFoundException(mapFile);
+        Path mapFile = Paths.get(ConversionUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, level + ".kwd"));
+        if (!Files.exists(mapFile)) {
+            throw new FileNotFoundException(mapFile.toString());
         }
-        KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), file);
+        KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), mapFile);
 
         createLocalGame(kwdFile, stateManager, campaign, app);
     }

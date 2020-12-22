@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.video;
 
-import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
@@ -33,7 +33,7 @@ import toniarts.openkeeper.video.tgq.TgqFile;
 import toniarts.openkeeper.video.tgq.TgqFrame;
 
 /**
- * "Mediaplayer" for TGQ files<br>
+ * "Media player" for TGQ files<br>
  * Kinda like an interface between the actual canvas and the decoder<br>
  * Not rewindable etc.<br>
  * Very simplistic, the buffer is just filled up once. If the decoder is too
@@ -45,7 +45,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  */
 public abstract class TgqPlayer {
 
-    private final File file;
+    private final Path file;
     private static final int FPS = 25; // The specs say 15 FPS, but with this they are totally in sync, dunno why
     private static final int FRAME_INTERVAL = (int) Math.floor(1000 / FPS); // In milliseconds
     private static final float FRAME_BUFFER_SIZE = 3; // In seconds, there is no fancy counter etc.
@@ -64,7 +64,7 @@ public abstract class TgqPlayer {
     private boolean stopped = true;
     private static final Logger logger = Logger.getLogger(TgqPlayer.class.getName());
 
-    public TgqPlayer(File file) {
+    public TgqPlayer(Path file) {
         this.file = file;
     }
 
@@ -352,9 +352,9 @@ public abstract class TgqPlayer {
      */
     private class TgqDecoder implements Runnable {
 
-        private final File file;
+        private final Path file;
 
-        private TgqDecoder(File file) {
+        private TgqDecoder(Path file) {
             this.file = file;
         }
 

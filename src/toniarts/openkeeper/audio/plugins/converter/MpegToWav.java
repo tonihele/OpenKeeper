@@ -16,10 +16,14 @@
  */
 package toniarts.openkeeper.audio.plugins.converter;
 
-import java.io.FileInputStream;
-import java.io.RandomAccessFile;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import toniarts.openkeeper.audio.plugins.decoder.AudioInformation;
 import toniarts.openkeeper.audio.plugins.decoder.Decoder;
 import toniarts.openkeeper.audio.plugins.decoder.MediaInformation;
@@ -54,13 +58,14 @@ public class MpegToWav {
             return;
         }
 
-        try (FileInputStream fin = new FileInputStream(args[0])) {
+        try (InputStream in = Files.newInputStream(Paths.get(args[0]));
+                BufferedInputStream bin = new BufferedInputStream(in)) {
 
             MpxReader reader = new MpxReader();
-            MediaInformation info = reader.readInformation(fin, true);
-            Decoder decoder = reader.getDecoder(fin, true);
+            MediaInformation info = reader.readInformation(bin, true);
+            Decoder decoder = reader.getDecoder(bin, true);
 
-            try (RandomAccessFile fout = new RandomAccessFile(args[1], "rw")) {
+            try (SeekableByteChannel fout = Files.newByteChannel(Paths.get(args[1]), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 System.out.printf("Decoding %s into %s ...\n", args[0], args[1]);
                 int outBytes = 0;
 
@@ -74,28 +79,28 @@ public class MpegToWav {
                 header.putInt(28, rate);
                 header.putShort(22, (short) nOfCh);
                 header.putShort(32, (short) (nOfCh * 16 / 8));
-                fout.write(header.array());
+                fout.write(header);
 
                 // Output
                 byte[] buffer = new byte[8192];
                 int length;
                 while ((length = decoder.read(buffer)) > -1) {
-                    fout.write(buffer, 0, length);
+                    fout.write(ByteBuffer.wrap(buffer, 0, length));
                     outBytes += length;
                 }
 
                 // Finish of the header
-                fout.seek(0);
+                fout.position(0);
                 header.putInt(40, outBytes);
                 header.putInt(4, outBytes + 36);
-                fout.write(header.array());
+                fout.write(header);
 
                 System.out.printf("Done.\n");
             } catch (Exception e) {
                 System.out.printf("Could not open output file %s!\n%s\n", args[1], e);
             }
         } catch (Exception e) {
-            System.out.printf("Could not open input file %s!\n", args[0]);
+            System.out.printf("Could not open input file %s!\n", args[0], e);
         }
     }
 }
