@@ -18,7 +18,6 @@ package toniarts.openkeeper.tools.convert;
 
 import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetInfo;
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoader;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
@@ -43,8 +42,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -119,25 +116,6 @@ public class KmfModelLoader implements AssetLoader {
         } else {
             dkIIFolder = PathUtils.fixFilePath(args[1]);
         }
-
-        AssetInfo ai = new AssetInfo(/*main.getAssetManager()*/null, null) {
-            @Override
-            public InputStream openStream() {
-                try {
-                    final File file = new File(dkIIFolder);
-                    key = new AssetKey() {
-                        @Override
-                        public String getName() {
-                            return file.toPath().getFileName().toString();
-                        }
-                    };
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException ex) {
-                    logger.log(Level.SEVERE, null, ex);
-                }
-                return null;
-            }
-        };
 
         ModelViewer app = new ModelViewer(Paths.get(args[0]), dkIIFolder);
         app.start();
