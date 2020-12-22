@@ -100,7 +100,7 @@ public class MpegToWav {
                 System.out.printf("Could not open output file %s!\n%s\n", args[1], e);
             }
         } catch (Exception e) {
-            System.out.printf("Could not open input file %s!\n", args[0]);
+            System.out.printf("Could not open input file %s!\n", args[0], e);
         }
     }
 }

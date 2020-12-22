@@ -152,7 +152,7 @@ public class KmfModelLoader implements AssetLoader {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
             generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
         } else {
-            kmfFile = new KmfFile(readAssetStream(assetInfo.openStream()));
+            kmfFile = new KmfFile(readAssetStream(assetInfo));
         }
 
         // Create a root
@@ -196,9 +196,12 @@ public class KmfModelLoader implements AssetLoader {
         }
     }
 
-    private byte[] readAssetStream(InputStream assetStream) throws IOException {
-        try (BufferedInputStream bis = new BufferedInputStream(assetStream);
+    private byte[] readAssetStream(AssetInfo assetInfo) throws IOException {
+        try (InputStream is = assetInfo.openStream();
+                BufferedInputStream bis = new BufferedInputStream(is);
                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+
+            // TODO: Java 9 has readAll, if it is buffered use it
             int read;
             final int bufLen = 8192;
             byte[] buf = new byte[bufLen];
