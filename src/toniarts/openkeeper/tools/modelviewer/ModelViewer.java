@@ -48,7 +48,9 @@ import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.ListBox;
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -59,6 +61,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
+import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
@@ -568,32 +571,25 @@ public class ModelViewer extends SimpleApplication {
      * Fill the listbox with items
      *
      * @param object list of objects (cached)
-     * @param rootDirectory the root directory (i.e. DK II dir or the dev dir),
-     * must be relative to the actual directory of where the objects are
-     * gathered
      * @param directory the actual directory where the objects are get
      * @param extension the file extension of the objects wanted
      */
-    private void fillWithFiles(List<String> object, final String rootDirectory,
+    private void fillWithFiles(List<String> object,
             final String directory, final String extension) {
 
         ListBox<String> listBox = screen.getItemsControl();
 
         if (object == null) {
 
-            //Find all the models
+            // Find all the files
             object = new ArrayList<>();
-            File f = new File(directory);
-            File[] files = f.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.toLowerCase().endsWith(".".concat(extension));
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(directory), PathUtils.getFilterForFilesEndingWith(extension))) {
+                for (Path file : stream) {
+                    String key = file.getFileName().toString();
+                    object.add(key.substring(0, key.length() - 4));
                 }
-            });
-            Path path = new File(rootDirectory).toPath();
-            for (File file : files) {
-                String key = file.getName();
-                object.add(key.substring(0, key.length() - 4));
+            } catch (IOException ex) {
+                Logger.getLogger(MapSelector.class.getName()).log(Level.SEVERE, "Failed to load the maps!", ex);
             }
         }
 
@@ -627,12 +623,12 @@ public class ModelViewer extends SimpleApplication {
         screen.getItemsControl().clear();
         switch (type) {
             case MODELS: {
-                fillWithFiles(models, AssetsConverter.getAssetsFolder(), AssetsConverter.getAssetsFolder()
-                        + AssetsConverter.MODELS_FOLDER + File.separator, "j3o");
+                fillWithFiles(models, AssetsConverter.getAssetsFolder()
+                        + AssetsConverter.MODELS_FOLDER + File.separator, ".j3o");
                 break;
             }
             case MAPS: {
-                fillWithFiles(maps, dkIIFolder, dkIIFolder + PathUtils.DKII_MAPS_FOLDER, "kwd");
+                fillWithFiles(maps, dkIIFolder + PathUtils.DKII_MAPS_FOLDER, ".kwd");
                 break;
             }
             case CREATURES: {
