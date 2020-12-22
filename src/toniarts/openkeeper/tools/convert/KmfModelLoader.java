@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -108,7 +109,7 @@ public class KmfModelLoader implements AssetLoader {
     public static void main(final String[] args) throws IOException {
 
         //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 2 || !new File(args[1]).exists()) {
+        if (args.length != 2 || !Files.exists(Paths.get(args[1]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide file path to the model as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)");
@@ -656,13 +657,14 @@ public class KmfModelLoader implements AssetLoader {
                     materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(fileName).concat(".j3m"));
 
                     // See if it exists
-                    File file = new File(materialLocation).getCanonicalFile();
-                    if (file.exists()) {
-                        if (!file.getName().equals(fileName.concat(".j3m"))) {
+                    Path file = Paths.get(materialLocation);
+                    if (Files.exists(file)) {
+                        file = file.toRealPath();
+                        if (!file.getFileName().toString().equals(fileName.concat(".j3m"))) {
 
                             // Case sensitivity issue
-                            materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(file.getName());
-                            materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(file.getName()));
+                            materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(file.getFileName().toString());
+                            materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(file.getFileName().toString()));
                         }
                         material = assetInfo.getManager().loadMaterial(materialKey);
                     }

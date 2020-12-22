@@ -168,8 +168,8 @@ public class ModelViewer extends SimpleApplication {
 
     public static void main(String[] args) {
 
-        //Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 1 || !new File(args[0]).exists()) {
+        // Take Dungeon Keeper 2 root folder as parameter
+        if (args.length != 1 || !Files.exists(Paths.get(args[0]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");

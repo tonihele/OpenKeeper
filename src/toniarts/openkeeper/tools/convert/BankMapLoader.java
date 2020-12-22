@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -41,7 +40,7 @@ public class BankMapLoader {
     public static void main(String[] args) throws IOException {
 
         // Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 1 || !new File(args[0]).exists()) {
+        if (args.length != 1 || !Files.exists(Paths.get(args[0]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null)
             {
