@@ -71,7 +71,6 @@ import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
-import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
@@ -382,8 +381,8 @@ public class Main extends SimpleApplication {
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", Files.readAllBytes(Paths.get(Main.this.getClass().getResource("/Interface/MainMenu.xml").toURI()))));
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", Files.readAllBytes(Paths.get(Main.this.getClass().getResource("/Interface/GameHUD.xml").toURI()))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"))));
 
                     // Validate the XML, great for debuging purposes
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
@@ -493,13 +492,13 @@ public class Main extends SimpleApplication {
     public static BufferedImage[] getApplicationIcons() {
         try {
             return new BufferedImage[]{
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper256.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper128.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper64.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper48.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper32.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper24.png")),
-                ImageIO.read(CursorFactory.class.getResource("icons/openkeeper16.png"))
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper256.png")),
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper128.png")),
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper64.png")),
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper48.png")),
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper32.png")),
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper24.png")),
+                ImageIO.read(Main.class.getResource("/Icons/openkeeper16.png"))
             };
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "Failed to load the application icons!", ex);

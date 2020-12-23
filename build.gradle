@@ -73,7 +73,7 @@ sourceSets {
             srcDir 'src'
         }
         resources {
-            srcDirs 'assets', 'src'
+            srcDirs 'assets'
             exclude 'Converted/**'
         }
     }
@@ -110,5 +110,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '6.5.1'
+    gradleVersion = '6.7.1'
 }

@@ -38,12 +38,9 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -176,20 +173,7 @@ public class KmfModelLoader implements AssetLoader {
     }
 
     private byte[] readAssetStream(AssetInfo assetInfo) throws IOException {
-        try (InputStream is = assetInfo.openStream();
-                BufferedInputStream bis = new BufferedInputStream(is);
-                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-
-            // TODO: Java 9 has readAll, if it is buffered use it
-            int read;
-            final int bufLen = 8192;
-            byte[] buf = new byte[bufLen];
-            while ((read = bis.read(buf, 0, bufLen)) != -1) {
-                output.write(buf, 0, read);
-            }
-
-            return output.toByteArray();
-        }
+        return PathUtils.readInputStream(assetInfo.openStream());
     }
 
     /**

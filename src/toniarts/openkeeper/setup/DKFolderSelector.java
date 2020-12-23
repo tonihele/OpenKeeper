@@ -84,7 +84,7 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
             }
         });
 
-        statusIcon.setIcon(new javax.swing.ImageIcon(getClass().getResource("/toniarts/openkeeper/setup/images/Action-ok-icon.png"))); // NOI18N
+        statusIcon.setIcon(new ImageIcon(Main.class.getResource("/Interface/Images/Action-ok-icon.png")));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -133,11 +133,11 @@ public abstract class DKFolderSelector extends javax.swing.JFrame {
             ImageIcon icon = null;
             if (PathUtils.checkDkFolder(fc.getSelectedFile().getPath())) {
                 continueButton.setEnabled(true);
-                icon = new ImageIcon(DKFolderSelector.class.getResource("images/Action-ok-icon.png"));
+                icon = new ImageIcon(Main.class.getResource("/Interface/Images/Action-ok-icon.png"));
                 statusIcon.setToolTipText("The selected folder is valid!");
             } else {
                 continueButton.setEnabled(false);
-                icon = new ImageIcon(DKFolderSelector.class.getResource("images/Action-button-stop-icon.png"));
+                icon = new ImageIcon(Main.class.getResource("/Interface/Images/Action-button-stop-icon.png"));
                 statusIcon.setToolTipText("The selected folder is invalid!");
             }
             statusIcon.setIcon(icon);

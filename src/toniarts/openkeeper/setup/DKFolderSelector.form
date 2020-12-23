@@ -98,8 +98,8 @@
     </Component>
     <Component class="javax.swing.JLabel" name="statusIcon">
       <Properties>
-        <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-          <Image iconType="3" name="/toniarts/openkeeper/setup/images/Action-ok-icon.png"/>
+        <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+          <Connection code="new ImageIcon(Main.class.getResource(&quot;/Interface/Images/Action-ok-icon.png&quot;))" type="code"/>
         </Property>
       </Properties>
     </Component>
