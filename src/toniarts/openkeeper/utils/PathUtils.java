@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -116,6 +119,23 @@ public class PathUtils {
                 return entry.getFileName().toString().toLowerCase().endsWith(suffix) && !Files.isDirectory(entry);
             }
         };
+    }
+
+    public static byte[] readInputStream(InputStream inputStream) throws IOException {
+        try (InputStream is = inputStream;
+                BufferedInputStream bis = new BufferedInputStream(is);
+                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+
+            // TODO: Java 9 has readAll, if it is buffered use it
+            int read;
+            final int bufLen = 8192;
+            byte[] buf = new byte[bufLen];
+            while ((read = bis.read(buf, 0, bufLen)) != -1) {
+                output.write(buf, 0, read);
+            }
+
+            return output.toByteArray();
+        }
     }
 
 }

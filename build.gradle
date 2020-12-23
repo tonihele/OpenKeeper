@@ -73,7 +73,7 @@ sourceSets {
             srcDir 'src'
         }
         resources {
-            srcDirs 'assets', 'src'
+            srcDirs 'assets'
             exclude 'Converted/**'
         }
     }
