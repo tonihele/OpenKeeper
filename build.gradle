@@ -84,10 +84,6 @@ eclipse {
     classpath {
         downloadSources=true
     }
-    jdt {
-        sourceCompatibility = 1.8
-        targetCompatibility = 1.8
-    }
     project {
         natures 'org.springsource.ide.eclipse.gradle.core.nature'
     }
@@ -100,9 +96,13 @@ idea {
     }
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+}
+
 compileJava {
-    sourceCompatibility = '1.8'
-    options.incremental = true
     // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
     options.compilerArgs += ["-proc:none"]
     //options.compilerArgs += ["-Xlint:deprecation"]
