@@ -21,6 +21,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import static java.awt.image.BufferedImage.TYPE_INT_RGB;
+import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -47,13 +48,20 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  */
 public class MapThumbnailGenerator {
 
-    private static final Object PALETTE_LOCK = new Object();
     private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
-    private static volatile IndexColorModel cm;
+    private static ColorModel cm;
     private static final Logger LOGGER = Logger.getLogger(MapThumbnailGenerator.class.getName());
 
     private MapThumbnailGenerator() {
         // Nope
+    }
+
+    private static ColorModel getColorModel() {
+        if (cm == null) {
+            cm = readPalette();
+        }
+
+        return cm;
     }
 
     /**
@@ -68,15 +76,6 @@ public class MapThumbnailGenerator {
      * @return the map thumbnail image
      */
     public static BufferedImage generateMap(final KwdFile kwd, final Integer width, final Integer height, final boolean preserveAspectRatio) {
-
-        // Get the palette if not gotten already
-        if (cm == null) {
-            synchronized (PALETTE_LOCK) {
-                if (cm == null) {
-                    cm = readPalette();
-                }
-            }
-        }
 
         // Ensure that the kwd is fully loaded
         kwd.load();
@@ -126,7 +125,7 @@ public class MapThumbnailGenerator {
                 drawWidth,
                 bandOffsets);
         WritableRaster raster = Raster.createWritableRaster(sampleModel, null);
-        BufferedImage bi = new BufferedImage(cm, raster, false, null);
+        BufferedImage bi = new BufferedImage(getColorModel(), raster, false, null);
         byte[] data = (byte[]) ((DataBufferByte) raster.getDataBuffer()).getData();
 
         // Draw the map itself
@@ -145,7 +144,7 @@ public class MapThumbnailGenerator {
         return bi;
     }
 
-    private static IndexColorModel readPalette() {
+    private static ColorModel readPalette() {
         try {
 
             // Read the DK II palette image
@@ -246,6 +245,6 @@ public class MapThumbnailGenerator {
      * @return the player color
      */
     public static Color getPlayerColor(short playerId) {
-        return new Color(readPalette().getRGB(35 + playerId));
+        return new Color(getColorModel().getRGB(35 + playerId));
     }
 }
