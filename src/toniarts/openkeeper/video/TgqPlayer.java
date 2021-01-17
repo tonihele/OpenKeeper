@@ -157,11 +157,14 @@ public abstract class TgqPlayer {
             try {
 
                 // Wait for the audio header to init audio
-                if (audioHeader == null) {
+                EAAudioHeader localAudioHeader = audioHeader;
+                if (localAudioHeader == null) {
                     synchronized (audioHeaderEvent) {
-                        if (audioHeader == null) {
+                        localAudioHeader = audioHeader;
+                        if (localAudioHeader == null) {
                             try {
                                 audioHeaderEvent.wait();
+                                localAudioHeader = audioHeader;
                             } catch (InterruptedException ex) {
                                 logger.log(Level.WARNING, "Audio header waiting interrupted!", ex);
                                 return;
@@ -169,7 +172,7 @@ public abstract class TgqPlayer {
                         }
                     }
                 }
-                initAudio(audioHeader);
+                initAudio(localAudioHeader);
 
                 // Wait for the start
                 if (!bufferingComplete) {
