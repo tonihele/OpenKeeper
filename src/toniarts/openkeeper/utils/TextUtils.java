@@ -40,8 +40,7 @@ public class TextUtils {
     public static String parseText(String text, TextReplacer replacer) {
         Matcher matcher = PATTERN.matcher(text);
 
-        // TODO: In Java 9+ change to StringBuilder
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String param = matcher.group(1);
             if ("%".equals(param)) {

@@ -80,7 +80,6 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
-import toniarts.openkeeper.utils.UTF8Control;
 import toniarts.openkeeper.video.MovieState;
 
 /**
@@ -569,13 +568,13 @@ public class Main extends SimpleApplication {
         try {
             URL[] urls = {file.toUri().toURL()};
             ClassLoader loader = new URLClassLoader(urls);
-            return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader, new UTF8Control());
+            return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
         }
 
         // Works only from the IDE
-        return ResourceBundle.getBundle(baseName, new UTF8Control());
+        return ResourceBundle.getBundle(baseName);
     }
 
     @Override
