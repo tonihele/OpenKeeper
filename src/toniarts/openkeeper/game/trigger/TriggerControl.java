@@ -173,7 +173,7 @@ public class TriggerControl extends Control {
             case LEVEL_PLAYED:
                 return false;
             default:
-                LOGGER.log(Level.WARNING, "Target Type not supported{0}!", targetType);
+                LOGGER.log(Level.WARNING, "Target Type not supported {0}!", targetType);
                 return false;
         }
 

@@ -504,6 +504,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         if (resource != null) {
             String levelResource = "Interface/Texts/".concat(resource);
             try {
+                nifty.getResourceBundles().remove("level"); // Removes any previous level bundle we used
                 nifty.addResourceBundle("level", Main.getResourceBundle(levelResource));
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Failed to load the level dictionary!", ex);
