@@ -24,6 +24,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,22 +60,20 @@ import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
 /**
- * The player state! GUI, camera, etc. Player interactions. TODO: shouldn't
- * really be persistent, only persistent due to Nifty screen, these screen
- * controllers could be just the persistent ones
+ * The player state! GUI, camera, etc. Player interactions
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerState extends AbstractAppState implements PlayerListener {
 
-    protected Main app;
+    protected final Main app;
 
     protected AssetManager assetManager;
     protected AppStateManager stateManager;
 
-    private short playerId;
-    private KwdFile kwdFile;
-    private EntityData entityData;
+    private final short playerId;
+    private final KwdFile kwdFile;
+    private final EntityData entityData;
 
     private boolean paused = false;
 
@@ -85,19 +84,20 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     private PossessionCameraState possessionCameraState;
 
     private boolean transitionEnd = true;
-    private PlayerScreenController screen;
+    private final PlayerScreenController screen;
 
     private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
-    public PlayerState(int playerId, Main app) {
+    public PlayerState(int playerId, KwdFile kwdFile, EntityData entityData, boolean enabled, Main app) {
         this.playerId = (short) playerId;
+        this.kwdFile = kwdFile;
+        this.entityData = entityData;
+        this.app = app;
 
         screen = new PlayerScreenController(this, app.getNifty());
         app.getNifty().registerScreenController(screen);
-    }
+        app.getNifty().addXml(new ByteArrayInputStream(app.getGameUiXml()));
 
-    public PlayerState(int playerId, boolean enabled, Main app) {
-        this(playerId, app);
         super.setEnabled(enabled);
     }
 
@@ -105,7 +105,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
 
-        this.app = (Main) app;
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
     }
@@ -117,6 +116,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         for (AbstractAppState state : appStates) {
             stateManager.detach(state);
         }
+        app.getNifty().unregisterScreenController(screen);
 
         super.cleanup();
     }
@@ -226,16 +226,8 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         return kwdFile;
     }
 
-    public void setKwdFile(KwdFile kwdFile) {
-        this.kwdFile = kwdFile;
-    }
-
     public EntityData getEntityData() {
         return entityData;
-    }
-
-    public void setEntityData(EntityData entityData) {
-        this.entityData = entityData;
     }
 
     public PlayerScreenController getScreen() {
@@ -455,10 +447,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     public short getPlayerId() {
         return playerId;
-    }
-
-    public void setPlayerId(short playerId) {
-        this.playerId = playerId;
     }
 
     protected Creature getPossessionCreature() {

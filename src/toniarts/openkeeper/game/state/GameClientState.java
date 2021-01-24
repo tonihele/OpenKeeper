@@ -145,6 +145,7 @@ public class GameClientState extends AbstractPauseAwareState {
     private void detachRelatedAppStates() {
         stateManager.detach(stateManager.getState(PlayerEntityViewState.class));
         stateManager.detach(stateManager.getState(PlayerMapViewState.class));
+        stateManager.detach(stateManager.getState(PlayerState.class));
     }
 
     /**
@@ -309,6 +310,9 @@ public class GameClientState extends AbstractPauseAwareState {
                     GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
                 }
 
+                // Create player state
+                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app);
+
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId,
                         () -> {
                             synchronized (mapDataLoadingObject) {
@@ -336,6 +340,7 @@ public class GameClientState extends AbstractPauseAwareState {
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser);
 
                 // Attach the states
+                stateManager.attach(playerState);
                 stateManager.attach(playerMapViewState);
                 stateManager.attach(playerModelViewState);
 
@@ -384,12 +389,6 @@ public class GameClientState extends AbstractPauseAwareState {
 
             stateManager.getState(SoundState.class).setKwdFile(kwdFile);
             stateManager.getState(SoundState.class).setEnabled(true);
-
-            // Set the player stuff
-            playerState = stateManager.getState(PlayerState.class);
-            playerState.setKwdFile(kwdFile);
-            playerState.setEntityData(gameClientService.getEntityData());
-            playerState.setPlayerId(playerId);
 
             app.enqueue(() -> {
                 playerState.setEnabled(true);

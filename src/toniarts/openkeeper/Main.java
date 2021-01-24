@@ -67,7 +67,6 @@ import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.state.MainMenuState;
-import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
@@ -76,7 +75,6 @@ import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
@@ -99,7 +97,9 @@ public class Main extends SimpleApplication {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static Map<String, String> params;
     private static boolean debug;
+
     private NiftyJmeDisplay niftyDisplay;
+    private byte[] gameUiXml;
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -379,9 +379,11 @@ public class Main extends SimpleApplication {
                     setupNiftySound(nifty);
 
                     // Load the XMLs, since we also validate them, Nifty will read them twice
+                    byte[] mainMenuUiXml = PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"));
+                    gameUiXml = PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"));
                     List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"))));
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"))));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", mainMenuUiXml));
+                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", gameUiXml));
 
                     // Validate the XML, great for debuging purposes
                     for (Map.Entry<String, byte[]> xml : guiXMLs) {
@@ -394,18 +396,14 @@ public class Main extends SimpleApplication {
 
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
-                    PlayerState playerState = new PlayerState(Player.KEEPER1_ID, false, Main.this);
 
                     getStateManager().attach(new SoundState(false));
                     loadSounds();
 
                     getStateManager().attach(mainMenuState);
-                    getStateManager().attach(playerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
-                    for (Map.Entry<String, byte[]> xml : guiXMLs) {
-                        nifty.addXml(new ByteArrayInputStream(xml.getValue()));
-                    }
+                    nifty.addXml(new ByteArrayInputStream(mainMenuUiXml));
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
                     app.stop();
@@ -456,6 +454,10 @@ public class Main extends SimpleApplication {
         float musicVolume = s.getFloat(Settings.Setting.MASTER_VOLUME) * s.getFloat(Settings.Setting.MUSIC_VOLUME);
         nifty.getSoundSystem().setMusicVolume(s.getBoolean(Settings.Setting.VOICE_ENABLED) ? musicVolume : 0);
         nifty.getSoundSystem().setSoundVolume(s.getFloat(Settings.Setting.MASTER_VOLUME));
+    }
+
+    public byte[] getGameUiXml() {
+        return gameUiXml;
     }
 
     /**
