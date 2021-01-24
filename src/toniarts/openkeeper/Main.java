@@ -17,6 +17,7 @@
 package toniarts.openkeeper;
 
 import com.jme3.app.DebugKeysAppState;
+import com.jme3.app.DetailedProfilerState;
 import com.jme3.app.SimpleApplication;
 import com.jme3.app.StatsAppState;
 import com.jme3.app.state.ScreenshotAppState;
@@ -395,11 +396,15 @@ public class Main extends SimpleApplication {
 
                     // Initialize persistent app states
                     MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
+                    DetailedProfilerState detailedProfilerState = new DetailedProfilerState();
+                    detailedProfilerState.setEnabled(false); // F6
+                    getStateManager().getState(StatsAppState.class).setEnabled(false); // F5
 
                     getStateManager().attach(new SoundState(false));
                     loadSounds();
 
                     getStateManager().attach(mainMenuState);
+                    getStateManager().attach(detailedProfilerState);
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
                     nifty.addXml(new ByteArrayInputStream(mainMenuUiXml));
