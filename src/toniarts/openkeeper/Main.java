@@ -48,7 +48,6 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -381,12 +380,12 @@ public class Main extends SimpleApplication {
                     // Load the XMLs, since we also validate them, Nifty will read them twice
                     byte[] mainMenuUiXml = PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/MainMenu.xml"));
                     gameUiXml = PathUtils.readInputStream(Main.this.getClass().getResourceAsStream("/Interface/GameHUD.xml"));
-                    List<Map.Entry<String, byte[]>> guiXMLs = new ArrayList<>(2);
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/MainMenu.xml", mainMenuUiXml));
-                    guiXMLs.add(new AbstractMap.SimpleImmutableEntry<>("Interface/GameHUD.xml", gameUiXml));
+                    List<Map.Entry<String, byte[]>> guiXmls = new ArrayList<>(2);
+                    guiXmls.add(Map.entry("Interface/MainMenu.xml", mainMenuUiXml));
+                    guiXmls.add(Map.entry("Interface/GameHUD.xml", gameUiXml));
 
                     // Validate the XML, great for debuging purposes
-                    for (Map.Entry<String, byte[]> xml : guiXMLs) {
+                    for (Map.Entry<String, byte[]> xml : guiXmls) {
                         try {
                             nifty.validateXml(new ByteArrayInputStream(xml.getValue()));
                         } catch (Exception e) {
