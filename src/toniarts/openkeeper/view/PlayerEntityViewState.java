@@ -151,13 +151,13 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
-
-        // Detach entities
-        app.getRootNode().detachChild(root);
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
         trapModelContainer.stop();
+
+        // Detach entities
+        app.getRootNode().detachChild(root);
 
         for (IEntityViewControl entityViewControl : entityViewControls.values()) {
             entityViewControl.cleanup();

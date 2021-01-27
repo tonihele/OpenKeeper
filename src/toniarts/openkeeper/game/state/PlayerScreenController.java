@@ -125,7 +125,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
     public float lastUpdate = 0;
 
-    private final PlayerState state;
+    private PlayerState state;
     private Nifty nifty;
     private Screen screen;
 
@@ -162,6 +162,14 @@ public class PlayerScreenController implements IPlayerScreenController {
             creatureCardManager.cleanup();
             creatureCardManager = null;
         }
+
+        // Remove the resource bundle so that we can actually put a new one here
+        nifty.getResourceBundles().remove("level");
+
+        // The screen controller might sometimes stay in memory (something to do with Nifty's EventService)
+        // So make sure we clean these up or we end up cumulating a lot of uncollectable garbage (memory-leak)
+        state = null;
+        entityData = null;
     }
 
     @Override
@@ -504,7 +512,6 @@ public class PlayerScreenController implements IPlayerScreenController {
         if (resource != null) {
             String levelResource = "Interface/Texts/".concat(resource);
             try {
-                nifty.getResourceBundles().remove("level"); // Removes any previous level bundle we used
                 nifty.addResourceBundle("level", Main.getResourceBundle(levelResource));
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Failed to load the level dictionary!", ex);

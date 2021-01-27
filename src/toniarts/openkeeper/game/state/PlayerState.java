@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import de.lessvoid.nifty.Nifty;
 import java.awt.Point;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -116,7 +117,17 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
         for (AbstractAppState state : appStates) {
             stateManager.detach(state);
         }
-        app.getNifty().unregisterScreenController(screen);
+        appStates.clear();
+
+        // Disassemble Nifty
+        screen.cleanup();
+        Nifty nifty = app.getNifty();
+        nifty.unregisterScreenController(screen);
+        for (String screenId : nifty.getAllScreensName()) {
+            if (screen.equals(nifty.getScreen(screenId).getScreenController())) {
+                nifty.removeScreen(screenId);
+            }
+        }
 
         super.cleanup();
     }
@@ -142,7 +153,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             paused = false;
             screen.setPause(paused);
 
-            stateManager.attach(new ConsoleState());
+            appStates.add(new ConsoleState());
 
             // Create app states
             Player player = gameState.getLevelData().getPlayer(playerId);
@@ -209,7 +220,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             for (AbstractAppState state : appStates) {
                 stateManager.detach(state);
             }
-            stateManager.detach(stateManager.getState(ConsoleState.class));
 
             appStates.clear();
             screen.cleanup();
@@ -378,9 +388,9 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     public void quitToMainMenu() {
 
-        // Disable us, detach game and enable start
+        // Detach game and enable main menu
         stateManager.getState(GameClientState.class).detach();
-        setEnabled(false);
+        stateManager.detach(this);
         stateManager.getState(MainMenuState.class).setEnabled(true);
     }
 
