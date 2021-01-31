@@ -38,7 +38,7 @@ public class NiftyUtils {
     }
 
     /**
-     * After changing label text, you need to resize its contstraints
+     * After changing label text, you need to resize its constraints
      *
      * @param label the label
      */

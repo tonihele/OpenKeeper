@@ -166,10 +166,11 @@ public class PlayerScreenController implements IPlayerScreenController {
         // Remove the resource bundle so that we can actually put a new one here
         nifty.getResourceBundles().remove("level");
 
-        // The screen controller might sometimes stay in memory (something to do with Nifty's EventService)
+        // The screen controller might sometimes stay in memory
         // So make sure we clean these up or we end up cumulating a lot of uncollectable garbage (memory-leak)
         state = null;
         entityData = null;
+        screen = null;
     }
 
     @Override
@@ -672,7 +673,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         WorkerAmountControl workerAmountControl = element.getControl(WorkerAmountControl.class);
 
         // Player creatures, the controller
-        creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, nifty, creaturePanel,
+        creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 workerAmountControl, hud, state.getPlayer().getId());
 //        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
 //            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
@@ -1172,7 +1173,6 @@ public class PlayerScreenController implements IPlayerScreenController {
         private final IPlayerScreenController playerScreenController;
         private final KwdFile kwdFile;
         private final EntityData entityData;
-        private final Nifty nifty;
         private final EntitySet playerCreatureEntities;
         private final Element creaturePanel;
         private final WorkerAmountControl workerAmountControl;
@@ -1185,11 +1185,10 @@ public class PlayerScreenController implements IPlayerScreenController {
         private final Map<Short, CreatureCardControl> creatureCardControls = new HashMap<>();
         private final CreatureCardEventListener creatureCardEventListener = new EventListener();
 
-        public CreatureCardManager(IPlayerScreenController playerScreenController, KwdFile kwdFile, EntityData entityData, Nifty nifty, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
+        public CreatureCardManager(IPlayerScreenController playerScreenController, KwdFile kwdFile, EntityData entityData, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
             this.playerScreenController = playerScreenController;
             this.kwdFile = kwdFile;
             this.entityData = entityData;
-            this.nifty = nifty;
             this.creaturePanel = creaturePanel;
             this.workerAmountControl = workerAmountControl;
             this.hud = hud;
@@ -1229,6 +1228,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 watchedEntity.release();
             }
             creatureEntities.clear();
+            workerAmountControl.removeListener(creatureCardEventListener);
         }
 
         private void processAddedPlayerCreatureEntities(Set<Entity> entities) {
