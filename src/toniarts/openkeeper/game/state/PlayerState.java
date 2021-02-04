@@ -85,7 +85,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     private PossessionCameraState possessionCameraState;
 
     private boolean transitionEnd = true;
-    private final PlayerScreenController screen;
+    private PlayerScreenController screen;
 
     private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
@@ -118,6 +118,11 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
             stateManager.detach(state);
         }
         appStates.clear();
+        interactionState = null;
+        possessionState = null;
+        cameraState = null;
+        possessionCameraState = null;
+
 
         // Disassemble Nifty
         screen.cleanup();
@@ -128,6 +133,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
                 nifty.removeScreen(screenId);
             }
         }
+        screen = null;
 
         super.cleanup();
     }

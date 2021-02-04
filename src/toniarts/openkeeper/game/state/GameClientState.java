@@ -162,6 +162,10 @@ public class GameClientState extends AbstractPauseAwareState {
 
         stateManager.detach(this);
         detachRelatedAppStates();
+
+        playerState = null;
+        playerMapViewState = null;
+        playerModelViewState = null;
     }
 
     @Override
