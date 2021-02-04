@@ -53,7 +53,7 @@ public class WorkerEqualControl extends AbstractController {
         String fileName = String.format("Textures/GUI/Tabs/t-cp-%s.png", state.toString().toLowerCase());
 
         ImageRenderer imageRenderer = e.getRenderer(ImageRenderer.class);
-        imageRenderer.setImage(nifty.getRenderEngine().createImage(screen, fileName, true));
+        imageRenderer.setImage(nifty.createImage(screen, fileName, true));
     }
 
     @Override

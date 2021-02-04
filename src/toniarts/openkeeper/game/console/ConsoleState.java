@@ -29,6 +29,7 @@ import toniarts.openkeeper.view.PlayerInteractionState;
  * @author ArchDemon
  */
 public class ConsoleState extends AbstractPauseAwareState {
+
     private Main app;
     private GameConsole console;
     private ConsoleInputListener inputListener;
@@ -46,8 +47,9 @@ public class ConsoleState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
-        super.cleanup();
         app.getInputManager().removeRawInputListener(inputListener);
+
+        super.cleanup();
     }
 
     @Override

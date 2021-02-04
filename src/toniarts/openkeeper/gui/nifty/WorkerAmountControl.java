@@ -82,7 +82,7 @@ public class WorkerAmountControl extends AbstractCreatureCardControl {
         String fileName = String.format("Textures/GUI/Tabs/t-creature_panel-%s.png", state.getValue());
 
         ImageRenderer imageRenderer = e.getRenderer(ImageRenderer.class);
-        imageRenderer.setImage(nifty.getRenderEngine().createImage(screen, fileName, true));
+        imageRenderer.setImage(nifty.createImage(screen, fileName, true));
     }
 
     @Override
