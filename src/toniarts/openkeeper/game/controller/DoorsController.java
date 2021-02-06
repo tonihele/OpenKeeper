@@ -57,6 +57,7 @@ public class DoorsController implements IDoorsController {
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IMapController mapController;
     private IGameController gameController;
+    private ILevelInfo levelInfo;
 
     private static final Logger LOGGER = Logger.getLogger(DoorsController.class.getName());
 
@@ -72,14 +73,16 @@ public class DoorsController implements IDoorsController {
      * @param gameSettings the game settings
      * @param mapController the map controller
      * @param gameController
+     * @param levelInfo
      */
     public DoorsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IMapController mapController, IGameController gameController) {
+            IMapController mapController, IGameController gameController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.mapController = mapController;
         this.gameController = gameController;
+        this.levelInfo = levelInfo;
 
         // Load doors
         loadDoors();
@@ -88,6 +91,9 @@ public class DoorsController implements IDoorsController {
     private void loadDoors() {
         for (Thing.Door door : kwdFile.getThings(Thing.Door.class)) {
             try {
+                if (levelInfo.getPlayer(door.getPlayerId()) == null) {
+                    continue;
+                }
                 loadDoor(door);
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing.", ex);

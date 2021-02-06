@@ -61,6 +61,8 @@ public final class MapController extends Container implements IMapController {
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
     private final IMapInformation<IMapTileController> mapInformation;
+    private final ILevelInfo levelInfo;
+
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
     private final Map<RoomInstance, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
@@ -74,16 +76,18 @@ public final class MapController extends Container implements IMapController {
      * @param gameSettings      the game settings
      * @param gameTimer
      * @param entityData
+     * @param levelInfo
      */
     public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameTimer gameTimer, EntityData entityData) {
+            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
-        this.mapData = new MapData(kwdFile, entityData);
+        this.mapData = new MapData(kwdFile, entityData, levelInfo.getPlayers());
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.entityData = entityData;
         this.mapInformation = new MapInformation(mapData, kwdFile);
+        this.levelInfo = levelInfo;
 
         // Load rooms
         loadRooms();

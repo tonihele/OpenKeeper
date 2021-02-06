@@ -118,19 +118,19 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
 
         // Load objects
-        objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController);
+        objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
 
         // Load the doors
-        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController);
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, levelInfo);
 
         // Load the traps
-        trapsController = new TrapsController(kwdFile, entityData, gameSettings, gameController);
+        trapsController = new TrapsController(kwdFile, entityData, gameSettings, gameController, levelInfo);
 
         // Setup player stuff
         initPlayerMoney();

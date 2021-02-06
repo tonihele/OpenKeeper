@@ -155,6 +155,9 @@ public class CreaturesController implements ICreaturesController {
         }
         for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
             try {
+                if (levelInfo.getPlayer(creature.getPlayerId()) == null) {
+                    continue;
+                }
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
@@ -162,6 +165,9 @@ public class CreaturesController implements ICreaturesController {
         }
         for (Thing.DeadBody creature : kwdFile.getThings(Thing.DeadBody.class)) {
             try {
+                if (levelInfo.getPlayer(creature.getPlayerId()) == null) {
+                    continue;
+                }
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);

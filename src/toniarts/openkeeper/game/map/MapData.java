@@ -19,11 +19,16 @@ package toniarts.openkeeper.game.map;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.data.Keeper;
 import static toniarts.openkeeper.game.map.MapTileController.setAttributesFromTerrain;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -38,21 +43,23 @@ public class MapData implements IMapData {
     private final int height;
     private final IMapTileController[][] tiles;
 
-    public MapData(KwdFile kwdFile, EntityData entityData) {
+    public MapData(KwdFile kwdFile, EntityData entityData, Collection<Keeper> players) {
         width = kwdFile.getMap().getWidth();
         height = kwdFile.getMap().getHeight();
 
         // Duplicate the map
         this.tiles = new IMapTileController[width][height];
+        Map<Short, Keeper> playersById = players.stream().collect(Collectors.toMap(Keeper::getId, keeper -> keeper));
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Tile tile = kwdFile.getMap().getTile(x, y);
-                tiles[x][y] = createMapTile(entityData, tile, kwdFile, x, y, y * width + x);
+                tiles[x][y] = createMapTile(entityData, tile, kwdFile, x, y, y * width + x, playersById);
             }
         }
     }
 
-    private static MapTileController createMapTile(EntityData entityData, Tile tile, KwdFile kwdFile, int x, int y, int index) {
+    private static MapTileController createMapTile(EntityData entityData, Tile tile, KwdFile kwdFile, int x, int y, int index,
+            Map<Short, Keeper> playersById) {
         EntityId entityId = entityData.createEntity();
 
         // Create ALL components for the map tile, even things like Gold when it has none, helps to parse the map tile as whole in client
@@ -61,14 +68,11 @@ public class MapData implements IMapData {
         mapTileComponent.p = new Point(x, y);
         mapTileComponent.index = index;
         mapTileComponent.bridgeTerrainType = tile.getFlag();
-        mapTileComponent.terrainId = tile.getTerrainId();
 
-        // Owner
-        Owner owner = new Owner(tile.getPlayerId());
-        entityData.setComponent(entityId, owner);
+        mapTileComponent.terrainId = setupTerrainOwner(kwdFile, tile, entityData, entityId, playersById);
 
         // The water/lava under the bridge is set only when there is an actual bridge, but we might as well set it here, it doesn't change
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        Terrain terrain = kwdFile.getTerrain(mapTileComponent.terrainId);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
             mapTileComponent.bridgeTerrainType = Tile.BridgeTerrainType.LAVA;
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER)) {
@@ -79,6 +83,33 @@ public class MapData implements IMapData {
         setAttributesFromTerrain(entityData, entityId, mapTileComponent, terrain);
 
         return new MapTileController(entityId, entityData);
+    }
+
+    private static short setupTerrainOwner(KwdFile kwdFile, Tile tile, EntityData entityData, EntityId entityId,
+            Map<Short, Keeper> playersById) {
+        short terrainId = tile.getTerrainId();
+        short ownerId = tile.getPlayerId();
+
+        // If the player is not participating to the game
+        // - all the rooms will be neutral (except dungeon heart)
+        // - ownable terrain (not room, will be destroyed, as in not owned)
+        if (!playersById.containsKey(ownerId)) {
+            Terrain terrain = kwdFile.getTerrain(terrainId);
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                if (!kwdFile.getRoomByTerrain(terrainId).equals(kwdFile.getDungeonHeart())) {
+                    ownerId = Player.NEUTRAL_PLAYER_ID;
+                }
+            } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                ownerId = 0;
+                terrainId = terrain.getDestroyedTypeTerrainId();
+            }
+        }
+
+        // Owner
+        Owner owner = new Owner(ownerId);
+        entityData.setComponent(entityId, owner);
+
+        return terrainId;
     }
 
     @Override

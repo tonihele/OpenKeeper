@@ -52,6 +52,7 @@ public class TrapsController implements ITrapsController {
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IGameController gameController;
+    private ILevelInfo levelInfo;
 
     private static final Logger LOGGER = Logger.getLogger(TrapsController.class.getName());
 
@@ -66,13 +67,15 @@ public class TrapsController implements ITrapsController {
      * @param entityData the entity controller
      * @param gameSettings the game settings
      * @param gameController
+     * @param levelInfo
      */
     public TrapsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameController gameController) {
+            IGameController gameController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameController = gameController;
+        this.levelInfo = levelInfo;
 
         // Load traps
         loadTraps();
@@ -81,6 +84,9 @@ public class TrapsController implements ITrapsController {
     private void loadTraps() {
         for (Thing.Trap trap : kwdFile.getThings(Thing.Trap.class)) {
             try {
+                if (levelInfo.getPlayer(trap.getPlayerId()) == null) {
+                    continue;
+                }
                 loadTrap(trap);
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
