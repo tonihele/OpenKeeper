@@ -32,9 +32,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
@@ -80,6 +80,7 @@ public final class KwdFile {
 
     // These are needed in various places, I don't know how to else regognize these
     private final static short ROOM_PORTAL_ID = 3;
+    private final static short ROOM_DUNGEON_HEART_ID = 5;
     private final static short TRIGGER_GENERIC = 213;
     private final static short TRIGGER_ACTION = 214;
 
@@ -3184,6 +3185,10 @@ public final class KwdFile {
 
     public Room getPortal() {
         return getRoomById(ROOM_PORTAL_ID);
+    }
+
+    public Room getDungeonHeart() {
+        return getRoomById(ROOM_DUNGEON_HEART_ID);
     }
 
     public GameObject getLevelGem() {

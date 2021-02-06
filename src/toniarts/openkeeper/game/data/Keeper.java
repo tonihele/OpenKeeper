@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
- * Your FRIENDLY neighbourhood Keeper, or not
+ * Your FRIENDLY neighborhood Keeper, or not
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 
 /**
- * Contructs dungeon hearts (deals with the animation)
+ * Constructs dungeon hearts (deals with the animation)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

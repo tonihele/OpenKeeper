@@ -85,6 +85,7 @@ public class ObjectsController implements IObjectsController {
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IGameTimer gameTimer;
     private IGameController gameController;
+    private ILevelInfo levelInfo;
 
     /**
      * I don't know how to design this perfectly in the entity world, we have
@@ -109,14 +110,16 @@ public class ObjectsController implements IObjectsController {
      * @param gameSettings the game settings
      * @param gameTimer
      * @param gameController
+     * @param levelInfo
      */
     public ObjectsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameTimer gameTimer, IGameController gameController) {
+            IGameTimer gameTimer, IGameController gameController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.gameController = gameController;
+        this.levelInfo = levelInfo;
 
         // Load objects
         loadObjects();
@@ -125,6 +128,9 @@ public class ObjectsController implements IObjectsController {
     private void loadObjects() {
         for (Thing.Object object : kwdFile.getThings(Thing.Object.class)) {
             try {
+                if (levelInfo.getPlayer(object.getPlayerId()) == null) {
+                    continue;
+                }
                 loadObject(object);
             } catch (Exception ex) {
                 LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
