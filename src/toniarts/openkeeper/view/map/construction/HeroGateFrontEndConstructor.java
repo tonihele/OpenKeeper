@@ -20,8 +20,8 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.WallSection;
 
 /**
@@ -52,6 +52,7 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
             moveSpatial(tile, start, p);
 
             root.attachChild(tile);
+            i++;
         }
 
         // Set the transform and scale to our scale and 0 the transform
