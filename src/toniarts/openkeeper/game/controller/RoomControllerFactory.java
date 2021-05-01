@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
+import toniarts.openkeeper.game.controller.room.HeroGateFrontEndController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.LibraryController;
@@ -63,7 +64,7 @@ public final class RoomControllerFactory {
             case HERO_GATE:
             //return new HeroGateConstructor(assetManager, roomInstance);
             case HERO_GATE_FRONT_END:
-            //return new HeroGateFrontEndConstructor(assetManager, roomInstance);
+                return new HeroGateFrontEndController(kwdFile, roomInstance, objectsController);
             case HERO_GATE_2_BY_2:
                 //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
                 //        case HERO_GATE_3_BY_1:
