@@ -143,9 +143,9 @@ public class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
-        stateManager.detach(stateManager.getState(PlayerEntityViewState.class));
-        stateManager.detach(stateManager.getState(PlayerMapViewState.class));
-        stateManager.detach(stateManager.getState(PlayerState.class));
+        stateManager.detach(playerModelViewState);
+        stateManager.detach(playerMapViewState);
+        stateManager.detach(playerState);
     }
 
     /**
@@ -341,7 +341,7 @@ public class GameClientState extends AbstractPauseAwareState {
                 };
                 mapInformation = playerMapViewState.getMapInformation();
                 textParser = new TextParserService(mapInformation);
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser);
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode());
 
                 // Attach the states
                 stateManager.attach(playerState);

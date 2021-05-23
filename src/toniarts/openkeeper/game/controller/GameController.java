@@ -640,7 +640,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         if (steeringCalculatorLoop != null) {
             steeringCalculatorLoop.stop();
             steeringCalculatorLoop = null;

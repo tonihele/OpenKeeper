@@ -70,6 +70,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final AssetManager assetManager;
     private final EntityData entityData;
     private final short playerId;
+    private final Node rootNode;
 
     private final TextParser textParser;
     private final Node root;
@@ -92,12 +93,14 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
-    public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser) {
+    public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+        super(Short.toString(playerId));
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.entityData = entityData;
         this.playerId = playerId;
         this.textParser = textParser;
+        this.rootNode = rootNode;
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
@@ -130,7 +133,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.stateManager = stateManager;
 
         // Attach the entities
-        this.app.getRootNode().attachChild(root);
+        rootNode.attachChild(root);
 
         // Start loading stuff (maybe we should do this earlier...)
         objectModelContainer.start();
@@ -157,7 +160,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
 
         // Detach entities
-        app.getRootNode().detachChild(root);
+        rootNode.detachChild(root);
 
         for (IEntityViewControl entityViewControl : entityViewControls.values()) {
             entityViewControl.cleanup();

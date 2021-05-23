@@ -28,12 +28,16 @@ import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,6 +47,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
@@ -55,19 +60,22 @@ import toniarts.openkeeper.game.state.lobby.LobbyService;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
+import toniarts.openkeeper.view.PlayerEntityViewState;
+import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -82,7 +90,6 @@ public class MainMenuState extends AbstractAppState {
     protected AssetManager assetManager;
     protected AppStateManager stateManager;
     protected InputManager inputManager;
-    //private ViewPort viewPort;
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
@@ -92,6 +99,9 @@ public class MainMenuState extends AbstractAppState {
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
     protected MapSelector mapSelector;
+    private EntityData mainMenuEntityData;
+    private MainMenuEntityViewState mainMenuEntityViewState;
+    private GameController gameController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     private static final Logger LOGGER = Logger.getLogger(MainMenuState.class.getName());
@@ -137,8 +147,13 @@ public class MainMenuState extends AbstractAppState {
         SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
+        mainMenuEntityData = new DefaultEntityData();
         menuNode = new Node("Main menu");
-        menuNode.attachChild(new MapLoader(assetManager, kwdFile, new EffectManagerState(kwdFile, assetManager), null, new ObjectLoader(kwdFile, null)) {
+        gameController = new GameController(kwdFile, Collections.emptyList(), mainMenuEntityData, kwdFile.getVariables(), new MainMenuPlayerService());
+        gameController.createNewGame();
+
+        // Create the actual map
+        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -146,10 +161,15 @@ public class MainMenuState extends AbstractAppState {
                     loadingScreen.setProgress(0.25f + progress * 0.75f);
                 }
             }
-        }.load(assetManager, kwdFile));
+
+        };
+        menuNode.attachChild(mapLoader.load(assetManager, kwdFile));
         if (loadingScreen != null) {
             loadingScreen.setProgress(1.0f);
         }
+        mainMenuEntityViewState = new MainMenuEntityViewState(kwdFile, assetManager, mainMenuEntityData, Player.KEEPER1_ID, null, menuNode);
+        mainMenuEntityViewState.setEnabled(false);
+        app.getStateManager().attach(mainMenuEntityViewState);
 
         // Init the skirmish and multiplayer maps selector
         mapSelector = new MapSelector();
@@ -163,7 +183,6 @@ public class MainMenuState extends AbstractAppState {
         assetManager = this.app.getAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
-        //viewPort = this.app.getViewPort();
     }
 
     /**
@@ -191,6 +210,10 @@ public class MainMenuState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        if (mainMenuEntityViewState != null) {
+            stateManager.detach(mainMenuEntityViewState);
+            mainMenuEntityViewState = null;
+        }
 
         // Clear sound
         clearLevelBriefingNarration();
@@ -203,6 +226,11 @@ public class MainMenuState extends AbstractAppState {
 
         shutdownMultiplayer();
 
+        if (gameController != null) {
+            gameController.close();
+            gameController = null;
+        }
+
         super.cleanup();
     }
 
@@ -213,6 +241,7 @@ public class MainMenuState extends AbstractAppState {
     private void initializeMainMenu() {
 
         // Set the processors & scene
+        mainMenuEntityViewState.setEnabled(true);
         MainMenuState.this.app.setViewProcessors();
         rootNode.attachChild(menuNode);
 
@@ -272,6 +301,7 @@ public class MainMenuState extends AbstractAppState {
             }
         } else {
 
+            stateManager.getState(MainMenuEntityViewState.class).setEnabled(false);
             if (menuNode != null && rootNode != null) {
 
                 // Detach our start menu
@@ -567,6 +597,78 @@ public class MainMenuState extends AbstractAppState {
             app.enqueue(() -> {
                 screen.showError(title, message);
             });
+        }
+
+    }
+
+    /**
+     * Main menu version of the player entity view state
+     */
+    private class MainMenuEntityViewState extends PlayerEntityViewState {
+
+        public MainMenuEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+            super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
+
+            setId("MainMenu: " + playerId);
+        }
+
+    }
+
+    private class MainMenuPlayerService implements PlayerService {
+
+        @Override
+        public void setWidescreen(boolean enable, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public boolean isInTransition() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void doTransition(short pathId, Vector3f start, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void showMessage(int textId, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void zoomViewToPoint(Vector3f point, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void zoomViewToEntity(EntityId entityId, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void setGamePaused(boolean paused) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void showUnitFlower(EntityId entityId, int interval, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }
