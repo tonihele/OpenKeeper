@@ -321,6 +321,18 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             }
         }
 
+        // Set the alliances
+        for (Variable.PlayerAlliance playerAlliance : kwdFile.getPlayerAlliances()) {
+            short player1 = (short) playerAlliance.getPlayerIdOne();
+            short player2 = (short) playerAlliance.getPlayerIdTwo();
+            if (players.containsKey(player1)) {
+                players.get(player1).createAlliance(player2);
+            }
+            if (players.containsKey(player2)) {
+                players.get(player2).createAlliance(player1);
+            }
+        }
+
         // Set player availabilities
         // TODO: the player customized game settings
         for (Variable.Availability availability : kwdFile.getAvailabilities()) {
