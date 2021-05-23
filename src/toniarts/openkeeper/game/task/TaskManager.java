@@ -245,16 +245,21 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Owner owner = entity.get(Owner.class);
             for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
-                Task task;
+                Task task = null;
                 if (entry.getKey() == owner.ownerId) {
 
                     // Rescue
                     task = new RescueCreatureTask(this, navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey());
-                } else {
+                } else if (playerControllers.get(entry.getKey()).getKeeper().isEnemy(owner.ownerId)) {
 
                     // Capture
                     task = new CaptureEnemyCreatureTask(navigationService, mapController, creaturesController.createController(entity.getId()), entry.getKey(), this);
                 }
+
+                if (task == null) {
+                    continue;
+                }
+
                 entry.getValue().add(task);
                 tasksByIds.put(task.getId(), task);
             }
