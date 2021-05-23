@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Objects;
@@ -35,9 +36,26 @@ import toniarts.openkeeper.view.text.TextParser;
  */
 public class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
+    private boolean initialized = false;
+
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, TextParser textParser) {
         super(entityId, entityData, data, state, assetManager, textParser);
+    }
+
+    @Override
+    public void setSpatial(Spatial spatial) {
+        super.setSpatial(spatial);
+
+        // Play the starting animation
+        if (spatial != null && !initialized) {
+
+            // Don't play for prison door nor the bar....?
+            if (getDataObject().getObjectId() != 109 && getDataObject().getObjectId() != 116) {
+                playAnimation(currentState);
+            }
+            initialized = true;
+        }
     }
 
     @Override
