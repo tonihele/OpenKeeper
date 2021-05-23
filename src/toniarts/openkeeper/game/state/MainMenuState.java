@@ -205,7 +205,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadCameraStartLocation(String transition) {
         CameraSweepData csd = AssetUtils.loadCameraSweep(assetManager, transition);
         CameraSweepDataEntry entry = csd.getEntries().get(0);
-        Cinematic.applyCameraSweepEntry(app.getCamera(), startLocation, entry);
+        Cinematic.applyCameraSweepEntry(app.getCamera(), startLocation, entry, app.getListener());
     }
 
     @Override
@@ -482,7 +482,7 @@ public class MainMenuState extends AbstractAppState {
         this.screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
 
         // Do cinematic transition
-        Cinematic c = new Cinematic(assetManager, app.getCamera(), startLocation, transition, menuNode, stateManager);
+        Cinematic c = new Cinematic(assetManager, app.getCamera(), app.getListener(), startLocation, transition, menuNode, stateManager);
         c.addListener(new CinematicEventListener() {
             @Override
             public void onPlay(CinematicEvent cinematic) {
