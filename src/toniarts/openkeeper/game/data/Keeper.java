@@ -157,7 +157,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     /**
      * Is the player an ally of us. If not, it is not necessarily the enemy. But
-     * we do not share vision, battless etc. with non-allies
+     * we do not share vision, battles etc. with non-allies
      *
      * @param playerId the other player
      * @return is the player an ally of ours
