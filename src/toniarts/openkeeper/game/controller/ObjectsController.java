@@ -234,7 +234,7 @@ public class ObjectsController implements IObjectsController {
         }
 
         // The visual state
-        entityData.setComponent(entity, new ObjectViewState(objectId, null, ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+        entityData.setComponent(entity, new ObjectViewState(objectId, obj.getStartState(), ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
     }
 
     @Override

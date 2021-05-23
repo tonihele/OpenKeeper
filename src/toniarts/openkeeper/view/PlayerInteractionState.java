@@ -109,6 +109,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private IEntityViewControl interactiveControl;
     private Label tooltip;
     private KeeperHandState keeperHandState;
+    private PlayerEntityViewState playerEntityViewState;
 
     private static final Logger LOGGER = Logger.getLogger(PlayerInteractionState.class.getName());
 
@@ -257,6 +258,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
+        playerEntityViewState = null;
         this.stateManager.detach(keeperHandState);
         keeperHandState = null;
         app.getInputManager().removeRawInputListener(inputListener);
@@ -439,7 +441,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Ray ray = new Ray(click3d, dir);
 
         // Collect intersections between ray and all nodes in results list
-        stateManager.getState(PlayerEntityViewState.class).getRoot().collideWith(ray, results);
+        if (playerEntityViewState == null) {
+            playerEntityViewState = stateManager.getState(Short.toString(player.getPlayerId()), PlayerEntityViewState.class);
+        }
+        playerEntityViewState.getRoot().collideWith(ray, results);
 
         // See the results so we see what is going on
         Node object;

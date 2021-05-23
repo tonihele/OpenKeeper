@@ -20,6 +20,7 @@ import com.jme3.animation.LoopMode;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.audio.Listener;
 import com.jme3.cinematic.MotionPath;
 import com.jme3.cinematic.PlayState;
 import com.jme3.cinematic.events.CinematicEvent;
@@ -57,6 +58,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     private final CameraSweepData cameraSweepData;
     private final Camera cam;
     private final Vector3f start;
+    private final Listener audioListener;
     private CameraNode camNode;
 
     /**
@@ -64,21 +66,22 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      *
      * @param assetManager asset manager instance
      * @param cam the camera to use
+     * @param audioListener the audio listener position
      * @param start starting map coordinates, zero based
      * @param cameraSweepFile the camera sweep file name that is the basis for
      * this animation (without the extension)
      * @param scene scene node to attach to
      * @param stateManager the state manager
      */
-    public Cinematic(final AssetManager assetManager, Camera cam, Point start, String cameraSweepFile,
-            Node scene, AppStateManager stateManager) {
+    public Cinematic(final AssetManager assetManager, Camera cam, Listener audioListener,
+            Point start, String cameraSweepFile, Node scene, AppStateManager stateManager) {
 
-        this(assetManager, cam, WorldUtils.pointToVector3f(start), cameraSweepFile, scene, stateManager);
+        this(assetManager, cam, audioListener, WorldUtils.pointToVector3f(start), cameraSweepFile, scene, stateManager);
     }
 
     public Cinematic(final Main app, String cameraSweepFile, final Vector3f start) {
 
-        this(app.getAssetManager(), app.getCamera(),
+        this(app.getAssetManager(), app.getCamera(), app.getListener(),
                 start.addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
                 cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
@@ -88,19 +91,21 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      *
      * @param assetManager asset manager instance
      * @param cam the camera to use
+     * @param audioListener the audio listener position
      * @param start starting location, zero based
      * @param cameraSweepFile the camera sweep file name that is the basis for
      * this animation (without the extension)
      * @param scene scene node to attach to
      * @param stateManager the state manager
      */
-    public Cinematic(final AssetManager assetManager, final Camera cam, final Vector3f start,
-            String cameraSweepFile, Node scene, final AppStateManager stateManager) {
+    public Cinematic(final AssetManager assetManager, final Camera cam, Listener audioListener,
+            final Vector3f start, String cameraSweepFile, Node scene, final AppStateManager stateManager) {
 
         super(scene);
 
         this.assetManager = assetManager;
         this.stateManager = stateManager;
+        this.audioListener = audioListener;
         this.start = start;
         this.cam = cam;
 
@@ -127,7 +132,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
                     // We never reach the final point
                     CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
-                    applyCameraSweepEntry(cam, start, entry);
+                    applyCameraSweepEntry(cam, start, entry, audioListener);
 
                     // Detach
                     scene.detachChild(camNode);
@@ -201,6 +206,9 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
                     //float near = FastMath.interpolateLinear(progress, entry.getNear(), entryNext.getNear()) / 4096;
                     float fov = FastMath.interpolateLinear(progress, entry.getFov(), entryNext.getFov());
                     cam.setFrustumPerspective(fov, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+
+                    // Update audio listener position
+                    updateAudioListenerPosition(audioListener, cam);
                 }
             }
 
@@ -222,8 +230,10 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
      * @param cam the camera
      * @param startLocation the start location for the path
      * @param entry the entry to apply to
+     * @param audioListener the audio listener position
      */
-    public static void applyCameraSweepEntry(final Camera cam, final Vector3f startLocation, final CameraSweepDataEntry entry) {
+    public static void applyCameraSweepEntry(final Camera cam, final Vector3f startLocation,
+            final CameraSweepDataEntry entry, Listener audioListener) {
 
         // Set Position
         cam.setLocation(startLocation.add(entry.getPosition().mult(MapLoader.TILE_WIDTH)));
@@ -235,6 +245,14 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         // Set the near & FOV
         //cam.setFrustumNear(entry.getNear() / 4096f);
         cam.setFrustumPerspective(entry.getFov(), (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+
+        // Update audio listener position
+        updateAudioListenerPosition(audioListener, cam);
+    }
+
+    private static void updateAudioListenerPosition(final Listener audioListener, final Camera cam) {
+        audioListener.setLocation(cam.getLocation());
+        audioListener.setRotation(cam.getRotation());
     }
 
     /**

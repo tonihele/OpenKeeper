@@ -2786,6 +2786,10 @@ public final class KwdFile {
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
+            if (!reader.hasRemaining()) {
+                LOGGER.warning("Variables end prematurely!");
+                break;
+            }
             int id = reader.readInteger();
 
             switch (id) {
