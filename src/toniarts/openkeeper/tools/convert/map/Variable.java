@@ -77,10 +77,10 @@ public class Variable {
     public final static int SACRIFICES_ID = 43;
     public final static int CREATURE_STATS_ID = 65;
     public final static int CREATURE_FIRST_PERSON_ID = 224;
+    public final static int PLAYER_ALLIANCE = 66;
 
     public final static int UNKNOWN_0 = 0;
     public final static int UNKNOWN_17 = 17;
-    public final static int PLAYER_ALLIANCE = 66;
     public final static int UNKNOWN_77 = 77;
 
     public static class CreaturePool extends Variable {
