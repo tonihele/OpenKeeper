@@ -77,10 +77,10 @@ public class Variable {
     public final static int SACRIFICES_ID = 43;
     public final static int CREATURE_STATS_ID = 65;
     public final static int CREATURE_FIRST_PERSON_ID = 224;
+    public final static int PLAYER_ALLIANCE = 66;
 
     public final static int UNKNOWN_0 = 0;
     public final static int UNKNOWN_17 = 17;
-    public final static int UNKNOWN_66 = 66;
     public final static int UNKNOWN_77 = 77;
 
     public static class CreaturePool extends Variable {
@@ -775,5 +775,75 @@ public class Variable {
                     + ", type_3=" + type3 + ", id_3=" + id3 + ", rewardType=" + rewardType
                     + ", speeachId=" + speechId + ", rewardValue=" + rewardValue + '}';
         }
+    }
+
+    public static class PlayerAlliance extends Variable {
+
+        private int playerIdOne;
+        private int playerIdTwo;
+        private int unknown1;
+
+        public int getPlayerIdOne() {
+            return playerIdOne;
+        }
+
+        protected void setPlayerIdOne(int playerIdOne) {
+            this.playerIdOne = playerIdOne;
+        }
+
+        public int getPlayerIdTwo() {
+            return playerIdTwo;
+        }
+
+        protected void setPlayerIdTwo(int playerIdTwo) {
+            this.playerIdTwo = playerIdTwo;
+        }
+
+        public int getUnknown1() {
+            return unknown1;
+        }
+
+        protected void setUnknown1(int unknown1) {
+            this.unknown1 = unknown1;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 5;
+            hash = 37 * hash + this.playerIdOne;
+            hash = 37 * hash + this.playerIdTwo;
+            hash = 37 * hash + this.unknown1;
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final PlayerAlliance other = (PlayerAlliance) obj;
+            if (this.playerIdOne != other.playerIdOne) {
+                return false;
+            }
+            if (this.playerIdTwo != other.playerIdTwo) {
+                return false;
+            }
+            if (this.unknown1 != other.unknown1) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "PlayerAlliance{" + "playerIdOne=" + playerIdOne + ", playerIdTwo=" + playerIdTwo + ", unknown1=" + unknown1 + '}';
+        }
+
     }
 }

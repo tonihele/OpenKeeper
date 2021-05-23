@@ -17,7 +17,11 @@
 package toniarts.openkeeper.game.map;
 
 import java.awt.Point;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -34,10 +38,12 @@ public class MapInformation<T extends IMapDataInformation<S>, S extends IMapTile
 
     private final T mapData;
     private final KwdFile kwdFile;
+    private final Map<Short, Keeper> playersById;
 
-    public MapInformation(T mapData, KwdFile kwdFile) {
+    public MapInformation(T mapData, KwdFile kwdFile, Collection<Keeper> players) {
         this.mapData = mapData;
         this.kwdFile = kwdFile;
+        playersById = players.stream().collect(Collectors.toMap(Keeper::getId, keeper -> keeper));
     }
 
     @Override
@@ -126,11 +132,11 @@ public class MapInformation<T extends IMapDataInformation<S>, S extends IMapTile
         Terrain terrain = getTerrain(tile);
         boolean claimable = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-            if (tile.getOwnerId() != playerId) {
+            if (!playersById.get(playerId).isAlly(tile.getOwnerId())) {
                 claimable = true;
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            if (tile.getOwnerId() != playerId) {
+            if (!playersById.get(playerId).isAlly(tile.getOwnerId())) {
                 claimable = true;
             }
         } else {

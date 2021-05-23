@@ -86,7 +86,7 @@ public final class MapController extends Container implements IMapController {
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.entityData = entityData;
-        this.mapInformation = new MapInformation(mapData, kwdFile);
+        this.mapInformation = new MapInformation(mapData, kwdFile, levelInfo.getPlayers());
         this.levelInfo = levelInfo;
 
         // Load rooms

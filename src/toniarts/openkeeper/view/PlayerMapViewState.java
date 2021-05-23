@@ -27,6 +27,7 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import java.awt.Point;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.AbstractMapTileInformation;
@@ -75,7 +77,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
 
-    public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
+    public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -107,7 +109,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         };
 
-        this.mapInformation = new MapInformation(mapTileContainer, kwdFile);
+        this.mapInformation = new MapInformation(mapTileContainer, kwdFile, players);
 
         // Effect manager
         effectManager = new EffectManagerState(kwdFile, assetManager);

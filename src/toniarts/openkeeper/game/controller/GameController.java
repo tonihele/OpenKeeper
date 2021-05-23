@@ -321,6 +321,13 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             }
         }
 
+        // Set the alliances
+        for (Variable.PlayerAlliance playerAlliance : kwdFile.getPlayerAlliances()) {
+            short player1 = (short) playerAlliance.getPlayerIdOne();
+            short player2 = (short) playerAlliance.getPlayerIdTwo();
+            createAlliance(player1, player2);
+        }
+
         // Set player availabilities
         // TODO: the player customized game settings
         for (Variable.Availability availability : kwdFile.getAvailabilities()) {
@@ -618,8 +625,12 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      */
     @Override
     public void createAlliance(short playerOneId, short playerTwoId) {
-        getPlayer(playerOneId).createAlliance(playerTwoId);
-        getPlayer(playerTwoId).createAlliance(playerOneId);
+        if (players.containsKey(playerOneId)) {
+            players.get(playerOneId).createAlliance(playerTwoId);
+        }
+        if (players.containsKey(playerTwoId)) {
+            players.get(playerTwoId).createAlliance(playerOneId);
+        }
     }
 
     /**
@@ -630,8 +641,12 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
      */
     @Override
     public void breakAlliance(short playerOneId, short playerTwoId) {
-        getPlayer(playerOneId).breakAlliance(playerTwoId);
-        getPlayer(playerTwoId).breakAlliance(playerOneId);
+        if (players.containsKey(playerOneId)) {
+            players.get(playerOneId).breakAlliance(playerTwoId);
+        }
+        if (players.containsKey(playerTwoId)) {
+            players.get(playerTwoId).breakAlliance(playerOneId);
+        }
     }
 
     @Override

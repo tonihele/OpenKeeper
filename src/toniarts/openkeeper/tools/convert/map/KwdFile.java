@@ -59,6 +59,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats.StatType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
 import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -124,6 +125,7 @@ public final class KwdFile {
     private Map<Integer, Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
     private Map<MiscVariable.MiscType, MiscVariable> variables;
     private Set<Sacrifice> sacrifices;
+    private Set<PlayerAlliance> playerAlliances;
     private Set<Variable.Unknown> unknownVariables;
     //
     private boolean loaded = false;
@@ -2779,6 +2781,7 @@ public final class KwdFile {
             creatureFirstPersonStatistics = new HashMap<>(10);
             variables = new HashMap<>();
             sacrifices = new HashSet<>();
+            playerAlliances = new HashSet<>();
             unknownVariables = new HashSet<>();
         } else {
             LOGGER.info("Overrides variables!");
@@ -2866,10 +2869,19 @@ public final class KwdFile {
                     firstPersonStats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
+                case Variable.PLAYER_ALLIANCE:
+                    Variable.PlayerAlliance playerAlliance = new Variable.PlayerAlliance();
+                    playerAlliance.setPlayerIdOne(reader.readInteger());
+                    playerAlliance.setPlayerIdTwo(reader.readInteger());
+                    playerAlliance.setUnknown1(reader.readInteger());
+
+                    // Add
+                    playerAlliances.add(playerAlliance);
+                    break;
+
                 case Variable.UNKNOWN_17: // FIXME unknown value
-                case Variable.UNKNOWN_66: // FIXME unknown value
                 case Variable.UNKNOWN_0: // FIXME unknownn value
-                case Variable.UNKNOWN_77: // FIXME unknownn value
+                case Variable.UNKNOWN_77: // FIXME unknown value
                     Variable.Unknown unknown = new Variable.Unknown();
                     unknown.setVariableId(id);
                     unknown.setValue(reader.readInteger());
@@ -3167,6 +3179,10 @@ public final class KwdFile {
 
     public List<Availability> getAvailabilities() {
         return availabilities;
+    }
+
+    public Set<PlayerAlliance> getPlayerAlliances() {
+        return playerAlliances;
     }
 
     /**
