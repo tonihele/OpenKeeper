@@ -539,7 +539,7 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
             setResearchableEntity(keeperId, researchableEntity, () -> {
-                    playerState.onEntityAdded(playerId, researchableEntity);
+                playerState.onEntityAdded(keeperId, researchableEntity);
                 });
         }
 
@@ -548,7 +548,7 @@ public class GameClientState extends AbstractPauseAwareState {
             setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
 
             // FIXME: See in what thread we are
-            if (notifier != null && playerState != null && playerState.getPlayerId() == playerId) {
+            if (notifier != null && playerState != null && playerState.getPlayerId() == keeperId) {
                 app.enqueue(notifier);
             }
         }
@@ -556,14 +556,14 @@ public class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
             setResearchableEntity(keeperId, researchableEntity, () -> {
-                    playerState.onEntityRemoved(playerId, researchableEntity);
+                playerState.onEntityRemoved(keeperId, researchableEntity);
                 });
         }
 
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             setResearchableEntity(keeperId, researchableEntity, () -> {
-                    playerState.onResearchStatusChanged(playerId, researchableEntity);
+                playerState.onResearchStatusChanged(keeperId, researchableEntity);
                 });
         }
 
