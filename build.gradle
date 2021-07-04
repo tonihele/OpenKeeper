@@ -1,8 +1,10 @@
-apply plugin: 'java'
-apply plugin: 'application'
-apply plugin: 'eclipse'
-apply plugin: 'maven-publish'
-apply plugin: 'idea'
+plugins {
+    id 'java'
+    id 'application'
+    id 'eclipse'
+    id 'maven-publish'
+    id 'idea'
+}
 
 ext {
     jmonkeyengine_version = '3.4.0-stable'
