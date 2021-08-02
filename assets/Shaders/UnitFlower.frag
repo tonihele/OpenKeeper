@@ -80,7 +80,7 @@ void main() {
     float segment = step( angle, kArc );
     circle *= mix( segment, 1.0, step( 1.0, kArc ) );
     if(circle == 1.0) {
-        finalColor -= vec4(0.25, 0.25, 0.25, 0.0); // Darken a bit
+        finalColor -= vec4(0.2, 0.2, 0.2, 0.0); // Darken a bit
     }
 #endif
 
