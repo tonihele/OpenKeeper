@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.control;
 
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
@@ -30,25 +29,18 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.control.BillboardControl;
-import com.jme3.texture.Texture;
-import com.jme3.texture.Texture2D;
-import com.jme3.texture.plugins.AWTLoader;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.WatchedEntity;
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -199,12 +191,11 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     /**
-     * The flower texture has been generated, but the graphics are still open
-     * for modifying
+     * The flower texture is being refreshed
      *
-     * @param g the graphics for modifying
+     * @param material the material for modifying
      */
-    protected void onTextureGenerated(Graphics2D g) {
+    protected void onMaterialGenerated(Material material) {
 
     }
 
@@ -315,7 +306,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
 
             Mesh mesh = createMesh(0.5f, 0.5f);
             spatial = new Geometry("Health indicator", mesh);
-            material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+            material = new Material(assetManager, "MatDefs/UnitFlower.j3md");
             setFlowerColor(getPlayerColor());
             spatial.setMaterial(material);
             material.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
@@ -366,40 +357,24 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     private void generateTexture() {
         if (material != null) {
 
-            // The base image
-            BufferedImage flower = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g = flower.createGraphics();
-
             // Health ring
-            drawImage(assetManager, g, flower.getWidth(), flower.getHeight(), "Textures/GUI/moods/H-0" + currentHealthIndex + ".png");
+            material.setTexture("HealthTexture", assetManager.loadTexture("Textures/GUI/moods/H-0" + currentHealthIndex + ".png"));
 
             // The rest
-            drawImage(assetManager, g, flower.getWidth(), flower.getHeight(), getCenterIcon());
-            drawImage(assetManager, g, flower.getWidth(), flower.getHeight(), getObjectiveIcon());
-
-            onTextureGenerated(g);
-
-            // Dispose
-            g.dispose();
-
-            // Convert the new image to a texture
-            AWTLoader loader = new AWTLoader();
-            Texture tex = new Texture2D(loader.load(flower, false));
-
-            material.setTexture("ColorMap", tex);
-        }
-    }
-
-    private static void drawImage(AssetManager assetManager, Graphics2D g, int width, int height, String image) {
-
-        if (image != null) {
-            try {
-                // TODO: cache the images
-                BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(image)).openStream());
-                g.drawImage(img, (width - img.getWidth()) / 2, (height - img.getHeight()) / 2, null);
-            } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Can't load the texture " + image + "!", ex);
+            String centerIcon = getCenterIcon();
+            if (centerIcon != null) {
+                material.setTexture("CenterTexture", assetManager.loadTexture(getCenterIcon()));
+            } else {
+                material.setTexture("CenterTexture", null);
             }
+            String objectiveIcon = getObjectiveIcon();
+            if (objectiveIcon != null) {
+                material.setTexture("ObjectiveTexture", assetManager.loadTexture(objectiveIcon));
+            } else {
+                material.setTexture("ObjectiveTexture", null);
+            }
+
+            onMaterialGenerated(material);
         }
     }
 

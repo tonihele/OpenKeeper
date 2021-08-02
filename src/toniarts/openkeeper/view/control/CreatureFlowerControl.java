@@ -17,11 +17,10 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.material.Material;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.util.Collection;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -118,7 +117,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     }
 
     private void changeStatus() {
-        if (currentStatus == Status.LEVEL) {
+        if (currentStatus == Status.LEVEL && getStatusIcon() != null) {
             currentStatus = Status.STATUS;
         } else {
             currentStatus = Status.LEVEL;
@@ -127,9 +126,26 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected String getCenterIcon() {
+        if (currentStatus == Status.STATUS) {
+            String statusIcon = getStatusIcon();
+            if (statusIcon != null) {
+                return statusIcon;
+            }
+        }
+
+        CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
+        if (creatureExperience == null) {
+            return null;
+        }
+
+        // Level icon if nothing is found
+        return "Textures/GUI/moods/SL-" + String.format("%02d", creatureExperience.level) + ".png";
+    }
+
+    private String getStatusIcon() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
 
-        if (currentStatus == Status.STATUS && creatureAi != null) {
+        if (creatureAi != null) {
             switch (creatureAi.getCreatureState()) {
                 case FIGHT:
                 case MELEE_ATTACK: {
@@ -168,13 +184,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             }
         }
 
-        CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
-        if (creatureExperience == null) {
-            return null;
-        }
-
-        // Level icon if nothing is found
-        return "Textures/GUI/moods/SL-" + String.format("%02d", creatureExperience.level) + ".png";
+        return null;
     }
 
     private static String getTaskIcon(TaskType taskType) {
@@ -209,19 +219,19 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     }
 
     @Override
-    protected void onTextureGenerated(Graphics2D g) {
-        CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
-        if (creatureExperience == null) {
-            return;
+    protected void onMaterialGenerated(Material material) {
+        if (currentStatus == Status.LEVEL) {
+            CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
+            if (creatureExperience == null) {
+                material.setFloat("Experience", 0f);
+            } else {
+            material.setFloat("Experience", (float) creatureExperience.experience / creatureExperience.experienceToNextLevel);
+            }
+        } else {
+
+            // When flashing the task icon, the experience progress is not visible
+            material.setFloat("Experience", 1f);
         }
-
-        // Calculate the angle
-        int angle = (int) ((float) creatureExperience.experience / creatureExperience.experienceToNextLevel * 360);
-
-        // Draw the experience indicator
-        g.setPaint(new Color(0, 0, 0, 100));
-        g.fillArc(
-                22, 22, 20, 20, 90, 360 - angle);
     }
 
     @Override
