@@ -60,7 +60,14 @@ void main() {
 
     // Apply the coloring
     if(m_FlashColors) {
-        vec4[numOfColors] allColors = vec4[numOfColors](color1, color2, color3, color4, color5, color6, color7);
+        vec4 allColors[numOfColors];
+        allColors[0] = color1;
+        allColors[1] = color2;
+        allColors[2] = color3;
+        allColors[3] = color4;
+        allColors[4] = color5;
+        allColors[5] = color6;
+        allColors[6] = color7;
         finalColor *= allColors[int(mod(g_Time*m_FlashInterval,  float(numOfColors)))];
     } else {
         finalColor *= color;
@@ -71,7 +78,7 @@ void main() {
     vec2 p = 2.0 * texCoord - 1.0;
     float kOffset = 0.5;
     float kRadius = 0.33;
-    float kArc = 1 - m_Experience;
+    float kArc = 1.0 - m_Experience;
     float d = length( p );
     float angle = atan( p.x, p.y ) * (1.0/PI) * 0.5;
     angle = fract( angle - kOffset );
