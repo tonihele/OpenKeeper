@@ -101,7 +101,7 @@ public class Utils {
         "Hatchett", "Gewgog", "Slake", "Ratchett", "Threck", "Galen", "Mortis", "Delver"};
 
     public static final int MAX_CREATURE_LEVEL = 10;
-    public static final short[] PLAYER_IDS = new short[]{Player.GOOD_PLAYER_ID, Player.NEUTRAL_PLAYER_ID, Player.KEEPER1_ID, Player.KEEPER2_ID, Player.KEEPER3_ID, Player.KEEPER4_ID};
+    public static final short[] PLAYER_IDS = new short[]{Player.GOOD_PLAYER_ID, Player.NEUTRAL_PLAYER_ID, Player.KEEPER1_ID, Player.KEEPER2_ID, Player.KEEPER3_ID, Player.KEEPER4_ID, Player.KEEPER4_ID + 1};
 
     private Utils() {
         // Nope

@@ -191,6 +191,15 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     /**
+     * When the material is created for the first time
+     *
+     * @param material the material
+     */
+    protected void onMaterialCreated(Material material) {
+
+    }
+
+    /**
      * The flower texture is being refreshed
      *
      * @param material the material for modifying
@@ -304,34 +313,47 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         if (spatial == null) {
             updateRequired = false;
 
-            Mesh mesh = createMesh(0.5f, 0.5f);
-            spatial = new Geometry("Health indicator", mesh);
-            material = new Material(assetManager, "MatDefs/UnitFlower.j3md");
-            setFlowerColor(getPlayerColor());
-            spatial.setMaterial(material);
-            material.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
-            material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-            material.getAdditionalRenderState().setDepthTest(false);
-            spatial.setQueueBucket(Bucket.Translucent);
-            spatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+            createFlower();
 
             generateTexture();
         }
         return spatial;
     }
 
-    protected final Color getPlayerColor() {
+    /**
+     * Called once, when the flower is created
+     */
+    private void createFlower() {
+        Mesh mesh = createMesh(0.5f, 0.5f);
+        spatial = new Geometry("Health indicator", mesh);
+        material = new Material(assetManager, "MatDefs/UnitFlower.j3md");
+        setFlowerColor(getPlayerColor());
+        spatial.setMaterial(material);
+        material.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
+        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        material.getAdditionalRenderState().setDepthTest(false);
+        spatial.setQueueBucket(Bucket.Translucent);
+        spatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+
+        onMaterialCreated(material);
+    }
+
+    protected final ColorRGBA getPlayerColor() {
         return getPlayerColor(getOwnerId());
     }
 
-    protected static Color getPlayerColor(short ownerId) {
-        return MapThumbnailGenerator.getPlayerColor(ownerId);
+    protected static ColorRGBA getPlayerColor(short ownerId) {
+        return getColor(MapThumbnailGenerator.getPlayerColor(ownerId));
     }
 
-    protected final void setFlowerColor(Color c) {
+    protected final void setFlowerColor(ColorRGBA c) {
         if (material != null) {
-            material.setColor("Color", new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f));
+            material.setColor("Color", c);
         }
+    }
+
+    private static ColorRGBA getColor(Color c) {
+        return new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f);
     }
 
     @Override

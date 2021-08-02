@@ -7,6 +7,15 @@ MaterialDef UnitFlower {
         Color Color (Color)
         Boolean VertexColor (UseVertexColor)
         Float Experience
+        Boolean FlashColors : false
+        Float FlashInterval : 2.0
+        Color Color1
+        Color Color2
+        Color Color3
+        Color Color4
+        Color Color5
+        Color Color6
+        Color Color7
     }
 
     Technique {
@@ -15,6 +24,7 @@ MaterialDef UnitFlower {
 
         WorldParameters {
             WorldViewProjectionMatrix
+            Time
         }
 
         Defines {

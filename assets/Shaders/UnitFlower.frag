@@ -1,5 +1,7 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
 
+uniform float g_Time;
+
 #ifdef OBJECTIVE_TEXTURE
     uniform sampler2D m_ObjectiveTexture;
 #endif
@@ -14,7 +16,18 @@ varying vec2 texCoord;
     uniform float m_Experience;
 #endif
 
-float PI = 3.14159265358979323846264;
+uniform bool m_FlashColors;
+uniform float m_FlashInterval;
+varying vec4 color1;
+varying vec4 color2;
+varying vec4 color3;
+varying vec4 color4;
+varying vec4 color5;
+varying vec4 color6;
+varying vec4 color7;
+
+const float PI = 3.14159265358979323846264;
+const int numOfColors = 7;
 
 void main() {
 
@@ -46,7 +59,12 @@ void main() {
 #endif
 
     // Apply the coloring
-    finalColor *= color;
+    if(m_FlashColors) {
+        vec4[numOfColors] allColors = vec4[numOfColors](color1, color2, color3, color4, color5, color6, color7);
+        finalColor *= allColors[int(mod(g_Time*m_FlashInterval,  float(numOfColors)))];
+    } else {
+        finalColor *= color;
+    }
 
 #ifdef EXPERIENCE
     // Apply the experience

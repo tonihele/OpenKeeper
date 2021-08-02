@@ -87,17 +87,6 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     }
 
     @Override
-    public void update(float tpf) {
-        super.update(tpf);
-
-        // TODO: did the neutral player colors flash in the original? Either way, see if the owner has changed
-        if (currentDrawnOwnerId == Player.NEUTRAL_PLAYER_ID && currentDrawnOwnerId != getOwnerId()) {
-            currentDrawnOwnerId = getOwnerId();
-            setFlowerColor(getPlayerColor(currentDrawnOwnerId));
-        }
-    }
-
-    @Override
     protected boolean onUpdate(float tpf) {
         timeCurrentStatusVisible += tpf;
         timeCurrentVisible += tpf;
@@ -231,6 +220,27 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
             // When flashing the task icon, the experience progress is not visible
             material.setFloat("Experience", 1f);
+        }
+
+        // Set new owner
+        if (currentDrawnOwnerId == Player.NEUTRAL_PLAYER_ID && currentDrawnOwnerId != getOwnerId()) {
+            material.setBoolean("FlashColors", false);
+            currentDrawnOwnerId = getOwnerId();
+            setFlowerColor(getPlayerColor(currentDrawnOwnerId));
+        }
+    }
+
+    @Override
+    protected void onMaterialCreated(Material material) {
+        if (currentDrawnOwnerId == Player.NEUTRAL_PLAYER_ID) {
+            material.setColor("Color1", getPlayerColor(Player.GOOD_PLAYER_ID));
+            material.setColor("Color2", getPlayerColor(Player.NEUTRAL_PLAYER_ID));
+            material.setColor("Color3", getPlayerColor(Player.KEEPER1_ID));
+            material.setColor("Color4", getPlayerColor(Player.KEEPER2_ID));
+            material.setColor("Color5", getPlayerColor(Player.KEEPER3_ID));
+            material.setColor("Color6", getPlayerColor(Player.KEEPER4_ID));
+            material.setColor("Color7", getPlayerColor((short) (Player.KEEPER4_ID + 1)));
+            material.setBoolean("FlashColors", true);
         }
     }
 
