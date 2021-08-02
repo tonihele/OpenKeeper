@@ -25,6 +25,7 @@ allprojects {
 application {
     applicationName = 'OpenKeeper'
     mainClass = 'toniarts.openkeeper.Main'
+    applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper -XstartOnFirstThread"]
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
