@@ -47,7 +47,7 @@ public class SoundsLoader {
     private static final Map<String, SoundCategory> CACHE = new HashMap<>();
     private static final Logger LOGGER = Logger.getLogger(SoundsLoader.class.getName());
 
-    public SoundsLoader() {
+    private SoundsLoader() {
         // nope
     }
 

@@ -1,0 +1,37 @@
+MaterialDef UnitFlower {
+
+    MaterialParameters {
+        Texture2D CenterTexture
+        Texture2D HealthTexture
+        Texture2D ObjectiveTexture
+        Color Color (Color)
+        Boolean VertexColor (UseVertexColor)
+        Float Experience
+        Boolean FlashColors : false
+        Float FlashInterval : 2.0
+        Color Color1
+        Color Color2
+        Color Color3
+        Color Color4
+        Color Color5
+        Color Color6
+        Color Color7
+    }
+
+    Technique {
+        VertexShader GLSL150 GLSL100:   Shaders/UnitFlower.vert
+        FragmentShader GLSL150 GLSL100: Shaders/UnitFlower.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+            Time
+        }
+
+        Defines {
+            OBJECTIVE_TEXTURE : ObjectiveTexture
+            VERTEX_COLOR : VertexColor
+            EXPERIENCE : Experience
+        }
+    }
+
+}

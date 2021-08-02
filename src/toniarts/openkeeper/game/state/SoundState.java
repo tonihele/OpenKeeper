@@ -315,7 +315,7 @@ public class SoundState extends AbstractPauseAwareState {
     /**
      * A simple listener for getting notified when we actually play the queued speech. If we need
      * more, we might need to use the Java native audio playing. There are already existing
-     * listeners unlke JME.
+     * listeners unlike JME.
      */
     public interface ISpeechListener {
 
