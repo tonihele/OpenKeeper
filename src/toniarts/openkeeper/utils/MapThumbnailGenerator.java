@@ -29,6 +29,8 @@ import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -50,6 +52,8 @@ public class MapThumbnailGenerator {
 
     private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
     private static ColorModel cm;
+    private static Map<Short, Color> playerColors;
+
     private static final Logger LOGGER = Logger.getLogger(MapThumbnailGenerator.class.getName());
 
     private MapThumbnailGenerator() {
@@ -238,6 +242,24 @@ public class MapThumbnailGenerator {
         return tile.getFlags().contains(Terrain.TerrainFlag.ROOM);
     }
 
+    private static Map<Short, Color> getPlayerColors() {
+        if (playerColors == null) {
+            short[] playerIds = Utils.getPlayerIds();
+            Map<Short, Color> pColors = new HashMap<>(playerIds.length);
+            for (short playerId : playerIds) {
+                pColors.put(playerId, createPlayerColor(playerId));
+            }
+
+            playerColors = pColors;
+        }
+
+        return playerColors;
+    }
+
+    private static Color createPlayerColor(short playerId) {
+        return new Color(getColorModel().getRGB(35 + playerId));
+    }
+
     /**
      * Get player color
      *
@@ -245,6 +267,6 @@ public class MapThumbnailGenerator {
      * @return the player color
      */
     public static Color getPlayerColor(short playerId) {
-        return new Color(getColorModel().getRGB(35 + playerId));
+        return getPlayerColors().get(playerId);
     }
 }
