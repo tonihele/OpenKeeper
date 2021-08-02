@@ -38,6 +38,8 @@ void main() {
 
 #ifdef OBJECTIVE_TEXTURE
     vec4 objectiveTextureColor = texture2D(m_ObjectiveTexture, vec2(texCoord.x, 1.0 - texCoord.y));
+    
+    // Some "dirt" on the objective texture, or I just can't pick a correct composition mode
     if(objectiveTextureColor[3] > 0.075) {
         finalColor = objectiveTextureColor + finalColor*(1.0-objectiveTextureColor[3]);
     }
@@ -59,8 +61,9 @@ void main() {
     float circle = smoothstep( kRadius + w, kRadius - w, d );
     float segment = step( angle, kArc );
     circle *= mix( segment, 1.0, step( 1.0, kArc ) );
-    if(circle == 1.0)
-        finalColor -= vec4(0.3, 0.3, 0.3, 0.0); // Darken a bit
+    if(circle == 1.0) {
+        finalColor -= vec4(0.25, 0.25, 0.25, 0.0); // Darken a bit
+    }
 #endif
 
     gl_FragColor = finalColor;
