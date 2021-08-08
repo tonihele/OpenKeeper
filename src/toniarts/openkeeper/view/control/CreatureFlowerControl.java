@@ -239,7 +239,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             material.setColor("Color4", getPlayerColor(Player.KEEPER2_ID));
             material.setColor("Color5", getPlayerColor(Player.KEEPER3_ID));
             material.setColor("Color6", getPlayerColor(Player.KEEPER4_ID));
-            material.setColor("Color7", getPlayerColor((short) (Player.KEEPER4_ID + 1)));
+            material.setColor("Color7", getPlayerColor(Player.KEEPER5_ID));
             material.setBoolean("FlashColors", true);
         }
     }

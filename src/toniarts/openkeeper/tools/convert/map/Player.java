@@ -30,10 +30,15 @@ public class Player implements Comparable<Player>, ITriggerable {
 
     public static final short GOOD_PLAYER_ID = 1;
     public static final short NEUTRAL_PLAYER_ID = 2;
-    public final static short KEEPER1_ID = 3;
-    public final static short KEEPER2_ID = 4;
-    public final static short KEEPER3_ID = 5;
-    public final static short KEEPER4_ID = 6;
+    public static final short KEEPER1_ID = 3;
+    public static final short KEEPER2_ID = 4;
+    public static final short KEEPER3_ID = 5;
+    public static final short KEEPER4_ID = 6;
+    /**
+     * There is a color and all for fifth player but in vanilla it is not
+     * playable or included in any maps. But 3rd party maps might still have it.
+     */
+    public static final short KEEPER5_ID = 7;
 
     //
     // struct Player
