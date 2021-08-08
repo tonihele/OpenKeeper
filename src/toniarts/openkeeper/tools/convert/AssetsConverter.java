@@ -169,7 +169,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
         return processes;
     }
 
-    private static void setConversionComplete(ConvertProcess process, AppSettings settings) {
+    private static synchronized void setConversionComplete(ConvertProcess process, AppSettings settings) {
         settings.putInteger(process.getSettingName(), process.getVersion());
     }
 
