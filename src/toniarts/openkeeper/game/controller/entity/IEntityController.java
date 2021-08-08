@@ -55,19 +55,19 @@ public interface IEntityController extends Comparable<IEntityController> {
 
     /**
      * Removes the entity from the world immediately. Entity loses all its
-     * posession
+     * possessions
      *
      * @see #removePosession()
      */
     public void remove();
 
     /**
-     * Removes all posession from the entity, the posession is dropped back to
+     * Removes all possession from the entity, the possession is dropped back to
      * world
      *
      * @see #remove()
      */
-    public void removePosession();
+    public void removePossession();
 
     /**
      * Is the entity removed from the world (destroyed, dead...)
