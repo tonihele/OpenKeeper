@@ -171,7 +171,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         }
 
         // Torture
-        entity = imprisonedEntities.getEntity(entityId);
+        entity = torturedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (gameTime - tortured.healthCheckTime >= 1) {
