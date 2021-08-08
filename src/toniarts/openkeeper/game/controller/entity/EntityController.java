@@ -114,12 +114,12 @@ public class EntityController implements IEntityController {
 
     @Override
     public void remove() {
-        removePosession();
+        removePossession();
         entityData.removeEntity(entityId);
     }
 
     @Override
-    public void removePosession() {
+    public void removePossession() {
         handleLootDrop(entityId);
         handleAssociatedEntities(entityId);
     }

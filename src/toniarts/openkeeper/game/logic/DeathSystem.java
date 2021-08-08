@@ -81,7 +81,7 @@ public class DeathSystem implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(entityIds, entity.getId());
             entityIds.add(~index, entity.getId());
-            entityPositionLookup.getEntityController(entity.getId()).removePosession();
+            entityPositionLookup.getEntityController(entity.getId()).removePossession();
         }
     }
 
