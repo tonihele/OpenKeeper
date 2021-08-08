@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -132,11 +133,11 @@ public class MapInformation<T extends IMapDataInformation<S>, S extends IMapTile
         Terrain terrain = getTerrain(tile);
         boolean claimable = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-            if (!playersById.get(playerId).isAlly(tile.getOwnerId())) {
+            if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
                 claimable = true;
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            if (!playersById.get(playerId).isAlly(tile.getOwnerId())) {
+            if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
                 claimable = true;
             }
         } else {
