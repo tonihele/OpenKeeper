@@ -27,6 +27,8 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
@@ -34,9 +36,11 @@ import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -54,30 +58,45 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 public class HealthSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
-    private final EntitySet healthEntities;
+    private final int healthRegeneratePerSecondImprisoned;
     private final EntityData entityData;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
     private final int timeToDeath;
+    private final ILevelInfo levelInfo;
+
+    private final EntitySet healthEntities;
+    private final EntitySet imprisonedEntities;
+    private final EntitySet torturedEntities;
 
     public HealthSystem(EntityData entityData, KwdFile kwdFile, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            ICreaturesController creaturesController) {
+            ICreaturesController creaturesController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
+        this.levelInfo = levelInfo;
         entityIds = new SafeArrayList<>(EntityId.class);
 
         timeToDeath = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
+        healthRegeneratePerSecondImprisoned = (int) gameSettings.get(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND).getValue();
 
         healthEntities = entityData.getEntities(Health.class);
         processAddedEntities(healthEntities);
+
+        // Have the position also here, since the player may move imprisoned entities between jails, kinda still imprisoned but not counting towards death at the time
+        imprisonedEntities = entityData.getEntities(CreatureImprisoned.class, Health.class, CreatureComponent.class, Position.class);
+
+        // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
+        torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
     }
 
     @Override
     public void processTick(float tpf, double gameTime) {
+
+        // Update the registry of all entities with health
         if (healthEntities.applyChanges()) {
 
             processAddedEntities(healthEntities.getAddedEntities());
@@ -86,6 +105,10 @@ public class HealthSystem implements IGameLogicUpdatable {
 
             processChangedEntities(healthEntities.getChangedEntities(), gameTime);
         }
+
+        // Update other monitorable sets
+        imprisonedEntities.applyChanges();
+        torturedEntities.applyChanges();
 
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
@@ -101,10 +124,17 @@ public class HealthSystem implements IGameLogicUpdatable {
 
             // Normal health related routines
             Health health = entityData.getComponent(entityId, Health.class);
-            Regeneration regeneration = entityData.getComponent(entityId, Regeneration.class);
             if (health != null) {
-                if (health.health <= 0) {
+                int healthChange = calculateHealthChange(entityId, health, gameTime);
+                if (healthChange == 0) {
+                    continue;
+                }
 
+                // Set new health or death
+                if (health.health + healthChange <= 0) {
+
+                    // TODO: Join the Skeleton army!!
+                    // TODO: If die in torturing... I guess they wont go unconcius...?
                     // Death or destruction!!!!
                     CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
                     if (creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)) {
@@ -116,28 +146,67 @@ public class HealthSystem implements IGameLogicUpdatable {
                     } else {
                         entityPositionLookup.getEntityController(entityId).remove();
                     }
-                } else if (regeneration != null && health.health != health.maxHealth) {
-                    IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
-                    Owner owner = entityData.getComponent(entityId, Owner.class);
-                    if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
-
-                        // In own land
-                        Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
-                        if (lastTimeOnOwnLand == null) {
-                            setTimeOwnOwnLand(regeneration, entityId, gameTime);
-                        } else if (gameTime - lastTimeOnOwnLand >= 1) {
-
-                            // Increase health
-                            entityData.setComponent(entityId, new Health(Math.max(health.health + regeneration.ownLandHealthIncrease, health.maxHealth), health.maxHealth));
-                        }
-                    } else {
-
-                        // At someones elses land, reset counter
-                        setTimeOwnOwnLand(regeneration, entityId, null);
-                    }
+                } else {
+                    entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
                 }
             }
         }
+    }
+
+    private int calculateHealthChange(EntityId entityId, Health health, double gameTime) {
+        int delta = 0;
+
+        // TODO: Slap damage, damage inflicted by other entities (combat etc.)
+
+        // Imprisonment
+        Entity entity = imprisonedEntities.getEntity(entityId);
+        if (entity != null) {
+            CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
+            if (gameTime - imprisoned.healthCheckTime >= 1) {
+                entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
+                delta += healthRegeneratePerSecondImprisoned;
+
+                return delta; // Assume no other states can be
+            }
+        }
+
+        // Torture
+        entity = imprisonedEntities.getEntity(entityId);
+        if (entity != null) {
+            CreatureTortured tortured = entity.get(CreatureTortured.class);
+            if (gameTime - tortured.healthCheckTime >= 1) {
+                int healthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
+                entityData.setComponent(entity.getId(), new CreatureImprisoned(tortured.startTime, tortured.healthCheckTime + 1));
+                delta += healthRegeneratePerSecond;
+
+                return delta; // Assume no other states can be
+            }
+        }
+
+        // Regeneration (with little bit optimization if already at full health)
+        if (health.health != health.maxHealth) {
+            Regeneration regeneration = entityData.getComponent(entityId, Regeneration.class);
+            if (regeneration != null) {
+                IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+                Owner owner = entityData.getComponent(entityId, Owner.class);
+                if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
+
+                    // In own land
+                    Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
+                    if (lastTimeOnOwnLand == null) {
+                        setTimeOwnOwnLand(regeneration, entityId, gameTime);
+                    } else if (gameTime - lastTimeOnOwnLand >= 1) {
+                        delta += regeneration.ownLandHealthIncrease;
+                    }
+                } else {
+
+                    // At someones elses land, reset counter
+                    setTimeOwnOwnLand(regeneration, entityId, null);
+                }
+            }
+        }
+
+        return delta;
     }
 
     private void processDeath(EntityId entityId, double gameTime) {
@@ -192,6 +261,9 @@ public class HealthSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         healthEntities.release();
+        imprisonedEntities.release();
+        torturedEntities.release();
+        entityIds.clear();
     }
 
 }

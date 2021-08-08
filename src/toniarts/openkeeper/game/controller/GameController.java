@@ -43,7 +43,6 @@ import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
-import toniarts.openkeeper.game.logic.CreatureImprisonSystem;
 import toniarts.openkeeper.game.logic.CreatureRecuperatingSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureTorturingSystem;
@@ -257,10 +256,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new DecaySystem(entityData),
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
                 new SlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
-                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController()),
+                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController(), this),
                 new CreatureRecuperatingSystem(entityData, gameSettings),
-                new CreatureImprisonSystem(entityData, gameSettings),
-                new CreatureTorturingSystem(entityData, this, gameSettings),
+                new CreatureTorturingSystem(entityData, gameSettings),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, kwdFile, playerControllers.values()),

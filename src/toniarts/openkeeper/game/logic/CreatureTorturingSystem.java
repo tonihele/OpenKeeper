@@ -21,16 +21,14 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * Handles creatures torturing. Essentially just decreases the health as we go.
- * When enough... persuation has been received... join the player army
+ * When enough... persuasion has been received... join the player army
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -38,14 +36,12 @@ public class CreatureTorturingSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet torturedEntities;
-    private final ILevelInfo levelInfo;
 
-    public CreatureTorturingSystem(EntityData entityData, ILevelInfo levelInfo, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public CreatureTorturingSystem(EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
-        this.levelInfo = levelInfo;
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
-        torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
+        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class);
     }
 
     @Override
@@ -60,15 +56,7 @@ public class CreatureTorturingSystem implements IGameLogicUpdatable {
 
             // TODO: Join the persuating player army!!
 
-            // Health
-            CreatureTortured tortured = entity.get(CreatureTortured.class);
-            if (gameTime - tortured.healthCheckTime >= 1) {
-                int healthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureImprisoned(tortured.startTime, tortured.healthCheckTime + 1));
-                entityData.setComponent(entity.getId(), new Health(Math.min(health.health + healthRegeneratePerSecond, health.maxHealth), health.maxHealth));
-            }
-
-            // TODO: Mood
+            // TODO: Mood (to MoodSystem)
         }
     }
 
