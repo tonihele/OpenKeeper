@@ -73,11 +73,12 @@ public class DoorViewSystem implements IGameLogicUpdatable {
         // Basically we could also monitor movements, but I guess this is ok.
         // And if somebody is just left standing on the door, the door will stay open
         for (EntityId doorEntityId : doorEntityIds.getArray()) {
+            Entity doorEntity = doorEntities.getEntity(doorEntityId);
             boolean shouldBeOpen = false;
-            Position position = entityData.getComponent(doorEntityId, Position.class);
+            Position position = doorEntity.get(Position.class);
             List<EntityId> entitiesInSameTile = entityPositionLookup.getEntitiesInLocation(WorldUtils.vectorToPoint(position.position));
             if (entitiesInSameTile.size() > 1) {
-                Owner owner = entityData.getComponent(doorEntityId, Owner.class);
+                Owner owner = doorEntity.get(Owner.class);
                 for (EntityId entityId : entitiesInSameTile) {
                     if (doorEntityId != entityId) {
 
@@ -94,7 +95,7 @@ public class DoorViewSystem implements IGameLogicUpdatable {
             }
 
             // Close if nobody there or open if somebody is
-            DoorViewState doorViewState = entityData.getComponent(doorEntityId, DoorViewState.class);
+            DoorViewState doorViewState = doorEntity.get(DoorViewState.class);
             if (doorViewState.open != shouldBeOpen) {
                 entityData.setComponent(doorEntityId, new DoorViewState(doorViewState.doorId, doorViewState.locked,
                         doorViewState.blueprint, shouldBeOpen));
