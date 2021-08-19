@@ -69,6 +69,7 @@ public class HealthSystem implements IGameLogicUpdatable {
     private final EntitySet healthEntities;
     private final EntitySet imprisonedEntities;
     private final EntitySet torturedEntities;
+    private final EntitySet regeneratedEntities;
 
     public HealthSystem(EntityData entityData, KwdFile kwdFile, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -91,6 +92,8 @@ public class HealthSystem implements IGameLogicUpdatable {
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
         torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
+
+        regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
     }
 
     @Override
@@ -109,6 +112,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         // Update other monitorable sets
         imprisonedEntities.applyChanges();
         torturedEntities.applyChanges();
+        regeneratedEntities.applyChanges();
 
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
@@ -123,7 +127,7 @@ public class HealthSystem implements IGameLogicUpdatable {
             }
 
             // Normal health related routines
-            Health health = entityData.getComponent(entityId, Health.class);
+            Health health = healthEntities.getEntity(entityId).get(Health.class);
             if (health != null) {
                 int healthChange = calculateHealthChange(entityId, health, gameTime);
                 if (healthChange == 0) {
@@ -185,10 +189,11 @@ public class HealthSystem implements IGameLogicUpdatable {
 
         // Regeneration (with little bit optimization if already at full health)
         if (health.health != health.maxHealth) {
-            Regeneration regeneration = entityData.getComponent(entityId, Regeneration.class);
-            if (regeneration != null) {
+            entity = regeneratedEntities.getEntity(entityId);
+            if (entity != null) {
+                Regeneration regeneration = entity.get(Regeneration.class);
                 IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
-                Owner owner = entityData.getComponent(entityId, Owner.class);
+                Owner owner = entity.get(Owner.class);
                 if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
 
                     // In own land
