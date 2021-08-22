@@ -27,8 +27,8 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
- * Handles creatures torturing. Essentially just decreases the health as we go.
- * When enough... persuasion has been received... join the player army
+ * Handles creatures torturing. When enough... persuasion has been received...
+ * join the player army
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
