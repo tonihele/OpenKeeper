@@ -268,6 +268,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         healthEntities.release();
         imprisonedEntities.release();
         torturedEntities.release();
+        regeneratedEntities.release();
         entityIds.clear();
     }
 
