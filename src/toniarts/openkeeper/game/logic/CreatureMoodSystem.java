@@ -33,11 +33,11 @@ public class CreatureMoodSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final EntitySet moodEntities;
 
-    private final int moodRegeneratePerSecond;
+    private final int moodRegeneratePerSecondSleeping;
 
     public CreatureMoodSystem(EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
-        moodRegeneratePerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
+        moodRegeneratePerSecondSleeping = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
 
         moodEntities = entityData.getEntities(CreatureMood.class);
     }
