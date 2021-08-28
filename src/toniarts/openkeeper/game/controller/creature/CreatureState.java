@@ -505,8 +505,8 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         @Override
-        public void exit(ICreatureController entity) {
-
+            public void exit(ICreatureController entity) {
+                entity.stopRecuperating();
         }
 
         @Override

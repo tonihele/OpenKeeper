@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
@@ -64,12 +65,14 @@ public class HealthSystem implements IGameLogicUpdatable {
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
     private final int timeToDeath;
+    private final int healthRegeneratePerSecond;
     private final ILevelInfo levelInfo;
 
     private final EntitySet healthEntities;
     private final EntitySet imprisonedEntities;
     private final EntitySet torturedEntities;
     private final EntitySet regeneratedEntities;
+    private final EntitySet recuperatingEntities;
 
     public HealthSystem(EntityData entityData, KwdFile kwdFile, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -83,6 +86,7 @@ public class HealthSystem implements IGameLogicUpdatable {
 
         timeToDeath = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
         healthRegeneratePerSecondImprisoned = (int) gameSettings.get(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND).getValue();
+        healthRegeneratePerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
 
         healthEntities = entityData.getEntities(Health.class);
         processAddedEntities(healthEntities);
@@ -94,6 +98,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
 
         regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
+        recuperatingEntities = entityData.getEntities(CreatureRecuperating.class, Health.class, CreatureComponent.class);
     }
 
     @Override
@@ -113,6 +118,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         imprisonedEntities.applyChanges();
         torturedEntities.applyChanges();
         regeneratedEntities.applyChanges();
+        recuperatingEntities.applyChanges();
 
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
@@ -180,7 +186,7 @@ public class HealthSystem implements IGameLogicUpdatable {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (gameTime - tortured.healthCheckTime >= 1) {
                 int healthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureImprisoned(tortured.startTime, tortured.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.startTime, tortured.healthCheckTime + 1));
                 delta += healthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be
@@ -208,6 +214,18 @@ public class HealthSystem implements IGameLogicUpdatable {
                     // At someones elses land, reset counter
                     setTimeOwnOwnLand(regeneration, entityId, null);
                 }
+            }
+        }
+
+        // Recuperating
+        entity = recuperatingEntities.getEntity(entityId);
+        if (entity != null) {
+            CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
+            if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
+                entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
+                entityData.removeComponent(entity.getId(), Unconscious.class);
+
+                delta += healthRegeneratePerSecond;
             }
         }
 
@@ -269,6 +287,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         imprisonedEntities.release();
         torturedEntities.release();
         regeneratedEntities.release();
+        recuperatingEntities.release();
         entityIds.clear();
     }
 

@@ -231,4 +231,6 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void giveObject(IObjectController object);
 
+    public void stopRecuperating();
+
 }

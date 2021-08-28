@@ -1225,4 +1225,9 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
     }
 
+    @Override
+    public void stopRecuperating() {
+        entityData.removeComponent(entityId, CreatureRecuperating.class);
+    }
+
 }
