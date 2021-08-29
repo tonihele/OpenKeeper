@@ -1108,6 +1108,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
         entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
+        entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
         entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
         stateMachine.changeState(CreatureState.IMPRISONED);
@@ -1224,6 +1225,11 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public void stopRecuperating() {
         entityData.removeComponent(entityId, CreatureRecuperating.class);
+    }
+
+    @Override
+    public boolean isRecuperating() {
+        return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
     }
 
 }

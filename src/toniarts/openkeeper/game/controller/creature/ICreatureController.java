@@ -233,4 +233,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void stopRecuperating();
 
+    /**
+     * Is the creature recuperating safely in its own bed
+     *
+     * @return true if recuperating
+     */
+    public boolean isRecuperating();
+
 }

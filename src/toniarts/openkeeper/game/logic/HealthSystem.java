@@ -125,6 +125,11 @@ public class HealthSystem implements IGameLogicUpdatable {
         regeneratedEntities.applyChanges();
         recuperatingEntities.applyChanges();
 
+        // Process special recuperating... event
+        for (Entity entity : recuperatingEntities.getAddedEntities()) {
+            entityData.removeComponent(entity.getId(), Unconscious.class);
+        }
+
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
             Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
@@ -236,8 +241,6 @@ public class HealthSystem implements IGameLogicUpdatable {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
-                entityData.removeComponent(entity.getId(), Unconscious.class);
-
                 delta += healthRegeneratePerSecond;
             }
         }
