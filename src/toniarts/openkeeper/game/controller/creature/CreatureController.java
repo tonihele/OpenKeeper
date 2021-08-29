@@ -577,9 +577,8 @@ public class CreatureController extends EntityController implements ICreatureCon
             entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
             stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
-            // TODO: now, instant action, substract the health
-            Health enemyHealth = entityData.getComponent(attackTarget, Health.class);
-            entityData.setComponent(attackTarget, new Health(enemyHealth.health - creatureMeleeAttack.damage, enemyHealth.maxHealth));
+            // Set the damage
+            setDamage(attackTarget, creatureMeleeAttack.damage);
         }
     }
 
@@ -1202,10 +1201,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
 
         // Increase health
-        if (!isFullHealth()) {
-            Health health = entityData.getComponent(entityId, Health.class);
-            entityData.setComponent(entityId, new Health(Math.max(health.health + creature.getAttributes().getHpFromChicken(), health.maxHealth), health.maxHealth));
-        }
+        setDamage(-creature.getAttributes().getHpFromChicken());
     }
 
     @Override

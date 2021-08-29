@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
@@ -69,6 +70,7 @@ public class HealthSystem implements IGameLogicUpdatable {
     private final ILevelInfo levelInfo;
 
     private final EntitySet healthEntities;
+    private final EntitySet damageEntities;
     private final EntitySet imprisonedEntities;
     private final EntitySet torturedEntities;
     private final EntitySet regeneratedEntities;
@@ -90,6 +92,8 @@ public class HealthSystem implements IGameLogicUpdatable {
 
         healthEntities = entityData.getEntities(Health.class);
         processAddedEntities(healthEntities);
+
+        damageEntities = entityData.getEntities(Health.class, Damage.class);
 
         // Have the position also here, since the player may move imprisoned entities between jails, kinda still imprisoned but not counting towards death at the time
         imprisonedEntities = entityData.getEntities(CreatureImprisoned.class, Health.class, CreatureComponent.class, Position.class);
@@ -115,6 +119,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         }
 
         // Update other monitorable sets
+        damageEntities.applyChanges();
         imprisonedEntities.applyChanges();
         torturedEntities.applyChanges();
         regeneratedEntities.applyChanges();
@@ -166,10 +171,18 @@ public class HealthSystem implements IGameLogicUpdatable {
     private int calculateHealthChange(EntityId entityId, Health health, double gameTime) {
         int delta = 0;
 
-        // TODO: Slap damage, damage inflicted by other entities (combat etc.)
+        // Damage (or healing)
+        Entity entity = damageEntities.getEntity(entityId);
+        if (entity != null) {
+            Damage damage = entity.get(Damage.class);
+            delta -= damage.damage;
+
+            // Remove the damage
+            entityData.removeComponent(entityId, Damage.class);
+        }
 
         // Imprisonment
-        Entity entity = imprisonedEntities.getEntity(entityId);
+        entity = imprisonedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
             if (gameTime - imprisoned.healthCheckTime >= 1) {
@@ -185,9 +198,9 @@ public class HealthSystem implements IGameLogicUpdatable {
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (gameTime - tortured.healthCheckTime >= 1) {
-                int healthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
+                int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
                 entityData.setComponent(entity.getId(), new CreatureTortured(tortured.startTime, tortured.healthCheckTime + 1));
-                delta += healthRegeneratePerSecond;
+                delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be
             }
@@ -284,6 +297,7 @@ public class HealthSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         healthEntities.release();
+        damageEntities.release();
         imprisonedEntities.release();
         torturedEntities.release();
         regeneratedEntities.release();

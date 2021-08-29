@@ -90,4 +90,19 @@ public interface IEntityController extends Comparable<IEntityController> {
      */
     public boolean isDragged();
 
+    /**
+     * Sets damage (or healing) buff to self
+     *
+     * @param damageAmount amount of damage inflicted, negative for healing
+     */
+    public void setDamage(int damageAmount);
+
+    /**
+     * Sets damage (or healing) buff to entity
+     *
+     * @param entityId the entity to set the damage to
+     * @param damageAmount amount of damage inflicted, negative for healing
+     */
+    public void setDamage(EntityId entityId, int damageAmount);
+
 }
