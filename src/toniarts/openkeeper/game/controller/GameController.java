@@ -255,7 +255,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new DecaySystem(entityData),
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
                 new SlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
-                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController(), this),
+                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController(), this, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureTorturingSystem(entityData, gameSettings),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
