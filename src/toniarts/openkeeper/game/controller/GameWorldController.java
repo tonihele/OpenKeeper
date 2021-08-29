@@ -702,7 +702,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             // Stuff drop differently
             IRoomController roomController = mapController.getRoomControllerByCoordinates(tile.getLocation());
             if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-                dropCreature(roomController, entity, tile, coordinates);
+                dropCreature(roomController, entity, tile, coordinates, playerId);
             } else {
 
                 // TODO: handle giving item to creature
@@ -718,7 +718,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
     }
 
-    private void dropCreature(IRoomController roomController, EntityId entity, Point tile, Vector2f coordinates) {
+    private void dropCreature(IRoomController roomController, EntityId entity, Point tile, Vector2f coordinates, short playerId) {
         boolean tortureOrImprisonment = false;
         boolean torture = false;
         boolean imprison = false;
@@ -776,6 +776,14 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
         if (torture) {
             entityData.removeComponent(entity, CreatureImprisoned.class);
+        }
+
+        // Set the control
+        Owner owner = entityData.getComponent(entity, Owner.class);
+        if (tortureOrImprisonment) {
+            entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
+        } else {
+            entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
     }
 

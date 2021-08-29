@@ -106,7 +106,7 @@ public class MapData implements IMapData {
         }
 
         // Owner
-        Owner owner = new Owner(ownerId);
+        Owner owner = new Owner(ownerId, ownerId);
         entityData.setComponent(entityId, owner);
 
         return terrainId;

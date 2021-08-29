@@ -191,8 +191,10 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     /**
      * When a creature is hauled to prison, call this to properly seal the enemy
      * to the prison
+     *
+     * @param playerId the imprisoner player
      */
-    public void imprison();
+    public void imprison(short playerId);
 
     /**
      * Is the (neutral) creature claimed

@@ -176,7 +176,7 @@ public class CreatureController extends EntityController implements ICreatureCon
             for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
                 Owner owner = entityData.getComponent(entity, Owner.class);
                 if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
-                    entityData.setComponent(entity, new Owner(ownerId));
+                    entityData.setComponent(entity, new Owner(ownerId, ownerId));
                 }
             }
         }
@@ -1103,7 +1103,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public void imprison() {
+    public void imprison(short playerId) {
 
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
@@ -1111,6 +1111,11 @@ public class CreatureController extends EntityController implements ICreatureCon
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
         entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
+
+        // Switch the control to the imprisoning player
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        entityData.setComponent(entityId, new Owner(owner.ownerId, playerId));
+
         stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
