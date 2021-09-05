@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -192,8 +193,8 @@ public class HealthSystem implements IGameLogicUpdatable {
         // If there is enough capacity for skeletons, imprisoned enties will rise as skeletons
         if (imprisonedEntities.containsId(entityId)) {
             Owner owner = entityData.getComponent(entityId, Owner.class);
-            short creatureId = mapController.getRoomControllerByCoordinates(entityPositionLookup.getEntityLocation(entityId).getLocation()).getRoom().getCreatedCreatureId();
-            if (!damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
+            Short creatureId = getRoomCreatureId(entityId);
+            if (creatureId != null && !damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
                 creaturesController.turnCreatureIntoAnother(entityId, owner.controlId, creatureId);
                 return;
             }
@@ -203,6 +204,23 @@ public class HealthSystem implements IGameLogicUpdatable {
 
         // Leave the entity incapacitaded and waiting for death... or rescue
         processUnconscious(entityId, health, gameTime);
+    }
+
+    private Short getRoomCreatureId(EntityId entityId) {
+
+        // The room dictates what creatures it creates (by death in this case), so it somewhat makes sense that we look it up here
+        // But maybe better to rethink this to somewhere else
+        IRoomController roomController = mapController.getRoomControllerByCoordinates(entityPositionLookup.getEntityLocation(entityId).getLocation());
+        if (roomController == null) {
+            return null;
+        }
+
+        short creatureId = roomController.getRoom().getCreatedCreatureId();
+        if (creatureId == 0) {
+            return null;
+        }
+
+        return creatureId;
     }
 
     /**
