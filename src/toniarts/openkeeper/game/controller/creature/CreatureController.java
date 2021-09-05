@@ -1169,8 +1169,8 @@ public class CreatureController extends EntityController implements ICreatureCon
             } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
 
                 // We are hungry now, mark the amount of food we need
-                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-                entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
+                makeHungry(creatureHunger);
+
                 return true;
             }
         }
@@ -1212,8 +1212,13 @@ public class CreatureController extends EntityController implements ICreatureCon
 
     @Override
     public void makeHungry() {
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        makeHungry(creatureHunger);
+    }
+
+    private void makeHungry(CreatureHunger creatureHunger) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        entityData.setComponent(entityId, new CreatureHunger(Double.MAX_VALUE, creatureComponent.hungerFill));
+        entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
     }
 
     @Override
