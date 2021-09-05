@@ -56,22 +56,20 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * Manages and monitors thing healthiness. Beeb... beeb... beeeeeeeeeeeeeeeeeeeb
- * :)<br>
- * This creates some counter etc. that basically needs to be saved then, but I
- * felt wrong to add them to the components, idk
+ * :)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class HealthSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
-    private final int healthRegeneratePerSecondImprisoned;
     private final EntityData entityData;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
     private final int timeToDeath;
     private final int healthRegeneratePerSecond;
+    private final int healthRegeneratePerSecondImprisoned;
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
