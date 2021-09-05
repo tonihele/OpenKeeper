@@ -565,10 +565,14 @@ public class CreaturesController implements ICreaturesController {
         Trigger trigger = entityData.getComponent(entityId, Trigger.class);
         Position position = entityData.getComponent(entityId, Position.class);
 
-        // Remove all the old components
-        // TODO
+        // Remove the entity and create new one, it is the easiest solution for now
+        // We could go through all the components via reflection, remove them, and code all controllers to be change aware...
+        // But for now, create a new entity
+        entityData.removeEntity(entityId);
+        EntityId newEntityId = entityData.createEntity();
+
         // Load the creature anew
-        loadCreature(entityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, false, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
+        loadCreature(newEntityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, false, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
     }
 
 }
