@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -135,7 +136,12 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_TRAPS:
                 return false;
             case PLAYER_KEEPER_SPELL:
-                return false;
+                boolean isAvailable = trigger.getUserData("flag", short.class) == 1;
+                short keeperSpellId = trigger.getUserData("targetId", short.class);
+
+                KeeperSpell keeperSpell = levelInfo.getLevelData().getKeeperSpellById(keeperSpellId);
+
+                return isAvailable == getPlayerController(playerId).getSpellControl().isAvailable(keeperSpell);
 
             case PLAYER_GOLD:
                 isValue = trigger.getUserData("flag", short.class) == 1;
@@ -181,6 +187,9 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURES_AT_LEVEL:
                 return false;
             case PLAYER_KILLED:
+
+                // TODO: Is player killed specifically by this other player
+                short otherPlayerId = trigger.getUserData("playerId", short.class);
                 return false;
             case PLAYER_DUNGEON_BREACHED:
                 return false;
