@@ -1211,6 +1211,12 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
+    public void makeHungry() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        entityData.setComponent(entityId, new CreatureHunger(Double.MAX_VALUE, creatureComponent.hungerFill));
+    }
+
+    @Override
     public int getResearchPerSecond() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         return creatureComponent.researchPerSecond;

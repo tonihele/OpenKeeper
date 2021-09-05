@@ -220,6 +220,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sate();
 
     /**
+     * Makes the creature hungry
+     */
+    public void makeHungry();
+
+    /**
      * Get research per second attribute
      *
      * @return research per second

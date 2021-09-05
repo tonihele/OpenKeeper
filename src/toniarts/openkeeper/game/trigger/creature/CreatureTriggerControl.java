@@ -125,7 +125,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
                 }
                 return false;
             case CREATURE_HUNGER_SATED:
-                return false;
+                return !instanceControl.isHungry();
             case CREATURE_PICKS_UP_PORTAL_GEM:
                 if (instanceControl != null) {
                     return instanceControl.isPortalGemInPosession();
@@ -163,6 +163,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
                 break;
 
             case MAKE_HUNGRY:
+                instanceControl.makeHungry();
                 break;
 
             case SHOW_HEALTH_FLOWER:
