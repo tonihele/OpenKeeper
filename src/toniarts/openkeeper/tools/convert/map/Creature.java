@@ -111,12 +111,12 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         CAN_WALK_ON_WATER(0x10),
         CAN_WALK_ON_LAVA(0x20),
         CAN_DISARM_TRAPS(0x40),
-        IS_EVIL(0x80), // Obviously otherwise it is good
-        UNKNOWN_2(0x100), // FIXME unknown flag
+        IS_EVIL(0x80),
+        IS_GOOD(0x100),
         IS_IMMUNE_TO_TURNCOAT(0x200),
         AVAILABLE_VIA_PORTAL(0x400),
-        UNKNOWN_3(0x800), // FIXME unknown flag. In Imp
-        UNKNOWN_4(0x1000), // FIXME unknown flag
+        UNKNOWN_3(0x800), // FIXME unknown flag
+        UNKNOWN_4(0x1000), // FIXME unknown flag, inverse of UNKNOWN_3, only 4 creatures
         CAN_FLY(0x2000),
         IS_HORNY(0x4000),
         GENERATE_DEAD_BODY(0x8000),
@@ -133,7 +133,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         REVEALS_ADJACENT_TRAPS(0x4000000),
         IS_UNIQUE(0x8000000),
         CAMERA_ROLLS_WHEN_TURNING(0x10000000), // 1st person movement flag
-        UNKNOWN_5(0x20000000), // FIXME unknown flag. In Imp
+        UNKNOWN_5(0x20000000), // FIXME unknown flag, all creatures
         MPD_RANDOM_INVADER(0x40000000), // My Pet Dungeon?
         IS_MALE(0x80000000L);  // Obviously otherwise it is female
 
@@ -172,8 +172,8 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
 
     public enum CreatureFlag3 implements IFlagEnum {
         UNK_1(1),
-        UNK_2(2),
-        UNK_4(4),
+        UNK_2(2), // Only in stone knight
+        UNK_4(4), // Only skeleton and Jack
         UNK_8(8);
 
         private final long flagValue;

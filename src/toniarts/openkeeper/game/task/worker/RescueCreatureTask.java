@@ -61,7 +61,7 @@ public class RescueCreatureTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return this.creature.isUnconscious() && this.creature.hasLair() && !this.creature.isDragged();
+        return this.creature.isUnconscious() && this.creature.hasLair() && !this.creature.isDragged() && !this.creature.isRecuperating();
     }
 
     @Override

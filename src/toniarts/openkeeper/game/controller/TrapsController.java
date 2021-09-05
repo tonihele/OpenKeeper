@@ -101,7 +101,7 @@ public class TrapsController implements ITrapsController {
     private EntityId loadTrap(int x, int y, short trapId, short ownerId, boolean blueprint) {
         EntityId entity = entityData.createEntity();
         entityData.setComponent(entity, new TrapComponent(trapId));
-        entityData.setComponent(entity, new Owner(ownerId));
+        entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);

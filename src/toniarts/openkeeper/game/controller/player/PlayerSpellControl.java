@@ -103,4 +103,13 @@ public class PlayerSpellControl extends AbstractResearchablePlayerControl<Keeper
         }
     }
 
+    public boolean isAvailable(KeeperSpell keeperSpell) {
+        ResearchableEntity playerSpell = get(keeperSpell);
+        if (playerSpell == null) {
+            return false;
+        }
+
+        return playerSpell.isDiscovered();
+    }
+
 }

@@ -139,8 +139,9 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         for (Entity entity : entities) {
             IMapTileInformation mapTile = mapTilesByEntities.remove(entity.getId());
             entitiesByMapTile.get(mapTile).remove(entity.getId());
-            if (obstaclesByMapTile.containsKey(mapTile)) {
-                obstaclesByMapTile.get(mapTile).remove(entity.getId());
+            Set<EntityId> obstacles = obstaclesByMapTile.get(mapTile);
+            if (obstacles != null) {
+                obstacles.remove(entity.getId());
             }
         }
     }
@@ -254,6 +255,8 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         positionedEntities.release();
         entitiesByMapTile.clear();
         mapTilesByEntities.clear();
+        obstaclesByMapTile.clear();
+        entityWrappers.clear();
     }
 
     private static boolean isObstacle(EntityData entityData, EntityId id) {

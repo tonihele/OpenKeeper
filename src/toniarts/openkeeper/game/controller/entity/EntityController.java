@@ -23,6 +23,7 @@ import java.awt.Point;
 import java.util.Objects;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
@@ -114,12 +115,12 @@ public class EntityController implements IEntityController {
 
     @Override
     public void remove() {
-        removePosession();
+        removePossession();
         entityData.removeEntity(entityId);
     }
 
     @Override
-    public void removePosession() {
+    public void removePossession() {
         handleLootDrop(entityId);
         handleAssociatedEntities(entityId);
     }
@@ -190,6 +191,22 @@ public class EntityController implements IEntityController {
     @Override
     public boolean isDragged() {
         return entityData.getComponent(entityId, HauledBy.class) != null;
+    }
+
+    @Override
+    public void setDamage(int damageAmount) {
+        setDamage(entityId, damageAmount);
+    }
+
+    @Override
+    public void setDamage(EntityId entityId, int damageAmount) {
+        setDamage(entityData, entityId, damageAmount);
+    }
+
+    public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
+        Damage damage = entityData.getComponent(entityId, Damage.class);
+        int damageTotal = damage != null ? damage.damage : 0;
+        entityData.setComponent(entityId, new Damage(damageTotal + damageAmount));
     }
 
     @Override

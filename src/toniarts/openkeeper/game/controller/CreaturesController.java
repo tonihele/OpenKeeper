@@ -228,8 +228,21 @@ public class CreaturesController implements ICreaturesController {
 
     private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money,
             Integer triggerId, boolean entrance, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId) {
-        Creature creature = kwdFile.getCreature(creatureId);
         EntityId entity = entityData.createEntity();
+        Creature creature = kwdFile.getCreature(creatureId);
+
+        return loadCreature(entity, creature, healthPercentage, money, level, entrance, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+    }
+
+    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, boolean entrance, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+        String name = Utils.generateCreatureName();
+        String bloodType = Utils.generateBloodType();
+
+        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, entrance, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+    }
+
+    private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, boolean entrance, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+        short creatureId = creature.getId();
 
         // Create health, unless dead body
         Health healthComponent = healthPercentage != null ? new Health(healthPercentage, 100) : null;
@@ -240,11 +253,13 @@ public class CreaturesController implements ICreaturesController {
 
         // The creature itself
         CreatureComponent creatureComponent = new CreatureComponent();
-        creatureComponent.name = Utils.generateCreatureName();
-        creatureComponent.bloodType = Utils.generateBloodType();
+        creatureComponent.name = name;
+        creatureComponent.bloodType = bloodType;
         creatureComponent.creatureId = creatureId;
         creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
         creatureComponent.stunDuration = creature.getAttributes().getStunDuration();
+
+        entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // The creature experience
         CreatureExperience creatureExperience = new CreatureExperience();
@@ -287,7 +302,6 @@ public class CreaturesController implements ICreaturesController {
         if (sensesComponent != null) {
             entityData.setComponent(entity, sensesComponent);
         }
-        entityData.setComponent(entity, new Owner(ownerId));
         entityData.setComponent(entity, goldComponent);
         entityData.setComponent(entity, threatComponent);
         if (regeneration.ownLandHealthIncrease > 0) {
@@ -538,6 +552,27 @@ public class CreaturesController implements ICreaturesController {
     @Override
     public boolean isValidEntity(EntityId entityId) {
         return entityData.getComponent(entityId, CreatureComponent.class) != null;
+    }
+
+    @Override
+    public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId) {
+
+        // Remove all the posession
+        createController(entityId).removePossession();
+
+        // Get old properties
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        Trigger trigger = entityData.getComponent(entityId, Trigger.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+
+        // Remove the entity and create new one, it is the easiest solution for now
+        // We could go through all the components via reflection, remove them, and code all controllers to be change aware...
+        // But for now, create a new entity
+        entityData.removeEntity(entityId);
+        EntityId newEntityId = entityData.createEntity();
+
+        // Load the creature anew
+        loadCreature(newEntityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, false, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
     }
 
 }

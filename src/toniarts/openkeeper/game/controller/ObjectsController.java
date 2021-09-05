@@ -178,7 +178,7 @@ public class ObjectsController implements IObjectsController {
     private void loadObject(EntityId entity, short objectId, short ownerId, Vector3f pos, float rotation, Integer money, Integer maxMoney, ResearchableType researchableType, Short researchTypeId, Integer triggerId) {
         GameObject obj = kwdFile.getObject(objectId);
         entityData.setComponent(entity, new ObjectComponent(objectId, getObjectType(obj)));
-        entityData.setComponent(entity, new Owner(ownerId));
+        entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
         pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? MapLoader.UNDERFLOOR_HEIGHT : MapLoader.FLOOR_HEIGHT); // FIXME: no

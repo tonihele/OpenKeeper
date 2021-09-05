@@ -113,4 +113,13 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     void levelUpCreatures(short playerId, int level);
 
+    /**
+     * Turns an existing creature into another creature
+     *
+     * @param entityId the existing entity to turn
+     * @param playerId the owner of the newly turned creature
+     * @param creatureId the creature to turn into
+     */
+    public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
+
 }

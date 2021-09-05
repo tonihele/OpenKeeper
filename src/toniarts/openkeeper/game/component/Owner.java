@@ -27,12 +27,18 @@ public class Owner implements EntityComponent {
 
     public short ownerId;
 
+    /**
+     * Specifies who really has the control over the entity
+     */
+    public short controlId;
+
     public Owner() {
         // For serialization
     }
 
-    public Owner(short ownerId) {
+    public Owner(short ownerId, short controlId) {
         this.ownerId = ownerId;
+        this.controlId = controlId;
     }
 
 }

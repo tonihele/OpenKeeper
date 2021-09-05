@@ -27,12 +27,12 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
-import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -131,8 +131,7 @@ public class SlapSystem implements IGameLogicUpdatable {
 
     private void handleObjectSlap(Entity entity, Interaction interaction) {
         if (interaction.dieWhenSlapped) {
-            Health health = entityData.getComponent(entity.getId(), Health.class);
-            entityData.setComponent(entity.getId(), new Health(0, health.maxHealth));
+            EntityController.setDamage(entityData, entity.getId(), Integer.MAX_VALUE);
         }
     }
 
@@ -147,10 +146,7 @@ public class SlapSystem implements IGameLogicUpdatable {
         // Damage
         int damage = creature.getAttributes().getSlapDamage();
         if (damage != 0) {
-            Health health = entityData.getComponent(entity.getId(), Health.class);
-            if (health != null) {
-                entityData.setComponent(entity.getId(), new Health(health.health - damage, health.maxHealth));
-            }
+            EntityController.setDamage(entityData, entity.getId(), damage);
         }
 
         // Mood

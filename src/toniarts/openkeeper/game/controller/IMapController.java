@@ -210,4 +210,12 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      */
     public Set<Point> getTerrainBatches(List<Point> startingPoints, int x1, int x2, int y1, int y2);
 
+    /**
+     * Shorthand for getting player skeleton capacity
+     *
+     * @param playerId player to check
+     * @return the maximum number of skeletons the player can currently have
+     */
+    public int getPlayerSkeletonCapacity(short playerId);
+
 }

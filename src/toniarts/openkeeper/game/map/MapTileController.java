@@ -91,7 +91,7 @@ public class MapTileController extends AbstractMapTileInformation implements IMa
 
     @Override
     public void setOwnerId(short ownerId) {
-        entityData.setComponent(entityId, new Owner(ownerId));
+        entityData.setComponent(entityId, new Owner(ownerId, ownerId));
     }
 
     @Override

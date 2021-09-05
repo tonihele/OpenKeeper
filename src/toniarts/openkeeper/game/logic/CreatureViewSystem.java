@@ -71,7 +71,6 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
 
             // Determine what animation to show
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
-            TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             if (entityData.getComponent(entityId, Navigation.class) != null) {
@@ -80,12 +79,15 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
                 targetState = Creature.AnimationType.DIE;
-            } else if (taskComponent != null) {
-                targetState = getAnimation(taskComponent.taskType);
             } else {
-                CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
-                if (aiState != null) {
-                    targetState = getAnimation(aiState.getCreatureState());
+                TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+                if (taskComponent != null) {
+                    targetState = getAnimation(taskComponent.taskType);
+                } else {
+                    CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
+                    if (aiState != null) {
+                        targetState = getAnimation(aiState.getCreatureState());
+                    }
                 }
             }
 

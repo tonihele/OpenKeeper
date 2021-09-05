@@ -165,11 +165,8 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
             objectsController.getEntityData().removeComponent(entityId, Decay.class);
         }
 
-        if (changeOwner) {
-
-            // Also set the owner if there is one already
-            changeEntityOwner(entityId, parent.getRoomInstance().getOwnerId());
-        }
+        // Also set the owner if there is one already
+        changeEntityOwner(entityId, parent.getRoomInstance().getOwnerId(), changeOwner);
     }
 
     @Override
@@ -179,15 +176,15 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
         for (Collection<EntityId> objects : objectList) {
             for (EntityId obj : objects) {
-                changeEntityOwner(obj, playerId);
+                changeEntityOwner(obj, playerId, true);
             }
         }
     }
 
-    private void changeEntityOwner(EntityId entity, short playerId) {
+    private void changeEntityOwner(EntityId entity, short playerId, boolean changeOwner) {
         Owner owner = objectsController.getEntityData().getComponent(entity, Owner.class);
-        if (owner != null && owner.ownerId != playerId) {
-            objectsController.getEntityData().setComponent(entity, new Owner(playerId));
+        if (owner != null && (owner.ownerId != playerId || owner.controlId != playerId)) {
+            objectsController.getEntityData().setComponent(entity, new Owner(changeOwner ? playerId : owner.ownerId, playerId));
         }
     }
 

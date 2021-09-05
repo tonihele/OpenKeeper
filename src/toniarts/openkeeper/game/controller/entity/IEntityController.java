@@ -55,19 +55,19 @@ public interface IEntityController extends Comparable<IEntityController> {
 
     /**
      * Removes the entity from the world immediately. Entity loses all its
-     * posession
+     * possessions
      *
      * @see #removePosession()
      */
     public void remove();
 
     /**
-     * Removes all posession from the entity, the posession is dropped back to
+     * Removes all possession from the entity, the possession is dropped back to
      * world
      *
      * @see #remove()
      */
-    public void removePosession();
+    public void removePossession();
 
     /**
      * Is the entity removed from the world (destroyed, dead...)
@@ -89,5 +89,20 @@ public interface IEntityController extends Comparable<IEntityController> {
      * @return true is hauled
      */
     public boolean isDragged();
+
+    /**
+     * Sets damage (or healing) buff to self
+     *
+     * @param damageAmount amount of damage inflicted, negative for healing
+     */
+    public void setDamage(int damageAmount);
+
+    /**
+     * Sets damage (or healing) buff to entity
+     *
+     * @param entityId the entity to set the damage to
+     * @param damageAmount amount of damage inflicted, negative for healing
+     */
+    public void setDamage(EntityId entityId, int damageAmount);
 
 }

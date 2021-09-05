@@ -31,6 +31,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.map.FlashTileControl;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -788,5 +789,15 @@ public final class MapController extends Container implements IMapController {
                 findTerrainBatch(new Point(p.x - 1, p.y), terrainId, batches, x1, x2, y1, y2);
             }
         }
+    }
+
+    @Override
+    public int getPlayerSkeletonCapacity(short playerId) {
+        int capacity = 0;
+        for (IRoomController roomController : getRoomsByFunction(AbstractRoomController.ObjectType.PRISONER, playerId)) {
+            capacity += roomController.getObjectControl(AbstractRoomController.ObjectType.PRISONER).getMaxCapacity();
+        }
+
+        return capacity;
     }
 }

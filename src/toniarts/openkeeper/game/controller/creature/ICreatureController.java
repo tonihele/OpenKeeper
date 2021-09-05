@@ -191,8 +191,10 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     /**
      * When a creature is hauled to prison, call this to properly seal the enemy
      * to the prison
+     *
+     * @param playerId the imprisoner player
      */
-    public void imprison();
+    public void imprison(short playerId);
 
     /**
      * Is the (neutral) creature claimed
@@ -218,6 +220,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sate();
 
     /**
+     * Makes the creature hungry
+     */
+    public void makeHungry();
+
+    /**
      * Get research per second attribute
      *
      * @return research per second
@@ -230,5 +237,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param object the object, might be food, gold, or what ever
      */
     public void giveObject(IObjectController object);
+
+    public void stopRecuperating();
+
+    /**
+     * Is the creature recuperating safely in its own bed
+     *
+     * @return true if recuperating
+     */
+    public boolean isRecuperating();
 
 }

@@ -69,7 +69,7 @@ public class DeathSystem implements IGameLogicUpdatable {
 
         // Decay stuff
         for (EntityId entityId : entityIds.getArray()) {
-            Death death = entityData.getComponent(entityId, Death.class);
+            Death death = deathEntities.getEntity(entityId).get(Death.class);
             if (gameTime - death.startTime >= timeToDecay) {
                 entityData.removeEntity(entityId);
             }
@@ -81,7 +81,7 @@ public class DeathSystem implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(entityIds, entity.getId());
             entityIds.add(~index, entity.getId());
-            entityPositionLookup.getEntityController(entity.getId()).removePosession();
+            entityPositionLookup.getEntityController(entity.getId()).removePossession();
         }
     }
 

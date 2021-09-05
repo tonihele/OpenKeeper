@@ -77,13 +77,14 @@ public class CreatureExperienceSystem implements IGameLogicUpdatable {
 
         // Increase the experience level of those who are worthy
         for (EntityId entityId : entityIds.getArray()) {
-            CreatureExperience creatureExperience = entityData.getComponent(entityId, CreatureExperience.class);
+            Entity entity = experienceEntities.getEntity(entityId);
+            CreatureExperience creatureExperience = entity.get(CreatureExperience.class);
             if (creatureExperience.level >= Utils.MAX_CREATURE_LEVEL) {
                 continue;
             }
 
             // Check if we can gain exp
-            if (isEntityWorkingOrFighting(entityId)) {
+            if (isEntityWorkingOrFighting(entity)) {
                 double timeWorking = timeWorkingByEntityId.compute(entityId, (k, v) -> {
                     if (v == null) {
                         return 0.0;
@@ -95,7 +96,7 @@ public class CreatureExperienceSystem implements IGameLogicUpdatable {
                 if (timeWorking >= 1) {
                     timeWorkingByEntityId.merge(entityId, -1.0, Double::sum);
 
-                    CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+                    CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
                     int experience = creatureExperience.experience;
                     if (kwdFile.getImp().getId() == creatureComponent.creatureId) {
                         experience += impExperienceGainPerSecond;
@@ -130,14 +131,14 @@ public class CreatureExperienceSystem implements IGameLogicUpdatable {
         }
     }
 
-    private boolean isEntityWorkingOrFighting(EntityId entityId) {
-        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+    private boolean isEntityWorkingOrFighting(Entity entity) {
+        CreatureAi creatureAi = entity.get(CreatureAi.class);
         CreatureState creatureState = creatureAi.getCreatureState();
-        return creatureState == CreatureState.MELEE_ATTACK || (creatureState == CreatureState.WORK && isWorker(entityId));
+        return creatureState == CreatureState.MELEE_ATTACK || (creatureState == CreatureState.WORK && isWorker(entity));
     }
 
-    private boolean isWorker(EntityId entityId) {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+    private boolean isWorker(Entity entity) {
+        CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
         return creatureComponent.worker;
     }
 

@@ -176,7 +176,7 @@ public class CreatureController extends EntityController implements ICreatureCon
             for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
                 Owner owner = entityData.getComponent(entity, Owner.class);
                 if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
-                    entityData.setComponent(entity, new Owner(ownerId));
+                    entityData.setComponent(entity, new Owner(ownerId, ownerId));
                 }
             }
         }
@@ -577,9 +577,8 @@ public class CreatureController extends EntityController implements ICreatureCon
             entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
             stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
-            // TODO: now, instant action, substract the health
-            Health enemyHealth = entityData.getComponent(attackTarget, Health.class);
-            entityData.setComponent(attackTarget, new Health(enemyHealth.health - creatureMeleeAttack.damage, enemyHealth.maxHealth));
+            // Set the damage
+            setDamage(attackTarget, creatureMeleeAttack.damage);
         }
     }
 
@@ -1104,13 +1103,19 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public void imprison() {
+    public void imprison(short playerId) {
 
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
         entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
+        entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
         entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
+
+        // Switch the control to the imprisoning player
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        entityData.setComponent(entityId, new Owner(owner.ownerId, playerId));
+
         stateMachine.changeState(CreatureState.IMPRISONED);
     }
 
@@ -1164,8 +1169,8 @@ public class CreatureController extends EntityController implements ICreatureCon
             } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
 
                 // We are hungry now, mark the amount of food we need
-                CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-                entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
+                makeHungry(creatureHunger);
+
                 return true;
             }
         }
@@ -1202,10 +1207,18 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
 
         // Increase health
-        if (!isFullHealth()) {
-            Health health = entityData.getComponent(entityId, Health.class);
-            entityData.setComponent(entityId, new Health(Math.max(health.health + creature.getAttributes().getHpFromChicken(), health.maxHealth), health.maxHealth));
-        }
+        setDamage(-creature.getAttributes().getHpFromChicken());
+    }
+
+    @Override
+    public void makeHungry() {
+        CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
+        makeHungry(creatureHunger);
+    }
+
+    private void makeHungry(CreatureHunger creatureHunger) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
     }
 
     @Override
@@ -1223,6 +1236,16 @@ public class CreatureController extends EntityController implements ICreatureCon
         } else {
             LOGGER.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
         }
+    }
+
+    @Override
+    public void stopRecuperating() {
+        entityData.removeComponent(entityId, CreatureRecuperating.class);
+    }
+
+    @Override
+    public boolean isRecuperating() {
+        return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
     }
 
 }

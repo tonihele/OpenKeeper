@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 
 /**
  * Handles entity decaying
@@ -72,7 +73,7 @@ public class DecaySystem implements IGameLogicUpdatable {
     private void decay(EntityId entityId) {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health != null) {
-            entityData.setComponent(entityId, new Health(0, health.maxHealth));
+            EntityController.setDamage(entityData, entityId, health.maxHealth * 2);
         } else {
 
             // Hmm, just outright remove it
