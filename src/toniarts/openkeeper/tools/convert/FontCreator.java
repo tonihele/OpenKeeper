@@ -37,6 +37,8 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4File;
  */
 public class FontCreator {
 
+    private static final int MAX_SIZE = 2048;
+
     private final String description;
     private final List<FontImage> fontImages;
 
@@ -220,14 +222,13 @@ public class FontCreator {
      */
     private static int getFontImageSize(Bf4File fontFile) {
 
-        // Try to create a nice square (power of two is really waste of space...)
+        // Calculate the totals
         int area = fontFile.getMaxHeight() * fontFile.getAvgWidth() * fontFile.getGlyphCount(); // This is how many square pixels we need, approximate
-        int side = (int) FastMath.ceil(FastMath.sqrt(area)) + 10; // The plus is just a bit padding to make sure everything fits
+        int side = (int) FastMath.ceil(FastMath.sqrt(area));
 
-        // Divisible by two
-        if (side % 2 != 0) {
-            side++;
-        }
+        // The next power of two
+        side = Integer.highestOneBit(side - 1) * 2;
+        side = Math.min(MAX_SIZE, side);
 
         return side;
     }
