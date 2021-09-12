@@ -159,7 +159,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * transparent. 4-bits per pixel.
      *
      * @param entry the font entry
-     * @param bytes tha data payload
+     * @param bytes the data payload
      * @return image
      */
     private BufferedImage decodeFontImage(final Bf4Entry entry, final byte[] bytes) throws IOException {
