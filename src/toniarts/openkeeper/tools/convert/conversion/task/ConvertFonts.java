@@ -119,17 +119,7 @@ public class ConvertFonts extends ConversionTask {
                 descriptionFileName = baseFileName.concat(".fnt");
 
                 // Convert & save the font file
-                FontCreator fc = new FontCreator(new Bf4File(file)) {
-                    @Override
-                    protected int getFontSize() {
-                        return fontSize;
-                    }
-
-                    @Override
-                    protected String getFileName() {
-                        return imageFileName.substring(destination.length());
-                    }
-                };
+                FontCreator fc = new FontCreator(new Bf4File(file), fontSize, imageFileName.substring(destination.length()));
                 ImageIO.write(fc.getFontImage(), "png", new File(imageFileName));
                 try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(descriptionFileName), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                     bw.write(fc.getDescription());

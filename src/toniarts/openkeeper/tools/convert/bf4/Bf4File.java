@@ -32,9 +32,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.imageio.stream.MemoryCacheImageInputStream;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
 
 /**
@@ -47,14 +47,15 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
 public class Bf4File implements Iterable<Bf4Entry> {
 
     private static final String BF4_HEADER_IDENTIFIER = "F4FB";
+    private static final int BITS_PER_PIXEL = 4;
+    private static final IndexColorModel COLOR_MODEL;
+
     private final List<Bf4Entry> entries;
     private short maxWidth;
     private short maxHeight;
     private int maxCodePoint = 0;
     private int glyphCount = 0;
     private int avgWidth = 0;
-    private static final int BITS_PER_PIXEL = 4;
-    private static final IndexColorModel COLOR_MODEL;
 
     static {
 

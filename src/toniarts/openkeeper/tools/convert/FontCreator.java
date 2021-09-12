@@ -33,13 +33,13 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4File;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class FontCreator {
+public class FontCreator {
 
     private final String description;
     private final BufferedImage fontImage;
     private final Set<Integer> insertedChars;
 
-    public FontCreator(Bf4File fontFile) {
+    public FontCreator(Bf4File fontFile, int fontSize, String fileName) {
 
         // Create right sized font image
         fontImage = getFontImage(fontFile);
@@ -47,10 +47,10 @@ public abstract class FontCreator {
         // Write the header description
         StringBuilder sb = new StringBuilder(1000);
         sb.append("info face=\"");
-        sb.append(getFileName().substring(0, getFileName().length() - 4)); // For current Nifty batching the face needs to be unique
+        sb.append(fileName.substring(0, fileName.length() - 4)); // For current Nifty batching the face needs to be unique
         sb.append("\" ");
         sb.append("size=");
-        sb.append(getFontSize());
+        sb.append(fontSize);
         sb.append(" ");
         sb.append("bold=0 ");
         sb.append("italic=0 ");
@@ -75,7 +75,7 @@ public abstract class FontCreator {
         sb.append("packed=0 ");
         sb.append("\n");
         sb.append("page id=0 file=\"");
-        sb.append(getFileName());
+        sb.append(fileName);
         sb.append("\"\n");
         sb.append("chars count=");
         sb.append(fontFile.getMaxCodePoint());
@@ -164,18 +164,4 @@ public abstract class FontCreator {
     public BufferedImage getFontImage() {
         return fontImage;
     }
-
-    /**
-     * The font size in points
-     *
-     * @return font size
-     */
-    protected abstract int getFontSize();
-
-    /**
-     * The image file name where the fonts are
-     *
-     * @return font image file name
-     */
-    protected abstract String getFileName();
 }
