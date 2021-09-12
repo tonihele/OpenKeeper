@@ -56,6 +56,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
     private int maxCodePoint = 0;
     private int glyphCount = 0;
     private int avgWidth = 0;
+    private int totalWidth = 0;
 
     static {
 
@@ -104,6 +105,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
 
             // Sort them
             Collections.sort(entries);
+            totalWidth = avgWidth;
             avgWidth = (int) Math.ceil((float) avgWidth / getGlyphCount());
         } catch (IOException e) {
 
@@ -275,6 +277,15 @@ public class Bf4File implements Iterable<Bf4Entry> {
      */
     public int getAvgWidth() {
         return avgWidth;
+    }
+
+    /**
+     * Total calculated width of all the characters
+     *
+     * @return total image width
+     */
+    public int getTotalWidth() {
+        return totalWidth;
     }
 
     @Override
