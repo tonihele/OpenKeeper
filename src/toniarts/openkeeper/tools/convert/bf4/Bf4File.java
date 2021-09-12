@@ -89,8 +89,10 @@ public class Bf4File implements Iterable<Bf4Entry> {
             maxHeight = rawBf4Reader.readUnsignedByte();
             int offsetsCount = rawBf4Reader.readUnsignedShort();
 
+            // Read all since it is a lot of small entries
+            rawBf4Reader = rawBf4.readAll();
+
             // Read the offsets
-            rawBf4Reader = rawBf4.readChunk(offsetsCount * 4);
             List<Integer> offsets = new ArrayList<>(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
                 offsets.add(rawBf4Reader.readUnsignedInteger());
@@ -99,8 +101,8 @@ public class Bf4File implements Iterable<Bf4Entry> {
             // Read the font entries
             entries = new ArrayList<>(offsetsCount);
             for (Integer offset : offsets) {
-                rawBf4.seek(offset);
-                entries.add(readFontEntry(rawBf4));
+                rawBf4Reader.position(offset - 8);
+                entries.add(readFontEntry(rawBf4Reader));
             }
 
             // Sort them
@@ -121,9 +123,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
      * @return the font entry
      * @throws IOException may fail
      */
-    private Bf4Entry readFontEntry(IResourceReader rawBf4) throws IOException {
-        IResourceChunkReader rawBf4Reader = rawBf4.readChunk(24);
-
+    private Bf4Entry readFontEntry(IResourceChunkReader rawBf4Reader) throws IOException {
         Bf4Entry entry = new Bf4Entry();
 
         entry.setCharacter(rawBf4Reader.readStringUtf16(1).charAt(0));
@@ -141,7 +141,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
         entry.setOuterWidth(rawBf4Reader.readShort());
 
         if (entry.getWidth() > 0 && entry.getHeight() > 0) {
-            byte[] bytes = rawBf4.read(entry.getDataSize());
+            byte[] bytes = rawBf4Reader.read(entry.getDataSize());
 
             entry.setImage(decodeFontImage(entry, bytes));
 
