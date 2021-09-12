@@ -44,6 +44,7 @@ import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Dungeon Keeper II models conversion. Converts KMF to jME internal optimized
@@ -54,7 +55,6 @@ import toniarts.openkeeper.utils.PathUtils;
 public class ConvertModels extends ConversionTask {
 
     private static final Logger LOGGER = Logger.getLogger(ConvertModels.class.getName());
-    private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
 
     private final AssetManager assetManager;
     private final ExecutorService executorService;
@@ -63,7 +63,7 @@ public class ConvertModels extends ConversionTask {
         super(dungeonKeeperFolder, destination, overwriteData);
 
         this.assetManager = assetManager;
-        this.executorService = Executors.newFixedThreadPool(MAX_THREADS, new ThreadFactory() {
+        this.executorService = Executors.newFixedThreadPool(Utils.MAX_THREADS, new ThreadFactory() {
 
             private final AtomicInteger threadIndex = new AtomicInteger(0);
 

@@ -30,7 +30,7 @@ public interface IResourceReader extends Closeable {
     /**
      * End of file
      *
-     * @return true if filepointer >= length of file
+     * @return true if file pointer >= length of file
      * @throws IOException
      */
     boolean isEof() throws IOException;

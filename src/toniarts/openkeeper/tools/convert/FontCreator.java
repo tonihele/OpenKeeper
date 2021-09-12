@@ -19,7 +19,9 @@ package toniarts.openkeeper.tools.convert;
 import com.jme3.math.FastMath;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.bf4.Bf4Entry;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
@@ -33,24 +35,69 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4File;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class FontCreator {
+public class FontCreator {
+
+    private static final int MAX_SIZE = 2048;
 
     private final String description;
-    private final BufferedImage fontImage;
-    private final Set<Integer> insertedChars;
+    private final List<FontImage> fontImages;
 
-    public FontCreator(Bf4File fontFile) {
+    // TODO: Perfect candidate for being a record :)
+    public class FontImage {
 
-        // Create right sized font image
-        fontImage = getFontImage(fontFile);
+        private final String fileName;
+        private final BufferedImage fontImage;
+        private final int page;
+
+        public FontImage(String fileName, BufferedImage fontImage, int page) {
+            this.fileName = fileName;
+            this.fontImage = fontImage;
+            this.page = page;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public BufferedImage getFontImage() {
+            return fontImage;
+        }
+
+        public int getPage() {
+            return page;
+        }
+
+        @Override
+        public String toString() {
+            return "FontImage{" + "fileName=" + fileName + ", page=" + page + '}';
+        }
+
+    }
+
+    public FontCreator(Bf4File fontFile, int fontSize, String fileName) {
+        fontImages = new ArrayList<>();
+        description = createFonts(fileName, fontSize, fontFile);
+    }
+
+    private String createFonts(String fileName, int fontSize, Bf4File fontFile) {
+        int size = getFontImageSize(fontFile);
+
+        // Draw the fonts and write the descriptions
+        String characterDescriptions = createCharacters(fontFile, size, fileName);
 
         // Write the header description
+        String header = createHeader(fileName, fontSize, fontFile, size);
+
+        return header + characterDescriptions;
+    }
+
+    private String createHeader(String fileName, int fontSize, Bf4File fontFile, int size) {
         StringBuilder sb = new StringBuilder(1000);
         sb.append("info face=\"");
-        sb.append(getFileName().substring(0, getFileName().length() - 4)); // For current Nifty batching the face needs to be unique
+        sb.append(fileName.substring(0, fileName.length() - 4)); // For current Nifty batching the face needs to be unique
         sb.append("\" ");
         sb.append("size=");
-        sb.append(getFontSize());
+        sb.append(fontSize);
         sb.append(" ");
         sb.append("bold=0 ");
         sb.append("italic=0 ");
@@ -66,26 +113,42 @@ public abstract class FontCreator {
         sb.append(" ");
         sb.append("base=26 ");
         sb.append("scaleW=");
-        sb.append(fontImage.getWidth());
+        sb.append(size);
         sb.append(" ");
         sb.append("scaleH=");
-        sb.append(fontImage.getHeight());
+        sb.append(size);
         sb.append(" ");
-        sb.append("pages=1 ");
+        sb.append("pages=");
+        sb.append(fontImages.size());
+        sb.append(" ");
         sb.append("packed=0 ");
         sb.append("\n");
-        sb.append("page id=0 file=\"");
-        sb.append(getFileName());
-        sb.append("\"\n");
+
+        // Add the pages
+        for (FontImage fi : fontImages) {
+            sb.append("page id=");
+            sb.append(fi.page);
+            sb.append(" file=\"");
+            sb.append(fi.fileName);
+            sb.append("\"\n");
+        }
+
         sb.append("chars count=");
         sb.append(fontFile.getMaxCodePoint());
         sb.append("\n");
 
-        // Draw the fonts and write the descriptions
+        return sb.toString();
+    }
+
+    private String createCharacters(Bf4File fontFile, int size, String fileName) {
+        BufferedImage fontImage = getFontImage(size);
+        StringBuilder sb = new StringBuilder(1000);
         Graphics2D g = (Graphics2D) fontImage.getGraphics();
         int x = 0;
         int y = 0;
-        insertedChars = new HashSet<>(fontFile.getCount());
+        int page = 0;
+
+        Set<Integer> insertedChars = new HashSet<>(fontFile.getCount());
         for (Bf4Entry entry : fontFile) {
             if (!insertedChars.contains((int) entry.getCharacter())) {
                 insertedChars.add((int) entry.getCharacter());
@@ -96,6 +159,19 @@ public abstract class FontCreator {
                         x = 0;
                         y += fontFile.getMaxHeight();
                     }
+                    if (y + fontFile.getMaxHeight() > fontImage.getHeight()) {
+
+                        // New page entirely
+                        g.dispose();
+                        fontImages.add(createPagedFontImage(fileName, page, fontImage));
+                        fontImage = getFontImage(size);
+                        g = (Graphics2D) fontImage.getGraphics();
+
+                        x = 0;
+                        y = 0;
+                        page++;
+                    }
+
                     g.drawImage(entry.getImage(), x, y, null);
                 }
 
@@ -116,7 +192,8 @@ public abstract class FontCreator {
                 sb.append(entry.getOffsetY());
                 sb.append("    xadvance=");
                 sb.append(entry.getOuterWidth());
-                sb.append("    page=0");
+                sb.append("    page=");
+                sb.append(page);
                 sb.append("    chnl=0\n");
 
                 if (entry.getImage() != null) {
@@ -128,23 +205,67 @@ public abstract class FontCreator {
         }
         g.dispose();
 
-        // Set the description
-        description = sb.toString();
+        // A bit of beautification
+        fontImages.add(fontImages.isEmpty() ? createFontImage(fileName, page, fontImage) : createPagedFontImage(fileName, page, fontImage));
+
+        return sb.toString();
     }
 
-    private BufferedImage getFontImage(Bf4File fontFile) {
+    private static BufferedImage getFontImage(int size) {
+        return new BufferedImage(size, size, BufferedImage.TYPE_BYTE_BINARY, Bf4File.getCm());
+    }
 
-        // Try to create a nice square (power of two is really waste of space...)
-        int area = fontFile.getMaxHeight() * fontFile.getAvgWidth() * fontFile.getGlyphCount(); // This is how many square pixels we need, approximate
-        int side = (int) FastMath.ceil(FastMath.sqrt(area)) + 10; // The plus is just a bit padding to make sure everything fits
+    /**
+     * Return the optimal(ish) size of the font image. The font image should be
+     * a square power of two value. The same size is used in all of the pages.
+     *
+     * @param fontFile the font file, for approximating the size
+     * @return size of the image
+     */
+    private static int getFontImageSize(Bf4File fontFile) {
 
-        // Divisible by two
-        if (side % 2 != 0) {
-            side++;
+        // Calculate the totals
+        int area = fontFile.getMaxHeight() * fontFile.getTotalWidth(); // This is how many square pixels we need, approximate
+        int side = (int) FastMath.ceil(FastMath.sqrt(area));
+
+        // The next power of two
+        side = Integer.highestOneBit(side - 1) * 2;
+        side = Math.min(MAX_SIZE, side);
+
+        // If we hit the max size, try to optimize the space usage a bit
+        if (side == MAX_SIZE) {
+            int totalPageArea = side * side;
+            int totalPages = (int) FastMath.ceil((float) area / totalPageArea);
+            int totalArea = totalPageArea * totalPages;
+
+            int trySide = side;
+            int totalTryArea = totalArea;
+            int pageAmountPenalty;
+            do {
+                side = trySide;
+                totalArea = totalTryArea;
+
+                trySide = side / 2;
+                int totalTryPageArea = trySide * trySide;
+                int totalTryPages = (int) FastMath.ceil((float) area / totalTryPageArea);
+                totalTryArea = totalTryPageArea * totalTryPages;
+
+                // Apply a sort of penalty from the number of pages increasing compared to the original
+                // highly exponential, we want to save space but also not have a million files
+                pageAmountPenalty = (int) FastMath.pow(totalTryPages - totalPages, 8);
+                totalTryArea += pageAmountPenalty;
+            } while (totalTryArea < totalArea && trySide >= fontFile.getMaxHeight() && pageAmountPenalty != Integer.MAX_VALUE);
         }
 
-        // Create the image
-        return new BufferedImage(side, side, BufferedImage.TYPE_BYTE_BINARY, Bf4File.getCm());
+        return side;
+    }
+
+    private FontImage createPagedFontImage(String fileName, int page, BufferedImage fontImage) {
+        return new FontImage(fileName.substring(0, fileName.length() - 4) + "_" + page + fileName.substring(fileName.length() - 4), fontImage, page);
+    }
+
+    private FontImage createFontImage(String fileName, int page, BufferedImage fontImage) {
+        return new FontImage(fileName, fontImage, page);
     }
 
     /**
@@ -161,21 +282,7 @@ public abstract class FontCreator {
      *
      * @return font image
      */
-    public BufferedImage getFontImage() {
-        return fontImage;
+    public List<FontImage> getFontImages() {
+        return fontImages;
     }
-
-    /**
-     * The font size in points
-     *
-     * @return font size
-     */
-    protected abstract int getFontSize();
-
-    /**
-     * The image file name where the fonts are
-     *
-     * @return font image file name
-     */
-    protected abstract String getFileName();
 }
