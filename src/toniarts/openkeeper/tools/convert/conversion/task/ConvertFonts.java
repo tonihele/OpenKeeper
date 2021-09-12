@@ -109,13 +109,14 @@ public class ConvertFonts extends ConversionTask {
                 if (!found) {
                     LOGGER.log(Level.SEVERE, "Font name {0} not recognized!", file.getFileName());
                     throw new RuntimeException("Unknown font name!");
-                } else {
-                    fontSize = Integer.parseInt(matcher.group("size"));
-                    String baseFileName = matcher.group("name");
-                    baseFileName = destination.concat(Character.toUpperCase(baseFileName.charAt(0)) + baseFileName.substring(1).toLowerCase() + fontSize);
-                    imageFileName = baseFileName.concat(".png");
-                    descriptionFileName = baseFileName.concat(".fnt");
                 }
+
+                // Parse font info from the file name
+                fontSize = Integer.parseInt(matcher.group("size"));
+                String baseFileName = matcher.group("name");
+                baseFileName = destination.concat(Character.toUpperCase(baseFileName.charAt(0)) + baseFileName.substring(1).toLowerCase() + fontSize);
+                imageFileName = baseFileName.concat(".png");
+                descriptionFileName = baseFileName.concat(".fnt");
 
                 // Convert & save the font file
                 FontCreator fc = new FontCreator(new Bf4File(file)) {
