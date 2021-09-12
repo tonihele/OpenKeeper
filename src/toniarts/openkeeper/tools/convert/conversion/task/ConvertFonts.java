@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.FontCreator;
+import toniarts.openkeeper.tools.convert.FontCreator.FontImage;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
@@ -115,12 +116,14 @@ public class ConvertFonts extends ConversionTask {
                 fontSize = Integer.parseInt(matcher.group("size"));
                 String baseFileName = matcher.group("name");
                 baseFileName = destination.concat(Character.toUpperCase(baseFileName.charAt(0)) + baseFileName.substring(1).toLowerCase() + fontSize);
-                imageFileName = baseFileName.concat(".png");
+                imageFileName = baseFileName.substring(destination.length()).concat(".png");
                 descriptionFileName = baseFileName.concat(".fnt");
 
-                // Convert & save the font file
-                FontCreator fc = new FontCreator(new Bf4File(file), fontSize, imageFileName.substring(destination.length()));
-                ImageIO.write(fc.getFontImage(), "png", new File(imageFileName));
+                // Convert & save the font files
+                FontCreator fc = new FontCreator(new Bf4File(file), fontSize, imageFileName);
+                for (FontImage fontImage : fc.getFontImages()) {
+                    ImageIO.write(fontImage.getFontImage(), "png", new File(destination + fontImage.getFileName()));
+                }
                 try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(descriptionFileName), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                     bw.write(fc.getDescription());
                 }
