@@ -38,6 +38,7 @@ import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFi
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Dungeon Keeper II textures conversion. Converts textures to PNG.
@@ -47,14 +48,13 @@ import toniarts.openkeeper.utils.PathUtils;
 public class ConvertTextures extends ConversionTask {
 
     private static final Logger LOGGER = Logger.getLogger(ConvertTextures.class.getName());
-    private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
 
     private final ExecutorService executorService;
 
     public ConvertTextures(String dungeonKeeperFolder, String destination, boolean overwriteData) {
         super(dungeonKeeperFolder, destination, overwriteData);
 
-        this.executorService = Executors.newFixedThreadPool(MAX_THREADS, new ThreadFactory() {
+        this.executorService = Executors.newFixedThreadPool(Utils.MAX_THREADS, new ThreadFactory() {
 
             private final AtomicInteger threadIndex = new AtomicInteger(0);
 
