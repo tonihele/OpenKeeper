@@ -163,7 +163,7 @@ public class FontCreator {
 
                         // New page entirely
                         g.dispose();
-                        fontImages.add(createFontImage(fileName, page, fontImage));
+                        fontImages.add(createPagedFontImage(fileName, page, fontImage));
                         fontImage = getFontImage(size);
                         g = (Graphics2D) fontImage.getGraphics();
 
@@ -204,7 +204,9 @@ public class FontCreator {
             }
         }
         g.dispose();
-        fontImages.add(createFontImage(fileName, page, fontImage));
+
+        // A bit of beautification
+        fontImages.add(fontImages.isEmpty() ? createFontImage(fileName, page, fontImage) : createPagedFontImage(fileName, page, fontImage));
 
         return sb.toString();
     }
@@ -223,18 +225,47 @@ public class FontCreator {
     private static int getFontImageSize(Bf4File fontFile) {
 
         // Calculate the totals
-        int area = fontFile.getMaxHeight() * fontFile.getAvgWidth() * fontFile.getGlyphCount(); // This is how many square pixels we need, approximate
+        int area = fontFile.getMaxHeight() * fontFile.getTotalWidth(); // This is how many square pixels we need, approximate
         int side = (int) FastMath.ceil(FastMath.sqrt(area));
 
         // The next power of two
         side = Integer.highestOneBit(side - 1) * 2;
         side = Math.min(MAX_SIZE, side);
 
+        // If we hit the max size, try to optimize the space usage a bit
+        if (side == MAX_SIZE) {
+            int totalPageArea = side * side;
+            int totalPages = (int) FastMath.ceil((float) area / totalPageArea);
+            int totalArea = totalPageArea * totalPages;
+
+            int trySide = side;
+            int totalTryArea = totalArea;
+            int pageAmountPenalty;
+            do {
+                side = trySide;
+                totalArea = totalTryArea;
+
+                trySide = side / 2;
+                int totalTryPageArea = trySide * trySide;
+                int totalTryPages = (int) FastMath.ceil((float) area / totalTryPageArea);
+                totalTryArea = totalTryPageArea * totalTryPages;
+
+                // Apply a sort of penalty from the number of pages increasing compared to the original
+                // highly exponential, we want to save space but also not have a million files
+                pageAmountPenalty = (int) FastMath.pow(totalTryPages - totalPages, 8);
+                totalTryArea += pageAmountPenalty;
+            } while (totalTryArea < totalArea && trySide >= fontFile.getMaxHeight() && pageAmountPenalty != Integer.MAX_VALUE);
+        }
+
         return side;
     }
 
-    private FontImage createFontImage(String fileName, int page, BufferedImage fontImage) {
+    private FontImage createPagedFontImage(String fileName, int page, BufferedImage fontImage) {
         return new FontImage(fileName.substring(0, fileName.length() - 4) + "_" + page + fileName.substring(fileName.length() - 4), fontImage, page);
+    }
+
+    private FontImage createFontImage(String fileName, int page, BufferedImage fontImage) {
+        return new FontImage(fileName, fontImage, page);
     }
 
     /**
