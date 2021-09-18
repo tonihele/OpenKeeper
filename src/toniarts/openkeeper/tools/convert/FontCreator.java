@@ -232,30 +232,28 @@ public class FontCreator {
         side = Integer.highestOneBit(side - 1) * 2;
         side = Math.min(MAX_SIZE, side);
 
-        // If we hit the max size, try to optimize the space usage a bit
-        if (side == MAX_SIZE) {
-            int totalPageArea = side * side;
-            int totalPages = (int) FastMath.ceil((float) area / totalPageArea);
-            int totalArea = totalPageArea * totalPages;
+        // Try to optimize the space usage a bit
+        int totalPageArea = side * side;
+        int totalPages = (int) FastMath.ceil((float) area / totalPageArea);
+        int totalArea = totalPageArea * totalPages;
 
-            int trySide = side;
-            int totalTryArea = totalArea;
-            int pageAmountPenalty;
-            do {
-                side = trySide;
-                totalArea = totalTryArea;
+        int trySide = side;
+        int totalTryArea = totalArea;
+        int pageAmountPenalty;
+        do {
+            side = trySide;
+            totalArea = totalTryArea;
 
-                trySide = side / 2;
-                int totalTryPageArea = trySide * trySide;
-                int totalTryPages = (int) FastMath.ceil((float) area / totalTryPageArea);
-                totalTryArea = totalTryPageArea * totalTryPages;
+            trySide = side / 2;
+            int totalTryPageArea = trySide * trySide;
+            int totalTryPages = (int) FastMath.ceil((float) area / totalTryPageArea);
+            totalTryArea = totalTryPageArea * totalTryPages;
 
-                // Apply a sort of penalty from the number of pages increasing compared to the original
-                // highly exponential, we want to save space but also not have a million files
-                pageAmountPenalty = (int) FastMath.pow(totalTryPages - totalPages, 8);
-                totalTryArea += pageAmountPenalty;
-            } while (totalTryArea < totalArea && trySide >= fontFile.getMaxHeight() && pageAmountPenalty != Integer.MAX_VALUE);
-        }
+            // Apply a sort of penalty from the number of pages increasing compared to the original
+            // highly exponential, we want to save space but also not have a million files
+            pageAmountPenalty = (int) FastMath.pow(totalTryPages - totalPages, 8);
+            totalTryArea += pageAmountPenalty;
+        } while (totalTryArea < totalArea && trySide >= fontFile.getMaxHeight() && pageAmountPenalty != Integer.MAX_VALUE);
 
         return side;
     }
