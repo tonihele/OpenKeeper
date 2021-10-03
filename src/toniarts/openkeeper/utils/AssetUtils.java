@@ -40,8 +40,10 @@ import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.FileVisitResult;
@@ -317,7 +319,7 @@ public class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
 
             // Get the first frame, the frames need to be same size
-            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + "0.png"))).openStream());
+            BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + "0.png"))));
 
             // Create image big enough to fit all the frames
             int frames = resource.getData(ArtResource.KEY_FRAMES);
@@ -335,7 +337,7 @@ public class AssetUtils {
             for (int x = 1; x < frames; x++) {
                 AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + x + ".png")));
                 if (asset != null) {
-                    img = ImageIO.read(asset.openStream());
+                    img = readImageFromAsset(asset);
                 } else {
                     // use previous img
                     LOGGER.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{resource.getName(), x});
@@ -358,6 +360,14 @@ public class AssetUtils {
             // A regular texture
             TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + ".png"), false);
             return assetManager.loadTexture(key);
+        }
+    }
+
+    public static BufferedImage readImageFromAsset(AssetInfo asset) throws IOException {
+        ImageIO.setUseCache(false);
+        try (InputStream is = asset.openStream();
+                BufferedInputStream bis = new BufferedInputStream(is)) {
+            return ImageIO.read(bis);
         }
     }
 

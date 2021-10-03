@@ -28,7 +28,13 @@ import java.awt.image.IndexColorModel;
 import java.awt.image.PixelInterleavedSampleModel;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -150,9 +156,10 @@ public class MapThumbnailGenerator {
 
     private static ColorModel readPalette() {
         try {
+            Path palettePath = Paths.get(ConversionUtils.getRealFileName(AssetsConverter.getAssetsFolder(), PALETTE_IMAGE));
 
             // Read the DK II palette image
-            BufferedImage paletteImage = ImageIO.read(new File(ConversionUtils.getRealFileName(AssetsConverter.getAssetsFolder(), PALETTE_IMAGE)));
+            BufferedImage paletteImage = readImageFromPath(palettePath);
 
             // The palette image is generally an image where 1 column represents one color, column width is 1px
             // We know that is is 64x16, but just play along with "dynamic" (we'll fail if it is over 256)
@@ -173,6 +180,14 @@ public class MapThumbnailGenerator {
 
             // TODO: Create a random palette here?
             throw new RuntimeException("Failed to create the map thumbnail palette!", e);
+        }
+    }
+
+    private static BufferedImage readImageFromPath(Path palettePath) throws IOException {
+        ImageIO.setUseCache(false);
+        try (InputStream is = Files.newInputStream(palettePath);
+                BufferedInputStream bis = new BufferedInputStream(is)) {
+            return ImageIO.read(bis);
         }
     }
 
