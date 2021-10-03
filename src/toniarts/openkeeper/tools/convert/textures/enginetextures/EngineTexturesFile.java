@@ -33,9 +33,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -225,6 +225,7 @@ public class EngineTexturesFile implements Iterable<String> {
             throw new RuntimeException("File " + textureEntry + " not found from the texture archive!");
         }
 
+        ImageIO.setUseCache(false);
         try {
 
             // We should decompress the texture

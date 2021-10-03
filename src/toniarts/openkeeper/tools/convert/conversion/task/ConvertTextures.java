@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -189,6 +192,7 @@ public class ConvertTextures extends ConversionTask {
      * @param destination destination directory
      */
     private void extractTextureContainer(AtomicInteger progress, int total, WadFile wad, String destination) {
+        ImageIO.setUseCache(false);
         for (final String entry : wad.getWadFileEntries()) {
 
             // Some of these archives contain .444 files, convert these to PNGs
@@ -197,7 +201,10 @@ public class ConvertTextures extends ConversionTask {
                 try {
                     Path destFile = Paths.get(destination, entry.substring(0, entry.length() - 3).concat("png"));
                     Files.createDirectories(destFile.getParent());
-                    ImageIO.write(lsf.getImage(), "png", destFile.toFile());
+                    try (OutputStream os = Files.newOutputStream(destFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                            BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                        ImageIO.write(lsf.getImage(), "png", bos);
+                    }
                 } catch (IOException ex) {
                     LOGGER.log(Level.SEVERE, "Failed to save the wad entry " + entry + "!", ex);
                     onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
