@@ -68,7 +68,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -105,6 +104,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
@@ -610,7 +610,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
         // Stretch the background image (height-wise) on the background image panel
         try {
-            BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")).openStream());
+            BufferedImage img = AssetUtils.readImageFromAsset(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")));
 
             // Scale the backgroung image to the panel height, keeping the aspect ratio
             Element panel = nifty.getCurrentScreen().findElementById("bottomBackgroundPanel");

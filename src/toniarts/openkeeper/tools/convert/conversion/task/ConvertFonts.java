@@ -16,9 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -99,6 +100,7 @@ public class ConvertFonts extends ConversionTask {
         updateStatus(null, null);
         Path destFolder = Paths.get(destination);
         AssetUtils.deleteFolder(destFolder);
+        ImageIO.setUseCache(false);
 
         try {
 
@@ -163,7 +165,11 @@ public class ConvertFonts extends ConversionTask {
             // Convert & save the font files
             FontCreator fc = new FontCreator(new Bf4File(file), fontSize, imageFileName);
             for (FontImage fontImage : fc.getFontImages()) {
-                ImageIO.write(fontImage.getFontImage(), "png", new File(destination + fontImage.getFileName()));
+                Path destPath = Paths.get(destination, fontImage.getFileName());
+                try (OutputStream os = Files.newOutputStream(destPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                        BufferedOutputStream bos = new BufferedOutputStream(os)) {
+                    ImageIO.write(fontImage.getFontImage(), "png", bos);
+                }
             }
             try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(descriptionFileName), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 bw.write(fc.getDescription());

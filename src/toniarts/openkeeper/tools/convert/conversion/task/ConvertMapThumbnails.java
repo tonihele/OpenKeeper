@@ -17,12 +17,14 @@
 package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -97,6 +99,7 @@ public class ConvertMapThumbnails extends ConversionTask {
         // Go through the map files
         int i = 0;
         int total = maps.size();
+        ImageIO.setUseCache(false);
         for (KwdFile kwd : maps) {
             updateStatus(i, total);
             try {
@@ -120,7 +123,12 @@ public class ConvertMapThumbnails extends ConversionTask {
         // Create the thumbnail & save it
         // TODO maybe image size in Settings ???
         BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
-        ImageIO.write(thumbnail, "png", new File(destination + ConversionUtils.stripFileName(kwd.getGameLevel().getName()) + ".png"));
+
+        Path destinationPath = Paths.get(destination, ConversionUtils.stripFileName(kwd.getGameLevel().getName()) + ".png");
+        try (OutputStream os = Files.newOutputStream(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                BufferedOutputStream bos = new BufferedOutputStream(os)) {
+            ImageIO.write(thumbnail, "png", bos);
+        }
     }
 
     @Override

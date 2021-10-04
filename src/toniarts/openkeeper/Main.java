@@ -40,9 +40,11 @@ import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -495,20 +497,29 @@ public class Main extends SimpleApplication {
      * @return array of application icons
      */
     public static BufferedImage[] getApplicationIcons() {
+        ImageIO.setUseCache(false);
         try {
             return new BufferedImage[]{
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper256.png")),
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper128.png")),
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper64.png")),
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper48.png")),
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper32.png")),
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper24.png")),
-                ImageIO.read(Main.class.getResource("/Icons/openkeeper16.png"))
+                readIcon("/Icons/openkeeper256.png"),
+                readIcon("/Icons/openkeeper256.png"),
+                readIcon("/Icons/openkeeper128.png"),
+                readIcon("/Icons/openkeeper64.png"),
+                readIcon("/Icons/openkeeper48.png"),
+                readIcon("/Icons/openkeeper32.png"),
+                readIcon("/Icons/openkeeper24.png"),
+                readIcon("/Icons/openkeeper16.png")
             };
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "Failed to load the application icons!", ex);
         }
         return null;
+    }
+
+    private static BufferedImage readIcon(String path) throws IOException {
+        try (InputStream is = Main.class.getResourceAsStream(path);
+                BufferedInputStream bis = new BufferedInputStream(is)) {
+            return ImageIO.read(bis);
+        }
     }
 
     /**

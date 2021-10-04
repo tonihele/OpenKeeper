@@ -23,6 +23,7 @@ import com.jme3.audio.AudioData;
 import com.jme3.audio.AudioKey;
 import com.jme3.audio.AudioStream;
 import com.jme3.util.BufferUtils;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,9 +52,7 @@ public class MP2Loader implements AssetLoader {
     private static final Logger LOGGER = Logger.getLogger(MP2Loader.class.getName());
 
     /**
-     * Masks the real input stream to decode the MP2<br>
-     * The last read repeats a bit, that is a known issue:
-     * http://hub.jmonkeyengine.org/forum/topic/streaming-audio-with-audionode-plays-ending-wrongly/
+     * Masks the real input stream to decode the MP2
      */
     private static class MPxStream extends InputStream {
 
@@ -166,7 +165,7 @@ public class MP2Loader implements AssetLoader {
         AudioData data;
         InputStream inputStream = null;
         try {
-            inputStream = info.openStream();
+            inputStream = new BufferedInputStream(info.openStream());
             data = load(inputStream, ((AudioKey) info.getKey()).isStream());
             if (data instanceof AudioStream) {
                 inputStream = null;
