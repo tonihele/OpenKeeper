@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -64,7 +63,6 @@ import toniarts.openkeeper.view.text.TextParser;
  */
 public class PlayerEntityViewState extends AbstractAppState {
 
-    private Main app;
     private AppStateManager stateManager;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
@@ -129,7 +127,6 @@ public class PlayerEntityViewState extends AbstractAppState {
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
-        this.app = (Main) app;
         this.stateManager = stateManager;
 
         // Attach the entities

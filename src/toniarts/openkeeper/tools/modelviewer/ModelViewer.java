@@ -47,6 +47,7 @@ import com.jme3.util.TangentBinormalGenerator;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.ListBox;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -83,10 +84,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * Simple model viewer
@@ -145,6 +144,7 @@ public class ModelViewer extends SimpleApplication {
     private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
 
     private EffectManagerState effectManagerState;
+    private MapLoaderAppState mapLoaderAppState;
 
     private final ActionListener actionListener = new ActionListener() {
         @Override
@@ -206,14 +206,18 @@ public class ModelViewer extends SimpleApplication {
         // init sound loader
         //soundLoader = new SoundsLoader(assetManager);
 
+        // Map loader
+        mapLoaderAppState = new MapLoaderAppState();
+        stateManager.attach(mapLoaderAppState);
+
         Nifty nifty = getNifty();
         screen = new ModelViewerScreenController(this);
         nifty.registerScreenController(screen);
 
-        String xml = "Interface/ModelViewer/ModelViewer.xml";
         try {
-            nifty.validateXml(xml);
-            nifty.addXml(xml);
+            byte[] xml = Files.readAllBytes(Paths.get(AssetsConverter.getCurrentFolder(), "assets/Interface/ModelViewer/ModelViewer.xml"));
+            nifty.validateXml(new ByteArrayInputStream(xml));
+            nifty.addXml(new ByteArrayInputStream(xml));
         } catch (Exception ex) {
             throw new RuntimeException("Failed to validate GUI file!", ex);
         }
@@ -412,14 +416,7 @@ public class ModelViewer extends SimpleApplication {
                 // Load the selected map
                 String file = (String) selection + ".kwd";
                 KwdFile kwd = new KwdFile(dkIIFolder, Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, file));
-                Node spat = (Node) new MapLoader(this.getAssetManager(), kwd,
-                        new EffectManagerState(kwd, this.getAssetManager()), null,
-                        new ObjectLoader(kwd, null)) {
-                    @Override
-                    protected void updateProgress(float progress) {
-                        // Do nothing
-                    }
-                }.load(this.getAssetManager(), kwd);
+                Node spat = mapLoaderAppState.loadMap(kwd);
 
                 GameLevel gameLevel = kwd.getGameLevel();
                 screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));
