@@ -61,6 +61,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.ISoundable;
@@ -215,7 +216,7 @@ public class ModelViewer extends SimpleApplication {
         nifty.registerScreenController(screen);
 
         try {
-            byte[] xml = Files.readAllBytes(Paths.get(AssetsConverter.getCurrentFolder(), "assets/Interface/ModelViewer/ModelViewer.xml"));
+            byte[] xml = PathUtils.readInputStream(Main.class.getResourceAsStream("/Interface/ModelViewer/ModelViewer.xml"));
             nifty.validateXml(new ByteArrayInputStream(xml));
             nifty.addXml(new ByteArrayInputStream(xml));
         } catch (Exception ex) {
