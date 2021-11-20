@@ -26,11 +26,11 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
+import com.jme3.light.LightProbe;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
@@ -44,9 +44,11 @@ import com.jme3.scene.shape.Quad;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.shadow.EdgeFilteringMode;
 import com.jme3.util.TangentBinormalGenerator;
+import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.ListBox;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -60,6 +62,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.ISoundable;
@@ -83,10 +86,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.object.ObjectLoader;
 
 /**
  * Simple model viewer
@@ -133,6 +134,7 @@ public class ModelViewer extends SimpleApplication {
     private List<String> maps;
     private KwdFile kwdFile;
     private Node floorGeom;
+
     //private SoundsLoader soundLoader;
     /**
      * The node name for the model (that is attached to the root)
@@ -145,6 +147,7 @@ public class ModelViewer extends SimpleApplication {
     private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
 
     private EffectManagerState effectManagerState;
+    private MapLoaderAppState mapLoaderAppState;
 
     private final ActionListener actionListener = new ActionListener() {
         @Override
@@ -206,14 +209,18 @@ public class ModelViewer extends SimpleApplication {
         // init sound loader
         //soundLoader = new SoundsLoader(assetManager);
 
+        // Map loader
+        mapLoaderAppState = new MapLoaderAppState();
+        stateManager.attach(mapLoaderAppState);
+
         Nifty nifty = getNifty();
         screen = new ModelViewerScreenController(this);
         nifty.registerScreenController(screen);
 
-        String xml = "Interface/ModelViewer/ModelViewer.xml";
         try {
-            nifty.validateXml(xml);
-            nifty.addXml(xml);
+            byte[] xml = PathUtils.readInputStream(Main.class.getResourceAsStream("/Interface/ModelViewer/ModelViewer.xml"));
+            nifty.validateXml(new ByteArrayInputStream(xml));
+            nifty.addXml(new ByteArrayInputStream(xml));
         } catch (Exception ex) {
             throw new RuntimeException("Failed to validate GUI file!", ex);
         }
@@ -306,23 +313,43 @@ public class ModelViewer extends SimpleApplication {
         dlsr.setShadowIntensity(0.6f);
         dlsr.setEdgeFilteringMode(EdgeFilteringMode.PCF8);
         getViewPort().addProcessor(dlsr);
+
+        // Default light probe
+        Spatial probeHolder = assetManager.loadModel("Models/ModelViewer/studio.j3o");
+        LightProbe probe = (LightProbe) probeHolder.getLocalLightList().get(0);
+        probe.setPosition(Vector3f.ZERO);
+        probeHolder.removeLight(probe);
+        rootNode.addLight(probe);
+
+        // Light debug
+        //LightsDebugState debugState = new LightsDebugState();
+        //stateManager.attach(debugState);
     }
 
     private void setupFloor() {
-        Material mat = assetManager.loadMaterial("Materials/ModelViewer/FloorMarble.j3m");
+
+        Material floorMaterial = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
+        floorMaterial.setTexture("BaseColorMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-texture.jpg"));
+        floorMaterial.setTexture("NormalMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-normal.jpg"));
+        floorMaterial.setTexture("SpecularMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-specular.jpg"));
+        floorMaterial.setTexture("LightMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-ao.jpg"));
+        floorMaterial.setBoolean("LightMapAsAOMap", true);
+        floorMaterial.setTexture("ParallaxMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-displacement.jpg"));
+        floorMaterial.setBoolean("SteepParallax", true);
+        floorMaterial.setFloat("Roughness", 0.1f);
+        floorMaterial.setFloat("Metallic", 0.04f);
 
         floorGeom = new Node("floorGeom");
         Quad q = new Quad(20, 20);
-        q.scaleTextureCoordinates(new Vector2f(1, 1));
         Geometry g = new Geometry("geom", q);
         g.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X));
         g.setShadowMode(RenderQueue.ShadowMode.Receive);
         floorGeom.attachChild(g);
 
-        TangentBinormalGenerator.generate(floorGeom);
+        MikktspaceTangentGenerator.generate(g);
         floorGeom.setLocalTranslation(-10, -1f, 10);
 
-        floorGeom.setMaterial(mat);
+        floorGeom.setMaterial(floorMaterial);
         rootNode.attachChild(floorGeom);
     }
 
@@ -412,14 +439,7 @@ public class ModelViewer extends SimpleApplication {
                 // Load the selected map
                 String file = (String) selection + ".kwd";
                 KwdFile kwd = new KwdFile(dkIIFolder, Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, file));
-                Node spat = (Node) new MapLoader(this.getAssetManager(), kwd,
-                        new EffectManagerState(kwd, this.getAssetManager()), null,
-                        new ObjectLoader(kwd, null)) {
-                    @Override
-                    protected void updateProgress(float progress) {
-                        // Do nothing
-                    }
-                }.load(this.getAssetManager(), kwd);
+                Node spat = mapLoaderAppState.loadMap(kwd);
 
                 GameLevel gameLevel = kwd.getGameLevel();
                 screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));
