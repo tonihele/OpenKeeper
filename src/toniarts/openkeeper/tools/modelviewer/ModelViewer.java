@@ -26,11 +26,11 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.AmbientLight;
 import com.jme3.light.DirectionalLight;
+import com.jme3.light.LightProbe;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
-import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
@@ -44,6 +44,7 @@ import com.jme3.scene.shape.Quad;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.shadow.EdgeFilteringMode;
 import com.jme3.util.TangentBinormalGenerator;
+import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.ListBox;
@@ -133,6 +134,7 @@ public class ModelViewer extends SimpleApplication {
     private List<String> maps;
     private KwdFile kwdFile;
     private Node floorGeom;
+
     //private SoundsLoader soundLoader;
     /**
      * The node name for the model (that is attached to the root)
@@ -311,23 +313,43 @@ public class ModelViewer extends SimpleApplication {
         dlsr.setShadowIntensity(0.6f);
         dlsr.setEdgeFilteringMode(EdgeFilteringMode.PCF8);
         getViewPort().addProcessor(dlsr);
+
+        // Default light probe
+        Spatial probeHolder = assetManager.loadModel("Models/ModelViewer/studio.j3o");
+        LightProbe probe = (LightProbe) probeHolder.getLocalLightList().get(0);
+        probe.setPosition(Vector3f.ZERO);
+        probeHolder.removeLight(probe);
+        rootNode.addLight(probe);
+
+        // Light debug
+        //LightsDebugState debugState = new LightsDebugState();
+        //stateManager.attach(debugState);
     }
 
     private void setupFloor() {
-        Material mat = assetManager.loadMaterial("Materials/ModelViewer/FloorMarble.j3m");
+
+        Material floorMaterial = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
+        floorMaterial.setTexture("BaseColorMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-texture.jpg"));
+        floorMaterial.setTexture("NormalMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-normal.jpg"));
+        floorMaterial.setTexture("SpecularMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-specular.jpg"));
+        floorMaterial.setTexture("LightMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-ao.jpg"));
+        floorMaterial.setBoolean("LightMapAsAOMap", true);
+        floorMaterial.setTexture("ParallaxMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-displacement.jpg"));
+        floorMaterial.setBoolean("SteepParallax", true);
+        floorMaterial.setFloat("Roughness", 0.1f);
+        floorMaterial.setFloat("Metallic", 0.04f);
 
         floorGeom = new Node("floorGeom");
         Quad q = new Quad(20, 20);
-        q.scaleTextureCoordinates(new Vector2f(1, 1));
         Geometry g = new Geometry("geom", q);
         g.setLocalRotation(new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X));
         g.setShadowMode(RenderQueue.ShadowMode.Receive);
         floorGeom.attachChild(g);
 
-        TangentBinormalGenerator.generate(floorGeom);
+        MikktspaceTangentGenerator.generate(g);
         floorGeom.setLocalTranslation(-10, -1f, 10);
 
-        floorGeom.setMaterial(mat);
+        floorGeom.setMaterial(floorMaterial);
         rootNode.attachChild(floorGeom);
     }
 
