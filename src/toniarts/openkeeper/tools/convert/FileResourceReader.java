@@ -81,7 +81,7 @@ public class FileResourceReader implements IResourceReader {
 
     @Override
     public byte[] read(int length) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocateDirect(length);
+        ByteBuffer buffer = ByteBuffer.allocate(length);
 
         int result = file.read(buffer);
         if (result != length) {
