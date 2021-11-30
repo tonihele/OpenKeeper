@@ -129,6 +129,6 @@ public class FileResourceReader implements IResourceReader {
 
     @Override
     public void skipBytes(int size) throws IOException {
-        file.position(file.position() + 12);
+        file.position(file.position() + size);
     }
 }
