@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 
@@ -50,7 +50,7 @@ public class KcsFile {
     public KcsFile(Path file) {
 
         // Read the file
-        try (IResourceReader rawKcs = new FileResourceReader(file)) {
+        try (IResourceReader rawKcs = new BufferedResourceReader(file)) {
             parseKcsFile(rawKcs);
         } catch (IOException e) {
 
