@@ -356,7 +356,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         }
         int dPosition = dest.position();
         for (int i = 0; i < 8; i++) {
-            idctTransform((ByteBuffer) dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, IntBuffer.wrap(temp).position(8 * i));
+            idctTransform(dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, IntBuffer.wrap(temp).position(8 * i));
         }
     }
 
@@ -390,23 +390,25 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int b3 = ((A2 + A5) * a3 + A5 * a7) >> 9;
 
         if (clip) {
-            ((ByteBuffer) dest).put(dest.position() + d0, clip(a0 + a2 + a6 + b0));
-            ((ByteBuffer) dest).put(dest.position() + d1, clip(a4 + a6 + b1));
-            ((ByteBuffer) dest).put(dest.position() + d2, clip(a4 - a6 + b2));
-            ((ByteBuffer) dest).put(dest.position() + d3, clip(a0 - a2 - a6 + b3));
-            ((ByteBuffer) dest).put(dest.position() + d4, clip(a0 - a2 - a6 - b3));
-            ((ByteBuffer) dest).put(dest.position() + d5, clip(a4 - a6 - b2));
-            ((ByteBuffer) dest).put(dest.position() + d6, clip(a4 + a6 - b1));
-            ((ByteBuffer) dest).put(dest.position() + d7, clip(a0 + a2 + a6 - b0));
+            ByteBuffer destByteBuffer = (ByteBuffer) dest;
+            destByteBuffer.put(dest.position() + d0, clip(a0 + a2 + a6 + b0));
+            destByteBuffer.put(dest.position() + d1, clip(a4 + a6 + b1));
+            destByteBuffer.put(dest.position() + d2, clip(a4 - a6 + b2));
+            destByteBuffer.put(dest.position() + d3, clip(a0 - a2 - a6 + b3));
+            destByteBuffer.put(dest.position() + d4, clip(a0 - a2 - a6 - b3));
+            destByteBuffer.put(dest.position() + d5, clip(a4 - a6 - b2));
+            destByteBuffer.put(dest.position() + d6, clip(a4 + a6 - b1));
+            destByteBuffer.put(dest.position() + d7, clip(a0 + a2 + a6 - b0));
         } else {
-            ((IntBuffer) dest).put(dest.position() + d0, (a0 + a2 + a6 + b0));
-            ((IntBuffer) dest).put(dest.position() + d1, (a4 + a6 + b1));
-            ((IntBuffer) dest).put(dest.position() + d2, (a4 - a6 + b2));
-            ((IntBuffer) dest).put(dest.position() + d3, (a0 - a2 - a6 + b3));
-            ((IntBuffer) dest).put(dest.position() + d4, (a0 - a2 - a6 - b3));
-            ((IntBuffer) dest).put(dest.position() + d5, (a4 - a6 - b2));
-            ((IntBuffer) dest).put(dest.position() + d6, (a4 + a6 - b1));
-            ((IntBuffer) dest).put(dest.position() + d7, (a0 + a2 + a6 - b0));
+            IntBuffer destIntBuffer = (IntBuffer) dest;
+            destIntBuffer.put(dest.position() + d0, (a0 + a2 + a6 + b0));
+            destIntBuffer.put(dest.position() + d1, (a4 + a6 + b1));
+            destIntBuffer.put(dest.position() + d2, (a4 - a6 + b2));
+            destIntBuffer.put(dest.position() + d3, (a0 - a2 - a6 + b3));
+            destIntBuffer.put(dest.position() + d4, (a0 - a2 - a6 - b3));
+            destIntBuffer.put(dest.position() + d5, (a4 - a6 - b2));
+            destIntBuffer.put(dest.position() + d6, (a4 + a6 - b1));
+            destIntBuffer.put(dest.position() + d7, (a0 + a2 + a6 - b0));
         }
     }
 
@@ -442,7 +444,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
         return image;
     }
 
-    public int getLinesize(int plane) {
+    public int getLineSize(int plane) {
         if (plane < 0 || plane > 2) {
             throw new IndexOutOfBoundsException("Plane must be 0-2! I recommend using the on this class plane constants!");
         }

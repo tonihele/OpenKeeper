@@ -65,7 +65,7 @@ public class MovieMaterial {
             float bufferWidth, bufferHeight;
 
             ByteBuffer mainBuffer = frame.getBufferForPlane(TgqFrame.YCBCR_PLANE_LUMA);
-            bufferWidth = frame.getLinesize(TgqFrame.YCBCR_PLANE_LUMA);
+            bufferWidth = frame.getLineSize(TgqFrame.YCBCR_PLANE_LUMA);
             bufferHeight = mainBuffer.capacity() / bufferWidth;
 
             float validWidth = frame.getWidth() / bufferWidth;
@@ -167,11 +167,11 @@ public class MovieMaterial {
                 }
 
                 updateTexture(textureLuma, latestFrame.getBufferForPlane(TgqFrame.YCBCR_PLANE_LUMA),
-                        latestFrame.getLinesize(TgqFrame.YCBCR_PLANE_LUMA));
+                        latestFrame.getLineSize(TgqFrame.YCBCR_PLANE_LUMA));
                 updateTexture(textureCr, latestFrame.getBufferForPlane(TgqFrame.YCBCR_PLANE_CR),
-                        latestFrame.getLinesize(TgqFrame.YCBCR_PLANE_CR));
+                        latestFrame.getLineSize(TgqFrame.YCBCR_PLANE_CR));
                 updateTexture(textureCb, latestFrame.getBufferForPlane(TgqFrame.YCBCR_PLANE_CB),
-                        latestFrame.getLinesize(TgqFrame.YCBCR_PLANE_CB));
+                        latestFrame.getLineSize(TgqFrame.YCBCR_PLANE_CB));
 
                 jmeFrame = latestFrame;
             }
