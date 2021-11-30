@@ -28,8 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.spr.SprEntry.SprEntryHeader;
@@ -55,7 +55,7 @@ public class SprFile {
     private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
 
     public SprFile(Path file) {
-        try (IResourceReader reader = new FileResourceReader(file)) {
+        try (IResourceReader reader = new BufferedResourceReader(file)) {
             parseSprFile(reader);
         } catch (Exception e) {
 
@@ -101,7 +101,7 @@ public class SprFile {
         }
 
         // Read the image data for the entries
-        long dataPos = data.getFilePointer();
+        long dataPos = 8 * header.framesCount + 8;
         dataReader = data.readAll();
         for (SprEntry sprite : sprites) {
             sprite.readData(dataPos, dataReader);

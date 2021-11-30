@@ -19,9 +19,9 @@ package toniarts.openkeeper.tools.convert.str;
 import java.io.IOException;
 import java.nio.CharBuffer;
 import java.nio.file.Path;
+import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Dungeon Keeper 2 MultiByte to Unicode codepage file reader. The file is used
@@ -48,7 +48,7 @@ public class MbToUniFile {
     private final int count;
 
     public MbToUniFile(Path file) {
-        try (IResourceReader rawCodepage = new FileResourceReader(file)) {
+        try (IResourceReader rawCodepage = new BufferedResourceReader(file)) {
 
             // Check the header
             IResourceChunkReader rawCodepageReader = rawCodepage.readChunk(8);
@@ -60,7 +60,7 @@ public class MbToUniFile {
             unknown1 = rawCodepageReader.readUnsignedByte();
             count1 = rawCodepageReader.readUnsignedByte();
             count2 = rawCodepageReader.readUnsignedByte();
-            IResourceChunkReader data = rawCodepage.readChunk((int) (rawCodepage.length() - rawCodepage.getFilePointer()));
+            IResourceChunkReader data = rawCodepage.readAll();
 
             threshold = 255 - singleCount;
             count = (((count1 - 1) + 257) * 255) - threshold * 254 + count2;

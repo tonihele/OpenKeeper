@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.video.tgq;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,9 +26,9 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  * Parses a DK II movie file<br>
@@ -80,8 +82,8 @@ public abstract class TgqFile implements AutoCloseable {
             @Override
             protected void addVideoFrame(TgqFrame frame) {
                 File outputfile = new File(args[1].concat("Frame").concat(frame.getFrameIndex() + "").concat(".png"));
-                try {
-                    ImageIO.write(frame.getImage(), "png", outputfile);
+                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outputfile))){
+                    ImageIO.write(frame.getImage(), "png", bos);
                 } catch (IOException ex) {
                     throw new RuntimeException("Failed to save the movie frame!", ex);
                 }
@@ -106,7 +108,7 @@ public abstract class TgqFile implements AutoCloseable {
     }
 
     public TgqFile(Path file) throws IOException {
-        this.file = new FileResourceReader(file);
+        this.file = new BufferedResourceReader(file);
     }
 
     @Override
@@ -117,13 +119,12 @@ public abstract class TgqFile implements AutoCloseable {
     public boolean readFrame() throws IOException {
         boolean gotFrame = false;
 
-        if (file.isEof()) {
+        // Read the next FourCC
+        IResourceChunkReader reader = file.readChunk(8);
+        if(reader == null) {
             return false; // EOF
         }
-
-        // Read the next FourCC
-        long pos = file.getFilePointer();
-        IResourceChunkReader reader = file.readChunk(8);
+        
         String tag = reader.readString(4);
         int frameSize = reader.readInteger();
 
@@ -185,12 +186,6 @@ public abstract class TgqFile implements AutoCloseable {
                 LOGGER.log(Level.WARNING, "Unkown tag {0}!", tag);
                 break;
             }
-        }
-
-        // Make sure we leave the file in sensible location
-        if (file.getFilePointer() != pos + frameSize) {
-            LOGGER.log(Level.WARNING, "Invalid file position! Was {0}, should be {1}!", new Object[]{file.getFilePointer(), pos + frameSize});
-            file.seek(pos + frameSize);
         }
 
         return gotFrame;

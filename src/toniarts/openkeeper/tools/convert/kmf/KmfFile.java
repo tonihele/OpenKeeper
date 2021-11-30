@@ -17,13 +17,14 @@
 package toniarts.openkeeper.tools.convert.kmf;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import javax.vecmath.Vector3f;
+import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 
@@ -86,12 +87,24 @@ public class KmfFile {
     public KmfFile(Path file) {
 
         // Read the file
-        try (IResourceReader rawKmf = new FileResourceReader(file)) {
+        try (IResourceReader rawKmf = new BufferedResourceReader(file)) {
             parseKmfFile(rawKmf);
         } catch (IOException e) {
 
             // Fug
             throw new RuntimeException("Failed to open the file " + file + "!", e);
+        }
+    }
+    
+    public KmfFile(InputStream inputStream) {
+
+        // Read the file
+        try (IResourceReader rawKmf = new BufferedResourceReader(inputStream)) {
+            parseKmfFile(rawKmf);
+        } catch (IOException e) {
+
+            // Fug
+            throw new RuntimeException("Failed to handle the stream!", e);
         }
     }
 

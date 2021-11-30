@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2019 OpenKeeper
+ * Copyright (C) 2014-2021 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,10 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,101 +31,75 @@ import java.util.logging.Logger;
 /**
  * Resource reader is a convenience wrapper around any Dungeon Keeper 2 resource
  * file. Provides easy to use functions to read the binary files to java. The
- * resources are Little Endian.
- *
- * @author archdemon
+ * resources are Little Endian.<br>
+ * 
+ * This is buffered forward reading resource reader with no seek nor position.
+ * 
+ * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FileResourceReader implements ISeekableResourceReader {
+public class BufferedResourceReader implements IResourceReader {
 
-    private final SeekableByteChannel file;
+    private final BufferedInputStream input;
     
-    private static final Logger LOGGER = Logger.getLogger(FileResourceReader.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(BufferedResourceReader.class.getName());
 
-    public FileResourceReader(String filename) throws IOException {
+    public BufferedResourceReader(String filename) throws IOException {
         this(Paths.get(filename));
     }
 
-    public FileResourceReader(Path path) throws IOException {
-        file = Files.newByteChannel(path, StandardOpenOption.READ);
+    public BufferedResourceReader(Path path) throws IOException {
+        input = new BufferedInputStream(Files.newInputStream(path, StandardOpenOption.READ));
     }
 
+    public BufferedResourceReader(InputStream inputStream) throws IOException {
+        input = new BufferedInputStream(inputStream);
+    }
+    
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
-        ByteBuffer buffer = allocateBuffer(size);
-        int result = file.read(buffer);
-        if(result == -1) {
+        byte[] bytes = new byte[size];
+        int read = input.read(bytes);
+        if(read == -1) {
             return null;
         }
-        buffer.flip();
+        
+        ByteBuffer buffer = ByteBuffer.wrap(bytes, 0, read);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         return new ResourceChunkReader(buffer);
     }
 
     @Override
     public IResourceChunkReader readAll() throws IOException {
-        long remainingBytes = file.size() - file.position();
-        if (remainingBytes > Integer.MAX_VALUE) {
-            throw new IOException("File is too big to be read!");
-        }
-
-        return readChunk((int) remainingBytes);
-    }
-
-    private ByteBuffer allocateBuffer(int size) {
-        ByteBuffer buffer = ByteBuffer.allocateDirect(size);
+        byte[] bytes = input.readAllBytes();
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
-
-        return buffer;
+       
+        return new ResourceChunkReader(buffer);
     }
 
     @Override
     public int read(byte[] b) throws IOException {
-        return file.read(ByteBuffer.wrap(b));
+        return input.read(b);
     }
 
     @Override
     public byte[] read(int length) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(length);
+        byte[] bytes = new byte[length];
 
-        int result = file.read(buffer);
+        int result = input.read(bytes);
         if (result != length) {
             String message = "Error reading byte array. Expect %s bytes and %s given";
             throw new IOException(String.format(message, length, result));
         }
 
-        return buffer.array();
-    }
-
-    @Override
-    public long getFilePointer() throws IOException {
-        return file.position();
-    }
-
-    @Override
-    public void seek(long pos) throws IOException {
-        file.position(pos);
-    }
-
-    @Override
-    public long length() throws IOException {
-        return file.size();
-    }
-
-    /**
-     * End of file
-     *
-     * @return true if file pointer >= length of file
-     * @throws IOException
-     */
-    @Override
-    public boolean isEof() throws IOException {
-        return getFilePointer() >= length();
+        return bytes;
     }
 
     @Override
     public void close() {
         try {
-            file.close();
+            input.close();
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "Closing file error", ex);
         }
@@ -132,6 +107,6 @@ public class FileResourceReader implements ISeekableResourceReader {
 
     @Override
     public void skipBytes(int size) throws IOException {
-        file.position(file.position() + size);
+        input.skip(size);
     }
 }

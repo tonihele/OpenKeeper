@@ -19,9 +19,9 @@ package toniarts.openkeeper.tools.convert.sound.sfx;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
 
 /**
  *
@@ -46,7 +46,7 @@ public class SfxMapFile {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawMap = new FileResourceReader(file)) {
+        try (IResourceReader rawMap = new BufferedResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawMapReader = rawMap.readChunk(28);
@@ -142,10 +142,6 @@ public class SfxMapFile {
                         }
                     }
                 }
-            }
-
-            if (!rawMap.isEof()) {
-                throw new RuntimeException("Error parse data");
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the file " + file + "!", e);

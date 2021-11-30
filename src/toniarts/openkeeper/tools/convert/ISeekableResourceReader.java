@@ -16,29 +16,27 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 /**
  *
  * @author archdemon
  */
-public interface IResourceReader extends Closeable {
+public interface ISeekableResourceReader extends IResourceReader {
 
-    int read(byte[] b) throws IOException;
+    void seek(long pos) throws IOException;
 
-    byte[] read(int length) throws IOException;
+    long getFilePointer() throws IOException;
 
     /**
-     * Reads a chunk of wanted size, wrapped into a IResourceChunkReader
-     * 
-     * @param size the size of chunk to read, the resulting chunk might be smaller if data is not available
-     * @return returns null if end of file reached
-     * @throws IOException 
+     * End of file
+     *
+     * @return true if file pointer >= length of file
+     * @throws IOException
      */
-    IResourceChunkReader readChunk(int size) throws IOException;
+    boolean isEof() throws IOException;
 
-    IResourceChunkReader readAll() throws IOException;
+    long length() throws IOException;
 
-    void skipBytes(int size) throws IOException;
+    
 }

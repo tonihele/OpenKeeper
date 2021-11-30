@@ -128,7 +128,7 @@ public class KmfModelLoader implements AssetLoader {
             kmfFile = ((KmfAssetInfo) assetInfo).getKmfFile();
             generateMaterialFile = ((KmfAssetInfo) assetInfo).isGenerateMaterialFile();
         } else {
-            kmfFile = new KmfFile(readAssetStream(assetInfo));
+            kmfFile = new KmfFile(assetInfo.openStream());
         }
 
         // Create a root
@@ -170,10 +170,6 @@ public class KmfModelLoader implements AssetLoader {
             modelLink.setLocalTranslation(new Vector3f(grop.getPos().x, -grop.getPos().z, grop.getPos().y));
             root.attachChild(modelLink);
         }
-    }
-
-    private byte[] readAssetStream(AssetInfo assetInfo) throws IOException {
-        return PathUtils.readInputStream(assetInfo.openStream());
     }
 
     /**

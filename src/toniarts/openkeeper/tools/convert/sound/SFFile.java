@@ -18,8 +18,8 @@ package toniarts.openkeeper.tools.convert.sound;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
+import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 
 /**
  *
@@ -32,7 +32,7 @@ public class SFFile {
     public SFFile(Path file) {
 
         //Read the file
-        try (IResourceReader f = new FileResourceReader(file)) {
+        try (ISeekableResourceReader f = new FileResourceReader(file)) {
             chunk = new SFChunk(f);
         } catch (IOException e) {
             //Fug
