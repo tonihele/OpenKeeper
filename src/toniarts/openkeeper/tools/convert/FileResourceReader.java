@@ -37,9 +37,7 @@ import java.util.logging.Logger;
 public class FileResourceReader implements IResourceReader {
 
     private final SeekableByteChannel file;
-    private final ByteBuffer buf;
-
-    private static final int DEFAULT_BUFFER_SIZE = 8192;
+    
     private static final Logger LOGGER = Logger.getLogger(FileResourceReader.class.getName());
 
     public FileResourceReader(String filename) throws IOException {
@@ -48,31 +46,12 @@ public class FileResourceReader implements IResourceReader {
 
     public FileResourceReader(Path path) throws IOException {
         file = Files.newByteChannel(path, StandardOpenOption.READ);
-        buf = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE);
-        buf.order(ByteOrder.LITTLE_ENDIAN);
     }
 
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
         ByteBuffer buffer = allocateBuffer(size);
-        int sizeLeft = size;
-        while (sizeLeft >= DEFAULT_BUFFER_SIZE) {
-            int read = file.read(buf);
-            if (read <= 0) {
-                sizeLeft = 0;
-                break;
-            } else {
-                sizeLeft -= read;
-            }
-            buf.flip();
-            buffer.put(buf);
-            buf.flip();
-        }
-        if (sizeLeft > 0) {
-
-            // Read the rest
-            file.read(buffer);
-        }
+        file.read(buffer);
         buffer.flip();
 
         return new ResourceChunkReader(buffer);
@@ -102,7 +81,7 @@ public class FileResourceReader implements IResourceReader {
 
     @Override
     public byte[] read(int length) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(length);
+        ByteBuffer buffer = ByteBuffer.allocateDirect(length);
 
         int result = file.read(buffer);
         if (result != length) {
