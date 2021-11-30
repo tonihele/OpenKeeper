@@ -27,7 +27,7 @@ import java.nio.ByteOrder;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ByteArrayResourceReader implements IResourceReader {
+public class ByteArrayResourceReader implements ISeekableResourceReader {
 
     private final ByteBuffer buffer;
 

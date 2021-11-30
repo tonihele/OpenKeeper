@@ -35,6 +35,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
@@ -176,7 +177,7 @@ public final class KwdFile {
         } else {
 
             // We need map width & height if not loaded fully, I couldn't figure out where, except the map data
-            try (IResourceReader data = new FileResourceReader(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
+            try (ISeekableResourceReader data = new FileResourceReader(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
                 KwdHeader header = readKwdHeader(data);
                 map = new GameMap(header.getWidth(), header.getHeight());
             } catch (Exception e) {
@@ -188,7 +189,7 @@ public final class KwdFile {
     }
 
     private void readFileContents(Path file) throws IOException {
-        try (IResourceReader data = new FileResourceReader(file)) {
+        try (ISeekableResourceReader data = new FileResourceReader(file)) {
             while (data.getFilePointer() < data.length()) {
 
                 // Read header (and put the file pointer to the data start)
@@ -250,7 +251,7 @@ public final class KwdFile {
      * @return the header
      * @throws IOException may fail reading
      */
-    private KwdHeader readKwdHeader(IResourceReader data) throws IOException {
+    private KwdHeader readKwdHeader(ISeekableResourceReader data) throws IOException {
         long startOffset = data.getFilePointer();
         int headerSize = 28;
 

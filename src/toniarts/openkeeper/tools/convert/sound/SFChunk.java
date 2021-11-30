@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
-import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
@@ -203,7 +203,7 @@ public class SFChunk {
 
     protected Map<SubType, SFChunk> children = new HashMap<>();
 
-    public SFChunk(IResourceReader file) throws IOException {
+    public SFChunk(ISeekableResourceReader file) throws IOException {
         IResourceChunkReader fileReader = file.readChunk(8);
         String code = fileReader.readString(4);
         size = fileReader.readUnsignedIntegerAsLong();
@@ -341,7 +341,7 @@ public class SFChunk {
      * @return true if file pointer >= chunk end pointer
      * @throws IOException
      */
-    private boolean isEOC(IResourceReader file, long chunkPointer) throws IOException {
+    private boolean isEOC(ISeekableResourceReader file, long chunkPointer) throws IOException {
         return file.getFilePointer() >= (size + chunkPointer);
     }
 

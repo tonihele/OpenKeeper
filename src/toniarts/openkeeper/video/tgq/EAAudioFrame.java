@@ -50,63 +50,62 @@ public class EAAudioFrame implements Comparable<EAAudioFrame> {
     }
 
     private void decodeFrame(ByteBuffer buf) {
-        if (header.getCompression() == EAAudioHeader.Compression.EA_XA_ADPCM) {
-
-            // Always 2 channels!
-            if (header.getNumberOfChannels() != 2) {
-                throw new RuntimeException(header.getCompression() + " required 2 channels!");
-            }
-
-            // 12 bytes header
-            codedSamples = buf.getInt();
-            codedSamples -= codedSamples % 28;
-            numberOfSamples = (buf.capacity() - 12) / 30 * 28;
-            short currentLeftSample = buf.getShort();
-            short previousLeftSample = buf.getShort();
-            short currentRightSample = buf.getShort();
-            short previousRightSample = buf.getShort();
-
-            // Output
-            byte[] array = new byte[codedSamples * 4];
-            pcm = ByteBuffer.wrap(array);
-            pcm.order(ByteOrder.LITTLE_ENDIAN);
-
-            // Decoding
-            for (int count1 = 0; count1 < codedSamples / 28; count1++) {
-                int b = ConversionUtils.toUnsignedByte(buf.get());
-                int coeff1l = EA_ADPCM_TABLE[b >> 4];
-                int coeff2l = EA_ADPCM_TABLE[(b >> 4) + 4];
-                int coeff1r = EA_ADPCM_TABLE[b & 0x0F];
-                int coeff2r = EA_ADPCM_TABLE[(b & 0x0F) + 4];
-
-                b = ConversionUtils.toUnsignedByte(buf.get());
-                int shiftLeft = 20 - (b >> 4);
-                int shiftRight = 20 - (b & 0x0F);
-
-                for (int count2 = 0; count2 < 28; count2++) {
-                    b = ConversionUtils.toUnsignedByte(buf.get());
-                    int nextLeftSample = signExtend(b >> 4, 4) << shiftLeft;
-                    int nextRightSample = signExtend(b, 4) << shiftRight;
-
-                    nextLeftSample = (nextLeftSample
-                            + (currentLeftSample * coeff1l)
-                            + (previousLeftSample * coeff2l) + 0x80) >> 8;
-                    nextRightSample = (nextRightSample
-                            + (currentRightSample * coeff1r)
-                            + (previousRightSample * coeff2r) + 0x80) >> 8;
-
-                    previousLeftSample = currentLeftSample;
-                    currentLeftSample = Integer.valueOf(nextLeftSample).shortValue();
-                    previousRightSample = currentRightSample;
-                    currentRightSample = Integer.valueOf(nextRightSample).shortValue();
-                    pcm.putShort(currentLeftSample);
-                    pcm.putShort(currentRightSample);
-                }
-            }
-            pcm.rewind();
-        } else {
-            throw new RuntimeException("Compression not supported! Can't decode the audio frame!");
+        if(header.getCompression() != EAAudioHeader.Compression.EA_XA_ADPCM) {
+            throw new RuntimeException("Compression " + header.getCompression() + " not supported! Can't decode the audio frame!");
         }
+        
+        // Always 2 channels!
+        if (header.getNumberOfChannels() != 2) {
+            throw new RuntimeException(header.getCompression() + " required 2 channels!");
+        }
+
+        // 12 bytes header
+        codedSamples = buf.getInt();
+        codedSamples -= codedSamples % 28;
+        numberOfSamples = (buf.capacity() - 12) / 30 * 28;
+        short currentLeftSample = buf.getShort();
+        short previousLeftSample = buf.getShort();
+        short currentRightSample = buf.getShort();
+        short previousRightSample = buf.getShort();
+
+        // Output
+        byte[] array = new byte[codedSamples * 4];
+        pcm = ByteBuffer.wrap(array);
+        pcm.order(ByteOrder.LITTLE_ENDIAN);
+
+        // Decoding
+        for (int count1 = 0; count1 < codedSamples / 28; count1++) {
+            int b = ConversionUtils.toUnsignedByte(buf.get());
+            int coeff1l = EA_ADPCM_TABLE[b >> 4];
+            int coeff2l = EA_ADPCM_TABLE[(b >> 4) + 4];
+            int coeff1r = EA_ADPCM_TABLE[b & 0x0F];
+            int coeff2r = EA_ADPCM_TABLE[(b & 0x0F) + 4];
+
+            b = ConversionUtils.toUnsignedByte(buf.get());
+            int shiftLeft = 20 - (b >> 4);
+            int shiftRight = 20 - (b & 0x0F);
+
+            for (int count2 = 0; count2 < 28; count2++) {
+                b = ConversionUtils.toUnsignedByte(buf.get());
+                int nextLeftSample = signExtend(b >> 4, 4) << shiftLeft;
+                int nextRightSample = signExtend(b, 4) << shiftRight;
+
+                nextLeftSample = (nextLeftSample
+                        + (currentLeftSample * coeff1l)
+                        + (previousLeftSample * coeff2l) + 0x80) >> 8;
+                nextRightSample = (nextRightSample
+                        + (currentRightSample * coeff1r)
+                        + (previousRightSample * coeff2r) + 0x80) >> 8;
+
+                previousLeftSample = currentLeftSample;
+                currentLeftSample = Integer.valueOf(nextLeftSample).shortValue();
+                previousRightSample = currentRightSample;
+                currentRightSample = Integer.valueOf(nextRightSample).shortValue();
+                pcm.putShort(currentLeftSample);
+                pcm.putShort(currentRightSample);
+            }
+        }
+        pcm.rewind();
     }
 
     /**

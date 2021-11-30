@@ -341,9 +341,9 @@ public class TgqFrame implements Comparable<TgqFrame> {
 
         int yPosition = luma.position();
         eaIdctPut(luma, linesize[YCBCR_PLANE_LUMA], block[0]);
-        eaIdctPut((ByteBuffer) luma.position(yPosition + 8), linesize[YCBCR_PLANE_LUMA], block[1]);
-        eaIdctPut((ByteBuffer) luma.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA]), linesize[YCBCR_PLANE_LUMA], block[2]);
-        eaIdctPut((ByteBuffer) luma.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA] + 8), linesize[YCBCR_PLANE_LUMA], block[3]);
+        eaIdctPut(luma.position(yPosition + 8), linesize[YCBCR_PLANE_LUMA], block[1]);
+        eaIdctPut(luma.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA]), linesize[YCBCR_PLANE_LUMA], block[2]);
+        eaIdctPut(luma.position(yPosition + 8 * linesize[YCBCR_PLANE_LUMA] + 8), linesize[YCBCR_PLANE_LUMA], block[3]);
         eaIdctPut(cb, linesize[YCBCR_PLANE_CB], block[4]);
         eaIdctPut(cr, linesize[YCBCR_PLANE_CR], block[5]);
     }
@@ -352,11 +352,11 @@ public class TgqFrame implements Comparable<TgqFrame> {
         int[] temp = new int[64];
         block[0] += 4;
         for (int i = 0; i < 8; i++) {
-            eaIdctCol((IntBuffer) IntBuffer.wrap(temp).position(i), (IntBuffer) IntBuffer.wrap(block).position(i));
+            eaIdctCol(IntBuffer.wrap(temp).position(i), IntBuffer.wrap(block).position(i));
         }
         int dPosition = dest.position();
         for (int i = 0; i < 8; i++) {
-            idctTransform((ByteBuffer) dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, (IntBuffer) IntBuffer.wrap(temp).position(8 * i));
+            idctTransform((ByteBuffer) dest.position(dPosition + i * linesize), 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, true, IntBuffer.wrap(temp).position(8 * i));
         }
     }
 

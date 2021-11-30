@@ -26,9 +26,9 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.IResourceChunkReader;
-import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
+import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT archive<br>
@@ -55,7 +55,7 @@ public class SdtFile {
         this.file = file;
 
         // Read the file
-        try (IResourceReader rawSdt = new FileResourceReader(file)) {
+        try (ISeekableResourceReader rawSdt = new FileResourceReader(file)) {
 
             // Header
             IResourceChunkReader rawSdtReader = rawSdt.readChunk(4);
@@ -109,7 +109,7 @@ public class SdtFile {
     public void extractFileData(String destination) {
 
         // Open the SDT for extraction
-        try (IResourceReader rawSdt = new FileResourceReader(file)) {
+        try (ISeekableResourceReader rawSdt = new FileResourceReader(file)) {
             for (SdtFileEntry entry : entries) {
                 extractFileData(entry, destination, rawSdt);
             }
@@ -127,7 +127,7 @@ public class SdtFile {
      * @param destination destination directory
      * @param rawSdt the opened SDT file
      */
-    private void extractFileData(SdtFileEntry entry, String destination, IResourceReader rawSdt) {
+    private void extractFileData(SdtFileEntry entry, String destination, ISeekableResourceReader rawSdt) {
         if (entry == null) {
             return;
         }
@@ -159,7 +159,7 @@ public class SdtFile {
      * @param rawSdt the opened SDT file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(SdtFileEntry fileEntry, IResourceReader rawSdt) throws IOException {
+    private ByteArrayOutputStream getFileData(SdtFileEntry fileEntry, ISeekableResourceReader rawSdt) throws IOException {
 
         // Get the file
         if (fileEntry == null) {

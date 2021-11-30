@@ -36,6 +36,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
+import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -88,7 +89,7 @@ public class EngineTexturesFile implements Iterable<String> {
             engineTextureEntries = new HashMap<>(numberOfEntries);
 
             dirReader = rawDir.readChunk(size);
-            try (IResourceReader rawTextures = new FileResourceReader(file)) {
+            try (ISeekableResourceReader rawTextures = new FileResourceReader(file)) {
                 do {
                     String name = ConversionUtils.convertFileSeparators(dirReader.readVaryingLengthStrings(1).get(0));
                     int offset = dirReader.readUnsignedInteger();
@@ -139,7 +140,7 @@ public class EngineTexturesFile implements Iterable<String> {
     public void extractFileData(String destination) {
 
         // Open the Texture file for extraction
-        try (IResourceReader rawTextures = new FileResourceReader(file)) {
+        try (ISeekableResourceReader rawTextures = new FileResourceReader(file)) {
 
             for (String textureEntry : engineTextureEntries.keySet()) {
                 extractFileData(textureEntry, destination, rawTextures, true);
@@ -162,7 +163,7 @@ public class EngineTexturesFile implements Iterable<String> {
     public Path extractFileData(String textureEntry, String destination, boolean overwrite) {
 
         // Open the Texture file for extraction
-        try (IResourceReader rawTextures = new FileResourceReader(file)) {
+        try (ISeekableResourceReader rawTextures = new FileResourceReader(file)) {
             return extractFileData(textureEntry, destination, rawTextures, overwrite);
         } catch (IOException e) {
 
@@ -180,7 +181,7 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param overwrite overwrite destination file
      *
      */
-    private Path extractFileData(String textureEntry, String destination, IResourceReader rawTextures, boolean overwrite) {
+    private Path extractFileData(String textureEntry, String destination, ISeekableResourceReader rawTextures, boolean overwrite) {
 
         // See that the destination is formatted correctly and create it if it does not exist
         Path destinationFile = Paths.get(destination, textureEntry.concat(".png"));
@@ -216,7 +217,7 @@ public class EngineTexturesFile implements Iterable<String> {
      * @param rawTextures the opened EngineTextures file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(String textureEntry, IResourceReader rawTextures) {
+    private ByteArrayOutputStream getFileData(String textureEntry, ISeekableResourceReader rawTextures) {
         ByteArrayOutputStream result = null;
 
         // Get the file
