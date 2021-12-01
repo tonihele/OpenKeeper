@@ -396,7 +396,7 @@ public class ModelViewer extends SimpleApplication {
                     public void visit(Spatial spatial) {
                         if (spatial instanceof Geometry) {
                             Geometry g = (Geometry) spatial;
-                            Mesh normalMesh = TangentBinormalGenerator.genNormalLines(g.getMesh(), 0.1f);
+                            Mesh normalMesh = TangentBinormalGenerator.genTbnLines(g.getMesh(), 0.1f);
                             Geometry normalGeometry = new Geometry(g.getName() + "Normal", normalMesh);
                             Material mat = new Material(assetManager,
                                     "Common/MatDefs/Misc/Unshaded.j3md");
@@ -407,6 +407,7 @@ public class ModelViewer extends SimpleApplication {
                     }
                 });
                 nodeNormals.setCullHint(Spatial.CullHint.Never);
+                nodeNormals.setLocalTranslation(((Node) spat).getChild(0).getLocalTranslation());
                 ((Node) spat).attachChild(nodeNormals);
             }
         }
