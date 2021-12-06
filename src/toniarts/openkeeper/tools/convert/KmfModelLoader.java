@@ -38,6 +38,7 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
+import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +68,6 @@ import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.TangentBinormalGenerator;
 
 /**
  * Loads up and converts a Dungeon Keeper II model to JME model<br>
@@ -525,7 +525,7 @@ public class KmfModelLoader implements AssetLoader {
     private Geometry createGeometry(int index, String name, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
 
         //Create geometry
-        Geometry geom = new Geometry(index + "", mesh);
+        Geometry geom = new Geometry(Integer.toString(index), mesh);
 
         //Add LOD control
         LodControl lc = new LodControl();
@@ -552,7 +552,7 @@ public class KmfModelLoader implements AssetLoader {
 
         // Try to generate tangents
         try {
-            TangentBinormalGenerator.generate(mesh);
+            MikktspaceTangentGenerator.generate(geom);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to generate tangent binormals for " + name + "! ", e);
         }

@@ -7,7 +7,7 @@ plugins {
 }
 
 ext {
-    jmonkeyengine_version = '3.4.0-stable'
+    jmonkeyengine_version = '3.4.1-stable'
     license = file("$rootDir/license.txt")
 }
 
