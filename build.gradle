@@ -119,5 +119,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '6.9.1'
+    gradleVersion = '6.9.2'
 }
