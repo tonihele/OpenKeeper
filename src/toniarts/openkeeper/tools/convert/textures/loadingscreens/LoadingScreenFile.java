@@ -19,7 +19,7 @@ package toniarts.openkeeper.tools.convert.textures.loadingscreens;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.textures.ImageUtil;
 
 /**
  * Loading and title screens carry the .444 file extension. They are packed with
@@ -55,24 +55,11 @@ public class LoadingScreenFile {
     }
 
     private BufferedImage decompressTexture(long[] data, int width, int height, boolean alphaFlag) {
-        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         // Decompress the texture
         byte[] pixels = new LoadingScreenTextureDecoder().dd_texture(data, width * (32 / 8)/*(bpp / 8 = bytes per pixel)*/, width, height, alphaFlag);
 
-        // Draw the image, pixel by pixel
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int base = width * y * 4 + x * 4;
-                int r = ConversionUtils.toUnsignedByte(pixels[base]);
-                int g = ConversionUtils.toUnsignedByte(pixels[base + 1]);
-                int b = ConversionUtils.toUnsignedByte(pixels[base + 2]);
-                int a = ConversionUtils.toUnsignedByte(pixels[base + 3]);
-                int col = (a << 24) | (r << 16) | (g << 8) | b;
-                img.setRGB(x, y, col);
-            }
-        }
-        return img;
+        return ImageUtil.createImage(width, height, alphaFlag, pixels);
     }
 
     /**
