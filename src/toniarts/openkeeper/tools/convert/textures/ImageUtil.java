@@ -37,7 +37,8 @@ import java.nio.ByteBuffer;
  */
 public class ImageUtil {
 
-    private static final ColorSpace COLOR_SPACE = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+    private static final ColorModel COLOR_MODEL = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), new int[]{8, 8, 8}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
+    private static final ColorModel COLOR_MODEL_ALPHA = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), new int[]{8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
 
     public static BufferedImage createImage(int width, int height, boolean hasAlpha, byte[] pixels) {
         int len = 4 * width * height;
@@ -51,11 +52,11 @@ public class ImageUtil {
         if (hasAlpha) {
             int[] offsets = {0, 1, 2, 3};
             sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, width, height, 4, 4 * width, offsets);
-            cm = new ComponentColorModel(COLOR_SPACE, new int[]{8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
+            cm = COLOR_MODEL_ALPHA;
         } else {
             int[] offsets = {0, 1, 2};
             sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, width, height, 3, 3 * width, offsets);
-            cm = new ComponentColorModel(COLOR_SPACE, new int[]{8, 8, 8, 0}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
+            cm = COLOR_MODEL;
 
             // The pixel data still contains the alpha pixels, strip them out
             if (pixels.length > len) {
