@@ -80,9 +80,8 @@ public class ImageUtil {
             }
             buffer.put(pixel);
         }
-        pixels = buffer.array();
 
-        return pixels;
+        return buffer.array();
     }
 
 }
