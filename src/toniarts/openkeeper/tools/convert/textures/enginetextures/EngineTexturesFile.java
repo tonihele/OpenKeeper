@@ -37,6 +37,7 @@ import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
+import toniarts.openkeeper.tools.convert.textures.ImageUtil;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -302,7 +303,6 @@ public class EngineTexturesFile implements Iterable<String> {
      * @return
      */
     private BufferedImage decompressTexture(long[] buf, EngineTextureEntry engineTextureEntry) {
-        BufferedImage img = new BufferedImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), engineTextureEntry.isAlphaFlag() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
 
         // Decompress the texture
         if (decoder == null) {
@@ -310,19 +310,7 @@ public class EngineTexturesFile implements Iterable<String> {
         }
         byte[] pixels = decoder.dd_texture(buf, engineTextureEntry.getResX() * (32 / 8)/*(bpp / 8 = bytes per pixel)*/, engineTextureEntry.getResX(), engineTextureEntry.getResY(), engineTextureEntry.isAlphaFlag());
 
-        // Draw the image, pixel by pixel
-        for (int x = 0; x < engineTextureEntry.getResX(); x++) {
-            for (int y = 0; y < engineTextureEntry.getResY(); y++) {
-                int base = engineTextureEntry.getResX() * y * 4 + x * 4;
-                int r = ConversionUtils.toUnsignedByte(pixels[base]);
-                int g = ConversionUtils.toUnsignedByte(pixels[base + 1]);
-                int b = ConversionUtils.toUnsignedByte(pixels[base + 2]);
-                int a = ConversionUtils.toUnsignedByte(pixels[base + 3]);
-                int col = (a << 24) | (r << 16) | (g << 8) | b;
-                img.setRGB(x, y, col);
-            }
-        }
-        return img;
+        return ImageUtil.createImage(engineTextureEntry.getResX(), engineTextureEntry.getResY(), engineTextureEntry.isAlphaFlag(), pixels);
     }
 
     @Override
