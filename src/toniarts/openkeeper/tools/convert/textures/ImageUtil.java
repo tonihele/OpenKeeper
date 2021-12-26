@@ -27,6 +27,16 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class ImageUtil {
 
+    /**
+     * Creates a BufferedImage out of raw byte data
+     *
+     * @param width width of the image
+     * @param height height of the image
+     * @param hasAlpha whether the image should preserve alpha information
+     * @param pixels the raw data, 4 unsigned bytes per pixel (R, G, B, A
+     * respectively)
+     * @return BufferedImage formed from the raw data
+     */
     public static BufferedImage createImage(int width, int height, boolean hasAlpha, byte[] pixels) {
         BufferedImage img = new BufferedImage(width, height, hasAlpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
 
