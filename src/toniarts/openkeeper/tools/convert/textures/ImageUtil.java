@@ -16,18 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.textures;
 
-import java.awt.Point;
-import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.awt.image.ComponentColorModel;
-import java.awt.image.DataBuffer;
-import java.awt.image.DataBufferByte;
-import java.awt.image.PixelInterleavedSampleModel;
-import java.awt.image.Raster;
-import java.awt.image.SampleModel;
-import java.awt.image.WritableRaster;
-import java.nio.ByteBuffer;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
  * Helps the texture conversion by creating BufferedImages from the converted
@@ -37,54 +27,23 @@ import java.nio.ByteBuffer;
  */
 public class ImageUtil {
 
-    private static final ColorModel COLOR_MODEL = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), new int[]{8, 8, 8}, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
-    private static final ColorModel COLOR_MODEL_ALPHA = new ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), new int[]{8, 8, 8, 8}, true, false, ComponentColorModel.TRANSLUCENT, DataBuffer.TYPE_BYTE);
-
     public static BufferedImage createImage(int width, int height, boolean hasAlpha, byte[] pixels) {
-        int len = 4 * width * height;
-        if (!hasAlpha) {
-            len = 3 * width * height;
-        }
+        BufferedImage img = new BufferedImage(width, height, hasAlpha ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
 
-        // Draw the image
-        ColorModel cm;
-        SampleModel sampleModel;
-        if (hasAlpha) {
-            int[] offsets = {0, 1, 2, 3};
-            sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, width, height, 4, 4 * width, offsets);
-            cm = COLOR_MODEL_ALPHA;
-        } else {
-            int[] offsets = {0, 1, 2};
-            sampleModel = new PixelInterleavedSampleModel(DataBuffer.TYPE_BYTE, width, height, 3, 3 * width, offsets);
-            cm = COLOR_MODEL;
-
-            // The pixel data still contains the alpha pixels, strip them out
-            if (pixels.length > len) {
-                pixels = stripAlphaBytes(len, pixels);
+        // Draw the image, pixel by pixel
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int base = width * y * 4 + x * 4;
+                int r = ConversionUtils.toUnsignedByte(pixels[base]);
+                int g = ConversionUtils.toUnsignedByte(pixels[base + 1]);
+                int b = ConversionUtils.toUnsignedByte(pixels[base + 2]);
+                int a = ConversionUtils.toUnsignedByte(pixels[base + 3]);
+                int col = (a << 24) | (r << 16) | (g << 8) | b;
+                img.setRGB(x, y, col);
             }
         }
-
-        DataBufferByte dataBuffer = new DataBufferByte(pixels, len);
-
-        WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, new Point(0, 0));
-        BufferedImage img = new BufferedImage(cm, raster, false, null);
 
         return img;
-    }
-
-    private static byte[] stripAlphaBytes(int len, byte[] pixels) {
-        ByteBuffer buffer = ByteBuffer.allocate(len);
-        int i = 0;
-        for (byte pixel : pixels) {
-            i++;
-            if (i == 4) {
-                i = 0;
-                continue;
-            }
-            buffer.put(pixel);
-        }
-
-        return buffer.array();
     }
 
 }
