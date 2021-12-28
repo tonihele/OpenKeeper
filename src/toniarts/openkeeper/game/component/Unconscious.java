@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Tagging component for unconcius entity
+ * Tagging component for unconscious entity
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */

@@ -46,7 +46,6 @@ public class HeroGateFrontEndController extends NormalRoomController {
     @Override
     protected void constructObjects() {
         int i = 1;
-        Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
 
             // Add some objects according to the tile number
