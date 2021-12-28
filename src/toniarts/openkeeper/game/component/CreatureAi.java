@@ -27,26 +27,58 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 public class CreatureAi implements EntityComponent {
 
     public double stateStartTime;
-    private int creatureState;
+    private Integer currentCreatureState;
+    private Integer nextCreatureState;
     public short creatureId;
 
     public CreatureAi() {
     }
 
-    public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId) {
+    public CreatureAi(double stateStartTime, CreatureState nextCreatureState, short creatureId) {
         this.stateStartTime = stateStartTime;
-        this.creatureState = creatureState.ordinal();
+        if (nextCreatureState != null) {
+            this.nextCreatureState = nextCreatureState.ordinal();
+        }
         this.creatureId = creatureId;
     }
 
-    public final CreatureState getCreatureState() {
+    public CreatureAi(double stateStartTime, CreatureState currentCreatureState, CreatureState nextCreatureState, short creatureId) {
+        this.stateStartTime = stateStartTime;
+        if (currentCreatureState != null) {
+            this.currentCreatureState = currentCreatureState.ordinal();
+        }
+        if (nextCreatureState != null) {
+            this.nextCreatureState = nextCreatureState.ordinal();
+        }
+        this.creatureId = creatureId;
+    }
+
+    public final CreatureState getCurrentCreatureState() {
 
         /**
          * The creature state enum is not final class, so FieldSerializer wont
          * serialize it. Easiest for us now is just to emulate the serialization
          * like this
          */
-        return CreatureState.class.getEnumConstants()[creatureState];
+        if (currentCreatureState == null) {
+            return null;
+        }
+
+        return CreatureState.class.getEnumConstants()[currentCreatureState];
+    }
+
+    public final CreatureState getNextCreatureState() {
+
+        /**
+         * The creature state enum is not final class, so FieldSerializer wont
+         * serialize it. Easiest for us now is just to emulate the serialization
+         * like this
+         */
+        if (nextCreatureState == null) {
+            return null;
+        }
+
+        return CreatureState.class.getEnumConstants()[nextCreatureState];
     }
 
 }

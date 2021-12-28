@@ -1404,7 +1404,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                 AttackTarget attackTarget = entity.get(AttackTarget.class);
                 CreatureAi creatureAi = entity.get(CreatureAi.class);
-                if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
+                if (creatureAi != null && creatureAi.getCurrentCreatureState() == CreatureState.IDLE) {
                     impIdle++;
                 } else if (attackTarget != null) {
                     impFighting++;
@@ -1483,7 +1483,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
                 AttackTarget attackTarget = entity.get(AttackTarget.class);
                 CreatureAi creatureAi = entity.get(CreatureAi.class);
-                if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
+                if (creatureAi != null && creatureAi.getCurrentCreatureState() == CreatureState.IDLE) {
                     return state == CreatureUIState.IDLE;
                 } else if (attackTarget != null) {
                     return state == CreatureUIState.FIGHT;

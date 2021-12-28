@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
-import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -47,8 +46,6 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void navigateToRandomPoint();
 
     public IPartyController getParty();
-
-    public StateMachine<ICreatureController, CreatureState> getStateMachine();
 
     public boolean hasObjective();
 
@@ -246,5 +243,10 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if recuperating
      */
     public boolean isRecuperating();
+
+    /**
+     * Sets the creature unconscious
+     */
+    public void setUnconscious();
 
 }

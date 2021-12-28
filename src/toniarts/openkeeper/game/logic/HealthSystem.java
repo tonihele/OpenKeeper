@@ -48,7 +48,6 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -243,8 +242,7 @@ public class HealthSystem implements IGameLogicUpdatable {
     private void processUnconscious(EntityId entityId, Health health, double gameTime) {
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(gameTime));
-        //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
-        creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
+        creaturesController.createController(entityId).setUnconscious();
         entityData.removeComponent(entityId, Navigation.class);
     }
 

@@ -91,7 +91,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureController extends EntityController implements ICreatureController {
+public class CreatureController extends EntityController implements ICreatureStateController {
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -100,9 +100,8 @@ public class CreatureController extends EntityController implements ICreatureCon
     private final ICreaturesController creaturesController;
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
-    // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
-    private final StateMachine<ICreatureController, CreatureState> stateMachine;
+    private final StateMachine<ICreatureStateController, CreatureState> stateMachine;
     private float taskDuration = 0.0f;
     private boolean taskStarted = false;
     private float motionless = 0;
@@ -146,7 +145,7 @@ public class CreatureController extends EntityController implements ICreatureCon
                 if (roomController == null || !roomController.isDungeonHeart()) {
                     if (!stateMachine.isInState(CreatureState.FLEE)) {
 
-                        stateMachine.changeState(CreatureState.FLEE);
+                        changeState(CreatureState.FLEE);
                     }
                     return true;
                 } else {
@@ -159,7 +158,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         if ((creature.getFightStyle()
                 != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
-                stateMachine.changeState(CreatureState.FIGHT);
+                changeState(CreatureState.FIGHT);
             }
             return true;
         }
@@ -219,7 +218,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     /**
-     * Checks if the given entity posseses a threat to anyone at all
+     * Checks if the given entity poses a threat to anyone at all
      *
      * @param entity the entity to check
      * @return is the entity a threat to anyone
@@ -291,8 +290,14 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public StateMachine<ICreatureController, CreatureState> getStateMachine() {
-        return stateMachine;
+    public void changeState(CreatureState creatureState) {
+        stateMachine.changeState(creatureState);
+
+        // Also change our state component
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCurrentCreatureState()) {
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), null, creature.getId()));
+        }
     }
 
     @Override
@@ -571,11 +576,10 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Now just the melee attack
         // TODO: spells
-        // TODO: how to apply the damage? Create a component for THIS creature that adds the damage to enemy after the countdown is finished?
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (isAttackRecharged(creatureMeleeAttack)) {
             entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
-            stateMachine.changeState(CreatureState.MELEE_ATTACK);
+            changeState(CreatureState.MELEE_ATTACK);
 
             // Set the damage
             setDamage(attackTarget, creatureMeleeAttack.damage);
@@ -744,15 +748,19 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
 
         InHand inHand = entityData.getComponent(entityId, InHand.class);
-        if (inHand != null) {
+
+        return inHand != null;
+    }
+
+    private boolean initState(CreatureAi creatureAi) {
+        stateMachine.setInitialState(creatureAi.getCurrentCreatureState());
+        if (creatureAi.getNextCreatureState() != null) {
+            changeState(creatureAi.getNextCreatureState());
+
             return true;
         }
 
         return false;
-    }
-
-    private void initState() {
-        stateMachine.changeState(entityData.getComponent(entityId, CreatureAi.class).getCreatureState());
     }
 
     @Override
@@ -808,9 +816,10 @@ public class CreatureController extends EntityController implements ICreatureCon
          * allowed and should we just check that the current state matches the
          * state in the entity component
          */
-        //CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-        if (stateMachine.getCurrentState() == null) {
-            initState();
+        boolean initialized = false;
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (stateMachine.getCurrentState() == null || !stateMachine.isInState(creatureAi.getCurrentCreatureState())) {
+            initialized = initState(creatureAi);
         }
 
         /**
@@ -832,12 +841,8 @@ public class CreatureController extends EntityController implements ICreatureCon
             taskDuration += tpf;
         }
 
-        stateMachine.update();
-
-        // Also change our state component
-        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-        if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
-            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId()));
+        if (!initialized) {
+            stateMachine.update();
         }
     }
 
@@ -1041,13 +1046,11 @@ public class CreatureController extends EntityController implements ICreatureCon
     public void sleep() {
         entityData.setComponent(entityId, new CreatureRecuperating(gameTimer.getGameTime(), gameTimer.getGameTime()));
         if (isNeedForRecuperating()) {
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.RECUPERATING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.RECUPERATING);
+            changeState(CreatureState.RECUPERATING);
         } else {
             CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
             entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, creatureSleep.lastSleepTime, gameTimer.getGameTime()));
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.SLEEPING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.SLEEPING);
+            changeState(CreatureState.SLEEPING);
         }
     }
 
@@ -1096,7 +1099,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     private boolean isFleeing(EntityId entity) {
         CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
         if (creatureAi != null) {
-            return creatureAi.getCreatureState() == CreatureState.FLEE;
+            return creatureAi.getCurrentCreatureState() == CreatureState.FLEE;
         }
 
         return false;
@@ -1116,7 +1119,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         Owner owner = entityData.getComponent(entityId, Owner.class);
         entityData.setComponent(entityId, new Owner(owner.ownerId, playerId));
 
-        stateMachine.changeState(CreatureState.IMPRISONED);
+        changeState(CreatureState.IMPRISONED);
     }
 
     @Override
@@ -1191,7 +1194,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         if (health != null) {
             target.remove();
 
-            stateMachine.changeState(CreatureState.EATING);
+            changeState(CreatureState.EATING);
         }
     }
 
@@ -1246,6 +1249,13 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void setUnconscious() {
+        if (!stateMachine.isInState(CreatureState.UNCONSCIOUS)) {
+            changeState(CreatureState.UNCONSCIOUS);
+        }
     }
 
 }

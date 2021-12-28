@@ -118,7 +118,7 @@ public class CreatureViewControl extends EntityViewControl<Creature, Creature.An
     private boolean isWorkAnimation() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
-            return creatureAi.getCreatureState() == CreatureState.WORK;
+            return creatureAi.getCurrentCreatureState() == CreatureState.WORK;
         }
         return false;
     }

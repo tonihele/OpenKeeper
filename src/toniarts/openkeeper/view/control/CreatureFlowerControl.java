@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -133,43 +134,48 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     private String getStatusIcon() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
+        if (creatureAi == null) {
+            return null;
+        }
+        CreatureState creatureState = creatureAi.getCurrentCreatureState();
+        if (creatureState == null) {
+            return null;
+        }
 
-        if (creatureAi != null) {
-            switch (creatureAi.getCreatureState()) {
-                case FIGHT:
-                case MELEE_ATTACK: {
-                    return "Textures/GUI/moods/SJ-Fighting.png";
-                }
-                case WORK: {
-                    TaskComponent taskComponent = getEntity().get(TaskComponent.class);
-                    if (taskComponent != null) {
-                        String icon = getTaskIcon(taskComponent.taskType);
-                        if (icon != null) {
-                            return icon;
-                        }
+        switch (creatureState) {
+            case FIGHT:
+            case MELEE_ATTACK: {
+                return "Textures/GUI/moods/SJ-Fighting.png";
+            }
+            case WORK: {
+                TaskComponent taskComponent = getEntity().get(TaskComponent.class);
+                if (taskComponent != null) {
+                    String icon = getTaskIcon(taskComponent.taskType);
+                    if (icon != null) {
+                        return icon;
                     }
-                    break;
                 }
-                case FLEE: {
-                    return "Textures/GUI/moods/ST-Fear.png";
-                }
-                case DRAGGED:
-                case UNCONSCIOUS: {
-                    return "Textures/GUI/moods/SJ-Unconscious.png";
-                }
-                case STUNNED: {
-                    return "Textures/GUI/moods/SJ-Stunned.png";
-                }
-                case SLEEPING:
-                case RECUPERATING: {
-                    return "Textures/GUI/moods/SJ-Rest.png";
-                }
-                case TORTURED: {
-                    return "Textures/GUI/moods/SJ-Torture.png";
-                }
-                case IMPRISONED: {
-                    return "Textures/GUI/moods/SJ-Prison.png";
-                }
+                break;
+            }
+            case FLEE: {
+                return "Textures/GUI/moods/ST-Fear.png";
+            }
+            case DRAGGED:
+            case UNCONSCIOUS: {
+                return "Textures/GUI/moods/SJ-Unconscious.png";
+            }
+            case STUNNED: {
+                return "Textures/GUI/moods/SJ-Stunned.png";
+            }
+            case SLEEPING:
+            case RECUPERATING: {
+                return "Textures/GUI/moods/SJ-Rest.png";
+            }
+            case TORTURED: {
+                return "Textures/GUI/moods/SJ-Torture.png";
+            }
+            case IMPRISONED: {
+                return "Textures/GUI/moods/SJ-Prison.png";
             }
         }
 

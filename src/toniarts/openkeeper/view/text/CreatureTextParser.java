@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -83,7 +84,12 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
 
     private static String getStatusText(Entity entity, CreatureAi creatureAi,
             IMapInformation mapInformation) {
-        switch (creatureAi.getCreatureState()) {
+        CreatureState creatureState = creatureAi.getCurrentCreatureState();
+        if (creatureState == null) {
+            return "";
+        }
+
+        switch (creatureState) {
             case IDLE: {
                 return Utils.getMainTextResourceBundle().getString("2599");
             }

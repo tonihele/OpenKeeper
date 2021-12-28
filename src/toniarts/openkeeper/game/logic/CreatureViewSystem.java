@@ -86,7 +86,7 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                 } else {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null) {
-                        targetState = getAnimation(aiState.getCreatureState());
+                        targetState = getAnimation(aiState.getCurrentCreatureState());
                     }
                 }
             }
@@ -124,6 +124,10 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
     }
 
     private static Creature.AnimationType getAnimation(CreatureState creatureState) {
+        if (creatureState == null) {
+            return Creature.AnimationType.STAND_STILL;
+        }
+
         switch (creatureState) {
             case IDLE:
                 return Creature.AnimationType.IDLE_1;

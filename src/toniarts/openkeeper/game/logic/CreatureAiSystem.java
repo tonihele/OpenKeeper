@@ -84,7 +84,6 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
             if (creatureController != null) {
                 int index = Collections.binarySearch(creatureControllers, creatureController);
                 creatureControllers.remove(index);
-                creatureController.getStateMachine().changeState(null);
             }
         }
     }
