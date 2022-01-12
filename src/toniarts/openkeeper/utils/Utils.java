@@ -42,9 +42,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 public class Utils {
 
     private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
-    private static final ResourceBundle BUNDLE = Main.getResourceBundle("Interface/Texts/Text");
     private static final Random RANDOM = new Random();
-    private static Boolean windows;
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
     private static final String[] CREATURE_NAMES = {
         "Telos", "Murmyr", "Petripher", "Thanos", "Poge", "Drotte", "Ghast", "Snitch", "Samsar",
@@ -103,6 +101,9 @@ public class Utils {
     public static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
     public static final int MAX_CREATURE_LEVEL = 10;
     public static final short[] PLAYER_IDS = new short[]{Player.GOOD_PLAYER_ID, Player.NEUTRAL_PLAYER_ID, Player.KEEPER1_ID, Player.KEEPER2_ID, Player.KEEPER3_ID, Player.KEEPER4_ID, Player.KEEPER5_ID};
+
+    private static ResourceBundle bundle;
+    private static Boolean windows;
 
     private Utils() {
         // Nope
@@ -177,7 +178,10 @@ public class Utils {
      * @return the main text resource bundle
      */
     public static ResourceBundle getMainTextResourceBundle() {
-        return BUNDLE;
+        if (bundle == null) {
+            bundle = Main.getResourceBundle("Interface/Texts/Text");
+        }
+        return bundle;
     }
 
     /**
