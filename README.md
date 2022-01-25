@@ -7,7 +7,9 @@ Goal is to fully implement the game (version 1.7 with 3 bonus packs) as open sou
 
 OpenKeeper is written in Java using [JMonkeyEngine](http://jmonkeyengine.org/). Currently we are using JME 3.4 + Java 11.
 
-![Build Status](https://github.com/tonihele/OpenKeeper/actions/workflows/gradle.yml/badge.svg)
+Builds are available from the CI:
+
+[![Build Status](https://github.com/tonihele/OpenKeeper/actions/workflows/gradle.yml/badge.svg)](../../actions)
 
 [Here is my YouTube channel where I sometimes publish videos of the progress](https://www.youtube.com/user/Kaljis83/videos).
 
