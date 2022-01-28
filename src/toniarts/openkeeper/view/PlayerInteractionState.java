@@ -139,7 +139,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.tooltip = psc.getTooltip();
 
         // Init the keeper hand
-        keeperHandState = new KeeperHandState((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND), kwdFile, entityData, player.getPlayerId()) {
+        keeperHandState = new KeeperHandState((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND), kwdFile, entityData, player.getPlayerId(), this.mapInformation) {
 
             @Override
             protected void updateCursor() {
@@ -539,7 +539,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             @Override
             public void onMouseMotionEvent(MouseMotionEvent evt) {
                 mousePosition.set(evt.getX(), evt.getY());
-                keeperHandState.setPosition(evt.getX(), evt.getY());
+                keeperHandState.setPosition(evt.getX(), evt.getY(), selectionHandler.getPointedTileIndex());
 
                 timeFromLastUpdate = 0;
                 updateStateFlags();

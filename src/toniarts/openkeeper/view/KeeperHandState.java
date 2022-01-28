@@ -22,11 +22,14 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
 import com.jme3.light.AmbientLight;
+import com.jme3.light.PointLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.Spatial.CullHint;
@@ -37,6 +40,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.filter.FieldFilter;
+import java.awt.Point;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,17 +50,24 @@ import java.util.Objects;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import static toniarts.openkeeper.view.map.MapViewController.TILE_HEIGHT;
+import static toniarts.openkeeper.view.map.MapViewController.TILE_WIDTH;
+import static toniarts.openkeeper.view.map.MapViewController.TORCH_HEIGHT;
+import static toniarts.openkeeper.world.MapLoader.TOP_HEIGHT;
 
 /**
  * TODO I think we need to move cursor here
@@ -92,13 +103,16 @@ public abstract class KeeperHandState extends AbstractAppState {
     private final Node cursor;
     private final Node rootNode;
     private final InHandLoaderCreatureModelContainer inHandLoader;
+    private final IMapInformation mapInformation;
+    private PointLight keeperLight;
 
-    public KeeperHandState(int maxQueueSize, KwdFile kwdFile, EntityData entityData, short playerId) {
+    public KeeperHandState(int maxQueueSize, KwdFile kwdFile, EntityData entityData, short playerId, IMapInformation mapInformation) {
         this.queue = new ArrayList<>(maxQueueSize);
         this.maxQueueSize = maxQueueSize;
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.playerId = playerId;
+        this.mapInformation = mapInformation;
 
         rootNode = new Node("Keeper hand");
 
@@ -130,6 +144,11 @@ public abstract class KeeperHandState extends AbstractAppState {
 
         this.app.getGuiNode().attachChild(rootNode);
 
+        // Create Keeper light
+        keeperLight = new PointLight(Vector3f.ZERO, ColorRGBA.Orange, TILE_WIDTH * 2);
+        keeperLight.setName("Keeper Hand");
+        this.app.getRootNode().addLight(keeperLight);
+
         // Start loading stuff (maybe we should do this earlier...)
         inHandLoader.start();
     }
@@ -147,6 +166,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         inHandLoader.stop();
         queue.clear();
         app.getGuiNode().detachChild(rootNode);
+        app.getRootNode().removeLight(keeperLight);
 
         super.cleanup();
     }
@@ -185,8 +205,24 @@ public abstract class KeeperHandState extends AbstractAppState {
         rootNode.setCullHint(visible ? CullHint.Never : CullHint.Always);
     }
 
-    public void setPosition(float x, float y) {
+    public void setPosition(float x, float y, Point tile) {
         rootNode.setLocalTranslation(x, y, 0);
+
+        // Set the keeper light position
+        Camera cam = app.getCamera();
+        Vector3f camPos = cam.getLocation();
+        Vector3f tmp = cam.getWorldCoordinates(new Vector2f(x, y), 0f).clone();
+        Vector3f dir = cam.getWorldCoordinates(new Vector2f(x, y), 1f).subtractLocal(tmp).normalizeLocal();
+
+        float lightHeight = TORCH_HEIGHT;
+        IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
+        if (kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            lightHeight = TOP_HEIGHT + TORCH_HEIGHT - TILE_HEIGHT;
+        }
+
+        dir.multLocal((lightHeight - camPos.getY()) / dir.getY()).addLocal(camPos);
+
+        keeperLight.setPosition(new Vector3f(dir.getX(), lightHeight, dir.getZ()));
     }
 
     private Picture getIcon(final ArtResource image) {

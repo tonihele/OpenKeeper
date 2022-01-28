@@ -421,7 +421,7 @@ public class Main extends SimpleApplication {
 
                 // FIXME: We need ambient light, but it may be different for different states. There just seems to be a bug in BatchNodes concerning the removal of the light. So this is temporary perhaps
                 AmbientLight al = new AmbientLight();
-                al.setColor(ColorRGBA.White);
+                al.setColor(ColorRGBA.White.multLocal(0.4f));
                 rootNode.addLight(al);
 
                 if (params.containsKey("nomovies") || params.containsKey("level")) {
@@ -596,7 +596,11 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleRender(RenderManager rm) {
-        //TODO: add render code
+
+        // set the default light mode to single pass (only necessary for lighting.j3md, PBRLighting only uses single pass)
+        //renderManager.setPreferredLightMode(TechniqueDef.LightMode.SinglePass);
+        // Set the maximum number of light to handle in one pass per geometry.
+        //renderManager.setSinglePassLightBatchSize(5);
     }
 
     /**
