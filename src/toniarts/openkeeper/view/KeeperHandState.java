@@ -59,6 +59,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
@@ -145,7 +146,11 @@ public abstract class KeeperHandState extends AbstractAppState {
         this.app.getGuiNode().attachChild(rootNode);
 
         // Create Keeper light
-        keeperLight = new PointLight(Vector3f.ZERO, ColorRGBA.Orange, TILE_WIDTH * 2);
+        float intensity = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_INTENSITY).getValue();
+        ColorRGBA lightColor = new ColorRGBA((kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_RED).getValue() + intensity) / 255,
+                (kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_GREEN).getValue() + intensity) / 255,
+                (kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_BLUE).getValue() + intensity) / 255, 0);
+        keeperLight = new PointLight(Vector3f.ZERO, lightColor, TILE_WIDTH * 2);
         keeperLight.setName("Keeper Hand");
         this.app.getRootNode().addLight(keeperLight);
 
@@ -208,21 +213,24 @@ public abstract class KeeperHandState extends AbstractAppState {
     public void setPosition(float x, float y, Point tile) {
         rootNode.setLocalTranslation(x, y, 0);
 
-        // Set the keeper light position
-        Camera cam = app.getCamera();
-        Vector3f camPos = cam.getLocation();
-        Vector3f tmp = cam.getWorldCoordinates(new Vector2f(x, y), 0f).clone();
-        Vector3f dir = cam.getWorldCoordinates(new Vector2f(x, y), 1f).subtractLocal(tmp).normalizeLocal();
+        if (isInitialized()) {
 
-        float lightHeight = TORCH_HEIGHT;
-        IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
-        if (kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            lightHeight = TOP_HEIGHT + TORCH_HEIGHT - TILE_HEIGHT;
+            // Set the keeper light position
+            Camera cam = app.getCamera();
+            Vector3f camPos = cam.getLocation();
+            Vector3f tmp = cam.getWorldCoordinates(new Vector2f(x, y), 0f).clone();
+            Vector3f dir = cam.getWorldCoordinates(new Vector2f(x, y), 1f).subtractLocal(tmp).normalizeLocal();
+
+            float lightHeight = TORCH_HEIGHT;
+            IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
+            if (kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                lightHeight = TOP_HEIGHT + TORCH_HEIGHT - TILE_HEIGHT;
+            }
+
+            dir.multLocal((lightHeight - camPos.getY()) / dir.getY()).addLocal(camPos);
+
+            keeperLight.setPosition(new Vector3f(dir.getX(), lightHeight, dir.getZ()));
         }
-
-        dir.multLocal((lightHeight - camPos.getY()) / dir.getY()).addLocal(camPos);
-
-        keeperLight.setPosition(new Vector3f(dir.getX(), lightHeight, dir.getZ()));
     }
 
     private Picture getIcon(final ArtResource image) {
