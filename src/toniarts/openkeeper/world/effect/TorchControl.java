@@ -20,11 +20,9 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
-import com.jme3.light.Light;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -48,7 +46,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -58,18 +55,22 @@ import toniarts.openkeeper.utils.AssetUtils;
 @Deprecated
 public class TorchControl extends BillboardControl {
 
-    private final int frames = 20;
+    private final static int FRAMES = 20;
     private Material material;
     private Node torch;
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
+    private final PointLight light;
+    private final float baseLightRadius;
     private static final AssetKey<Spatial> ASSET_KEY = new AssetKey<>("TorchFlame");
 
     private static final Logger log = Logger.getLogger(TorchControl.class.getName());
 
-    public TorchControl(KwdFile kwdFile, AssetManager assetManager, float angle) {
+    public TorchControl(KwdFile kwdFile, AssetManager assetManager, float angle, PointLight light) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.light = light;
+        baseLightRadius = light.getRadius();
         setAlignment(Alignment.AxialY);
     }
 
@@ -81,7 +82,7 @@ public class TorchControl extends BillboardControl {
             this.spatial = createFlame();
             if (this.spatial != null) {
                 torch.attachChild(this.spatial);
-                torch.addLight(createLight());
+                //torch.addLight(createLight());
             }
         }
     }
@@ -113,21 +114,31 @@ public class TorchControl extends BillboardControl {
         return null;
     }
 
-    private Light createLight() {
-        PointLight result = new PointLight();
-        result.setName("torch");
+    @Override
+    public void update(float tpf) {
+        super.update(tpf); //To change body of generated methods, choose Tools | Templates.
 
-        float intensity = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_INTENSITY).getValue();
-        result.setColor(new ColorRGBA(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RED).getValue() * intensity / 255,
-                kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_GREEN).getValue() * intensity / 255,
-                kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_BLUE).getValue() * intensity / 255, 0));
-
-        result.setEnabled(true);
-        result.setRadius(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES).getValue());
-
-        // float height = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES).getValue();
-        return result;
+        // TODO: flicker
+//        Random rand = new Random();
+//
+//        light.setRadius(baseLightRadius + (float) Math.sin(tpf * 0.3f) * rand.nextFloat());
     }
+
+//    private Light createLight() {
+//        PointLight result = new PointLight();
+//        result.setName("torch");
+//
+//        float intensity = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_INTENSITY).getValue();
+//        result.setColor(new ColorRGBA(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RED).getValue() * intensity / 255,
+//                kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_GREEN).getValue() * intensity / 255,
+//                kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_BLUE).getValue() * intensity / 255, 0));
+//
+//        result.setEnabled(true);
+//        result.setRadius(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES).getValue());
+//
+//        // float height = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES).getValue();
+//        return result;
+//    }
 
     /**
      * Creates a quad, just that this one is centered on x-axis and on y-axis
@@ -173,11 +184,11 @@ public class TorchControl extends BillboardControl {
         BufferedImage img = AssetUtils.readImageFromAsset(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + name + "0.png"))));
 
         // Create image big enough to fit all the frames
-        BufferedImage text = new BufferedImage(img.getWidth() * frames, img.getHeight(),
+        BufferedImage text = new BufferedImage(img.getWidth() * FRAMES, img.getHeight(),
                 BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = text.createGraphics();
         g.drawImage(makeColorTransparent(img), 0, 0, null);
-        for (int x = 1; x < frames; x++) {
+        for (int x = 1; x < FRAMES; x++) {
             AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + name + x + ".png")));
             img = AssetUtils.readImageFromAsset(asset);
             g.drawImage(makeColorTransparent(img), img.getWidth() * x, 0, null);
@@ -205,8 +216,8 @@ public class TorchControl extends BillboardControl {
     private Material createMaterial() {
         Material result = new Material(assetManager, "MatDefs/LightingSprite.j3md");
 
-        result.setInt("NumberOfTiles", frames);
-        result.setInt("Speed", frames); // FIXME: correct value
+        result.setInt("NumberOfTiles", FRAMES);
+        result.setInt("Speed", FRAMES); // FIXME: correct value
 
         result.setTransparent(true);
         result.setFloat("AlphaDiscardThreshold", 0.1f);

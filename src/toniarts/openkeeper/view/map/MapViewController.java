@@ -57,6 +57,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
@@ -520,25 +521,27 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         String name = null;
         float angleY = 0;
         Vector3f position = Vector3f.ZERO;
+        Vector3f torchPosition = Vector3f.ZERO;
 
         if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
             name = "Torch1";
             angleY = -FastMath.HALF_PI;
             position = new Vector3f(0, TORCH_HEIGHT, -TILE_WIDTH / 2);
-
+            torchPosition = position.add(0, 0.5f, 0.25f);
         } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // West
             name = "Torch1";
             position = new Vector3f(-TILE_WIDTH / 2, TORCH_HEIGHT, 0);
-
+            torchPosition = position.add(0.25f, 0.5f, 0);
         } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // South
             name = "Torch1";
             angleY = FastMath.HALF_PI;
             position = new Vector3f(0, TORCH_HEIGHT, TILE_WIDTH / 2);
-
+            torchPosition = position.add(0, 0.5f, -0.25f);
         } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // East
             name = "Torch1";
             angleY = FastMath.PI;
             position = new Vector3f(TILE_WIDTH / 2, TORCH_HEIGHT, 0);
+            torchPosition = position.add(-0.25f, 0.5f, 0);
         }
 
         // Move to tile and right height
@@ -554,18 +557,25 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                     name = torch.getName();
                 }
             }
+
+            // Light
+            PointLight light = new PointLight(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(torchPosition), ColorRGBA.Orange, TILE_WIDTH * 2);
+            light.setName(tile.getX() + "-" + tile.getY());
+            map.addLight(light);
+            lightMap.put(tile.getLocation(), light);
+
+            float intensity = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_INTENSITY).getValue();
+            light.setColor(new ColorRGBA((kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_RED).getValue() + intensity) / 255,
+                    (kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_GREEN).getValue() + intensity) / 255,
+                    (kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_BLUE).getValue() + intensity) / 255, 0));
+            light.setRadius(kwdFile.getVariables().get(Variable.MiscVariable.MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES).getValue());
+
             Spatial spatial = AssetUtils.loadModel(assetManager, name);
-            spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
+            spatial.addControl(new TorchControl(kwdFile, assetManager, angleY, light));
             spatial.rotate(0, angleY, 0);
             spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
 
             ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
-
-            // Light
-            PointLight light = new PointLight(spatial.getLocalTranslation(), ColorRGBA.Orange, TILE_WIDTH * 2);
-            light.setName(tile.getX() + "-" + tile.getY());
-            map.addLight(light);
-            lightMap.put(new Point(tile.getX(), tile.getY()), light);
         }
     }
 

@@ -52,7 +52,6 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
@@ -505,7 +504,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 }
             }
             Spatial spatial = AssetUtils.loadModel(assetManager, name);
-            spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
+            //spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);
             spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
 
