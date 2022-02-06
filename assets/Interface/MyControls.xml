@@ -537,7 +537,7 @@
             <panel style="#chatPanel">
                 <panel style="#chatArea">
                     <control id="#chatBox" name="listBox" vertical="optional" horizontal="off" selection="Disabled"
-                             displayItems="$lines"
+                             displayItems="$lines" style="nifty-chat-control"
                              viewConverterClass="toniarts.openkeeper.gui.nifty.chat.ChatBoxViewConverter">
                         <control name="nifty-chat-line" chatLineHeight="$chatLineHeight"/>
                     </control>

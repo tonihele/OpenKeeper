@@ -13,7 +13,7 @@
         <attributes childLayout="horizontal" align="left" width="100%" backgroundColor="#f508"/>
     </style>
 
-    <style id="nifty-listbox#scrollpanel">
+    <style id="nifty-chat-control#scrollpanel">
 
     </style>
 
