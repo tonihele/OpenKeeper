@@ -235,6 +235,7 @@ public class AssetUtils {
 
         assignMapToMaterial(assetManager, material, "NormalMap", getNormalMapName(diffuseTexture));
         assignMapToMaterial(assetManager, material, "SpecularMap", getSpecularMapName(diffuseTexture));
+        assignMapToMaterial(assetManager, material, "ParallaxMap", getDisplacementMapName(diffuseTexture));
     }
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
@@ -265,6 +266,10 @@ public class AssetUtils {
 
     private static String getSpecularMapName(String texture) {
         return getCustomTextureMapName(texture, "s");
+    }
+
+    private static String getDisplacementMapName(String texture) {
+        return getCustomTextureMapName(texture, "d");
     }
 
     private static String getCustomTextureMapName(String texture, String suffix) {
