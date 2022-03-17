@@ -536,21 +536,23 @@ public class MainMenuState extends AbstractAppState {
 
     protected List<MyDisplayMode> getResolutions(GraphicsDevice device) {
 
-        //Get from the system
+        // Get from the system
         DisplayMode[] modes = device.getDisplayModes();
 
         List<MyDisplayMode> displayModes = new ArrayList<>(modes.length);
 
-        //Loop them through
+        // Loop them through
         for (DisplayMode dm : modes) {
 
-            //They may already exist, then just add the possible resfresh rate
+            // They may already exist, then just add the possible resfresh rate
             MyDisplayMode mdm = new MyDisplayMode(dm);
-            if (displayModes.contains(mdm)) {
-                mdm = displayModes.get(displayModes.indexOf(mdm));
+            int index = Collections.binarySearch(displayModes, mdm);
+            if (index > -1) {
+                mdm = displayModes.get(index);
                 mdm.addRefreshRate(dm);
+                mdm.addBitDepth(dm);
             } else {
-                displayModes.add(mdm);
+                displayModes.add(~index, mdm);
             }
         }
 

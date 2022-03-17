@@ -387,6 +387,10 @@
                 <!--Right side options panel-->
                 <panel childLayout="vertical" align="right" valign="top" padding="10px">
                     <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="Bit depth: " />
+                        <control width="100px" name="dropDown" id="bitDepth" />
+                    </panel>
+                    <panel childLayout="vertical" padding="10px">
                         <text style="menuTextSmall" text="Refresh rate: " />
                         <control width="100px" name="dropDown" id="refreshRate" />
                     </panel>
