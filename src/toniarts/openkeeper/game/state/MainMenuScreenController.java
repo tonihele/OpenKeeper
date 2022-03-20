@@ -276,7 +276,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
         // Set the settings
         settings.getAppSettings().setResolution(mdm.getWidth(), mdm.getHeight());
-        settings.getAppSettings().setBitsPerPixel((Integer) bitDepth.getSelection());
+        settings.getAppSettings().setDepthBits((Integer) bitDepth.getSelection());
         settings.getAppSettings().setFrequency((Integer) refresh.getSelection());
         settings.getAppSettings().setFullscreen(fullscreen.isChecked());
         settings.getAppSettings().setVSync(vsync.isChecked());
@@ -581,6 +581,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         refresh.clear();
         refresh.addAllItems(event.getSelection().getRefreshRates());
         refresh.selectItemByIndex(refresh.itemCount() - 1);
+        CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
+        refresh.setEnabled(fullscreen.isChecked());
     }
 
     @NiftyEventSubscriber(id = "fullscreen")
