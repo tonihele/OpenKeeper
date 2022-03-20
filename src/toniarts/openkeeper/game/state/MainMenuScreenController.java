@@ -263,6 +263,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         boolean needToRestart = true;
         Settings settings = Main.getUserSettings();
         DropDown res = screen.findNiftyControl("resolution", DropDown.class);
+        DropDown bitDepth = screen.findNiftyControl("bitDepth", DropDown.class);
         DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
         CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
@@ -274,8 +275,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
         // Set the settings
-        settings.getAppSettings().setResolution(mdm.width, mdm.height);
-        settings.getAppSettings().setBitsPerPixel(mdm.bitDepth);
+        settings.getAppSettings().setResolution(mdm.getWidth(), mdm.getHeight());
+        settings.getAppSettings().setDepthBits((Integer) bitDepth.getSelection());
         settings.getAppSettings().setFrequency((Integer) refresh.getSelection());
         settings.getAppSettings().setFullscreen(fullscreen.isChecked());
         settings.getAppSettings().setVSync(vsync.isChecked());
@@ -569,11 +570,19 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     @NiftyEventSubscriber(id = "resolution")
     public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<MyDisplayMode> event) {
 
-        //Set the refresh dropdown
+        // Set the bit depths
+        DropDown bitDepth = screen.findNiftyControl("bitDepth", DropDown.class);
+        bitDepth.clear();
+        bitDepth.addAllItems(event.getSelection().getBitDepths());
+        bitDepth.selectItemByIndex(bitDepth.itemCount() - 1);
+
+        // Set the refresh dropdown
         DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
         refresh.clear();
-        refresh.addAllItems(event.getSelection().refreshRate);
+        refresh.addAllItems(event.getSelection().getRefreshRates());
         refresh.selectItemByIndex(refresh.itemCount() - 1);
+        CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
+        refresh.setEnabled(fullscreen.isChecked());
     }
 
     @NiftyEventSubscriber(id = "fullscreen")
@@ -664,7 +673,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             final String imagePath = "Textures/Mov_Shots/M-" + image + "-0.png";
 
             if (movies.getChildrenCount() < CUTSCENES.size()) {
-                // initialise movie list
+                // initialize movie list
                 ControlBuilder control = new ControlBuilder("movie" + index, "movieButton");
                 control.parameter("image", imagePath);
                 control.parameter("click", action);
@@ -723,7 +732,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         MyDisplayMode mdm = new MyDisplayMode(settings);
         List<MyDisplayMode> resolutions = state.getResolutions(device);
-        Collections.sort(resolutions);
 
         // Get values to the settings screen
         // Resolutions
@@ -731,29 +739,33 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         res.addAllItems(resolutions);
         res.selectItem(mdm);
 
-        //Refresh rates
+        // Bit depths and Refresh rates
         DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
+        DropDown bitDepths = screen.findNiftyControl("bitDepth", DropDown.class);
         int index = Collections.binarySearch(resolutions, mdm);
         if (index >= 0) {
-            refresh.addAllItems(resolutions.get(index).refreshRate);
+            refresh.addAllItems(resolutions.get(index).getRefreshRates());
             refresh.selectItem(settings.getFrequency());
+            bitDepths.addAllItems(resolutions.get(index).getBitDepths());
+            bitDepths.selectItem(settings.getDepthBits());
         } else {
-            refresh.addItem(mdm.refreshRate.get(0));
+            refresh.addAllItems(mdm.getRefreshRates());
+            bitDepths.addAllItems(mdm.getBitDepths());
         }
         if (!settings.isFullscreen()) {
             refresh.disable();
         }
 
-        //Fullscreen
+        // Fullscreen
         CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
         fullscreen.setChecked(settings.isFullscreen());
         fullscreen.setEnabled(device.isFullScreenSupported());
 
-        //VSync
+        // VSync
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
         vsync.setChecked(settings.isVSync());
 
-        //Antialiasing
+        // Antialiasing
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         aa.addAllItems(Settings.SAMPLES);
         if (Settings.SAMPLES.contains(settings.getSamples())) {
@@ -763,7 +775,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             aa.selectItem(settings.getSamples());
         }
 
-        //Anisotropic filtering
+        // Anisotropic filtering
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         af.addAllItems(Settings.ANISOTROPHIES);
         if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)
@@ -774,12 +786,12 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
         }
 
-        //OpenGL
+        // OpenGL
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
         ogl.addAllItems(Settings.OPENGL);
         ogl.selectItem(settings.getRenderer());
 
-        //SSAO
+        // SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
     }

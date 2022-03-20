@@ -20,11 +20,8 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.DesktopAssetManager;
-import com.jme3.light.Light;
-import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -48,7 +45,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -81,7 +77,6 @@ public class TorchControl extends BillboardControl {
             this.spatial = createFlame();
             if (this.spatial != null) {
                 torch.attachChild(this.spatial);
-                torch.addLight(createLight());
             }
         }
     }
@@ -111,22 +106,6 @@ public class TorchControl extends BillboardControl {
         }
 
         return null;
-    }
-
-    private Light createLight() {
-        PointLight result = new PointLight();
-        result.setName("torch");
-
-        float intensity = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_INTENSITY).getValue();
-        result.setColor(new ColorRGBA(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RED).getValue() * intensity / 255,
-                kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_GREEN).getValue() * intensity / 255,
-                kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_BLUE).getValue() * intensity / 255, 0));
-
-        result.setEnabled(true);
-        result.setRadius(kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES).getValue());
-
-        // float height = kwdFile.getVariables().get(MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES).getValue();
-        return result;
     }
 
     /**

@@ -14,7 +14,7 @@
         <attributes childLayout="center" childClip="true" backgroundColor="#366f" padding="0px,2px" width="*"/>
         <effect>
             <onActive name="border" color="#f508" post="true" inset="1px"/>
-            <onFocus name="colorBar" color="#800f" post="true" inset="1px"/>
+            <onFocus name="colorBar" color="#f508" post="true" inset="1px"/>
             <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="true" length="150"/>
             <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="true" length="150"/>
         </effect>
@@ -63,4 +63,16 @@
             <onFocus name="colorBar" color="#000f" post="false"/>
         </effect>
     </style>
+    
+    <style id="nifty-listbox#scrollpanel">
+        <attributes focusable="true" padding="1px"/>
+        <effect overlay="true">
+            <onActive name="colorBar" color="#bbbcbb" post="false" neverStopRendering="true" timeType="infinite"/>
+            <onActive name="border" border="1px" color="#f508" inset="1px,0px,0px,1px"/>
+            <onFocus name="border" border="1px" color="#f508"/>
+            <onEnabled name="renderQuad" startColor="#2228" endColor="#2220" post="false" length="150"/>
+            <onDisabled name="renderQuad" startColor="#2220" endColor="#2228" post="false" length="150"/>
+        </effect>
+    </style>
+    
 </nifty-styles>
