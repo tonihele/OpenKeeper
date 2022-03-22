@@ -534,6 +534,13 @@ public class MainMenuState extends AbstractAppState {
         levelBriefing = null;
     }
 
+    /**
+     * Gets the resolutions supported by the given device. The resolutions are
+     * sorted by their native order
+     *
+     * @param device the graphics device to query resolutions from
+     * @return sorted list of available resolutions
+     */
     protected List<MyDisplayMode> getResolutions(GraphicsDevice device) {
 
         // Get from the system

@@ -732,21 +732,24 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         MyDisplayMode mdm = new MyDisplayMode(settings);
         List<MyDisplayMode> resolutions = state.getResolutions(device);
+        int resolutionSelectedIndex = Collections.binarySearch(resolutions, mdm);
 
         // Get values to the settings screen
         // Resolutions
         DropDown res = screen.findNiftyControl("resolution", DropDown.class);
         res.addAllItems(resolutions);
-        res.selectItem(mdm);
+        if (resolutionSelectedIndex >= 0) {
+            res.selectItemByIndex(resolutionSelectedIndex);
+        }
 
         // Bit depths and Refresh rates
         DropDown refresh = screen.findNiftyControl("refreshRate", DropDown.class);
         DropDown bitDepths = screen.findNiftyControl("bitDepth", DropDown.class);
-        int index = Collections.binarySearch(resolutions, mdm);
-        if (index >= 0) {
-            refresh.addAllItems(resolutions.get(index).getRefreshRates());
+
+        if (resolutionSelectedIndex >= 0) {
+            refresh.addAllItems(resolutions.get(resolutionSelectedIndex).getRefreshRates());
             refresh.selectItem(settings.getFrequency());
-            bitDepths.addAllItems(resolutions.get(index).getBitDepths());
+            bitDepths.addAllItems(resolutions.get(resolutionSelectedIndex).getBitDepths());
             bitDepths.selectItem(settings.getDepthBits());
         } else {
             refresh.addAllItems(mdm.getRefreshRates());
