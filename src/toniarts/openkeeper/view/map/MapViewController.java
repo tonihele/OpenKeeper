@@ -283,15 +283,19 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
                         // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
                         // Now we have a random starting texture...
-                        int textureIndex = Math.round((terrain.getTextureFrames() - 1) * (1 - tile.getHealthPercent() / 100f));
+                        int textureIndex = Math.round((terrain.getTextureFrames() - 1) * (tile.getHealthPercent() / 100f));
                         String diffuseTexture = textures.get(textureIndex);
-                        try {
-                            Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
-                            material.setTexture("DiffuseMap", texture);
+                        String diffuseTextureKey = ConversionUtils.getCanonicalAssetKey(diffuseTexture);
+                        String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
+                        if(!diffuseTextureKey.equals(currentTexture)) {
+                            try {
+                                Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
+                                material.setTexture("DiffuseMap", texture);
 
-                            AssetUtils.assignMapsToMaterial(assetManager, material);
-                        } catch (Exception e) {
-                            LOGGER.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+                                AssetUtils.assignMapsToMaterial(assetManager, material);
+                            } catch (Exception e) {
+                                LOGGER.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+                            }
                         }
                     }
                 }
