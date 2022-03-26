@@ -1,9 +1,30 @@
+#import "Common/ShaderLib/GLSLCompat.glsllib"
 #import "Common/ShaderLib/Parallax.glsllib"
 #import "Common/ShaderLib/Optics.glsllib"
 #ifndef VERTEX_LIGHTING
     #import "Common/ShaderLib/BlinnPhongLighting.glsllib"
     #import "Common/ShaderLib/Lighting.glsllib"
 #endif
+
+// fog - jayfella
+#ifdef USE_FOG
+#import "Common/ShaderLib/MaterialFog.glsllib"
+varying float fog_distance;
+uniform vec4 m_FogColor;
+
+#ifdef FOG_LINEAR
+uniform vec2 m_LinearFog;
+#endif
+
+#ifdef FOG_EXP
+uniform float m_ExpFog;
+#endif
+
+#ifdef FOG_EXPSQ
+uniform float m_ExpSqFog;
+#endif
+
+#endif // end fog
 
 varying vec2 texCoord;
 #ifdef SEPARATE_TEXCOORD
@@ -120,7 +141,7 @@ void main(){
     #if defined(NORMALMAP) && !defined(VERTEX_LIGHTING)
       vec4 normalHeight = texture2D(m_NormalMap, newTexCoord);
       //Note the -2.0 and -1.0. We invert the green channel of the normal map, 
-      //as it's complient with normal maps generated with blender.
+      //as it's compliant with normal maps generated with blender.
       //see http://hub.jmonkeyengine.org/forum/topic/parallax-mapping-fundamental-bug/#post-256898
       //for more explanation.
       vec3 normal = normalize((normalHeight.xyz * vec3(2.0,-2.0,2.0) - vec3(1.0,-1.0,1.0)));
@@ -206,5 +227,20 @@ void main(){
                            DiffuseSum.rgb   * diffuseColor.rgb  * vec3(light.x) +
                            SpecularSum2.rgb * specularColor.rgb * vec3(light.y);
     #endif
+
+    // add fog after the lighting because shadows will cause the fog to darken
+    // which just results in the geometry looking like it's changed color
+    #ifdef USE_FOG
+        #ifdef FOG_LINEAR
+            gl_FragColor = getFogLinear(gl_FragColor, m_FogColor, m_LinearFog.x, m_LinearFog.y, fog_distance);
+        #endif
+        #ifdef FOG_EXP
+            gl_FragColor = getFogExp(gl_FragColor, m_FogColor, m_ExpFog, fog_distance);
+        #endif
+        #ifdef FOG_EXPSQ
+            gl_FragColor = getFogExpSquare(gl_FragColor, m_FogColor, m_ExpSqFog, fog_distance);
+        #endif
+    #endif // end fog
+
     gl_FragColor.a = alpha;
 }

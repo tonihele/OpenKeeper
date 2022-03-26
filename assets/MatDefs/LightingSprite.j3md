@@ -115,17 +115,29 @@ MaterialDef Phong Lighting {
         Int NumberOfBones
         Matrix4Array BoneMatrices
 
+        // For Morph animation
+        FloatArray MorphWeights
+        Int NumberOfMorphTargets
+        Int NumberOfTargetsBuffers
+
         //For instancing
         Boolean UseInstancing
 
         Boolean BackfaceShadows : false
+
+        // fog - jayfella
+        Boolean UseFog
+        Color FogColor
+        Vector2 LinearFog
+        Float ExpFog
+        Float ExpSqFog
     }
 
  Technique {
         LightMode SinglePass
 
-        VertexShader GLSL100:   Common/MatDefs/Light/SPLighting.vert
-        FragmentShader GLSL100: Common/MatDefs/Light/SPLighting.frag
+        VertexShader GLSL310 GLSL300 GLSL100 GLSL150:   Common/MatDefs/Light/SPLighting.vert
+        FragmentShader GLSL310 GLSL300 GLSL100 GLSL150: Common/MatDefs/Light/SPLighting.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -156,9 +168,17 @@ MaterialDef Phong Lighting {
             SEPARATE_TEXCOORD : SeparateTexCoord
             DISCARD_ALPHA : AlphaDiscardThreshold
             USE_REFLECTION : EnvMap
-            SPHERE_MAP : SphereMap
+            SPHERE_MAP : EnvMapAsSphereMap
             NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
+            NUM_MORPH_TARGETS: NumberOfMorphTargets
+            NUM_TARGETS_BUFFERS: NumberOfTargetsBuffers
+
+            // fog - jayfella
+            USE_FOG : UseFog
+            FOG_LINEAR : LinearFog
+            FOG_EXP : ExpFog
+            FOG_EXPSQ : ExpSqFog
         }
     }
 
@@ -166,8 +186,8 @@ MaterialDef Phong Lighting {
 
         LightMode MultiPass
 
-        VertexShader GLSL100:   Shaders/LightingSprite.vert
-        FragmentShader GLSL100: Shaders/LightingSprite.frag
+        VertexShader GLSL310 GLSL300 GLSL100 GLSL150:   Shaders/LightingSprite.vert
+        FragmentShader GLSL310 GLSL300 GLSL100 GLSL150: Shaders/LightingSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -198,9 +218,17 @@ MaterialDef Phong Lighting {
             SEPARATE_TEXCOORD : SeparateTexCoord
             DISCARD_ALPHA : AlphaDiscardThreshold
             USE_REFLECTION : EnvMap
-            SPHERE_MAP : SphereMap
+            SPHERE_MAP : EnvMapAsSphereMap
             NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
+            NUM_MORPH_TARGETS: NumberOfMorphTargets
+            NUM_TARGETS_BUFFERS: NumberOfTargetsBuffers
+
+            // fog - jayfella
+            USE_FOG : UseFog
+            FOG_LINEAR : LinearFog
+            FOG_EXP : ExpFog
+            FOG_EXPSQ : ExpSqFog
         }
     }
 
@@ -208,8 +236,8 @@ MaterialDef Phong Lighting {
 
     Technique PreShadow {
 
-        VertexShader GLSL100 :   Shaders/PreShadowSprite.vert
-        FragmentShader GLSL100 : Shaders/PreShadowSprite.frag
+        VertexShader GLSL310 GLSL300 GLSL100 GLSL150 :   Shaders/PreShadowSprite.vert
+        FragmentShader GLSL310 GLSL300 GLSL100 GLSL150 : Shaders/PreShadowSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -222,10 +250,11 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
-            COLOR_MAP : ColorMap
             DISCARD_ALPHA : AlphaDiscardThreshold
             NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
+            NUM_MORPH_TARGETS: NumberOfMorphTargets
+            NUM_TARGETS_BUFFERS: NumberOfTargetsBuffers
         }
 
         ForcedRenderState {
@@ -238,51 +267,16 @@ MaterialDef Phong Lighting {
 
     }
 
-
-    Technique PostShadow15{
-        VertexShader GLSL150:   Shaders/PostShadowSprite.vert
-        FragmentShader GLSL150: Shaders/PostShadowSprite15.frag
-
-        WorldParameters {
-            WorldViewProjectionMatrix
-            WorldMatrix
-            ViewProjectionMatrix
-            ViewMatrix
-
-            // For the animation
-            Time
-        }
-
-        Defines {
-            HARDWARE_SHADOWS : HardwareShadows
-            FILTER_MODE : FilterMode
-            PCFEDGE : PCFEdge
-            DISCARD_ALPHA : AlphaDiscardThreshold
-            COLOR_MAP : ColorMap
-            SHADOWMAP_SIZE : ShadowMapSize
-            FADE : FadeInfo
-            PSSM : Splits
-            POINTLIGHT : LightViewProjectionMatrix5
-            NUM_BONES : NumberOfBones
-            INSTANCING : UseInstancing
-        }
-
-        ForcedRenderState {
-            Blend Modulate
-            DepthWrite Off
-            PolyOffset -0.1 0
-        }
-    }
-
     Technique PostShadow{
-        VertexShader GLSL100:   Shaders/PostShadowSprite.vert
-        FragmentShader GLSL100: Common/MatDefs/Shadow/PostShadow.frag
+        VertexShader GLSL310 GLSL300 GLSL100 GLSL150:   Shaders/PostShadowSprite.vert
+        FragmentShader GLSL310 GLSL300 GLSL100 GLSL150: Shaders/PostShadowSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
             WorldMatrix
             ViewProjectionMatrix
             ViewMatrix
+            NormalMatrix
 
             // For the animation
             Time
@@ -293,13 +287,15 @@ MaterialDef Phong Lighting {
             FILTER_MODE : FilterMode
             PCFEDGE : PCFEdge
             DISCARD_ALPHA : AlphaDiscardThreshold
-            COLOR_MAP : ColorMap
             SHADOWMAP_SIZE : ShadowMapSize
             FADE : FadeInfo
             PSSM : Splits
             POINTLIGHT : LightViewProjectionMatrix5
             NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
+            BACKFACE_SHADOWS: BackfaceShadows
+            NUM_MORPH_TARGETS: NumberOfMorphTargets
+            NUM_TARGETS_BUFFERS: NumberOfTargetsBuffers
         }
 
         ForcedRenderState {
@@ -311,8 +307,8 @@ MaterialDef Phong Lighting {
 
   Technique PreNormalPass {
 
-        VertexShader GLSL100 :   Common/MatDefs/SSAO/normal.vert
-        FragmentShader GLSL100 : Common/MatDefs/SSAO/normal.frag
+        VertexShader GLSL310 GLSL300 GLSL100 GLSL150 :   Common/MatDefs/SSAO/normal.vert
+        FragmentShader GLSL310 GLSL300 GLSL100 GLSL150 : Common/MatDefs/SSAO/normal.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -326,62 +322,16 @@ MaterialDef Phong Lighting {
             DIFFUSEMAP_ALPHA : DiffuseMap
             NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
+            NUM_MORPH_TARGETS: NumberOfMorphTargets
+            NUM_TARGETS_BUFFERS: NumberOfTargetsBuffers
         }
 
-    }
-
-
-    Technique PreNormalPassDerivative {
-
-        VertexShader GLSL100 :   Common/MatDefs/MSSAO/normal.vert
-        FragmentShader GLSL100 : Common/MatDefs/MSSAO/normal.frag
-
-        WorldParameters {
-            WorldViewProjectionMatrix
-            WorldViewMatrix
-            NormalMatrix
-            ViewProjectionMatrix
-            ViewMatrix
-        }
-
-        Defines {
-            DIFFUSEMAP_ALPHA : DiffuseMap
-            NUM_BONES : NumberOfBones
-            INSTANCING : UseInstancing
-        }
-
-    }
-
-    Technique GBuf {
-
-        VertexShader GLSL100:   Common/MatDefs/Light/GBuf.vert
-        FragmentShader GLSL100: Common/MatDefs/Light/GBuf.frag
-
-        WorldParameters {
-            WorldViewProjectionMatrix
-            NormalMatrix
-            WorldViewMatrix
-            WorldMatrix
-        }
-
-        Defines {
-            VERTEX_COLOR : UseVertexColor
-            MATERIAL_COLORS : UseMaterialColors
-            V_TANGENT : VTangent
-            MINNAERT  : Minnaert
-            WARDISO   : WardIso
-
-            DIFFUSEMAP : DiffuseMap
-            NORMALMAP : NormalMap
-            SPECULARMAP : SpecularMap
-            PARALLAXMAP : ParallaxMap
-        }
     }
 
     Technique Glow {
 
-        VertexShader GLSL100:   Common/MatDefs/Misc/Unshaded.vert
-        FragmentShader GLSL100: Common/MatDefs/Light/Glow.frag
+        VertexShader GLSL310 GLSL300 GLSL100 GLSL150:   Common/MatDefs/Misc/Unshaded.vert
+        FragmentShader GLSL310 GLSL300 GLSL100 GLSL150: Common/MatDefs/Light/Glow.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -396,6 +346,8 @@ MaterialDef Phong Lighting {
 
             NUM_BONES : NumberOfBones
             INSTANCING : UseInstancing
+            NUM_MORPH_TARGETS: NumberOfMorphTargets
+            NUM_TARGETS_BUFFERS: NumberOfTargetsBuffers
         }
     }
 

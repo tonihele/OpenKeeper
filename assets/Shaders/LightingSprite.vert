@@ -1,8 +1,17 @@
+#import "Common/ShaderLib/GLSLCompat.glsllib"
 #import "Common/ShaderLib/Instancing.glsllib"
 #import "Common/ShaderLib/Skinning.glsllib"
 #import "Common/ShaderLib/Lighting.glsllib"
+#import "Common/ShaderLib/MorphAnim.glsllib"
+
 #ifdef VERTEX_LIGHTING
     #import "Common/ShaderLib/BlinnPhongLighting.glsllib"    
+#endif
+
+// fog - jayfella
+#ifdef USE_FOG
+varying float fog_distance;
+uniform vec3 g_CameraPosition;
 #endif
 
 // Animation
@@ -91,6 +100,14 @@ void main(){
    
    #ifndef VERTEX_LIGHTING
         vec3 modelSpaceTan  = inTangent.xyz;
+   #endif
+
+   #ifdef NUM_MORPH_TARGETS
+        #if defined(NORMALMAP) && !defined(VERTEX_LIGHTING)
+           Morph_Compute(modelSpacePos, modelSpaceNorm, modelSpaceTan);
+        #else
+           Morph_Compute(modelSpacePos, modelSpaceNorm);
+        #endif
    #endif
 
    #ifdef NUM_BONES
@@ -183,4 +200,8 @@ void main(){
     #ifdef USE_REFLECTION 
         computeRef(modelSpacePos);
     #endif 
+
+    #ifdef USE_FOG
+    fog_distance = distance(g_CameraPosition, (TransformWorld(modelSpacePos)).xyz);
+    #endif
 }
