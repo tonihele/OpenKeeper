@@ -123,7 +123,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
         ObjectControl objectControl = getControl(tile, obj, moneyAmount, maxMoney, playerSpell);
         Node nodeObject = null;
         if (objectControl.getResource() != null) {
-            nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName());
+            nodeObject = (Node) AssetUtils.loadModel(assetManager, objectControl.getResource().getName(), objectControl.getResource());
             nodeObject.addControl(objectControl);
 
             // Move to the center of the tile

@@ -22,6 +22,7 @@ import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -44,7 +45,8 @@ public class DoorLoader implements ILoader<DoorViewState> {
     public Spatial load(AssetManager assetManager, DoorViewState door) {
         try {
             Door doorRecord = kwdFile.getDoorById(door.doorId);
-            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, doorRecord.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? doorRecord.getMesh().getName() : doorRecord.getCloseResource().getName());
+            ArtResource artResource = doorRecord.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? doorRecord.getMesh() : doorRecord.getCloseResource();
+            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load door " + door + "!", e);

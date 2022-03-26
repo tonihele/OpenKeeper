@@ -23,6 +23,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.construction.QuadConstructor;
 import toniarts.openkeeper.world.MapLoader;
@@ -40,7 +41,8 @@ public class StoneBridgeConstructor extends QuadConstructor {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
         //Point start = roomInstance.getCoordinates().get(0);
 
         // Construct the tiles Wooden Bridge
@@ -137,7 +139,7 @@ public class StoneBridgeConstructor extends QuadConstructor {
                     }
 
                     // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, modelName + piece);
+                    Spatial part = AssetUtils.loadModel(assetManager, modelName + piece, artResource);
                     part.rotate(0, yAngle, 0);
                     part.move(movement);
 

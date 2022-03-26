@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -63,6 +64,7 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -103,7 +105,7 @@ public class AssetUtils {
      * @return a cloned instance from the cache
      */
     public static Spatial loadModel(final AssetManager assetManager, String modelName,
-            final boolean useCache, final boolean useWeakCache) {
+            ArtResource artResource, final boolean useCache, final boolean useWeakCache) {
 
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
@@ -117,21 +119,49 @@ public class AssetUtils {
             // Get the model from cache
             Spatial model = cache.getFromCache(assetKey);
             if (model == null) {
-                model = assetManager.loadModel(assetKey);
-                resetSpatial(model);
-
-                // Assign maps
-                assignMapsToMaterial(model, assetManager);
+                model = loadModel(assetManager, assetKey, artResource);
 
                 cache.addToCache(assetKey, model);
             }
             result = model.clone();
         } else {
-            result = assetManager.loadModel(assetKey);
-            resetSpatial(result);
+            result = loadModel(assetManager, assetKey, artResource);
         }
 
         return result;
+    }
+
+    private static Spatial loadModel(final AssetManager assetManager, ModelKey assetKey, ArtResource artResource) {
+        Spatial model = assetManager.loadModel(assetKey);
+        resetSpatial(model);
+        
+        // Assign maps
+        assignMapsToMaterial(model, assetManager);
+        
+        // Create possible animating textures
+        // This information is not found directly in KMF... at least to my knowledge
+        if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            assignAnimatingTextures(model, assetManager);
+        }
+        
+        return model;
+    }
+    
+    private static void assignAnimatingTextures(Spatial model, AssetManager assetManager) {
+        model.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
+                if (spatial instanceof Geometry && textures != null && textures.size() > 1) {
+                    Material material = ((Geometry) spatial).getMaterial();
+                    material = createLightningSpriteMaterial(spatial.getParent().getName(), material.isTransparent(), () -> {
+                        return textures;
+                    }, assetManager);
+                    spatial.setMaterial(material);
+                }
+            }
+
+        });
     }
 
     /**
@@ -141,12 +171,12 @@ public class AssetUtils {
      * @param modelName
      * @return
      */
-    public static Spatial loadAsset(final AssetManager assetManager, String modelName) {
+    public static Spatial loadAsset(final AssetManager assetManager, String modelName, ArtResource artResource) {
 
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
 
-        Spatial result = assetManager.loadModel(assetKey);
+        Spatial result = loadModel(assetManager, assetKey, artResource);
 
         return result;
     }
@@ -154,11 +184,11 @@ public class AssetUtils {
     public static Spatial loadModel(final AssetManager assetManager, String resourceName,
             final boolean useWeakCache) {
 
-        return loadModel(assetManager, resourceName, true, useWeakCache);
+        return loadModel(assetManager, resourceName, null, true, useWeakCache);
     }
 
-    public static Spatial loadModel(final AssetManager assetManager, String resourceName) {
-        return loadModel(assetManager, resourceName, true, false);
+    public static Spatial loadModel(final AssetManager assetManager, String resourceName, ArtResource artResource) {
+        return loadModel(assetManager, resourceName, artResource, true, false);
     }
 
     public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
@@ -250,40 +280,47 @@ public class AssetUtils {
      */
     public static Material createLightningSpriteMaterial(ArtResource resource, AssetManager assetManager) {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
-
-            // Cache
-            MaterialKey assetKey = new MaterialKey(resource.getName());
-            Material mat = ASSET_CACHE.getFromCache(assetKey);
-
-            if (mat == null) {
-                mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
-                int frames = resource.getData(ArtResource.KEY_FRAMES);
-                mat.setInt("NumberOfTiles", frames);
-                mat.setInt("Speed", frames); // FIXME: Just a guess work
-
-                // Create the texture
-                try {
-
-                    if (resource.getType() == ArtResource.ArtResourceType.ALPHA) {
-                        mat.setTransparent(true);
-                        mat.setFloat("AlphaDiscardThreshold", 0.1f);
-                        mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-                    }
-
-                    Texture tex = createArtResourceTexture(resource, assetManager);
-
-                    // Load the texture up
-                    mat.setTexture("DiffuseMap", tex);
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
-                }
-
-                // Add to cache
-                ASSET_CACHE.addToCache(assetKey, mat);
-            }
-            return mat.clone();
+            return createLightningSpriteMaterial(resource.getName(), 
+                    resource.getType() == ArtResource.ArtResourceType.ALPHA, () -> {
+                        return getTextureFrames(resource);
+                    }, assetManager);
         }
         return null;
+    }
+
+    private static Material createLightningSpriteMaterial(String name, boolean hasAlpha, Supplier<List<String>> texturesSupplier, AssetManager assetManager) {
+        
+        // Cache
+        MaterialKey assetKey = new MaterialKey(name);
+        Material mat = ASSET_CACHE.getFromCache(assetKey);
+        
+        if (mat == null) {
+            List<String> textures = texturesSupplier.get();
+            mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
+            mat.setInt("NumberOfTiles", textures.size());
+            mat.setInt("Speed", textures.size()); // FIXME: Just a guess work
+            
+            // Create the texture
+            try {
+                
+                if (hasAlpha) {
+                    mat.setTransparent(true);
+                    mat.setFloat("AlphaDiscardThreshold", 0.1f);
+                    mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+                }
+                
+                Texture tex = createAnimatingTexture(name, hasAlpha, textures, assetManager);
+                
+                // Load the texture up
+                mat.setTexture("DiffuseMap", tex);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Can't create a texture out of " + name + "!", e);
+            }
+
+            // Add to cache
+            ASSET_CACHE.addToCache(assetKey, mat);
+        }
+        return mat.clone();
     }
 
     /**
@@ -317,39 +354,9 @@ public class AssetUtils {
         String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
 
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
-
-            // Get the first frame, the frames need to be same size
-            BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + "0.png"))));
-
-            // Create image big enough to fit all the frames
-            int frames = resource.getData(ArtResource.KEY_FRAMES);
-            BufferedImage text = new BufferedImage(img.getWidth() * frames, img.getHeight(),
-                    resource.getType() == ArtResource.ArtResourceType.ALPHA ? BufferedImage.TYPE_INT_ARGB : img.getType());
-            Graphics2D g = text.createGraphics();
-
-            // If the source image doesn't have an alpha channel but the art resource wants one... Apply 75% opacity. See water
-            if (resource.getType() == ArtResource.ArtResourceType.ALPHA && !img.getColorModel().hasAlpha()) {
-                AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC, 0.75f);
-                g.setComposite(ac);
-            }
-
-            g.drawImage(img, null, 0, 0);
-            for (int x = 1; x < frames; x++) {
-                AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + x + ".png")));
-                if (asset != null) {
-                    img = readImageFromAsset(asset);
-                } else {
-                    // use previous img
-                    LOGGER.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{resource.getName(), x});
-                }
-                g.drawImage(img, null, img.getWidth() * x, 0);
-            }
-            g.dispose();
-
-            // Convert the new image to a texture
-            AWTLoader loader = new AWTLoader();
-            Texture tex = new Texture2D(loader.load(text, false));
-            return tex;
+            return createAnimatingTexture(resource.getName(),  
+                    resource.getType() == ArtResource.ArtResourceType.ALPHA,
+                    getTextureFrames(resource), assetManager);
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -361,6 +368,52 @@ public class AssetUtils {
             TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + ".png"), false);
             return assetManager.loadTexture(key);
         }
+    }
+    
+    private static List<String> getTextureFrames(ArtResource resource) {
+        int frames = resource.getData(ArtResource.KEY_FRAMES);
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
+        List<String> framesList = new ArrayList<>(frames);
+        for (int x = 0; x < frames; x++) {
+            framesList.add(assetFolder + resource.getName() + x + ".png");
+        }
+        
+        return framesList;
+    }
+
+    private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
+        
+        // Get the first frame, the frames need to be same size
+        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(textures.get(0)))));
+        
+        // Create image big enough to fit all the frames
+        BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
+                hasAlpha ? BufferedImage.TYPE_INT_ARGB : img.getType());
+        Graphics2D g = text.createGraphics();
+        
+        // If the source image doesn't have an alpha channel but the art resource wants one... Apply 75% opacity. See water
+        if (hasAlpha && !img.getColorModel().hasAlpha()) {
+            AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC, 0.75f);
+            g.setComposite(ac);
+        }
+        
+        g.drawImage(img, null, 0, 0);
+        for (int x = 1; x < textures.size(); x++) {
+            AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(textures.get(x))));
+            if (asset != null) {
+                img = readImageFromAsset(asset);
+            } else {
+                // use previous img
+                LOGGER.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{name, x});
+            }
+            g.drawImage(img, null, img.getWidth() * x, 0);
+        }
+        g.dispose();
+        
+        // Convert the new image to a texture
+        AWTLoader loader = new AWTLoader();
+        Texture tex = new Texture2D(loader.load(text, false));
+        return tex;
     }
 
     public static BufferedImage readImageFromAsset(AssetInfo asset) throws IOException {
@@ -440,26 +493,26 @@ public class AssetUtils {
                                     || artResource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
                                     || artResource.getType() == ArtResource.ArtResourceType.MESH_COLLECTION
                                     || artResource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH) {
-                                models.add(loadModel(assetManager, artResource.getName()));
+                                models.add(loadModel(assetManager, artResource.getName(), artResource));
                             } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Terrain) {
 
                                 // With terrains, we need to see the contruction type
                                 Terrain terrain = (Terrain) obj;
                                 if (method.getName().startsWith("getTaggedTopResource") || method.getName().startsWith("getSideResource")) {
-                                    models.add(loadModel(assetManager, artResource.getName()));
+                                    models.add(loadModel(assetManager, artResource.getName(), artResource));
                                 } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                                     for (int i = 0; i < 5; i++) {
                                         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                                             for (int y = 0; y < 7; y++) {
-                                                models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, true, false));
+                                                models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, artResource, true, false));
                                             }
                                         } else {
-                                            models.add(loadModel(assetManager, artResource.getName() + i));
+                                            models.add(loadModel(assetManager, artResource.getName() + i, artResource));
                                         }
                                     }
                                 } // TODO: No water... it is done in Water.java, need to tweak somehow
                                 else if (!terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
-                                    models.add(loadModel(assetManager, artResource.getName()));
+                                    models.add(loadModel(assetManager, artResource.getName(), artResource));
                                 }
                             } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Room) {
 

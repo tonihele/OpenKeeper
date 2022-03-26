@@ -22,6 +22,7 @@ import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -42,7 +43,8 @@ public class TrapLoader implements ILoader<TrapViewState> {
     @Override
     public Spatial load(AssetManager assetManager, TrapViewState trap) {
         try {
-            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, kwdFile.getTrapById(trap.trapId).getMeshResource().getName());
+            ArtResource artResource = kwdFile.getTrapById(trap.trapId).getMeshResource();
+            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load trap " + trap + "!", e);

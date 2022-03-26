@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -35,13 +36,14 @@ public class HeroGateTwoByTwoConstructor extends RoomConstructor {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
 
         // Contruct the tiles
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = AssetUtils.loadModel(assetManager, modelName + i++, false, true);
+            Spatial tile = AssetUtils.loadModel(assetManager, modelName + i++, artResource, false, true);
 
             // Reset
             moveSpatial(tile, start, p);

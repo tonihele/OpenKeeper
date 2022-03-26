@@ -174,7 +174,7 @@ public class Quad extends GenericRoom {
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }
                 // Load the piece
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece));
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece), null);
                 part.rotate(0, angle + yAngle, 0);
                 part.move(movement);
 

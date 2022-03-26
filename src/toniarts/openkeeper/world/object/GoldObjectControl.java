@@ -100,7 +100,7 @@ public class GoldObjectControl extends ObjectControl {
         ArtResource temp = getResource();
         if (temp != currentResource) {
             currentResource = temp;
-            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), currentResource.getName());
+            Node nodeObject = (Node) AssetUtils.loadModel(worldState.getAssetManager(), currentResource.getName(), currentResource);
             nodeObject.move(0, MapLoader.FLOOR_HEIGHT, 0);
             ((Node) getSpatial()).detachAllChildren();
             for (Spatial spat : nodeObject.getChildren()) {

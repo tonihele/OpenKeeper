@@ -52,13 +52,13 @@ public class AnimationLoader {
                 || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
             try {
 
-                Spatial spat = loadModel(assetManager, resource.getName(), root);
+                Spatial spat = loadModel(assetManager, resource.getName(), resource, root);
                 spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
                     String name = resource.getName() + START_ANIMATION_NAME;
-                    Spatial spatStart = loadModel(assetManager, name, root);
+                    Spatial spatStart = loadModel(assetManager, name, resource, root);
                     spatStart.setName(START_ANIMATION_NAME);
 
                     // Create kinda a custom animation control
@@ -97,7 +97,7 @@ public class AnimationLoader {
                 }
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
                     String name = resource.getName() + END_ANIMATION_NAME;
-                    Spatial spatEnd = loadModel(assetManager, name, root);
+                    Spatial spatEnd = loadModel(assetManager, name, resource, root);
                     spatEnd.setName(END_ANIMATION_NAME);
 
                     // Create kinda a custom animation control
@@ -198,10 +198,10 @@ public class AnimationLoader {
         }
     }
 
-    private static Spatial loadModel(AssetManager assetManager, String resourceName, Node creatureRoot) {
+    private static Spatial loadModel(AssetManager assetManager, String resourceName, ArtResource artResource, Node creatureRoot) {
 
         // Load the model and attach it without the root
-        Spatial model = AssetUtils.loadModel(assetManager, resourceName);
+        Spatial model = AssetUtils.loadModel(assetManager, resourceName, artResource);
         model = ((Node) model).getChild(0);
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);

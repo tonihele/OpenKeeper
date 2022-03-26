@@ -56,7 +56,7 @@ public class HeroGate extends GenericRoom {
             if (!N && E && W) {
                 piece = 1;
             } else if (!S && !E && !W) {
-                tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCapResource().getName(), false, true);
+                tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCapResource().getName(), null, false, true);
                 moveSpatial(tile, start, p);
                 root.attachChild(tile);
                 piece = 9;
@@ -67,7 +67,7 @@ public class HeroGate extends GenericRoom {
                 yAngle = - 2 * FastMath.HALF_PI;
             }
 
-            tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
+            tile = AssetUtils.loadModel(assetManager, modelName + piece, null, false, true);
             // Reset
             moveSpatial(tile, start, p);
             if (yAngle != 0) {
@@ -140,7 +140,7 @@ public class HeroGate extends GenericRoom {
                 }
 
                 i++;
-                part = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
+                part = AssetUtils.loadModel(assetManager, modelName + piece, null, false, true);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }

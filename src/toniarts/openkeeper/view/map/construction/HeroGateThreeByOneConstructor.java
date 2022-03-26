@@ -24,6 +24,7 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.view.map.WallSection;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 
@@ -41,13 +42,14 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
         //Point center = roomInstance.getCenter();
         // Contruct the tiles
         int j = 0;
         for (Point p : roomInstance.getCoordinates()) {
             int piece = (roomInstance.getDirection() == Direction.WEST || roomInstance.getDirection() == Direction.SOUTH) ? j + 3 : 5 - j;
-            Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
+            Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, artResource, false, true);
             j++;
             moveSpatial(tile, p);
             root.attachChild(tile);
@@ -74,8 +76,8 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
     protected BatchNode constructWall() {
         BatchNode root = new BatchNode();
         // Get the wall points
-        //Point center = roomInstance.getCenter();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
         for (WallSection section : roomInstance.getWallSections()) {
 
             int i = 0;
@@ -101,7 +103,7 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
                 }
                 //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;
 
-                Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece + (roomInstance.isDestroyed() ? "DESTROYED" : ""), false, true);
+                Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece + (roomInstance.isDestroyed() ? "DESTROYED" : ""), artResource, false, true);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }

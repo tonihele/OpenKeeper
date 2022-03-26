@@ -51,7 +51,7 @@ public class ThreeByThree extends GenericRoom implements ICreatureEntrance {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = (Spatial) AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, false, true);
+            Spatial tile = (Spatial) AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, null, false, true);
 
             moveSpatial(tile, start, p);
 

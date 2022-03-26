@@ -21,6 +21,7 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.WallSection;
 
@@ -39,7 +40,8 @@ public class HeroGateConstructor extends RoomConstructor {
         BatchNode root = new BatchNode();
         // Get the wall points
         Point start = roomInstance.getCoordinates().get(0);
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
         int south = 0;
         for (WallSection section : roomInstance.getWallSections()) {
             int i = 0;
@@ -89,7 +91,7 @@ public class HeroGateConstructor extends RoomConstructor {
                 }
 
                 i++;
-                part = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
+                part = AssetUtils.loadModel(assetManager, modelName + piece, artResource, false, true);
                 if (yAngle != 0) {
                     part.rotate(0, yAngle, 0);
                 }
@@ -126,7 +128,8 @@ public class HeroGateConstructor extends RoomConstructor {
             if (!N && E && W) {
                 piece = 1;
             } else if (!S && !E && !W) {
-                tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCapResource().getName(), false, true);
+                ArtResource artResource = roomInstance.getRoom().getCapResource();
+                tile = AssetUtils.loadModel(assetManager, artResource.getName(), artResource, false, true);
                 moveSpatial(tile, start, p);
                 root.attachChild(tile);
                 piece = 9;
@@ -137,7 +140,7 @@ public class HeroGateConstructor extends RoomConstructor {
                 yAngle = - 2 * FastMath.HALF_PI;
             }
 
-            tile = AssetUtils.loadModel(assetManager, modelName + piece, false, true);
+            tile = AssetUtils.loadModel(assetManager, modelName + piece, null, false, true);
             // Reset
             moveSpatial(tile, start, p);
             if (yAngle != 0) {

@@ -72,7 +72,7 @@ public class HeroGateFrontEnd extends GenericRoom {
      * option)
      */
     private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p, boolean randomizeAnimation) {
-        Node object = (Node) AssetUtils.loadModel(assetManager, model, false, true);
+        Node object = (Node) AssetUtils.loadModel(assetManager, model, null, false, true);
 
         // Reset
         moveSpatial(object, start, p);
@@ -168,7 +168,7 @@ public class HeroGateFrontEnd extends GenericRoom {
         int i = 1;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, false, true);
+            Spatial tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, null, false, true);
 
             // Reset
             moveSpatial(tile, start, p);

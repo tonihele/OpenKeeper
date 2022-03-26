@@ -90,7 +90,7 @@ public class Normal extends GenericRoom {
 
                 // If we are completely covered, use a big tile
                 if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
-                    part = AssetUtils.loadModel(assetManager, modelName + "9");
+                    part = AssetUtils.loadModel(assetManager, modelName + "9", null);
                 } else {
                     part = Quad.constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
                 }
@@ -169,7 +169,7 @@ public class Normal extends GenericRoom {
                 if (found) {
 
                     // Contruct a pillar
-                    Spatial part = AssetUtils.loadModel(assetManager, getPillarResource());
+                    Spatial part = AssetUtils.loadModel(assetManager, getPillarResource(), null);
                     // Face "in" diagonally
                     if (freeDirections.contains(WallDirection.NORTH)
                             && freeDirections.contains(WallDirection.EAST)) {

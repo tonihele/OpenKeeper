@@ -21,6 +21,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
 import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
@@ -41,7 +42,8 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
 
         // Contruct the tiles
         boolean door = false;
@@ -75,7 +77,7 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
                 if (!door && southInside) {
 
                     // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
-                    Spatial part = AssetUtils.loadModel(assetManager, modelName + "14");
+                    Spatial part = AssetUtils.loadModel(assetManager, modelName + "14", artResource);
                     AssetUtils.translateToTile(part, new Point(x, y));
                     part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
 
