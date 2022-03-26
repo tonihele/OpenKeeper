@@ -154,7 +154,7 @@ public class AssetUtils {
                 List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
                 if (spatial instanceof Geometry && textures != null && textures.size() > 1) {
                     Material material = ((Geometry) spatial).getMaterial();
-                    material = createLightningSpriteMaterial(spatial.getParent().getName(), material.isTransparent(), () -> {
+                    material = createLightningSpriteMaterial(material.getName(), material.isTransparent(), () -> {
                         return textures;
                     }, assetManager);
                     spatial.setMaterial(material);
