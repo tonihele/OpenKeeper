@@ -140,7 +140,8 @@ public class AssetUtils {
         
         // Create possible animating textures
         // This information is not found directly in KMF... at least to my knowledge
-        if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+        if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) && 
+                !artResource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
             assignAnimatingTextures(model, assetManager);
         }
         
@@ -279,7 +280,8 @@ public class AssetUtils {
      * @return JME material
      */
     public static Material createLightningSpriteMaterial(ArtResource resource, AssetManager assetManager) {
-        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) &&
+                !resource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
             return createLightningSpriteMaterial(resource.getName(), 
                     resource.getType() == ArtResource.ArtResourceType.ALPHA, () -> {
                         return getTextureFrames(resource);
@@ -298,7 +300,7 @@ public class AssetUtils {
             List<String> textures = texturesSupplier.get();
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
             mat.setInt("NumberOfTiles", textures.size());
-            mat.setInt("Speed", 15); // FIXME: Just a guess work
+            mat.setInt("Speed", 30); // FIXME: Just a guess work
             
             // Create the texture
             try {
