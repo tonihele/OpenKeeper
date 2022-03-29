@@ -35,6 +35,7 @@ import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -276,14 +277,15 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 Material material = ((Geometry) spatial).getMaterial();
 
                 // Decay
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY) && terrain.getTextureFrames() > 1) {
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 
                     List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
                     if (textures != null) {
 
                         // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
                         // Now we have a random starting texture...
-                        int textureIndex = Math.round((terrain.getTextureFrames() - 1) * (tile.getHealthPercent() / 100f));
+                        int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
+                        Collections.sort(textures); // Not ideal...
                         String diffuseTexture = textures.get(textureIndex);
                         String diffuseTextureKey = ConversionUtils.getCanonicalAssetKey(diffuseTexture);
                         String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
