@@ -142,20 +142,20 @@ public class AssetUtils {
         // This information is not found directly in KMF... at least to my knowledge
         if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) && 
                 !artResource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
-            assignAnimatingTextures(model, assetManager);
+            assignAnimatingTextures(model, assetManager, artResource.getData("fps"));
         }
         
         return model;
     }
     
-    private static void assignAnimatingTextures(Spatial model, AssetManager assetManager) {
+    private static void assignAnimatingTextures(Spatial model, AssetManager assetManager, Integer fps) {
         model.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
                 List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
                 if (spatial instanceof Geometry && textures != null && textures.size() > 1) {
                     Material material = ((Geometry) spatial).getMaterial();
-                    material = createLightningSpriteMaterial(material.getName(), material.isTransparent(), () -> {
+                    material = createLightningSpriteMaterial(material.getName(), material.isTransparent(), fps, () -> {
                         return textures;
                     }, assetManager);
                     spatial.setMaterial(material);
@@ -283,14 +283,14 @@ public class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) &&
                 !resource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
             return createLightningSpriteMaterial(resource.getName(), 
-                    resource.getType() == ArtResource.ArtResourceType.ALPHA, () -> {
+                    resource.getType() == ArtResource.ArtResourceType.ALPHA, resource.getData("fps"), () -> {
                         return getTextureFrames(resource);
                     }, assetManager);
         }
         return null;
     }
 
-    private static Material createLightningSpriteMaterial(String name, boolean hasAlpha, Supplier<List<String>> texturesSupplier, AssetManager assetManager) {
+    private static Material createLightningSpriteMaterial(String name, boolean hasAlpha, Integer fps, Supplier<List<String>> texturesSupplier, AssetManager assetManager) {
         
         // Cache
         MaterialKey assetKey = new MaterialKey(name);
@@ -300,7 +300,7 @@ public class AssetUtils {
             List<String> textures = texturesSupplier.get();
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
             mat.setInt("NumberOfTiles", textures.size());
-            mat.setInt("Speed", 30); // FIXME: Just a guess work
+            mat.setInt("Speed", fps != null ? fps : 30);
             
             // Create the texture
             try {
