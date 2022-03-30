@@ -285,7 +285,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                         // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
                         // Now we have a random starting texture...
                         int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
-                        Collections.sort(textures); // Not ideal...
                         String diffuseTexture = textures.get(textureIndex);
                         String diffuseTextureKey = ConversionUtils.getCanonicalAssetKey(diffuseTexture);
                         String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();

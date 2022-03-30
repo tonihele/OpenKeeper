@@ -48,12 +48,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
@@ -102,6 +105,7 @@ public class KmfModelLoader implements AssetLoader {
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
+    private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
 
     public static void main(final String[] args) throws IOException {
 
@@ -549,6 +553,11 @@ public class KmfModelLoader implements AssetLoader {
             for (Material material : materialsList) {
                 textureNames.add(material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName());
             }
+            
+            // The textures seem to be in random order (sometimes), I don't know if the real idea is to figure the purpose out from the file names..
+            // But a quick fix is to sort them... So they go in somewhat logical order
+            Collections.sort(textureNames, TEXTURE_SORTER);
+            
             geom.setUserData(MATERIAL_ALTERNATIVE_TEXTURES, textureNames);
         }
 
@@ -753,6 +762,36 @@ public class KmfModelLoader implements AssetLoader {
         TextureKey textureKey = new TextureKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
         return tex;
+    }
+
+    private static class TextureSorter implements Comparator<String> {
+        
+        private static final Pattern PATTERN = Pattern.compile("\\D+(?<number>\\d+)\\.png");
+
+        @Override
+        public int compare(String o1, String o2) {
+            Integer o1Numbering = null;
+            Integer o2Numbering = null;
+            Matcher m = PATTERN.matcher(o1);
+            if(m.matches()) {
+                o1Numbering = Integer.parseInt(m.group("number"));
+            }
+             m = PATTERN.matcher(o2);
+            if(m.matches()) {
+                o2Numbering = Integer.parseInt(m.group("number"));
+            }
+
+            int result = 0;
+            if (o1Numbering != null && o2Numbering != null) {
+                result = Integer.compare(o1Numbering, o2Numbering);
+            }
+
+            if (result == 0) {
+                result = String.CASE_INSENSITIVE_ORDER.compare(o1, o2);
+            }
+
+            return result;
+        }
     }
 
     /**
