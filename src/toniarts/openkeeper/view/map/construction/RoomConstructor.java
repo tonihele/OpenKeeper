@@ -16,6 +16,7 @@ import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.view.map.WallSection;
 import static toniarts.openkeeper.view.map.WallSection.WallDirection.WEST;
 
@@ -74,12 +75,12 @@ public abstract class RoomConstructor {
     protected abstract BatchNode constructFloor();
 
     /**
-     * Rooms typically don't contruct walls themselves, instead they are asked
+     * Rooms typically don't construct walls themselves, instead they are asked
      * for the wall spatials by the map loader in normal map drawing situation
      *
      * @see #getWallSpatial(java.awt.Point,
      * toniarts.openkeeper.world.room.WallSection.WallDirection)
-     * @return contructed wall
+     * @return constructed wall
      */
     protected BatchNode constructWall() {
         return null;
@@ -121,15 +122,16 @@ public abstract class RoomConstructor {
         return map[x][y];
     }
 
-    protected final Spatial loadModel(String model) {
-        Spatial spatial = AssetUtils.loadModel(assetManager, model);
+    protected final Spatial loadModel(String model, ArtResource artResource) {
+        Spatial spatial = AssetUtils.loadModel(assetManager, model, artResource);
         //resetSpatial(spatial);
         return spatial;
     }
 
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
         float yAngle = FastMath.PI;
-        String resource = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String resource = artResource.getName();
 
         for (WallSection section : roomInstance.getWallSections()) {
 
@@ -165,7 +167,7 @@ public abstract class RoomConstructor {
                     }
 
                     // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece);
+                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece, artResource);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -177,7 +179,7 @@ public abstract class RoomConstructor {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = AssetUtils.loadModel(assetManager, resource + secondPiece);
+                    part = AssetUtils.loadModel(assetManager, resource + secondPiece, artResource);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -185,7 +187,7 @@ public abstract class RoomConstructor {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i));
+                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i), artResource);
                     spatial.rotate(0, yAngle, 0);
 
                     switch (section.getDirection()) {

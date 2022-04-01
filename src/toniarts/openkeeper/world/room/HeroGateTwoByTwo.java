@@ -45,7 +45,7 @@ public class HeroGateTwoByTwo extends GenericRoom {
         int i = 0;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = AssetUtils.loadModel(assetManager, modelName + i++, false, true);
+            Spatial tile = AssetUtils.loadModel(assetManager, modelName + i++, null, false, true);
 
             // Reset
             moveSpatial(tile, start, p);

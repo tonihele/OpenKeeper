@@ -22,6 +22,7 @@ import com.jme3.scene.Spatial;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -42,7 +43,8 @@ public class ObjectLoader implements ILoader<ObjectViewState> {
     @Override
     public Spatial load(AssetManager assetManager, ObjectViewState object) {
         try {
-            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, kwdFile.getObject(object.objectId).getMeshResource().getName());
+            ArtResource artResource = kwdFile.getObject(object.objectId).getMeshResource();
+            Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to load object " + object + "!", e);

@@ -242,7 +242,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 // Decay
                 if (tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.DECAY) && tile.getTerrain().getTextureFrames() > 1) {
 
-                    Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
+                    Integer texCount = null;//spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
                     if (texCount != null) {
 
                         // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
@@ -388,7 +388,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
-                Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
+                Integer texCount = null;//spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
                 if (texCount != null) {
 
                     // On redrawing, see if we already randomized this
@@ -418,7 +418,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     }
 
     private Spatial loadModel(final String model) {
-        Spatial spatial = AssetUtils.loadModel(assetManager, model);
+        Spatial spatial = AssetUtils.loadModel(assetManager, model, null);
 
         return spatial;
     }
@@ -504,7 +504,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                     name = torch.getName();
                 }
             }
-            Spatial spatial = AssetUtils.loadModel(assetManager, name);
+            Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);
             spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));

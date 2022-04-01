@@ -108,7 +108,7 @@ public class WaterConstructor extends SingleTileConstructor {
         }
 
         // 2x2
-        floor = QuadConstructor.constructQuad(assetManager, model, 4, FastMath.PI, N, NE, E, SE, S, SW, W, NW);
+        floor = QuadConstructor.constructQuad(assetManager, model, null, 4, FastMath.PI, N, NE, E, SE, S, SW, W, NW);
 
         return floor;
     }

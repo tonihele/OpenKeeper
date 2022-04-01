@@ -328,7 +328,7 @@ public abstract class GenericRoom {
                     }
 
                     // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece);
+                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece, null);
                     part.move(moveFirst);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -340,7 +340,7 @@ public abstract class GenericRoom {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
-                    part = AssetUtils.loadModel(assetManager, resource + secondPiece);
+                    part = AssetUtils.loadModel(assetManager, resource + secondPiece, null);
                     part.move(moveSecond);
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
@@ -348,7 +348,7 @@ public abstract class GenericRoom {
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i));
+                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i), null);
                     spatial.rotate(0, yAngle, 0);
 
                     switch (section.getDirection()) {
@@ -432,7 +432,7 @@ public abstract class GenericRoom {
     }
 
     protected final Spatial loadModel(String model) {
-        Spatial spatial = AssetUtils.loadModel(assetManager, model);
+        Spatial spatial = AssetUtils.loadModel(assetManager, model, null);
         //resetSpatial(spatial);
         return spatial;
     }

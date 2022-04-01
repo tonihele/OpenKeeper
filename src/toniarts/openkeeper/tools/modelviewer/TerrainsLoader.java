@@ -45,7 +45,7 @@ public class TerrainsLoader implements ILoader<Terrain> {
                 for (int p = 0; p <= 6; p++) {
                     for (int i = 0; i <= 4; i++) {
                         Spatial s = AssetUtils.loadAsset(assetManager,
-                                object.getCompleteResource().getName() + p + "_" + i);
+                                object.getCompleteResource().getName() + p + "_" + i, object.getCompleteResource());
                         s.move(i / 2f, p, i / 2f);
 
                         root.attachChild(s);
@@ -54,7 +54,7 @@ public class TerrainsLoader implements ILoader<Terrain> {
             } else {
                 for (int i = 0; i < 4; i++) {
                         Spatial s = AssetUtils.loadAsset(assetManager,
-                                object.getCompleteResource().getName() + i);
+                                object.getCompleteResource().getName() + i, object.getCompleteResource());
 
                         root.attachChild(s);
                     }
@@ -63,7 +63,7 @@ public class TerrainsLoader implements ILoader<Terrain> {
         } else if (object.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
             for (int i = 0; i <= 7; i++) {
                 Spatial s = AssetUtils.loadAsset(assetManager,
-                        object.getCompleteResource().getName() + i);
+                        object.getCompleteResource().getName() + i, object.getCompleteResource());
                 s.move(0, i, 0);
 
                 root.attachChild(s);
@@ -75,26 +75,26 @@ public class TerrainsLoader implements ILoader<Terrain> {
         } else {
             // Add the top
             if (object.getTopResource() != null) {
-                Spatial s = AssetUtils.loadAsset(assetManager, object.getTopResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getTopResource().getName(), object.getTopResource());
 
                 root.attachChild(s);
             }
 
             if (object.getCompleteResource() != null) {
-                Spatial s = AssetUtils.loadAsset(assetManager, object.getCompleteResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getCompleteResource().getName(), object.getCompleteResource());
 
                 root.attachChild(s);
             }
 
             if (object.getTaggedTopResource() != null) {
-                Spatial s = AssetUtils.loadAsset(assetManager, object.getTaggedTopResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getTaggedTopResource().getName(), object.getTaggedTopResource());
 
                 root.attachChild(s);
             }
 
             // The sides
             if (object.getSideResource() != null) {
-                Spatial s = AssetUtils.loadAsset(assetManager, object.getSideResource().getName());
+                Spatial s = AssetUtils.loadAsset(assetManager, object.getSideResource().getName(), object.getSideResource());
 
                 root.attachChild(s);
             }

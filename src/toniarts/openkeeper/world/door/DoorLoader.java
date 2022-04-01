@@ -60,7 +60,7 @@ public class DoorLoader implements ILoader<Thing.Door> {
 
         // Load
         DoorControl doorControl = new DoorControl(worldState.getMapData().getTile(posX, posY), door, kwdFile.getObject(door.getKeyObjectId()), kwdFile.getTrapById(door.getTrapTypeId()), worldState, assetManager, locked, blueprint);
-        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()));
+        Node nodeObject = (Node) AssetUtils.loadModel(assetManager, (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE) ? door.getMesh().getName() : door.getCloseResource().getName()), null);
         nodeObject.addControl(doorControl);
 
         // Move to the center of the tile

@@ -48,12 +48,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
@@ -97,11 +100,12 @@ public class KmfModelLoader implements AssetLoader {
      * If this user meta data is found from the geometry, it has alternative
      * material possibilities
      */
-    public static final String MATERIAL_ALTERNATIVE_TEXTURES_COUNT = "AlternativeTextureCount";
+    public static final String MATERIAL_ALTERNATIVE_TEXTURES = "AlternativeTextures";
     public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
     private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
+    private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
 
     public static void main(final String[] args) throws IOException {
 
@@ -543,8 +547,18 @@ public class KmfModelLoader implements AssetLoader {
         }
 
         // If we have multiple materials to choose from, tag them to the geometry
-        if (materials.get(materialIndex).size() > 1) {
-            geom.setUserData(MATERIAL_ALTERNATIVE_TEXTURES_COUNT, materials.get(materialIndex).size());
+        List<Material> materialsList = materials.get(materialIndex);
+        if (materialsList.size() > 1) {
+            List<String> textureNames = new ArrayList<>(materialsList.size());
+            for (Material material : materialsList) {
+                textureNames.add(material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName());
+            }
+            
+            // The textures seem to be in random order (sometimes), I don't know if the real idea is to figure the purpose out from the file names..
+            // But a quick fix is to sort them... So they go in somewhat logical order
+            Collections.sort(textureNames, TEXTURE_SORTER);
+            
+            geom.setUserData(MATERIAL_ALTERNATIVE_TEXTURES, textureNames);
         }
 
         // Update bounds
@@ -615,10 +629,8 @@ public class KmfModelLoader implements AssetLoader {
                     List<Material> materialList = new ArrayList<>(mat.getTextures().size());
                     materialList.add(material);
 
-                    // If we have multiple textures, we can just fake them, we just need the count really
-                    if (mat.getTextures().size() > 1) {
-                        materialList.add(material); // Fake it
-                    }
+                    // Multiple textures
+                    addAlternativeTextures(mat, assetInfo, material, materialList);
 
                     materials.put(i, materialList);
                     i++;
@@ -654,6 +666,7 @@ public class KmfModelLoader implements AssetLoader {
             // Create the material
             if (material == null) {
                 material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+                material.setName(mat.getName());
             }
 
             //Load up the texture and create the material
@@ -680,22 +693,7 @@ public class KmfModelLoader implements AssetLoader {
             // Add material to list and create the possible alternatives
             List<Material> materialList = new ArrayList<>(mat.getTextures().size());
             materialList.add(material);
-            for (int k = 1; k < mat.getTextures().size(); k++) {
-
-                // Get the texture
-                String alternativeTexture = mat.getTextures().get(k);
-                if (textureFixes.containsKey(alternativeTexture)) {
-
-                    //Fix the texture entry
-                    alternativeTexture = textureFixes.get(alternativeTexture);
-                }
-                Texture alternativeTex = loadTexture(alternativeTexture, assetInfo);
-
-                // Clone the original material, set texture and add to list
-                Material alternativeMaterial = material.clone();
-                alternativeMaterial.setTexture("DiffuseMap", alternativeTex);
-                materialList.add(alternativeMaterial);
-            }
+            addAlternativeTextures(mat, assetInfo, material, materialList);
 
             // See if we should save the materials
             if (generateMaterialFile) {
@@ -710,7 +708,6 @@ public class KmfModelLoader implements AssetLoader {
                     }
 
                     // Set the material so that it realizes that it is a J3M file
-                    m.setName(mat.getName());
                     m.setKey(new MaterialKey(materialKey));
 
                     // Save
@@ -733,6 +730,25 @@ public class KmfModelLoader implements AssetLoader {
         return materials;
     }
 
+    private void addAlternativeTextures(toniarts.openkeeper.tools.convert.kmf.Material mat, AssetInfo assetInfo, Material material, List<Material> materialList) {
+        for (int k = 1; k < mat.getTextures().size(); k++) {
+            
+            // Get the texture
+            String alternativeTexture = mat.getTextures().get(k);
+            if (textureFixes.containsKey(alternativeTexture)) {
+                
+                //Fix the texture entry
+                alternativeTexture = textureFixes.get(alternativeTexture);
+            }
+            Texture alternativeTex = loadTexture(alternativeTexture, assetInfo);
+            
+            // Clone the original material, set texture and add to list
+            Material alternativeMaterial = material.clone();
+            alternativeMaterial.setTexture("DiffuseMap", alternativeTex);
+            materialList.add(alternativeMaterial);
+        }
+    }
+
     /**
      * Loads a JME texture of the texture name
      *
@@ -746,6 +762,36 @@ public class KmfModelLoader implements AssetLoader {
         TextureKey textureKey = new TextureKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
         return tex;
+    }
+
+    private static class TextureSorter implements Comparator<String> {
+        
+        private static final Pattern PATTERN = Pattern.compile("\\D+(?<number>\\d+)\\.png");
+
+        @Override
+        public int compare(String o1, String o2) {
+            Integer o1Numbering = null;
+            Integer o2Numbering = null;
+            Matcher m = PATTERN.matcher(o1);
+            if(m.matches()) {
+                o1Numbering = Integer.parseInt(m.group("number"));
+            }
+             m = PATTERN.matcher(o2);
+            if(m.matches()) {
+                o2Numbering = Integer.parseInt(m.group("number"));
+            }
+
+            int result = 0;
+            if (o1Numbering != null && o2Numbering != null) {
+                result = Integer.compare(o1Numbering, o2Numbering);
+            }
+
+            if (result == 0) {
+                result = String.CASE_INSENSITIVE_ORDER.compare(o1, o2);
+            }
+
+            return result;
+        }
     }
 
     /**

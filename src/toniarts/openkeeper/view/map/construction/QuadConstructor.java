@@ -25,6 +25,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -38,10 +39,10 @@ public class QuadConstructor extends RoomConstructor {
         super(assetManager, roomInstance);
     }
 
-    public static Node constructQuad(AssetManager assetManager, String modelName,
+    public static Node constructQuad(AssetManager assetManager, String modelName, ArtResource artResource,
             boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
 
-        return constructQuad(assetManager, modelName, 0, 0, N, NE, E, SE, S, SW, W, NW);
+        return constructQuad(assetManager, modelName, artResource, 0, 0, N, NE, E, SE, S, SW, W, NW);
     }
 
     /**
@@ -49,7 +50,7 @@ public class QuadConstructor extends RoomConstructor {
      * @param assetManager
      * @param modelName
      * @param base base index of piece (need to construct water bed)
-     * @param angle base totation yAngle of piece (need to construct water bed)
+     * @param angle base rotation yAngle of piece (need to construct water bed)
      * @param N
      * @param NE
      * @param E
@@ -60,7 +61,7 @@ public class QuadConstructor extends RoomConstructor {
      * @param NW
      * @return
      */
-    public static Node constructQuad(AssetManager assetManager, String modelName, int base, float angle,
+    public static Node constructQuad(AssetManager assetManager, String modelName, ArtResource artResource, int base, float angle,
             boolean N, boolean NE, boolean E, boolean SE, boolean S, boolean SW, boolean W, boolean NW) {
 
         Node quad = new Node();
@@ -142,7 +143,7 @@ public class QuadConstructor extends RoomConstructor {
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }
                 // Load the piece
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece));
+                Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece), artResource);
                 part.rotate(0, angle + yAngle, 0);
                 part.move(movement);
 
@@ -156,7 +157,8 @@ public class QuadConstructor extends RoomConstructor {
     @Override
     protected BatchNode constructFloor() {
         BatchNode root = new BatchNode();
-        String modelName = roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String modelName = artResource.getName();
         //Point start = roomInstance.getCoordinates().get(0);
         // Contruct the tiles
         for (Point p : roomInstance.getCoordinates()) {
@@ -170,7 +172,7 @@ public class QuadConstructor extends RoomConstructor {
             boolean W = roomInstance.hasCoordinate(new Point(p.x - 1, p.y));
             boolean NW = roomInstance.hasCoordinate(new Point(p.x - 1, p.y - 1));
             // 2x2
-            Node model = constructQuad(assetManager, modelName, N, NE, E, SE, S, SW, W, NW);
+            Node model = constructQuad(assetManager, modelName, artResource, N, NE, E, SE, S, SW, W, NW);
             //AssetUtils.scale(model);
             AssetUtils.translateToTile(model, p);
             root.attachChild(model);

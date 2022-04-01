@@ -23,6 +23,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -42,7 +43,8 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
         // 5 by 5
         // DHeart Piece[1-20]Exp.j3o
         //Point start = roomInstance.getCoordinates().get(0);
-        String resource = (/*destroyed*/false) ? "Dungeon_Destroyed" : roomInstance.getRoom().getCompleteResource().getName();
+        ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+        String resource = (roomInstance.isDestroyed()) ? "Dungeon_Destroyed" : artResource.getName();
         for (Point p : roomInstance.getCoordinates()) {
 
             // There are just 4 different pieces
@@ -102,7 +104,7 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
             }
 
             if (piece != -1) {
-                tile = loadModel(resource + piece);
+                tile = loadModel(resource + piece, artResource);
                 moveSpatial(tile, start, p);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);

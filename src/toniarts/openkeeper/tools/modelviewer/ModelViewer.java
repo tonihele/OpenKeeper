@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.modelviewer;
 import com.jme3.animation.AnimChannel;
 import com.jme3.animation.AnimControl;
 import com.jme3.app.SimpleApplication;
+import com.jme3.asset.AssetKey;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
@@ -257,11 +258,11 @@ public class ModelViewer extends SimpleApplication {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, null, kmf, false);
+                KmfAssetInfo asset = new KmfAssetInfo(assetManager, new AssetKey(kmfModel.toString()), kmf, false);
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+                 LOGGER.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
             }
         }
     }
@@ -422,7 +423,7 @@ public class ModelViewer extends SimpleApplication {
         switch (screen.getTypeControl().getSelection()) {
             case MODELS: {
                 // Load the selected model
-                Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection);
+                Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection, null);
 
                 screen.setupItem(null, null);
                 setupModel(spat, false);

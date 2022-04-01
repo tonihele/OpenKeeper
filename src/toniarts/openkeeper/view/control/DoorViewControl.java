@@ -166,7 +166,7 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
 
     private void lockDoor() {
         if (lockSpatial == null && lockObject != null) {
-            lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName());
+            lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName(), lockObject.getMeshResource());
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
         }

@@ -28,6 +28,7 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.view.map.WallSection;
@@ -56,7 +57,8 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
         int i = 1;
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = AssetUtils.loadModel(assetManager, roomInstance.getRoom().getCompleteResource().getName() + i, false, true);
+            ArtResource artResource = roomInstance.getRoom().getCompleteResource();
+            Spatial tile = AssetUtils.loadModel(assetManager, artResource.getName() + i, artResource, false, true);
 
             // Reset
             moveSpatial(tile, start, p);
@@ -176,7 +178,7 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
      * option)
      */
     private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p) {
-        Node object = (Node) AssetUtils.loadModel(assetManager, model, false, true);
+        Node object = (Node) AssetUtils.loadModel(assetManager, model, null, false, true);
 
         // Reset
         moveSpatial(object, start, p);

@@ -41,7 +41,7 @@ public class UniversalArtResourceLoader {
         switch (resource.getType()) {
             case MESH:
             case ANIMATING_MESH:
-                result = AssetUtils.loadAsset(assetManager, resource.getName());
+                result = AssetUtils.loadAsset(assetManager, resource.getName(), resource);
                 break;
 
             case TERRAIN_MESH:
@@ -49,7 +49,7 @@ public class UniversalArtResourceLoader {
                 int z = -2;
                 for (int i = 0; i < 20; i++) {
                     try {
-                        Spatial part = AssetUtils.loadAsset(assetManager, resource.getName() + i);
+                        Spatial part = AssetUtils.loadAsset(assetManager, resource.getName() + i, resource);
                         part.move((i % 4) - 2, 0, z);
                         ((Node) result).attachChild(part);
 

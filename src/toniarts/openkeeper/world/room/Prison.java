@@ -96,7 +96,7 @@ public class Prison extends DoubleQuad {
                 part.setBatchHint(Spatial.BatchHint.Never);
                 root.attachChild(part);
 
-                part = AssetUtils.loadModel(assetManager, modelName + "14");
+                part = AssetUtils.loadModel(assetManager, modelName + "14", null);
                 part.move(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
                 moveSpatial(part, p);
 

@@ -35,6 +35,7 @@ import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -276,31 +277,26 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 Material material = ((Geometry) spatial).getMaterial();
 
                 // Decay
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY) && terrain.getTextureFrames() > 1) {
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
 
-                    Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
-                    if (texCount != null) {
+                    List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
+                    if (textures != null) {
 
                         // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
                         // Now we have a random starting texture...
-                        int textureIndex = Math.round((terrain.getTextureFrames() - 1) * (1 - tile.getHealthPercent() / 100f));
-                        String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName().replaceFirst("_DECAY\\d", ""); // Unharmed texture
-                        if (textureIndex > 0) {
+                        int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
+                        String diffuseTexture = textures.get(textureIndex);
+                        String diffuseTextureKey = ConversionUtils.getCanonicalAssetKey(diffuseTexture);
+                        String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
+                        if(!diffuseTextureKey.equals(currentTexture)) {
+                            try {
+                                Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
+                                material.setTexture("DiffuseMap", texture);
 
-                            // The first one doesn't have a number
-                            if (textureIndex == 1) {
-                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY.png");
-                            } else {
-                                diffuseTexture = diffuseTexture.replaceFirst(".png", "_DECAY" + textureIndex + ".png");
+                                AssetUtils.assignMapsToMaterial(assetManager, material);
+                            } catch (Exception e) {
+                                LOGGER.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
                             }
-                        }
-                        try {
-                            Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
-                            material.setTexture("DiffuseMap", texture);
-
-                            AssetUtils.assignMapsToMaterial(assetManager, material);
-                        } catch (Exception e) {
-                            LOGGER.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
                         }
                     }
                 }
@@ -371,7 +367,8 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
     private Spatial getWallSpatial(IMapTileInformation tile, WallDirection direction) {
         Terrain terrain = getTerrain(tile);
-        String modelName = terrain.getSideResource().getName();
+        ArtResource artResource = terrain.getSideResource();
+        String modelName = artResource.getName();
         Point p = tile.getLocation();
         IMapTileInformation neigbourTile;
         switch (direction) {
@@ -390,7 +387,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         }
         // Check for out of bounds
         if (neigbourTile == null) {
-            return loadModel(modelName);
+            return loadModel(modelName, artResource);
         }
 
         if (getTerrain(neigbourTile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
@@ -398,12 +395,12 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         }
 
         if (!(terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS))) {
-            return loadModel(modelName);
+            return loadModel(modelName, artResource);
         } else if (hasRoomWalls(neigbourTile)) {
             return getRoomWall(neigbourTile, direction);
         }
 
-        return loadModel(modelName);
+        return loadModel(modelName, artResource);
     }
 
     private Spatial getRoomWall(IMapTileInformation tile, WallDirection direction) {
@@ -427,8 +424,8 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
-                Integer texCount = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES_COUNT);
-                if (texCount != null) {
+                List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
+                if (textures != null) {
 
                     // The principle is bit wrong, the random texture is tied to the tile, and not material etc.
                     // But it is probably just the tops of few tiles, so...
@@ -458,8 +455,8 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         });
     }
 
-    private Spatial loadModel(final String model) {
-        Spatial spatial = AssetUtils.loadModel(assetManager, model);
+    private Spatial loadModel(final String model, final ArtResource artResource) {
+        Spatial spatial = AssetUtils.loadModel(assetManager, model, artResource);
 
         return spatial;
     }
@@ -545,7 +542,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                     name = torch.getName();
                 }
             }
-            Spatial spatial = AssetUtils.loadModel(assetManager, name);
+            Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);
             spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
@@ -628,7 +625,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
                 model = terrain.getTopResource();
             }
-            spatial = loadModel(model.getName());
+            spatial = loadModel(model.getName(), model);
         }
 
         if (terrain.getFlags().contains(Terrain.TerrainFlag.RANDOM_TEXTURE)) {
