@@ -261,7 +261,7 @@ public class DoubleQuadConstructor extends RoomConstructor {
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }
                 // Load the piece
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + piece, null);
+                Spatial part = loadModel(assetManager, modelName + piece, null);
                 part.rotate(0, yAngle, 0);
                 part.move(movement);
 

@@ -20,9 +20,9 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * Constructs "normal" rooms
@@ -65,7 +65,7 @@ public class NormalConstructor extends RoomConstructor {
 
                 // If we are completely covered, use a big tile
                 if (N && NE && E && SE && S && SW && W && NW && useBigFloorTile(x, y)) {
-                    part = AssetUtils.loadModel(assetManager, modelName + "9", artResource);
+                    part = loadModel(modelName + "9", artResource);
                 } else {
                     part = QuadConstructor.constructQuad(assetManager, modelName, artResource, N, NE, E, SE, S, SW, W, NW);
                 }

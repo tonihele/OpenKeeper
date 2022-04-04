@@ -139,7 +139,7 @@ public class StoneBridgeConstructor extends QuadConstructor {
                     }
 
                     // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, modelName + piece, artResource);
+                    Spatial part = loadModel(assetManager, modelName + piece, artResource);
                     part.rotate(0, yAngle, 0);
                     part.move(movement);
 

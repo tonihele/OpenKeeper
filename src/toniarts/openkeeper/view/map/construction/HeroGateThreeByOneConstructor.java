@@ -21,10 +21,9 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 import toniarts.openkeeper.view.map.WallSection;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 
@@ -49,7 +48,7 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
         int j = 0;
         for (Point p : roomInstance.getCoordinates()) {
             int piece = (roomInstance.getDirection() == Direction.WEST || roomInstance.getDirection() == Direction.SOUTH) ? j + 3 : 5 - j;
-            Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, artResource, false, true);
+            Spatial tile = loadModel(assetManager, modelName + piece, artResource, false, true);
             j++;
             moveSpatial(tile, p);
             root.attachChild(tile);
@@ -103,7 +102,7 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
                 }
                 //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;
 
-                Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece + (roomInstance.isDestroyed() ? "DESTROYED" : ""), artResource, false, true);
+                Spatial tile = loadModel(assetManager, modelName + piece + (roomInstance.isDestroyed() ? "DESTROYED" : ""), artResource, false, true);
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }

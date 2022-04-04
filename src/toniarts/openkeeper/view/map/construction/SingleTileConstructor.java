@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -66,13 +67,13 @@ abstract class SingleTileConstructor {
     }
 
     protected Spatial loadAsset(final AssetManager assetManager, final String asset) {
-        return AssetUtils.loadModel(assetManager, asset, false);
+        return this.loadAsset(assetManager, asset, false);
     }
 
     protected Spatial loadAsset(final AssetManager assetManager, final String asset,
             final boolean useWeakCache) {
 
-        Spatial spatial = AssetUtils.loadModel(assetManager, asset, useWeakCache);
+        Spatial spatial = ((Node) AssetUtils.loadModel(assetManager, asset, useWeakCache)).getChild(0);
 
         return spatial;
     }

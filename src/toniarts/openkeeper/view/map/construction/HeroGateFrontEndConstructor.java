@@ -58,7 +58,7 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
         Point start = roomInstance.getCoordinates().get(0);
         for (Point p : roomInstance.getCoordinates()) {
             ArtResource artResource = roomInstance.getRoom().getCompleteResource();
-            Spatial tile = AssetUtils.loadModel(assetManager, artResource.getName() + i, artResource, false, true);
+            Spatial tile = RoomConstructor.loadModel(assetManager, artResource.getName() + i, artResource, false, true);
 
             // Reset
             moveSpatial(tile, start, p);
@@ -162,9 +162,11 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
 
         Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation),
                 assetManager, start, p);
-        lvl.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
-        lvl.setBatchHint(Spatial.BatchHint.Never);
-        map.attachChild(lvl);
+        Node node = new Node();
+        node.attachChild(lvl);
+        node.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
+        node.setBatchHint(Spatial.BatchHint.Never);
+        map.attachChild(node);
     }
 
     /**
@@ -178,7 +180,7 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
      * option)
      */
     private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p) {
-        Node object = (Node) AssetUtils.loadModel(assetManager, model, null, false, true);
+        Node object = (Node) RoomConstructor.loadModel(assetManager, model, null, false, true);
 
         // Reset
         moveSpatial(object, start, p);

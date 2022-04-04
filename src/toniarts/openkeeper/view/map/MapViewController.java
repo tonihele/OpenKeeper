@@ -35,7 +35,6 @@ import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,7 +82,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
-    private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
+    private final static int PAGE_SQUARE_SIZE = 10; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
     private final static int TOP_INDEX = 2;
@@ -456,9 +455,9 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     private Spatial loadModel(final String model, final ArtResource artResource) {
-        Spatial spatial = AssetUtils.loadModel(assetManager, model, artResource);
+        Node spatial = (Node) AssetUtils.loadModel(assetManager, model, artResource);
 
-        return spatial;
+        return spatial.getChildren().size() == 1 ? spatial.getChild(0) : spatial;
     }
 
     /**
@@ -542,7 +541,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                     name = torch.getName();
                 }
             }
-            Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
+            Spatial spatial = loadModel(name, null);
             spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
             spatial.rotate(0, angleY, 0);
             spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
@@ -671,7 +670,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             flashedTiles.removeAll(points);
         }
 
-        updateTiles(points.toArray(new Point[points.size()]));
+        updateTiles(points.toArray(Point[]::new));
     }
 
     /**
@@ -981,15 +980,23 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // See if the starting point has a wall to the given direction
         IMapTileInformation tile;
-        if (wallDirection == WallDirection.NORTH) {
-            tile = getMapData().getTile(p.x, p.y + 1);
-        } else if (wallDirection == WallDirection.EAST) {
-            tile = getMapData().getTile(p.x - 1, p.y);
-        } else if (wallDirection == WallDirection.SOUTH) {
-            tile = getMapData().getTile(p.x, p.y - 1);
-        } else {
+        if (null == wallDirection) {
             tile = getMapData().getTile(p.x + 1, p.y); // West
-        }
+        } else
+            switch (wallDirection) {
+                case NORTH:
+                    tile = getMapData().getTile(p.x, p.y + 1);
+                    break;
+                case EAST:
+                    tile = getMapData().getTile(p.x - 1, p.y);
+                    break;
+                case SOUTH:
+                    tile = getMapData().getTile(p.x, p.y - 1);
+                    break;
+                default:
+                    tile = getMapData().getTile(p.x + 1, p.y); // West
+                    break;
+            }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
                 && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
@@ -1000,31 +1007,47 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
             // Traverse possible directions, well one direction, "to the right"
             List<Point> adjacentWallPoints = null;
-            if (wallDirection == WallDirection.NORTH) {
-                Point nextPoint = new Point(p.x + 1, p.y); // East
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else if (wallDirection == WallDirection.EAST) {
-                Point nextPoint = new Point(p.x, p.y + 1); // South
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else if (wallDirection == WallDirection.SOUTH) {
-                Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else {
+            if (null == wallDirection) {
                 Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
                 RoomInstance instance = roomCoordinates.get(nextPoint);
                 if (instance != null && instance.equals(roomInstance)) {
                     adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
                 }
-            }
+            } else
+                switch (wallDirection) {
+                    case NORTH: {
+                        Point nextPoint = new Point(p.x + 1, p.y); // East
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                        break;
+                    }
+                    case EAST: {
+                        Point nextPoint = new Point(p.x, p.y + 1); // South
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                        break;
+                    }
+                    case SOUTH: {
+                        Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                        break;
+                    }
+                    default: {
+                        Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                        break;
+                    }
+                }
 
             // Add the point(s)
             if (adjacentWallPoints != null) {
@@ -1047,7 +1070,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     protected void updateRoomWalls(List<RoomInstance> rooms) {
-        updateRoomWalls(rooms.toArray(new RoomInstance[rooms.size()]));
+        updateRoomWalls(rooms.toArray(RoomInstance[]::new));
     }
 
     /**

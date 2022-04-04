@@ -34,7 +34,7 @@ public class WaterConstructor extends SingleTileConstructor {
     }
 
     /**
-     * Contstruct a water / lava tile
+     * Construct a water / lava tile
      *
      * @param mapData the tiles
      * @param x tile X coordinate

@@ -77,7 +77,7 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
                 if (!door && southInside) {
 
                     // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
-                    Spatial part = AssetUtils.loadModel(assetManager, modelName + "14", artResource);
+                    Spatial part = loadModel(assetManager, modelName + "14", artResource);
                     AssetUtils.translateToTile(part, new Point(x, y));
                     part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
 

@@ -20,9 +20,9 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * Portal is the only one I think
@@ -43,7 +43,7 @@ public class ThreeByThreeConstructor extends RoomConstructor {
         Point start = roomInstance.getCoordinates().get(0);
         ArtResource artResource = roomInstance.getRoom().getCompleteResource();
         for (Point p : roomInstance.getCoordinates()) {
-            Spatial tile = (Spatial) AssetUtils.loadModel(assetManager, artResource.getName() + i, artResource, false, true);
+            Spatial tile = loadModel(assetManager, artResource.getName() + i, artResource, false, true);
 
             moveSpatial(tile, start, p);
 

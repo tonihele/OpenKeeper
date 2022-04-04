@@ -23,9 +23,9 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.world.MapLoader;
 
 /**
@@ -143,7 +143,7 @@ public class QuadConstructor extends RoomConstructor {
                     movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
                 }
                 // Load the piece
-                Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece), artResource);
+                Spatial part = loadModel(assetManager, modelName + (base + piece), artResource);
                 part.rotate(0, angle + yAngle, 0);
                 part.move(movement);
 
