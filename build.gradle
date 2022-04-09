@@ -15,7 +15,6 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        jcenter()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
         maven { url "https://jitpack.io" }
@@ -56,10 +55,10 @@ dependencies {
     implementation "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
     implementation "com.badlogicgames.gdx:gdx-ai:1.8.2"
     implementation "javax.vecmath:vecmath:1.5.2"
-    implementation "com.simsilica:zay-es:1.3.2"
-    implementation "com.simsilica:zay-es-net:1.4.3"
-    implementation "com.simsilica:sio2:1.6.0"
-    implementation "com.simsilica:sim-ethereal:1.6.0"
+    implementation "com.simsilica:zay-es:1.4.0"
+    implementation "com.simsilica:zay-es-net:1.5.0"
+    implementation "com.simsilica:sio2:1.7.0"
+    implementation "com.simsilica:sim-ethereal:1.7.0"
 }
 
 sourceSets {
@@ -79,7 +78,7 @@ jar {
         attributes(
             'Implementation-Title': project.name,
             'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
-            'Main-Class': application.mainClassName,
+            'Main-Class': application.mainClass,
             'Built-By': System.properties['user.name'],
             'Build-Timestamp': new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
             'Created-By': "Gradle ${gradle.gradleVersion}",
