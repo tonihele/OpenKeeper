@@ -268,7 +268,7 @@ public class AssetUtils {
     }
 
     private static String getDisplacementMapName(String texture) {
-        return getCustomTextureMapName(texture, "d");
+        return getCustomTextureMapName(texture, "p");
     }
 
     private static String getCustomTextureMapName(String texture, String suffix) {
