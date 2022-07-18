@@ -98,7 +98,7 @@ public class ConvertModels extends ConversionTask {
         LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null);
         Path dest = Paths.get(destination);
-        AssetUtils.deleteFolder(dest);
+        PathUtils.deleteFolder(dest);
         try {
             Files.createDirectories(dest);
         } catch (IOException ex) {
@@ -107,7 +107,7 @@ public class ConvertModels extends ConversionTask {
 
         // Create the materials folder or else the material file saving fails
         Path materialFolder = Paths.get(getAssetsFolder(), AssetsConverter.MATERIALS_FOLDER);
-        AssetUtils.deleteFolder(materialFolder);
+        PathUtils.deleteFolder(materialFolder);
         try {
             Files.createDirectories(materialFolder);
         } catch (IOException ex) {

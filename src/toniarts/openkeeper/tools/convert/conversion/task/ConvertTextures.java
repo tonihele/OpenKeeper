@@ -91,7 +91,7 @@ public class ConvertTextures extends ConversionTask {
     private void convertTextures(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(Paths.get(destination));
+        PathUtils.deleteFolder(Paths.get(destination));
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
         WadFile frontEnd;
         WadFile engineTextures;

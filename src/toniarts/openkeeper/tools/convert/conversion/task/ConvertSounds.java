@@ -60,7 +60,7 @@ public class ConvertSounds extends ConversionTask {
     private void convertSounds(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(Paths.get(destination));
+        PathUtils.deleteFolder(Paths.get(destination));
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
 
         // Find all the sound files

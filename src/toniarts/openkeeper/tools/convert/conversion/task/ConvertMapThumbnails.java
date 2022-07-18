@@ -67,7 +67,7 @@ public class ConvertMapThumbnails extends ConversionTask {
         LOGGER.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null);
         Path destFolder = Paths.get(destination);
-        AssetUtils.deleteFolder(destFolder);
+        PathUtils.deleteFolder(destFolder);
 
         try {
 

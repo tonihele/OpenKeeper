@@ -58,7 +58,7 @@ public class ConvertMouseCursors extends ConversionTask {
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(Paths.get(destination));
+        PathUtils.deleteFolder(Paths.get(destination));
 
         // Mouse cursors are PNG files in the Sprite.WAD
         WadFile wadFile;
@@ -70,7 +70,7 @@ public class ConvertMouseCursors extends ConversionTask {
         int i = 0;
         int total = wadFile.getWadFileEntryCount();
         Path destinationFolder = Paths.get(getAssetsFolder(), SPRITES_FOLDER);
-        AssetUtils.deleteFolder(destinationFolder);
+        PathUtils.deleteFolder(destinationFolder);
         try {
             Files.createDirectories(destinationFolder);
         } catch (IOException ex) {

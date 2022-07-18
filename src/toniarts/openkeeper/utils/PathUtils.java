@@ -245,6 +245,46 @@ public class PathUtils {
     }
 
     /**
+     * Deletes a file or a folder
+     *
+     * @param file
+     * @return true if the file or folder was deleted
+     */
+    public static boolean deleteFolder(final Path file) {
+        if (file == null) {
+            return false;
+        }
+        if (!Files.exists(file)) {
+            return false;
+        }
+        try {
+            if (Files.isRegularFile(file)) {
+                Files.delete(file);
+                return true;
+            }
+            Files.walkFileTree(file, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, ex, () -> {
+                return "Failed to delete file/folder " + file + "!";
+            });
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * File finder, recursively tries to find a file ignoring case
      */
     private static class FileFinder extends SimpleFileVisitor<Path> {
