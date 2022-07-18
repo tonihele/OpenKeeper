@@ -19,8 +19,8 @@ package toniarts.openkeeper.view.control;
 import com.jme3.asset.AssetManager;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * Unit flower control for doors
@@ -40,7 +40,7 @@ public class DoorFlowerControl extends UnitFlowerControl<Door> {
 
     @Override
     public String getCenterIcon() {
-        return ConversionUtils.getCanonicalAssetKey("Textures/" + getDataObject().getFlowerIcon().getName() + ".png");
+        return AssetUtils.getCanonicalAssetKey("Textures/" + getDataObject().getFlowerIcon().getName() + ".png");
     }
 
 }

@@ -68,7 +68,7 @@ public class ConvertTexts extends ConversionTask {
         LOGGER.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null);
         Path destinationFolder = Paths.get(destination);
-        AssetUtils.deleteFolder(destinationFolder);
+        PathUtils.deleteFolder(destinationFolder);
         Path dataDirectory = Paths.get(dungeonKeeperFolder, PathUtils.DKII_TEXT_DEFAULT_FOLDER);
 
         // Find all the STR files

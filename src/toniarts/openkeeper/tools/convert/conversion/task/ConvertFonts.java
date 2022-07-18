@@ -99,7 +99,7 @@ public class ConvertFonts extends ConversionTask {
         LOGGER.log(Level.INFO, "Extracting fonts to: {0}", destination);
         updateStatus(null, null);
         Path destFolder = Paths.get(destination);
-        AssetUtils.deleteFolder(destFolder);
+        PathUtils.deleteFolder(destFolder);
         ImageIO.setUseCache(false);
 
         try {

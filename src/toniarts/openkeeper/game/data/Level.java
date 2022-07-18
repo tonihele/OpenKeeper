@@ -21,7 +21,6 @@ import java.nio.file.Paths;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -72,7 +71,7 @@ public class Level extends GeneralLevel {
             try {
                 // Load the actual level info
                 kwdFile = new KwdFile(Main.getDkIIFolder(),
-                        Paths.get(ConversionUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, getFileName() + ".kwd")), false);
+                        Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, getFileName() + ".kwd")), false);
             } catch (IOException ex) {
                 logger.log(java.util.logging.Level.SEVERE, "Failed to load the level file!", ex);
             }

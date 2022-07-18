@@ -177,7 +177,7 @@ public final class KwdFile {
         } else {
 
             // We need map width & height if not loaded fully, I couldn't figure out where, except the map data
-            try (ISeekableResourceReader data = new FileResourceReader(ConversionUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
+            try (ISeekableResourceReader data = new FileResourceReader(PathUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
                 KwdHeader header = readKwdHeader(data);
                 map = new GameMap(header.getWidth(), header.getHeight());
             } catch (Exception e) {
@@ -237,8 +237,10 @@ public final class KwdFile {
     private void readFilePath(FilePath path) {
         Path file = null;
         try {
-            file = Paths.get(ConversionUtils.getRealFileName(basePath, path.getPath()));
+            file = Paths.get(PathUtils.getRealFileName(basePath, path.getPath()));
             readFileContents(file);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to find the map file " + file + "!", e);
         } catch (Exception e) {
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
@@ -1136,7 +1138,7 @@ public final class KwdFile {
 
             // Tweak the paths
             // Paths are relative to the base path, may or may not have an extension (assume kwd if none found)
-            path = ConversionUtils.convertFileSeparators(path);
+            path = PathUtils.convertFileSeparators(path);
             if (!".".equals(path.substring(path.length() - 4, path.length() - 3))) {
                 path = path.concat(".kwd");
             }

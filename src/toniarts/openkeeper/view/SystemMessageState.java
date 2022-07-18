@@ -28,7 +28,7 @@ import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * TODO separate screen
@@ -106,9 +106,9 @@ public class SystemMessageState extends AbstractPauseAwareState {
 
     public void addMessageIcon(MessageType type, String text) {
         final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.getIcon());
-        final String normalIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
-        final String hoverIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
-        final String activeIcon = ConversionUtils.getCanonicalAssetKey(icon.replace("$index", "02"));
+        final String normalIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
+        final String hoverIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
+        final String activeIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "02"));
 
         Element systemMessage = new ControlBuilder("sysmessage-" + NiftyIdCreator.generate(), "systemMessage") {
             {

@@ -35,7 +35,6 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -46,6 +45,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -416,13 +416,13 @@ public class ModelViewerScreenController implements ScreenController {
     private String getResourceImageName(ArtResource resource) {
         String result = (resource != null && resource.getName() != null) ? resource.getName() + ".png" : "&mask&transparent.png";
 
-        String textureName = ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+        String textureName = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                 + File.separator + result);
 
         TextureKey textureKey = new TextureKey(textureName, false);
         AssetInfo assetInfo = app.getAssetManager().locateAsset(textureKey);
 
-        return (assetInfo != null ? textureName : ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+        return (assetInfo != null ? textureName : AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                 + File.separator + "&mask&transparent.png"));
     }
 

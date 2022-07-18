@@ -41,7 +41,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
@@ -156,7 +155,7 @@ public class MapThumbnailGenerator {
 
     private static ColorModel readPalette() {
         try {
-            Path palettePath = Paths.get(ConversionUtils.getRealFileName(AssetsConverter.getAssetsFolder(), PALETTE_IMAGE));
+            Path palettePath = Paths.get(PathUtils.getRealFileName(AssetsConverter.getAssetsFolder(), PALETTE_IMAGE));
 
             // Read the DK II palette image
             BufferedImage paletteImage = readImageFromPath(palettePath);

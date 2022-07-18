@@ -35,6 +35,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the wad file structure and contains the methods to handle the WAD archive<br>
@@ -120,7 +121,7 @@ public class WadFile {
                 String name = ConversionUtils.toString(Arrays.copyOfRange(nameArray, offset, offset + entry.getNameSize())).trim();
 
                 // The path
-                name = ConversionUtils.convertFileSeparators(name);
+                name = PathUtils.convertFileSeparators(name);
                 int index = name.lastIndexOf(File.separator);
                 if (index > -1) {
                     path = name.substring(0, index + 1);

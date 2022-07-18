@@ -42,7 +42,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -259,7 +258,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                             }
                         }
                         try {
-                            Texture texture = assetManager.loadTexture(new TextureKey(ConversionUtils.getCanonicalAssetKey(diffuseTexture), false));
+                            Texture texture = assetManager.loadTexture(new TextureKey(AssetUtils.getCanonicalAssetKey(diffuseTexture), false));
                             material.setTexture("DiffuseMap", texture);
 
                             AssetUtils.assignMapsToMaterial(assetManager, material);

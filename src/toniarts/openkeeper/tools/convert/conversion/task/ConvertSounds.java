@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
@@ -61,14 +60,14 @@ public class ConvertSounds extends ConversionTask {
     private void convertSounds(String dungeonKeeperFolder, String destination) {
         LOGGER.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null);
-        AssetUtils.deleteFolder(Paths.get(destination));
+        PathUtils.deleteFolder(Paths.get(destination));
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
 
         // Find all the sound files
         final List<Path> sdtFiles = new ArrayList<>();
         Path dataDir = null;
         try {
-            dataDir = Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
+            dataDir = Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder, dataDirectory));
             Files.walkFileTree(dataDir, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

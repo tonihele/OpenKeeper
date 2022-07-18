@@ -71,7 +71,7 @@ public class ConvertPaths extends ConversionTask {
         LOGGER.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null);
         Path dest = Paths.get(destination);
-        AssetUtils.deleteFolder(dest);
+        PathUtils.deleteFolder(dest);
         try {
             Files.createDirectories(dest);
         } catch (IOException ex) {
@@ -81,7 +81,7 @@ public class ConvertPaths extends ConversionTask {
         // Paths are in the data folder, access the packed file
         WadFile wad;
         try {
-            wad = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Paths.WAD")));
+            wad = new WadFile(Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Paths.WAD")));
         } catch (IOException ex) {
             throw new RuntimeException("Failed to open the Paths.wad archive!", ex);
         }

@@ -55,7 +55,6 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.GameState;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -63,6 +62,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.modelviewer.Debug;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.selection.SelectionArea;
@@ -861,7 +861,7 @@ public abstract class WorldState extends AbstractAppState {
         // We might cache these per file? Then they would be persistent, just move them, does it matter?
         // Since creation of new objects and all, I don't know if they stay in the scene graph..
         AudioNode audio = new AudioNode(assetManager,
-                ConversionUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + soundFile),
                 AudioData.DataType.Buffer);
         audio.setPositional(true);
         audio.setReverbEnabled(false);

@@ -24,7 +24,6 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.gui.CursorFactory;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -314,7 +313,7 @@ public class DoorControl extends HighlightControl implements IInteractiveControl
 
     @Override
     public String getCenterIcon() {
-        return ConversionUtils.getCanonicalAssetKey("Textures/" + door.getFlowerIcon().getName() + ".png");
+        return AssetUtils.getCanonicalAssetKey("Textures/" + door.getFlowerIcon().getName() + ".png");
     }
 
     public boolean isPassable(short ownerId) {

@@ -31,7 +31,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -68,7 +67,7 @@ public class ConvertMapThumbnails extends ConversionTask {
         LOGGER.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null);
         Path destFolder = Paths.get(destination);
-        AssetUtils.deleteFolder(destFolder);
+        PathUtils.deleteFolder(destFolder);
 
         try {
 
@@ -124,7 +123,7 @@ public class ConvertMapThumbnails extends ConversionTask {
         // TODO maybe image size in Settings ???
         BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
 
-        Path destinationPath = Paths.get(destination, ConversionUtils.stripFileName(kwd.getGameLevel().getName()) + ".png");
+        Path destinationPath = Paths.get(destination, PathUtils.stripFileName(kwd.getGameLevel().getName()) + ".png");
         try (OutputStream os = Files.newOutputStream(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                 BufferedOutputStream bos = new BufferedOutputStream(os)) {
             ImageIO.write(thumbnail, "png", bos);

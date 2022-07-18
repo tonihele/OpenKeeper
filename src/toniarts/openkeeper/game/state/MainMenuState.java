@@ -63,7 +63,6 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -137,7 +136,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) throws IOException {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(ConversionUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -585,7 +584,7 @@ public class MainMenuState extends AbstractAppState {
     protected String getMapThumbnail(KwdFile map) {
 
         // See if the map thumbnail exist, otherwise create one
-        String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + ConversionUtils.stripFileName(map.getGameLevel().getName()) + ".png";
+        String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + PathUtils.stripFileName(map.getGameLevel().getName()) + ".png";
         if (assetManager.locateAsset(new TextureKey(asset)) == null) {
 
             // Generate

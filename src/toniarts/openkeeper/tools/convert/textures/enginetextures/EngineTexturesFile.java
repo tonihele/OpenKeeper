@@ -32,12 +32,12 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.IResourceReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 import toniarts.openkeeper.tools.convert.textures.ImageUtil;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Reads Dungeon Keeper II EngineTextures.dat file to a structure<br>
@@ -92,7 +92,7 @@ public class EngineTexturesFile implements Iterable<String> {
             dirReader = rawDir.readChunk(size);
             try (ISeekableResourceReader rawTextures = new FileResourceReader(file)) {
                 do {
-                    String name = ConversionUtils.convertFileSeparators(dirReader.readVaryingLengthStrings(1).get(0));
+                    String name = PathUtils.convertFileSeparators(dirReader.readVaryingLengthStrings(1).get(0));
                     int offset = dirReader.readUnsignedInteger();
 
                     // Read the actual data from the DAT file from the offset specified by the DIR file

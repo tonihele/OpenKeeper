@@ -34,7 +34,6 @@ import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -85,7 +84,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
 
         // Try to load the file
-        Path mapFile = Paths.get(ConversionUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, level + ".kwd"));
+        Path mapFile = Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, level + ".kwd"));
         if (!Files.exists(mapFile)) {
             throw new FileNotFoundException(mapFile.toString());
         }

@@ -35,7 +35,6 @@ import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,7 +48,6 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -286,7 +284,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                         // Now we have a random starting texture...
                         int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
                         String diffuseTexture = textures.get(textureIndex);
-                        String diffuseTextureKey = ConversionUtils.getCanonicalAssetKey(diffuseTexture);
+                        String diffuseTextureKey = AssetUtils.getCanonicalAssetKey(diffuseTexture);
                         String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
                         if(!diffuseTextureKey.equals(currentTexture)) {
                             try {

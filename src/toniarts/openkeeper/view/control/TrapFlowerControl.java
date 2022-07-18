@@ -21,8 +21,8 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.io.File;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * Unit flower control for traps
@@ -47,7 +47,7 @@ public class TrapFlowerControl extends UnitFlowerControl<Trap> {
         String result = null;
 
         if (getDataObject().getFlowerIcon() != null) {
-            result = ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+            result = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                     + File.separator + getDataObject().getFlowerIcon().getName() + ".png");
         }
 
