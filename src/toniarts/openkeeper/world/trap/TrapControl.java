@@ -26,7 +26,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -226,7 +225,7 @@ public class TrapControl extends HighlightControl implements IInteractiveControl
         String result = null;
 
         if (trap.getFlowerIcon() != null) {
-            result = ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+            result = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                     + File.separator + trap.getFlowerIcon().getName() + ".png");
         }
 

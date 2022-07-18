@@ -79,11 +79,11 @@ import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 
@@ -1260,7 +1260,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2",
                         ((Level) state.selectedLevel).getLevel());
                 state.levelBriefing = new AudioNode(state.assetManager,
-                        ConversionUtils.getCanonicalAssetKey(speech),
+                        AssetUtils.getCanonicalAssetKey(speech),
                         AudioData.DataType.Buffer);
                 state.levelBriefing.setLooping(false);
                 state.levelBriefing.setDirectional(false);

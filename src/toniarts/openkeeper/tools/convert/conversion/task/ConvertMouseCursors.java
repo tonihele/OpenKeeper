@@ -25,7 +25,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.SPRITES_FOLDER;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.spr.SprFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -64,7 +63,7 @@ public class ConvertMouseCursors extends ConversionTask {
         // Mouse cursors are PNG files in the Sprite.WAD
         WadFile wadFile;
         try {
-            wadFile = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Sprite.WAD")));
+            wadFile = new WadFile(Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Sprite.WAD")));
         } catch (IOException ex) {
             throw new RuntimeException("Could not open the Sprite.wad archive!", ex);
         }

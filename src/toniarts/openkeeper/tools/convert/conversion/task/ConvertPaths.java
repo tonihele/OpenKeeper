@@ -81,7 +81,7 @@ public class ConvertPaths extends ConversionTask {
         // Paths are in the data folder, access the packed file
         WadFile wad;
         try {
-            wad = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Paths.WAD")));
+            wad = new WadFile(Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "Paths.WAD")));
         } catch (IOException ex) {
             throw new RuntimeException("Failed to open the Paths.wad archive!", ex);
         }

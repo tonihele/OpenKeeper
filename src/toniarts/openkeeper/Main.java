@@ -76,7 +76,6 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
@@ -624,12 +623,12 @@ public class Main extends SimpleApplication {
         // The intro sequence
         Queue<String> introSequence = new ArrayDeque<>(2);
         try {
-            introSequence.add(ConversionUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq"));
+            introSequence.add(PathUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq"));
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.INFO, "Could not find the Bullfrog intro!", ex);
         }
         try {
-            introSequence.add(ConversionUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ"));
+            introSequence.add(PathUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ"));
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.INFO, "Could not find the game intro!", ex);
         }

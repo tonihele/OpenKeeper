@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxEEEntry;
@@ -73,7 +72,7 @@ public class SoundGroup {
                 int archiveId = eEEEntry.getArchiveId() - 1;
                 int soundId = eEEEntry.getIndex() - 1;
 
-                String archiveFilename = ConversionUtils.convertFileSeparators(bank.getEntries()[archiveId].getName());
+                String archiveFilename = PathUtils.convertFileSeparators(bank.getEntries()[archiveId].getName());
                 SdtFile sdt = SoundCategory.getSdtFile(archiveFilename);
                 if (sdt == null) {
                     throw new RuntimeException("Sdt file " + archiveFilename + " does not exist");

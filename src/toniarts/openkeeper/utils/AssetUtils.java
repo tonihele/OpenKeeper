@@ -63,7 +63,6 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -108,7 +107,7 @@ public class AssetUtils {
             ArtResource artResource, final boolean useCache, final boolean useWeakCache) {
 
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
-        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
+        ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
         Spatial result;
         if (useCache) {
@@ -175,7 +174,7 @@ public class AssetUtils {
     public static Spatial loadAsset(final AssetManager assetManager, String modelName, ArtResource artResource) {
 
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
-        ModelKey assetKey = new ModelKey(ConversionUtils.getCanonicalAssetKey(filename));
+        ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
         Spatial result = loadModel(assetManager, assetKey, artResource);
 
@@ -195,7 +194,7 @@ public class AssetUtils {
     public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
         String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "."
                 + CameraSweepDataLoader.FILE_EXTENSION;
-        String assetKey = ConversionUtils.getCanonicalAssetKey(filename);
+        String assetKey = getCanonicalAssetKey(filename);
 
         Object asset = assetManager.loadAsset(assetKey);
 
@@ -372,7 +371,7 @@ public class AssetUtils {
             }
 
             // A regular texture
-            TextureKey key = new TextureKey(ConversionUtils.getCanonicalAssetKey(assetFolder + resource.getName() + ".png"), false);
+            TextureKey key = new TextureKey(getCanonicalAssetKey(assetFolder + resource.getName() + ".png"), false);
             return assetManager.loadTexture(key);
         }
     }
@@ -391,7 +390,7 @@ public class AssetUtils {
     private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
         // Get the first frame, the frames need to be same size
-        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(textures.get(0)))));
+        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(0)))));
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -406,7 +405,7 @@ public class AssetUtils {
         
         g.drawImage(img, null, 0, 0);
         for (int x = 1; x < textures.size(); x++) {
-            AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey(textures.get(x))));
+            AssetInfo asset = assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(x))));
             if (asset != null) {
                 img = readImageFromAsset(asset);
             } else {
@@ -696,6 +695,16 @@ public class AssetUtils {
         int id = resource.getData(ArtResource.KEY_ID);
 
         return new Node();
+    }
+
+    /**
+     * Returns case sensitive and valid asset key for loading the given asset
+     *
+     * @param asset the asset key, i.e. Textures\GUI/wrongCase.png
+     * @return fully qualified and working asset key
+     */
+    public static String getCanonicalAssetKey(String asset) {
+        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
     }
 
     /**

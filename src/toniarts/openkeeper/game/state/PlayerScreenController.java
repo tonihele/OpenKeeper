@@ -94,7 +94,6 @@ import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.gui.nifty.jme.ResearchEffectControl;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell;
@@ -818,7 +817,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
                     {
                         parameter("color", spell.isDiscovered() ? "" : Integer.toString(RESEARCH_COLOR.getRGB()));
-                        parameter("image", spell.isDiscovered() ? ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
+                        parameter("image", spell.isDiscovered() ? AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
                     }
                 }.build(element).getControl(ResearchEffectControl.class);
                 researchControl.initJme(state.app);
@@ -1012,12 +1011,12 @@ public class PlayerScreenController implements IPlayerScreenController {
                 marginRight("6px");
                 focusable(true);
                 id("creature-ability_" + index);
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                         + File.separator + name + ".png"));
                 valignCenter();
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                                 + File.separator + "GUI/Icons/selected-creature.png"));
                         post(true);
                     }
@@ -1029,7 +1028,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureIcon(final String name) {
         return new ImageBuilder() {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                         + File.separator + name + ".png"));
                 valignCenter();
             }
@@ -1039,7 +1038,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureMeleeIcon(final String name) {
         return new ImageBuilder() {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                         + File.separator + name + ".png"));
                 valignCenter();
                 marginLeft("6px");
@@ -1047,7 +1046,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 id("creature-melee");
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                                 + File.separator + "GUI/Icons/selected-creature.png"));
                         post(true);
                     }
@@ -1059,7 +1058,7 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureSpellIcon(final CreatureSpell cs, final int index) {
         return new ImageBuilder() {
             {
-                filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                         + File.separator + cs.getGuiIcon().getName() + ".png"));
                 valignCenter();
                 marginLeft("6px");
@@ -1067,7 +1066,7 @@ public class PlayerScreenController implements IPlayerScreenController {
                 id("creature-spell_" + index);
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                                 + File.separator + "GUI/Icons/selected-spell.png"));
                         post(true);
                     }
@@ -1139,9 +1138,9 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
         ControlBuilder cb = new GuiIconBuilder(type + "_" + id,
-                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
-                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
-                ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
                 hint != null ? hint : "",
                 generalDescriptionId != null ? "${menu." + generalDescriptionId + "}" : "",
                 "select(" + type + ", " + id + ")");
@@ -1348,7 +1347,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
             ControlBuilder cb = new ControlBuilder("creature") {
                 {
-                    filename(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                    filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                             + File.separator + creature.getPortraitResource().getName() + ".png"));
                     parameter("creatureId", Integer.toString(creature.getCreatureId()));
                     id("creature_" + creature.getCreatureId());

@@ -27,7 +27,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.data.IIndexable;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxGroupEntry;
@@ -92,7 +91,7 @@ public class SoundCategory {
     @Nullable
     public SfxMapFile getSfxMapFile() {
         try {
-            Path f = Paths.get(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(), folder + name.toLowerCase() + "SFX.map"));
+            Path f = Paths.get(PathUtils.getRealFileName(PathUtils.getDKIIFolder(), folder + name.toLowerCase() + "SFX.map"));
 
             return new SfxMapFile(f);
         } catch (IOException ex) {
@@ -106,7 +105,7 @@ public class SoundCategory {
 
     public BankMapFile getBankMapFile() {
         try {
-            Path f = Paths.get(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(), folder + name.toLowerCase() + "BANK.map"));
+            Path f = Paths.get(PathUtils.getRealFileName(PathUtils.getDKIIFolder(), folder + name.toLowerCase() + "BANK.map"));
 
             return new BankMapFile(f);
         } catch (IOException ex) {
@@ -125,7 +124,7 @@ public class SoundCategory {
         // FIXME I don`t know what better HD or HW, but quantity HW less than HD, but size HW more than HD
         for (String part : new String[]{"HD.sdt", "HW.sdt"}) {
             try {
-                Path f = Paths.get(ConversionUtils.getRealFileName(PathUtils.getDKIIFolder(),
+                Path f = Paths.get(PathUtils.getRealFileName(PathUtils.getDKIIFolder(),
                         PathUtils.DKII_SFX_FOLDER + archiveFilename + part));
                 if (Files.exists(f)) {
                     return new SdtFile(f);

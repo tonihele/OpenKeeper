@@ -25,10 +25,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Stores the SDT file structure and contains the methods to handle the SDT archive<br>
@@ -186,7 +186,7 @@ public class SdtFile {
      * @return fixed file name
      */
     public static String fixFileExtension(SdtFileEntry entry) {
-        String filename = ConversionUtils.convertFileSeparators(entry.getName());
+        String filename = PathUtils.convertFileSeparators(entry.getName());
         Matcher m = FILE_EXTENSION_PATTERN.matcher(filename.toLowerCase());
         if (!m.find()) {
             int index = filename.lastIndexOf(".");

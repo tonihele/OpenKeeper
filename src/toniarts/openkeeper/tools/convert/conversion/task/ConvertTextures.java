@@ -35,7 +35,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
@@ -97,8 +96,8 @@ public class ConvertTextures extends ConversionTask {
         WadFile frontEnd;
         WadFile engineTextures;
         try {
-            frontEnd = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "FrontEnd.WAD")));
-            engineTextures = new WadFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "EngineTextures.WAD")));
+            frontEnd = new WadFile(Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "FrontEnd.WAD")));
+            engineTextures = new WadFile(Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder + PathUtils.DKII_DATA_FOLDER, "EngineTextures.WAD")));
         } catch (IOException e) {
             throw new RuntimeException("Failed to open a WAD file!", e);
         }
@@ -128,7 +127,7 @@ public class ConvertTextures extends ConversionTask {
 
         // Get the engine textures file
         try {
-            EngineTexturesFile etFile = new EngineTexturesFile(Paths.get(ConversionUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(FileSystems.getDefault().getSeparator()).concat("EngineTextures.dat"))));
+            EngineTexturesFile etFile = new EngineTexturesFile(Paths.get(PathUtils.getRealFileName(dungeonKeeperFolder, "DK2TextureCache".concat(FileSystems.getDefault().getSeparator()).concat("EngineTextures.dat"))));
             return etFile;
         } catch (IOException e) {
             throw new RuntimeException("Failed to open the EngineTextures file!", e);

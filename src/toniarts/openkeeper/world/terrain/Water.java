@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -112,7 +111,7 @@ public class Water {
             // Lava
             mat = new Material(assetManager,
                     "Common/MatDefs/Light/Lighting.j3md");
-            TextureKey textureKey = new TextureKey(ConversionUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
+            TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
             Texture tex = assetManager.loadTexture(textureKey);
             mat.setTexture("DiffuseMap", tex);
             MapLoader.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());

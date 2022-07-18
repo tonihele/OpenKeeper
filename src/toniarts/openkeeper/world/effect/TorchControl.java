@@ -43,7 +43,6 @@ import java.awt.image.RGBImageFilter;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -149,7 +148,7 @@ public class TorchControl extends BillboardControl {
         //float[] offsets = new float[4];
         //RescaleOp rop = new RescaleOp(scales, offsets, null);
         // Get the first frame, the frames need to be same size
-        BufferedImage img = AssetUtils.readImageFromAsset(assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + name + "0.png"))));
+        BufferedImage img = AssetUtils.readImageFromAsset(assetManager.locateAsset(new AssetKey(AssetUtils.getCanonicalAssetKey("Textures/" + name + "0.png"))));
 
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * frames, img.getHeight(),
@@ -157,7 +156,7 @@ public class TorchControl extends BillboardControl {
         Graphics2D g = text.createGraphics();
         g.drawImage(makeColorTransparent(img), 0, 0, null);
         for (int x = 1; x < frames; x++) {
-            AssetInfo asset = assetManager.locateAsset(new AssetKey(ConversionUtils.getCanonicalAssetKey("Textures/" + name + x + ".png")));
+            AssetInfo asset = assetManager.locateAsset(new AssetKey(AssetUtils.getCanonicalAssetKey("Textures/" + name + x + ".png")));
             img = AssetUtils.readImageFromAsset(asset);
             g.drawImage(makeColorTransparent(img), img.getWidth() * x, 0, null);
         }

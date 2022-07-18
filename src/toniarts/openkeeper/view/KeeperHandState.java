@@ -47,11 +47,11 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
@@ -201,7 +201,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     private Picture getIcon(String filename) {
         //FIXME if filename is null what todo ?
-        final String name = ConversionUtils.getCanonicalAssetKey(TEXTURES_FOLDER + File.separator + filename + ".png");
+        final String name = AssetUtils.getCanonicalAssetKey(TEXTURES_FOLDER + File.separator + filename + ".png");
 
         Texture tex = assetManager.loadTexture(name);
 
