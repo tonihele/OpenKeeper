@@ -108,6 +108,10 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.text.DoorIconTextParser;
+import toniarts.openkeeper.view.text.RoomIconTextParser;
+import toniarts.openkeeper.view.text.SpellIconTextParser;
+import toniarts.openkeeper.view.text.TrapIconTextParser;
 
 /**
  *
@@ -135,6 +139,11 @@ public class PlayerScreenController implements IPlayerScreenController {
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
+
+    private final TrapIconTextParser trapIconTextParser = new TrapIconTextParser();
+    private final DoorIconTextParser doorIconTextParser = new DoorIconTextParser();
+    private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser();
+    private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
 
     private static final Logger LOGGER = Logger.getLogger(PlayerScreenController.class.getName());
 
@@ -1078,12 +1087,11 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ControlBuilder createRoomIcon(final ResearchableEntity roomInfo) {
         Room room = state.getKwdFile().getRoomById(roomInfo.getId());
         if (roomInfo.isDiscovered()) {
-            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
-            final String hint = Utils.getMainTextResourceBundle().getString("1783")
-                    .replace("%1", name)
-                    .replace("%2", room.getCost() + "");
-            return createIcon(room.getRoomId(), "room", room.getGuiIcon(), room.getGeneralDescriptionStringId(),
-                    hint.replace("%21", room.getCost() + ""), true, false);
+            String tip = roomIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(room.getGeneralDescriptionStringId())), room);
+            String hint = roomIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), room);
+
+            return createIcon(room.getRoomId(), "room", room.getGuiIcon(), tip,
+                    hint, true, false);
         }
 
         return createIcon(room.getId(),
@@ -1093,12 +1101,10 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ControlBuilder createSpellIcon(final ResearchableEntity spell) {
         KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
         if (spell.isDiscovered()) {
-            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
-            String hint = Utils.getMainTextResourceBundle().getString("1785")
-                    .replace("%1", name)
-                    .replace("%2", keeperSpell.getManaCost() + "")
-                    .replace("%3", spell.isUpgraded() ? "2" : "1");
-            return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), keeperSpell.getGeneralDescriptionStringId(), hint, true, spell.isUpgraded());
+            String tip = spellIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getGeneralDescriptionStringId())), keeperSpell, spell);
+            String hint = spellIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1785"), keeperSpell, spell);
+
+            return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), tip, hint, true, spell.isUpgraded());
         }
         return createIcon(keeperSpell.getKeeperSpellId(),
                 "spell", "gui\\spells\\s-tba", null, null, false, false);
@@ -1107,11 +1113,11 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ControlBuilder createDoorIcon(final ResearchableEntity doorInfo) {
         Door door = state.getKwdFile().getDoorById(doorInfo.getId());
         if (doorInfo.isDiscovered()) {
-            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
-            final String hint = Utils.getMainTextResourceBundle().getString("1783")
-                    .replace("%1", name)
-                    .replace("%2", door.getGoldCost() + "");
-            return createIcon(door.getDoorId(), "door", door.getGuiIcon(), door.getGeneralDescriptionStringId(), hint, true, false);
+            Trap trap = state.getKwdFile().getTrapById(door.getTrapTypeId());
+            String tip = doorIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(door.getGeneralDescriptionStringId())), door, trap);
+            String hint = doorIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), door, trap);
+
+            return createIcon(door.getDoorId(), "door", door.getGuiIcon(), tip, hint, true, false);
         }
 
         return createIcon(door.getId(),
@@ -1121,28 +1127,27 @@ public class PlayerScreenController implements IPlayerScreenController {
     private ControlBuilder createTrapIcon(final ResearchableEntity trapInfo) {
         Trap trap = state.getKwdFile().getTrapById(trapInfo.getId());
         if (trapInfo.isDiscovered()) {
-            String name = Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
-            final String hint = Utils.getMainTextResourceBundle().getString("1784")
-                    .replace("%1", name)
-                    .replace("%2", trap.getManaCost() + "");
-            return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), trap.getGeneralDescriptionStringId(), hint.replace("%17", trap.getManaCost() + ""), true, false);
+            String tip = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getGeneralDescriptionStringId())), trap);
+            String hint = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), trap);
+
+            return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), tip, hint, true, false);
         }
 
         return createIcon(trap.getId(),
                 "trap", "gui\\traps\\w-tba", null, null, false, false);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final int generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
-        return createIcon(id, type, guiIcon.getName(), generalDescriptionId, hint, allowSelect, hilightGold);
+    public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final String tooltip, final String hint, final boolean allowSelect, final boolean hilightGold) {
+        return createIcon(id, type, guiIcon.getName(), tooltip, hint, allowSelect, hilightGold);
     }
 
-    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final Integer generalDescriptionId, final String hint, final boolean allowSelect, final boolean hilightGold) {
+    public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final String tooltip, final String hint, final boolean allowSelect, final boolean hilightGold) {
         ControlBuilder cb = new GuiIconBuilder(type + "_" + id,
                 AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
                 AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
                 AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
                 hint != null ? hint : "",
-                generalDescriptionId != null ? "${menu." + generalDescriptionId + "}" : "",
+                tooltip != null ? tooltip : "",
                 "select(" + type + ", " + id + ")");
         if (!allowSelect) {
             cb.parameter("enabled", Boolean.toString(false));

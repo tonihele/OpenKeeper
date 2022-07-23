@@ -103,7 +103,7 @@ public class Trap implements Comparable<Trap>, ISoundable, IIndexable {
     private int threat; // Short
     private EnumSet<TrapFlag> flags; // 4-bytes
     private int health; // Short
-    private int manaCost; // Short
+    private int goldCost; // Short
     private int powerlessEffectId; // Short
     private int idleEffectId; // Short
     private int deathEffectId; // Short
@@ -279,12 +279,12 @@ public class Trap implements Comparable<Trap>, ISoundable, IIndexable {
         this.health = health;
     }
 
-    public int getManaCost() {
-        return manaCost;
+    public int getGoldCost() {
+        return goldCost;
     }
 
-    protected void setManaCost(int manaCost) {
-        this.manaCost = manaCost;
+    protected void setGoldCost(int goldCost) {
+        this.goldCost = goldCost;
     }
 
     public int getPowerlessEffectId() {
