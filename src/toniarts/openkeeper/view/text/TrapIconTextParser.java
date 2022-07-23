@@ -32,9 +32,9 @@ public class TrapIconTextParser extends SimpleIconTextParser<Trap> {
             case 1:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
             case 2:
-                return Integer.toString(trap.getManaCost());
+                return Integer.toString(trap.getGoldCost());
             case 17: // ?
-                return Integer.toString(trap.getManaCost());
+                return Integer.toString(trap.getGoldCost());
             case 25:
                 return Integer.toString(trap.getManaUsage());
             case 26:

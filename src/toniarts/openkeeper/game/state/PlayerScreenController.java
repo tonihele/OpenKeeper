@@ -1128,7 +1128,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         Trap trap = state.getKwdFile().getTrapById(trapInfo.getId());
         if (trapInfo.isDiscovered()) {
             String tip = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getGeneralDescriptionStringId())), trap);
-            String hint = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1784"), trap);
+            String hint = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), trap);
 
             return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), tip, hint, true, false);
         }

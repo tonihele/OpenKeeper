@@ -893,7 +893,7 @@ public final class KwdFile {
             trap.setThreat(reader.readUnsignedShort());
             trap.setFlags(reader.readIntegerAsFlag(Trap.TrapFlag.class));
             trap.setHealth(reader.readUnsignedShort());
-            trap.setManaCost(reader.readUnsignedShort());
+            trap.setGoldCost(reader.readUnsignedShort());
             trap.setPowerlessEffectId(reader.readUnsignedShort());
             trap.setIdleEffectId(reader.readUnsignedShort());
             trap.setDeathEffectId(reader.readUnsignedShort());
