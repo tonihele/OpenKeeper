@@ -669,7 +669,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             flashedTiles.removeAll(points);
         }
 
-        updateTiles(points.toArray(new Point[points.size()]));
+        updateTiles(points.toArray(new Point[0]));
     }
 
     /**
@@ -1045,7 +1045,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     protected void updateRoomWalls(List<RoomInstance> rooms) {
-        updateRoomWalls(rooms.toArray(new RoomInstance[rooms.size()]));
+        updateRoomWalls(rooms.toArray(new RoomInstance[0]));
     }
 
     /**

@@ -274,7 +274,7 @@ public class MpxReader extends Frame {
             if (version == 1) {
                 timePerFrame *= 2D;
             }
-            put(F_FRAME_RATE, new Float(1 / timePerFrame));
+            put(F_FRAME_RATE, (float) (1 / timePerFrame));
         } while (checkFramesize(stream) == null);
 
         switch (version) {
@@ -520,7 +520,7 @@ public class MpxReader extends Frame {
         if (microseconds > 0) {
             put(I_BITRATE, (int) Math.round(netByteLength * 8000000 / (double) microseconds));
         }
-        put(F_FRAME_RATE, new Float(framesPerTime));
+        put(F_FRAME_RATE, (float) (framesPerTime));
         put(I_FRAME_NUMBER, framesMinusOne + 1);
         put(B_VBR_AUDIO, true);
         put(L_MICROSECONDS, microseconds);
@@ -721,7 +721,7 @@ public class MpxReader extends Frame {
      * flag indicating if the end of media is determinable. The source input
      * stream may be multiplexed.
      *
-     * @param stream the input stream
+     * @param inputstream the input stream
      * @param eomDeterminable true if the end of media is determinable
      * @return the <code>Decoder</code> object based on informations about the
      * detected media format or <code>null</code>

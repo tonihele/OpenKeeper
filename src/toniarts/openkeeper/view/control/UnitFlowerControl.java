@@ -99,7 +99,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         components.addAll(WATCHED_COMPONENTS);
         components.addAll(getWatchedComponents());
 
-        return components.toArray(new Class[components.size()]);
+        return components.toArray(new Class[0]);
     }
 
     /**

@@ -445,7 +445,7 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             // Create a pose track for this mesh
-            PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[frameList.size()]));
+            PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[0]));
             poseTracks.add(poseTrack);
 
             // Create lod levels
@@ -471,7 +471,7 @@ public class KmfModelLoader implements AssetLoader {
 
         // Create the animation itself and attach the animation
         com.jme3.animation.Animation animation = new com.jme3.animation.Animation("anim", (anim.getFrames() - 1) / 30f);
-        animation.setTracks(poseTracks.toArray(new PoseTrack[poseTracks.size()]));
+        animation.setTracks(poseTracks.toArray(new PoseTrack[0]));
         AnimControl control = new AnimControl();
         control.addAnim(animation);
         node.addControl(control);

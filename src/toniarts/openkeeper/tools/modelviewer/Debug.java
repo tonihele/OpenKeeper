@@ -93,7 +93,7 @@ public class Debug {
     }
 
     public static void attachWireFrameDebugGrid(AssetManager assetManager, Node n, Vector3f pos,
-            Integer size, ColorRGBA color) {
+            int size, ColorRGBA color) {
         Geometry g = new Geometry("wireFrameDebugGrid", new Grid(size, size, 1.0f));  //1WU
         Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);

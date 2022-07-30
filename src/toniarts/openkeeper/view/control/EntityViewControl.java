@@ -96,7 +96,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         }
         components.addAll(getWatchedComponents());
 
-        return components.toArray(new Class[components.size()]);
+        return components.toArray(new Class[0]);
     }
 
     /**
