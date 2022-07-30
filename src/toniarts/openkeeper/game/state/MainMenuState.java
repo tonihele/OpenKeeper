@@ -343,7 +343,7 @@ public class MainMenuState extends AbstractAppState {
     public void multiplayerConnect(String hostAddress, String player) {
         String[] address = hostAddress.split(":");
         String host = address[0];
-        Integer port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getInteger(Setting.MULTIPLAYER_LAST_PORT);
+        int port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getInteger(Setting.MULTIPLAYER_LAST_PORT);
 
         // Connect, connection is lazy
         ConnectionState connectionState = new ConnectionState(host, port, player) {
