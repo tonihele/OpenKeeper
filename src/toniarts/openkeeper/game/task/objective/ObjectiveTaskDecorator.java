@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.task.objective;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.time.Instant;
 import java.util.ArrayDeque;
-import java.util.Date;
 import java.util.Deque;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.Task;
@@ -101,7 +101,7 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
     }
 
     @Override
-    public Date getTaskCreated() {
+    public Instant getTaskCreated() {
         return task.getTaskCreated();
     }
 

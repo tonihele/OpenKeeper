@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.Date;
+import java.time.Instant;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 /**
@@ -93,7 +93,7 @@ public interface Task {
      */
     Vector2f getTarget(ICreatureController creature);
 
-    Date getTaskCreated();
+    Instant getTaskCreated();
 
     /**
      * Task location, the task it self not necessarily the target for navigating

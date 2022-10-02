@@ -18,13 +18,11 @@ package toniarts.openkeeper.tools.convert;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -154,18 +152,26 @@ public class ResourceChunkReader implements IResourceChunkReader {
     }
 
     @Override
-    public Date readTimestamp() throws IOException {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.set(Calendar.YEAR, readUnsignedShort());
-        cal.set(Calendar.DAY_OF_MONTH, readUnsignedByte());
-        cal.set(Calendar.MONTH, readUnsignedByte());
+    public LocalDateTime readTimestamp() throws IOException {
+        int year = readUnsignedShort();
+        int dayOfMonth = readUnsignedByte();
+        int month = readUnsignedByte();
+
         skipBytes(2);
-        cal.set(Calendar.HOUR_OF_DAY, readUnsignedByte());
-        cal.set(Calendar.MINUTE, readUnsignedByte());
-        cal.set(Calendar.SECOND, readUnsignedByte());
+
+        int hour = readUnsignedByte();
+        int minute = readUnsignedByte();
+        int second = readUnsignedByte();
+
         skipBytes(1);
 
-        return cal.getTime();
+        if (year == 0) {
+
+            // Null timestamp
+            return null;
+        }
+
+        return LocalDateTime.of(year, month, dayOfMonth, hour, minute, second, 0);
     }
 
     @Override

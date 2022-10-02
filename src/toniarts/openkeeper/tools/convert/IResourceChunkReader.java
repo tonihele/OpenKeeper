@@ -18,7 +18,7 @@ package toniarts.openkeeper.tools.convert;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -115,7 +115,7 @@ public interface IResourceChunkReader extends Comparable<ByteBuffer> {
      * @return the date in current locale
      * @throws java.io.IOException
      */
-    Date readTimestamp() throws IOException;
+    LocalDateTime readTimestamp() throws IOException;
 
     short readUnsignedByte();
 

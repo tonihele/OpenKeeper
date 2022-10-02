@@ -20,10 +20,10 @@ import java.awt.Color;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -3292,8 +3292,8 @@ public final class KwdFile {
         private int dataSizeLevel; // in Level size of data exclude paths
         private int unknown; // only in Triggers and Level
         private int headerEndOffset; // 28, *Map - 8, *Triggers - 32,
-        private Date dateCreated;
-        private Date dateModified;
+        private LocalDateTime dateCreated;
+        private LocalDateTime dateModified;
         private int checkTwo;
         private int dataSize;
 
@@ -3372,19 +3372,19 @@ public final class KwdFile {
             return checkTwo;
         }
 
-        public Date getDateCreated() {
+        public LocalDateTime getDateCreated() {
             return dateCreated;
         }
 
-        protected void setDateCreated(Date date) {
+        protected void setDateCreated(LocalDateTime date) {
             this.dateCreated = date;
         }
 
-        public Date getDateModified() {
+        public LocalDateTime getDateModified() {
             return dateModified;
         }
 
-        protected void setDateModified(Date date) {
+        protected void setDateModified(LocalDateTime date) {
             this.dateModified = date;
         }
 

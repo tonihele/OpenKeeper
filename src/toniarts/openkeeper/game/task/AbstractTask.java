@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.task;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.Date;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,14 +39,14 @@ public abstract class AbstractTask implements Task {
     private static final AtomicLong ID_GENENERATOR = new AtomicLong();
 
     private final long id;
-    private final Date taskCreated;
+    private final Instant taskCreated;
     protected final INavigationService navigationService;
     protected final IMapController mapController;
     private final Map<ICreatureController, Float> assignees = new HashMap<>();
     private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
 
     public AbstractTask(final INavigationService navigationService, final IMapController mapController) {
-        this.taskCreated = new Date();
+        this.taskCreated = Instant.now();
         this.navigationService = navigationService;
         this.mapController = mapController;
         this.id = ID_GENENERATOR.getAndIncrement();
@@ -78,7 +78,7 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
-    public Date getTaskCreated() {
+    public Instant getTaskCreated() {
         return taskCreated;
     }
 
