@@ -119,23 +119,29 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
                 continue;
             }
 
+            int x = previousMapTile.getX();
+            int y = previousMapTile.getY();
+
             // Moved
             mapTilesByEntities.put(entity.getId(), currentMapTile);
-            entitiesByMapTile[previousMapTile.getX()][previousMapTile.getY()].remove(entity.getId());
+            entitiesByMapTile[x][y].remove(entity.getId());
 
             // Obstacles
-            obstaclesByMapTile[previousMapTile.getX()][previousMapTile.getY()].remove(entity.getId());
+            obstaclesByMapTile[x][y].remove(entity.getId());
 
             addEntityToTile(currentMapTile, entity);
         }
     }
 
     private void addEntityToTile(IMapTileInformation mapTile, Entity entity) {
-        entitiesByMapTile[mapTile.getX()][mapTile.getY()].add(entity.getId());
+        int x = mapTile.getX();
+        int y = mapTile.getY();
+
+        entitiesByMapTile[x][y].add(entity.getId());
 
         // Obstacles
         if (isObstacle(entityData, entity.getId())) {
-            obstaclesByMapTile[mapTile.getX()][mapTile.getY()].add(entity.getId());
+            obstaclesByMapTile[x][y].add(entity.getId());
         }
     }
 
@@ -145,8 +151,10 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         for (Entity entity : entities) {
             IMapTileInformation mapTile = mapTilesByEntities.remove(entity.getId());
 
-            entitiesByMapTile[mapTile.getX()][mapTile.getY()].remove(entity.getId());
-            obstaclesByMapTile[mapTile.getX()][mapTile.getY()].remove(entity.getId());
+            int x = mapTile.getX();
+            int y = mapTile.getY();
+            entitiesByMapTile[x][y].remove(entity.getId());
+            obstaclesByMapTile[x][y].remove(entity.getId());
         }
     }
 
@@ -164,19 +172,17 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public List<EntityId> getEntitiesInLocation(Point p) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
-        return getEntitiesInLocation(mapTile);
-    }
-
-    @Override
-    public List<EntityId> getEntitiesInLocation(int x, int y) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
-        return getEntitiesInLocation(mapTile);
+        return getEntitiesInLocation(p.x, p.y);
     }
 
     @Override
     public List<EntityId> getEntitiesInLocation(IMapTileInformation mapTile) {
-        Set<EntityId> entityIds = entitiesByMapTile[mapTile.getX()][mapTile.getY()];
+        return getEntitiesInLocation(mapTile.getX(), mapTile.getY());
+    }
+
+    @Override
+    public List<EntityId> getEntitiesInLocation(int x, int y) {
+        Set<EntityId> entityIds = entitiesByMapTile[x][y];
         if (entityIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -191,19 +197,17 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public <T extends IEntityController> List<T> getEntityTypesInLocation(Point p, Class<T> clazz) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
-        return getEntityTypesInLocation(mapTile, clazz);
-    }
-
-    @Override
-    public <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
-        return getEntityTypesInLocation(mapTile, clazz);
+        return getEntityTypesInLocation(p.x, p.y, clazz);
     }
 
     @Override
     public <T extends IEntityController> List<T> getEntityTypesInLocation(IMapTileInformation mapTile, Class<T> clazz) {
-        Set<EntityId> entityIds = entitiesByMapTile[mapTile.getX()][mapTile.getY()];
+        return getEntityTypesInLocation(mapTile.getX(), mapTile.getY(), clazz);
+    }
+
+    @Override
+    public <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
+        Set<EntityId> entityIds = entitiesByMapTile[x][y];
         if (entityIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -285,32 +289,31 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public boolean isTileBlocked(Point p, short playerId) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
-        return isTileBlocked(mapTile, playerId);
-    }
-
-    @Override
-    public boolean isTileBlocked(int x, int y, short playerId) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
-        return isTileBlocked(mapTile, playerId);
+        return isTileBlocked(p.x, p.y, playerId);
     }
 
     @Override
     public boolean isTileBlocked(IMapTileInformation mapTile, short playerId) {
-        Set<EntityId> entityIds = obstaclesByMapTile[mapTile.getX()][mapTile.getY()];
+        return isTileBlocked(mapTile.getX(), mapTile.getY(), playerId);
+    }
+
+    @Override
+    public boolean isTileBlocked(int x, int y, short playerId) {
+        Set<EntityId> entityIds = obstaclesByMapTile[x][y];
         if (entityIds.isEmpty()) {
             return false;
         }
 
         for (EntityId entityId : entityIds) {
-                DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+            DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
             if (doorComponent == null) {
                 continue;
             }
 
             if (doorComponent.locked) {
-                        return true;
+                return true;
             }
+
             Owner owner = entityData.getComponent(entityId, Owner.class);
 
             return owner == null || owner.ownerId != playerId;
