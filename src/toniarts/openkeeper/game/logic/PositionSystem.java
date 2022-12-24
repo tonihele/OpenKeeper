@@ -56,8 +56,8 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     private final IMapController mapController;
     private final IObjectsController objectsController;
     private final EntitySet positionedEntities;
-    private final Map<IMapTileInformation, Set<EntityId>> entitiesByMapTile = new HashMap<>();
-    private final Map<IMapTileInformation, Set<EntityId>> obstaclesByMapTile = new HashMap<>();
+    private final Set<EntityId>[][] entitiesByMapTile;
+    private final Set<EntityId>[][] obstaclesByMapTile;
     private final Map<EntityId, IMapTileInformation> mapTilesByEntities = new HashMap<>();
     private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
@@ -70,8 +70,25 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         entityWrappers.put(ICreatureController.class, creaturesController);
         entityWrappers.put(IDoorController.class, doorsController);
 
+        // Initialize data structures
+        int width = mapController.getMapData().getWidth();
+        int height = mapController.getMapData().getHeight();
+        entitiesByMapTile = initializeMatrix(width, height);
+        obstaclesByMapTile = initializeMatrix(width, height);
+
         positionedEntities = entityData.getEntities(Position.class);
         processAddedEntities(positionedEntities);
+    }
+
+    private static Set<EntityId>[][] initializeMatrix(int width, int height) {
+        Set<EntityId>[][] matrix = new Set[width][height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                matrix[x][y] = new HashSet<>();
+            }
+        }
+
+        return matrix;
     }
 
     @Override
@@ -98,38 +115,33 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
             IMapTileInformation currentMapTile = mapController.getMapData().getTile(p);
 
             IMapTileInformation previousMapTile = mapTilesByEntities.get(entity.getId());
-            if (!currentMapTile.equals(previousMapTile)) {
-
-                // Moved
-                mapTilesByEntities.put(entity.getId(), currentMapTile);
-                entitiesByMapTile.get(previousMapTile).remove(entity.getId());
-
-                // Obstacles
-                if (obstaclesByMapTile.containsKey(previousMapTile)) {
-                    obstaclesByMapTile.get(previousMapTile).remove(entity.getId());
-                }
-
-                addEntityToTile(currentMapTile, entity);
+            if (currentMapTile.equals(previousMapTile)) {
+                continue;
             }
+
+            int x = previousMapTile.getX();
+            int y = previousMapTile.getY();
+
+            // Moved
+            mapTilesByEntities.put(entity.getId(), currentMapTile);
+            entitiesByMapTile[x][y].remove(entity.getId());
+
+            // Obstacles
+            obstaclesByMapTile[x][y].remove(entity.getId());
+
+            addEntityToTile(currentMapTile, entity);
         }
     }
 
     private void addEntityToTile(IMapTileInformation mapTile, Entity entity) {
-        Set<EntityId> entitiesInTile = entitiesByMapTile.get(mapTile);
-        if (entitiesInTile == null) {
-            entitiesInTile = new HashSet<>();
-        }
-        entitiesInTile.add(entity.getId());
-        entitiesByMapTile.put(mapTile, entitiesInTile);
+        int x = mapTile.getX();
+        int y = mapTile.getY();
+
+        entitiesByMapTile[x][y].add(entity.getId());
 
         // Obstacles
         if (isObstacle(entityData, entity.getId())) {
-            Set<EntityId> obstaclesInTile = entitiesByMapTile.get(mapTile);
-            if (obstaclesInTile == null) {
-                obstaclesInTile = new HashSet<>();
-            }
-            obstaclesInTile.add(entity.getId());
-            obstaclesByMapTile.put(mapTile, obstaclesInTile);
+            obstaclesByMapTile[x][y].add(entity.getId());
         }
     }
 
@@ -138,11 +150,11 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         // Remove
         for (Entity entity : entities) {
             IMapTileInformation mapTile = mapTilesByEntities.remove(entity.getId());
-            entitiesByMapTile.get(mapTile).remove(entity.getId());
-            Set<EntityId> obstacles = obstaclesByMapTile.get(mapTile);
-            if (obstacles != null) {
-                obstacles.remove(entity.getId());
-            }
+
+            int x = mapTile.getX();
+            int y = mapTile.getY();
+            entitiesByMapTile[x][y].remove(entity.getId());
+            obstaclesByMapTile[x][y].remove(entity.getId());
         }
     }
 
@@ -160,24 +172,22 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public List<EntityId> getEntitiesInLocation(Point p) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
-        return getEntitiesInLocation(mapTile);
-    }
-
-    @Override
-    public List<EntityId> getEntitiesInLocation(int x, int y) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
-        return getEntitiesInLocation(mapTile);
+        return getEntitiesInLocation(p.x, p.y);
     }
 
     @Override
     public List<EntityId> getEntitiesInLocation(IMapTileInformation mapTile) {
-        Set<EntityId> entityId = entitiesByMapTile.get(mapTile);
-        if (entityId != null) {
-            return new ArrayList<>(entityId);
+        return getEntitiesInLocation(mapTile.getX(), mapTile.getY());
+    }
+
+    @Override
+    public List<EntityId> getEntitiesInLocation(int x, int y) {
+        Set<EntityId> entityIds = entitiesByMapTile[x][y];
+        if (entityIds.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        return Collections.emptyList();
+        return new ArrayList<>(entityIds);
     }
 
     @Override
@@ -187,32 +197,33 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
 
     @Override
     public <T extends IEntityController> List<T> getEntityTypesInLocation(Point p, Class<T> clazz) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
-        return getEntityTypesInLocation(mapTile, clazz);
-    }
-
-    @Override
-    public <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
-        return getEntityTypesInLocation(mapTile, clazz);
+        return getEntityTypesInLocation(p.x, p.y, clazz);
     }
 
     @Override
     public <T extends IEntityController> List<T> getEntityTypesInLocation(IMapTileInformation mapTile, Class<T> clazz) {
-        Set<EntityId> entityIds = entitiesByMapTile.get(mapTile);
-        if (entityIds != null) {
-            IEntityWrapper<T> entityWrapper = getEntityWrapper(clazz);
+        return getEntityTypesInLocation(mapTile.getX(), mapTile.getY(), clazz);
+    }
 
-            List<T> entities = new ArrayList<>(entityIds.size());
-            for (EntityId entityId : new ArrayList<>(entityIds)) {
-                if (entityWrapper.isValidEntity(entityId)) {
-                    entities.add(entityWrapper.createController(entityId));
-                }
-            }
-            return entities;
+    @Override
+    public <T extends IEntityController> List<T> getEntityTypesInLocation(int x, int y, Class<T> clazz) {
+        Set<EntityId> entityIds = entitiesByMapTile[x][y];
+        if (entityIds.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        return Collections.emptyList();
+        IEntityWrapper<T> entityWrapper = getEntityWrapper(clazz);
+
+        List<T> entities = new ArrayList<>(entityIds.size());
+        for (EntityId entityId : new ArrayList<>(entityIds)) {
+            if (!entityWrapper.isValidEntity(entityId)) {
+                continue;
+            }
+
+            entities.add(entityWrapper.createController(entityId));
+        }
+
+        return entities;
     }
 
     @Override
@@ -223,7 +234,7 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         for (IEntityWrapper<?> entityWrapper : entityWrappers.values()) {
             if (entityWrapper.isValidEntity(entityId)) {
                 return entityWrapper.createController(entityId);
-                }
+            }
         }
 
         // Hmm, I think this is safe, just create the general one
@@ -253,10 +264,18 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
     @Override
     public void stop() {
         positionedEntities.release();
-        entitiesByMapTile.clear();
         mapTilesByEntities.clear();
-        obstaclesByMapTile.clear();
         entityWrappers.clear();
+        clearMatrix(entitiesByMapTile);
+        clearMatrix(obstaclesByMapTile);
+    }
+
+    private static void clearMatrix(Set<EntityId>[][] matrix) {
+        for (int x = 0; x < matrix.length; x++) {
+            for (int y = 0; y < matrix[x].length; y++) {
+                matrix[x][y] = null;
+            }
+        }
     }
 
     private static boolean isObstacle(EntityData entityData, EntityId id) {
@@ -265,39 +284,39 @@ public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLooku
         // More of a physics thingie that...
         // So only doors here now...
         DoorComponent doorComponent = entityData.getComponent(id, DoorComponent.class);
-        if (doorComponent != null && !doorComponent.blueprint) {
-            return true;
-        }
-
-        return false;
+        return doorComponent != null && !doorComponent.blueprint;
     }
 
     @Override
     public boolean isTileBlocked(Point p, short playerId) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(p);
-        return isTileBlocked(mapTile, playerId);
-    }
-
-    @Override
-    public boolean isTileBlocked(int x, int y, short playerId) {
-        IMapTileInformation mapTile = mapController.getMapData().getTile(x, y);
-        return isTileBlocked(mapTile, playerId);
+        return isTileBlocked(p.x, p.y, playerId);
     }
 
     @Override
     public boolean isTileBlocked(IMapTileInformation mapTile, short playerId) {
-        Set<EntityId> entityIds = obstaclesByMapTile.get(mapTile);
-        if (entityIds != null) {
-            for (EntityId entityId : entityIds) {
-                DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
-                if (doorComponent != null) {
-                    if (doorComponent.locked) {
-                        return true;
-                    }
-                    Owner owner = entityData.getComponent(entityId, Owner.class);
-                    return owner == null || owner.ownerId != playerId;
-                }
+        return isTileBlocked(mapTile.getX(), mapTile.getY(), playerId);
+    }
+
+    @Override
+    public boolean isTileBlocked(int x, int y, short playerId) {
+        Set<EntityId> entityIds = obstaclesByMapTile[x][y];
+        if (entityIds.isEmpty()) {
+            return false;
+        }
+
+        for (EntityId entityId : entityIds) {
+            DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+            if (doorComponent == null) {
+                continue;
             }
+
+            if (doorComponent.locked) {
+                return true;
+            }
+
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+
+            return owner == null || owner.ownerId != playerId;
         }
 
         return false;
