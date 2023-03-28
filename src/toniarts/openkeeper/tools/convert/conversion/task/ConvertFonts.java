@@ -44,7 +44,6 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.FontCreator;
 import toniarts.openkeeper.tools.convert.FontCreator.FontImage;
 import toniarts.openkeeper.tools.convert.bf4.Bf4File;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 

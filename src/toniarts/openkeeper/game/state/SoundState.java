@@ -61,6 +61,8 @@ public class SoundState extends AbstractPauseAwareState {
         }
     }
 
+    private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
+    
     private Main app;
     private AppStateManager stateManager;
     private AudioNode speechNode = null;
@@ -72,8 +74,6 @@ public class SoundState extends AbstractPauseAwareState {
      */
     private final BackgroundState backgroundState = new BackgroundState("MUSIC");
     private final Queue<Speech> speechQueue = new ArrayDeque<>();
-
-    private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
 
     public SoundState(boolean enabled) {
         this.setEnabled(enabled);

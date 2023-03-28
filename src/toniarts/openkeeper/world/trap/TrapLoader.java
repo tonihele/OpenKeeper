@@ -37,10 +37,11 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
  */
 @Deprecated
 public class TrapLoader implements ILoader<Thing.Trap> {
+    
+    private static final Logger logger = Logger.getLogger(TrapLoader.class.getName());
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
-    private static final Logger logger = Logger.getLogger(TrapLoader.class.getName());
 
     public TrapLoader(KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;

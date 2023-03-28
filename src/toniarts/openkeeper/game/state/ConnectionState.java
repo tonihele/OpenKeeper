@@ -50,6 +50,8 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ConnectionState extends AbstractAppState {
+    
+    private static final Logger LOGGER = Logger.getLogger(ConnectionState.class.getName());
 
     private Main app;
     private String serverInfo;
@@ -66,8 +68,6 @@ public class ConnectionState extends AbstractAppState {
     private final List<ConnectionErrorListener> connectionErrorListeners = new CopyOnWriteArrayList<>();
 
     private volatile boolean closing;
-
-    private static final Logger LOGGER = Logger.getLogger(ConnectionState.class.getName());
 
     public ConnectionState(String host, int port, String playerName) {
         this(host, port, playerName, false, null);

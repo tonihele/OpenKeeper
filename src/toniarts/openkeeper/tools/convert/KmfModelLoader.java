@@ -81,6 +81,8 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class KmfModelLoader implements AssetLoader {
+    
+    private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
 
     /* Some textures are broken */
     private final static Map<String, String> textureFixes;
@@ -103,7 +105,6 @@ public class KmfModelLoader implements AssetLoader {
      */
     public static final String MATERIAL_ALTERNATIVE_TEXTURES = "AlternativeTextures";
     public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
-    private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();

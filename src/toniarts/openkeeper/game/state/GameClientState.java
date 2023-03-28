@@ -60,6 +60,8 @@ import toniarts.openkeeper.view.text.TextParserService;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameClientState extends AbstractPauseAwareState {
+    
+    private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
 
     private Main app;
 
@@ -83,8 +85,6 @@ public class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
     private TextParser textParser;
-
-    private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
 
     /**
      * Single use game states

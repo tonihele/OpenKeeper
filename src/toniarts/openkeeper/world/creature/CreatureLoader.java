@@ -39,11 +39,11 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  */
 @Deprecated
 public abstract class CreatureLoader implements ILoader<Thing.Creature>, CreatureListener {
+    
+    private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
-
-    private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
 
     public CreatureLoader(KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;

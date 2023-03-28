@@ -83,6 +83,8 @@ import toniarts.openkeeper.world.MapLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreaturesController implements ICreaturesController {
+    
+    private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
     private final KwdFile kwdFile;
     private final EntityData entityData;
@@ -110,8 +112,6 @@ public class CreaturesController implements ICreaturesController {
     private final ILevelInfo levelInfo;
 
     private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
-
-    private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
 
     /**
      * Load creatures from a KWD file straight (new game)

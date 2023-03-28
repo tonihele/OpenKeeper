@@ -32,9 +32,10 @@ import toniarts.openkeeper.utils.AssetUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class TrapLoader implements ILoader<TrapViewState> {
+    
+    private static final Logger LOGGER = Logger.getLogger(TrapLoader.class.getName());
 
     private final KwdFile kwdFile;
-    private static final Logger LOGGER = Logger.getLogger(TrapLoader.class.getName());
 
     public TrapLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;

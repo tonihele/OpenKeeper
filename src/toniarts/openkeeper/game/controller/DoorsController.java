@@ -51,6 +51,8 @@ import toniarts.openkeeper.world.MapLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class DoorsController implements IDoorsController {
+    
+    private static final Logger LOGGER = Logger.getLogger(DoorsController.class.getName());
 
     private KwdFile kwdFile;
     private EntityData entityData;
@@ -58,8 +60,6 @@ public class DoorsController implements IDoorsController {
     private IMapController mapController;
     private IGameController gameController;
     private ILevelInfo levelInfo;
-
-    private static final Logger LOGGER = Logger.getLogger(DoorsController.class.getName());
 
     public DoorsController() {
         // For serialization

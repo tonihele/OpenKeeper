@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 public abstract class CheatState extends AbstractPauseAwareState implements RawInputListener {
 
     private static final Logger LOGGER = Logger.getLogger(CheatState.class.getName());
+    
     private final Application app;
     private String cheat = "";
     private boolean success = false;

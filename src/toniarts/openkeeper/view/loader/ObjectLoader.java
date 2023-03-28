@@ -33,8 +33,9 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class ObjectLoader implements ILoader<ObjectViewState> {
 
-    private final KwdFile kwdFile;
     private static final Logger LOGGER = Logger.getLogger(ObjectLoader.class.getName());
+    
+    private final KwdFile kwdFile;
 
     public ObjectLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;

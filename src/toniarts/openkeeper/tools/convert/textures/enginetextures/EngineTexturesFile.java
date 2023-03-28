@@ -48,6 +48,8 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class EngineTexturesFile implements Iterable<String> {
+    
+    private static final Logger LOGGER = Logger.getLogger(EngineTexturesFile.class.getName());
 
     private static final boolean DECOMPRESSION_ENABLED = true;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
@@ -58,8 +60,6 @@ public class EngineTexturesFile implements Iterable<String> {
     private final Path file;
     private EngineTextureDecoder decoder;
     private final Map<String, EngineTextureEntry> engineTextureEntries;
-
-    private static final Logger LOGGER = Logger.getLogger(EngineTexturesFile.class.getName());
 
     public EngineTexturesFile(Path file) {
         this.file = file;

@@ -100,6 +100,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class TaskManager implements ITaskManager, IGameLogicUpdatable {
+    
+    private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -118,8 +120,6 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
-
-    private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,

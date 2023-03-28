@@ -38,10 +38,10 @@ import java.util.logging.Logger;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class BufferedResourceReader implements IResourceReader {
-
-    private final BufferedInputStream input;
     
     private static final Logger LOGGER = Logger.getLogger(BufferedResourceReader.class.getName());
+
+    private final BufferedInputStream input;
 
     public BufferedResourceReader(String filename) throws IOException {
         this(Paths.get(filename));

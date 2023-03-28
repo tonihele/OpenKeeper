@@ -50,8 +50,9 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class Cinematic extends com.jme3.cinematic.Cinematic {
 
-    private final AssetManager assetManager;
     private static final Logger LOGGER = Logger.getLogger(Cinematic.class.getName());
+    
+    private final AssetManager assetManager;
     private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
     private final AppStateManager stateManager;

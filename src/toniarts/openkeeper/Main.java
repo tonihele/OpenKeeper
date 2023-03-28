@@ -88,14 +88,15 @@ import toniarts.openkeeper.video.MovieState;
  */
 public class Main extends SimpleApplication {
 
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
-    public final static String VERSION = "*ALPHA*";
-    public final static String TITLE = "OpenKeeper";
-    private final static String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private final static String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
+    public static final String VERSION = "*ALPHA*";
+    public static final String TITLE = "OpenKeeper";
+    private static final String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
+    private static final String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
     private static final Object LOCK = new Object();
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static Map<String, String> params;
     private static boolean debug;
 
@@ -625,12 +626,12 @@ public class Main extends SimpleApplication {
         try {
             introSequence.add(PathUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq"));
         } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.INFO, "Could not find the Bullfrog intro!", ex);
+            LOGGER.log(Level.INFO, "Could not find the Bullfrog intro!", ex);
         }
         try {
             introSequence.add(PathUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ"));
         } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.INFO, "Could not find the game intro!", ex);
+            LOGGER.log(Level.INFO, "Could not find the game intro!", ex);
         }
         playMovie(introSequence);
     }

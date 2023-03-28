@@ -27,6 +27,8 @@ import java.util.logging.Logger;
  * @author ArchDemon
  */
 public class GlobalCategory {
+    
+    private static final Logger LOGGER = Logger.getLogger(GlobalCategory.class.getName());
 
     public static final String AMBIENCE = "AMBIENCE";
     public static final String EFFECTS = "EFFECTS";
@@ -58,8 +60,6 @@ public class GlobalCategory {
     public static final String WEAPON_METAL = "WEAPON_METAL";
     public static final String WEAPON_SCYTHE = "WEAPON_SCYTHE";
     public static final String WEAPON_WOOD = "WEAPON_WOOD";
-
-    private static final Logger LOGGER = Logger.getLogger(GlobalCategory.class.getName());
 
     /**
      * @see toniarts.openkeeper.game.sound.GlobalCategory.* constants

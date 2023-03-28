@@ -33,10 +33,10 @@ import java.util.logging.Logger;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ResourceChunkReader implements IResourceChunkReader {
+    
+    private static final Logger LOGGER = Logger.getLogger(ResourceChunkReader.class.getName());
 
     private final ByteBuffer buffer;
-
-    private static final Logger LOGGER = Logger.getLogger(ResourceChunkReader.class.getName());
 
     public ResourceChunkReader(ByteBuffer buffer) {
         this.buffer = buffer;

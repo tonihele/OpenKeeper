@@ -41,6 +41,8 @@ import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
  */
 public class StrFile {
 
+    private static final Logger LOGGER = Logger.getLogger(StrFile.class.getName());
+    
     private static final String STR_HEADER_IDENTIFIER = "BFST";
     private static final int STR_HEADER_SIZE = 12;
     // Codepage chunk types
@@ -51,8 +53,6 @@ public class StrFile {
     private final MbToUniFile codePage;
     private final int fileId;
     private final LinkedHashMap<Integer, String> entries;
-
-    private static final Logger LOGGER = Logger.getLogger(StrFile.class.getName());
 
     /**
      * Constructs a new STR file reader<br>

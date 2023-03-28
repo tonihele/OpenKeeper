@@ -52,6 +52,8 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 @Deprecated
 public class TorchControl extends BillboardControl {
+    
+    private static final Logger log = Logger.getLogger(TorchControl.class.getName());
 
     private final int frames = 20;
     private Material material;
@@ -59,8 +61,6 @@ public class TorchControl extends BillboardControl {
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private static final AssetKey<Spatial> ASSET_KEY = new AssetKey<>("TorchFlame");
-
-    private static final Logger log = Logger.getLogger(TorchControl.class.getName());
 
     public TorchControl(KwdFile kwdFile, AssetManager assetManager, float angle) {
         this.kwdFile = kwdFile;

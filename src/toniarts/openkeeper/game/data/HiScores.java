@@ -103,10 +103,13 @@ public class HiScores implements Savable {
             return b.toString();
         }
     }
-    private List<HiScoresEntry> entries = new ArrayList<>(NUMBER_OF_ENTRIES);
+    
+    private static final Logger logger = Logger.getLogger(HiScores.class.getName());
+    
     private static final int NUMBER_OF_ENTRIES = 10;
     private static final String HISCORES_FILENAME = "HiScores.okh";
-    private static final Logger logger = Logger.getLogger(HiScores.class.getName());
+    
+    private List<HiScoresEntry> entries = new ArrayList<>(NUMBER_OF_ENTRIES);
 
     /**
      * Serialization-only. Do not use.

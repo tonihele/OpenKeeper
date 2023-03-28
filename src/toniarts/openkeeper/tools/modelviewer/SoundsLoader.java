@@ -43,9 +43,10 @@ import toniarts.openkeeper.utils.Utils;
  * @author archdemon
  */
 public class SoundsLoader {
-
-    private static final Map<String, SoundCategory> CACHE = new HashMap<>();
+    
     private static final Logger LOGGER = Logger.getLogger(SoundsLoader.class.getName());
+    
+    private static final Map<String, SoundCategory> CACHE = new HashMap<>();
 
     private SoundsLoader() {
         // nope

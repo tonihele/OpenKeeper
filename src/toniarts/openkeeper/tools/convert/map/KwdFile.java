@@ -79,6 +79,8 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class KwdFile {
+    
+    private static final Logger LOGGER = Logger.getLogger(KwdFile.class.getName());
 
     // These are needed in various places, I don't know how to else regognize these
     private final static short ROOM_PORTAL_ID = 3;
@@ -136,7 +138,6 @@ public final class KwdFile {
     private GameObject levelGem;
 
     private final Object loadingLock = new Object();
-    private static final Logger LOGGER = Logger.getLogger(KwdFile.class.getName());
 
     /**
      * Constructs a new KWD file reader<br>

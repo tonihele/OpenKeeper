@@ -45,13 +45,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class EntityController implements IEntityController {
+    
+    private static final Logger LOGGER = Logger.getLogger(EntityController.class.getName());
 
     protected final EntityId entityId;
     protected final EntityData entityData;
     protected final IObjectsController objectsController;
     protected final IMapController mapController;
-
-    private static final Logger LOGGER = Logger.getLogger(EntityController.class.getName());
 
     public EntityController(EntityId entityId, EntityData entityData, IObjectsController objectsController, IMapController mapController) {
         this.entityId = entityId;

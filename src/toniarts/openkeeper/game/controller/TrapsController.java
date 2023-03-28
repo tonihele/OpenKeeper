@@ -47,14 +47,14 @@ import toniarts.openkeeper.world.MapLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class TrapsController implements ITrapsController {
+    
+    private static final Logger LOGGER = Logger.getLogger(TrapsController.class.getName());
 
     private KwdFile kwdFile;
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IGameController gameController;
     private ILevelInfo levelInfo;
-
-    private static final Logger LOGGER = Logger.getLogger(TrapsController.class.getName());
 
     public TrapsController() {
         // For serialization

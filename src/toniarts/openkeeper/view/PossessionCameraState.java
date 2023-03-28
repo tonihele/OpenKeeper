@@ -42,6 +42,8 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 public class PossessionCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
+    private static final Logger logger = Logger.getLogger(PossessionCameraState.class.getName());
+    
     private Main app;
     private InputManager inputManager;
 
@@ -91,8 +93,6 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
     //SPECIAL_KEY_ALT,
     //SPECIAL_KEY_SHIFT,
     };
-
-    private static final Logger logger = Logger.getLogger(PossessionCameraState.class.getName());
 
     public PossessionCameraState(boolean enabled) {
         super.setEnabled(enabled);

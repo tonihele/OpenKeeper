@@ -28,8 +28,10 @@ import java.util.logging.Logger;
  * @author ArchDemon
  */
 public abstract class ServerQuery extends Thread {
-    private LinkedList<NetworkServer> queue;
+    
     private static final Logger logger = Logger.getLogger(ServerQuery.class.getName());
+    
+    private LinkedList<NetworkServer> queue;
 
     public ServerQuery(LinkedList queue) {
         this.queue = queue;

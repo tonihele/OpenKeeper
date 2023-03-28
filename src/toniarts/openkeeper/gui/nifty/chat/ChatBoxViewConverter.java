@@ -32,6 +32,7 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
 public class ChatBoxViewConverter implements ListBoxViewConverter<ChatEntry> {
 
     private static final Logger log = Logger.getLogger(ChatBoxViewConverter.class.getName());
+    
     private static final String CHAT_LINE_TEXT = "#chat-line-text";
 
     /**

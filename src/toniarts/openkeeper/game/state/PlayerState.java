@@ -66,6 +66,8 @@ import toniarts.openkeeper.world.room.RoomInstance;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerState extends AbstractAppState implements PlayerListener {
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
     protected final Main app;
 
@@ -86,8 +88,6 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
 
     private boolean transitionEnd = true;
     private PlayerScreenController screen;
-
-    private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
     public PlayerState(int playerId, KwdFile kwdFile, EntityData entityData, boolean enabled, Main app) {
         this.playerId = (short) playerId;

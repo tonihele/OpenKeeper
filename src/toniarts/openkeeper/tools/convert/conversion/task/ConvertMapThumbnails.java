@@ -33,7 +33,6 @@ import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.PathUtils;
 

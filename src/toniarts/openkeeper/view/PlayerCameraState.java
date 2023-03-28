@@ -59,6 +59,8 @@ import toniarts.openkeeper.view.camera.PlayerCameraRotateControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerCameraState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -104,8 +106,6 @@ public class PlayerCameraState extends AbstractPauseAwareState implements Action
         SPECIAL_KEY_CONTROL,
         SPECIAL_KEY_ALT,
         SPECIAL_KEY_SHIFT};
-
-    private static final Logger LOGGER = Logger.getLogger(PlayerCameraState.class.getName());
 
     public PlayerCameraState(Player player) {
         this.player = player;

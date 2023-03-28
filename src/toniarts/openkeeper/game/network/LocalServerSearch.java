@@ -33,13 +33,15 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  * @author ArchDemon
  */
 public abstract class LocalServerSearch {
-
-    private final static int nThreads = 10;
+    
+    private static final Logger logger = Logger.getLogger(LocalServerSearch.class.getName());
+    
+    private static final int nThreads = 10;
+    
     private int port = 7575;
     private final ServerQuery[] threads;
     private final LinkedList<NetworkServer> queue;
     private List<NetworkServer> servers = new ArrayList();
-    private static final Logger logger = Logger.getLogger(LocalServerSearch.class.getName());
 
     public LocalServerSearch(int port) {
         this.port = port;

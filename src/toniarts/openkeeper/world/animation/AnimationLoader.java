@@ -37,11 +37,12 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 @Deprecated
 public class AnimationLoader {
+    
+    private static final Logger LOGGER = Logger.getLogger(AnimationLoader.class.getName());
 
     private static final String START_ANIMATION_NAME = "Start";
     private static final String END_ANIMATION_NAME = "End";
     private static final String ANIM_NAME = "anim";
-    private static final Logger LOGGER = Logger.getLogger(AnimationLoader.class.getName());
 
     private AnimationLoader() {
         // No!

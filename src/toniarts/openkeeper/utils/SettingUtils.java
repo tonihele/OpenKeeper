@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 public class SettingUtils {
 
     private static final Logger LOGGER = Logger.getLogger(SettingUtils.class.getName());
+    
     private final static Path SETTINGS_FILE = Paths.get("openkeeper.properties");
     private final AppSettings settings;
     private final static SettingUtils instance;

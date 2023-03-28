@@ -92,6 +92,8 @@ import toniarts.openkeeper.utils.Utils;
  * @author ArchDemon
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
+    
+    private static final Logger LOGGER = Logger.getLogger(MainMenuScreenController.class.getName());
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -104,8 +106,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
      * A popup instance if some screen should need one
      */
     private Element popupElement;
-
-    private static final Logger LOGGER = Logger.getLogger(MainMenuScreenController.class.getName());
 
     static {
         CUTSCENES.add(new Cutscene("Intro", "INTRO", "${menu.77}"));
@@ -1132,7 +1132,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
         } catch (IOException ex) {
-            Logger.getLogger(MainMenuScreenController.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            LOGGER.log(java.util.logging.Level.SEVERE, null, ex);
         }
 
         nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);

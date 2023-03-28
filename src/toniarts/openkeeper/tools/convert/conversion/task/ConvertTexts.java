@@ -36,7 +36,6 @@ import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.str.MbToUniFile;
 import toniarts.openkeeper.tools.convert.str.StrFile;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**

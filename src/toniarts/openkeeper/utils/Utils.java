@@ -42,6 +42,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 public class Utils {
 
     private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
+    
     private static final Random RANDOM = new Random();
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
     private static final String[] CREATURE_NAMES = {

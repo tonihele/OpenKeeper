@@ -42,6 +42,8 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class TgqFile implements AutoCloseable {
+    
+    private static final Logger LOGGER = Logger.getLogger(TgqFile.class.getName());
 
     private final IResourceReader file;
     private EAAudioHeader audioHeader;
@@ -60,8 +62,6 @@ public abstract class TgqFile implements AutoCloseable {
     private final static String SCEl_TAG = "SCEl";
     private final static String SEEN_TAG = "SEEN";
     private final static String PT_PATCH_TAG = "PT";
-
-    private static final Logger LOGGER = Logger.getLogger(TgqFile.class.getName());
 
     public static void main(final String[] args) throws IOException {
 

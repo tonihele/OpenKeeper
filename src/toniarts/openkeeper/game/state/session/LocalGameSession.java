@@ -46,9 +46,9 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
-
-    private static final short PLAYER_ID = Player.KEEPER1_ID;
+    
     private static final Logger LOGGER = Logger.getLogger(LocalGameSession.class.getName());
+    private static final short PLAYER_ID = Player.KEEPER1_ID;
 
     private boolean playerInTransition = false;
     private final EntityData entityData = new DefaultEntityData();

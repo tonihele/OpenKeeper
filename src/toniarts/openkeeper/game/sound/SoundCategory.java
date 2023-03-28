@@ -39,6 +39,8 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author archdemon
  */
 public class SoundCategory {
+    
+    private static final Logger LOGGER = Logger.getLogger(SoundCategory.class.getName());
 
     public static final String SPEECH_MENTOR = "SPEECH_MENTOR";
     public static final String SPEECH_MULTIPLAYER = "SPEECH_MULTIPLAYER";
@@ -48,8 +50,6 @@ public class SoundCategory {
     private final String folder;
     private final String name;
     private final Map<Integer, SoundGroup> groups = new HashMap<>();
-
-    private static final Logger LOGGER = Logger.getLogger(SoundCategory.class.getName());
 
     public SoundCategory(String name, boolean useGlobal) {
         if (name == null || name.isEmpty()) {

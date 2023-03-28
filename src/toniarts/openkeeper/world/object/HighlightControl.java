@@ -28,10 +28,10 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
  */
 @Deprecated
 public abstract class HighlightControl extends AbstractControl implements IInteractiveControl {
+    
+    private static final Logger logger = Logger.getLogger(HighlightControl.class.getName());
 
     private boolean active = false;
-
-    private static final Logger logger = Logger.getLogger(HighlightControl.class.getName());
 
     @Override
     public void onHoverStart() {

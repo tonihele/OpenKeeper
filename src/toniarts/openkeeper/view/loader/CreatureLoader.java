@@ -31,9 +31,10 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreatureLoader implements ILoader<CreatureViewState> {
+    
+    private static final Logger LOGGER = Logger.getLogger(CreatureLoader.class.getName());
 
     private final KwdFile kwdFile;
-    private static final Logger LOGGER = Logger.getLogger(CreatureLoader.class.getName());
 
     public CreatureLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;

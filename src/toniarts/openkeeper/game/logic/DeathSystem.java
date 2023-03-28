@@ -37,14 +37,14 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class DeathSystem implements IGameLogicUpdatable {
+    
+    private static final Logger LOGGER = Logger.getLogger(DeathSystem.class.getName());
 
     private final IEntityPositionLookup entityPositionLookup;
     private final EntitySet deathEntities;
     private final EntityData entityData;
     private final SafeArrayList<EntityId> entityIds;
     private final int timeToDecay;
-
-    private static final Logger LOGGER = Logger.getLogger(DeathSystem.class.getName());
 
     public DeathSystem(EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IEntityPositionLookup entityPositionLookup) {

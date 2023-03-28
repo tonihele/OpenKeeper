@@ -48,6 +48,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class ChickenController extends EntityController implements IChickenController {
+    
+    private static final Logger LOGGER = Logger.getLogger(ChickenController.class.getName());
 
     private final INavigationService navigationService;
     private final IGameTimer gameTimer;
@@ -56,8 +58,6 @@ public class ChickenController extends EntityController implements IChickenContr
     private final GameObject chickenObject;
     private final StateMachine<IChickenController, ChickenState> stateMachine;
     private float motionless = 0;
-
-    private static final Logger LOGGER = Logger.getLogger(ChickenController.class.getName());
 
     public ChickenController(EntityId entityId, EntityData entityData, GameObject eggObject, GameObject chickenObject,
             INavigationService navigationService, IGameTimer gameTimer, IObjectsController objectsController,

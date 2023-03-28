@@ -45,6 +45,10 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
  */
 public class MovementSystem implements IGameLogicUpdatable {
 
+    private static final Logger LOGGER = Logger.getLogger(MovementSystem.class.getName());
+    
+    private final static boolean INDEPENDENT_FACING = false;
+    
     private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
     private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
     private final Map<ISteerableEntity, EntitySteeringBehavior> steeringBehaviorsBySteerableEntity = new HashMap<>();
@@ -60,10 +64,6 @@ public class MovementSystem implements IGameLogicUpdatable {
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
     private final EntityData entityData;
-
-    private final static boolean INDEPENDENT_FACING = false;
-
-    private static final Logger LOGGER = Logger.getLogger(MovementSystem.class.getName());
 
     public MovementSystem(EntityData entityData) {
         this.entityData = entityData;

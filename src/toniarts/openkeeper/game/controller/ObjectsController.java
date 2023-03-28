@@ -67,6 +67,8 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class ObjectsController implements IObjectsController {
 
+    private static final Logger LOGGER = Logger.getLogger(ObjectsController.class.getName());
+    
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
     public final static short OBJECT_GOLD_PILE_ID = 3;
@@ -95,8 +97,6 @@ public class ObjectsController implements IObjectsController {
      * The value needs to be weak reference also since it references the key
      */
     private final Map<EntityId, WeakReference<IChickenController>> chickenControllersByEntityId = new WeakHashMap<>();
-
-    private static final Logger LOGGER = Logger.getLogger(ObjectsController.class.getName());
 
     public ObjectsController() {
         // For serialization

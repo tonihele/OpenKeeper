@@ -38,7 +38,6 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.textures.enginetextures.EngineTexturesFile;
 import toniarts.openkeeper.tools.convert.textures.loadingscreens.LoadingScreenFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 

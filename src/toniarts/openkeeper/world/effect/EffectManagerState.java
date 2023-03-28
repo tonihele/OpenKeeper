@@ -38,13 +38,14 @@ import toniarts.openkeeper.world.WorldState;
 @Deprecated
 public class EffectManagerState extends AbstractAppState {
 
+    private static final Logger logger = Logger.getLogger(EffectManagerState.class.getName());
+    
     public static int ROOM_CLAIM_ID = 2;
 
     private final KwdFile kwdFile;
     private final AssetManager assetManager;
     private final List<VisualEffect> activeEffects = new ArrayList<>();
     private AppStateManager stateManager;
-    private static final Logger logger = Logger.getLogger(EffectManagerState.class.getName());
 
     public EffectManagerState(KwdFile kwdFile, AssetManager assetManager) {
         this.kwdFile = kwdFile;

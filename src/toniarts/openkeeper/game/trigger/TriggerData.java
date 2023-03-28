@@ -28,6 +28,8 @@ import java.util.logging.Logger;
  * @author ArchDemon
  */
 public abstract class TriggerData {
+    
+    private static final Logger LOGGER = Logger.getLogger(TriggerData.class.getName());
 
     /**
      * This TriggerActionData's id.
@@ -38,7 +40,6 @@ public abstract class TriggerData {
      */
     protected transient TriggerGenericData parent;
     protected Map<String, Number> userData = null;
-    private static final Logger LOGGER = Logger.getLogger(TriggerData.class.getName());
 
     public TriggerData() {
         id = 0; // FIXME

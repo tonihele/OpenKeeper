@@ -83,6 +83,8 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class MainMenuState extends AbstractAppState {
+    
+    private static final Logger LOGGER = Logger.getLogger(MainMenuState.class.getName());
 
     protected Main app;
     protected Node rootNode;
@@ -102,8 +104,6 @@ public class MainMenuState extends AbstractAppState {
     private MainMenuEntityViewState mainMenuEntityViewState;
     private GameController gameController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
-
-    private static final Logger LOGGER = Logger.getLogger(MainMenuState.class.getName());
 
     /**
      * (c) Construct a MainMenuState, you should only have one of these. Disable
