@@ -45,14 +45,14 @@ public class SprFile {
         protected String tag; // PSFB
         protected int framesCount;
     }
+    
+    private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
 
-    public final static int[] PALETTE = getHalftonePalette();
+    public static final int[] PALETTE = getHalftonePalette();
 
-    private final static String PSFB = "PSFB";
+    private static final String PSFB = "PSFB";
     private SprHeader header;
     private List<SprEntry> sprites;
-
-    private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
 
     public SprFile(Path file) {
         try (IResourceReader reader = new BufferedResourceReader(file)) {

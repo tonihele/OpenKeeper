@@ -40,12 +40,12 @@ import toniarts.openkeeper.game.network.message.StreamedMessage;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class StreamingClientService extends AbstractClientService {
+    
+    private static final Logger logger = Logger.getLogger(StreamingClientService.class.getName());
 
     private final Map<Integer, Map<Integer, ByteBuffer>> messageReceiveMap = new ConcurrentHashMap<>();
     private final MessageListener<Client> messageListener = new StreamedMessageServiceListenerImpl();
     private final Map<Integer, List<StreamedMessageListener>> listeners = new HashMap<>();
-
-    private static final Logger logger = Logger.getLogger(StreamingClientService.class.getName());
 
     @Override
     protected void onInitialize(ClientServiceManager serviceManager) {

@@ -32,9 +32,10 @@ import toniarts.openkeeper.game.trigger.player.PlayerTriggerControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class AbstractThingTriggerControl<T> extends PlayerTriggerControl {
+    
+    private static final Logger LOGGER = Logger.getLogger(AbstractThingTriggerControl.class.getName());
 
     protected T instanceControl;
-    private static final Logger LOGGER = Logger.getLogger(AbstractThingTriggerControl.class.getName());
 
     public AbstractThingTriggerControl() { // empty serialization constructor
         super();

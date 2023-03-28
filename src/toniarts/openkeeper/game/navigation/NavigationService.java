@@ -39,14 +39,14 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class NavigationService implements INavigationService {
+    
+    private static final Logger LOGGER = Logger.getLogger(NavigationService.class.getName());
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
     private final MapIndexedGraph pathFindingMap;
     private final MapPathFinder pathFinder;
     private final MapDistance heuristic;
-
-    private static final Logger LOGGER = Logger.getLogger(NavigationService.class.getName());
 
     public NavigationService(IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         this.mapController = mapController;

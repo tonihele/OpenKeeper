@@ -40,10 +40,11 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
  */
 @Deprecated
 public class DoorLoader implements ILoader<Thing.Door> {
+    
+    private static final Logger logger = Logger.getLogger(DoorLoader.class.getName());
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
-    private static final Logger logger = Logger.getLogger(DoorLoader.class.getName());
 
     public DoorLoader(KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;

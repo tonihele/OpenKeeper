@@ -36,6 +36,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class AbstractTask implements Task {
 
+    private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
+    
     private static final AtomicLong ID_GENENERATOR = new AtomicLong();
 
     private final long id;
@@ -43,7 +45,6 @@ public abstract class AbstractTask implements Task {
     protected final INavigationService navigationService;
     protected final IMapController mapController;
     private final Map<ICreatureController, Float> assignees = new HashMap<>();
-    private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
 
     public AbstractTask(final INavigationService navigationService, final IMapController mapController) {
         this.taskCreated = Instant.now();

@@ -42,10 +42,12 @@ import toniarts.openkeeper.gui.nifty.chat.event.ChatTextSendEvent;
  * @version 0.1
  */
 public class ChatControl extends AbstractController implements KeyInputHandler, Chat {
+    
+    private static final Logger LOGGER = Logger.getLogger(ChatControl.class.getName());
 
     private static final String CHAT_BOX = "#chatBox";
     private static final String CHAT_TEXT_INPUT = "#chat-text-input";
-    private static final Logger LOGGER = Logger.getLogger(ChatControl.class.getName());
+    
     private TextField textControl;
     private Nifty nifty;
     private final Queue<ChatEntry> linesBuffer = new ArrayDeque<>();

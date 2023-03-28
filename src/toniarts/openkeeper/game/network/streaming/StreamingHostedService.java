@@ -34,11 +34,11 @@ import toniarts.openkeeper.game.network.message.StreamedMessage;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class StreamingHostedService extends AbstractHostedService {
+    
+    private static final Logger logger = Logger.getLogger(StreamingHostedService.class.getName());
 
     private static final int MAX_MESSAGE_SIZE = 30000;
     private static final int MAX_TOTAL_SIZE = 10000000;
-
-    private static final Logger logger = Logger.getLogger(StreamingHostedService.class.getName());
 
     @Override
     protected void onInitialize(HostedServiceManager serviceManager) {

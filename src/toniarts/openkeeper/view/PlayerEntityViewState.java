@@ -62,6 +62,8 @@ import toniarts.openkeeper.view.text.TextParser;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerEntityViewState extends AbstractAppState {
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
     private AppStateManager stateManager;
     private final KwdFile kwdFile;
@@ -88,8 +90,6 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
-
-    private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
 
     public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         super(Short.toString(playerId));

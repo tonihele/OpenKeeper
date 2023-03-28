@@ -27,7 +27,6 @@ import static toniarts.openkeeper.tools.convert.AssetsConverter.SPRITES_FOLDER;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
 import toniarts.openkeeper.tools.convert.spr.SprFile;
 import toniarts.openkeeper.tools.convert.wad.WadFile;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**

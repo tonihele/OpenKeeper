@@ -121,6 +121,9 @@ public class ModelViewer extends SimpleApplication {
             return name;
         }
     }
+    
+    private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
+    
     //private final static float SCALE = 2;
     private static String dkIIFolder;
     private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
@@ -145,7 +148,6 @@ public class ModelViewer extends SimpleApplication {
     private static final String KEY_MAPPING_SHOW_NORMALS = "show normals";
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
-    private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
 
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
@@ -614,7 +616,7 @@ public class ModelViewer extends SimpleApplication {
                     object.add(key.substring(0, key.length() - 4));
                 }
             } catch (IOException ex) {
-                Logger.getLogger(MapSelector.class.getName()).log(Level.SEVERE, "Failed to load the maps!", ex);
+                LOGGER.log(Level.SEVERE, "Failed to load the maps!", ex);
             }
         }
 

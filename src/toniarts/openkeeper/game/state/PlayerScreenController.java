@@ -123,9 +123,12 @@ public class PlayerScreenController implements IPlayerScreenController {
 
         MAIN, QUIT, CONFIRMATION;
     }
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerScreenController.class.getName());
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
+    
     public float lastUpdate = 0;
 
     private PlayerState state;
@@ -144,8 +147,6 @@ public class PlayerScreenController implements IPlayerScreenController {
     private final DoorIconTextParser doorIconTextParser = new DoorIconTextParser();
     private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser();
     private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
-
-    private static final Logger LOGGER = Logger.getLogger(PlayerScreenController.class.getName());
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;

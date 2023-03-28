@@ -92,6 +92,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreatureController extends EntityController implements ICreatureController {
+    
+    private static final Logger LOGGER = Logger.getLogger(CreatureController.class.getName());
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -106,8 +108,6 @@ public class CreatureController extends EntityController implements ICreatureCon
     private float taskDuration = 0.0f;
     private boolean taskStarted = false;
     private float motionless = 0;
-
-    private static final Logger LOGGER = Logger.getLogger(CreatureController.class.getName());
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,

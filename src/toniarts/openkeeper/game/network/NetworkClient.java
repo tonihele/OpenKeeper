@@ -44,6 +44,8 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
  * @author ArchDemon
  */
 public class NetworkClient implements ChatSession {
+    
+    private static final Logger LOGGER = Logger.getLogger(NetworkClient.class.getName());
 
     private final Client client;
 
@@ -52,8 +54,6 @@ public class NetworkClient implements ChatSession {
     private long serverTimeOffset;
     private final long pingDelay = 500 * 1000000L; // 500 ms
     private long nextPing;
-
-    private static final Logger LOGGER = Logger.getLogger(NetworkClient.class.getName());
 
     public NetworkClient(String host, int port) throws IOException {
         client = Network.connectToServer(NetworkConstants.GAME_NAME, NetworkConstants.PROTOCOL_VERSION, host, port);

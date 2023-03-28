@@ -91,6 +91,8 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
  */
 @Deprecated
 public abstract class WorldState extends AbstractAppState {
+    
+    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -110,8 +112,6 @@ public abstract class WorldState extends AbstractAppState {
     private final GameState gameState;
     private final FlashTileControl flashTileControl;
     public final Object goldLock = new Object();
-
-    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
 
     public WorldState(final KwdFile kwdFile, final AssetManager assetManager, GameState gameState) {
         this.kwdFile = kwdFile;

@@ -48,12 +48,12 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class WadFile {
 
+    private static final Logger LOGGER = Logger.getLogger(WadFile.class.getName());
+    
     private final Path file;
     private final Map<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
     private static final int WAD_HEADER_VERSION = 2;
-
-    private static final Logger LOGGER = Logger.getLogger(WadFile.class.getName());
 
     /**
      * Constructs a new Wad file reader<br>

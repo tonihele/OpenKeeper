@@ -59,8 +59,10 @@ public class Water {
         /* Just for testing etc. Not to be really used, I just left it in */
         SIMPLE, CLASSIC;
     };
-    private static final WaterType WATER_TYPE = WaterType.CLASSIC;
+    
     private static final Logger LOGGER = Logger.getLogger(Water.class.getName());
+    
+    private static final WaterType WATER_TYPE = WaterType.CLASSIC;
 
     private Water() {
         // Nope

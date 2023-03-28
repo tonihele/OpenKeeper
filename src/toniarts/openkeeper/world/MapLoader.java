@@ -68,6 +68,8 @@ import toniarts.openkeeper.world.terrain.Water;
 @Deprecated
 public abstract class MapLoader implements ILoader<KwdFile> {
 
+    private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
+    
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
     public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2; // FIXME use Terrain Torch Height
@@ -101,7 +103,6 @@ public abstract class MapLoader implements ILoader<KwdFile> {
     private final HashMap<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<RoomInstance, GenericRoom> roomActuals = new LinkedHashMap<>(); // Rooms by room instance
     private final HashMap<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
-    private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
 
     public MapLoader(AssetManager assetManager, KwdFile kwdFile, EffectManagerState effectManager, WorldState worldState, ObjectLoader objectLoader) {
         this.kwdFile = kwdFile;

@@ -65,6 +65,8 @@ import toniarts.openkeeper.world.WorldState;
  */
 @Deprecated
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdatable {
+    
+    private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -96,8 +98,6 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private TaskManager taskManager;
     private final Map<Short, Keeper> players = new TreeMap<>();
     private PauseableScheduledThreadPoolExecutor exec;
-
-    private static final Logger logger = Logger.getLogger(GameState.class.getName());
 
     /**
      * Single use game states
@@ -494,7 +494,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             try {
                 Main.getUserSettings().save();
             } catch (IOException ex) {
-                Logger.getLogger(GameState.class.getName()).log(Level.SEVERE, "Failed to save the level progress!", ex);
+                logger.log(Level.SEVERE, "Failed to save the level progress!", ex);
             }
         }
     }

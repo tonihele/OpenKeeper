@@ -245,15 +245,18 @@ public class Settings {
         private final Integer resourceKey;
         private final Integer specialKey;  // Control, Alt, Shift
     }
-    private final static Settings INSTANCE;
-    private final AppSettings settings;
-    private final static int MAX_FPS = 200;
-    private final static Path USER_HOME_FOLDER = Paths.get(System.getProperty("user.home"), ".".concat(Main.TITLE));
-    private final static Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
-    public final static List<String> OPENGL = Settings.getRenderers();
-    public final static List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
-    public final static List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
+    
     private static final Logger LOGGER = Logger.getLogger(Settings.class.getName());
+    
+    private static final Settings INSTANCE;
+    private static final int MAX_FPS = 200;
+    private static final Path USER_HOME_FOLDER = Paths.get(System.getProperty("user.home"), ".".concat(Main.TITLE));
+    private static final Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
+    public static final List<String> OPENGL = Settings.getRenderers();
+    public static final List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
+    public static final List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
+    
+    private final AppSettings settings;
 
     static {
         INSTANCE = new Settings(new AppSettings(true));

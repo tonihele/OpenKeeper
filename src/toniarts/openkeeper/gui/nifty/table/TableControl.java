@@ -44,6 +44,8 @@ import java.util.logging.Logger;
  * @param <T> The table row class
  */
 public class TableControl<T extends TableRow> extends ListBoxControl<T> {
+    
+    private static final Logger logger = Logger.getLogger(TableControl.class.getName());
 
     private List<TableColumn> tableColumns;
     private Element headers;
@@ -59,7 +61,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             try {
                 tableColumns.add(TableColumn.parse(prmtrs.get("col" + i)));
             } catch (ClassNotFoundException ex) {
-                Logger.getLogger(TableControl.class.getName()).log(Level.SEVERE, "Failed to init a column!", ex);
+                logger.log(Level.SEVERE, "Failed to init a column!", ex);
             }
         }
 

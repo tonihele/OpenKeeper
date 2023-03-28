@@ -52,6 +52,8 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameServerState extends AbstractAppState {
+    
+    private static final Logger LOGGER = Logger.getLogger(GameServerState.class.getName());
 
     private Main app;
 
@@ -74,8 +76,6 @@ public class GameServerState extends AbstractAppState {
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
     private GameController gameController;
     private IGameWorldController gameWorldController;
-
-    private static final Logger LOGGER = Logger.getLogger(GameServerState.class.getName());
 
     /**
      * Single use game states

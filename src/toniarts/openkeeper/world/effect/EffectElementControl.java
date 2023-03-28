@@ -32,6 +32,9 @@ import static toniarts.openkeeper.world.effect.EffectControl.calculateVelocity;
  */
 @Deprecated
 public abstract class EffectElementControl extends AbstractControl {
+    
+    private static final Logger log = Logger.getLogger(EffectElementControl.class.getName());
+    
     private EffectElement effect;
 
     private float hpCurrent;
@@ -41,7 +44,6 @@ public abstract class EffectElementControl extends AbstractControl {
     private float scaleRatio;
     private Vector3f velocity;
 
-    private static final Logger log = Logger.getLogger(EffectElementControl.class.getName());
     /**
      * For serialization only. Do not use.
      */

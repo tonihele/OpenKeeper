@@ -35,10 +35,10 @@ import java.util.logging.Logger;
  * @author archdemon
  */
 public class FileResourceReader implements ISeekableResourceReader {
-
-    private final SeekableByteChannel file;
     
     private static final Logger LOGGER = Logger.getLogger(FileResourceReader.class.getName());
+
+    private final SeekableByteChannel file;
 
     public FileResourceReader(String filename) throws IOException {
         this(Paths.get(filename));

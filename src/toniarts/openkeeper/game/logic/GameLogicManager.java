@@ -27,11 +27,12 @@ import toniarts.openkeeper.utils.IGameLoopManager;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameLogicManager implements IGameLoopManager {
+    
+    private static final Logger LOGGER = Logger.getLogger(GameLogicManager.class.getName());
 
     private long ticks = 0;
     private double timeElapsed = 0.0;
     protected final IGameLogicUpdatable[] updatables;
-    private static final Logger LOGGER = Logger.getLogger(GameLogicManager.class.getName());
 
     public GameLogicManager(IGameLogicUpdatable... updatables) {
         this.updatables = updatables;

@@ -62,7 +62,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
 
     private RmiHostedService rmiService;
 
-    private List<ChatSessionImpl> players = new CopyOnWriteArrayList<>();
+    private final List<ChatSessionImpl> players = new CopyOnWriteArrayList<>();
 
     /**
      * Creates a new chat service that will use the specified channel for

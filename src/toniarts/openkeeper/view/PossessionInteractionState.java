@@ -50,6 +50,8 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
         MELEE, SPELL_1, SPELL_2, SPELL_3, ABILITY_1, ABILITY_2, GROUP
     }
 
+    private static final Logger logger = Logger.getLogger(PossessionInteractionState.class.getName());
+    
     private Main app;
 
     private AppStateManager stateManager;
@@ -59,8 +61,6 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     private RawInputListener inputListener;
     public Vector2f mousePosition = Vector2f.ZERO;
     private Action action;
-
-    private static final Logger logger = Logger.getLogger(PossessionInteractionState.class.getName());
 
     public PossessionInteractionState(boolean enabled) {
         super.setEnabled(enabled);

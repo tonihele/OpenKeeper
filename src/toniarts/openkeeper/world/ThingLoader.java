@@ -62,6 +62,8 @@ import toniarts.openkeeper.world.trap.TrapLoader;
  */
 @Deprecated
 public class ThingLoader {
+    
+    private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
 
     private final WorldState worldState;
     private final CreatureLoader creatureLoader;
@@ -94,8 +96,6 @@ public class ThingLoader {
     private Map<Short, List<CreatureListener>> creatureListeners;
     private final Map<Integer, Party> creatureParties = new HashMap<>();
     private List<ObjectListener> objectListeners;
-
-    private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
 
     public ThingLoader(WorldState worldHandler, KwdFile kwdFile, AssetManager assetManager) {
         this.worldState = worldHandler;

@@ -49,9 +49,10 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  */
 @Deprecated
 public class UnitFlowerControl extends BillboardControl {
+    
+    private static final Logger logger = Logger.getLogger(UnitFlowerControl.class.getName());
 
     private static final float DISPLAY_SECONDS = 2.5f;
-    private static final Logger logger = Logger.getLogger(UnitFlowerControl.class.getName());
 
     private float targetTimeVisible = DISPLAY_SECONDS;
     private float timeVisible = 0;

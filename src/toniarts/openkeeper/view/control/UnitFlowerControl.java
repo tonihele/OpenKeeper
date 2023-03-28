@@ -54,9 +54,10 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class UnitFlowerControl<T> extends BillboardControl implements IUnitFlowerControl<T> {
+    
+    private static final Logger LOGGER = Logger.getLogger(UnitFlowerControl.class.getName());
 
     private static final float DISPLAY_SECONDS = 2.5f;
-    private static final Logger LOGGER = Logger.getLogger(UnitFlowerControl.class.getName());
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Health.class, Owner.class);
 
     private float targetTimeVisible = DISPLAY_SECONDS;

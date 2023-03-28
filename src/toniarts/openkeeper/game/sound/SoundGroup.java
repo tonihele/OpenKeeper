@@ -34,12 +34,12 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author archdemon
  */
 public class SoundGroup {
+    
+    private static final Logger LOGGER = Logger.getLogger(SoundGroup.class.getName());
 
     private final SoundCategory category;
     private final SfxGroupEntry entry;
     private final List<SoundFile> files = new ArrayList<>();
-
-    private static final Logger LOGGER = Logger.getLogger(SoundGroup.class.getName());
 
     public SoundGroup(SoundCategory category, SfxGroupEntry entry) {
         this.category = category;

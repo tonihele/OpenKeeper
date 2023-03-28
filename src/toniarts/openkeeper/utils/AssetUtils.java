@@ -72,15 +72,17 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class AssetUtils {
 
-    private static volatile boolean preWarmedAssets = false;
+    private static final Logger LOGGER = Logger.getLogger(AssetUtils.class.getName());
+    
     private final static Object ASSET_LOCK = new Object();
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
     private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
     private final static Map<String, Boolean> TEXTURE_MAP_CACHE = new HashMap<>();
-    private static final Logger LOGGER = Logger.getLogger(AssetUtils.class.getName());
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
+    
+    private static volatile boolean preWarmedAssets = false;
 
     private AssetUtils() {
         // Nope
@@ -458,7 +460,7 @@ public class AssetUtils {
                         // Rooms
                         prewarmArtResources(kwdFile.getRooms(), assetManager, app);
                     } catch (Exception e) {
-                        Logger.getLogger(AssetUtils.class.getName()).log(Level.SEVERE, "Failed to prewarm assets!", e);
+                        LOGGER.log(Level.SEVERE, "Failed to prewarm assets!", e);
                     } finally {
                         preWarmedAssets = true;
                     }

@@ -61,6 +61,8 @@ import toniarts.openkeeper.world.listener.TileChangeListener;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -74,8 +76,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private List<TileChangeListener> tileChangeListener;
     private Map<Short, List<RoomListener>> roomListeners;
     private final FlashTileViewState flashTileControl;
-
-    private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
 
     public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
         this.app = app;

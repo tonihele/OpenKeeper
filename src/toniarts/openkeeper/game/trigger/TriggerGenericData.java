@@ -26,13 +26,14 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  * @author ArchDemon
  */
 public class TriggerGenericData extends TriggerData {
+    
+    private static final Logger LOGGER = Logger.getLogger(TriggerGenericData.class.getName());
 
     private TriggerGeneric.ComparisonType comparison; // Target comparison type
     private TriggerGeneric.TargetType target;
     private short repeatTimes; // Repeat x times, 255 = always
     private TriggerGenericData lastTrigger = null;
     private final SafeArrayList<TriggerData> children = new SafeArrayList<>(TriggerData.class);
-    private static final Logger LOGGER = Logger.getLogger(TriggerGenericData.class.getName());
 
     public TriggerGenericData() {
         super();

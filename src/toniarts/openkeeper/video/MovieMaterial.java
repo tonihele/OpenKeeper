@@ -37,6 +37,8 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class MovieMaterial {
+    
+    private static final Logger logger = Logger.getLogger(MovieMaterial.class.getName());
 
     private static final Image emptyImage = new Image(Format.ABGR8, 1, 1, BufferUtils.createByteBuffer(new byte[]{0, 0, 0, 0}), ColorSpace.Linear);
     private boolean noFrame = true;
@@ -53,7 +55,6 @@ public class MovieMaterial {
     private TgqFrame latestFrame;
     private TgqFrame jmeFrame;
     private Material material;
-    private static final Logger logger = Logger.getLogger(MovieMaterial.class.getName());
 
     public MovieMaterial(final Application app, boolean letterbox) {
         this.app = app;

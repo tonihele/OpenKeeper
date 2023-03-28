@@ -44,6 +44,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author ArchDemon
  */
 public class TriggerControl extends Control {
+    
+    private static final Logger LOGGER = Logger.getLogger(TriggerControl.class.getName());
 
     private static final short LEVEL_SCORE_FLAG_ID = 128;
     private static final short TIME_LIMIT_TIMER_ID = 16;
@@ -56,8 +58,6 @@ public class TriggerControl extends Control {
     protected IGameController gameController;
     protected IMapController mapController;
     protected ICreaturesController creaturesController;
-
-    private static final Logger LOGGER = Logger.getLogger(TriggerControl.class.getName());
 
     /**
      * empty serialization constructor

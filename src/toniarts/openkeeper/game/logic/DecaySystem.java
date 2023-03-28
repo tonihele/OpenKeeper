@@ -35,12 +35,12 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class DecaySystem implements IGameLogicUpdatable {
+    
+    private static final Logger LOGGER = Logger.getLogger(DecaySystem.class.getName());
 
     private final EntitySet decayEntities;
     private final EntityData entityData;
     private final SafeArrayList<EntityId> entityIds;
-
-    private static final Logger LOGGER = Logger.getLogger(DecaySystem.class.getName());
 
     public DecaySystem(EntityData entityData) {
         this.entityData = entityData;

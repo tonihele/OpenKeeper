@@ -99,8 +99,9 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
         private final int version;
         private final ConvertProcess[] dependencies;
     }
-    private final String dungeonKeeperFolder;
-    private final AssetManager assetManager;
+    
+    private static final Logger LOGGER = Logger.getLogger(AssetsConverter.class.getName());
+    
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";
     private static final String ABSOLUTE_ASSETS_FOLDER = getCurrentFolder() + ASSETS_FOLDER + File.separator;
@@ -116,8 +117,9 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     public static final String FONTS_FOLDER = INTERFACE_FOLDER + "Fonts";
     public static final String TEXTS_FOLDER = INTERFACE_FOLDER + "Texts";
     public static final String PATHS_FOLDER = INTERFACE_FOLDER + "Paths";
-
-    private static final Logger LOGGER = Logger.getLogger(AssetsConverter.class.getName());
+    
+    private final String dungeonKeeperFolder;
+    private final AssetManager assetManager;
 
     public AssetsConverter(String dungeonKeeperFolder, AssetManager assetManager) {
         this.dungeonKeeperFolder = dungeonKeeperFolder;

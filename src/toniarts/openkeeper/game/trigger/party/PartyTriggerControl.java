@@ -29,10 +29,10 @@ import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 public class PartyTriggerControl extends TriggerControl {
+    
+    private static final Logger LOGGER = Logger.getLogger(PartyTriggerControl.class.getName());
 
     private IPartyController partyController;
-
-    private static final Logger LOGGER = Logger.getLogger(PartyTriggerControl.class.getName());
 
     public PartyTriggerControl() { // empty serialization constructor
         super();

@@ -45,10 +45,11 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author ArchDemon
  */
 public class PlayerTriggerControl extends TriggerControl {
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     private short playerId;
     private PlayerService playerService;
-    private static final Logger LOGGER = Logger.getLogger(PlayerTriggerControl.class.getName());
 
     /**
      * empty serialization constructor

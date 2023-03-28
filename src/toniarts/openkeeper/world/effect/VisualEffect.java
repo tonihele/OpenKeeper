@@ -61,6 +61,8 @@ import toniarts.openkeeper.world.TileData;
  */
 @Deprecated
 public class VisualEffect {
+    
+    private static final Logger logger = Logger.getLogger(VisualEffect.class.getName());
 
     private final Effect effect;
     private final Map<EffectElement, Spatial> effectElements;
@@ -71,7 +73,6 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private boolean infinite;
     private PointLight light;
-    private static final Logger logger = Logger.getLogger(VisualEffect.class.getName());
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Effect effect) {
         this(effectManagerState, node, null, effect, false);

@@ -45,6 +45,8 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  */
 public abstract class TgqPlayer {
 
+    private static final Logger logger = Logger.getLogger(TgqPlayer.class.getName());
+    
     private final Path file;
     private static final int FPS = 25; // The specs say 15 FPS, but with this they are totally in sync, dunno why
     private static final int FRAME_INTERVAL = (int) Math.floor(1000 / FPS); // In milliseconds
@@ -62,7 +64,6 @@ public abstract class TgqPlayer {
     private final Object bufferedEvent = new Object();
     private final Object audioHeaderEvent = new Object();
     private boolean stopped = true;
-    private static final Logger logger = Logger.getLogger(TgqPlayer.class.getName());
 
     public TgqPlayer(Path file) {
         this.file = file;

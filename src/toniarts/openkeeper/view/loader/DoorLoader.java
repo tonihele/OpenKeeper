@@ -34,8 +34,9 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class DoorLoader implements ILoader<DoorViewState> {
 
-    private final KwdFile kwdFile;
     private static final Logger LOGGER = Logger.getLogger(DoorLoader.class.getName());
+    
+    private final KwdFile kwdFile;
 
     public DoorLoader(KwdFile kwdFile) {
         this.kwdFile = kwdFile;

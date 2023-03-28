@@ -39,6 +39,8 @@ import toniarts.openkeeper.Main;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class LoadingState extends AbstractAppState {
+    
+    private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
 
     protected static final float BAR_WIDTH = 25.375f / 100;
     protected static final float BAR_HEIGHT = 2.5f / 100;
@@ -56,8 +58,6 @@ public abstract class LoadingState extends AbstractAppState {
     protected int imageWidth;
     protected int imageHeight;
     protected int progress = 0;
-
-    private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
 
     public LoadingState(final Main app, String name) {
         this.app = app;

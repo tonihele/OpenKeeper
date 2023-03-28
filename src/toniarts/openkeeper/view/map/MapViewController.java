@@ -70,6 +70,8 @@ import toniarts.openkeeper.world.room.GenericRoom;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MapViewController implements ILoader<KwdFile> {
+    
+    private static final Logger LOGGER = Logger.getLogger(MapViewController.class.getName());
 
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
@@ -107,8 +109,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
-
-    private static final Logger LOGGER = Logger.getLogger(MapViewController.class.getName());
 
     public MapViewController(AssetManager assetManager, KwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this.kwdFile = kwdFile;

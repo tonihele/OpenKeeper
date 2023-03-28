@@ -31,6 +31,9 @@ import toniarts.openkeeper.tools.convert.map.Effect;
  */
 @Deprecated
 public abstract class EffectControl extends AbstractControl {
+    
+    private static final Logger log = Logger.getLogger(EffectControl.class.getName());
+    
     private Effect effect;
 
     private float hpCurrent;
@@ -40,7 +43,6 @@ public abstract class EffectControl extends AbstractControl {
     private float scaleRatio;
     private Vector3f velocity;
 
-    private static final Logger log = Logger.getLogger(EffectControl.class.getName());
     /**
      * For serialization only. Do not use.
      */

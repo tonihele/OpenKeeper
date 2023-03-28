@@ -36,6 +36,8 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class TgqFrame implements Comparable<TgqFrame> {
+    
+    private static final Logger logger = Logger.getLogger(TgqFrame.class.getName());
 
     private final int width;
     private final int height;
@@ -151,8 +153,6 @@ public class TgqFrame implements Comparable<TgqFrame> {
     private final static short A2 = 277; /* sin(pi/8)*sqrt(2)<<9 */
 
     private final static short A5 = 196; /* sin(pi/8)<<9 */
-
-    private static final Logger logger = Logger.getLogger(TgqFrame.class.getName());
 
     public TgqFrame(ByteBuffer buf, int frameIndex) {
         this.frameIndex = frameIndex;

@@ -44,6 +44,8 @@ import toniarts.openkeeper.world.WorldState;
  */
 @Deprecated
 public class ObjectLoader implements ILoader<Thing.Object> {
+    
+    private static final Logger LOGGER = Logger.getLogger(ObjectLoader.class.getName());
 
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
@@ -52,7 +54,6 @@ public class ObjectLoader implements ILoader<Thing.Object> {
 
     private final KwdFile kwdFile;
     private final WorldState worldState;
-    private static final Logger LOGGER = Logger.getLogger(ObjectLoader.class.getName());
 
     public ObjectLoader(@Nonnull KwdFile kwdFile, WorldState worldState) {
         this.kwdFile = kwdFile;

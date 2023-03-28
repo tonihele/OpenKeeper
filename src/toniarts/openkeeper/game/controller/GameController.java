@@ -89,6 +89,8 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
 
+    private static final Logger LOGGER = Logger.getLogger(GameController.class.getName());
+    
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
 
@@ -127,8 +129,6 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private GameResult gameResult = null;
     private Float timeLimit = null;
     private TaskManager taskManager;
-
-    private static final Logger LOGGER = Logger.getLogger(GameController.class.getName());
 
     /**
      * Single use game states

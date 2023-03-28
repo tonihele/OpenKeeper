@@ -77,6 +77,8 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
+    
+    private static final Logger LOGGER = Logger.getLogger(PlayerInteractionState.class.getName());
 
     private static final int SPELL_POSSESSION_ID = 2;
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
@@ -110,8 +112,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private Label tooltip;
     private KeeperHandState keeperHandState;
     private PlayerEntityViewState playerEntityViewState;
-
-    private static final Logger LOGGER = Logger.getLogger(PlayerInteractionState.class.getName());
 
     public PlayerInteractionState(Player player, KwdFile kwdFile, EntityData entityData,
             IMapInformation mapInformation, TextParser textParser) {

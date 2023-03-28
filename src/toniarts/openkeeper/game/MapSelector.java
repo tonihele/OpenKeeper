@@ -39,6 +39,8 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author ArchDemon
  */
 public class MapSelector {
+    
+    private static final Logger LOGGER = Logger.getLogger(MapSelector.class.getName());
 
     private final List<GameMapContainer> skirmishMaps = new ArrayList<>();
     private final List<GameMapContainer> multiplayerMaps = new ArrayList<>();
@@ -67,7 +69,7 @@ public class MapSelector {
                 }
             }
         } catch (IOException ex) {
-            Logger.getLogger(MapSelector.class.getName()).log(Level.SEVERE, "Failed to load the maps!", ex);
+            LOGGER.log(Level.SEVERE, "Failed to load the maps!", ex);
         }
 
         // Sort them

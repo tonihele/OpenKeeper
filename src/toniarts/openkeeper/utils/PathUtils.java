@@ -37,6 +37,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
 public class PathUtils {
+    
+    private static final Logger LOGGER = Logger.getLogger(PathUtils.class.getName());
 
     private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
     private static final PathTree PATH_CACHE = new PathTree();
@@ -53,10 +55,8 @@ public class PathUtils {
     public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps" + File.separator);
     public static final String DKII_SFX_GLOBAL_FOLDER = getRealDKIIRelativeFolder(DKII_SFX_FOLDER + "Global" + File.separator);
 
-    private final static String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
-    private final static String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
-
-    private static final Logger LOGGER = Logger.getLogger(PathUtils.class.getName());
+    private static final String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
+    private static final String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
 
     /**
      * Get the folder of the original Dungeon Keeper 2 installation
