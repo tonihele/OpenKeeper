@@ -1,0 +1,20 @@
+{
+	"debug.autoExpandLazyVariables": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": true,
+		"source.addMissingImports": true,
+	},
+	"editor.formatOnSaveMode": "modifications",
+	"java.autobuild.enabled": true,
+	"java.cleanup.actionsOnSave": [
+		"addOverride",
+		"invertEquals",
+		"instanceofPatternMatch",
+		"lambdaExpression",
+		//"switchExpression",
+		"tryWithResource",
+	],
+	"java.completion.importOrder": ["", "#"], // sort imports alphabetically
+	"java.compile.nullAnalysis.mode": "automatic",
+	"java.references.includeDecompiledSources": true,
+}
