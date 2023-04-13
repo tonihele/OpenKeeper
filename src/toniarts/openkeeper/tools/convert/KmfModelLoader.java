@@ -265,7 +265,7 @@ public class KmfModelLoader implements AssetLoader {
             times[i] = (i + 1) / 30f;
         }
 
-        int index = 0;
+        int subMeshIndex = 0;
         for (AnimSprite animSprite : anim.getSprites()) {
 
             // Animation
@@ -413,7 +413,7 @@ public class KmfModelLoader implements AssetLoader {
                         for (int integer = 0; integer < list.size(); integer++) {
                             array[integer] = list.get(integer);
                         }
-                        Pose p = new Pose(index + ": " + frame + ", " + entry.getKey().previousPoseFrame + " - " + entry.getKey().nextPoseFrame, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
+                        var p = new Pose(subMeshIndex + ": " + frame + ", " + entry.getKey().previousPoseFrame + " - " + entry.getKey().nextPoseFrame, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[0]), array);
                         poses.get(frame).put(entry.getKey(), p);
                     }
                 }
@@ -446,7 +446,7 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             // Create a pose track for this mesh
-            PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[0]));
+            var poseTrack = new PoseTrack(subMeshIndex, times, frameList.toArray(new PoseFrame[0]));
             poseTracks.add(poseTrack);
 
             // Create lod levels
@@ -463,11 +463,11 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setStreamed();
 
             // Create geometry
-            Geometry geom = createGeometry(index, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
+            Geometry geom = createGeometry(subMeshIndex, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
-            index++;
+            ++subMeshIndex;
         }
 
         // Create the animation itself and attach the animation
@@ -511,6 +511,7 @@ public class KmfModelLoader implements AssetLoader {
                 ++x;
             }
             var buf = new VertexBuffer(Type.Index);
+            buf.setName("IndexBuffer L" + lod);
             buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedByte, BufferUtils.createByteBuffer(indexes));
             lodLevels[lod] = buf;
             ++lod;
@@ -522,17 +523,17 @@ public class KmfModelLoader implements AssetLoader {
      * Creates a geometry from the given mesh, applies material and LOD control
      * to it
      *
-     * @param index mesh index (just for naming)
-     * @param name the name, just for logging
+     * @param subMeshIndex mesh index (just for naming)
+     * @param meshName the mesh name, just for logging
      * @param mesh the mesh
      * @param materials list of materials
      * @param materialIndex the material index
      * @return
      */
-    private Geometry createGeometry(int index, String name, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
+    private Geometry createGeometry(int subMeshIndex, String meshName, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
 
         //Create geometry
-        Geometry geom = new Geometry(Integer.toString(index), mesh);
+        var geom = new Geometry(meshName + '_' + subMeshIndex, mesh);
 
         //Add LOD control
         LodControl lc = new LodControl();
@@ -571,7 +572,7 @@ public class KmfModelLoader implements AssetLoader {
         try {
             MikktspaceTangentGenerator.generate(geom);
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to generate tangent binormals for " + name + "! ", e);
+            logger.log(Level.WARNING, "Failed to generate tangents for " + meshName + "! ", e);
         }
 
         return geom;
