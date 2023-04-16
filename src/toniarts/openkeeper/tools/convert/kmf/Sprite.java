@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.kmf;
 
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -38,7 +37,7 @@ public abstract class Sprite<T extends Vertex> {
     /**
      * LOD level, triangles
      */
-    private HashMap<Integer, List<Triangle>> triangles;
+    private List<List<Triangle>> triangles;
     private List<T> vertices;
 
     protected List<Integer> getTriangleCounts() {
@@ -73,11 +72,11 @@ public abstract class Sprite<T extends Vertex> {
         this.materialIndex = materialIndex;
     }
 
-    public HashMap<Integer, List<Triangle>> getTriangles() {
+    public List<List<Triangle>> getTriangles() {
         return triangles;
     }
 
-    protected void setTriangles(HashMap<Integer, List<Triangle>> triangles) {
+    protected void setTriangles(List<List<Triangle>> triangles) {
         this.triangles = triangles;
     }
 

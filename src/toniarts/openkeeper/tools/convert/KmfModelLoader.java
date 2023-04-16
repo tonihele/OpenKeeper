@@ -481,7 +481,7 @@ public class KmfModelLoader implements AssetLoader {
         root.attachChild(node);
     }
 
-    private VertexBuffer[] createIndices(final Map<Integer, List<Triangle>> trianglesMap) {
+    private VertexBuffer[] createIndices(final List<List<Triangle>> trianglesList) {
 
         // Triangles are not in order, sometimes they are very random, many missing etc.
         // For JME 3.0 this was somehow ok, but JME 3.1 doesn't do some automatic organizing etc.
@@ -491,28 +491,29 @@ public class KmfModelLoader implements AssetLoader {
         // Ultimately all failed, now just instead off completely empty buffers, put one 0 there, seems to have done the trick
         //
         // Triangles, we have LODs here
-        VertexBuffer[] lodLevels = new VertexBuffer[trianglesMap.size()];
-        for (Entry<Integer, List<Triangle>> triangles : trianglesMap.entrySet()) {
-            if (!triangles.getValue().isEmpty()) {
-                int[] indexes = new int[triangles.getValue().size() * 3];
-                int x = 0;
-                for (Triangle triangle : triangles.getValue()) {
-                    indexes[x * 3] = triangle.getTriangle()[2];
-                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
-                    x++;
-                }
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
-                lodLevels[triangles.getKey()] = buf;
-            } else {
 
-                // Need to create this seemingly empty buffer
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(new int[]{0}));
-                lodLevels[triangles.getKey()] = buf;
+        // replace runs of empty LODs with just a single empty level
+        // LodControl would just skip them anyway
+        for (int i = trianglesList.size() - 1; i > 0; --i)
+            if (trianglesList.get(i).isEmpty() && trianglesList.get(i - 1).isEmpty())
+                trianglesList.remove(i);
 
+        var lodLevels = new VertexBuffer[trianglesList.size()];
+        int lod = 0;
+        for (var triangles : trianglesList) {
+            // in case of an empty buffer, put one 0 there to prevent exception in LwjglRender.checkLimit
+            var indexes = new byte[Math.max(1, 3 * triangles.size())];
+            int x = 0;
+            for (Triangle triangle : triangles) {
+                indexes[x * 3] = triangle.getTriangle()[2];
+                indexes[x * 3 + 1] = triangle.getTriangle()[1];
+                indexes[x * 3 + 2] = triangle.getTriangle()[0];
+                ++x;
             }
+            var buf = new VertexBuffer(Type.Index);
+            buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedByte, BufferUtils.createByteBuffer(indexes));
+            lodLevels[lod] = buf;
+            ++lod;
         }
         return lodLevels;
     }

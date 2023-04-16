@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import javax.vecmath.Vector3f;
 import toniarts.openkeeper.tools.convert.BufferedResourceReader;
@@ -333,16 +333,19 @@ public class KmfFile {
             sprite.setMaterialIndex(rawKmf.readUnsignedInteger());
 
             //The triangles, for each lod level
-            HashMap<Integer, List<Triangle>> trianglesPerLod = new HashMap<>(lodCount);
+            List<List<Triangle>> trianglesPerLod = new ArrayList<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
-                List<Triangle> triangles = new ArrayList<>(sprite.getTriangleCounts().get(j));
-                for (int k = 0; k < sprite.getTriangleCounts().get(j); k++) {
-                    triangles.add(new Triangle(rawKmf.readUnsignedByte(),
+                int numTris = sprite.getTriangleCounts().get(j);
+                var triangles = new Triangle[numTris];
+                for (int k = 0; k < numTris; ++k) {
+                    triangles[k] = new Triangle(rawKmf.readUnsignedByte(),
                             rawKmf.readUnsignedByte(),
-                            rawKmf.readUnsignedByte()));
+                            rawKmf.readUnsignedByte());
                 }
-                trianglesPerLod.put(j, triangles);
+                trianglesPerLod.add(Arrays.asList(triangles));
             }
+
+            sprite.setTriangleCounts(null); // not needed anymore
             sprite.setTriangles(trianglesPerLod);
 
             //Mesh vertices
@@ -553,16 +556,19 @@ public class KmfFile {
             //KMSH/ANIM/SPRS/SPRS/POLY
             checkHeader(rawKmf, KMF_ANIM_SPRITES_POLY_HEADER);
             rawKmf.skipBytes(4);
-            HashMap<Integer, List<Triangle>> trianglesPerLod = new HashMap<>(lodCount);
+            List<List<Triangle>> trianglesPerLod = new ArrayList<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
-                List<Triangle> triangles = new ArrayList<>(sprite.getTriangleCounts().get(j));
-                for (int k = 0; k < sprite.getTriangleCounts().get(j); k++) {
-                    triangles.add(new Triangle(rawKmf.readUnsignedByte(),
+                int numTris = sprite.getTriangleCounts().get(j);
+                var triangles = new Triangle[numTris];
+                for (int k = 0; k < numTris; ++k) {
+                    triangles[k] = new Triangle(rawKmf.readUnsignedByte(),
                             rawKmf.readUnsignedByte(),
-                            rawKmf.readUnsignedByte()));
+                            rawKmf.readUnsignedByte());
                 }
-                trianglesPerLod.put(j, triangles);
+                trianglesPerLod.add(Arrays.asList(triangles));
             }
+
+            sprite.setTriangleCounts(null); // not needed anymore
             sprite.setTriangles(trianglesPerLod);
 
             //Anim vertices
