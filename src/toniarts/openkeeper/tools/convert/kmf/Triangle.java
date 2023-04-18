@@ -23,16 +23,17 @@ package toniarts.openkeeper.tools.convert.kmf;
  */
 public class Triangle {
 
-    private final short[] triangle;
+    private final byte[] triangle;
 
     public Triangle(short x, short y, short z) {
-        triangle = new short[3];
-        triangle[0] = x;
-        triangle[1] = y;
-        triangle[2] = z;
+        assert(x < 256 && y < 256 && z < 256);
+        triangle = new byte[3];
+        triangle[0] = (byte)x;
+        triangle[1] = (byte)y;
+        triangle[2] = (byte)z;
     }
 
-    public short[] getTriangle() {
+    public byte[] getTriangle() {
         return triangle;
     }
 }

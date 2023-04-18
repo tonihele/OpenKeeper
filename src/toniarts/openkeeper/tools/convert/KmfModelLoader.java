@@ -265,7 +265,7 @@ public class KmfModelLoader implements AssetLoader {
             times[i] = (i + 1) / 30f;
         }
 
-        int index = 0;
+        int subMeshIndex = 0;
         for (AnimSprite animSprite : anim.getSprites()) {
 
             // Animation
@@ -413,7 +413,7 @@ public class KmfModelLoader implements AssetLoader {
                         for (int integer = 0; integer < list.size(); integer++) {
                             array[integer] = list.get(integer);
                         }
-                        Pose p = new Pose(index + ": " + frame + ", " + entry.getKey().previousPoseFrame + " - " + entry.getKey().nextPoseFrame, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[frameOffsets.get(frame).get(entry.getKey()).size()]), array);
+                        var p = new Pose(subMeshIndex + ": " + frame + ", " + entry.getKey().previousPoseFrame + " - " + entry.getKey().nextPoseFrame, frameOffsets.get(frame).get(entry.getKey()).toArray(new Vector3f[0]), array);
                         poses.get(frame).put(entry.getKey(), p);
                     }
                 }
@@ -446,7 +446,7 @@ public class KmfModelLoader implements AssetLoader {
             }
 
             // Create a pose track for this mesh
-            PoseTrack poseTrack = new PoseTrack(index, times, frameList.toArray(new PoseFrame[0]));
+            var poseTrack = new PoseTrack(subMeshIndex, times, frameList.toArray(new PoseFrame[0]));
             poseTracks.add(poseTrack);
 
             // Create lod levels
@@ -463,11 +463,11 @@ public class KmfModelLoader implements AssetLoader {
             mesh.setStreamed();
 
             // Create geometry
-            Geometry geom = createGeometry(index, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
+            Geometry geom = createGeometry(subMeshIndex, anim.getName(), mesh, materials, animSprite.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
-            index++;
+            ++subMeshIndex;
         }
 
         // Create the animation itself and attach the animation
@@ -481,7 +481,7 @@ public class KmfModelLoader implements AssetLoader {
         root.attachChild(node);
     }
 
-    private VertexBuffer[] createIndices(final Map<Integer, List<Triangle>> trianglesMap) {
+    private VertexBuffer[] createIndices(final List<List<Triangle>> trianglesList) {
 
         // Triangles are not in order, sometimes they are very random, many missing etc.
         // For JME 3.0 this was somehow ok, but JME 3.1 doesn't do some automatic organizing etc.
@@ -491,28 +491,30 @@ public class KmfModelLoader implements AssetLoader {
         // Ultimately all failed, now just instead off completely empty buffers, put one 0 there, seems to have done the trick
         //
         // Triangles, we have LODs here
-        VertexBuffer[] lodLevels = new VertexBuffer[trianglesMap.size()];
-        for (Entry<Integer, List<Triangle>> triangles : trianglesMap.entrySet()) {
-            if (!triangles.getValue().isEmpty()) {
-                int[] indexes = new int[triangles.getValue().size() * 3];
-                int x = 0;
-                for (Triangle triangle : triangles.getValue()) {
-                    indexes[x * 3] = triangle.getTriangle()[2];
-                    indexes[x * 3 + 1] = triangle.getTriangle()[1];
-                    indexes[x * 3 + 2] = triangle.getTriangle()[0];
-                    x++;
-                }
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(indexes));
-                lodLevels[triangles.getKey()] = buf;
-            } else {
 
-                // Need to create this seemingly empty buffer
-                VertexBuffer buf = new VertexBuffer(Type.Index);
-                buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedInt, BufferUtils.createIntBuffer(new int[]{0}));
-                lodLevels[triangles.getKey()] = buf;
+        // replace runs of empty LODs with just a single empty level
+        // LodControl would just skip them anyway
+        for (int i = trianglesList.size() - 1; i > 0; --i)
+            if (trianglesList.get(i).isEmpty() && trianglesList.get(i - 1).isEmpty())
+                trianglesList.remove(i);
 
+        var lodLevels = new VertexBuffer[trianglesList.size()];
+        int lod = 0;
+        for (var triangles : trianglesList) {
+            // in case of an empty buffer, put one 0 there to prevent exception in LwjglRender.checkLimit
+            var indexes = new byte[Math.max(1, 3 * triangles.size())];
+            int x = 0;
+            for (Triangle triangle : triangles) {
+                indexes[x * 3] = triangle.getTriangle()[2];
+                indexes[x * 3 + 1] = triangle.getTriangle()[1];
+                indexes[x * 3 + 2] = triangle.getTriangle()[0];
+                ++x;
             }
+            var buf = new VertexBuffer(Type.Index);
+            buf.setName("IndexBuffer L" + lod);
+            buf.setupData(VertexBuffer.Usage.Static, 3, VertexBuffer.Format.UnsignedByte, BufferUtils.createByteBuffer(indexes));
+            lodLevels[lod] = buf;
+            ++lod;
         }
         return lodLevels;
     }
@@ -521,17 +523,17 @@ public class KmfModelLoader implements AssetLoader {
      * Creates a geometry from the given mesh, applies material and LOD control
      * to it
      *
-     * @param index mesh index (just for naming)
-     * @param name the name, just for logging
+     * @param subMeshIndex mesh index (just for naming)
+     * @param meshName the mesh name, just for logging
      * @param mesh the mesh
      * @param materials list of materials
      * @param materialIndex the material index
      * @return
      */
-    private Geometry createGeometry(int index, String name, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
+    private Geometry createGeometry(int subMeshIndex, String meshName, Mesh mesh, Map<Integer, List<Material>> materials, int materialIndex) {
 
         //Create geometry
-        Geometry geom = new Geometry(Integer.toString(index), mesh);
+        var geom = new Geometry(meshName + '_' + subMeshIndex, mesh);
 
         //Add LOD control
         LodControl lc = new LodControl();
@@ -566,11 +568,15 @@ public class KmfModelLoader implements AssetLoader {
         // Update bounds
         geom.updateModelBound();
 
+        // prevent the warnings caused by the tangent generation on "empty" main index buffers
+        if (mesh.getTriangleCount() == 0)
+            return geom;
+
         // Try to generate tangents
         try {
             MikktspaceTangentGenerator.generate(geom);
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to generate tangent binormals for " + name + "! ", e);
+            logger.log(Level.WARNING, "Failed to generate tangents for " + meshName + "! ", e);
         }
 
         return geom;
