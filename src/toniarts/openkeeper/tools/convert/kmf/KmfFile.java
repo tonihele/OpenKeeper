@@ -368,6 +368,7 @@ public final class KmfFile {
 
         //Geometries
         for (int i = 0; i < geomCount; i++) {
+            // TODO: scale them?
             geometries.add(new Vector3f(rawKmf.readFloat(),
                     rawKmf.readFloat(),
                     rawKmf.readFloat()));
@@ -439,20 +440,19 @@ public final class KmfFile {
         AnimGeom geom = null;
         for (int i = 0; i < geomCount; i++) {
 
-            //10 bits, BITS, yes BITS, per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
+            //10 bits per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
             // ^ so read 4 bytes
             // + 1 byte for frame base
             int coordinates = rawKmf.readUnsignedInteger();
-            geom = new AnimGeom();
-
-            float x = (((coordinates >> 20) & 0x3ff) - 0x200) / 511.0f;
-            float y = (((coordinates >> 10) & 0x3ff) - 0x200) / 511.0f;
-            float z = (((coordinates >> 0) & 0x3ff) - 0x200) / 511.0f;
+            float x = (((coordinates >> 20) % 1024) - 512) / 511.0f;
+            float y = (((coordinates >> 10) % 1024) - 512) / 511.0f;
+            float z = (((coordinates >>  0) % 1024) - 512) / 511.0f;
 
             Vector3f v = new Vector3f(x, y, z);
             v.scale(a.getScale()); // Scale
-            geom.setGeometry(v);
 
+            geom = new AnimGeom();
+            geom.setGeometry(v);
             geom.setFrameBase(rawKmf.readUnsignedByte());
             geometries.add(geom);
         }
