@@ -781,13 +781,11 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         // Anisotropic filtering
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         af.addAllItems(Settings.ANISOTROPHIES);
-        if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)
-                && Settings.ANISOTROPHIES.contains(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY))) {
-            af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
-        } else if (Main.getUserSettings().containsSetting(Settings.Setting.ANISOTROPY)) {
-            af.addItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
-            af.selectItem(Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY));
+        int selectedAF = Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY);
+        if (!Settings.ANISOTROPHIES.contains(selectedAF)) {
+            af.addItem(selectedAF);
         }
+        af.selectItem(selectedAF);
 
         // OpenGL
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
