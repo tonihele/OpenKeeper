@@ -568,10 +568,6 @@ public class KmfModelLoader implements AssetLoader {
         // Update bounds
         geom.updateModelBound();
 
-        // prevent the warnings caused by the tangent generation on "empty" main index buffers
-        if (mesh.getTriangleCount() == 0)
-            return geom;
-
         // Try to generate tangents
         try {
             MikktspaceTangentGenerator.generate(geom);
