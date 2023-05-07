@@ -562,9 +562,21 @@ public final class KmfModelLoader implements AssetLoader {
      */
     private void setMaterialFlags(Material material, toniarts.openkeeper.tools.convert.kmf.Material kmfMaterial) {
 
+        // Read the flags & stuff
+        if (kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA)) {
+            material.setTransparent(true);
+            material.setFloat("AlphaDiscardThreshold", 0.1f);
+            material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        }
+        if (kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE)) {
+            material.setTransparent(true);
+            material.setFloat("AlphaDiscardThreshold", 0.1f);
+            material.getAdditionalRenderState().setDepthWrite(false);
+            material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
+        }
+
         // Shadows thing is just a guess, like, they seem to be small light sources
         material.setReceivesShadows(!kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE));
-        material.setTransparent(kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA) || kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE));
     }
 
     /**
@@ -658,17 +670,6 @@ public final class KmfModelLoader implements AssetLoader {
 
             // Set some flags
             setMaterialFlags(material, mat);
-
-            // Read the flags & stuff
-            if (mat.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA)) {
-                material.setFloat("AlphaDiscardThreshold", 0.1f);
-                material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-            }
-            if (mat.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE)) {
-                material.setFloat("AlphaDiscardThreshold", 0.1f);
-                material.getAdditionalRenderState().setDepthWrite(false);
-                material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
-            }
 
             // Add material to list and create the possible alternatives
             List<Material> materialList = new ArrayList<>(mat.getTextures().size());
