@@ -16,8 +16,9 @@
  */
 package toniarts.openkeeper.tools.modelviewer;
 
-import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
+import com.jme3.anim.AnimComposer;
+import com.jme3.anim.tween.Tweens;
+import com.jme3.anim.tween.action.BaseAction;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.plugins.FileLocator;
@@ -87,7 +88,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.world.animation.AnimationLoader;
+import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**
@@ -581,14 +583,15 @@ public class ModelViewer extends SimpleApplication {
         toggleShowNormals();
 
         // Animate!
-        spat.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                AnimControl animControl = (AnimControl) spatial.getControl(AnimControl.class);
-                if (animControl != null) {
-                    AnimChannel channel = animControl.createChannel();
-                    channel.setAnim("anim");
-                    AnimationLoader.setLoopModeOnChannel(spatial, channel);
+        spat.depthFirstTraversal((Spatial spatial) -> {
+            var animComposer = spatial.getControl(AnimComposer.class);
+            if (animComposer != null) {
+                animComposer.setGlobalSpeed(0.5f);
+                // creates a ClipAction that starts the animation
+                var action = animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                if (AnimationLoader.getLoopModeOnChannel(spatial) == LoopMode.Cycle) {
+                    animComposer.addAction("cyclinganim", new BaseAction(Tweens.cycle(action)));
+                    animComposer.setCurrentAction("cyclinganim");
                 }
             }
         });

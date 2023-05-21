@@ -16,18 +16,16 @@
  */
 package toniarts.openkeeper.view.map.construction;
 
-import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
-import com.jme3.animation.LoopMode;
+import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
-import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
@@ -156,7 +154,7 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
             AssetManager assetManager, Point start, Point p) {
 
         String objName = "3dmap_level";
-        if (type.equals(Level.LevelType.Secret)) {
+        if (Level.LevelType.Secret.equals(type)) {
             objName = "Secret_Level";
         }
 
@@ -190,24 +188,21 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
     private void animate(Spatial object, final boolean randomizeAnimation) {
 
         // Animate
-        object.breadthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                AnimControl animControl = spatial.getControl(AnimControl.class);
-                if (animControl != null) {
-                    AnimChannel channel = animControl.createChannel();
-                    channel.setAnim("anim");
-                    channel.setLoopMode(LoopMode.Loop);
-                    if (randomizeAnimation) {
-                        channel.setSpeed(FastMath.nextRandomInt(6, 10) / 10f);
-                        channel.setTime(FastMath.nextRandomFloat() * channel.getAnimMaxTime());
-                    }
+        object.breadthFirstTraversal(spatial -> {
+            var animComposer = spatial.getControl(AnimComposer.class);
+            if (animComposer != null) {
+                // creates a ClipAction that starts the animation
+                var action = animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
 
-                    // Don't batch animated objects, seems not to work
-                    object.setBatchHint(Spatial.BatchHint.Never);
-                }
-            }
-        });
+		        if (randomizeAnimation) {
+                    animComposer.setGlobalSpeed(FastMath.nextRandomInt(6, 10) / 10f);
+                    animComposer.setTime(FastMath.nextRandomFloat() * action.getLength());
+		        }
+
+		        // Don't batch animated objects, seems not to work
+		        object.setBatchHint(Spatial.BatchHint.Never);
+		    }
+		});
     }
 
 }

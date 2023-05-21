@@ -31,25 +31,19 @@
  */
 package toniarts.openkeeper.animation;
 
-import com.jme3.animation.AnimChannel;
-import com.jme3.animation.AnimControl;
-import com.jme3.animation.ClonableTrack;
-import com.jme3.animation.Track;
+import com.jme3.anim.MorphTrack;
 import com.jme3.export.InputCapsule;
 import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.export.OutputCapsule;
 import com.jme3.export.Savable;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
-import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.util.BufferUtils;
-import com.jme3.util.TempVars;
-import com.jme3.util.clone.Cloner;
 import java.io.IOException;
 import java.nio.FloatBuffer;
 import javax.annotation.Nullable;
@@ -57,11 +51,9 @@ import javax.annotation.Nullable;
 /**
  * A single track of pose animation associated with a certain mesh.
  */
-public final class PoseTrack implements Track, ClonableTrack {
+public final class PoseTrack extends MorphTrack {
 
-    private int targetMeshIndex;
     private PoseTrack.PoseFrame[] frames;
-    private float[] times;
 
     public static class PoseFrame implements Savable, Cloneable {
 
@@ -85,7 +77,7 @@ public final class PoseTrack implements Track, ClonableTrack {
          * @return a clone of the current object
          */
         @Override
-        public PoseTrack.PoseFrame clone() {
+        public PoseTrack.PoseFrame clone() throws CloneNotSupportedException {
             try {
                 PoseTrack.PoseFrame result = (PoseTrack.PoseFrame) super.clone();
                 result.weights = this.weights.clone();
@@ -121,9 +113,9 @@ public final class PoseTrack implements Track, ClonableTrack {
         }
     }
 
-    public PoseTrack(int targetMeshIndex, float[] times, PoseTrack.PoseFrame[] frames) {
-        this.targetMeshIndex = targetMeshIndex;
-        this.times = times;
+    public PoseTrack(Geometry target, float[] times, PoseTrack.PoseFrame[] frames)
+    {
+        super(target, times, new float[times.length], 1);
         this.frames = frames;
     }
 
@@ -131,22 +123,6 @@ public final class PoseTrack implements Track, ClonableTrack {
      * Serialization-only. Do not use.
      */
     public PoseTrack() {
-    }
-
-    @Override
-    public float[] getKeyFrameTimes() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Track cloneForSpatial(Spatial spatial) {
-        PoseTrack track = new PoseTrack(targetMeshIndex, times, frames);
-        return track;
-    }
-
-    @Override
-    public void cleanUp() {
-
     }
 
     private void applyFrame(Mesh target, int frameIndex) {
@@ -184,10 +160,7 @@ public final class PoseTrack implements Track, ClonableTrack {
             Vector3f endOffset = endPose.getOffsets()[i];
 
             // Interpolate
-            interpOffset.set(endOffset);
-            interpOffset.subtractLocal(startOffset);
-            interpOffset.multLocal(weight);
-            interpOffset.addLocal(startOffset);
+            FastMath.interpolateLinear(weight, startOffset, endOffset, interpOffset);
 
             // Write modified vertex
             BufferUtils.setInBuffer(interpOffset, vertexBuffer, vertIndex);
@@ -195,57 +168,31 @@ public final class PoseTrack implements Track, ClonableTrack {
     }
 
     @Override
-    public void setTime(float time, float weight, AnimControl control,
-            AnimChannel channel, TempVars vars) {
-        Spatial spat = control.getSpatial();
-        Geometry geom = findGeom(spat);
-        Mesh target = geom.getMesh();
-
-        VertexBuffer bindPos = target.getBuffer(Type.BindPosePosition);
-        VertexBuffer pos = target.getBuffer(Type.Position);
+    public void getDataAtTime(double time, float[] store) {
+        Mesh mesh = getTarget().getMesh();
+        VertexBuffer bindPos = mesh.getBuffer(Type.BindPosePosition);
+        VertexBuffer pos = mesh.getBuffer(Type.Position);
         FloatBuffer pb = (FloatBuffer) pos.getData();
         FloatBuffer bpb = (FloatBuffer) bindPos.getData();
         pb.clear();
         bpb.clear();
         pb.put(bpb).clear();
 
-        if (time < times[0]) {
-            applyFrame(target, 0);
-        } else if (time > times[times.length - 1]) {
-            applyFrame(target, times.length - 1);
+        if (time < getTimes()[0]) {
+            applyFrame(mesh, 0);
+        } else if (time > getTimes()[getTimes().length - 1]) {
+            applyFrame(mesh, getTimes().length - 1);
         } else {
             int startFrame = 0;
-            for (int i = 0; i < times.length; i++) {
-                if (times[i] < time) {
+            for (int i = 0; i < getTimes().length; i++) {
+                if (getTimes()[i] < time) {
                     startFrame = i;
                 }
             }
 
             int endFrame = startFrame + 1;
-            applyFrame(target, endFrame);
+            applyFrame(mesh, endFrame);
         }
-    }
-
-    public Geometry findGeom(Spatial spatial) {
-        if (spatial instanceof Node) {
-            Node findingnode = (Node) spatial;
-            Spatial child = findingnode.getChild(targetMeshIndex);
-            Geometry result = findGeom(child);
-            if (result != null) {
-                return result;
-            }
-        } else if (spatial instanceof Geometry) {
-            return (Geometry) spatial;
-        }
-        return null;
-    }
-
-    /**
-     * @return the length of the track
-     */
-    @Override
-    public float getLength() {
-        return times == null ? 0 : times[times.length - 1] - times[0];
     }
 
     /**
@@ -257,7 +204,7 @@ public final class PoseTrack implements Track, ClonableTrack {
     public PoseTrack clone() {
         try {
             PoseTrack result = (PoseTrack) super.clone();
-            result.times = this.times.clone();
+            //result.getTimes() = this.getTimes().clone();
             if (this.frames != null) {
                 result.frames = new PoseTrack.PoseFrame[this.frames.length];
                 for (int i = 0; i < this.frames.length; ++i) {
@@ -273,33 +220,26 @@ public final class PoseTrack implements Track, ClonableTrack {
     @Override
     public Object jmeClone() {
         try {
-            return super.clone();
-        } catch (CloneNotSupportedException e) {
-            throw new RuntimeException("Error cloning", e);
+            PoseTrack clone = (PoseTrack) super.clone();
+            return clone;
+        } catch (CloneNotSupportedException ex) {
+            throw new AssertionError();
         }
     }
 
     @Override
-    public void cloneFields(Cloner cloner, Object o) {
-        PoseTrack poseTrack = (PoseTrack) o;
-        this.times = poseTrack.times;
-        this.frames = poseTrack.frames;
-    }
-
-    @Override
     public void write(JmeExporter e) throws IOException {
+        super.write(e);
+
         OutputCapsule out = e.getCapsule(this);
-        out.write(targetMeshIndex, "meshIndex", 0);
         out.write(frames, "frames", null);
-        out.write(times, "times", null);
     }
 
     @Override
     public void read(JmeImporter i) throws IOException {
-        InputCapsule in = i.getCapsule(this);
-        targetMeshIndex = in.readInt("meshIndex", 0);
-        times = in.readFloatArray("times", null);
+        super.read(i);
 
+        InputCapsule in = i.getCapsule(this);
         Savable[] readSavableArray = in.readSavableArray("frames", null);
         if (readSavableArray != null) {
             frames = new PoseTrack.PoseFrame[readSavableArray.length];
