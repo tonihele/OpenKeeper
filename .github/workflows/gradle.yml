@@ -20,6 +20,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+    - uses: Trass3r/setup-cpp@master
     - name: Build with Gradle
       run: ./gradlew build
     - uses: actions/upload-artifact@v3
