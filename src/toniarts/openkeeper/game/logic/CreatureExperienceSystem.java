@@ -151,6 +151,7 @@ public class CreatureExperienceSystem implements IGameLogicUpdatable {
     public void stop() {
         experienceEntities.release();
         timeWorkingByEntityId.clear();
+        entityIds.clear();
     }
 
 }

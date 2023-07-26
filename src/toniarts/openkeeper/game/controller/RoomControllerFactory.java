@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.TortureChamberController;
+import toniarts.openkeeper.game.controller.room.TrainingRoomController;
 import toniarts.openkeeper.game.controller.room.TreasuryController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -78,9 +79,8 @@ public final class RoomControllerFactory {
                     return new LairController(kwdFile, roomInstance, objectsController, gameTimer);
                 } else if (roomName.equalsIgnoreCase("Library")) {
                     return new LibraryController(kwdFile, roomInstance, objectsController, gameTimer);
-//                } //else if (roomName.equalsIgnoreCase("Training Room")) {
-//                    return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else
+                } else if (roomName.equalsIgnoreCase("Training Room")) {
+                    return new TrainingRoomController(kwdFile, roomInstance, objectsController, gameTimer);
                } else if (roomName.equalsIgnoreCase("Work Shop")) {
                     return new WorkshopController(kwdFile, roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Guard Room")) {
