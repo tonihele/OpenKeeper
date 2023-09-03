@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -69,12 +71,16 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -84,6 +90,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class GameWorldController implements IGameWorldController, IPlayerActions {
+    
+    private static final Logger LOGGER = Logger.getLogger(GameWorldController.class.getName());
 
     /**
      * When dealing with gold... We currently better lock it. Logic stuff
@@ -872,6 +880,140 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         return false;
+    }
+
+    @Override
+    public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
+        KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
+        if (keeperSpell == null) {
+            LOGGER.log(Level.WARNING, "Invalid spell ID for spell casting received, was: {0}", keeperSpellId);
+            return;
+        }
+
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (mapTile == null) {
+            LOGGER.log(Level.WARNING, "Invalid map location for spell casting received, was: {0}", tile);
+            return;
+        }
+
+        Keeper player = players.get(playerId);
+        if (player == null) {
+            LOGGER.log(Level.WARNING, "Invalid player for spell casting received, was: {0}", playerId);
+            return;
+        }
+
+        // Validate
+        // Mana...
+        if (keeperSpell.getManaCost() > player.getMana()) {
+            return;
+        }
+
+        // Where allowed to cast
+        boolean isSolid = kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID);
+        switch (keeperSpell.getCastRule()) {
+            case OWN_LAND: {
+                if (isSolid || mapTile.getOwnerId() != playerId) {
+                    return;
+                }
+                break;
+            }
+            case OWN_AND_NEUTRAL_LAND: {
+                if (isSolid || mapTile.getOwnerId() != playerId || mapTile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
+                    return;
+                }
+                break;
+            }
+            case ENEMY_LAND: {
+                if (isSolid || !players.get(playerId).isEnemy(mapTile.getOwnerId())) {
+                    return;
+                }
+            }
+            case ANY_LAND:
+                if (isSolid) {
+                    return;
+                }
+            case ANYWHERE:
+                break;
+            case NONE:
+                return;
+        }
+
+        // The target cast upon
+        Creature creature = null;
+        Short owner = null;
+        if (target != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+            if (creatureComponent != null) {
+                creature = kwdFile.getCreature(creatureComponent.creatureId);
+            }
+            Owner ownerComponent = entityData.getComponent(target, Owner.class);
+            if (ownerComponent != null) {
+                owner = ownerComponent.ownerId;
+            }
+        }
+        switch (keeperSpell.getTargetRule()) {
+            case ALL:
+            case LAND:
+                break;
+            case NONE:
+                return;
+            case ALL_CREATURES: {
+
+            }
+            case ENEMY_CREATURES: {
+
+            }
+            case OWN_CREATURES:
+            case POSESSION: {
+
+            }
+        }
+    }
+
+    @Override
+    public void placeDoor(short doorId, Point tile, short playerId) {
+        Door door = kwdFile.getDoorById(doorId);
+        if (door == null) {
+            LOGGER.log(Level.WARNING, "Invalid door ID for door placement received, was: {0}", door);
+            return;
+        }
+
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (mapTile == null) {
+            LOGGER.log(Level.WARNING, "Invalid map location for door placement received, was: {0}", tile);
+            return;
+        }
+
+        Keeper player = players.get(playerId);
+        if (player == null) {
+            LOGGER.log(Level.WARNING, "Invalid player for door placement received, was: {0}", playerId);
+            return;
+        }
+
+        // Validate
+    }
+
+    @Override
+    public void placeTrap(short trapId, Point tile, short playerId) {
+        Trap trap = kwdFile.getTrapById(trapId);
+        if (trap == null) {
+            LOGGER.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trap);
+            return;
+        }
+
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (mapTile == null) {
+            LOGGER.log(Level.WARNING, "Invalid map location for trap placement received, was: {0}", tile);
+            return;
+        }
+
+        Keeper player = players.get(playerId);
+        if (player == null) {
+            LOGGER.log(Level.WARNING, "Invalid player for trap placement received, was: {0}", playerId);
+            return;
+        }
+
+        // Validate
     }
 
     @Override

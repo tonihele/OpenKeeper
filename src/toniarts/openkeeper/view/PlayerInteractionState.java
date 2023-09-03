@@ -53,6 +53,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -557,8 +558,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                     if (evt.isPressed()) {
                         if (interactionState.getType() == Type.SPELL) {
+                            castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
                             //TODO correct interactiveControl.isPickable
-                            if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
+                            /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
                                     && interactiveControl.isPickable(player.getPlayerId())) {
                                 CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
                                 if (cc != null) {
@@ -567,7 +569,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                     // TODO disable selection box
                                     setInteractionState(Type.NONE, 0);
                                 }
-                            }
+                            }*/
                         } else if (interactionState.getType() == Type.TRAP) {
                             //TODO put trap
                         } else if (interactionState.getType() == Type.DOOR) {
@@ -719,6 +721,28 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
 
         };
+    }
+
+    /**
+     * Cast a keeper spell
+     *
+     * @param keeperSpell the spell
+     * @param object pointed object, can be null
+     * @param tile the tile index
+     * @param position the actual cursor position
+     * @return true if spell can be cast
+     */
+    private boolean castSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile, Vector2f position) {
+        if (!canCastSpell(keeperSpell, object, tile, position)) {
+            return false;
+        }
+        gameClientState.getGameClientService().castKeeperSpell(keeperSpell.getId(), object != null ? object.getEntityId() : null, tile, position);
+
+        return true;
+    }
+
+    private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile, Vector2f position) {
+        return true;
     }
 
     /**

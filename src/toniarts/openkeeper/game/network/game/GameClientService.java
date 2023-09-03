@@ -207,6 +207,21 @@ public class GameClientService extends AbstractClientService
         getDelegate().triggerCheat(cheat);
     }
 
+    @Override
+    public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
+        getDelegate().castKeeperSpell(keeperSpellId, target, tile, position);
+    }
+
+    @Override
+    public void placeDoor(short doorId, Point tile) {
+        getDelegate().placeDoor(doorId, tile);
+    }
+
+    @Override
+    public void placeTrap(short trapId, Point tile) {
+        getDelegate().placeTrap(trapId, tile);
+    }
+
     private class ClientMessageListener implements MessageListener<Client> {
 
         public ClientMessageListener() {

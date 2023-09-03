@@ -153,4 +153,33 @@ public interface GameSession {
     @Asynchronous
     public void triggerCheat(CheatState.CheatType cheat);
 
+    /**
+     * Cast a keeper spell
+     *
+     * @param keeperSpellId the spell to cast
+     * @param target entity to cast the spell on (can be null)
+     * @param tile the tile to cast on
+     * @param position the actual position of the cast
+     */
+    @Asynchronous
+    public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position);
+
+    /**
+     * Place a door
+     *
+     * @param doorId the door ID to place
+     * @param tile the tile to place door on
+     */
+    @Asynchronous
+    public void placeDoor(short doorId, Point tile);
+
+    /**
+     * Place a trap
+     *
+     * @param trapId the trap ID to place
+     * @param tile the tile to place trap on
+     */
+    @Asynchronous
+    public void placeTrap(short trapId, Point tile);
+
 }

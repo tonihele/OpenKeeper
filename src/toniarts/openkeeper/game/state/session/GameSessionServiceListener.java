@@ -147,4 +147,36 @@ public interface GameSessionServiceListener {
     @Asynchronous
     public void onCheatTriggered(CheatState.CheatType cheat, short playerId);
 
+    /**
+     * Player wants to cast a spell
+     *
+     * @param keeperSpellId the spell to cast
+     * @param target the target to cast on
+     * @param tile the tile to cast
+     * @param position the actual cast position
+     * @param playerId the player who wants to cast the spell
+     */
+    @Asynchronous
+    public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId);
+
+    /**
+     * Player wants to place a door
+     *
+     * @param doorId the door ID
+     * @param tile the tile the door should be placed on
+     * @param playerId the player who wants to place a door
+     */
+    @Asynchronous
+    public void onPlaceDoor(short doorId, Point tile, short playerId);
+
+    /**
+     * Player wants to place a trap
+     *
+     * @param trapId the trap ID
+     * @param tile the tile the trap should be placed on
+     * @param playerId the player who wants to place a trap
+     */
+    @Asynchronous
+    public void onPlaceTrap(short trapId, Point tile, short playerId);
+
 }

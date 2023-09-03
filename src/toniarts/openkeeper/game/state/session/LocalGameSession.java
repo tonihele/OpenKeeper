@@ -375,6 +375,27 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCastKeeperSpell(keeperSpellId, target, tile, position, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void placeDoor(short doorId, Point tile) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onPlaceDoor(doorId, tile, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void placeTrap(short trapId, Point tile) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onPlaceTrap(trapId, tile, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void updateTiles(List<Point> updatedTiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onTilesChange(updatedTiles);
