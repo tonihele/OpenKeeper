@@ -69,6 +69,7 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -106,6 +107,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private ICreaturesController creaturesController;
     private IDoorsController doorsController;
     private ITrapsController trapsController;
+    private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final SortedMap<Short, Keeper> players;
     private final IGameTimer gameTimer;
@@ -124,6 +126,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     }
 
     public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
+        entityPositionLookup = gameController.getEntityLookupService();
 
         // Load objects
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
@@ -891,6 +894,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (target != null) {
+            mapTile = entityPositionLookup.getEntityLocation(target);
+        }
         if (mapTile == null) {
             LOGGER.log(Level.WARNING, "Invalid map location for spell casting received, was: {0}", tile);
             return;
@@ -958,16 +964,29 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             case NONE:
                 return;
             case ALL_CREATURES: {
-
+                if (creature == null) {
+                    return;
+                }
+                break;
             }
             case ENEMY_CREATURES: {
-
+                if (owner == null) {
+                    return;
+                }
+                if (!player.isEnemy(owner)) {
+                    return;
+                }
+                break;
             }
             case OWN_CREATURES:
             case POSESSION: {
-
+                if (creature == null || owner == null || owner != playerId) {
+                    return;
+                }
             }
         }
+
+        // Cast the spell
     }
 
     @Override
