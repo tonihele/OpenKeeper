@@ -325,8 +325,8 @@ public abstract class TgqFile implements AutoCloseable {
                     return; // The end
                 }
                 default: {
-                    LOGGER.log(Level.INFO, "Did not process tag {0}!", tag);
-                    getValue(reader);
+                    int val = getValue(reader);
+                    LOGGER.log(Level.INFO, "Did not process tag {0}! Value: " + val, tag);
                 }
             }
         }
