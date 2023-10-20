@@ -92,6 +92,7 @@ public class TorchControl extends BillboardControl {
                 result.setMaterial(material);
                 result.setQueueBucket(RenderQueue.Bucket.Translucent);
                 result.move(0.14f, 0.2f, 0);
+                result.setShadowMode(RenderQueue.ShadowMode.Off);
 
             } catch (Exception e) {
                 log.log(Level.WARNING, "Can't create torch flame", e);
