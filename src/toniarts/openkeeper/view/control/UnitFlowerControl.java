@@ -21,6 +21,7 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.math.ColorRGBA;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -71,7 +72,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     private final AssetManager assetManager;
     private final T data;
 
-    public UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
+    protected UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
         super();
         this.entityId = entityId;
         this.data = data;
@@ -335,6 +336,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         material.getAdditionalRenderState().setDepthTest(false);
         spatial.setQueueBucket(Bucket.Translucent);
         spatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+        spatial.setShadowMode(RenderQueue.ShadowMode.Off);
 
         onMaterialCreated(material);
     }
