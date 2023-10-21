@@ -130,43 +130,34 @@ public abstract class TgqFile implements AutoCloseable {
 
         // See what kind of frame we are dealing with here
         switch (tag) {
-            case SHEN_TAG:
-            case SCHl_TAG: {
+            case SHEN_TAG, SCHl_TAG -> {
 
                 // Audio header, set some context parameters
                 readAudioHeader(frameSize - 8);
                 onAudioHeader(audioHeader);
 
                 gotFrame = true;
-                break;
             }
-            case SCEN_TAG:
-            case SCCl_TAG: {
+            case SCEN_TAG, SCCl_TAG -> {
 
                 // Number of audio data tags
                 numberOfAudioStreamChunks = file.readChunk(4).readUnsignedInteger();
-
                 gotFrame = true;
-                break;
             }
-            case SDEN_TAG:
-            case SCDl_TAG: {
+            case SDEN_TAG, SCDl_TAG -> {
 
                 // Audio data itself
                 addAudioFrame(new EAAudioFrame(audioHeader, file.readChunk(frameSize - 8).getByteBuffer(), audioFrameIndex));
 
                 gotFrame = true;
                 audioFrameIndex++;
-                break;
             }
-            case SEEN_TAG:
-            case SCEl_TAG: {
+            case SEEN_TAG, SCEl_TAG -> {
 
                 // End of audio stream, nothing really to do
                 gotFrame = true;
-                break;
             }
-            case TQG_TAG: {
+            case TQG_TAG -> {
 
                 // Video frame
                 TgqFrame frame = new TgqFrame(file.readChunk(frameSize - 8).getByteBuffer(), videoFrameIndex);
@@ -180,11 +171,9 @@ public abstract class TgqFile implements AutoCloseable {
 
                 gotFrame = true;
                 videoFrameIndex++;
-                break;
             }
-            default: {
+            default -> {
                 LOGGER.log(Level.WARNING, "Unkown tag {0}!", tag);
-                break;
             }
         }
 
@@ -220,7 +209,83 @@ public abstract class TgqFile implements AutoCloseable {
         if (!PT_PATCH_TAG.equals(headerTag)) {
             throw new RuntimeException(PT_PATCH_TAG + " was expected in audio header! But " + headerTag + " found!");
         }
-        audioHeader = new EAAudioHeader();
+        audioHeader = createDefaultAudioHeader();
+
+        int platformIdentifier = reader.readShort();
+        audioHeader.setPlatform(getPlatform(platformIdentifier));
+
+        readAudioHeaderTagData(reader, audioHeader);
+    }
+
+    private static void readAudioHeaderTagData(IResourceChunkReader reader, EAAudioHeader audioHeader) throws IOException {
+        while (reader.hasRemaining()) {
+            short tag = reader.readUnsignedByte();
+            switch (tag) {
+                case 0xFC, 0xFE, 0xFD -> {
+                    if (readAudioHeaderSubStream(reader, audioHeader)) {
+                        return;
+                    }
+                }
+                case 0xFF -> {
+
+                    // The end
+                    return;
+                }
+                default -> {
+                    int val = getValue(reader);
+                    LOGGER.log(Level.INFO, "Did not process tag {0}! Value: " + val, tag);
+                }
+            }
+        }
+    }
+
+    /**
+     * Reads audio header sub stream
+     *
+     * @param reader header resource reader
+     * @param audioHeader the audio header data to read to
+     * @return returns true if the whole stream is exhausted
+     * @throws IOException
+     */
+    private static boolean readAudioHeaderSubStream(IResourceChunkReader reader, EAAudioHeader audioHeader) throws IOException {
+        while (reader.hasRemaining()) {
+            short subTag = reader.readUnsignedByte();
+            switch (subTag) {
+                case 0x82 -> {
+                    audioHeader.setNumberOfChannels(getValue(reader));
+                }
+                case 0x83 -> {
+                    int compressionIdentifier = getValue(reader);
+                    audioHeader.setCompression(getCompression(compressionIdentifier));
+                }
+                case 0x85 -> {
+                    audioHeader.setNumberOfSamplesInStream(getValue(reader));
+                }
+                case 0x8A -> {
+
+                    // Exit sub stream
+                    // Specs say this has no data but I beg to differ
+                    getValue(reader);
+
+                    return false;
+                }
+                case 0xFF -> {
+
+                    // The end
+                    return true;
+                }
+                default -> {
+                    LOGGER.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
+                    getValue(reader);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static EAAudioHeader createDefaultAudioHeader() {
+        EAAudioHeader audioHeader = new EAAudioHeader();
 
         // Set PT defaults
         audioHeader.setBitsPerSample(16);
@@ -228,106 +293,53 @@ public abstract class TgqFile implements AutoCloseable {
         audioHeader.setNumberOfChannels(1);
         audioHeader.setSampleRate(22050);
 
-        int platformIdentifier = reader.readShort();
+        return audioHeader;
+    }
+
+    private static EAAudioHeader.Platform getPlatform(int platformIdentifier) {
         switch (platformIdentifier) {
-            case 0x00: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.PC);
-                break;
+            case 0x00 -> {
+                return EAAudioHeader.Platform.PC;
             }
-            case 0x03: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.MACINTOSH);
-                break;
+            case 0x03 -> {
+                return EAAudioHeader.Platform.MACINTOSH;
             }
-            case 0x05: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.PLAYSTATION_2);
-                break;
+            case 0x05 -> {
+                return EAAudioHeader.Platform.PLAYSTATION_2;
             }
-            case 0x06: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.GAME_CUBE);
-                break;
+            case 0x06 -> {
+                return EAAudioHeader.Platform.GAME_CUBE;
             }
-            case 0x07: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.XBOX);
-                break;
+            case 0x07 -> {
+                return EAAudioHeader.Platform.XBOX;
             }
-            case 0x09: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.XENON_XBOX_360);
-                break;
+            case 0x09 -> {
+                return EAAudioHeader.Platform.XENON_XBOX_360;
             }
-            case 0x0A: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.PSP);
-                break;
+            case 0x0A -> {
+                return EAAudioHeader.Platform.PSP;
             }
-            default: {
-                audioHeader.setPlatform(EAAudioHeader.Platform.UNKNOWN);
+            default -> {
+                return EAAudioHeader.Platform.UNKNOWN;
             }
         }
+    }
 
-        // Tag data
-        boolean inSubStream;
-        while (reader.hasRemaining()) {
-            short tag = reader.readUnsignedByte();
+    private static EAAudioHeader.Compression getCompression(int compressionIdentifier) {
+        switch (compressionIdentifier) {
+            case 0x00 -> {
 
-            switch (tag) {
-                case 0xFC:
-                case 0xFE:
-                case 0xFD: {
-
-                    // Start of a sub stream
-                    inSubStream = true;
-
-                    // Loop through the sub stream
-                    while (inSubStream && reader.hasRemaining()) {
-                        short subTag = reader.readUnsignedByte();
-                        switch (subTag) {
-                            case 0x82: {
-                                audioHeader.setNumberOfChannels(getValue(reader));
-                                break;
-                            }
-                            case 0x83: {
-                                switch (getValue(reader)) {
-                                    case 0x00: {
-                                        audioHeader.setCompression(EAAudioHeader.Compression.PCM_16_I_LE); // We don't know the bits really
-                                        break;
-                                    }
-                                    case 0x07: {
-                                        audioHeader.setCompression(EAAudioHeader.Compression.EA_XA_ADPCM);
-                                        break;
-                                    }
-                                    case 0x09: {
-                                        audioHeader.setCompression(EAAudioHeader.Compression.UNKNOWN);
-                                        break;
-                                    }
-                                }
-                                break;
-                            }
-                            case 0x85: {
-                                audioHeader.setNumberOfSamplesInStream(getValue(reader));
-                                break;
-                            }
-                            case 0x8A: {
-                                inSubStream = false;
-                                getValue(reader); // Specs say this has no data but I beg to differ
-                                break;
-                            }
-                            case 0xFF: {
-                                return; // The end
-                            }
-                            default: {
-                                LOGGER.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
-                                getValue(reader);
-                            }
-                        }
-                    }
-                    break;
-                }
-                case 0xFF: {
-                    return; // The end
-                }
-                default: {
-                    int val = getValue(reader);
-                    LOGGER.log(Level.INFO, "Did not process tag {0}! Value: " + val, tag);
-                }
+                // We don't know the bits really
+                return EAAudioHeader.Compression.PCM_16_I_LE;
+            }
+            case 0x07 -> {
+                return EAAudioHeader.Compression.EA_XA_ADPCM;
+            }
+            case 0x09 -> {
+                return EAAudioHeader.Compression.UNKNOWN;
+            }
+            default -> {
+                return EAAudioHeader.Compression.UNKNOWN;
             }
         }
     }
