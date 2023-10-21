@@ -72,7 +72,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     private final AssetManager assetManager;
     private final T data;
 
-    public UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
+    protected UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
         super();
         this.entityId = entityId;
         this.data = data;

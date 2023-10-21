@@ -107,7 +107,7 @@ public abstract class TgqFile implements AutoCloseable {
         }
     }
 
-    public TgqFile(Path file) throws IOException {
+    protected TgqFile(Path file) throws IOException {
         this.file = new BufferedResourceReader(file);
     }
 
