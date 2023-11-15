@@ -115,7 +115,7 @@ java {
 compileJava {
     // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
     options.compilerArgs += ["-proc:none"]
-    //options.compilerArgs += ["-Xlint:deprecation"]
+    options.compilerArgs += ["-Xlint:deprecation"]
     //options.compilerArgs += ["-Xlint:unchecked"]
 }
 
