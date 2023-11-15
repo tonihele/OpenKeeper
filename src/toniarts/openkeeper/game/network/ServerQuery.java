@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.network;
 import com.jme3.network.Client;
 import com.jme3.network.Network;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
@@ -27,6 +26,7 @@ import java.util.logging.Logger;
  * @deprecated
  * @author ArchDemon
  */
+@Deprecated
 public abstract class ServerQuery extends Thread {
     
     private static final Logger logger = Logger.getLogger(ServerQuery.class.getName());

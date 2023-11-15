@@ -32,6 +32,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  * @deprecated
  * @author ArchDemon
  */
+@Deprecated
 public abstract class LocalServerSearch {
     
     private static final Logger logger = Logger.getLogger(LocalServerSearch.class.getName());

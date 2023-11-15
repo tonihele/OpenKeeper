@@ -350,6 +350,7 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @return KwdFile
      */
+    @Deprecated
     public KwdFile getLevelData() {
         return kwdFile;
     }

@@ -200,6 +200,7 @@ public class Normal extends GenericRoom {
      *
      * @return room pillar resource
      */
+    @Deprecated
     protected String getPillarResource() {
         return roomInstance.getRoom().getCompleteResource().getName() + "_Pillar";
     }
