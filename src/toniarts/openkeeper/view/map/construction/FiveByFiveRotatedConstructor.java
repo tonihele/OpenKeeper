@@ -129,24 +129,24 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
 //                } else {
 //                    // The arches
 //                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_ARCHES_ID, getRoomInstance().getOwnerId());
-//                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+//                    tile.move(0, -MapViewController.FLOOR_HEIGHT, 0);
 //                    moveSpatial(tile, start, p);
 //                    root.attachChild(tile);
 //
 //                    // The steps between the arches
 //                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_BIG_STEPS_ID, getRoomInstance().getOwnerId());
-//                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+//                    tile.move(0, -MapViewController.FLOOR_HEIGHT, 0);
 //                    moveSpatial(tile, start, p);
 //                    root.attachChild(tile);
 //
 //                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_BIG_STEPS_ID, getRoomInstance().getOwnerId());
-//                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+//                    tile.move(0, -MapViewController.FLOOR_HEIGHT, 0);
 //                    moveSpatial(tile, start, p);
 //                    tile.rotate(0, -FastMath.TWO_PI / 3, 0);
 //                    root.attachChild(tile);
 //
 //                    tile = objectLoader.load(assetManager, 0, 0, OBJECT_BIG_STEPS_ID, getRoomInstance().getOwnerId());
-//                    tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+//                    tile.move(0, -MapViewController.FLOOR_HEIGHT, 0);
 //                    moveSpatial(tile, start, p);
 //                    tile.rotate(0, FastMath.TWO_PI / 3, 0);
 //                    root.attachChild(tile);
@@ -154,7 +154,7 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
 //                    // The alfa & omega! The heart, TODO: use object loader once it is in decent condition, this after all is a real object
 //                    if (centreDecay == -1) {
 //                        tile = objectLoader.load(assetManager, 0, 0, OBJECT_HEART_ID, getRoomInstance().getOwnerId());
-//                        tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+//                        tile.move(0, -MapViewController.FLOOR_HEIGHT, 0);
 //                    } else {
 //                        tile = loadModel("DungeonCentre_DECAY" + centreDecay);
 //                    }
@@ -176,11 +176,11 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
 //                        }
 //                    });
 //
-//                    root.attachChild(tile.move(0, MapLoader.TILE_HEIGHT / 4, 0));
+//                    root.attachChild(tile.move(0, MapViewController.TILE_HEIGHT / 4, 0));
 //
 //                    for (Integer id : roomInstance.getRoom().getEffects()) {
 //                        if (id > 0) {
-//                            effectManager.load(root, new Vector3f(p.x - start.x, MapLoader.UNDERFLOOR_HEIGHT, p.y - start.y), id, true);
+//                            effectManager.load(root, new Vector3f(p.x - start.x, MapViewController.UNDERFLOOR_HEIGHT, p.y - start.y), id, true);
 //                        }
 //                    }
 //
@@ -188,18 +188,18 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
 //                        created = true;
 //
 //                        tile = objectLoader.load(assetManager, 0, 0, OBJECT_PLUG_ID, getRoomInstance().getOwnerId());
-//                        tile.move(0, -MapLoader.FLOOR_HEIGHT, 0);
+//                        tile.move(0, -MapViewController.FLOOR_HEIGHT, 0);
 //                        tile.setName("plug");
 //                        tile.setBatchHint(Spatial.BatchHint.Never);
 //                        tile.rotate(0, FastMath.QUARTER_PI, 0);
 //                        moveSpatial(tile, start, p);
-//                        root.attachChild(tile.move(0, MapLoader.FLOOR_HEIGHT, 0));
+//                        root.attachChild(tile.move(0, MapViewController.FLOOR_HEIGHT, 0));
 //
 //                        Node plug = getPlug();
 //                        plug.setName("plug_decay");
 //                        plug.setCullHint(Spatial.CullHint.Always);
 //                        plug.setBatchHint(Spatial.BatchHint.Never);
-//                        root.attachChild(plug.move(x, MapLoader.FLOOR_HEIGHT, y));
+//                        root.attachChild(plug.move(x, MapViewController.FLOOR_HEIGHT, y));
 //
 //                        root.addControl(new PlugControl());
 //                    }
@@ -209,7 +209,7 @@ public class FiveByFiveRotatedConstructor extends RoomConstructor {
 
         // Set the transform and scale to our scale and 0 the transform
         AssetUtils.translateToTile(root, start);
-        //root.scale(MapLoader.TILE_WIDTH, MapLoader.TILE_HEIGHT, MapLoader.TILE_WIDTH);
+        //root.scale(MapViewController.TILE_WIDTH, MapViewController.TILE_HEIGHT, MapViewController.TILE_WIDTH);
 
         return root;
     }

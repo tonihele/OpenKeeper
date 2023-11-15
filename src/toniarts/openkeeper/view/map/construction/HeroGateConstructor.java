@@ -96,7 +96,7 @@ public class HeroGateConstructor extends RoomConstructor {
                     part.rotate(0, yAngle, 0);
                 }
                 moveSpatial(part, p);
-                //part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                //part.move(-MapViewController.TILE_WIDTH / 2, 0, -MapViewController.TILE_WIDTH / 2);
                 root.attachChild(part);
             }
         }

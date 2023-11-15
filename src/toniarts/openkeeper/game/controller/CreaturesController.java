@@ -73,7 +73,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -324,7 +324,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Position
         // FIXME: no floor height
-        entityData.setComponent(entity, new Position(rotation, new Vector3f(x, MapLoader.FLOOR_HEIGHT, y)));
+        entityData.setComponent(entity, new Position(rotation, new Vector3f(x, MapViewController.FLOOR_HEIGHT, y)));
 
         // Mobility
         entityData.setComponent(entity, new Mobile(creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY),
