@@ -66,7 +66,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
-import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
@@ -408,9 +407,11 @@ public class ModelViewer extends SimpleApplication {
                             mat.setColor("Color", ColorRGBA.Red);
                             normalGeometry.setMaterial(mat);
                             nodeNormals.attachChild(normalGeometry);
-                            
-                            g.setMaterial(new Material(assetManager,
-                                    "Common/MatDefs/Misc/ShowNormals.j3md"));
+
+                            if (!g.isGrouped()) {
+                                g.setMaterial(new Material(assetManager,
+                                        "Common/MatDefs/Misc/ShowNormals.j3md"));
+                            }
                         }
                     }
                 });
