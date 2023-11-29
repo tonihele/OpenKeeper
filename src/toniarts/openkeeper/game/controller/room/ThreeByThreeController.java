@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
@@ -31,8 +32,8 @@ public class ThreeByThreeController extends AbstractRoomController implements IC
 
     private double lastSpawnTime = Double.MIN_VALUE;
 
-    public ThreeByThreeController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
-        super(kwdFile, roomInstance, objectsController);
+    public ThreeByThreeController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }
 
     @Override

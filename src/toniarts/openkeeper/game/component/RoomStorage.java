@@ -17,23 +17,25 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
- * Tags an entity to be storaged on a room
+ * Tags an entity to be stored on a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class RoomStorage implements EntityComponent {
 
-    // TODO: maybe replace with room ID
+    public EntityId room;
     public AbstractRoomController.ObjectType objectType;
 
     public RoomStorage() {
         // For serialization
     }
 
-    public RoomStorage(AbstractRoomController.ObjectType objectType) {
+    public RoomStorage(EntityId room, AbstractRoomController.ObjectType objectType) {
+        this.room = room;
         this.objectType = objectType;
     }
 

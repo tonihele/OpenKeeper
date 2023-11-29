@@ -38,8 +38,8 @@ public class HatcheryController extends NormalRoomController implements IChicken
     private final IGameTimer gameTimer;
     private final RoomFoodControl roomFoodControl;
 
-    public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+    public HatcheryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
         roomFoodControl = new RoomFoodControl(kwdFile, this, objectsController, gameTimer) {
 
@@ -100,7 +100,6 @@ public class HatcheryController extends NormalRoomController implements IChicken
         super.constructObjects();
 
         // The only objects we have are coops, they don't seem to have any indicator etc. so to avoid hard coding an ID and to allow maximum editability, all objects in the room generate chickens
-        EntityData entityData = objectsController.getEntityData();
         for (EntityId obj : floorFurniture) {
             entityData.setComponent(obj, new ChickenGenerator());
         }

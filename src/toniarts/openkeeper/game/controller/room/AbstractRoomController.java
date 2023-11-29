@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Collections;
@@ -48,7 +49,7 @@ public abstract class AbstractRoomController implements IRoomController {
 
     /**
      * How the objects are laid out, there is always a 1 tile margin from the
-     * sides. I don't know where this information really is, so I hardcoded it.
+     * sides. I don't know where this information really is, so I hard coded it.
      */
     public enum RoomObjectLayout {
 
@@ -66,6 +67,8 @@ public abstract class AbstractRoomController implements IRoomController {
         ISOLATED;
     }
 
+    protected final EntityId entityId;
+    protected final EntityData entityData;
     protected final KwdFile kwdFile;
     protected final RoomInstance roomInstance;
     private ObjectType defaultObjectType;
@@ -78,7 +81,10 @@ public abstract class AbstractRoomController implements IRoomController {
     protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
 
-    public AbstractRoomController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    public AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile, 
+            RoomInstance roomInstance, IObjectsController objectsController) {
+        this.entityId = entityId;
+        this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.roomInstance = roomInstance;
         this.objectsController = objectsController;

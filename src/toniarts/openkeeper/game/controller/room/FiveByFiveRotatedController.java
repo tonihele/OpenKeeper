@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -45,9 +46,10 @@ public class FiveByFiveRotatedController extends AbstractRoomController implemen
     private double lastSpawnTime = Double.MIN_VALUE;
     private final List<Point> spawnPoints = new ArrayList<>(16);
 
-    public FiveByFiveRotatedController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+    public FiveByFiveRotatedController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
         final int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
         addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
 
