@@ -18,7 +18,6 @@ import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.view.map.WallSection;
-import static toniarts.openkeeper.view.map.WallSection.WallDirection.WEST;
 
 /**
  * A base class for constructing different kind of rooms. FIXME: Basically
@@ -79,7 +78,7 @@ public abstract class RoomConstructor {
      * for the wall spatials by the map loader in normal map drawing situation
      *
      * @see #getWallSpatial(java.awt.Point,
-     * toniarts.openkeeper.world.room.WallSection.WallDirection)
+     * toniarts.openkeeper.view.map.WallSection.WallDirection)
      * @return constructed wall
      */
     protected BatchNode constructWall() {

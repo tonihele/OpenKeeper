@@ -26,11 +26,11 @@ import java.awt.Point;
 import java.util.Arrays;
 import java.util.EnumSet;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
  * Constructs "normal" rooms

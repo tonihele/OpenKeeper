@@ -28,7 +28,7 @@ import static toniarts.openkeeper.game.controller.room.AbstractRoomController.ha
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.MapViewController;
-import toniarts.openkeeper.world.room.WallSection;
+import toniarts.openkeeper.view.map.WallSection;
 
 /**
  * The temple... there is the hand and special pillar (rather torch) placement

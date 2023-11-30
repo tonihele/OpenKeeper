@@ -51,14 +51,14 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.loader.ILoader;
+import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.effect.TorchControl;
 import toniarts.openkeeper.world.object.ObjectLoader;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomConstructor;
 import toniarts.openkeeper.world.room.RoomInstance;
-import toniarts.openkeeper.world.room.WallSection;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
 import toniarts.openkeeper.world.terrain.Water;
 
 /**
