@@ -74,7 +74,6 @@ import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -190,7 +189,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadCameraStartLocation() {
         Player player = kwdFile.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
-        startLocation.addLocal(0, MapLoader.FLOOR_HEIGHT, 0);
+        startLocation.addLocal(0, MapViewController.FLOOR_HEIGHT, 0);
 
         // Set the actual camera location
         loadCameraStartLocation("EnginePath250");

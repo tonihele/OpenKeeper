@@ -23,7 +23,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * Player camera movement is modeled here
@@ -96,14 +96,14 @@ public class PlayerCamera {
         look.addLocal(vel);
 
         // check limit
-        if (look.getX() > limit.x * MapLoader.TILE_WIDTH) {
-            look.setX(limit.x * MapLoader.TILE_WIDTH);
+        if (look.getX() > limit.x * MapViewController.TILE_WIDTH) {
+            look.setX(limit.x * MapViewController.TILE_WIDTH);
         } else if (look.getX() < 0) {
             look.setX(0);
         }
 
-        if (look.getZ() > limit.y * MapLoader.TILE_WIDTH) {
-            look.setZ(limit.y * MapLoader.TILE_WIDTH);
+        if (look.getZ() > limit.y * MapViewController.TILE_WIDTH) {
+            look.setZ(limit.y * MapViewController.TILE_WIDTH);
         } else if (look.getZ() < 0) {
             look.setZ(0);
         }

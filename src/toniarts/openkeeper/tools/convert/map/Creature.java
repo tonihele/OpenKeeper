@@ -590,6 +590,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.WALK)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimWalkResource() {
         return animation.get(AnimationType.WALK);
     }
@@ -598,6 +599,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.BEING_DRAGGED)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimDraggedPoseResource() {
         return animation.get(AnimationType.DRAGGED);
     }
@@ -606,6 +608,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.MELEE_1)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimMelee1Resource() {
         return animation.get(AnimationType.MELEE_ATTACK);
     }
@@ -614,6 +617,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.CAST_SPELL)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimMagicResource() {
         return animation.get(AnimationType.CAST_SPELL);
     }
@@ -622,6 +626,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.DIE)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimDieResource() {
         return animation.get(AnimationType.DIE);
     }
@@ -630,6 +635,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.IN_HAND)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimInHandResource() {
         return animation.get(AnimationType.IN_HAND);
     }
@@ -638,6 +644,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.SLEEPING)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimSleepResource() {
         return animation.get(AnimationType.SLEEPING);
     }
@@ -646,6 +653,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.EATING)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimEatResource() {
         return animation.get(AnimationType.EATING);
     }
@@ -654,6 +662,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.RESEARCHING)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimResearchResource() {
         return animation.get(AnimationType.RESEARCHING);
     }
@@ -662,6 +671,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.IDLE_1)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimIdle1Resource() {
         return animation.get(AnimationType.IDLE_1);
     }
@@ -670,6 +680,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.FALL_OVER_AND_UP)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimFallbackResource() {
         return animation.get(AnimationType.FALLBACK);
     }
@@ -678,6 +689,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.GET_UP)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimGetUpResource() {
         return animation.get(AnimationType.GET_UP);
     }
@@ -686,6 +698,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.ENTRANCE)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimEntranceResource() {
         return animation.get(AnimationType.ENTRANCE);
     }
@@ -694,6 +707,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.IDLE_2)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimIdle2Resource() {
         return animation.get(AnimationType.IDLE_2);
     }
@@ -702,6 +716,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.MELEE_2)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimMelee2Resource() {
         return animation.get(AnimationType.SWIPE);
     }
@@ -710,6 +725,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.DRUNKED_IDLE)
      * @return
      */
+    @Deprecated
     public ArtResource getDrunkIdle() {
         return animation.get(AnimationType.DRUNKED_IDLE);
     }
@@ -718,6 +734,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.BACK_OFF)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimWalkbackResource() {
         return animation.get(AnimationType.BACK_OFF);
     }
@@ -726,6 +743,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.STAND_STILL)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimPoseFrameResource() {
         return animation.get(AnimationType.STAND_STILL);
     }
@@ -734,6 +752,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.STEALTH_WALK)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimWalk2Resource() {
         return animation.get(AnimationType.STEALTH_WALK);
     }
@@ -742,6 +761,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
      * @deprecated use getAnimation(AnimationType.DEATH_POSE)
      * @return
      */
+    @Deprecated
     public ArtResource getAnimDiePoseResource() {
         return animation.get(AnimationType.DEATH_POSE);
     }

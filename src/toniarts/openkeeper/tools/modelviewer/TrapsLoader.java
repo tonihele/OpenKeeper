@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
-import toniarts.openkeeper.world.ILoader;
+import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**

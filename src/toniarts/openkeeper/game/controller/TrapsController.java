@@ -37,7 +37,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the traps in the world TODO:
@@ -105,7 +105,7 @@ public class TrapsController implements ITrapsController {
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = MapLoader.FLOOR_HEIGHT;
+        pos.y = MapViewController.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
         Trap trap = kwdFile.getTrapById(trapId);

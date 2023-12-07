@@ -28,7 +28,7 @@ import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
+import toniarts.openkeeper.view.map.WallSection.WallDirection;
 
 /**
  * Constructs "normal" rooms

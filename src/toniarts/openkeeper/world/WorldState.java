@@ -65,8 +65,8 @@ import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.selection.SelectionArea;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -350,6 +350,7 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @return KwdFile
      */
+    @Deprecated
     public KwdFile getLevelData() {
         return kwdFile;
     }

@@ -153,6 +153,7 @@ public class SoundsLoader {
      * @deprecated @param category
      * @param useGlobal
      */
+    @Deprecated
     public static void temp(final String category, final boolean useGlobal) {
         List<SoundFile> result = new ArrayList<>();
 

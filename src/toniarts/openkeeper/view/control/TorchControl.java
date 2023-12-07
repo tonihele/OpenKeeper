@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.effect;
+package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
@@ -50,8 +50,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author ArchDemon
  */
-@Deprecated
-public class TorchControl extends BillboardControl {
+public final class TorchControl extends BillboardControl {
     
     private static final Logger log = Logger.getLogger(TorchControl.class.getName());
 

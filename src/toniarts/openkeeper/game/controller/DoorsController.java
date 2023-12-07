@@ -41,7 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the doors in the world TODO:
@@ -112,7 +112,7 @@ public class DoorsController implements IDoorsController {
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = MapLoader.FLOOR_HEIGHT;
+        pos.y = MapViewController.FLOOR_HEIGHT;
         float rotation = 0;
         if (canTileSupportDoor(x, y - 1, ownerId) && canTileSupportDoor(x, y + 1, ownerId)) {
             rotation = -FastMath.HALF_PI;
