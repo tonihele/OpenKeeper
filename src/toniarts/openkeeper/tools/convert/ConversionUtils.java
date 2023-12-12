@@ -17,13 +17,14 @@
 package toniarts.openkeeper.tools.convert;
 
 import com.jme3.math.Vector3f;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 /**
  * Contains static helper methods
@@ -32,7 +33,7 @@ import java.util.logging.Logger;
  */
 public class ConversionUtils {
 
-    private static final Logger LOGGER = Logger.getLogger(ConversionUtils.class.getName());
+    private static final Logger LOGGER = System.getLogger(ConversionUtils.class.getName());
 
     public static final float FLOAT = 4096f; // or DIVIDER_FLOAT Fixed Point Single Precision Divider
     public static final float DOUBLE = 65536f; // or DIVIDER_DOUBLE Fixed Point Double Precision Divider
@@ -51,7 +52,7 @@ public class ConversionUtils {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            LOGGER.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
+            LOGGER.log(Level.WARNING, "This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }

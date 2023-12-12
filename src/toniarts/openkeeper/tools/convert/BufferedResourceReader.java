@@ -19,14 +19,14 @@ package toniarts.openkeeper.tools.convert;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Resource reader is a convenience wrapper around any Dungeon Keeper 2 resource
@@ -39,7 +39,7 @@ import java.util.logging.Logger;
  */
 public class BufferedResourceReader implements IResourceReader {
     
-    private static final Logger LOGGER = Logger.getLogger(BufferedResourceReader.class.getName());
+    private static final Logger LOGGER = System.getLogger(BufferedResourceReader.class.getName());
 
     private final BufferedInputStream input;
 
@@ -101,7 +101,7 @@ public class BufferedResourceReader implements IResourceReader {
         try {
             input.close();
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Closing file error", ex);
+            LOGGER.log(Level.ERROR, "Closing file error", ex);
         }
     }
 

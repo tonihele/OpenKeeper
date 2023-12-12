@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.trigger.player;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -46,7 +46,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class PlayerTriggerControl extends TriggerControl {
     
-    private static final Logger LOGGER = Logger.getLogger(PlayerTriggerControl.class.getName());
+    private static final Logger LOGGER = System.getLogger(PlayerTriggerControl.class.getName());
 
     private short playerId;
     private PlayerService playerService;
@@ -282,7 +282,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 // Get first spawn point of the player (this flag is only for the players)
                 Set<IRoomController> rooms = getPlayerController(playerId).getRoomControl().getRoomControllers().get(levelInfo.getLevelData().getPortal());
                 if (rooms == null || rooms.isEmpty()) {
-                    LOGGER.warning("Generate creature triggered but no entrances found!");
+                    LOGGER.log(Level.WARNING, "Generate creature triggered but no entrances found!");
                     break;
                 }
                 ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());

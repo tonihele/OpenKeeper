@@ -22,13 +22,13 @@ import com.jme3.audio.AudioNode;
 import com.jme3.scene.Node;
 import java.awt.Point;
 import java.io.File;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
@@ -44,7 +44,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class SoundsLoader {
     
-    private static final Logger LOGGER = Logger.getLogger(SoundsLoader.class.getName());
+    private static final Logger LOGGER = System.getLogger(SoundsLoader.class.getName());
     
     private static final Map<String, SoundCategory> CACHE = new HashMap<>();
 

@@ -25,9 +25,9 @@ import com.jme3.network.service.rpc.RpcClientService;
 import com.simsilica.es.client.EntityDataClientService;
 import com.simsilica.ethereal.EtherealClient;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSession;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
@@ -45,7 +45,7 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
  */
 public class NetworkClient implements ChatSession {
     
-    private static final Logger LOGGER = Logger.getLogger(NetworkClient.class.getName());
+    private static final Logger LOGGER = System.getLogger(NetworkClient.class.getName());
 
     private final Client client;
 
@@ -97,7 +97,7 @@ public class NetworkClient implements ChatSession {
     }
 
     public void start() throws IOException {
-        LOGGER.info("Network: Player starting");
+        LOGGER.log(Level.INFO, "Network: Player starting");
         client.start();
     }
 
@@ -106,7 +106,7 @@ public class NetworkClient implements ChatSession {
     }
 
     public void close() {
-        LOGGER.info("Network: closing client connection");
+        LOGGER.log(Level.INFO, "Network: closing client connection");
 
         if (client != null && client.isConnected()) {
             client.close();
@@ -165,7 +165,7 @@ public class NetworkClient implements ChatSession {
     }
 
     protected void onConnected() {
-        LOGGER.info("Network: Player connected");
+        LOGGER.log(Level.INFO, "Network: Player connected");
     }
 
     protected void onDisconnected(ClientStateListener.DisconnectInfo di) {

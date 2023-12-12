@@ -38,10 +38,10 @@ package toniarts.openkeeper.game.network.chat;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.NetworkConstants;
 
 /**
@@ -52,7 +52,7 @@ import toniarts.openkeeper.game.network.NetworkConstants;
 public class ChatClientService extends AbstractClientService
         implements ChatSession {
 
-    private static final Logger logger = Logger.getLogger(ChatClientService.class.getName());
+    private static final Logger logger = System.getLogger(ChatClientService.class.getName());
 
     private RmiClientService rmiService;
     private ChatSession delegate;
@@ -85,12 +85,12 @@ public class ChatClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.FINER, "onInitialize({0})", s);
+        logger.log(Level.TRACE, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("ChatClientService requires RMI service");
         }
-        logger.finer("Sharing session callback.");
+        logger.log(Level.TRACE, "Sharing session callback.");
         rmiService.share(NetworkConstants.CHAT_CHANNEL, sessionCallback, ChatSessionListener.class);
     }
 
@@ -101,7 +101,7 @@ public class ChatClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.finer("start()");
+        logger.log(Level.TRACE, "start()");
         super.start();
     }
 
@@ -113,7 +113,7 @@ public class ChatClientService extends AbstractClientService
         if (delegate == null) {
             // Look it up
             this.delegate = rmiService.getRemoteObject(ChatSession.class);
-            logger.log(Level.FINER, "delegate:{0}", delegate);
+            logger.log(Level.TRACE, "delegate:{0}", delegate);
             if (delegate == null) {
                 throw new RuntimeException("No chat session found");
             }
@@ -129,7 +129,7 @@ public class ChatClientService extends AbstractClientService
 
         @Override
         public void playerJoined(int playerId, String playerName) {
-            logger.log(Level.FINEST, "playerJoined({0}, {1})", new Object[]{playerId, playerName});
+            logger.log(Level.TRACE, "playerJoined({0}, {1})", new Object[]{playerId, playerName});
             for (ChatSessionListener l : listeners) {
                 l.playerJoined(playerId, playerName);
             }
@@ -137,7 +137,7 @@ public class ChatClientService extends AbstractClientService
 
         @Override
         public void newMessage(int playerId, Short keeperId, String playerName, String message) {
-            logger.log(Level.FINEST, "newMessage({0}, {1}, {2})", new Object[]{playerId, playerName, message});
+            logger.log(Level.TRACE, "newMessage({0}, {1}, {2})", new Object[]{playerId, playerName, message});
             for (ChatSessionListener l : listeners) {
                 l.newMessage(playerId, keeperId, playerName, message);
             }
@@ -145,7 +145,7 @@ public class ChatClientService extends AbstractClientService
 
         @Override
         public void playerLeft(int playerId, String playerName) {
-            logger.log(Level.FINEST, "playerLeft({0}, {1})", new Object[]{playerId, playerName});
+            logger.log(Level.TRACE, "playerLeft({0}, {1})", new Object[]{playerId, playerName});
             for (ChatSessionListener l : listeners) {
                 l.playerLeft(playerId, playerName);
             }

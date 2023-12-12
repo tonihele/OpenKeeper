@@ -20,6 +20,8 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -35,8 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
@@ -55,7 +55,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class ConvertFonts extends ConversionTask {
 
-    private static final Logger LOGGER = Logger.getLogger(ConvertFonts.class.getName());
+    private static final Logger LOGGER = System.getLogger(ConvertFonts.class.getName());
 
     private final ExecutorService executorService;
 
@@ -83,7 +83,7 @@ public class ConvertFonts extends ConversionTask {
             try {
                 executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to wait font conversion complete!", ex);
+                LOGGER.log(Level.ERROR, "Failed to wait font conversion complete!", ex);
             }
         }
     }
@@ -135,7 +135,7 @@ public class ConvertFonts extends ConversionTask {
 
         } catch (Exception ex) {
             String msg = "Failed to save the font files to " + destination + "!";
-            LOGGER.log(Level.SEVERE, msg, ex);
+            LOGGER.log(Level.ERROR, msg, ex);
             throw new RuntimeException(msg, ex);
         }
     }
@@ -150,7 +150,7 @@ public class ConvertFonts extends ConversionTask {
             Matcher matcher = pattern.matcher(file.getFileName().toString());
             boolean found = matcher.find();
             if (!found) {
-                LOGGER.log(Level.SEVERE, "Font name {0} not recognized!", file.getFileName());
+                LOGGER.log(Level.ERROR, "Font name {0} not recognized!", file.getFileName());
                 throw new RuntimeException("Unknown font name!");
             }
 
@@ -177,7 +177,7 @@ public class ConvertFonts extends ConversionTask {
             updateStatus(progress.incrementAndGet(), total);
         } catch (Exception ex) {
             String msg = "Failed to export font file " + file + "!";
-            LOGGER.log(Level.SEVERE, msg, ex);
+            LOGGER.log(Level.ERROR, msg, ex);
             onError(new RuntimeException(msg, ex));
         }
     }

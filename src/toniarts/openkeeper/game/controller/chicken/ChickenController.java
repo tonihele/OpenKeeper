@@ -22,8 +22,8 @@ import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ChickenController extends EntityController implements IChickenController {
     
-    private static final Logger LOGGER = Logger.getLogger(ChickenController.class.getName());
+    private static final Logger LOGGER = System.getLogger(ChickenController.class.getName());
 
     private final INavigationService navigationService;
     private final IGameTimer gameTimer;

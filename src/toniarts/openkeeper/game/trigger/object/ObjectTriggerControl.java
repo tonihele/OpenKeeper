@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger.object;
 
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 public class ObjectTriggerControl extends AbstractThingTriggerControl<IObjectController> {
 
-    private static final Logger LOGGER = Logger.getLogger(ObjectTriggerControl.class.getName());
+    private static final Logger LOGGER = System.getLogger(ObjectTriggerControl.class.getName());
 
     public ObjectTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,

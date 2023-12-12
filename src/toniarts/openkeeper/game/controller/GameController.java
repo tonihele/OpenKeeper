@@ -20,6 +20,8 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
@@ -89,7 +89,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
 
-    private static final Logger LOGGER = Logger.getLogger(GameController.class.getName());
+    private static final Logger LOGGER = System.getLogger(GameController.class.getName());
     
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -203,7 +203,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 kwdFile.load();
             }
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to load the map file!", ex);
+            LOGGER.log(Level.ERROR, "Failed to load the map file!", ex);
             throw new RuntimeException(level, ex);
         }
 
@@ -550,7 +550,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             try {
                 Main.getUserSettings().save();
             } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to save the level progress!", ex);
+                LOGGER.log(Level.ERROR, "Failed to save the level progress!", ex);
             }
         }
     }

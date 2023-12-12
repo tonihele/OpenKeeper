@@ -32,13 +32,13 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -55,7 +55,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  */
 public class MapThumbnailGenerator {
 
-    private static final Logger LOGGER = Logger.getLogger(MapThumbnailGenerator.class.getName());
+    private static final Logger LOGGER = System.getLogger(MapThumbnailGenerator.class.getName());
     
     private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
     private static ColorModel cm;

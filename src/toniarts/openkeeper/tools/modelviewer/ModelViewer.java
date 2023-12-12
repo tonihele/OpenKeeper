@@ -53,6 +53,8 @@ import de.lessvoid.nifty.controls.ListBox;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,11 +64,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
-import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
@@ -124,7 +123,7 @@ public class ModelViewer extends SimpleApplication {
         }
     }
     
-    private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
+    private static final Logger LOGGER = System.getLogger(ModelViewer.class.getName());
     
     //private final static float SCALE = 2;
     private static String dkIIFolder;
@@ -266,7 +265,7 @@ public class ModelViewer extends SimpleApplication {
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
-                 LOGGER.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+                 LOGGER.log(Level.ERROR, "Failed to handle: " + kmfModel, e);
             }
         }
     }
@@ -619,7 +618,7 @@ public class ModelViewer extends SimpleApplication {
                     object.add(key.substring(0, key.length() - 4));
                 }
             } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to load the maps!", ex);
+                LOGGER.log(Level.ERROR, "Failed to load the maps!", ex);
             }
         }
 

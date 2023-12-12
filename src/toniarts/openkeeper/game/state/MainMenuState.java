@@ -35,12 +35,12 @@ import java.awt.DisplayMode;
 import java.awt.GraphicsDevice;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
@@ -83,7 +83,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  */
 public class MainMenuState extends AbstractAppState {
     
-    private static final Logger LOGGER = Logger.getLogger(MainMenuState.class.getName());
+    private static final Logger LOGGER = System.getLogger(MainMenuState.class.getName());
 
     protected Main app;
     protected Node rootNode;
@@ -284,7 +284,7 @@ public class MainMenuState extends AbstractAppState {
                         try {
                             loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);
                         } catch (IOException ex) {
-                            LOGGER.log(Level.SEVERE, "Failed to load the main menu scene!", ex);
+                            LOGGER.log(Level.ERROR, "Failed to load the main menu scene!", ex);
                         }
                     }
 
@@ -335,7 +335,7 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().setSetting(Setting.GAME_NAME, game);
             Main.getUserSettings().save();
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+            LOGGER.log(Level.ERROR, "Failed to save user settings!", ex);
         }
     }
 
@@ -364,7 +364,7 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().save();
 
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+            LOGGER.log(Level.ERROR, "Failed to save user settings!", ex);
         }
     }
 
@@ -398,7 +398,7 @@ public class MainMenuState extends AbstractAppState {
         if (chatService != null) {
             chatService.sendMessage(text);
         } else {
-            LOGGER.warning("Connection not initialized!");
+            LOGGER.log(Level.WARNING, "Connection not initialized!");
         }
     }
 
@@ -462,7 +462,7 @@ public class MainMenuState extends AbstractAppState {
             stateManager.attach(movieState);
             inputManager.setCursorVisible(false);
         } catch (Exception e) {
-            LOGGER.log(java.util.logging.Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
+            LOGGER.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
         }
     }
 
@@ -590,7 +590,7 @@ public class MainMenuState extends AbstractAppState {
             try {
                 AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
-                LOGGER.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
+                LOGGER.log(Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
             }
         }

@@ -26,10 +26,10 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -63,7 +63,7 @@ import toniarts.openkeeper.view.text.TextParser;
  */
 public class PlayerEntityViewState extends AbstractAppState {
     
-    private static final Logger LOGGER = Logger.getLogger(PlayerEntityViewState.class.getName());
+    private static final Logger LOGGER = System.getLogger(PlayerEntityViewState.class.getName());
 
     private AppStateManager stateManager;
     private final KwdFile kwdFile;
@@ -364,7 +364,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected Spatial addObject(Entity e) {
-            LOGGER.log(Level.FINEST, "ObjectModelContainer.addObject({0})", e);
+            LOGGER.log(Level.TRACE, "ObjectModelContainer.addObject({0})", e);
             Spatial result = createObjectModel(e);
             updateObject(result, e);
             return result;
@@ -372,7 +372,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            LOGGER.log(Level.FINEST, "ObjectModelContainer.updateObject({0})", e);
+            LOGGER.log(Level.TRACE, "ObjectModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             updateObjectModelState(object, e);
         }
@@ -395,7 +395,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected Spatial addObject(Entity e) {
-            LOGGER.log(Level.FINEST, "CreatureModelContainer.addObject({0})", e);
+            LOGGER.log(Level.TRACE, "CreatureModelContainer.addObject({0})", e);
             Spatial result = createCreatureModel(e);
             updateObject(result, e);
             return result;
@@ -403,7 +403,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            LOGGER.log(Level.FINEST, "CreatureModelContainer.updateObject({0})", e);
+            LOGGER.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             updateCreatureModelAnimation(object, e);
         }
@@ -426,7 +426,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected Spatial addObject(Entity e) {
-            LOGGER.log(Level.FINEST, "DoorModelContainer.addObject({0})", e);
+            LOGGER.log(Level.TRACE, "DoorModelContainer.addObject({0})", e);
             Spatial result = createDoorModel(e);
             updateObject(result, e);
             return result;
@@ -434,7 +434,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            LOGGER.log(Level.FINEST, "DoorModelContainer.updateObject({0})", e);
+            LOGGER.log(Level.TRACE, "DoorModelContainer.updateObject({0})", e);
             updateModelPosition(object, e); // LOL, but ok
             updateDoorModelState(object, e);
         }
@@ -456,7 +456,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected Spatial addObject(Entity e) {
-            LOGGER.log(Level.FINEST, "TrapModelContainer.addObject({0})", e);
+            LOGGER.log(Level.TRACE, "TrapModelContainer.addObject({0})", e);
             Spatial result = createTrapModel(e);
             updateObject(result, e);
             return result;
@@ -464,7 +464,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void updateObject(Spatial object, Entity e) {
-            LOGGER.log(Level.FINEST, "TrapModelContainer.updateObject({0})", e);
+            LOGGER.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
         }

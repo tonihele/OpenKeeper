@@ -19,8 +19,8 @@ package toniarts.openkeeper.view.loader;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public class CreatureLoader implements ILoader<CreatureViewState> {
     
-    private static final Logger LOGGER = Logger.getLogger(CreatureLoader.class.getName());
+    private static final Logger LOGGER = System.getLogger(CreatureLoader.class.getName());
 
     private final KwdFile kwdFile;
 
@@ -47,7 +47,7 @@ public class CreatureLoader implements ILoader<CreatureViewState> {
             Node creatureRoot = new Node(creature.getName());
             return creatureRoot;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load creature " + creatureViewState + "!", e);
+            LOGGER.log(Level.ERROR, "Failed to load creature " + creatureViewState + "!", e);
         }
         return null;
     }

@@ -40,10 +40,10 @@ import com.jme3.network.service.AbstractHostedConnectionService;
 import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUTE_KEEPER_ID;
 
@@ -56,7 +56,7 @@ import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUT
  */
 public class ChatHostedService extends AbstractHostedConnectionService {
 
-    private static final Logger logger = Logger.getLogger(ChatHostedService.class.getName());
+    private static final Logger logger = System.getLogger(ChatHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "chat.session";
 
@@ -92,7 +92,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
      * and will then be able to send/receive messages.
      */
     public void startHostingOnConnection(HostedConnection conn, String playerName) {
-        logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
+        logger.log(Level.TRACE, "startHostingOnConnection({0})", conn);
 
         ChatSessionImpl session = new ChatSessionImpl(conn, playerName);
         conn.setAttribute(ATTRIBUTE_SESSION, session);
@@ -124,7 +124,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.FINER, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
         ChatSessionImpl player = getChatSession(conn);
         if (player != null) {
 

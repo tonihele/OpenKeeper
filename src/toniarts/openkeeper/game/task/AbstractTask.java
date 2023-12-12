@@ -19,11 +19,12 @@ package toniarts.openkeeper.game.task;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -36,7 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class AbstractTask implements Task {
 
-    private static final Logger LOGGER = Logger.getLogger(AbstractTask.class.getName());
+    private static final Logger LOGGER = System.getLogger(AbstractTask.class.getName());
     
     private static final AtomicLong ID_GENENERATOR = new AtomicLong();
 
@@ -91,7 +92,7 @@ public abstract class AbstractTask implements Task {
     @Override
     public void assign(ICreatureController creature, boolean setToCreature) {
         if (assignees.size() == getMaxAllowedNumberOfAsignees()) {
-            LOGGER.warning("Task already has the maximum number of assignees!");
+            LOGGER.log(Level.WARNING, "Task already has the maximum number of assignees!");
         }
         assignees.put(creature, 0.0f);
         if (setToCreature) {

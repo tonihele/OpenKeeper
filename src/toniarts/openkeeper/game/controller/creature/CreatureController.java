@@ -25,11 +25,11 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -93,7 +93,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class CreatureController extends EntityController implements ICreatureController {
     
-    private static final Logger LOGGER = Logger.getLogger(CreatureController.class.getName());
+    private static final Logger LOGGER = System.getLogger(CreatureController.class.getName());
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -442,7 +442,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
-            LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getCreatureCoordinates(), destination});
+            LOGGER.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));

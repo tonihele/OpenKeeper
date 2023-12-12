@@ -34,7 +34,7 @@ import com.jme3.scene.CameraNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -50,7 +50,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class Cinematic extends com.jme3.cinematic.Cinematic {
 
-    private static final Logger LOGGER = Logger.getLogger(Cinematic.class.getName());
+    private static final Logger LOGGER = System.getLogger(Cinematic.class.getName());
     
     private final AssetManager assetManager;
     private static final boolean IS_DEBUG = false;

@@ -27,8 +27,8 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.audio.plugins.decoder.AudioInformation;
 import toniarts.openkeeper.audio.plugins.decoder.Decoder;
 import toniarts.openkeeper.audio.plugins.decoder.MediaInformation;
@@ -42,7 +42,7 @@ import toniarts.openkeeper.audio.plugins.decoder.UnsupportedMediaException;
  */
 public class MP2Loader implements AssetLoader {
     
-    private static final Logger LOGGER = Logger.getLogger(MP2Loader.class.getName());
+    private static final Logger LOGGER = System.getLogger(MP2Loader.class.getName());
 
     public static final String FILE_EXTENSION = "mp2";
 
@@ -155,7 +155,7 @@ public class MP2Loader implements AssetLoader {
                 return audioData;
             }
         } catch (IOException | UnsupportedMediaException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to read a frame!", ex);
+            LOGGER.log(Level.ERROR, "Failed to read a frame!", ex);
             throw new IOException("Failed to read a frame!");
         }
     }

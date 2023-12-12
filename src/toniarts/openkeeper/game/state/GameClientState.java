@@ -23,13 +23,13 @@ import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
@@ -61,7 +61,7 @@ import toniarts.openkeeper.view.text.TextParserService;
  */
 public class GameClientState extends AbstractPauseAwareState {
     
-    private static final Logger LOGGER = Logger.getLogger(GameClientState.class.getName());
+    private static final Logger LOGGER = System.getLogger(GameClientState.class.getName());
 
     private Main app;
 
@@ -249,7 +249,7 @@ public class GameClientState extends AbstractPauseAwareState {
             }
 
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
+            LOGGER.log(Level.ERROR, "Failed to load the game!", e);
         }
     }
 
@@ -355,7 +355,7 @@ public class GameClientState extends AbstractPauseAwareState {
                             try {
                                 mapDataLoadingObject.wait();
                             } catch (InterruptedException ex) {
-                                Logger.getLogger(GameClientState.class.getName()).log(Level.SEVERE, "Map data loading interrupted!", ex);
+                                System.getLogger(GameClientState.class.getName()).log(Level.ERROR, "Map data loading interrupted!", ex);
                             }
                         }
                     }

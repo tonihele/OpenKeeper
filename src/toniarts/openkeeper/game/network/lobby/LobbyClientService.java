@@ -19,10 +19,10 @@ package toniarts.openkeeper.game.network.lobby;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 public class LobbyClientService extends AbstractClientService
         implements toniarts.openkeeper.game.state.lobby.LobbyClientService {
 
-    private static final Logger logger = Logger.getLogger(LobbyClientService.class.getName());
+    private static final Logger logger = System.getLogger(LobbyClientService.class.getName());
 
     private RmiClientService rmiService;
     private LobbySession delegate;
@@ -84,12 +84,12 @@ public class LobbyClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.FINER, "onInitialize({0})", s);
+        logger.log(Level.TRACE, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("LobbyClientService requires RMI service");
         }
-        logger.finer("Sharing session callback.");
+        logger.log(Level.TRACE, "Sharing session callback.");
         rmiService.share(NetworkConstants.LOBBY_CHANNEL, sessionCallback, LobbySessionListener.class);
     }
 
@@ -100,7 +100,7 @@ public class LobbyClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.finer("start()");
+        logger.log(Level.TRACE, "start()");
         super.start();
     }
 
@@ -112,7 +112,7 @@ public class LobbyClientService extends AbstractClientService
         if (delegate == null) {
             // Look it up
             this.delegate = rmiService.getRemoteObject(LobbySession.class);
-            logger.log(Level.FINER, "delegate:{0}", delegate);
+            logger.log(Level.TRACE, "delegate:{0}", delegate);
             if (delegate == null) {
                 throw new RuntimeException("No lobby session found");
             }
@@ -128,7 +128,7 @@ public class LobbyClientService extends AbstractClientService
 
         @Override
         public void onMapChanged(String mapName) {
-            logger.log(Level.FINEST, "mapChanged({0})", new Object[]{mapName});
+            logger.log(Level.TRACE, "mapChanged({0})", new Object[]{mapName});
             for (LobbySessionListener l : listeners) {
                 l.onMapChanged(mapName);
             }
@@ -136,7 +136,7 @@ public class LobbyClientService extends AbstractClientService
 
         @Override
         public void onPlayerListChanged(List<ClientInfo> players) {
-            logger.log(Level.FINEST, "onPlayerListChanged({0})", new Object[]{players.stream().map(Object::toString)
+            logger.log(Level.TRACE, "onPlayerListChanged({0})", new Object[]{players.stream().map(Object::toString)
                 .collect(Collectors.joining(", "))});
             for (LobbySessionListener l : listeners) {
                 l.onPlayerListChanged(players);
@@ -145,7 +145,7 @@ public class LobbyClientService extends AbstractClientService
 
         @Override
         public void onGameStarted(String mapName, List<ClientInfo> players) {
-            logger.log(Level.FINEST, "onGameStarted({0})", new Object[]{mapName});
+            logger.log(Level.TRACE, "onGameStarted({0})", new Object[]{mapName});
             for (LobbySessionListener l : listeners) {
                 l.onGameStarted(mapName, players);
             }

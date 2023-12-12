@@ -18,6 +18,8 @@ import java.awt.Point;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,8 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
@@ -47,7 +47,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
     
-    private static final Logger LOGGER = Logger.getLogger(LocalGameSession.class.getName());
+    private static final Logger LOGGER = System.getLogger(LocalGameSession.class.getName());
     private static final short PLAYER_ID = Player.KEEPER1_ID;
 
     private boolean playerInTransition = false;
@@ -130,7 +130,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
                     exporter.save(player, playerStream);
                     copiedPlayers.add((Keeper) importer.load(playerStream.toByteArray()));
                 } catch (IOException ex) {
-                    LOGGER.log(Level.SEVERE, "Failed to serialize the players!", ex);
+                    LOGGER.log(Level.ERROR, "Failed to serialize the players!", ex);
                 }
             }
 

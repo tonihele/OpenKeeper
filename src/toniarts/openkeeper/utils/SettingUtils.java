@@ -22,15 +22,17 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+
 
 public class SettingUtils {
 
-    private static final Logger LOGGER = Logger.getLogger(SettingUtils.class.getName());
+    private static final Logger LOGGER = System.getLogger(SettingUtils.class.getName());
     
     private final static Path SETTINGS_FILE = Paths.get("openkeeper.properties");
     private final AppSettings settings;

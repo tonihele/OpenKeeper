@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.network;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -25,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
 /**
@@ -35,7 +36,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 @Deprecated
 public abstract class LocalServerSearch {
     
-    private static final Logger logger = Logger.getLogger(LocalServerSearch.class.getName());
+    private static final Logger logger = System.getLogger(LocalServerSearch.class.getName());
     
     private static final int nThreads = 10;
     
@@ -79,7 +80,7 @@ public abstract class LocalServerSearch {
                 add(new NetworkServer(host, port));
             }
         } catch (UnknownHostException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(Level.ERROR, ex);
         }
     }
 

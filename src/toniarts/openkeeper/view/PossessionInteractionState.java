@@ -28,7 +28,7 @@ import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Vector2f;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
@@ -50,7 +50,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
         MELEE, SPELL_1, SPELL_2, SPELL_3, ABILITY_1, ABILITY_2, GROUP
     }
 
-    private static final Logger logger = Logger.getLogger(PossessionInteractionState.class.getName());
+    private static final Logger logger = System.getLogger(PossessionInteractionState.class.getName());
     
     private Main app;
 

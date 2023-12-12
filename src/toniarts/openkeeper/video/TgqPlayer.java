@@ -16,12 +16,12 @@
  */
 package toniarts.openkeeper.video;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
@@ -45,7 +45,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  */
 public abstract class TgqPlayer {
 
-    private static final Logger logger = Logger.getLogger(TgqPlayer.class.getName());
+    private static final Logger logger = System.getLogger(TgqPlayer.class.getName());
     
     private final Path file;
     private static final int FPS = 25; // The specs say 15 FPS, but with this they are totally in sync, dunno why
@@ -228,7 +228,7 @@ public abstract class TgqPlayer {
             } catch (InterruptedException e) {
                 // Just stopped by the user
             } catch (Exception e) {
-                logger.log(Level.SEVERE, "Audio player failed!", e);
+                logger.log(Level.ERROR, "Audio player failed!", e);
             } finally {
 
                 // Let the audio die nicely
@@ -400,7 +400,7 @@ public abstract class TgqPlayer {
                 } catch (InterruptedException ex) {
                     // No biggie
                 } catch (Exception ex) {
-                    logger.log(Level.SEVERE, "Failed to decode the frames on file " + file + "!", ex);
+                    logger.log(Level.ERROR, "Failed to decode the frames on file " + file + "!", ex);
                     stop();
                 }
             } finally {

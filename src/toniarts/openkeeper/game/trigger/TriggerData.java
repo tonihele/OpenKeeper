@@ -16,12 +16,12 @@
  */
 package toniarts.openkeeper.game.trigger;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  */
 public abstract class TriggerData {
     
-    private static final Logger LOGGER = Logger.getLogger(TriggerData.class.getName());
+    private static final Logger LOGGER = System.getLogger(TriggerData.class.getName());
 
     /**
      * This TriggerActionData's id.
@@ -112,7 +112,7 @@ public abstract class TriggerData {
         } else if (data instanceof Number) {
             userData.put(key, (Number) data);
         } else {
-            LOGGER.log(Level.SEVERE, "Unexpected class {0}!", data);
+            LOGGER.log(Level.ERROR, "Unexpected class {0}!", data);
             throw new RuntimeException("Unexpected class");
         }
     }

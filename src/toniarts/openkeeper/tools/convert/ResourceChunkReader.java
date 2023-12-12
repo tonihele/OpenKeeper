@@ -17,14 +17,15 @@
 package toniarts.openkeeper.tools.convert;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 /**
  * Offers our resource specific methods for translating binary data to our
@@ -34,7 +35,7 @@ import java.util.logging.Logger;
  */
 public class ResourceChunkReader implements IResourceChunkReader {
     
-    private static final Logger LOGGER = Logger.getLogger(ResourceChunkReader.class.getName());
+    private static final Logger LOGGER = System.getLogger(ResourceChunkReader.class.getName());
 
     private final ByteBuffer buffer;
 
@@ -186,7 +187,7 @@ public class ResourceChunkReader implements IResourceChunkReader {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            LOGGER.warning("This unsigned integer doesn't fit to JAVA integer! Use a different method!");
+            LOGGER.log(Level.WARNING, "This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }

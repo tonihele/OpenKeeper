@@ -22,9 +22,9 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -53,7 +53,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class GameServerState extends AbstractAppState {
     
-    private static final Logger LOGGER = Logger.getLogger(GameServerState.class.getName());
+    private static final Logger LOGGER = System.getLogger(GameServerState.class.getName());
 
     private Main app;
 
@@ -145,7 +145,7 @@ public class GameServerState extends AbstractAppState {
             try {
                 gameController.close();
             } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Failed to close the game!", ex);
+                LOGGER.log(Level.ERROR, "Failed to close the game!", ex);
             }
         }
     }
@@ -223,7 +223,7 @@ public class GameServerState extends AbstractAppState {
                         try {
                             loadingObject.wait();
                         } catch (InterruptedException ex) {
-                            LOGGER.log(Level.SEVERE, "Failed to load the game.", ex);
+                            LOGGER.log(Level.ERROR, "Failed to load the game.", ex);
                         }
                     }
                 }

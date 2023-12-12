@@ -26,10 +26,10 @@ import com.jme3.network.ErrorListener;
 import com.jme3.network.service.ClientService;
 import com.simsilica.ethereal.EtherealClient;
 import com.simsilica.ethereal.TimeSource;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.network.NetworkClient;
 import toniarts.openkeeper.game.network.NetworkServer;
@@ -51,7 +51,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class ConnectionState extends AbstractAppState {
     
-    private static final Logger LOGGER = Logger.getLogger(ConnectionState.class.getName());
+    private static final Logger LOGGER = System.getLogger(ConnectionState.class.getName());
 
     private Main app;
     private String serverInfo;
@@ -145,9 +145,9 @@ public class ConnectionState extends AbstractAppState {
     }
 
     public void disconnect() {
-        LOGGER.info("disconnect()");
+        LOGGER.log(Level.INFO, "disconnect()");
         closing = true;
-        LOGGER.info("Detaching ConnectionState");
+        LOGGER.log(Level.INFO, "Detaching ConnectionState");
         stateManager.detach(this);
     }
 
@@ -207,14 +207,14 @@ public class ConnectionState extends AbstractAppState {
     }
 
     protected void onConnected() {
-        LOGGER.info("onConnected()");
+        LOGGER.log(Level.INFO, "onConnected()");
 
         // Add our client listeners
         client.getService(AccountClientService.class).addAccountSessionListener(new AccountObserver());
 
         serverInfo = client.getService(AccountClientService.class).getServerInfo();
 
-        LOGGER.log(Level.FINER, "Server info:{0}", serverInfo);
+        LOGGER.log(Level.TRACE, "Server info:{0}", serverInfo);
 
         LOGGER.log(Level.INFO, "join({0})", playerName);
 
@@ -252,7 +252,7 @@ public class ConnectionState extends AbstractAppState {
 
         @Override
         public void handleError(Client source, Throwable t) {
-            LOGGER.log(Level.SEVERE, "Connection error", t);
+            LOGGER.log(Level.ERROR, "Connection error", t);
             showError("Connection Error", t, true);
         }
     }
@@ -286,7 +286,7 @@ public class ConnectionState extends AbstractAppState {
                     LOGGER.log(Level.INFO, "Creating game server {0} at {1}", new Object[]{gameName, port});
                     server = new NetworkServer(gameName, port);
                     server.start();
-                    LOGGER.info("Server started.");
+                    LOGGER.log(Level.INFO, "Server started.");
                 }
 
                 LOGGER.log(Level.INFO, "Creating game client for: {0} {1}", new Object[]{gameHost ? "localhost" : host, port});
@@ -300,9 +300,9 @@ public class ConnectionState extends AbstractAppState {
                     return;
                 }
 
-                LOGGER.info("Starting client...");
+                LOGGER.log(Level.INFO, "Starting client...");
                 client.start();
-                LOGGER.info("Client started.");
+                LOGGER.log(Level.INFO, "Client started.");
             } catch (Exception e) {
                 if (closing) {
                     disconnect();

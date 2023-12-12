@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger.party;
 
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 public class PartyTriggerControl extends TriggerControl {
     
-    private static final Logger LOGGER = Logger.getLogger(PartyTriggerControl.class.getName());
+    private static final Logger LOGGER = System.getLogger(PartyTriggerControl.class.getName());
 
     private IPartyController partyController;
 

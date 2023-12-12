@@ -16,11 +16,13 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+
 
 /**
  *
@@ -28,7 +30,7 @@ import java.util.logging.Logger;
  */
 public class GlobalCategory {
     
-    private static final Logger LOGGER = Logger.getLogger(GlobalCategory.class.getName());
+    private static final Logger LOGGER = System.getLogger(GlobalCategory.class.getName());
 
     public static final String AMBIENCE = "AMBIENCE";
     public static final String EFFECTS = "EFFECTS";
@@ -75,7 +77,7 @@ public class GlobalCategory {
                 }
             }
         } catch (IllegalAccessException | IllegalArgumentException | SecurityException ex) {
-            LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
+            LOGGER.log(Level.ERROR, ex.getMessage(), ex);
         }
 
         return categories;

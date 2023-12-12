@@ -17,8 +17,8 @@
 package toniarts.openkeeper.world.room;
 
 import com.jme3.asset.AssetManager;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import static toniarts.openkeeper.tools.convert.map.Room.TileConstruction.*;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -32,7 +32,7 @@ import toniarts.openkeeper.world.object.ObjectLoader;
 @Deprecated
 public final class RoomConstructor {
 
-    private static final Logger logger = Logger.getLogger(RoomConstructor.class.getName());
+    private static final Logger logger = System.getLogger(RoomConstructor.class.getName());
 
     private RoomConstructor() {
         // Nope

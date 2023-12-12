@@ -20,12 +20,12 @@ import com.jme3.asset.AssetManager;
 import com.jme3.system.AppSettings;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.conversion.ConversionTaskManager;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertFonts;
@@ -100,7 +100,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
         private final ConvertProcess[] dependencies;
     }
     
-    private static final Logger LOGGER = Logger.getLogger(AssetsConverter.class.getName());
+    private static final Logger LOGGER = System.getLogger(AssetsConverter.class.getName());
     
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";

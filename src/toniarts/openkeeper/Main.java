@@ -45,6 +45,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -60,8 +62,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
@@ -88,7 +88,7 @@ import toniarts.openkeeper.video.MovieState;
  */
 public class Main extends SimpleApplication {
 
-    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final Logger LOGGER = System.getLogger(Main.class.getName());
     
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
@@ -123,7 +123,7 @@ public class Main extends SimpleApplication {
         if (checkSetup(app)) {
             app.start();
         } else {
-            LOGGER.warning("Application setup not complete!!");
+            LOGGER.log(Level.WARNING, "Application setup not complete!!");
         }
     }
 
@@ -171,7 +171,7 @@ public class Main extends SimpleApplication {
 
         // First and foremost, the folder
         if (!PathUtils.checkDkFolder(getDkIIFolder())) {
-            LOGGER.info("Dungeon Keeper II folder not found or valid! Prompting user!");
+            LOGGER.log(Level.INFO, "Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
             // Let the user select
@@ -190,7 +190,7 @@ public class Main extends SimpleApplication {
 
         // If the folder is ok, check the conversion
         if (folderOk && (AssetsConverter.isConversionNeeded(Main.getSettings()))) {
-            LOGGER.info("Need to convert the assets!");
+            LOGGER.log(Level.INFO, "Need to convert the assets!");
             saveSetup = true;
 
             // Convert
@@ -225,12 +225,12 @@ public class Main extends SimpleApplication {
         try {
             Files.createDirectories(Paths.get(USER_HOME_FOLDER));
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to create folder " + USER_HOME_FOLDER + "!", ex);
+            LOGGER.log(Level.ERROR, "Failed to create folder " + USER_HOME_FOLDER + "!", ex);
         }
         try {
             Files.createDirectories(Paths.get(SCREENSHOTS_FOLDER));
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to create folder " + SCREENSHOTS_FOLDER + "!", ex);
+            LOGGER.log(Level.ERROR, "Failed to create folder " + SCREENSHOTS_FOLDER + "!", ex);
         }
 
         // Init the user settings (which in JME are app settings)
@@ -274,7 +274,7 @@ public class Main extends SimpleApplication {
                 }
             }
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(DKFolderSelector.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            System.getLogger(DKFolderSelector.class.getName()).log(Level.ERROR, (String) null, ex);
         }
     }
 
@@ -295,7 +295,7 @@ public class Main extends SimpleApplication {
                         try {
                             LOCK.wait();
                         } catch (InterruptedException e) {
-                            LOGGER.warning("Lock interrupted!");
+                            LOGGER.log(Level.WARNING, "Lock interrupted!");
                         }
                     }
                 }
@@ -411,7 +411,7 @@ public class Main extends SimpleApplication {
                     // Eventually we are going to use Nifty, the XML files take some time to parse
                     nifty.addXml(new ByteArrayInputStream(mainMenuUiXml));
                 } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Failed to load the game!", e);
+                    LOGGER.log(Level.ERROR, "Failed to load the game!", e);
                     app.stop();
                 }
             }
@@ -510,7 +510,7 @@ public class Main extends SimpleApplication {
                 readIcon("/Icons/openkeeper16.png")
             };
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to load the application icons!", ex);
+            LOGGER.log(Level.ERROR, "Failed to load the application icons!", ex);
         }
         return null;
     }
@@ -587,7 +587,7 @@ public class Main extends SimpleApplication {
             ClassLoader loader = new URLClassLoader(urls);
             return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
+            LOGGER.log(Level.ERROR, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
         }
 
         // Works only from the IDE

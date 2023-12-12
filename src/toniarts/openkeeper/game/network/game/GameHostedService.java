@@ -31,13 +31,13 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -66,7 +66,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         GAME_LOAD_PROGRESS
     }
 
-    private static final Logger LOGGER = Logger.getLogger(GameHostedService.class.getName());
+    private static final Logger LOGGER = System.getLogger(GameHostedService.class.getName());
 
     private boolean readyToLoad = false;
     private final Object loadLock = new Object();
@@ -111,7 +111,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             try {
                 entityUpdater.awaitTermination(1, TimeUnit.MINUTES);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to wait for the entity updater to shutdown!", ex);
+                LOGGER.log(Level.ERROR, "Failed to wait for the entity updater to shutdown!", ex);
             }
         }
     }
@@ -121,7 +121,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * generated player name.
      */
     public void startHostingOnConnection(HostedConnection conn, ClientInfo clientInfo) {
-        LOGGER.log(Level.FINER, "startHostingOnConnection({0})", conn);
+        LOGGER.log(Level.TRACE, "startHostingOnConnection({0})", conn);
 
         GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
         players.put(clientInfo, session);
@@ -140,7 +140,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        LOGGER.log(Level.FINER, "stopHostingOnConnection({0})", conn);
+        LOGGER.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
         GameSessionImpl player = getGameSession(conn);
         if (player != null) {
 
@@ -387,7 +387,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
             if (message instanceof GameLoadProgressData) {
                 GameLoadProgressData data = (GameLoadProgressData) message;
-                LOGGER.log(Level.FINEST, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
+                LOGGER.log(Level.TRACE, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
 
                 clientInfo.setLoadingProgress(data.getProgress());
 

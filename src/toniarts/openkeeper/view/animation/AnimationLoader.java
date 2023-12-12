@@ -21,8 +21,8 @@ import com.jme3.anim.tween.Tweens;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public final class AnimationLoader {
 
-    private static final Logger LOGGER = Logger.getLogger(AnimationLoader.class.getName());
+    private static final Logger LOGGER = System.getLogger(AnimationLoader.class.getName());
 
     private static final String START_ANIM_NODE_NAME = "Start";
     private static final String END_ANIM_NODE_NAME = "End";
@@ -170,7 +170,7 @@ public final class AnimationLoader {
         } catch (Exception e) {
             // FIXME sometimes NPE in CreatureControl.java
             // line: playAnimation(creature.getAnimEntranceResource());
-            LOGGER.log(Level.SEVERE, e, () -> "Creature animation playing error: " + e.toString());
+            LOGGER.log(Level.ERROR, () -> "Creature animation playing error: " + e.toString(), e);
         }
     }
 

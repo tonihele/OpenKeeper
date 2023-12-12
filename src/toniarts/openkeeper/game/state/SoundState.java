@@ -22,11 +22,11 @@ import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import java.io.File;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.MentorType;
@@ -61,7 +61,7 @@ public class SoundState extends AbstractPauseAwareState {
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
+    private static final Logger LOGGER = System.getLogger(SoundState.class.getName());
     
     private Main app;
     private AppStateManager stateManager;

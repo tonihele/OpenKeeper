@@ -27,14 +27,14 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
@@ -104,7 +104,7 @@ public class HiScores implements Savable {
         }
     }
     
-    private static final Logger logger = Logger.getLogger(HiScores.class.getName());
+    private static final Logger logger = System.getLogger(HiScores.class.getName());
     
     private static final int NUMBER_OF_ENTRIES = 10;
     private static final String HISCORES_FILENAME = "HiScores.okh";
@@ -134,7 +134,7 @@ public class HiScores implements Savable {
 
             return hiScores;
         } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Failed to load HiScores data!", ex);
+            logger.log(Level.ERROR, "Failed to load HiScores data!", ex);
 
             return new HiScores();
         }
@@ -146,7 +146,7 @@ public class HiScores implements Savable {
                 BufferedOutputStream bout = new BufferedOutputStream(out)) {
             BinaryExporter.getInstance().save(this, bout);
         } catch (IOException ex) {
-            logger.log(Level.SEVERE, "Failed to save HiScores data!", ex);
+            logger.log(Level.ERROR, "Failed to save HiScores data!", ex);
         }
     }
 

@@ -17,6 +17,8 @@
 package toniarts.openkeeper.tools.convert.str;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -25,11 +27,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 
 /**
@@ -41,7 +41,7 @@ import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
  */
 public class StrFile {
 
-    private static final Logger LOGGER = Logger.getLogger(StrFile.class.getName());
+    private static final Logger LOGGER = System.getLogger(StrFile.class.getName());
     
     private static final String STR_HEADER_IDENTIFIER = "BFST";
     private static final int STR_HEADER_SIZE = 12;
@@ -166,7 +166,7 @@ public class StrFile {
             switch (chunkType) {
                 case CHUNK_TYPE_END: { // End
                     if (chunkLength != 0) {
-                        LOGGER.severe("End chunk has non-zero length!");
+                        LOGGER.log(Level.ERROR, "End chunk has non-zero length!");
                         return null;
                     }
                     break;
@@ -183,7 +183,7 @@ public class StrFile {
                 }
                 case CHUNK_TYPE_STRING: { // String
                     if (chunkLength > byteBuffer.remaining()) {
-                        LOGGER.severe("Chunk length exceeds the remaining bytes length!");
+                        LOGGER.log(Level.ERROR, "Chunk length exceeds the remaining bytes length!");
                         return null;
                     }
 
@@ -194,7 +194,7 @@ public class StrFile {
                     break;
                 }
                 default: {
-                    LOGGER.severe("Invalid chunk type!");
+                    LOGGER.log(Level.ERROR, "Invalid chunk type!");
                     return null;
                 }
             }

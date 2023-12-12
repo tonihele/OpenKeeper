@@ -26,8 +26,8 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import javax.annotation.Nonnull;
 
 /**
@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
  */
 public abstract class CheatState extends AbstractPauseAwareState implements RawInputListener {
 
-    private static final Logger LOGGER = Logger.getLogger(CheatState.class.getName());
+    private static final Logger LOGGER = System.getLogger(CheatState.class.getName());
     
     private final Application app;
     private String cheat = "";

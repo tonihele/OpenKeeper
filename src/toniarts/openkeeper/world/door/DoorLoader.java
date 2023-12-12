@@ -20,7 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -41,7 +41,7 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
 @Deprecated
 public class DoorLoader implements ILoader<Thing.Door> {
     
-    private static final Logger logger = Logger.getLogger(DoorLoader.class.getName());
+    private static final Logger logger = System.getLogger(DoorLoader.class.getName());
 
     private final KwdFile kwdFile;
     private final WorldState worldState;

@@ -17,9 +17,9 @@
 package toniarts.openkeeper.game.trigger;
 
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.EnumSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
@@ -45,7 +45,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class TriggerControl extends Control {
     
-    private static final Logger LOGGER = Logger.getLogger(TriggerControl.class.getName());
+    private static final Logger LOGGER = System.getLogger(TriggerControl.class.getName());
 
     private static final short LEVEL_SCORE_FLAG_ID = 128;
     private static final short TIME_LIMIT_TIMER_ID = 16;
@@ -90,7 +90,7 @@ public class TriggerControl extends Control {
             TriggerData value = trigger.getChild(i);
 
             if (value == null) {
-                LOGGER.warning("Trigger is null!");
+                LOGGER.log(Level.WARNING, "Trigger is null!");
 
             } else if (value instanceof TriggerGenericData) {
 
@@ -258,7 +258,7 @@ public class TriggerControl extends Control {
                     value = trigger.getUserData("value", int.class);
                     levelInfo.setTimeLimit(value);
                 } else {
-                    LOGGER.warning("Only level time limit supported!");
+                    LOGGER.log(Level.WARNING, "Only level time limit supported!");
                 }
                 break;
 
@@ -322,7 +322,7 @@ public class TriggerControl extends Control {
                 break;
 
             default:
-                LOGGER.warning("Trigger Action not supported!");
+                LOGGER.log(Level.WARNING, "Trigger Action not supported!");
                 break;
         }
     }
@@ -349,7 +349,7 @@ public class TriggerControl extends Control {
                 result = target != value;
                 break;
             case NONE:
-                LOGGER.warning("Comparison Type not supported!");
+                LOGGER.log(Level.WARNING, "Comparison Type not supported!");
                 break;
         }
         return result;

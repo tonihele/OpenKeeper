@@ -24,10 +24,10 @@ import com.jme3.network.service.rmi.RmiRegistry;
 import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import com.simsilica.ethereal.NetworkStateListener;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.game.GameHostedService;
@@ -46,7 +46,7 @@ import toniarts.openkeeper.tools.convert.map.AI;
  */
 public class LobbyHostedService extends AbstractHostedConnectionService implements LobbyService {
 
-    private static final Logger LOGGER = Logger.getLogger(LobbyHostedService.class.getName());
+    private static final Logger LOGGER = System.getLogger(LobbyHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "lobby.session";
     public static final String ATTRIBUTE_KEEPER_ID = "lobby.keeperID";
@@ -88,7 +88,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
      * and will then be able to send/receive messages.
      */
     public void startHostingOnConnection(HostedConnection conn, String playerName) {
-        LOGGER.log(Level.FINER, "startHostingOnConnection({0})", conn);
+        LOGGER.log(Level.TRACE, "startHostingOnConnection({0})", conn);
 
         boolean playerAdded = false;
         if (players.size() < maxPlayers && !gameStarted) {
@@ -136,7 +136,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        LOGGER.log(Level.FINER, "stopHostingOnConnection({0})", conn);
+        LOGGER.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
         LobbySessionImpl player = getLobbySession(conn);
         if (player != null) {
 
