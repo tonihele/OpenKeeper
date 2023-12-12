@@ -45,7 +45,7 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
  */
 public class MovementSystem implements IGameLogicUpdatable {
 
-    private static final Logger LOGGER = System.getLogger(MovementSystem.class.getName());
+    private static final Logger logger = System.getLogger(MovementSystem.class.getName());
     
     private final static boolean INDEPENDENT_FACING = false;
     

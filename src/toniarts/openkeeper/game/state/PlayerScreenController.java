@@ -124,7 +124,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         MAIN, QUIT, CONFIRMATION;
     }
     
-    private static final Logger LOGGER = System.getLogger(PlayerScreenController.class.getName());
+    private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
@@ -524,7 +524,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             try {
                 nifty.addResourceBundle("level", Main.getResourceBundle(levelResource));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Failed to load the level dictionary!", ex);
+                logger.log(Level.WARNING, "Failed to load the level dictionary!", ex);
             }
         }
 
@@ -643,7 +643,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             ImageRenderer renderer = panel.getRenderer(ImageRenderer.class);
             renderer.setImage(niftyImage);
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Failed to open the background image!", ex);
+            logger.log(Level.ERROR, "Failed to open the background image!", ex);
         }
 
 //        PlayerManaControl manaControl = state.getPlayer().getManaControl();

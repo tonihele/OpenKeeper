@@ -52,7 +52,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public final class TorchControl extends BillboardControl {
     
-    private static final Logger log = System.getLogger(TorchControl.class.getName());
+    private static final Logger logger = System.getLogger(TorchControl.class.getName());
 
     private final int frames = 20;
     private Material material;
@@ -94,7 +94,7 @@ public final class TorchControl extends BillboardControl {
                 result.setShadowMode(RenderQueue.ShadowMode.Off);
 
             } catch (Exception e) {
-                log.log(Level.WARNING, "Can't create torch flame", e);
+                logger.log(Level.WARNING, "Can't create torch flame", e);
             }
 
             ((DesktopAssetManager) assetManager).addToCache(ASSET_KEY, result);

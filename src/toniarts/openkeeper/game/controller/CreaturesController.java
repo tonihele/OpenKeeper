@@ -84,7 +84,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class CreaturesController implements ICreaturesController {
     
-    private static final Logger LOGGER = System.getLogger(CreaturesController.class.getName());
+    private static final Logger logger = System.getLogger(CreaturesController.class.getName());
 
     private final KwdFile kwdFile;
     private final EntityData entityData;
@@ -143,14 +143,14 @@ public class CreaturesController implements ICreaturesController {
             try {
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.NeutralCreature creature : kwdFile.getThings(Thing.NeutralCreature.class)) {
             try {
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
@@ -160,7 +160,7 @@ public class CreaturesController implements ICreaturesController {
                 }
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.DeadBody creature : kwdFile.getThings(Thing.DeadBody.class)) {
@@ -170,7 +170,7 @@ public class CreaturesController implements ICreaturesController {
                 }
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
@@ -178,7 +178,7 @@ public class CreaturesController implements ICreaturesController {
                 heroParties.put(heroParty.getId(), heroParty);
                 creaturePartiesByPartyId.put(heroParty.getId(), new PartyController(heroParty));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + heroParty + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + heroParty + "!", ex);
             }
         }
     }
@@ -492,7 +492,7 @@ public class CreaturesController implements ICreaturesController {
         IPartyController partyController = creaturePartiesByPartyId.get(partyId);
         if (partyController.isCreated()) {
             partyController = new PartyController(heroParties.get(partyId));
-            LOGGER.log(Level.TRACE, "Re-spawning party {0}!", partyId);
+            logger.log(Level.TRACE, "Re-spawning party {0}!", partyId);
         }
         partyController.setType(partyType);
         partyController.create();

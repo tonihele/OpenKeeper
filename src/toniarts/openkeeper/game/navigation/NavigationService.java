@@ -41,7 +41,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class NavigationService implements INavigationService {
     
-    private static final Logger LOGGER = System.getLogger(NavigationService.class.getName());
+    private static final Logger logger = System.getLogger(NavigationService.class.getName());
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
@@ -68,7 +68,7 @@ public class NavigationService implements INavigationService {
     public Point findRandomTileInRoom(Point start, int radius, INavigable navigable) {
         RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(start);
         if (roomInstance == null) {
-            LOGGER.log(Level.WARNING, () -> "Starting point " + start + " is not in a room!");
+            logger.log(Level.WARNING, () -> "Starting point " + start + " is not in a room!");
             return null;
         }
         Set<Point> allowedTiles = new HashSet<>(roomInstance.getCoordinates());

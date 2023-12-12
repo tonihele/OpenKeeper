@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class ObjectLoader implements ILoader<ObjectViewState> {
 
-    private static final Logger LOGGER = System.getLogger(ObjectLoader.class.getName());
+    private static final Logger logger = System.getLogger(ObjectLoader.class.getName());
     
     private final KwdFile kwdFile;
 
@@ -48,7 +48,7 @@ public class ObjectLoader implements ILoader<ObjectViewState> {
             Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
-            LOGGER.log(Level.ERROR, "Failed to load object " + object + "!", e);
+            logger.log(Level.ERROR, "Failed to load object " + object + "!", e);
         }
         return null;
     }

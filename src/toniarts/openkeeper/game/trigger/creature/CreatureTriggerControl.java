@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatureController> {
 
-    private static final Logger LOGGER = System.getLogger(CreatureTriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(CreatureTriggerControl.class.getName());
 
     public CreatureTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,

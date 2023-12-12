@@ -45,7 +45,7 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
  */
 public class NetworkClient implements ChatSession {
     
-    private static final Logger LOGGER = System.getLogger(NetworkClient.class.getName());
+    private static final Logger logger = System.getLogger(NetworkClient.class.getName());
 
     private final Client client;
 
@@ -97,7 +97,7 @@ public class NetworkClient implements ChatSession {
     }
 
     public void start() throws IOException {
-        LOGGER.log(Level.INFO, "Network: Player starting");
+        logger.log(Level.INFO, "Network: Player starting");
         client.start();
     }
 
@@ -106,7 +106,7 @@ public class NetworkClient implements ChatSession {
     }
 
     public void close() {
-        LOGGER.log(Level.INFO, "Network: closing client connection");
+        logger.log(Level.INFO, "Network: closing client connection");
 
         if (client != null && client.isConnected()) {
             client.close();
@@ -156,20 +156,20 @@ public class NetworkClient implements ChatSession {
     }
 
     protected void onMessagePlayerInfo(MessagePlayerInfo msg) {
-        LOGGER.log(Level.INFO, "Network: player info {0}", msg);
+        logger.log(Level.INFO, "Network: player info {0}", msg);
         //entity = msg.getEntityId();
     }
 
     protected void onMessageServerInfo(MessageServerInfo msg) {
-        LOGGER.log(Level.INFO, "Network: server info {0}", msg);
+        logger.log(Level.INFO, "Network: server info {0}", msg);
     }
 
     protected void onConnected() {
-        LOGGER.log(Level.INFO, "Network: Player connected");
+        logger.log(Level.INFO, "Network: Player connected");
     }
 
     protected void onDisconnected(ClientStateListener.DisconnectInfo di) {
-        LOGGER.log(Level.INFO, "Network: player disconnected {0}", di);
+        logger.log(Level.INFO, "Network: player disconnected {0}", di);
     }
 
 }

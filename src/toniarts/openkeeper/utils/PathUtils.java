@@ -38,7 +38,7 @@ import java.util.regex.Matcher;
 
 public class PathUtils {
     
-    private static final Logger LOGGER = System.getLogger(PathUtils.class.getName());
+    private static final Logger logger = System.getLogger(PathUtils.class.getName());
 
     private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
     private static final PathTree PATH_CACHE = new PathTree();
@@ -175,7 +175,7 @@ public class PathUtils {
         try {
             return getRealFileName(rootPath, path).substring(rootPath.length());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
+            logger.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
             return path;
         }
     }
@@ -278,7 +278,7 @@ public class PathUtils {
                 }
             });
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, () -> {
+            logger.log(Level.ERROR, () -> {
                 return "Failed to delete file/folder " + file + "!";
             }, ex);
             return false;

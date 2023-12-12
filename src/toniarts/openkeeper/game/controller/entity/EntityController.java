@@ -47,7 +47,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class EntityController implements IEntityController {
     
-    private static final Logger LOGGER = System.getLogger(EntityController.class.getName());
+    private static final Logger logger = System.getLogger(EntityController.class.getName());
 
     protected final EntityId entityId;
     protected final EntityData entityData;
@@ -166,7 +166,7 @@ public class EntityController implements IEntityController {
             return;
         }
         if (position == null) {
-            LOGGER.log(Level.WARNING, () -> "Entity died and is part of room storage (" + roomStorage + ") but hasn't got location!");
+            logger.log(Level.WARNING, () -> "Entity died and is part of room storage (" + roomStorage + ") but hasn't got location!");
             return;
         }
 

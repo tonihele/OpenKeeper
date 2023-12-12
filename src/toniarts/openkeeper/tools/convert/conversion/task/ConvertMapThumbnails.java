@@ -45,7 +45,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class ConvertMapThumbnails extends ConversionTask {
 
-    private static final Logger LOGGER = System.getLogger(ConvertMapThumbnails.class.getName());
+    private static final Logger logger = System.getLogger(ConvertMapThumbnails.class.getName());
 
     public ConvertMapThumbnails(String dungeonKeeperFolder, String destination, boolean overwriteData) {
         super(dungeonKeeperFolder, destination, overwriteData);
@@ -63,7 +63,7 @@ public class ConvertMapThumbnails extends ConversionTask {
      * @param destination Destination folder
      */
     private void generateMapThumbnails(String dungeonKeeperFolder, String destination) {
-        LOGGER.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
+        logger.log(Level.INFO, "Generating map thumbnails to: {0}", destination);
         updateStatus(null, null);
         Path destFolder = Paths.get(destination);
         PathUtils.deleteFolder(destFolder);
@@ -87,11 +87,11 @@ public class ConvertMapThumbnails extends ConversionTask {
                         maps.add(kwd);
                     }
                 } catch (Exception ex) {
-                    LOGGER.log(Level.WARNING, "Failed to open map file: " + path + "!", ex); // Not fatal
+                    logger.log(Level.WARNING, "Failed to open map file: " + path + "!", ex); // Not fatal
                 }
             }
         } catch (Exception ex) {
-            LOGGER.log(Level.ERROR, "Failed to search for the map files!", ex);
+            logger.log(Level.ERROR, "Failed to search for the map files!", ex);
         }
 
         // Go through the map files
@@ -103,7 +103,7 @@ public class ConvertMapThumbnails extends ConversionTask {
             try {
                 genererateMapThumbnail(kwd, destination);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Failed to create a thumbnail from map: " + kwd.getGameLevel().getName() + "!", ex); // Not fatal
+                logger.log(Level.WARNING, "Failed to create a thumbnail from map: " + kwd.getGameLevel().getName() + "!", ex); // Not fatal
             }
             i++;
         }

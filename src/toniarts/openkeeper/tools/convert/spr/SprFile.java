@@ -46,7 +46,7 @@ public class SprFile {
         protected int framesCount;
     }
     
-    private static final Logger LOGGER = System.getLogger(SprFile.class.getName());
+    private static final Logger logger = System.getLogger(SprFile.class.getName());
 
     public static final int[] PALETTE = getHalftonePalette();
 
@@ -80,7 +80,7 @@ public class SprFile {
         header.tag = dataReader.readString(4);
 
         if (!header.tag.equals(PSFB)) {
-            LOGGER.log(Level.ERROR, "This is not sprite file");
+            logger.log(Level.ERROR, "This is not sprite file");
             throw new RuntimeException("This is not sprite file");
         }
 

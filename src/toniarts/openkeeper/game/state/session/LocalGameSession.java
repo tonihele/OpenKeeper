@@ -47,7 +47,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class LocalGameSession implements GameSessionServerService, GameSessionClientService {
     
-    private static final Logger LOGGER = System.getLogger(LocalGameSession.class.getName());
+    private static final Logger logger = System.getLogger(LocalGameSession.class.getName());
     private static final short PLAYER_ID = Player.KEEPER1_ID;
 
     private boolean playerInTransition = false;
@@ -130,7 +130,7 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
                     exporter.save(player, playerStream);
                     copiedPlayers.add((Keeper) importer.load(playerStream.toByteArray()));
                 } catch (IOException ex) {
-                    LOGGER.log(Level.ERROR, "Failed to serialize the players!", ex);
+                    logger.log(Level.ERROR, "Failed to serialize the players!", ex);
                 }
             }
 

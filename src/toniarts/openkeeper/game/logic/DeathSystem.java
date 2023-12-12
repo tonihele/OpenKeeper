@@ -38,7 +38,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  */
 public class DeathSystem implements IGameLogicUpdatable {
     
-    private static final Logger LOGGER = System.getLogger(DeathSystem.class.getName());
+    private static final Logger logger = System.getLogger(DeathSystem.class.getName());
 
     private final IEntityPositionLookup entityPositionLookup;
     private final EntitySet deathEntities;

@@ -62,7 +62,7 @@ import toniarts.openkeeper.world.listener.TileChangeListener;
  */
 public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
     
-    private static final Logger LOGGER = System.getLogger(PlayerMapViewState.class.getName());
+    private static final Logger logger = System.getLogger(PlayerMapViewState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -256,7 +256,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         @Override
         protected IMapTileInformation addObject(Entity e) {
-            LOGGER.log(Level.TRACE, "MapTileContainer.addObject({0})", e);
+            logger.log(Level.TRACE, "MapTileContainer.addObject({0})", e);
 
             IMapTileInformation result = new MapTileInformation(e);
             Point p = result.getLocation();
@@ -277,7 +277,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 return;
             }
 
-            LOGGER.log(Level.TRACE, "MapTileContainer.updateObjects({0})", set.size());
+            logger.log(Level.TRACE, "MapTileContainer.updateObjects({0})", set.size());
 
             // Collect the tiles
             Point[] updatableTiles = new Point[set.size()];
@@ -285,7 +285,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             for (Entity e : set) {
                 IMapTileInformation object = getObject(e.getId());
                 if (object == null) {
-                    LOGGER.log(Level.WARNING, "Update: No matching object for entity:{0}", e);
+                    logger.log(Level.WARNING, "Update: No matching object for entity:{0}", e);
                     continue;
                 }
                 updatableTiles[i] = object.getLocation();
@@ -304,7 +304,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         @Override
         protected void removeObject(IMapTileInformation object, Entity e) {
-            LOGGER.log(Level.TRACE, "MapTileContainer.removeObject({0})", e);
+            logger.log(Level.TRACE, "MapTileContainer.removeObject({0})", e);
         }
 
         @Override

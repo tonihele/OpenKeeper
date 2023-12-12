@@ -88,7 +88,7 @@ import toniarts.openkeeper.video.MovieState;
  */
 public class Main extends SimpleApplication {
 
-    private static final Logger LOGGER = System.getLogger(Main.class.getName());
+    private static final Logger logger = System.getLogger(Main.class.getName());
     
     private static boolean folderOk = false;
     private static boolean conversionOk = false;
@@ -123,7 +123,7 @@ public class Main extends SimpleApplication {
         if (checkSetup(app)) {
             app.start();
         } else {
-            LOGGER.log(Level.WARNING, "Application setup not complete!!");
+            logger.log(Level.WARNING, "Application setup not complete!!");
         }
     }
 
@@ -171,7 +171,7 @@ public class Main extends SimpleApplication {
 
         // First and foremost, the folder
         if (!PathUtils.checkDkFolder(getDkIIFolder())) {
-            LOGGER.log(Level.INFO, "Dungeon Keeper II folder not found or valid! Prompting user!");
+            logger.log(Level.INFO, "Dungeon Keeper II folder not found or valid! Prompting user!");
             saveSetup = true;
 
             // Let the user select
@@ -190,7 +190,7 @@ public class Main extends SimpleApplication {
 
         // If the folder is ok, check the conversion
         if (folderOk && (AssetsConverter.isConversionNeeded(Main.getSettings()))) {
-            LOGGER.log(Level.INFO, "Need to convert the assets!");
+            logger.log(Level.INFO, "Need to convert the assets!");
             saveSetup = true;
 
             // Convert
@@ -225,12 +225,12 @@ public class Main extends SimpleApplication {
         try {
             Files.createDirectories(Paths.get(USER_HOME_FOLDER));
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Failed to create folder " + USER_HOME_FOLDER + "!", ex);
+            logger.log(Level.ERROR, "Failed to create folder " + USER_HOME_FOLDER + "!", ex);
         }
         try {
             Files.createDirectories(Paths.get(SCREENSHOTS_FOLDER));
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Failed to create folder " + SCREENSHOTS_FOLDER + "!", ex);
+            logger.log(Level.ERROR, "Failed to create folder " + SCREENSHOTS_FOLDER + "!", ex);
         }
 
         // Init the user settings (which in JME are app settings)
@@ -295,7 +295,7 @@ public class Main extends SimpleApplication {
                         try {
                             LOCK.wait();
                         } catch (InterruptedException e) {
-                            LOGGER.log(Level.WARNING, "Lock interrupted!");
+                            logger.log(Level.WARNING, "Lock interrupted!");
                         }
                     }
                 }
@@ -411,7 +411,7 @@ public class Main extends SimpleApplication {
                     // Eventually we are going to use Nifty, the XML files take some time to parse
                     nifty.addXml(new ByteArrayInputStream(mainMenuUiXml));
                 } catch (Exception e) {
-                    LOGGER.log(Level.ERROR, "Failed to load the game!", e);
+                    logger.log(Level.ERROR, "Failed to load the game!", e);
                     app.stop();
                 }
             }
@@ -510,7 +510,7 @@ public class Main extends SimpleApplication {
                 readIcon("/Icons/openkeeper16.png")
             };
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Failed to load the application icons!", ex);
+            logger.log(Level.ERROR, "Failed to load the application icons!", ex);
         }
         return null;
     }
@@ -544,7 +544,7 @@ public class Main extends SimpleApplication {
                 // Continue to save the settings
                 Settings.getInstance().save();
             } catch (IOException ex) {
-                LOGGER.log(Level.WARNING, "Can not save the settings!", ex);
+                logger.log(Level.WARNING, "Can not save the settings!", ex);
             }
 
         } catch (Exception e) {
@@ -587,7 +587,7 @@ public class Main extends SimpleApplication {
             ClassLoader loader = new URLClassLoader(urls);
             return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader);
         } catch (Exception e) {
-            LOGGER.log(Level.ERROR, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
+            logger.log(Level.ERROR, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
         }
 
         // Works only from the IDE
@@ -626,12 +626,12 @@ public class Main extends SimpleApplication {
         try {
             introSequence.add(PathUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "BullfrogIntro.tgq"));
         } catch (IOException ex) {
-            LOGGER.log(Level.INFO, "Could not find the Bullfrog intro!", ex);
+            logger.log(Level.INFO, "Could not find the Bullfrog intro!", ex);
         }
         try {
             introSequence.add(PathUtils.getRealFileName(getDkIIFolder(), PathUtils.DKII_MOVIES_FOLDER + "INTRO.TGQ"));
         } catch (IOException ex) {
-            LOGGER.log(Level.INFO, "Could not find the game intro!", ex);
+            logger.log(Level.INFO, "Could not find the game intro!", ex);
         }
         playMovie(introSequence);
     }
@@ -655,7 +655,7 @@ public class Main extends SimpleApplication {
                 };
                 stateManager.attach(movieState);
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
+                logger.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
 
                 // Continue with the movie list
                 playMovie(introSequence);

@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 public class PartyTriggerControl extends TriggerControl {
     
-    private static final Logger LOGGER = System.getLogger(PartyTriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(PartyTriggerControl.class.getName());
 
     private IPartyController partyController;
 

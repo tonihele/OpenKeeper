@@ -66,7 +66,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         GAME_LOAD_PROGRESS
     }
 
-    private static final Logger LOGGER = System.getLogger(GameHostedService.class.getName());
+    private static final Logger logger = System.getLogger(GameHostedService.class.getName());
 
     private boolean readyToLoad = false;
     private final Object loadLock = new Object();
@@ -111,7 +111,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
             try {
                 entityUpdater.awaitTermination(1, TimeUnit.MINUTES);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.ERROR, "Failed to wait for the entity updater to shutdown!", ex);
+                logger.log(Level.ERROR, "Failed to wait for the entity updater to shutdown!", ex);
             }
         }
     }
@@ -121,7 +121,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * generated player name.
      */
     public void startHostingOnConnection(HostedConnection conn, ClientInfo clientInfo) {
-        LOGGER.log(Level.TRACE, "startHostingOnConnection({0})", conn);
+        logger.log(Level.TRACE, "startHostingOnConnection({0})", conn);
 
         GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
         players.put(clientInfo, session);
@@ -140,7 +140,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        LOGGER.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
         GameSessionImpl player = getGameSession(conn);
         if (player != null) {
 
@@ -387,7 +387,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
             if (message instanceof GameLoadProgressData) {
                 GameLoadProgressData data = (GameLoadProgressData) message;
-                LOGGER.log(Level.TRACE, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
+                logger.log(Level.TRACE, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
 
                 clientInfo.setLoadingProgress(data.getProgress());
 

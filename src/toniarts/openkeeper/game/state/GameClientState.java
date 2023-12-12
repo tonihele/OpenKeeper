@@ -61,7 +61,7 @@ import toniarts.openkeeper.view.text.TextParserService;
  */
 public class GameClientState extends AbstractPauseAwareState {
     
-    private static final Logger LOGGER = System.getLogger(GameClientState.class.getName());
+    private static final Logger logger = System.getLogger(GameClientState.class.getName());
 
     private Main app;
 
@@ -249,7 +249,7 @@ public class GameClientState extends AbstractPauseAwareState {
             }
 
         } catch (Exception e) {
-            LOGGER.log(Level.ERROR, "Failed to load the game!", e);
+            logger.log(Level.ERROR, "Failed to load the game!", e);
         }
     }
 

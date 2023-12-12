@@ -35,7 +35,7 @@ import java.util.List;
  */
 public class ResourceChunkReader implements IResourceChunkReader {
     
-    private static final Logger LOGGER = System.getLogger(ResourceChunkReader.class.getName());
+    private static final Logger logger = System.getLogger(ResourceChunkReader.class.getName());
 
     private final ByteBuffer buffer;
 
@@ -66,7 +66,7 @@ public class ResourceChunkReader implements IResourceChunkReader {
         for (int i = 0; i < size; i++) {
             byte b = buffer.get();
             if (b != 0) {
-                LOGGER.log(Level.WARNING, "Value not 0! Was {0}!", b);
+                logger.log(Level.WARNING, "Value not 0! Was {0}!", b);
             }
         }
     }
@@ -187,7 +187,7 @@ public class ResourceChunkReader implements IResourceChunkReader {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            LOGGER.log(Level.WARNING, "This unsigned integer doesn't fit to JAVA integer! Use a different method!");
+            logger.log(Level.WARNING, "This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }

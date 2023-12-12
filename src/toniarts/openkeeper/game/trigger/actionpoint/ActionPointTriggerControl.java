@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 public class ActionPointTriggerControl extends TriggerControl {
 
-    private static final Logger LOGGER = System.getLogger(ActionPointTriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(ActionPointTriggerControl.class.getName());
 
     private ActionPoint ap;
     private IEntityPositionLookup entityPositionLookup;
@@ -86,7 +86,7 @@ public class ActionPointTriggerControl extends TriggerControl {
                     case 6: // Object
                         break;
                     default:
-                        LOGGER.log(Level.WARNING, "AP_CONGREGATE_IN unknown targetType {0}", type);
+                        logger.log(Level.WARNING, "AP_CONGREGATE_IN unknown targetType {0}", type);
                         break;
                 }
                 return false;
@@ -103,7 +103,7 @@ public class ActionPointTriggerControl extends TriggerControl {
                     case 6: // Object. Chicken
                         break;
                     default:
-                        LOGGER.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS unknown targetType");
+                        logger.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS unknown targetType");
                         break;
                 }
                 return false;

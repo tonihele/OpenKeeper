@@ -36,7 +36,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
  */
 public class DecaySystem implements IGameLogicUpdatable {
     
-    private static final Logger LOGGER = System.getLogger(DecaySystem.class.getName());
+    private static final Logger logger = System.getLogger(DecaySystem.class.getName());
 
     private final EntitySet decayEntities;
     private final EntityData entityData;

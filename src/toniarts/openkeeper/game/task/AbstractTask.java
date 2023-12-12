@@ -37,7 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class AbstractTask implements Task {
 
-    private static final Logger LOGGER = System.getLogger(AbstractTask.class.getName());
+    private static final Logger logger = System.getLogger(AbstractTask.class.getName());
     
     private static final AtomicLong ID_GENENERATOR = new AtomicLong();
 
@@ -92,7 +92,7 @@ public abstract class AbstractTask implements Task {
     @Override
     public void assign(ICreatureController creature, boolean setToCreature) {
         if (assignees.size() == getMaxAllowedNumberOfAsignees()) {
-            LOGGER.log(Level.WARNING, "Task already has the maximum number of assignees!");
+            logger.log(Level.WARNING, "Task already has the maximum number of assignees!");
         }
         assignees.put(creature, 0.0f);
         if (setToCreature) {

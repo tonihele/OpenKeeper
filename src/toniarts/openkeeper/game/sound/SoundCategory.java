@@ -40,7 +40,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class SoundCategory {
     
-    private static final Logger LOGGER = System.getLogger(SoundCategory.class.getName());
+    private static final Logger logger = System.getLogger(SoundCategory.class.getName());
 
     public static final String SPEECH_MENTOR = "SPEECH_MENTOR";
     public static final String SPEECH_MULTIPLAYER = "SPEECH_MULTIPLAYER";
@@ -95,7 +95,7 @@ public class SoundCategory {
 
             return new SfxMapFile(f);
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, () -> {
+            logger.log(Level.ERROR, () -> {
                 return String.format("Sfx file of category {0} does not exist", name);
             }, ex);
         }
@@ -134,7 +134,7 @@ public class SoundCategory {
             }
         }
 
-        LOGGER.log(Level.WARNING, "SDT File archive {0} not found", archiveFilename);
+        logger.log(Level.WARNING, "SDT File archive {0} not found", archiveFilename);
         return null;
     }
 

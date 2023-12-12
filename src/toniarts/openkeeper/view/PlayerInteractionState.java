@@ -78,7 +78,7 @@ import toniarts.openkeeper.world.creature.CreatureControl;
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     
-    private static final Logger LOGGER = System.getLogger(PlayerInteractionState.class.getName());
+    private static final Logger logger = System.getLogger(PlayerInteractionState.class.getName());
 
     private static final int SPELL_POSSESSION_ID = 2;
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;

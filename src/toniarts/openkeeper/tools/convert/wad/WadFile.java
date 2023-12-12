@@ -48,7 +48,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class WadFile {
 
-    private static final Logger LOGGER = System.getLogger(WadFile.class.getName());
+    private static final Logger logger = System.getLogger(WadFile.class.getName());
     
     private final Path file;
     private final Map<String, WadFileEntry> wadFileEntries;
@@ -379,7 +379,7 @@ public class WadFile {
             }
         } // Of while()
         if (!finished) {
-            LOGGER.log(Level.WARNING, "File {0} might not be successfully extracted!", fileName);
+            logger.log(Level.WARNING, "File {0} might not be successfully extracted!", fileName);
         }
         return dest;
     }

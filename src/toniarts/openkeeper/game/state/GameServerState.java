@@ -53,7 +53,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class GameServerState extends AbstractAppState {
     
-    private static final Logger LOGGER = System.getLogger(GameServerState.class.getName());
+    private static final Logger logger = System.getLogger(GameServerState.class.getName());
 
     private Main app;
 
@@ -145,7 +145,7 @@ public class GameServerState extends AbstractAppState {
             try {
                 gameController.close();
             } catch (Exception ex) {
-                LOGGER.log(Level.ERROR, "Failed to close the game!", ex);
+                logger.log(Level.ERROR, "Failed to close the game!", ex);
             }
         }
     }
@@ -223,7 +223,7 @@ public class GameServerState extends AbstractAppState {
                         try {
                             loadingObject.wait();
                         } catch (InterruptedException ex) {
-                            LOGGER.log(Level.ERROR, "Failed to load the game.", ex);
+                            logger.log(Level.ERROR, "Failed to load the game.", ex);
                         }
                     }
                 }
@@ -348,7 +348,7 @@ public class GameServerState extends AbstractAppState {
                     break;
                 }
                 default:
-                    LOGGER.log(Level.INFO, "Cheat {0} not implemented!", cheat);
+                    logger.log(Level.INFO, "Cheat {0} not implemented!", cheat);
             }
         }
     }

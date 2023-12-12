@@ -52,7 +52,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class DoorsController implements IDoorsController {
     
-    private static final Logger LOGGER = System.getLogger(DoorsController.class.getName());
+    private static final Logger logger = System.getLogger(DoorsController.class.getName());
 
     private KwdFile kwdFile;
     private EntityData entityData;
@@ -96,7 +96,7 @@ public class DoorsController implements IDoorsController {
                 }
                 loadDoor(door);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
+                logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
     }

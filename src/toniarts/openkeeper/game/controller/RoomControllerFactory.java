@@ -46,7 +46,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  */
 public final class RoomControllerFactory {
 
-    private static final Logger LOGGER = System.getLogger(RoomControllerFactory.class.getName());
+    private static final Logger logger = System.getLogger(RoomControllerFactory.class.getName());
 
     private RoomControllerFactory() {
         // Nope
@@ -116,7 +116,7 @@ public final class RoomControllerFactory {
             default:
 
                 // TODO
-                LOGGER.log(Level.WARNING, "Room {0} not exist", roomName);
+                logger.log(Level.WARNING, "Room {0} not exist", roomName);
                 return new NormalRoomController(kwdFile, roomInstance, objectsController);
         }
     }

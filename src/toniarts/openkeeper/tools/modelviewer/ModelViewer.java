@@ -123,7 +123,7 @@ public class ModelViewer extends SimpleApplication {
         }
     }
     
-    private static final Logger LOGGER = System.getLogger(ModelViewer.class.getName());
+    private static final Logger logger = System.getLogger(ModelViewer.class.getName());
     
     //private final static float SCALE = 2;
     private static String dkIIFolder;
@@ -265,7 +265,7 @@ public class ModelViewer extends SimpleApplication {
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
-                 LOGGER.log(Level.ERROR, "Failed to handle: " + kmfModel, e);
+                 logger.log(Level.ERROR, "Failed to handle: " + kmfModel, e);
             }
         }
     }
@@ -618,7 +618,7 @@ public class ModelViewer extends SimpleApplication {
                     object.add(key.substring(0, key.length() - 4));
                 }
             } catch (IOException ex) {
-                LOGGER.log(Level.ERROR, "Failed to load the maps!", ex);
+                logger.log(Level.ERROR, "Failed to load the maps!", ex);
             }
         }
 

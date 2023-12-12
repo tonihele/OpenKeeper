@@ -34,7 +34,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class DoorLoader implements ILoader<DoorViewState> {
 
-    private static final Logger LOGGER = System.getLogger(DoorLoader.class.getName());
+    private static final Logger logger = System.getLogger(DoorLoader.class.getName());
     
     private final KwdFile kwdFile;
 
@@ -50,7 +50,7 @@ public class DoorLoader implements ILoader<DoorViewState> {
             Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
-            LOGGER.log(Level.ERROR, "Failed to load door " + door + "!", e);
+            logger.log(Level.ERROR, "Failed to load door " + door + "!", e);
         }
         return null;
     }

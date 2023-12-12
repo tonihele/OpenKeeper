@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class TrapLoader implements ILoader<TrapViewState> {
     
-    private static final Logger LOGGER = System.getLogger(TrapLoader.class.getName());
+    private static final Logger logger = System.getLogger(TrapLoader.class.getName());
 
     private final KwdFile kwdFile;
 
@@ -48,7 +48,7 @@ public class TrapLoader implements ILoader<TrapViewState> {
             Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
-            LOGGER.log(Level.ERROR, "Failed to load trap " + trap + "!", e);
+            logger.log(Level.ERROR, "Failed to load trap " + trap + "!", e);
         }
         return null;
     }

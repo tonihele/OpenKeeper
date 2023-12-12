@@ -33,7 +33,7 @@ import java.util.List;
  */
 public class ConversionUtils {
 
-    private static final Logger LOGGER = System.getLogger(ConversionUtils.class.getName());
+    private static final Logger logger = System.getLogger(ConversionUtils.class.getName());
 
     public static final float FLOAT = 4096f; // or DIVIDER_FLOAT Fixed Point Single Precision Divider
     public static final float DOUBLE = 65536f; // or DIVIDER_DOUBLE Fixed Point Double Precision Divider
@@ -52,7 +52,7 @@ public class ConversionUtils {
 
             // Yes, this should be long, however, in our purpose this might be sufficient as int
             // Safety measure
-            LOGGER.log(Level.WARNING, "This unsigned integer doesn't fit to JAVA integer! Use a different method!");
+            logger.log(Level.WARNING, "This unsigned integer doesn't fit to JAVA integer! Use a different method!");
         }
         return result;
     }
@@ -220,7 +220,7 @@ public class ConversionUtils {
                     sb.append(val);
                 }
             }
-            LOGGER.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
+            logger.log(Level.WARNING, "Value(s) {0} not specified for enum set class {1}!", new java.lang.Object[]{sb.toString(), enumeration.getName()});
         }
         return set;
     }
@@ -239,7 +239,7 @@ public class ConversionUtils {
                 return e;
             }
         }
-        LOGGER.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
+        logger.log(Level.WARNING, "Value {0} not specified for enum class {1}!", new java.lang.Object[]{value, enumeration.getName()});
         return null;
 
     }

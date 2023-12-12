@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public abstract class TriggerData {
     
-    private static final Logger LOGGER = System.getLogger(TriggerData.class.getName());
+    private static final Logger logger = System.getLogger(TriggerData.class.getName());
 
     /**
      * This TriggerActionData's id.
@@ -112,7 +112,7 @@ public abstract class TriggerData {
         } else if (data instanceof Number) {
             userData.put(key, (Number) data);
         } else {
-            LOGGER.log(Level.ERROR, "Unexpected class {0}!", data);
+            logger.log(Level.ERROR, "Unexpected class {0}!", data);
             throw new RuntimeException("Unexpected class");
         }
     }

@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 public class DoorTriggerControl extends AbstractThingTriggerControl<IDoorController> {
 
-    private static final Logger LOGGER = System.getLogger(DoorTriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(DoorTriggerControl.class.getName());
 
     public DoorTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,

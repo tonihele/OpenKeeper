@@ -100,7 +100,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
         private final ConvertProcess[] dependencies;
     }
     
-    private static final Logger LOGGER = System.getLogger(AssetsConverter.class.getName());
+    private static final Logger logger = System.getLogger(AssetsConverter.class.getName());
     
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
     private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";
@@ -184,8 +184,8 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     public boolean convertAssets() {
         long start = System.currentTimeMillis();
         String currentFolder = getCurrentFolder();
-        LOGGER.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
-        LOGGER.log(Level.INFO, "Current folder set to: {0}", currentFolder);
+        logger.log(Level.INFO, "Starting asset convertion from DK II folder: {0}", dungeonKeeperFolder);
+        logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
 
         // Create an assets folder
         String assetFolder = currentFolder.concat(ASSETS_FOLDER).concat(File.separator);
@@ -227,7 +227,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
 
         // Log the time taken
         long duration = System.currentTimeMillis() - start;
-        LOGGER.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
+        logger.log(Level.INFO, "Conversion took {0} seconds!", TimeUnit.SECONDS.convert(duration, TimeUnit.MILLISECONDS));
 
         return success;
     }

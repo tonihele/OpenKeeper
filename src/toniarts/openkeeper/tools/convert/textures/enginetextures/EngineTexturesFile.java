@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class EngineTexturesFile implements Iterable<String> {
     
-    private static final Logger LOGGER = System.getLogger(EngineTexturesFile.class.getName());
+    private static final Logger logger = System.getLogger(EngineTexturesFile.class.getName());
 
     private static final boolean DECOMPRESSION_ENABLED = true;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
@@ -190,7 +190,7 @@ public class EngineTexturesFile implements Iterable<String> {
         if (!overwrite && Files.exists(destinationFile)) {
 
             // Skip
-            LOGGER.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
+            logger.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
 
             return destinationFile;
         }

@@ -61,7 +61,7 @@ public class SoundState extends AbstractPauseAwareState {
         }
     }
 
-    private static final Logger LOGGER = System.getLogger(SoundState.class.getName());
+    private static final Logger logger = System.getLogger(SoundState.class.getName());
     
     private Main app;
     private AppStateManager stateManager;
@@ -167,14 +167,14 @@ public class SoundState extends AbstractPauseAwareState {
                     + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(new Speech(speechId, file, listener));
         } catch (RuntimeException e) {
-            LOGGER.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
+            logger.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
         }
     }
 
     private void playSpeech(Speech speech) {
         speechNode = new AudioNode(app.getAssetManager(), speech.file, DataType.Buffer);
         if (speechNode == null) {
-            LOGGER.log(Level.WARNING, "Audio file {0} not found", speech.file);
+            logger.log(Level.WARNING, "Audio file {0} not found", speech.file);
             return;
         }
         speechNode.setLooping(false);
@@ -207,7 +207,7 @@ public class SoundState extends AbstractPauseAwareState {
 
         backgroundNode = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (backgroundNode == null) {
-            LOGGER.log(Level.WARNING, "Audio file {0} not found", file);
+            logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
         backgroundNode.setLooping(false);

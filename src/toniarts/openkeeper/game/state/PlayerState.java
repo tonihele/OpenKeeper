@@ -67,7 +67,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  */
 public class PlayerState extends AbstractAppState implements PlayerListener {
     
-    private static final Logger LOGGER = System.getLogger(PlayerState.class.getName());
+    private static final Logger logger = System.getLogger(PlayerState.class.getName());
 
     protected final Main app;
 

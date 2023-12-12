@@ -93,7 +93,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class CreatureController extends EntityController implements ICreatureController {
     
-    private static final Logger LOGGER = System.getLogger(CreatureController.class.getName());
+    private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -442,7 +442,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
-            LOGGER.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
+            logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
@@ -1239,7 +1239,7 @@ public class CreatureController extends EntityController implements ICreatureCon
             entityData.removeComponent(object.getEntityId(), Gold.class);
             object.remove();
         } else {
-            LOGGER.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
+            logger.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
         }
     }
 

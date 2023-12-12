@@ -30,7 +30,7 @@ import java.util.List;
  */
 public class GlobalCategory {
     
-    private static final Logger LOGGER = System.getLogger(GlobalCategory.class.getName());
+    private static final Logger logger = System.getLogger(GlobalCategory.class.getName());
 
     public static final String AMBIENCE = "AMBIENCE";
     public static final String EFFECTS = "EFFECTS";
@@ -77,7 +77,7 @@ public class GlobalCategory {
                 }
             }
         } catch (IllegalAccessException | IllegalArgumentException | SecurityException ex) {
-            LOGGER.log(Level.ERROR, ex.getMessage(), ex);
+            logger.log(Level.ERROR, ex.getMessage(), ex);
         }
 
         return categories;

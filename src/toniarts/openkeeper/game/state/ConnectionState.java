@@ -51,7 +51,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class ConnectionState extends AbstractAppState {
     
-    private static final Logger LOGGER = System.getLogger(ConnectionState.class.getName());
+    private static final Logger logger = System.getLogger(ConnectionState.class.getName());
 
     private Main app;
     private String serverInfo;
@@ -145,9 +145,9 @@ public class ConnectionState extends AbstractAppState {
     }
 
     public void disconnect() {
-        LOGGER.log(Level.INFO, "disconnect()");
+        logger.log(Level.INFO, "disconnect()");
         closing = true;
-        LOGGER.log(Level.INFO, "Detaching ConnectionState");
+        logger.log(Level.INFO, "Detaching ConnectionState");
         stateManager.detach(this);
     }
 
@@ -207,16 +207,16 @@ public class ConnectionState extends AbstractAppState {
     }
 
     protected void onConnected() {
-        LOGGER.log(Level.INFO, "onConnected()");
+        logger.log(Level.INFO, "onConnected()");
 
         // Add our client listeners
         client.getService(AccountClientService.class).addAccountSessionListener(new AccountObserver());
 
         serverInfo = client.getService(AccountClientService.class).getServerInfo();
 
-        LOGGER.log(Level.TRACE, "Server info:{0}", serverInfo);
+        logger.log(Level.TRACE, "Server info:{0}", serverInfo);
 
-        LOGGER.log(Level.INFO, "join({0})", playerName);
+        logger.log(Level.INFO, "join({0})", playerName);
 
         // So here we'd login and then when we get a response from the
         // server that we are logged in then we'd launch the game state and
@@ -225,7 +225,7 @@ public class ConnectionState extends AbstractAppState {
     }
 
     protected void onDisconnected(DisconnectInfo info) {
-        LOGGER.log(Level.INFO, "onDisconnected({0})", info);
+        logger.log(Level.INFO, "onDisconnected({0})", info);
         if (closing) {
             return;
         }
@@ -240,19 +240,19 @@ public class ConnectionState extends AbstractAppState {
 
         @Override
         public void clientConnected(final Client c) {
-            LOGGER.log(Level.INFO, "clientConnected({0})", c);
+            logger.log(Level.INFO, "clientConnected({0})", c);
             onConnected();
         }
 
         @Override
         public void clientDisconnected(final Client c, final DisconnectInfo info) {
-            LOGGER.log(Level.INFO, "clientDisconnected({0}, {1})", new Object[]{c, info});
+            logger.log(Level.INFO, "clientDisconnected({0}, {1})", new Object[]{c, info});
             onDisconnected(info);
         }
 
         @Override
         public void handleError(Client source, Throwable t) {
-            LOGGER.log(Level.ERROR, "Connection error", t);
+            logger.log(Level.ERROR, "Connection error", t);
             showError("Connection Error", t, true);
         }
     }
@@ -283,13 +283,13 @@ public class ConnectionState extends AbstractAppState {
 
                 // If we are the host, create the server also
                 if (gameHost) {
-                    LOGGER.log(Level.INFO, "Creating game server {0} at {1}", new Object[]{gameName, port});
+                    logger.log(Level.INFO, "Creating game server {0} at {1}", new Object[]{gameName, port});
                     server = new NetworkServer(gameName, port);
                     server.start();
-                    LOGGER.log(Level.INFO, "Server started.");
+                    logger.log(Level.INFO, "Server started.");
                 }
 
-                LOGGER.log(Level.INFO, "Creating game client for: {0} {1}", new Object[]{gameHost ? "localhost" : host, port});
+                logger.log(Level.INFO, "Creating game client for: {0} {1}", new Object[]{gameHost ? "localhost" : host, port});
                 client = new NetworkClient(gameHost ? "localhost" : host, port);
                 if (closing) {
                     return;
@@ -300,9 +300,9 @@ public class ConnectionState extends AbstractAppState {
                     return;
                 }
 
-                LOGGER.log(Level.INFO, "Starting client...");
+                logger.log(Level.INFO, "Starting client...");
                 client.start();
-                LOGGER.log(Level.INFO, "Client started.");
+                logger.log(Level.INFO, "Client started.");
             } catch (Exception e) {
                 if (closing) {
                     disconnect();

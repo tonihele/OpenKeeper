@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class SoundGroup {
     
-    private static final Logger LOGGER = System.getLogger(SoundGroup.class.getName());
+    private static final Logger logger = System.getLogger(SoundGroup.class.getName());
 
     private final SoundCategory category;
     private final SfxGroupEntry entry;
@@ -88,7 +88,7 @@ public class SoundGroup {
                     SoundFile sf = new SoundFile(this, soundId, soundFilename);
                     files.add(sf);
                 } catch (Exception ex) {
-                    LOGGER.log(Level.ERROR, () -> {
+                    logger.log(Level.ERROR, () -> {
                         return "Error in file " + sdt.getFile().toString() + " with id " + soundId;
                     }, ex);
                 }

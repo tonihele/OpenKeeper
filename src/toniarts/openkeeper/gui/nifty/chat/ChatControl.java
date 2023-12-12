@@ -43,7 +43,7 @@ import toniarts.openkeeper.gui.nifty.chat.event.ChatTextSendEvent;
  */
 public class ChatControl extends AbstractController implements KeyInputHandler, Chat {
     
-    private static final Logger LOGGER = System.getLogger(ChatControl.class.getName());
+    private static final Logger logger = System.getLogger(ChatControl.class.getName());
 
     private static final String CHAT_BOX = "#chatBox";
     private static final String CHAT_TEXT_INPUT = "#chat-text-input";
@@ -65,17 +65,17 @@ public class ChatControl extends AbstractController implements KeyInputHandler, 
             final Element newElement,
             final Parameters properties) {
         super.bind(newElement);
-        LOGGER.log(Level.DEBUG, "binding chat control");
+        logger.log(Level.DEBUG, "binding chat control");
         nifty = niftyParam;
 
         // this buffer is needed because in some cases the entry is added to either list before the element is bound.
         final ListBox<ChatEntry> chatBox = getListBox(CHAT_BOX);
         if (chatBox == null) {
-            LOGGER.log(Level.ERROR, "Element for chat box \"" + CHAT_BOX + "\" not found. ChatControl will not work.");
+            logger.log(Level.ERROR, "Element for chat box \"" + CHAT_BOX + "\" not found. ChatControl will not work.");
         } else {
             while (!linesBuffer.isEmpty()) {
                 ChatEntry line = linesBuffer.poll();
-                LOGGER.log(Level.DEBUG, "adding message {0}", (chatBox.itemCount() + 1));
+                logger.log(Level.DEBUG, "adding message {0}", (chatBox.itemCount() + 1));
                 chatBox.addItem(line);
                 chatBox.showItemByIndex(chatBox.itemCount() - 1);
             }
@@ -95,7 +95,7 @@ public class ChatControl extends AbstractController implements KeyInputHandler, 
         if (element != null) {
             textControl = element.findNiftyControl(CHAT_TEXT_INPUT, TextField.class);
             if (textControl == null) {
-                LOGGER.log(Level.ERROR, "Text input field for chat box was not found!");
+                logger.log(Level.ERROR, "Text input field for chat box was not found!");
             } else {
                 Element textControlElement = textControl.getElement();
                 if (textControlElement != null) {
@@ -159,7 +159,7 @@ public class ChatControl extends AbstractController implements KeyInputHandler, 
         if (linesBuffer.isEmpty()) {
             final ListBox<ChatEntry> chatBox = getListBox(CHAT_BOX);
             if (chatBox != null) {
-                LOGGER.log(Level.DEBUG, "adding message {0}", (chatBox.itemCount() + 1));
+                logger.log(Level.DEBUG, "adding message {0}", (chatBox.itemCount() + 1));
                 chatBox.addItem(new ChatEntry(text, playerId, keeperId));
                 chatBox.showItemByIndex(chatBox.itemCount() - 1);
             } else {

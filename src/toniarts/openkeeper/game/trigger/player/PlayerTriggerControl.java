@@ -46,7 +46,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class PlayerTriggerControl extends TriggerControl {
     
-    private static final Logger LOGGER = System.getLogger(PlayerTriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(PlayerTriggerControl.class.getName());
 
     private short playerId;
     private PlayerService playerService;
@@ -282,7 +282,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 // Get first spawn point of the player (this flag is only for the players)
                 Set<IRoomController> rooms = getPlayerController(playerId).getRoomControl().getRoomControllers().get(levelInfo.getLevelData().getPortal());
                 if (rooms == null || rooms.isEmpty()) {
-                    LOGGER.log(Level.WARNING, "Generate creature triggered but no entrances found!");
+                    logger.log(Level.WARNING, "Generate creature triggered but no entrances found!");
                     break;
                 }
                 ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
@@ -327,7 +327,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 if (targetId == 0) { // 0 = Off
                     makeObjectiveOff();
                 } else {
-                    LOGGER.log(Level.WARNING, "Unsupported MAKE_OBJECTIVE target {0}", targetId);
+                    logger.log(Level.WARNING, "Unsupported MAKE_OBJECTIVE target {0}", targetId);
                 }
                 break;
 

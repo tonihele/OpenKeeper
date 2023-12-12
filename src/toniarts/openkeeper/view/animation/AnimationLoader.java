@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public final class AnimationLoader {
 
-    private static final Logger LOGGER = System.getLogger(AnimationLoader.class.getName());
+    private static final Logger logger = System.getLogger(AnimationLoader.class.getName());
 
     private static final String START_ANIM_NODE_NAME = "Start";
     private static final String END_ANIM_NODE_NAME = "End";
@@ -88,7 +88,7 @@ public final class AnimationLoader {
                     animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, animComposer.action(KmfModelLoader.DUMMY_ANIM_CLIP_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, animationControl, root, resource, getLoopModeOnChannel(spat)));
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, e.getMessage());
+                logger.log(Level.WARNING, e.getMessage());
             }
         }
     }
@@ -139,7 +139,7 @@ public final class AnimationLoader {
         attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
 
         if(anim == null) {
-            LOGGER.log(Level.WARNING, "Animation null!");
+            logger.log(Level.WARNING, "Animation null!");
             return;
         }
 
@@ -170,7 +170,7 @@ public final class AnimationLoader {
         } catch (Exception e) {
             // FIXME sometimes NPE in CreatureControl.java
             // line: playAnimation(creature.getAnimEntranceResource());
-            LOGGER.log(Level.ERROR, () -> "Creature animation playing error: " + e.toString(), e);
+            logger.log(Level.ERROR, () -> "Creature animation playing error: " + e.toString(), e);
         }
     }
 

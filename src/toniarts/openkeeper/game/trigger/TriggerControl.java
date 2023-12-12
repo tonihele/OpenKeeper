@@ -45,7 +45,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class TriggerControl extends Control {
     
-    private static final Logger LOGGER = System.getLogger(TriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(TriggerControl.class.getName());
 
     private static final short LEVEL_SCORE_FLAG_ID = 128;
     private static final short TIME_LIMIT_TIMER_ID = 16;
@@ -90,7 +90,7 @@ public class TriggerControl extends Control {
             TriggerData value = trigger.getChild(i);
 
             if (value == null) {
-                LOGGER.log(Level.WARNING, "Trigger is null!");
+                logger.log(Level.WARNING, "Trigger is null!");
 
             } else if (value instanceof TriggerGenericData) {
 
@@ -173,7 +173,7 @@ public class TriggerControl extends Control {
             case LEVEL_PLAYED:
                 return false;
             default:
-                LOGGER.log(Level.WARNING, "Target Type not supported {0}!", targetType);
+                logger.log(Level.WARNING, "Target Type not supported {0}!", targetType);
                 return false;
         }
 
@@ -258,7 +258,7 @@ public class TriggerControl extends Control {
                     value = trigger.getUserData("value", int.class);
                     levelInfo.setTimeLimit(value);
                 } else {
-                    LOGGER.log(Level.WARNING, "Only level time limit supported!");
+                    logger.log(Level.WARNING, "Only level time limit supported!");
                 }
                 break;
 
@@ -322,7 +322,7 @@ public class TriggerControl extends Control {
                 break;
 
             default:
-                LOGGER.log(Level.WARNING, "Trigger Action not supported!");
+                logger.log(Level.WARNING, "Trigger Action not supported!");
                 break;
         }
     }
@@ -349,7 +349,7 @@ public class TriggerControl extends Control {
                 result = target != value;
                 break;
             case NONE:
-                LOGGER.log(Level.WARNING, "Comparison Type not supported!");
+                logger.log(Level.WARNING, "Comparison Type not supported!");
                 break;
         }
         return result;
@@ -365,7 +365,7 @@ public class TriggerControl extends Control {
             return base - value;
         }
 
-        LOGGER.log(Level.WARNING, "Unsupported target flag type {0}!", flagType);
+        logger.log(Level.WARNING, "Unsupported target flag type {0}!", flagType);
         return 0;
     }
 

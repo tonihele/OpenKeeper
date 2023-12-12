@@ -67,7 +67,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class ObjectsController implements IObjectsController {
 
-    private static final Logger LOGGER = System.getLogger(ObjectsController.class.getName());
+    private static final Logger logger = System.getLogger(ObjectsController.class.getName());
     
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
@@ -133,7 +133,7 @@ public class ObjectsController implements IObjectsController {
                 }
                 loadObject(object);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
+                logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
     }

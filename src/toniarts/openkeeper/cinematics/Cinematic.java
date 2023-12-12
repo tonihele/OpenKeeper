@@ -50,7 +50,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class Cinematic extends com.jme3.cinematic.Cinematic {
 
-    private static final Logger LOGGER = System.getLogger(Cinematic.class.getName());
+    private static final Logger logger = System.getLogger(Cinematic.class.getName());
     
     private final AssetManager assetManager;
     private static final boolean IS_DEBUG = false;

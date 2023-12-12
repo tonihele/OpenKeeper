@@ -60,7 +60,7 @@ public class Water {
         SIMPLE, CLASSIC;
     };
     
-    private static final Logger LOGGER = System.getLogger(Water.class.getName());
+    private static final Logger logger = System.getLogger(Water.class.getName());
     
     private static final WaterType WATER_TYPE = WaterType.CLASSIC;
 

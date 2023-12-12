@@ -42,7 +42,7 @@ import toniarts.openkeeper.audio.plugins.decoder.UnsupportedMediaException;
  */
 public class MP2Loader implements AssetLoader {
     
-    private static final Logger LOGGER = System.getLogger(MP2Loader.class.getName());
+    private static final Logger logger = System.getLogger(MP2Loader.class.getName());
 
     public static final String FILE_EXTENSION = "mp2";
 
@@ -155,7 +155,7 @@ public class MP2Loader implements AssetLoader {
                 return audioData;
             }
         } catch (IOException | UnsupportedMediaException ex) {
-            LOGGER.log(Level.ERROR, "Failed to read a frame!", ex);
+            logger.log(Level.ERROR, "Failed to read a frame!", ex);
             throw new IOException("Failed to read a frame!");
         }
     }

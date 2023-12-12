@@ -93,7 +93,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
     
-    private static final Logger LOGGER = System.getLogger(MainMenuScreenController.class.getName());
+    private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -1130,7 +1130,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
         } catch (IOException ex) {
-            LOGGER.log(Logger.Level.ERROR, ex);
+            logger.log(Logger.Level.ERROR, ex);
         }
 
         nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
@@ -1222,7 +1222,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            LOGGER.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
+            logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1250,7 +1250,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     subObjectiveImage.setHeight(img.getHeight());
                     subObjectiveImage.show();
                 } catch (Exception e) {
-                    LOGGER.log(Logger.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
+                    logger.log(Logger.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
                     subObjectiveImage.hide();
                 }
 
@@ -1288,7 +1288,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            LOGGER.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
+            logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1306,7 +1306,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 subObjectiveImage.setHeight(img.getHeight());
                 subObjectiveImage.show();
             } catch (Exception e) {
-                LOGGER.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "1"));
+                logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "1"));
                 subObjectiveImage.hide();
             }
         }

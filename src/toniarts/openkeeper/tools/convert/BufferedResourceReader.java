@@ -39,7 +39,7 @@ import java.nio.file.StandardOpenOption;
  */
 public class BufferedResourceReader implements IResourceReader {
     
-    private static final Logger LOGGER = System.getLogger(BufferedResourceReader.class.getName());
+    private static final Logger logger = System.getLogger(BufferedResourceReader.class.getName());
 
     private final BufferedInputStream input;
 
@@ -101,7 +101,7 @@ public class BufferedResourceReader implements IResourceReader {
         try {
             input.close();
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Closing file error", ex);
+            logger.log(Level.ERROR, "Closing file error", ex);
         }
     }
 

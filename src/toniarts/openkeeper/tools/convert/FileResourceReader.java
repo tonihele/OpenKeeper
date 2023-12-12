@@ -37,7 +37,7 @@ import java.nio.file.StandardOpenOption;
  */
 public class FileResourceReader implements ISeekableResourceReader {
     
-    private static final Logger LOGGER = System.getLogger(FileResourceReader.class.getName());
+    private static final Logger logger = System.getLogger(FileResourceReader.class.getName());
 
     private final SeekableByteChannel file;
 
@@ -127,7 +127,7 @@ public class FileResourceReader implements ISeekableResourceReader {
         try {
             file.close();
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Closing file error", ex);
+            logger.log(Level.ERROR, "Closing file error", ex);
         }
     }
 

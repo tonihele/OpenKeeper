@@ -48,7 +48,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class ConvertTextures extends ConversionTask {
 
-    private static final Logger LOGGER = System.getLogger(ConvertTextures.class.getName());
+    private static final Logger logger = System.getLogger(ConvertTextures.class.getName());
 
     private final ExecutorService executorService;
 
@@ -76,7 +76,7 @@ public class ConvertTextures extends ConversionTask {
             try {
                 executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.ERROR, "Failed to wait textures conversion complete!", ex);
+                logger.log(Level.ERROR, "Failed to wait textures conversion complete!", ex);
             }
         }
     }
@@ -88,7 +88,7 @@ public class ConvertTextures extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertTextures(String dungeonKeeperFolder, String destination) {
-        LOGGER.log(Level.INFO, "Extracting textures to: {0}", destination);
+        logger.log(Level.INFO, "Extracting textures to: {0}", destination);
         updateStatus(null, null);
         PathUtils.deleteFolder(Paths.get(destination));
         EngineTexturesFile etFile = getEngineTexturesFile(dungeonKeeperFolder);
@@ -152,7 +152,7 @@ public class ConvertTextures extends ConversionTask {
                     } else if (!overwriteData && Files.exists(newFile)) {
 
                         // Delete the extracted file
-                        LOGGER.log(Level.INFO, "File {0} already exists, skipping!", newFile);
+                        logger.log(Level.INFO, "File {0} already exists, skipping!", newFile);
                         Files.delete(f);
                         updateStatus(progress.incrementAndGet(), total);
 
@@ -160,7 +160,7 @@ public class ConvertTextures extends ConversionTask {
                     }
                     Files.move(f, newFile);
                 } catch (IOException ex) {
-                    LOGGER.log(Level.ERROR, "Failed to handle " + textureFile + "!", ex);
+                    logger.log(Level.ERROR, "Failed to handle " + textureFile + "!", ex);
                     onError(new RuntimeException("Failed to handle " + textureFile + "!", ex));
 
                     return;
@@ -171,7 +171,7 @@ public class ConvertTextures extends ConversionTask {
                     // No mipmap levels, just extract
                     etFile.extractFileData(textureFile, destination, overwriteData);
                 } catch (Exception ex) {
-                    LOGGER.log(Level.ERROR, "Failed to extract the texture file entry " + textureFile + "!", ex);
+                    logger.log(Level.ERROR, "Failed to extract the texture file entry " + textureFile + "!", ex);
                     onError(new RuntimeException("Failed to save the texture file entry " + textureFile + "!", ex));
 
                     return;
@@ -204,7 +204,7 @@ public class ConvertTextures extends ConversionTask {
                         ImageIO.write(lsf.getImage(), "png", bos);
                     }
                 } catch (IOException ex) {
-                    LOGGER.log(Level.ERROR, "Failed to save the wad entry " + entry + "!", ex);
+                    logger.log(Level.ERROR, "Failed to save the wad entry " + entry + "!", ex);
                     onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
 
                     return;
@@ -213,7 +213,7 @@ public class ConvertTextures extends ConversionTask {
                 try {
                     wad.extractFileData(entry, destination);
                 } catch (Exception ex) {
-                    LOGGER.log(Level.ERROR, "Failed to extract the wad entry " + entry + "!", ex);
+                    logger.log(Level.ERROR, "Failed to extract the wad entry " + entry + "!", ex);
                     onError(new RuntimeException("Failed to save the wad entry " + entry + "!", ex));
 
                     return;

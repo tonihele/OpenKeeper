@@ -46,7 +46,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class ConvertTexts extends ConversionTask {
 
-    private static final Logger LOGGER = System.getLogger(ConvertTexts.class.getName());
+    private static final Logger logger = System.getLogger(ConvertTexts.class.getName());
 
     public ConvertTexts(String dungeonKeeperFolder, String destination, boolean overwriteData) {
         super(dungeonKeeperFolder, destination, overwriteData);
@@ -64,7 +64,7 @@ public class ConvertTexts extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertTexts(String dungeonKeeperFolder, String destination) {
-        LOGGER.log(Level.INFO, "Extracting texts to: {0}", destination);
+        logger.log(Level.INFO, "Extracting texts to: {0}", destination);
         updateStatus(null, null);
         Path destinationFolder = Paths.get(destination);
         PathUtils.deleteFolder(destinationFolder);
@@ -88,7 +88,7 @@ public class ConvertTexts extends ConversionTask {
             });
         } catch (IOException ex) {
             String msg = "Failed to scan texts folder " + dataDirectory + "!";
-            LOGGER.log(Level.ERROR, msg, ex);
+            logger.log(Level.ERROR, msg, ex);
             throw new RuntimeException(msg, ex);
         }
 
@@ -127,7 +127,7 @@ public class ConvertTexts extends ConversionTask {
                 }
             } catch (IOException ex) {
                 String msg = "Failed to save the dictionary file to " + dictFile + "!";
-                LOGGER.log(Level.ERROR, msg, ex);
+                logger.log(Level.ERROR, msg, ex);
                 throw new RuntimeException(msg, ex);
             }
         }

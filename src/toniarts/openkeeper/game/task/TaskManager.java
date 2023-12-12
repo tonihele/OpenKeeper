@@ -101,7 +101,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     
-    private static final Logger LOGGER = System.getLogger(TaskManager.class.getName());
+    private static final Logger logger = System.getLogger(TaskManager.class.getName());
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -542,9 +542,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         if (!tasks.contains(task)) {
             tasks.add(task);
             tasksByIds.put(task.getId(), task);
-            LOGGER.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
+            logger.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
         } else {
-            LOGGER.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
+            logger.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
         }
     }
 

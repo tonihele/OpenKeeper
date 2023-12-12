@@ -55,7 +55,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  */
 public class MapThumbnailGenerator {
 
-    private static final Logger LOGGER = System.getLogger(MapThumbnailGenerator.class.getName());
+    private static final Logger logger = System.getLogger(MapThumbnailGenerator.class.getName());
     
     private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
     private static ColorModel cm;
@@ -175,7 +175,7 @@ public class MapThumbnailGenerator {
             // Create the actual palette
             return new IndexColorModel(8, paletteImage.getWidth(), r, g, b);
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to create the map thumbnail palette!", e);
+            logger.log(Level.WARNING, "Failed to create the map thumbnail palette!", e);
 
             // TODO: Create a random palette here?
             throw new RuntimeException("Failed to create the map thumbnail palette!", e);
@@ -238,7 +238,7 @@ public class MapThumbnailGenerator {
                 } else {
 
                     // Wat
-                    LOGGER.log(Level.WARNING, "Unkown tile on {0} at tile {1}, {2}!", new Object[]{kwd, x, y});
+                    logger.log(Level.WARNING, "Unkown tile on {0} at tile {1}, {2}!", new Object[]{kwd, x, y});
                 }
 
                 // Write the value

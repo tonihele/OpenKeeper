@@ -33,7 +33,7 @@ import toniarts.openkeeper.game.trigger.player.PlayerTriggerControl;
  */
 public abstract class AbstractThingTriggerControl<T> extends PlayerTriggerControl {
     
-    private static final Logger LOGGER = System.getLogger(AbstractThingTriggerControl.class.getName());
+    private static final Logger logger = System.getLogger(AbstractThingTriggerControl.class.getName());
 
     protected T instanceControl;
 

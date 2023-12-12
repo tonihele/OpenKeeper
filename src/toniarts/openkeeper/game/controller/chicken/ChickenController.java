@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ChickenController extends EntityController implements IChickenController {
     
-    private static final Logger LOGGER = System.getLogger(ChickenController.class.getName());
+    private static final Logger logger = System.getLogger(ChickenController.class.getName());
 
     private final INavigationService navigationService;
     private final IGameTimer gameTimer;
@@ -113,7 +113,7 @@ public class ChickenController extends EntityController implements IChickenContr
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
-            LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getChickenCoordinates(), destination});
+            logger.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getChickenCoordinates(), destination});
             return true;
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));

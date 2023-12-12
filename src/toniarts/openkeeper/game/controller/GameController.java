@@ -89,7 +89,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
 
-    private static final Logger LOGGER = System.getLogger(GameController.class.getName());
+    private static final Logger logger = System.getLogger(GameController.class.getName());
     
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -203,7 +203,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 kwdFile.load();
             }
         } catch (IOException ex) {
-            LOGGER.log(Level.ERROR, "Failed to load the map file!", ex);
+            logger.log(Level.ERROR, "Failed to load the map file!", ex);
             throw new RuntimeException(level, ex);
         }
 
@@ -550,7 +550,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
             try {
                 Main.getUserSettings().save();
             } catch (IOException ex) {
-                LOGGER.log(Level.ERROR, "Failed to save the level progress!", ex);
+                logger.log(Level.ERROR, "Failed to save the level progress!", ex);
             }
         }
     }

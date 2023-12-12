@@ -52,7 +52,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class ConvertModels extends ConversionTask {
 
-    private static final Logger LOGGER = System.getLogger(ConvertModels.class.getName());
+    private static final Logger logger = System.getLogger(ConvertModels.class.getName());
 
     private final AssetManager assetManager;
     private final ExecutorService executorService;
@@ -82,7 +82,7 @@ public class ConvertModels extends ConversionTask {
             try {
                 executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.ERROR, "Failed to wait model saving complete!", ex);
+                logger.log(Level.ERROR, "Failed to wait model saving complete!", ex);
             }
         }
     }
@@ -94,7 +94,7 @@ public class ConvertModels extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
-        LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
+        logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null);
         Path dest = Paths.get(destination);
         PathUtils.deleteFolder(dest);
@@ -128,7 +128,7 @@ public class ConvertModels extends ConversionTask {
 
                 // See if we already have this model
                 if (!overwriteData && Files.exists(Paths.get(destination, entry.substring(0, entry.length() - 4).concat(".j3o")))) {
-                    LOGGER.log(Level.INFO, "File {0} already exists, skipping!", entry);
+                    logger.log(Level.INFO, "File {0} already exists, skipping!", entry);
                     updateStatus(progress.incrementAndGet(), total);
                     continue;
                 }
@@ -151,7 +151,7 @@ public class ConvertModels extends ConversionTask {
                     return;
                 }
             } catch (Exception ex) {
-                LOGGER.log(Level.ERROR, "Failed to create a file for WAD entry " + entry + "!", ex);
+                logger.log(Level.ERROR, "Failed to create a file for WAD entry " + entry + "!", ex);
                 throw ex;
             }
         }
@@ -198,13 +198,13 @@ public class ConvertModels extends ConversionTask {
                     updateStatus(progress.incrementAndGet(), total);
                 } catch (Exception ex) {
                     String msg = "Failed to export KMF entry " + name + "!";
-                    LOGGER.log(Level.ERROR, msg, ex);
+                    logger.log(Level.ERROR, msg, ex);
                     onError(new RuntimeException(msg, ex));
                 }
             });
         } catch (Exception ex) {
             String msg = "Failed to convert KMF entry " + name + "!";
-            LOGGER.log(Level.ERROR, msg, ex);
+            logger.log(Level.ERROR, msg, ex);
             throw new RuntimeException(msg, ex);
         }
     }
