@@ -85,12 +85,12 @@ public class ChatClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.TRACE, "onInitialize({0})", s);
+        logger.log(Level.DEBUG, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("ChatClientService requires RMI service");
         }
-        logger.log(Level.TRACE, "Sharing session callback.");
+        logger.log(Level.DEBUG, "Sharing session callback.");
         rmiService.share(NetworkConstants.CHAT_CHANNEL, sessionCallback, ChatSessionListener.class);
     }
 
@@ -101,7 +101,7 @@ public class ChatClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.log(Level.TRACE, "start()");
+        logger.log(Level.DEBUG, "start()");
         super.start();
     }
 
@@ -113,7 +113,7 @@ public class ChatClientService extends AbstractClientService
         if (delegate == null) {
             // Look it up
             this.delegate = rmiService.getRemoteObject(ChatSession.class);
-            logger.log(Level.TRACE, "delegate:{0}", delegate);
+            logger.log(Level.DEBUG, "delegate:{0}", delegate);
             if (delegate == null) {
                 throw new RuntimeException("No chat session found");
             }

@@ -92,7 +92,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
      * and will then be able to send/receive messages.
      */
     public void startHostingOnConnection(HostedConnection conn, String playerName) {
-        logger.log(Level.TRACE, "startHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "startHostingOnConnection({0})", conn);
 
         ChatSessionImpl session = new ChatSessionImpl(conn, playerName);
         conn.setAttribute(ATTRIBUTE_SESSION, session);
@@ -124,7 +124,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "stopHostingOnConnection({0})", conn);
         ChatSessionImpl player = getChatSession(conn);
         if (player != null) {
 

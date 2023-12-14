@@ -88,7 +88,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
      * and will then be able to send/receive messages.
      */
     public void startHostingOnConnection(HostedConnection conn, String playerName) {
-        logger.log(Level.TRACE, "startHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "startHostingOnConnection({0})", conn);
 
         boolean playerAdded = false;
         if (players.size() < maxPlayers && !gameStarted) {
@@ -136,7 +136,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "stopHostingOnConnection({0})", conn);
         LobbySessionImpl player = getLobbySession(conn);
         if (player != null) {
 

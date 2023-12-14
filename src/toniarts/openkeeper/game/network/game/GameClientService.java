@@ -84,12 +84,12 @@ public class GameClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.TRACE, "onInitialize({0})", s);
+        logger.log(Level.DEBUG, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("GameClientService requires RMI service");
         }
-        logger.log(Level.TRACE, "Sharing session callback.");
+        logger.log(Level.DEBUG, "Sharing session callback.");
         rmiService.share(NetworkConstants.GAME_CHANNEL, sessionCallback, GameSessionListener.class);
 
         // Listen for the streaming messages
@@ -113,7 +113,7 @@ public class GameClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.log(Level.TRACE, "start()");
+        logger.log(Level.DEBUG, "start()");
         super.start();
     }
 
@@ -125,7 +125,7 @@ public class GameClientService extends AbstractClientService
         if (delegate == null) {
             // Look it up
             this.delegate = rmiService.getRemoteObject(GameSession.class);
-            logger.log(Level.TRACE, "delegate:{0}", delegate);
+            logger.log(Level.DEBUG, "delegate:{0}", delegate);
             if (delegate == null) {
                 throw new RuntimeException("No game session found");
             }

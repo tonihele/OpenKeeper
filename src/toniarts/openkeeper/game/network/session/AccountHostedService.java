@@ -88,7 +88,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
     @Override
     public void startHostingOnConnection(HostedConnection conn) {
 
-        logger.log(Level.TRACE, "startHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "startHostingOnConnection({0})", conn);
 
         AccountSessionImpl session = new AccountSessionImpl(conn);
         conn.setAttribute(ATTRIBUTE_SESSION, session);
@@ -100,10 +100,10 @@ public class AccountHostedService extends AbstractHostedConnectionService {
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "stopHostingOnConnection({0})", conn);
         String playerName = getPlayerName(conn);
         if (playerName != null) {
-            logger.log(Level.TRACE, "publishing playerLoggedOff event for:{0}", conn);
+            logger.log(Level.DEBUG, "publishing playerLoggedOff event for:{0}", conn);
             // Was really logged on before
             EventBus.publish(AccountEvent.playerLoggedOff, new AccountEvent(conn, playerName));
         }
@@ -153,7 +153,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
             // And let them know they were successful
             getCallback().notifyLoginStatus(true);
 
-            logger.log(Level.TRACE, "publishing playerLoggedOn event for: {0}", conn);
+            logger.log(Level.DEBUG, "publishing playerLoggedOn event for: {0}", conn);
 
             // Notify 'logged in' only after we've told the player themselves
             // EventBus.publish(AccountEvent.playerLoggedOn, new AccountEvent(conn, playerName));

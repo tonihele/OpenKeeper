@@ -121,7 +121,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * generated player name.
      */
     public void startHostingOnConnection(HostedConnection conn, ClientInfo clientInfo) {
-        logger.log(Level.TRACE, "startHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "startHostingOnConnection({0})", conn);
 
         GameSessionImpl session = new GameSessionImpl(conn, clientInfo);
         players.put(clientInfo, session);
@@ -140,7 +140,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.TRACE, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "stopHostingOnConnection({0})", conn);
         GameSessionImpl player = getGameSession(conn);
         if (player != null) {
 

@@ -214,7 +214,7 @@ public class ConnectionState extends AbstractAppState {
 
         serverInfo = client.getService(AccountClientService.class).getServerInfo();
 
-        logger.log(Level.TRACE, "Server info:{0}", serverInfo);
+        logger.log(Level.DEBUG, "Server info:{0}", serverInfo);
 
         logger.log(Level.INFO, "join({0})", playerName);
 

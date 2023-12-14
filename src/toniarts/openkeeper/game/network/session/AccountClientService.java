@@ -88,12 +88,12 @@ public class AccountClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.TRACE, "onInitialize({0})", s);
+        logger.log(Level.DEBUG, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("AccountClientService requires RMI service");
         }
-        logger.log(Level.TRACE, "Sharing session callback.");
+        logger.log(Level.DEBUG, "Sharing session callback.");
         rmiService.share(NetworkConstants.LOBBY_CHANNEL, sessionCallback, AccountSessionListener.class);
     }
 
@@ -104,10 +104,10 @@ public class AccountClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.log(Level.TRACE, "start()");
+        logger.log(Level.DEBUG, "start()");
         super.start();
         this.delegate = rmiService.getRemoteObject(AccountSession.class);
-        logger.log(Level.TRACE, "delegate:{0}", delegate);
+        logger.log(Level.DEBUG, "delegate:{0}", delegate);
         if (delegate == null) {
             throw new RuntimeException("No account session found during connection setup");
         }
