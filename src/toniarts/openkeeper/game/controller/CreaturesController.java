@@ -492,7 +492,7 @@ public class CreaturesController implements ICreaturesController {
         IPartyController partyController = creaturePartiesByPartyId.get(partyId);
         if (partyController.isCreated()) {
             partyController = new PartyController(heroParties.get(partyId));
-            logger.log(Level.TRACE, "Re-spawning party {0}!", partyId);
+            logger.log(Level.DEBUG, "Re-spawning party {0}!", partyId);
         }
         partyController.setType(partyType);
         partyController.create();
