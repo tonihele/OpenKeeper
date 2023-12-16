@@ -21,7 +21,6 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.lang.System.Logger;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -37,8 +36,6 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class DeathSystem implements IGameLogicUpdatable {
-    
-    private static final Logger logger = System.getLogger(DeathSystem.class.getName());
 
     private final IEntityPositionLookup entityPositionLookup;
     private final EntitySet deathEntities;

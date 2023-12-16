@@ -24,7 +24,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.awt.Point;
-import java.lang.System.Logger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,8 +43,6 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class MovementSystem implements IGameLogicUpdatable {
-
-    private static final Logger logger = System.getLogger(MovementSystem.class.getName());
     
     private final static boolean INDEPENDENT_FACING = false;
     

@@ -26,7 +26,6 @@ import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
 import java.awt.Point;
 import java.io.ByteArrayInputStream;
-import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +65,6 @@ import toniarts.openkeeper.world.room.RoomInstance;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerState extends AbstractAppState implements PlayerListener {
-    
-    private static final Logger logger = System.getLogger(PlayerState.class.getName());
 
     protected final Main app;
 

@@ -32,7 +32,6 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import java.lang.System.Logger;
 import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.Main;
@@ -59,8 +58,6 @@ import toniarts.openkeeper.view.camera.PlayerCameraRotateControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
-    
-    private static final Logger logger = System.getLogger(PlayerCameraState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
