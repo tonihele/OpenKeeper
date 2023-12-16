@@ -79,6 +79,12 @@ sourceSets {
     }
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 jar {
     manifest {
         attributes(
@@ -107,12 +113,6 @@ idea {
     module {
         downloadJavadoc = true
         downloadSources = true
-    }
-}
-
-java {
-    toolchain {
-        //languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
