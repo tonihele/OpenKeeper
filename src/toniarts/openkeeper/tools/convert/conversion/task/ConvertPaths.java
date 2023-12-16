@@ -24,13 +24,13 @@ import com.jme3.math.Vector3f;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class ConvertPaths extends ConversionTask {
 
-    private static final Logger LOGGER = Logger.getLogger(ConvertPaths.class.getName());
+    private static final Logger logger = System.getLogger(ConvertPaths.class.getName());
 
     public ConvertPaths(String dungeonKeeperFolder, String destination, boolean overwriteData) {
         super(dungeonKeeperFolder, destination, overwriteData);
@@ -67,7 +67,7 @@ public class ConvertPaths extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertPaths(String dungeonKeeperFolder, String destination) {
-        LOGGER.log(Level.INFO, "Extracting paths to: {0}", destination);
+        logger.log(Level.INFO, "Extracting paths to: {0}", destination);
         updateStatus(null, null);
         Path dest = Paths.get(destination);
         PathUtils.deleteFolder(dest);
@@ -130,7 +130,7 @@ public class ConvertPaths extends ConversionTask {
 
             } catch (Exception ex) {
                 String msg = "Failed to save the path file to " + destination + "!";
-                LOGGER.log(Level.SEVERE, msg, ex);
+                logger.log(Level.ERROR, msg, ex);
                 throw new RuntimeException(msg, ex);
             }
         }

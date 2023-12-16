@@ -19,11 +19,11 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
@@ -67,7 +67,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class ObjectsController implements IObjectsController {
 
-    private static final Logger LOGGER = Logger.getLogger(ObjectsController.class.getName());
+    private static final Logger logger = System.getLogger(ObjectsController.class.getName());
     
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
@@ -133,7 +133,7 @@ public class ObjectsController implements IObjectsController {
                 }
                 loadObject(object);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
+                logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
     }

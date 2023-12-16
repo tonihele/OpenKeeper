@@ -44,6 +44,8 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,8 +55,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.animation.Pose;
@@ -84,7 +84,7 @@ public final class KmfModelLoader implements AssetLoader {
 
     // there's 1 kmf per animation so we only use 1 dummy JME animation clip
     public static final String DUMMY_ANIM_CLIP_NAME = "dummyAnimClipName";
-    private static final Logger logger = Logger.getLogger(KmfModelLoader.class.getName());
+    private static final Logger logger = System.getLogger(KmfModelLoader.class.getName());
 
     /* Some textures are broken */
     private final static Map<String, String> textureFixes;

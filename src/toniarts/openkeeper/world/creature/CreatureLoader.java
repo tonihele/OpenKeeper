@@ -20,7 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -40,7 +40,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
 @Deprecated
 public abstract class CreatureLoader implements ILoader<Thing.Creature>, CreatureListener {
     
-    private static final Logger logger = Logger.getLogger(CreatureLoader.class.getName());
+    private static final Logger logger = System.getLogger(CreatureLoader.class.getName());
 
     private final KwdFile kwdFile;
     private final WorldState worldState;

@@ -18,6 +18,8 @@ package toniarts.openkeeper.tools.convert.map;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -29,8 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -80,7 +80,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public final class KwdFile {
     
-    private static final Logger LOGGER = Logger.getLogger(KwdFile.class.getName());
+    private static final Logger logger = System.getLogger(KwdFile.class.getName());
 
     // These are needed in various places, I don't know how to else regognize these
     private final static short ROOM_PORTAL_ID = 3;
@@ -312,7 +312,7 @@ public final class KwdFile {
         }
 
         if (data.getFilePointer() != startOffset + header.getHeaderSize()) {
-            LOGGER.warning("Incorrect parsing of file header");
+            logger.log(Level.WARNING, "Incorrect parsing of file header");
         }
 
         // Not part of the header, part of the data really
@@ -415,7 +415,7 @@ public final class KwdFile {
                 break;
 
             default:
-                LOGGER.log(Level.WARNING, "File type {0} have no reader", header.getId());
+                logger.log(Level.WARNING, "File type {0} have no reader", header.getId());
                 break;
         }
     }
@@ -430,7 +430,7 @@ public final class KwdFile {
     private void readMap(KwdHeader header, IResourceReader file) throws IOException {
 
         // Read the requested MAP file
-        LOGGER.info("Reading map!");
+        logger.log(Level.INFO, "Reading map!");
         if (map == null) {
             map = new GameMap(header.getWidth(), header.getHeight());
         }
@@ -459,10 +459,10 @@ public final class KwdFile {
 
         // Read the requested PLAYER file
         if (players == null) {
-            LOGGER.info("Reading players!");
+            logger.log(Level.INFO, "Reading players!");
             players = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides players!");
+            logger.log(Level.WARNING, "Overrides players!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -588,10 +588,10 @@ public final class KwdFile {
 
         // Read the terrain catalog
         if (terrainTiles == null) {
-            LOGGER.info("Reading terrain!");
+            logger.log(Level.INFO, "Reading terrain!");
             terrainTiles = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides terrain!");
+            logger.log(Level.WARNING, "Overrides terrain!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -741,7 +741,7 @@ public final class KwdFile {
 
             default:
                 reader.readAndCheckNull(12);
-                LOGGER.log(Level.WARNING, "Unknown artResource type {0}", artResource.getType());
+                logger.log(Level.WARNING, "Unknown artResource type {0}", artResource.getType());
                 break;
         }
         reader.skipBytes(4);
@@ -798,10 +798,10 @@ public final class KwdFile {
 
         // Read the doors catalog
         if (doors == null) {
-            LOGGER.info("Reading doors!");
+            logger.log(Level.INFO, "Reading doors!");
             doors = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides doors!");
+            logger.log(Level.WARNING, "Overrides doors!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -864,10 +864,10 @@ public final class KwdFile {
 
         // Read the traps catalog
         if (traps == null) {
-            LOGGER.info("Reading traps!");
+            logger.log(Level.INFO, "Reading traps!");
             traps = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides traps!");
+            logger.log(Level.WARNING, "Overrides traps!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -943,11 +943,11 @@ public final class KwdFile {
 
         // Read the rooms catalog
         if (rooms == null) {
-            LOGGER.info("Reading rooms!");
+            logger.log(Level.INFO, "Reading rooms!");
             rooms = new HashMap<>(header.getItemCount());
             roomsByTerrainId = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides rooms!");
+            logger.log(Level.WARNING, "Overrides rooms!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1025,10 +1025,10 @@ public final class KwdFile {
 
         // Additional header data
         if (gameLevel == null) {
-            LOGGER.info("Reading level info!");
+            logger.log(Level.INFO, "Reading level info!");
             gameLevel = new GameLevel();
         } else {
-            LOGGER.warning("Overrides level!");
+            logger.log(Level.WARNING, "Overrides level!");
         }
 
         // Property data
@@ -1147,7 +1147,7 @@ public final class KwdFile {
             // See if the globals are present
             if (readerPath.getId() == MapDataTypeEnum.GLOBALS) {
                 customOverrides = true;
-                LOGGER.info("The map uses custom overrides!");
+                logger.log(Level.INFO, "The map uses custom overrides!");
             }
 
             readerPath.setPath(path);
@@ -1187,10 +1187,10 @@ public final class KwdFile {
 
         // Read the creatures catalog
         if (creatures == null) {
-            LOGGER.info("Reading creatures!");
+            logger.log(Level.INFO, "Reading creatures!");
             creatures = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides creatures!");
+            logger.log(Level.WARNING, "Overrides creatures!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1558,10 +1558,10 @@ public final class KwdFile {
 
         // Read the objects catalog
         if (objects == null) {
-            LOGGER.info("Reading objects!");
+            logger.log(Level.INFO, "Reading objects!");
             objects = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides objects!");
+            logger.log(Level.WARNING, "Overrides objects!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1636,10 +1636,10 @@ public final class KwdFile {
 
         // Read the creature spells catalog
         if (creatureSpells == null) {
-            LOGGER.info("Reading creature spells!");
+            logger.log(Level.INFO, "Reading creature spells!");
             creatureSpells = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides creature spells!");
+            logger.log(Level.WARNING, "Overrides creature spells!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1692,10 +1692,10 @@ public final class KwdFile {
 
         // Read the effect elements catalog
         if (effectElements == null) {
-            LOGGER.info("Reading effect elements!");
+            logger.log(Level.INFO, "Reading effect elements!");
             effectElements = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides effect elements!");
+            logger.log(Level.WARNING, "Overrides effect elements!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1748,10 +1748,10 @@ public final class KwdFile {
 
         // Read the effects catalog
         if (effects == null) {
-            LOGGER.info("Reading effects!");
+            logger.log(Level.INFO, "Reading effects!");
             effects = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides effects!");
+            logger.log(Level.WARNING, "Overrides effects!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1825,10 +1825,10 @@ public final class KwdFile {
 
         // Read the keeper spells catalog
         if (keeperSpells == null) {
-            LOGGER.info("Reading keeper spells!");
+            logger.log(Level.INFO, "Reading keeper spells!");
             keeperSpells = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides keeper spells!");
+            logger.log(Level.WARNING, "Overrides keeper spells!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -1889,10 +1889,10 @@ public final class KwdFile {
 
         // Read the requested Things file
         if (thingsByType == null) {
-            LOGGER.info("Reading things!");
+            logger.log(Level.INFO, "Reading things!");
             thingsByType = new HashMap<>(12);
         } else {
-            LOGGER.warning("Overrides things!");
+            logger.log(Level.WARNING, "Overrides things!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -2180,7 +2180,7 @@ public final class KwdFile {
 
                     // Just skip the bytes
                     reader.skipBytes(thingTag[1]);
-                    LOGGER.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
+                    logger.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
                 }
             }
 
@@ -2209,10 +2209,10 @@ public final class KwdFile {
 
         // Read the shots catalog
         if (shots == null) {
-            LOGGER.info("Reading shots!");
+            logger.log(Level.INFO, "Reading shots!");
             shots = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides shots!");
+            logger.log(Level.WARNING, "Overrides shots!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
@@ -2277,10 +2277,10 @@ public final class KwdFile {
 
         // Read the requested Triggers file
         if (triggers == null) {
-            LOGGER.info("Reading triggers!");
+            logger.log(Level.INFO, "Reading triggers!");
             triggers = new HashMap<>(header.getItemCount());
         } else {
-            LOGGER.warning("Overrides triggers!");
+            logger.log(Level.WARNING, "Overrides triggers!");
         }
 
         IResourceChunkReader reader = file.readChunk((int) header.size - header.headerSize);
@@ -2496,7 +2496,7 @@ public final class KwdFile {
 
                         default:
                             reader.readAndCheckNull(8); // reader.skipBytes(8);
-                            LOGGER.warning("Unsupported Type of TriggerGeneric");
+                            logger.log(Level.WARNING, "Unsupported Type of TriggerGeneric");
                             break;
 
                     }
@@ -2737,7 +2737,7 @@ public final class KwdFile {
 
                         default:
                             reader.readAndCheckNull(8); // reader.skipBytes(8);
-                            LOGGER.warning("Unsupported Type of TriggerAction");
+                            logger.log(Level.WARNING, "Unsupported Type of TriggerAction");
                             break;
                     }
 
@@ -2752,7 +2752,7 @@ public final class KwdFile {
 
                     // Just skip the bytes
                     reader.skipBytes(triggerTag[1]);
-                    LOGGER.log(Level.WARNING, "Unsupported trigger type {0}!", triggerTag[0]);
+                    logger.log(Level.WARNING, "Unsupported trigger type {0}!", triggerTag[0]);
                 }
             }
 
@@ -2778,7 +2778,7 @@ public final class KwdFile {
         // Read the requested VARIABLES file
         // Should be the GlobalVariables first, then the level's own
         if (variables == null) {
-            LOGGER.info("Reading variables!");
+            logger.log(Level.INFO, "Reading variables!");
             availabilities = new ArrayList<>();
             creaturePools = new HashMap<>(4);
             creatureStatistics = new HashMap<>(10);
@@ -2788,13 +2788,13 @@ public final class KwdFile {
             playerAlliances = new HashSet<>();
             unknownVariables = new HashSet<>();
         } else {
-            LOGGER.info("Overrides variables!");
+            logger.log(Level.INFO, "Overrides variables!");
         }
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
             if (!reader.hasRemaining()) {
-                LOGGER.warning("Variables end prematurely!");
+                logger.log(Level.WARNING, "Variables end prematurely!");
                 break;
             }
             int id = reader.readInteger();
@@ -3259,7 +3259,7 @@ public final class KwdFile {
     private void checkOffset(long itemSize, IResourceChunkReader reader, long offset) throws IOException {
         long expected = offset + itemSize;
         if (reader.position() != expected) {
-            LOGGER.log(Level.WARNING, "Record size differs from expected! Buffer offset is {0} and should be {1}!",
+            logger.log(Level.WARNING, "Record size differs from expected! Buffer offset is {0} and should be {1}!",
                     new Object[]{reader.position(), expected});
             reader.position((int) expected);
         }

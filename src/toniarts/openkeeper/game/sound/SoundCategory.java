@@ -18,13 +18,13 @@ package toniarts.openkeeper.game.sound;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.data.IIndexable;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
@@ -40,7 +40,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class SoundCategory {
     
-    private static final Logger LOGGER = Logger.getLogger(SoundCategory.class.getName());
+    private static final Logger logger = System.getLogger(SoundCategory.class.getName());
 
     public static final String SPEECH_MENTOR = "SPEECH_MENTOR";
     public static final String SPEECH_MULTIPLAYER = "SPEECH_MULTIPLAYER";
@@ -95,9 +95,9 @@ public class SoundCategory {
 
             return new SfxMapFile(f);
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, ex, () -> {
+            logger.log(Level.ERROR, () -> {
                 return String.format("Sfx file of category {0} does not exist", name);
-            });
+            }, ex);
         }
 
         return null;
@@ -134,7 +134,7 @@ public class SoundCategory {
             }
         }
 
-        LOGGER.log(Level.WARNING, "SDT File archive {0} not found", archiveFilename);
+        logger.log(Level.WARNING, "SDT File archive {0} not found", archiveFilename);
         return null;
     }
 

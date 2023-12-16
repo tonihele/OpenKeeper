@@ -31,6 +31,8 @@ import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -40,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -69,7 +69,7 @@ import toniarts.openkeeper.world.terrain.Water;
 @Deprecated
 public abstract class MapLoader implements ILoader<KwdFile> {
 
-    private static final Logger logger = Logger.getLogger(MapLoader.class.getName());
+    private static final Logger logger = System.getLogger(MapLoader.class.getName());
     
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
@@ -141,7 +141,7 @@ public abstract class MapLoader implements ILoader<KwdFile> {
                 try {
                     handleTile(mapData.getTile(x, y), terrain);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Failed to handle tile at " + x + ", " + y + "!", e);
+                    logger.log(Level.ERROR, "Failed to handle tile at " + x + ", " + y + "!", e);
                 }
 
                 // Update progress

@@ -31,12 +31,12 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import java.awt.Point;
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -62,7 +62,7 @@ public class Water {
         SIMPLE, CLASSIC;
     };
     
-    private static final Logger logger = Logger.getLogger(Water.class.getName());
+    private static final Logger logger = System.getLogger(Water.class.getName());
     
     private static final WaterType WATER_TYPE = WaterType.CLASSIC;
 

@@ -21,8 +21,8 @@ import com.jme3.network.serializing.Serializer;
 import com.jme3.network.service.AbstractHostedService;
 import com.jme3.network.service.HostedServiceManager;
 import java.io.IOException;
+import java.lang.System.Logger;
 import java.nio.ByteBuffer;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.message.StreamedMessage;
 
 /**
@@ -35,7 +35,7 @@ import toniarts.openkeeper.game.network.message.StreamedMessage;
  */
 public class StreamingHostedService extends AbstractHostedService {
     
-    private static final Logger logger = Logger.getLogger(StreamingHostedService.class.getName());
+    private static final Logger logger = System.getLogger(StreamingHostedService.class.getName());
 
     private static final int MAX_MESSAGE_SIZE = 30000;
     private static final int MAX_TOTAL_SIZE = 10000000;

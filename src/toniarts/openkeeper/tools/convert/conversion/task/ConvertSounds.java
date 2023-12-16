@@ -17,6 +17,8 @@
 package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,8 +27,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.utils.PathUtils;
@@ -39,7 +39,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class ConvertSounds extends ConversionTask {
 
-    private static final Logger LOGGER = Logger.getLogger(ConvertSounds.class.getName());
+    private static final Logger logger = System.getLogger(ConvertSounds.class.getName());
 
     public ConvertSounds(String dungeonKeeperFolder, String destination, boolean overwriteData) {
         super(dungeonKeeperFolder, destination, overwriteData);
@@ -57,7 +57,7 @@ public class ConvertSounds extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertSounds(String dungeonKeeperFolder, String destination) {
-        LOGGER.log(Level.INFO, "Extracting sounds to: {0}", destination);
+        logger.log(Level.INFO, "Extracting sounds to: {0}", destination);
         updateStatus(null, null);
         PathUtils.deleteFolder(Paths.get(destination));
         String dataDirectory = PathUtils.DKII_SFX_FOLDER;
@@ -82,7 +82,7 @@ public class ConvertSounds extends ConversionTask {
             });
         } catch (IOException ex) {
             String msg = "Failed to scan sounds folder " + dataDirectory + "!";
-            LOGGER.log(Level.SEVERE, msg, ex);
+            logger.log(Level.ERROR, msg, ex);
             throw new RuntimeException(msg, ex);
         }
 

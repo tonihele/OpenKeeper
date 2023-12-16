@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.management.ManagementFactory;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -27,8 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import toniarts.openkeeper.Main;
@@ -41,7 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  */
 public class Utils {
 
-    private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
+    private static final Logger logger = System.getLogger(Utils.class.getName());
     
     private static final Random RANDOM = new Random();
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
@@ -196,7 +196,7 @@ public class Utils {
             Long bytes = (Long) mBeanServer.getAttribute(new ObjectName("java.lang", "type", "OperatingSystem"), "TotalPhysicalMemorySize");
             return (int) Math.round(bytes / 1024d / 1024d / 1024d);
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to get system memory!", e);
+            logger.log(Level.WARNING, "Failed to get system memory!", e);
         }
         return 0;
     }
@@ -222,7 +222,7 @@ public class Utils {
                 }
             }
         } catch (SocketException e) {
-            LOGGER.log(Level.WARNING, "Failed to get local IP address!", e);
+            logger.log(Level.WARNING, "Failed to get local IP address!", e);
         }
         return null;
     }

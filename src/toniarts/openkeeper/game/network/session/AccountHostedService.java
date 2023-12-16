@@ -41,7 +41,8 @@ import com.jme3.network.service.HostedServiceManager;
 import com.jme3.network.service.rmi.RmiHostedService;
 import com.jme3.network.service.rmi.RmiRegistry;
 import com.simsilica.event.EventBus;
-import java.util.logging.Level;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
@@ -56,7 +57,7 @@ import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
  */
 public class AccountHostedService extends AbstractHostedConnectionService {
 
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AccountHostedService.class.getName());
+    private static final Logger logger = System.getLogger(AccountHostedService.class.getName());
 
     private static final String ATTRIBUTE_SESSION = "account.session";
     private static final String ATTRIBUTE_PLAYER_NAME = "account.playerName";
@@ -87,7 +88,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
     @Override
     public void startHostingOnConnection(HostedConnection conn) {
 
-        logger.log(Level.FINER, "startHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "startHostingOnConnection({0})", conn);
 
         AccountSessionImpl session = new AccountSessionImpl(conn);
         conn.setAttribute(ATTRIBUTE_SESSION, session);
@@ -99,10 +100,10 @@ public class AccountHostedService extends AbstractHostedConnectionService {
 
     @Override
     public void stopHostingOnConnection(HostedConnection conn) {
-        logger.log(Level.FINER, "stopHostingOnConnection({0})", conn);
+        logger.log(Level.DEBUG, "stopHostingOnConnection({0})", conn);
         String playerName = getPlayerName(conn);
         if (playerName != null) {
-            logger.log(Level.FINER, "publishing playerLoggedOff event for:{0}", conn);
+            logger.log(Level.DEBUG, "publishing playerLoggedOff event for:{0}", conn);
             // Was really logged on before
             EventBus.publish(AccountEvent.playerLoggedOff, new AccountEvent(conn, playerName));
         }
@@ -152,7 +153,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
             // And let them know they were successful
             getCallback().notifyLoginStatus(true);
 
-            logger.log(Level.FINER, "publishing playerLoggedOn event for: {0}", conn);
+            logger.log(Level.DEBUG, "publishing playerLoggedOn event for: {0}", conn);
 
             // Notify 'logged in' only after we've told the player themselves
             // EventBus.publish(AccountEvent.playerLoggedOn, new AccountEvent(conn, playerName));

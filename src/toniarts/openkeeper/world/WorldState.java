@@ -37,6 +37,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Line;
 import java.awt.Point;
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
@@ -92,7 +92,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
 @Deprecated
 public abstract class WorldState extends AbstractAppState {
     
-    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
+    private static final Logger logger = System.getLogger(WorldState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;

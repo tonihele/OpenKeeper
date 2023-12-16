@@ -23,14 +23,14 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class EngineTexturesFile implements Iterable<String> {
     
-    private static final Logger LOGGER = Logger.getLogger(EngineTexturesFile.class.getName());
+    private static final Logger logger = System.getLogger(EngineTexturesFile.class.getName());
 
     private static final boolean DECOMPRESSION_ENABLED = true;
     private static final int CHESS_BOARD_GRID_SIZE = 8;
@@ -190,7 +190,7 @@ public class EngineTexturesFile implements Iterable<String> {
         if (!overwrite && Files.exists(destinationFile)) {
 
             // Skip
-            LOGGER.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
+            logger.log(Level.INFO, "File {0} already exists, skipping!", destinationFile);
 
             return destinationFile;
         }

@@ -38,9 +38,10 @@ package toniarts.openkeeper.game.network.session;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import com.jme3.network.service.rmi.RmiClientService;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
 import toniarts.openkeeper.game.network.NetworkConstants;
 
 /**
@@ -54,7 +55,7 @@ import toniarts.openkeeper.game.network.NetworkConstants;
 public class AccountClientService extends AbstractClientService
         implements AccountSession {
 
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(AccountClientService.class.getName());
+    private static final Logger logger = System.getLogger(AccountClientService.class.getName());
 
     private RmiClientService rmiService;
     private AccountSession delegate;
@@ -87,12 +88,12 @@ public class AccountClientService extends AbstractClientService
 
     @Override
     protected void onInitialize(ClientServiceManager s) {
-        logger.log(Level.FINER, "onInitialize({0})", s);
+        logger.log(Level.DEBUG, "onInitialize({0})", s);
         this.rmiService = getService(RmiClientService.class);
         if (rmiService == null) {
             throw new RuntimeException("AccountClientService requires RMI service");
         }
-        logger.finer("Sharing session callback.");
+        logger.log(Level.DEBUG, "Sharing session callback.");
         rmiService.share(NetworkConstants.LOBBY_CHANNEL, sessionCallback, AccountSessionListener.class);
     }
 
@@ -103,10 +104,10 @@ public class AccountClientService extends AbstractClientService
      */
     @Override
     public void start() {
-        logger.finer("start()");
+        logger.log(Level.DEBUG, "start()");
         super.start();
         this.delegate = rmiService.getRemoteObject(AccountSession.class);
-        logger.log(Level.FINER, "delegate:{0}", delegate);
+        logger.log(Level.DEBUG, "delegate:{0}", delegate);
         if (delegate == null) {
             throw new RuntimeException("No account session found during connection setup");
         }
@@ -120,7 +121,7 @@ public class AccountClientService extends AbstractClientService
 
         @Override
         public void notifyLoginStatus(boolean loggedIn) {
-            logger.log(Level.FINEST, "notifyLoginStatus({0})", loggedIn);
+            logger.log(Level.TRACE, "notifyLoginStatus({0})", loggedIn);
             for (AccountSessionListener l : listeners) {
                 l.notifyLoginStatus(loggedIn);
             }

@@ -22,10 +22,10 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.world.WorldState;
 
@@ -38,7 +38,7 @@ import toniarts.openkeeper.world.WorldState;
 @Deprecated
 public class EffectManagerState extends AbstractAppState {
 
-    private static final Logger logger = Logger.getLogger(EffectManagerState.class.getName());
+    private static final Logger logger = System.getLogger(EffectManagerState.class.getName());
     
     public static int ROOM_CLAIM_ID = 2;
 

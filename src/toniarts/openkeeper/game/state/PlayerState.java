@@ -29,7 +29,6 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
@@ -66,8 +65,6 @@ import toniarts.openkeeper.world.room.RoomInstance;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerState extends AbstractAppState implements PlayerListener {
-    
-    private static final Logger LOGGER = Logger.getLogger(PlayerState.class.getName());
 
     protected final Main app;
 

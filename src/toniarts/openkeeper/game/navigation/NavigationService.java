@@ -19,10 +19,11 @@ package toniarts.openkeeper.game.navigation;
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -40,7 +41,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class NavigationService implements INavigationService {
     
-    private static final Logger LOGGER = Logger.getLogger(NavigationService.class.getName());
+    private static final Logger logger = System.getLogger(NavigationService.class.getName());
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
@@ -67,7 +68,7 @@ public class NavigationService implements INavigationService {
     public Point findRandomTileInRoom(Point start, int radius, INavigable navigable) {
         RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(start);
         if (roomInstance == null) {
-            LOGGER.warning(() -> "Starting point " + start + " is not in a room!");
+            logger.log(Level.WARNING, () -> "Starting point " + start + " is not in a room!");
             return null;
         }
         Set<Point> allowedTiles = new HashSet<>(roomInstance.getCoordinates());

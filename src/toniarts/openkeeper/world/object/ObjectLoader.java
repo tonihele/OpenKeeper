@@ -21,8 +21,8 @@ import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import javax.annotation.Nonnull;
 import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -45,7 +45,7 @@ import toniarts.openkeeper.world.WorldState;
 @Deprecated
 public class ObjectLoader implements ILoader<Thing.Object> {
     
-    private static final Logger LOGGER = Logger.getLogger(ObjectLoader.class.getName());
+    private static final Logger logger = System.getLogger(ObjectLoader.class.getName());
 
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
@@ -134,7 +134,7 @@ public class ObjectLoader implements ILoader<Thing.Object> {
             // Orientation
             nodeObject.setLocalRotation(nodeObject.getLocalRotation().fromAngles(0, -objectControl.getOrientation(), 0));
         } else {
-            LOGGER.log(Level.WARNING, "Resource not found for object {0}", objectControl.getObject().getName());
+            logger.log(Level.WARNING, "Resource not found for object {0}", objectControl.getObject().getName());
         }
 
         return nodeObject;

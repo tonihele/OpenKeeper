@@ -19,7 +19,7 @@ package toniarts.openkeeper.world.trap;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -38,7 +38,7 @@ import toniarts.openkeeper.world.control.UnitFlowerControl;
 @Deprecated
 public class TrapLoader implements ILoader<Thing.Trap> {
     
-    private static final Logger logger = Logger.getLogger(TrapLoader.class.getName());
+    private static final Logger logger = System.getLogger(TrapLoader.class.getName());
 
     private final KwdFile kwdFile;
     private final WorldState worldState;

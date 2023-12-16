@@ -19,8 +19,8 @@ package toniarts.openkeeper.view.loader;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public class TrapLoader implements ILoader<TrapViewState> {
     
-    private static final Logger LOGGER = Logger.getLogger(TrapLoader.class.getName());
+    private static final Logger logger = System.getLogger(TrapLoader.class.getName());
 
     private final KwdFile kwdFile;
 
@@ -48,7 +48,7 @@ public class TrapLoader implements ILoader<TrapViewState> {
             Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to load trap " + trap + "!", e);
+            logger.log(Level.ERROR, "Failed to load trap " + trap + "!", e);
         }
         return null;
     }

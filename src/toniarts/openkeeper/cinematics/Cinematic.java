@@ -34,7 +34,6 @@ import com.jme3.scene.CameraNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -50,12 +49,9 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class Cinematic extends com.jme3.cinematic.Cinematic {
 
-    private static final Logger LOGGER = Logger.getLogger(Cinematic.class.getName());
-    
     private final AssetManager assetManager;
     private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
-    private final AppStateManager stateManager;
     private final CameraSweepData cameraSweepData;
     private final Camera cam;
     private final Vector3f start;
@@ -105,7 +101,6 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         super(scene);
 
         this.assetManager = assetManager;
-        this.stateManager = stateManager;
         this.audioListener = audioListener;
         this.start = start;
         this.cam = cam;

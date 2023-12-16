@@ -17,11 +17,11 @@
 package toniarts.openkeeper.game.sound;
 
 import java.io.File;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxEEEntry;
@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class SoundGroup {
     
-    private static final Logger LOGGER = Logger.getLogger(SoundGroup.class.getName());
+    private static final Logger logger = System.getLogger(SoundGroup.class.getName());
 
     private final SoundCategory category;
     private final SfxGroupEntry entry;
@@ -88,9 +88,9 @@ public class SoundGroup {
                     SoundFile sf = new SoundFile(this, soundId, soundFilename);
                     files.add(sf);
                 } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, ex, () -> {
+                    logger.log(Level.ERROR, () -> {
                         return "Error in file " + sdt.getFile().toString() + " with id " + soundId;
-                    });
+                    }, ex);
                 }
             }
         }

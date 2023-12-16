@@ -44,6 +44,8 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -51,8 +53,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.CameraSweepData;
@@ -72,7 +72,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  */
 public class AssetUtils {
 
-    private static final Logger LOGGER = Logger.getLogger(AssetUtils.class.getName());
+    private static final Logger logger = System.getLogger(AssetUtils.class.getName());
     
     private final static Object ASSET_LOCK = new Object();
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
@@ -197,7 +197,7 @@ public class AssetUtils {
 
         if (asset == null || !(asset instanceof CameraSweepData)) {
             String msg = "Failed to load the camera sweep file " + resourceName + "!";
-            LOGGER.severe(msg);
+            logger.log(Level.ERROR, msg);
             throw new RuntimeException(msg);
         }
 
@@ -317,7 +317,7 @@ public class AssetUtils {
                 // Load the texture up
                 mat.setTexture("DiffuseMap", tex);
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Can't create a texture out of " + name + "!", e);
+                logger.log(Level.ERROR, "Can't create a texture out of " + name + "!", e);
             }
 
             // Add to cache
@@ -344,7 +344,7 @@ public class AssetUtils {
             try {
                 mat.setTexture("Texture", createArtResourceTexture(resource, assetManager));
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Can't create a texture out of " + resource + "!", e);
+                logger.log(Level.ERROR, "Can't create a texture out of " + resource + "!", e);
             }
 
             // Add to cache
@@ -407,7 +407,7 @@ public class AssetUtils {
                 img = readImageFromAsset(asset);
             } else {
                 // use previous img
-                LOGGER.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{name, x});
+                logger.log(Level.WARNING, "Animated Texture {0}{1} not found", new Object[]{name, x});
             }
             g.drawImage(img, null, img.getWidth() * x, 0);
         }
@@ -460,7 +460,7 @@ public class AssetUtils {
                         // Rooms
                         prewarmArtResources(kwdFile.getRooms(), assetManager, app);
                     } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Failed to prewarm assets!", e);
+                        logger.log(Level.ERROR, "Failed to prewarm assets!", e);
                     } finally {
                         preWarmedAssets = true;
                     }
@@ -567,7 +567,7 @@ public class AssetUtils {
 
         // Enque the warming up, we need GL context
         if (!models.isEmpty()) {
-            LOGGER.log(Level.INFO, "Prewarming {0} objects!", models.size());
+            logger.log(Level.INFO, "Prewarming {0} objects!", models.size());
             app.enqueue(() -> {
 
                 for (Spatial spatial : models) {
@@ -613,7 +613,7 @@ public class AssetUtils {
                         material.setBoolean("UseMaterialColors", enabled);
                     }
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Failed to set material color!", e);
+                    logger.log(Level.WARNING, "Failed to set material color!", e);
                 }
             }
         });
@@ -676,7 +676,7 @@ public class AssetUtils {
                     mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
                     spatial.setMaterial(mat);
                 } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Failed to set material color!", e);
+                    logger.log(Level.WARNING, "Failed to set material color!", e);
                 }
             }
         });

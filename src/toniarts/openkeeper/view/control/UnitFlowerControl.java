@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -55,8 +54,6 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class UnitFlowerControl<T> extends BillboardControl implements IUnitFlowerControl<T> {
-    
-    private static final Logger LOGGER = Logger.getLogger(UnitFlowerControl.class.getName());
 
     private static final float DISPLAY_SECONDS = 2.5f;
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Health.class, Owner.class);

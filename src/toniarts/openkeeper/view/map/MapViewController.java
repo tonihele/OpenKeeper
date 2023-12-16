@@ -33,6 +33,8 @@ import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -41,8 +43,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.common.EntityInstance;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -71,7 +71,7 @@ import toniarts.openkeeper.world.room.GenericRoom;
  */
 public abstract class MapViewController implements ILoader<KwdFile> {
     
-    private static final Logger LOGGER = Logger.getLogger(MapViewController.class.getName());
+    private static final Logger logger = System.getLogger(MapViewController.class.getName());
 
     public final static float TILE_WIDTH = 1;
     public final static float TILE_HEIGHT = 1;
@@ -143,7 +143,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             try {
                 handleTile(tile, terrain);
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Failed to handle tile at " + tile.getLocation() + "!", e);
+                logger.log(Level.ERROR, "Failed to handle tile at " + tile.getLocation() + "!", e);
             }
 
             // Update progress
@@ -293,7 +293,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
                                 AssetUtils.assignMapsToMaterial(assetManager, material);
                             } catch (Exception e) {
-                                LOGGER.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+                                logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
                             }
                         }
                     }
@@ -444,7 +444,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                             } catch (Exception e) {
 
                                 // FIXME: Rock top fails, we may have a problem in the material naming
-                                LOGGER.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
+                                logger.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
                             }
                         }
                     }
