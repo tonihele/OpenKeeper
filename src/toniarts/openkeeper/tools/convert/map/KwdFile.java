@@ -460,7 +460,7 @@ public final class KwdFile {
         // Read the requested PLAYER file
         if (players == null) {
             logger.log(Level.INFO, "Reading players!");
-            players = new HashMap<>(header.getItemCount());
+            players = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides players!");
         }
@@ -589,7 +589,7 @@ public final class KwdFile {
         // Read the terrain catalog
         if (terrainTiles == null) {
             logger.log(Level.INFO, "Reading terrain!");
-            terrainTiles = new HashMap<>(header.getItemCount());
+            terrainTiles = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides terrain!");
         }
@@ -799,7 +799,7 @@ public final class KwdFile {
         // Read the doors catalog
         if (doors == null) {
             logger.log(Level.INFO, "Reading doors!");
-            doors = new HashMap<>(header.getItemCount());
+            doors = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides doors!");
         }
@@ -865,7 +865,7 @@ public final class KwdFile {
         // Read the traps catalog
         if (traps == null) {
             logger.log(Level.INFO, "Reading traps!");
-            traps = new HashMap<>(header.getItemCount());
+            traps = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides traps!");
         }
@@ -944,8 +944,8 @@ public final class KwdFile {
         // Read the rooms catalog
         if (rooms == null) {
             logger.log(Level.INFO, "Reading rooms!");
-            rooms = new HashMap<>(header.getItemCount());
-            roomsByTerrainId = new HashMap<>(header.getItemCount());
+            rooms = HashMap.newHashMap(header.getItemCount());
+            roomsByTerrainId = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides rooms!");
         }
@@ -1095,7 +1095,7 @@ public final class KwdFile {
         for (int x = 0; x < textIntrdcOverrdId.length; x++) {
             textIntrdcOverrdId[x] = reader.readUnsignedShort();
         }
-        Map<Short, Integer> introductionOverrideTextIds = new HashMap<>(8);
+        Map<Short, Integer> introductionOverrideTextIds = HashMap.newHashMap(8);
         for (int x = 0; x < textIntrdcOverrdObj.length; x++) {
             if (textIntrdcOverrdObj[x] > 0) {
                 // Over 0 is a valid creature ID
@@ -1188,7 +1188,7 @@ public final class KwdFile {
         // Read the creatures catalog
         if (creatures == null) {
             logger.log(Level.INFO, "Reading creatures!");
-            creatures = new HashMap<>(header.getItemCount());
+            creatures = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides creatures!");
         }
@@ -1559,7 +1559,7 @@ public final class KwdFile {
         // Read the objects catalog
         if (objects == null) {
             logger.log(Level.INFO, "Reading objects!");
-            objects = new HashMap<>(header.getItemCount());
+            objects = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides objects!");
         }
@@ -1637,7 +1637,7 @@ public final class KwdFile {
         // Read the creature spells catalog
         if (creatureSpells == null) {
             logger.log(Level.INFO, "Reading creature spells!");
-            creatureSpells = new HashMap<>(header.getItemCount());
+            creatureSpells = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides creature spells!");
         }
@@ -1693,7 +1693,7 @@ public final class KwdFile {
         // Read the effect elements catalog
         if (effectElements == null) {
             logger.log(Level.INFO, "Reading effect elements!");
-            effectElements = new HashMap<>(header.getItemCount());
+            effectElements = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides effect elements!");
         }
@@ -1749,7 +1749,7 @@ public final class KwdFile {
         // Read the effects catalog
         if (effects == null) {
             logger.log(Level.INFO, "Reading effects!");
-            effects = new HashMap<>(header.getItemCount());
+            effects = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides effects!");
         }
@@ -1826,7 +1826,7 @@ public final class KwdFile {
         // Read the keeper spells catalog
         if (keeperSpells == null) {
             logger.log(Level.INFO, "Reading keeper spells!");
-            keeperSpells = new HashMap<>(header.getItemCount());
+            keeperSpells = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides keeper spells!");
         }
@@ -1890,7 +1890,7 @@ public final class KwdFile {
         // Read the requested Things file
         if (thingsByType == null) {
             logger.log(Level.INFO, "Reading things!");
-            thingsByType = new HashMap<>(12);
+            thingsByType = HashMap.newHashMap(12);
         } else {
             logger.log(Level.WARNING, "Overrides things!");
         }
@@ -2210,7 +2210,7 @@ public final class KwdFile {
         // Read the shots catalog
         if (shots == null) {
             logger.log(Level.INFO, "Reading shots!");
-            shots = new HashMap<>(header.getItemCount());
+            shots = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides shots!");
         }
@@ -2278,7 +2278,7 @@ public final class KwdFile {
         // Read the requested Triggers file
         if (triggers == null) {
             logger.log(Level.INFO, "Reading triggers!");
-            triggers = new HashMap<>(header.getItemCount());
+            triggers = HashMap.newHashMap(header.getItemCount());
         } else {
             logger.log(Level.WARNING, "Overrides triggers!");
         }
@@ -2780,9 +2780,9 @@ public final class KwdFile {
         if (variables == null) {
             logger.log(Level.INFO, "Reading variables!");
             availabilities = new ArrayList<>();
-            creaturePools = new HashMap<>(4);
-            creatureStatistics = new HashMap<>(10);
-            creatureFirstPersonStatistics = new HashMap<>(10);
+            creaturePools = HashMap.newHashMap(4);
+            creatureStatistics = HashMap.newHashMap(10);
+            creatureFirstPersonStatistics = HashMap.newHashMap(10);
             variables = new HashMap<>();
             sacrifices = new HashSet<>();
             playerAlliances = new HashSet<>();
@@ -2809,7 +2809,7 @@ public final class KwdFile {
                     // Add
                     Map<Integer, CreaturePool> playerCreaturePool = creaturePools.get(creaturePool.getPlayerId());
                     if (playerCreaturePool == null) {
-                        playerCreaturePool = new HashMap<>(12);
+                        playerCreaturePool = HashMap.newHashMap(12);
                         creaturePools.put(creaturePool.getPlayerId(), playerCreaturePool);
                     }
                     playerCreaturePool.put(creaturePool.getCreatureId(), creaturePool);
@@ -2852,7 +2852,7 @@ public final class KwdFile {
                     // Add
                     Map<StatType, CreatureStats> stats = creatureStatistics.get(creatureStats.getLevel());
                     if (stats == null) {
-                        stats = new HashMap<>(CreatureStats.StatType.values().length);
+                        stats = HashMap.newHashMap(CreatureStats.StatType.values().length);
                         creatureStatistics.put(creatureStats.getLevel(), stats);
                     }
                     stats.put(creatureStats.getStatId(), creatureStats);
@@ -2867,7 +2867,7 @@ public final class KwdFile {
                     // Add
                     Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
                     if (firstPersonStats == null) {
-                        firstPersonStats = new HashMap<>(CreatureStats.StatType.values().length);
+                        firstPersonStats = HashMap.newHashMap(CreatureStats.StatType.values().length);
                         creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonStats);
                     }
                     firstPersonStats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);

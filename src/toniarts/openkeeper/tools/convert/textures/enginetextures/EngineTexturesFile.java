@@ -87,7 +87,7 @@ public class EngineTexturesFile implements Iterable<String> {
 
             // Read the entries
             int numberOfEntries = dirReader.readUnsignedInteger();
-            engineTextureEntries = new HashMap<>(numberOfEntries);
+            engineTextureEntries = HashMap.newHashMap(numberOfEntries);
 
             dirReader = rawDir.readChunk(size);
             try (ISeekableResourceReader rawTextures = new FileResourceReader(file)) {

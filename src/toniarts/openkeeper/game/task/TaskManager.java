@@ -135,8 +135,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
-        taskQueues = new HashMap<>(players.size());
-        playerControllers = new HashMap<>();
+        taskQueues = HashMap.newHashMap(players.size());
+        playerControllers = HashMap.newHashMap(players.size());
         for (IPlayerController playerController : players) {
             Keeper keeper = playerController.getKeeper();
 

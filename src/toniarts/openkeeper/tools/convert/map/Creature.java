@@ -455,7 +455,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
 
     private String name; // 0
     private byte[] unknown1Resource;
-    private final Map<AnimationType, ArtResource> animation = new HashMap<>(48);
+    private final Map<AnimationType, ArtResource> animation = HashMap.newHashMap(48);
     private final Attributes attributes = new Attributes();
     private ArtResource icon1Resource;
     private ArtResource icon2Resource;
@@ -540,7 +540,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
     private Swipe special2Swipe;
     private ArtResource firstPersonMeleeResource; // 1027
     private int unk6; // 107b
-    private final Map<OffsetType, Vector3f> animationOffsets = new HashMap<>(8);
+    private final Map<OffsetType, Vector3f> animationOffsets = HashMap.newHashMap(8);
     private X1323 x1323[];
     private int uniqueNameTextId;
     private int x14e1[]; // 14e1

@@ -259,7 +259,7 @@ public class MapThumbnailGenerator {
     private static Map<Short, Color> getPlayerColors() {
         if (playerColors == null) {
             short[] playerIds = Utils.getPlayerIds();
-            Map<Short, Color> pColors = new HashMap<>(playerIds.length);
+            Map<Short, Color> pColors = HashMap.newHashMap(playerIds.length);
             for (short playerId : playerIds) {
                 pColors.put(playerId, createPlayerColor(playerId));
             }

@@ -100,8 +100,7 @@ public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<E
      * @return the creatures
      */
     public Map<Creature, Set<EntityId>> getAllCreatures() {
-        Map<Creature, Set<EntityId>> map = new LinkedHashMap<>(types);
-        return map;
+        return new LinkedHashMap<>(types);
     }
 
     /**

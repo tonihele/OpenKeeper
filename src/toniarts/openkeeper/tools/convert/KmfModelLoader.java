@@ -87,14 +87,9 @@ public final class KmfModelLoader implements AssetLoader {
     private static final Logger logger = System.getLogger(KmfModelLoader.class.getName());
 
     /* Some textures are broken */
-    private final static Map<String, String> textureFixes;
+    private final static Map<String, String> textureFixes = Map.of("Goblinbak", "GoblinBack", "Goblin2", "GoblinFront");
     private static String dkIIFolder;
 
-    static {
-        textureFixes = new HashMap<>(2);
-        textureFixes.put("Goblinbak", "GoblinBack");
-        textureFixes.put("Goblin2", "GoblinFront");
-    }
     /**
      * If the material has multiple texture options, the material is named
      * &lt;material&gt;&lt;this suffix&gt;&lt;texture index&gt;. Texture index
@@ -273,16 +268,16 @@ public final class KmfModelLoader implements AssetLoader {
             // Animation
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
             // Note that a key frame may not have all the vertices
-            var poses = new HashMap<Integer, Map<FrameInfo, Pose>>(anim.getFrames() / 3);
+            Map<Integer, Map<FrameInfo, Pose>> poses = HashMap.newHashMap(anim.getFrames() / 3);
 
             // Pose indices and indice offsets for each pose
-            var frameIndices = new HashMap<Integer, Map<FrameInfo, List<Integer>>>(anim.getFrames() / 3);
-            var frameOffsets = new HashMap<Integer, Map<FrameInfo, List<Vector3f>>>(anim.getFrames() / 3);
+            Map<Integer, Map<FrameInfo, List<Integer>>> frameIndices = HashMap.newHashMap(anim.getFrames() / 3);
+            Map<Integer, Map<FrameInfo, List<Vector3f>>> frameOffsets = HashMap.newHashMap(anim.getFrames() / 3);
 
             // For each frame, we need the previous key frame (pose) and the next, and the weights, for the pose frames
             List<List<FrameInfo>> frameInfosList = new ArrayList<>(anim.getFrames());
             for (int frame = 0; frame < anim.getFrames(); ++frame)
-                frameInfosList.add(new ArrayList<FrameInfo>());
+                frameInfosList.add(new ArrayList<>());
 
             //
             //Each sprite represents a geometry (+ mesh) since they each have their own material
@@ -597,7 +592,7 @@ public final class KmfModelLoader implements AssetLoader {
         //
         // Create the materials
         //
-        Map<Integer, List<Material>> materials = new HashMap(kmfFile.getMaterials().size());
+        Map<Integer, List<Material>> materials = HashMap.newHashMap(kmfFile.getMaterials().size());
         int i = 0;
         for (toniarts.openkeeper.tools.convert.kmf.Material mat : kmfFile.getMaterials()) {
             Material material = null;

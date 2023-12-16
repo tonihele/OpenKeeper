@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
@@ -52,7 +53,7 @@ public class StrFile {
     //
     private final MbToUniFile codePage;
     private final int fileId;
-    private final LinkedHashMap<Integer, String> entries;
+    private final SequencedMap<Integer, String> entries;
 
     /**
      * Constructs a new STR file reader<br>
@@ -101,7 +102,7 @@ public class StrFile {
             Collections.sort(offsetsCopy);
 
             // Decode the entries
-            entries = new LinkedHashMap<>(offsetsCount);
+            entries = LinkedHashMap.newLinkedHashMap(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
 
                 // Seek to the data and read it
@@ -269,7 +270,7 @@ public class StrFile {
      *
      * @return the entries
      */
-    public LinkedHashMap<Integer, String> getEntries() {
+    public SequencedMap<Integer, String> getEntries() {
         return entries;
     }
 
