@@ -24,11 +24,15 @@ allprojects {
 application {
     applicationName = 'OpenKeeper'
     mainClass = 'toniarts.openkeeper.Main'
-    applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper -XstartOnFirstThread"]
+    if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+        applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper", "-XstartOnFirstThread"]
+    }
+    else {
+        applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
+    }    
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
+task sourcesJar(type: Jar, dependsOn: [classes, startScripts, distZip, distTar]) {
     from sourceSets.main.allSource
 }
 
@@ -39,9 +43,9 @@ artifacts {
 
 configurations.all {
     resolutionStrategy.dependencySubstitution {
-        substitute module('com.github.nifty-gui:nifty') with module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
-        substitute module('com.github.nifty-gui:nifty-default-controls') with module('com.github.tonihele.nifty-gui:nifty-default-controls:1.4-SNAPSHOT')
-        substitute module('com.github.nifty-gui:nifty-style-black') with module('com.github.tonihele.nifty-gui:nifty-style-black:1.4-SNAPSHOT')
+        substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
+        substitute module('com.github.nifty-gui:nifty-default-controls') using module('com.github.tonihele.nifty-gui:nifty-default-controls:1.4-SNAPSHOT')
+        substitute module('com.github.nifty-gui:nifty-style-black') using module('com.github.tonihele.nifty-gui:nifty-style-black:1.4-SNAPSHOT')
     }
 }
 
@@ -72,6 +76,12 @@ sourceSets {
             srcDirs 'assets'
             exclude 'Converted/**'
         }
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -106,12 +116,6 @@ idea {
     }
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
 compileJava {
     // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
     options.compilerArgs += ["-proc:none"]
@@ -120,5 +124,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '7.6.2'
+    gradleVersion = '8.5'
 }
