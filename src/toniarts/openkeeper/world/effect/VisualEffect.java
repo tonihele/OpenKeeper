@@ -88,7 +88,7 @@ public class VisualEffect {
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
             effects = new ArrayList<>();
-            effectElements = new HashMap<>(effect.getGenerateIds().size());
+            effectElements = HashMap.newHashMap(effect.getGenerateIds().size());
         } else {
             effects = new ArrayList<>(effect.getGenerateIds().size());
             effectElements = Collections.emptyMap();

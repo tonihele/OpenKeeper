@@ -40,19 +40,20 @@ public class ManaCalculatorLogic implements IGameLogicUpdatable {
     private final EntitySet manaEntities;
     private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
     private final Map<EntityId, Integer> manaGenerationByEntityId = new HashMap<>();
-    private final Map<Short, PlayerManaControl> manaControls = new HashMap<>(4);
+    private final Map<Short, PlayerManaControl> manaControls;
     private final Map<Short, Integer> manaGains;
     private final Map<Short, Integer> manaLosses;
 
     public ManaCalculatorLogic(Collection<IPlayerController> playerControllers, EntityData entityData) {
+        manaControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             PlayerManaControl manaControl = playerController.getManaControl();
             if (manaControl != null) {
                 manaControls.put(playerController.getKeeper().getId(), manaControl);
             }
         }
-        manaGains = new HashMap<>(manaControls.size());
-        manaLosses = new HashMap<>(manaControls.size());
+        manaGains = HashMap.newHashMap(manaControls.size());
+        manaLosses = HashMap.newHashMap(manaControls.size());
 
         // Listen for mana entities
         manaEntities = entityData.getEntities(Mana.class, Owner.class);

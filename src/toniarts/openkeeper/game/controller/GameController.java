@@ -99,7 +99,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     private toniarts.openkeeper.game.data.Level levelObject;
 
     private final SortedMap<Short, Keeper> players = new TreeMap<>();
-    private final Map<Short, IPlayerController> playerControllers = new HashMap<>();
+    private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
     private final PlayerService playerService;

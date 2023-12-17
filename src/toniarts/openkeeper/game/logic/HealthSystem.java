@@ -94,7 +94,7 @@ public class HealthSystem implements IGameLogicUpdatable {
         this.mapController = mapController;
         entityIds = new SafeArrayList<>(EntityId.class);
 
-        playerControllersById = new HashMap<>(playerControllers.size(), 1f);
+        playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController player : playerControllers) {
             playerControllersById.put(player.getKeeper().getId(), player);
         }

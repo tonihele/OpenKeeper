@@ -133,7 +133,7 @@ public class Main extends SimpleApplication {
      * @param args the arguments list
      */
     private static void parseArguments(String[] args) {
-        params = new HashMap<>(args.length);
+        params = HashMap.newHashMap(args.length);
 
         // Go through the params
         int i = 0;

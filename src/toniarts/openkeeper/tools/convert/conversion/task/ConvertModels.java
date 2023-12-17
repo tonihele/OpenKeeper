@@ -120,7 +120,7 @@ public class ConvertModels extends ConversionTask {
         } catch (IOException ex) {
             throw new RuntimeException("Could not open the meshes.wad archive!", ex);
         }
-        Map<String, KmfFile> kmfs = new LinkedHashMap<>(wad.getWadFileEntryCount());
+        Map<String, KmfFile> kmfs = LinkedHashMap.newLinkedHashMap(wad.getWadFileEntryCount());
         AtomicInteger progress = new AtomicInteger(0);
         int total = wad.getWadFileEntryCount();
         for (final String entry : wad.getWadFileEntries()) {

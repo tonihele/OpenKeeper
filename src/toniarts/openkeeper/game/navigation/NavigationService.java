@@ -77,7 +77,7 @@ public class NavigationService implements INavigationService {
     }
 
     private Point findRandomAccessibleTile(Point start, int radius, INavigable navigable, Set<Point> allowedTiles) {
-        Set<Point> tiles = new HashSet<>(radius * radius - 1);
+        Set<Point> tiles = HashSet.newHashSet(radius * radius - 1);
 
         // Start growing the circle, always testing the tile
         getAccessibleNeighbours(mapController.getMapData().getTile(start.x, start.y), radius, navigable, tiles, allowedTiles);

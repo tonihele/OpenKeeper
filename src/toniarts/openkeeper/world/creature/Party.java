@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -62,7 +62,7 @@ public class Party implements PathFindable {
     private final int id;
     private final int triggerId;
     private final String name;
-    private final Map<Thing.GoodCreature, CreatureControl> members;
+    private final SequencedMap<Thing.GoodCreature, CreatureControl> members;
     private Type type;
     private boolean created = false;
     private CreatureControl leader;
@@ -71,7 +71,7 @@ public class Party implements PathFindable {
         id = heroParty.getId();
         name = heroParty.getName();
         triggerId = heroParty.getTriggerId();
-        members = new LinkedHashMap<>(heroParty.getHeroPartyMembers().size());
+        members = LinkedHashMap.newLinkedHashMap(heroParty.getHeroPartyMembers().size());
         for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
             members.put(creature, null);
         }

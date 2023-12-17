@@ -149,7 +149,7 @@ public class Water {
 
         // Handle each river/lake separately
         for (EntityInstance<Terrain> entityInstance : entityInstances) {
-            Map<Vector3f, Integer> verticeHash = new HashMap<>(entityInstance.getCoordinates().size());
+            Map<Vector3f, Integer> verticeHash = HashMap.newHashMap(entityInstance.getCoordinates().size());
             for (Point tile : entityInstance.getCoordinates()) {
 
                 // For each tile, create a quad, in a way
