@@ -23,10 +23,11 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
  * FIXME some problem with wall when reinforce near tile

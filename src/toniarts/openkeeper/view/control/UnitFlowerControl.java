@@ -21,6 +21,7 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.math.ColorRGBA;
+import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -40,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -54,8 +54,6 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class UnitFlowerControl<T> extends BillboardControl implements IUnitFlowerControl<T> {
-    
-    private static final Logger LOGGER = Logger.getLogger(UnitFlowerControl.class.getName());
 
     private static final float DISPLAY_SECONDS = 2.5f;
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Health.class, Owner.class);
@@ -71,7 +69,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     private final AssetManager assetManager;
     private final T data;
 
-    public UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
+    protected UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
         super();
         this.entityId = entityId;
         this.data = data;
@@ -335,6 +333,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         material.getAdditionalRenderState().setDepthTest(false);
         spatial.setQueueBucket(Bucket.Translucent);
         spatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+        spatial.setShadowMode(RenderQueue.ShadowMode.Off);
 
         onMaterialCreated(material);
     }

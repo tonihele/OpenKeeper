@@ -29,8 +29,8 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
+import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.WallSection;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -180,7 +180,7 @@ public class HeroGateFrontEndConstructor extends RoomConstructor {
 
         // Reset
         moveSpatial(object, start, p);
-        object.move(0, MapLoader.FLOOR_HEIGHT, 0);
+        object.move(0, MapViewController.FLOOR_HEIGHT, 0);
 
         return object;
     }

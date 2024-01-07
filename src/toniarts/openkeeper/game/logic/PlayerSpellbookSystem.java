@@ -43,11 +43,12 @@ public class PlayerSpellbookSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
     private final EntitySet spellbookEntities;
-    private final Map<Short, IPlayerController> playerControllersByPlayerId = new HashMap<>(4);
+    private final Map<Short, IPlayerController> playerControllersByPlayerId;
     private final Map<EntityId, Short> ownersByEntityId = new HashMap<>();
 
     public PlayerSpellbookSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers) {
         this.kwdFile = kwdFile;
+        playerControllersByPlayerId = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             if (playerController.getResearchControl() != null) {
                 playerControllersByPlayerId.put(playerController.getKeeper().getId(), playerController);

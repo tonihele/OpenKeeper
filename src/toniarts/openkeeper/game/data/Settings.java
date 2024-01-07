@@ -23,6 +23,7 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.System.Logger;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +31,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.TITLE;
 import static toniarts.openkeeper.Main.getApplicationIcons;
@@ -246,7 +246,7 @@ public class Settings {
         private final Integer specialKey;  // Control, Alt, Shift
     }
     
-    private static final Logger LOGGER = Logger.getLogger(Settings.class.getName());
+    private static final Logger logger = System.getLogger(Settings.class.getName());
     
     private static final Settings INSTANCE;
     private static final int MAX_FPS = 200;
@@ -276,7 +276,7 @@ public class Settings {
                     BufferedInputStream bin = new BufferedInputStream(in)) {
                 settings.load(bin);
             } catch (IOException ex) {
-                LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
+                logger.log(Logger.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
             }
         }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
@@ -318,7 +318,7 @@ public class Settings {
                 }
             }
         } catch (IllegalAccessException | IllegalArgumentException | SecurityException ex) {
-            LOGGER.severe(ex.getMessage());
+            logger.log(Logger.Level.ERROR, ex.getMessage());
         }
 
         return renderers;
@@ -334,7 +334,7 @@ public class Settings {
                 BufferedOutputStream bout = new BufferedOutputStream(out)) {
             settings.save(bout);
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.WARNING, "Settings file failed to save!", ex);
+            logger.log(Logger.Level.WARNING, "Settings file failed to save!", ex);
         }
     }
 

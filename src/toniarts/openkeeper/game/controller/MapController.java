@@ -499,7 +499,7 @@ public final class MapController extends Container implements IMapController {
             // The tile is dead
 //            if (terrain.getDestroyedEffectId() != 0) {
 //                effectManager.load(worldNode,
-//                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getDestroyedEffectId(), false);
 //            }
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
@@ -554,7 +554,7 @@ public final class MapController extends Container implements IMapController {
             // The tile is upgraded
 //            if (terrain.getMaxHealthEffectId() != 0) {
 //                effectManager.load(worldNode,
-//                        WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getMaxHealthEffectId(), false);
 //            }
             if (terrain.getMaxHealthTypeTerrainId() != 0) {
@@ -563,7 +563,7 @@ public final class MapController extends Container implements IMapController {
 //                terrain = tile.getTerrain();
 //                if (tile.isAtFullHealth()) {
 //                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                            WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                            terrain.getMaxHealthEffectId(), false);
 //                }
             }
@@ -615,12 +615,12 @@ public final class MapController extends Container implements IMapController {
                     applyHealing(roomTile, tile.getMaxHealth());
 
 //                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(point).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                            WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                            tile.getTerrain().getMaxHealthEffectId(), false);
 //
 //                    // FIXME ROOM_CLAIM_ID is realy claim effect?
 //                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(p2).addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+//                            WorldUtils.pointToVector3f(p2).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
                     // TODO: Claimed room wall tiles lose the claiming I think?
                 }

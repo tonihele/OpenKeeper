@@ -40,12 +40,13 @@ public class PlayerCreatureSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
     private final EntitySet creatureEntities;
-    private final Map<Short, PlayerCreatureControl> creatureControls = new HashMap<>(4);
+    private final Map<Short, PlayerCreatureControl> creatureControls;
     private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
     private final Map<EntityId, Short> creatureIdsByEntityId = new HashMap<>();
 
     public PlayerCreatureSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers) {
         this.kwdFile = kwdFile;
+        creatureControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             creatureControls.put(playerController.getKeeper().getId(), playerController.getCreatureControl());
         }

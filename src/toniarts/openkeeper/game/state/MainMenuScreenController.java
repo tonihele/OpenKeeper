@@ -46,12 +46,12 @@ import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
@@ -93,7 +93,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
     
-    private static final Logger LOGGER = Logger.getLogger(MainMenuScreenController.class.getName());
+    private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -191,7 +191,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         /*
          ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
          if (games == null) {
-         logger.warning("Element multiplayerGamesTable not found");
+         logger.log(Level.WARNING, "Element multiplayerGamesTable not found");
          return;
          }
          TableRow row = games.getFocusItem();
@@ -234,7 +234,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
          ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
          if (games == null) {
-         logger.warning("Element multiplayerGamesTable not found");
+         logger.log(Level.WARNING, "Element multiplayerGamesTable not found");
          return;
          }
          games.clear();
@@ -1130,7 +1130,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(Logger.Level.ERROR, ex);
         }
 
         nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
@@ -1222,7 +1222,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1250,7 +1250,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     subObjectiveImage.setHeight(img.getHeight());
                     subObjectiveImage.show();
                 } catch (Exception e) {
-                    LOGGER.log(java.util.logging.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
+                    logger.log(Logger.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
                     subObjectiveImage.hide();
                 }
 
@@ -1288,7 +1288,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1306,7 +1306,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 subObjectiveImage.setHeight(img.getHeight());
                 subObjectiveImage.show();
             } catch (Exception e) {
-                LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+                logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "1"));
                 subObjectiveImage.hide();
             }
         }

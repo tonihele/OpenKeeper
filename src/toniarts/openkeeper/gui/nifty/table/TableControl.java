@@ -30,10 +30,11 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.mapping.MenuInputMapping;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 /**
  * Table control, build on top of the Nifty ListBox<br>
@@ -45,7 +46,7 @@ import java.util.logging.Logger;
  */
 public class TableControl<T extends TableRow> extends ListBoxControl<T> {
     
-    private static final Logger logger = Logger.getLogger(TableControl.class.getName());
+    private static final Logger logger = System.getLogger(TableControl.class.getName());
 
     private List<TableColumn> tableColumns;
     private Element headers;
@@ -61,7 +62,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             try {
                 tableColumns.add(TableColumn.parse(prmtrs.get("col" + i)));
             } catch (ClassNotFoundException ex) {
-                logger.log(Level.SEVERE, "Failed to init a column!", ex);
+                logger.log(Level.ERROR, "Failed to init a column!", ex);
             }
         }
 

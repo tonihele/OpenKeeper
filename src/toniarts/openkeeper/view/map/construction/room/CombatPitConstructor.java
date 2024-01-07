@@ -24,7 +24,8 @@ import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
-import static toniarts.openkeeper.world.MapLoader.TILE_WIDTH;
+
+import static toniarts.openkeeper.view.map.MapViewController.TILE_WIDTH;
 
 /**
  * Manages combat pit door placement, currently it is decoupled from the actual

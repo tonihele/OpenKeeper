@@ -23,6 +23,8 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,8 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -103,7 +103,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     
-    private static final Logger LOGGER = Logger.getLogger(TaskManager.class.getName());
+    private static final Logger logger = System.getLogger(TaskManager.class.getName());
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -140,8 +140,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
-        taskQueues = new HashMap<>(players.size());
-        playerControllers = new HashMap<>();
+        taskQueues = HashMap.newHashMap(players.size());
+        playerControllers = HashMap.newHashMap(players.size());
         for (IPlayerController playerController : players) {
             Keeper keeper = playerController.getKeeper();
 
@@ -547,9 +547,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         if (!tasks.contains(task)) {
             tasks.add(task);
             tasksByIds.put(task.getId(), task);
-            LOGGER.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
+            logger.log(Level.INFO, "Added task {0} for player {1}!", new Object[]{task, playerId});
         } else {
-            LOGGER.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
+            logger.log(Level.WARNING, "Already a task {0} for player {1}!", new Object[]{task, playerId});
         }
     }
 

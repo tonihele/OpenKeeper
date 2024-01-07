@@ -27,6 +27,8 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Color;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,8 +36,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Effect;
@@ -62,7 +62,7 @@ import toniarts.openkeeper.world.TileData;
 @Deprecated
 public class VisualEffect {
     
-    private static final Logger logger = Logger.getLogger(VisualEffect.class.getName());
+    private static final Logger logger = System.getLogger(VisualEffect.class.getName());
 
     private final Effect effect;
     private final Map<EffectElement, Spatial> effectElements;
@@ -88,7 +88,7 @@ public class VisualEffect {
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
             effects = new ArrayList<>();
-            effectElements = new HashMap<>(effect.getGenerateIds().size());
+            effectElements = HashMap.newHashMap(effect.getGenerateIds().size());
         } else {
             effects = new ArrayList<>(effect.getGenerateIds().size());
             effectElements = Collections.emptyMap();
@@ -166,7 +166,7 @@ public class VisualEffect {
                 public void onHit(Vector3f location) {
                     TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vectorToPoint(location));
                     if (tile == null) {
-                        logger.warning("Effect hit error");
+                        logger.log(Level.WARNING, "Effect hit error");
                         return;
                     }
 
@@ -316,7 +316,7 @@ public class VisualEffect {
                     public void onHit(Vector3f location) {
                         TileData tile = effectManagerState.getWorldState().getMapData().getTile(WorldUtils.vectorToPoint(location));
                         if (tile == null) {
-                            logger.warning("Effect hit error");
+                            logger.log(Level.WARNING, "Effect hit error");
                             return;
                         }
 

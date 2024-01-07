@@ -80,7 +80,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
         kwdFile = levelInfo.getLevelData();
 
         // Populate entrance list
-        playerControllersById = new HashMap<>(playerControllers.size(), 1f);
+        playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController player : playerControllers) {
             playerControllersById.put(player.getKeeper().getId(), player);
 

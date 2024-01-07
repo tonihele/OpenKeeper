@@ -26,8 +26,8 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import javax.annotation.Nonnull;
 
 /**
@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
  */
 public abstract class CheatState extends AbstractPauseAwareState implements RawInputListener {
 
-    private static final Logger LOGGER = Logger.getLogger(CheatState.class.getName());
+    private static final Logger logger = System.getLogger(CheatState.class.getName());
     
     private final Application app;
     private String cheat = "";
@@ -105,12 +105,12 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         super.setEnabled(enabled);
         this.playSound(enabled);
         if (enabled) {
-            LOGGER.log(Level.INFO, "Cheat mode activated. Please enter your cheat code");
+            logger.log(Level.INFO, "Cheat mode activated. Please enter your cheat code");
             this.app.getInputManager().addRawInputListener(this);
         } else {
             this.app.getInputManager().removeRawInputListener(this);
             if (!this.success) {
-                LOGGER.log(Level.INFO, "Wrong cheat code. You entered {0}", this.cheat);
+                logger.log(Level.INFO, "Wrong cheat code. You entered {0}", this.cheat);
             }
             this.cheat = "";
         }
@@ -146,7 +146,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
     }
 
     public void executeCheat(@Nonnull CheatType cheatCode) {
-        LOGGER.log(Level.INFO, "Executing cheat {0}", cheatCode.toString());
+        logger.log(Level.INFO, "Executing cheat {0}", cheatCode.toString());
         this.onSuccess(cheatCode);
     }
 

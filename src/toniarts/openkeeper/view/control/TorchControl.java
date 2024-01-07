@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.world.effect;
+package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
@@ -41,8 +41,8 @@ import java.awt.image.ImageFilter;
 import java.awt.image.ImageProducer;
 import java.awt.image.RGBImageFilter;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -50,10 +50,9 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author ArchDemon
  */
-@Deprecated
-public class TorchControl extends BillboardControl {
+public final class TorchControl extends BillboardControl {
     
-    private static final Logger log = Logger.getLogger(TorchControl.class.getName());
+    private static final Logger logger = System.getLogger(TorchControl.class.getName());
 
     private final int frames = 20;
     private Material material;
@@ -92,9 +91,10 @@ public class TorchControl extends BillboardControl {
                 result.setMaterial(material);
                 result.setQueueBucket(RenderQueue.Bucket.Translucent);
                 result.move(0.14f, 0.2f, 0);
+                result.setShadowMode(RenderQueue.ShadowMode.Off);
 
             } catch (Exception e) {
-                log.log(Level.WARNING, "Can't create torch flame", e);
+                logger.log(Level.WARNING, "Can't create torch flame", e);
             }
 
             ((DesktopAssetManager) assetManager).addToCache(ASSET_KEY, result);

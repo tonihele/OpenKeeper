@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.network.message.MessageTime;
  * @deprecated used ObjectMessageDelegator in NetworkClient
  * @author ArchDemon
  */
+@Deprecated
 public class ClientListener implements MessageListener<Client> {
 
     private NetworkClient client;

@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.hiscores.HiScoresEntry;
@@ -34,7 +34,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class ConvertHiScores extends ConversionTask {
 
-    private static final Logger LOGGER = Logger.getLogger(ConvertHiScores.class.getName());
+    private static final Logger logger = System.getLogger(ConvertHiScores.class.getName());
 
     public ConvertHiScores(String dungeonKeeperFolder, boolean overwriteData) {
         super(dungeonKeeperFolder, null, overwriteData);
@@ -51,7 +51,7 @@ public class ConvertHiScores extends ConversionTask {
      * @param dungeonKeeperFolder DK II main folder
      */
     private void convertHiScores(String dungeonKeeperFolder) {
-        LOGGER.log(Level.INFO, "Converting hiscores");
+        logger.log(Level.INFO, "Converting hiscores");
         updateStatus(0, 1);
         try {
 
@@ -67,7 +67,7 @@ public class ConvertHiScores extends ConversionTask {
             hiScores.save();
             updateStatus(1, 1);
         } catch (Exception ex) {
-            LOGGER.log(Level.WARNING, "Can not convert HiScores!", ex);
+            logger.log(Level.WARNING, "Can not convert HiScores!", ex);
 
             // By no means fatal :D
         }

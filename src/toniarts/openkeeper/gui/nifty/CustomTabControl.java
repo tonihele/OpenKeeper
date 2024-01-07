@@ -25,7 +25,8 @@ import de.lessvoid.nifty.controls.tabs.TabGroupMember;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 /**
  *
@@ -33,7 +34,7 @@ import java.util.logging.Logger;
  */
 public class CustomTabControl extends AbstractController implements Tab, TabGroupMember {
 
-    private static final Logger log = Logger.getLogger(CustomTabControl.class.getName());
+    private static final Logger logger = System.getLogger(CustomTabControl.class.getName());
     /**
      * The tab group that is the parent of this tab. This might be {@code null}
      * for the time this tab is not a part of tab group.
@@ -55,7 +56,7 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
         bind(elmnt);
 
         if (elmnt.getId() == null) {
-            log.warning("Button element has no ID and can't publish any events properly.");
+            logger.log(Level.WARNING, "Button element has no ID and can't publish any events properly.");
         }
 
         String image = prmtrs.get("image");
@@ -112,7 +113,7 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
 
     public String getImage() {
         if (tabImage == null) {
-            log.warning("Tab image is not set yet.");
+            logger.log(Level.WARNING, "Tab image is not set yet.");
             return "";
         }
         return tabImage;
@@ -120,7 +121,7 @@ public class CustomTabControl extends AbstractController implements Tab, TabGrou
 
     public String getImageActive() {
         if (tabImage == null) {
-            log.warning("Tab image is not set yet.");
+            logger.log(Level.WARNING, "Tab image is not set yet.");
             return "";
         }
         return tabImageActive;

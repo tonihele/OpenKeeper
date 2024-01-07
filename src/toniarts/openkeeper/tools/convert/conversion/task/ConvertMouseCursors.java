@@ -17,11 +17,11 @@
 package toniarts.openkeeper.tools.convert.conversion.task;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.SPRITES_FOLDER;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
@@ -37,7 +37,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class ConvertMouseCursors extends ConversionTask {
 
-    private static final Logger LOGGER = Logger.getLogger(ConvertMouseCursors.class.getName());
+    private static final Logger logger = System.getLogger(ConvertMouseCursors.class.getName());
 
     public ConvertMouseCursors(String dungeonKeeperFolder, String destination, boolean overwriteData) {
         super(dungeonKeeperFolder, destination, overwriteData);
@@ -55,7 +55,7 @@ public class ConvertMouseCursors extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertMouseCursors(String dungeonKeeperFolder, String destination) {
-        LOGGER.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
+        logger.log(Level.INFO, "Extracting mouse cursors to: {0}", destination);
         updateStatus(null, null);
         PathUtils.deleteFolder(Paths.get(destination));
 
@@ -88,7 +88,7 @@ public class ConvertMouseCursors extends ConversionTask {
                 try {
                     sprFile.extract(destinationFolderAsString, fileName.substring(0, fileName.length() - 4));
                 } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, "Error Sprite: {0}", ex);
+                    logger.log(Level.ERROR, "Error Sprite: {0}", ex);
                 }
             } else {
 

@@ -5,7 +5,6 @@ name: Java CI with Gradle
 
 on:
   push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -19,8 +18,9 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v3
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
+    - uses: Trass3r/setup-cpp@master
     - name: Build with Gradle
       run: ./gradlew build
     - uses: actions/upload-artifact@v3

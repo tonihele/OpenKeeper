@@ -67,7 +67,7 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
                     break;
             }
         }
-        //root.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+        //root.move(-MapViewController.TILE_WIDTH / 2, 0, -MapViewController.TILE_WIDTH / 2);
 
         return root;
     }
@@ -108,7 +108,7 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
                     tile.rotate(0, yAngle, 0);
                 }
                 moveSpatial(tile, p);
-                //tile.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                //tile.move(-MapViewController.TILE_WIDTH / 2, 0, -MapViewController.TILE_WIDTH / 2);
                 root.attachChild(tile);
             }
         }

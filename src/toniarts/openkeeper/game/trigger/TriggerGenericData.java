@@ -17,8 +17,8 @@
 package toniarts.openkeeper.game.trigger;
 
 import com.jme3.util.SafeArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 public class TriggerGenericData extends TriggerData {
     
-    private static final Logger LOGGER = Logger.getLogger(TriggerGenericData.class.getName());
+    private static final Logger logger = System.getLogger(TriggerGenericData.class.getName());
 
     private TriggerGeneric.ComparisonType comparison; // Target comparison type
     private TriggerGeneric.TargetType target;
@@ -159,8 +159,8 @@ public class TriggerGenericData extends TriggerData {
             child.setParent(this);
             children.add(index, child);
 
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Child ({0}) attached to this trigger ({1})",
+            if (logger.isLoggable(Level.DEBUG)) {
+                logger.log(Level.DEBUG, "Child ({0}) attached to this trigger ({1})",
                         new Object[]{child.getId(), getId()});
             }
         }
@@ -192,8 +192,8 @@ public class TriggerGenericData extends TriggerData {
             child.setParent(this);
             children.add(child);
 
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Child ({0}) attached to this TriggerData ({1})",
+            if (logger.isLoggable(Level.DEBUG)) {
+                logger.log(Level.DEBUG, "Child ({0}) attached to this TriggerData ({1})",
                         new Object[]{child.getId(), getId()});
             }
         }
@@ -210,7 +210,7 @@ public class TriggerGenericData extends TriggerData {
         for (int i = children.size() - 1; i >= 0; i--) {
             detachChildAt(i);
         }
-        LOGGER.log(Level.FINE, "{0}: All children removed.", this.toString());
+        logger.log(Level.DEBUG, "{0}: All children removed.", this.toString());
     }
 
     public int detachChild(TriggerData child) {
@@ -241,7 +241,7 @@ public class TriggerGenericData extends TriggerData {
         TriggerData child = children.remove(index);
         if (child != null) {
             child.setParent(null);
-            LOGGER.log(Level.FINE, "{0}: Child removed.", this.toString());
+            logger.log(Level.DEBUG, "{0}: Child removed.", this.toString());
         }
 
         return child;

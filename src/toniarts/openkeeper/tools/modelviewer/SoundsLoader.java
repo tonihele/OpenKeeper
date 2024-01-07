@@ -22,13 +22,13 @@ import com.jme3.audio.AudioNode;
 import com.jme3.scene.Node;
 import java.awt.Point;
 import java.io.File;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
@@ -44,7 +44,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class SoundsLoader {
     
-    private static final Logger LOGGER = Logger.getLogger(SoundsLoader.class.getName());
+    private static final Logger logger = System.getLogger(SoundsLoader.class.getName());
     
     private static final Map<String, SoundCategory> CACHE = new HashMap<>();
 
@@ -72,7 +72,7 @@ public class SoundsLoader {
             CACHE.put(category, result);
 //            temp(category, useGlobal);
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Sound category {0} does not exist", category);
+            logger.log(Level.WARNING, "Sound category {0} does not exist", category);
         }
 
         return result;
@@ -86,7 +86,7 @@ public class SoundsLoader {
         }
 
         if (!sc.hasGroup(id)) {
-            LOGGER.log(Level.WARNING, "Sound group {0} does not exist in category {1} ", new Object[]{id, category});
+            logger.log(Level.WARNING, "Sound group {0} does not exist in category {1} ", new Object[]{id, category});
             return null;
         }
 
@@ -153,6 +153,7 @@ public class SoundsLoader {
      * @deprecated @param category
      * @param useGlobal
      */
+    @Deprecated
     public static void temp(final String category, final boolean useGlobal) {
         List<SoundFile> result = new ArrayList<>();
 

@@ -23,14 +23,14 @@ import com.jme3.network.serializing.Serializer;
 import com.jme3.network.service.AbstractClientService;
 import com.jme3.network.service.ClientServiceManager;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.network.message.StreamedMessage;
 
 /**
@@ -41,7 +41,7 @@ import toniarts.openkeeper.game.network.message.StreamedMessage;
  */
 public class StreamingClientService extends AbstractClientService {
     
-    private static final Logger logger = Logger.getLogger(StreamingClientService.class.getName());
+    private static final Logger logger = System.getLogger(StreamingClientService.class.getName());
 
     private final Map<Integer, Map<Integer, ByteBuffer>> messageReceiveMap = new ConcurrentHashMap<>();
     private final MessageListener<Client> messageListener = new StreamedMessageServiceListenerImpl();
@@ -124,7 +124,7 @@ public class StreamingClientService extends AbstractClientService {
                             listener.onMessageReceived(data);
                         }
                     } catch (IOException ex) {
-                        logger.log(Level.SEVERE, "Failed to deserialize the data payload!", ex);
+                        logger.log(Level.ERROR, "Failed to deserialize the data payload!", ex);
                     }
                 }
                 messageBuffers.remove(message.getMessageType());

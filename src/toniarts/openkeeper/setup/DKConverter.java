@@ -18,13 +18,13 @@ package toniarts.openkeeper.setup;
 
 import com.jme3.asset.AssetManager;
 import java.awt.event.WindowEvent;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -38,7 +38,7 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
  */
 public abstract class DKConverter extends javax.swing.JFrame implements IFrameClosingBehavior {
     
-    private static final Logger logger = Logger.getLogger(DKConverter.class.getName());
+    private static final Logger logger = System.getLogger(DKConverter.class.getName());
 
     private static volatile boolean convertDone = false;
     private final String dungeonKeeperFolder;
@@ -155,7 +155,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
                 }
             }
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(Level.ERROR, ex);
         }
         //</editor-fold>
         
@@ -319,7 +319,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
             } catch (Exception e) {
 
                 // Fug
-                logger.log(Level.SEVERE, "Failed to convert the assets!", e);
+                logger.log(Level.ERROR, "Failed to convert the assets!", e);
                 frame.onError(e);
             } finally {
 

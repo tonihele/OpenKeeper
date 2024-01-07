@@ -24,14 +24,14 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -73,7 +73,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -84,7 +84,7 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class CreaturesController implements ICreaturesController {
     
-    private static final Logger LOGGER = Logger.getLogger(CreaturesController.class.getName());
+    private static final Logger logger = System.getLogger(CreaturesController.class.getName());
 
     private final KwdFile kwdFile;
     private final EntityData entityData;
@@ -143,14 +143,14 @@ public class CreaturesController implements ICreaturesController {
             try {
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.NeutralCreature creature : kwdFile.getThings(Thing.NeutralCreature.class)) {
             try {
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
@@ -160,7 +160,7 @@ public class CreaturesController implements ICreaturesController {
                 }
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.DeadBody creature : kwdFile.getThings(Thing.DeadBody.class)) {
@@ -170,7 +170,7 @@ public class CreaturesController implements ICreaturesController {
                 }
                 spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
         for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
@@ -178,7 +178,7 @@ public class CreaturesController implements ICreaturesController {
                 heroParties.put(heroParty.getId(), heroParty);
                 creaturePartiesByPartyId.put(heroParty.getId(), new PartyController(heroParty));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing " + heroParty + "!", ex);
+                logger.log(Level.WARNING, "Could not load Thing " + heroParty + "!", ex);
             }
         }
     }
@@ -324,7 +324,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Position
         // FIXME: no floor height
-        entityData.setComponent(entity, new Position(rotation, new Vector3f(x, MapLoader.FLOOR_HEIGHT, y)));
+        entityData.setComponent(entity, new Position(rotation, new Vector3f(x, MapViewController.FLOOR_HEIGHT, y)));
 
         // Mobility
         entityData.setComponent(entity, new Mobile(creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY),
@@ -492,7 +492,7 @@ public class CreaturesController implements ICreaturesController {
         IPartyController partyController = creaturePartiesByPartyId.get(partyId);
         if (partyController.isCreated()) {
             partyController = new PartyController(heroParties.get(partyId));
-            LOGGER.log(Level.FINE, "Re-spawning party {0}!", partyId);
+            logger.log(Level.DEBUG, "Re-spawning party {0}!", partyId);
         }
         partyController.setType(partyType);
         partyController.create();

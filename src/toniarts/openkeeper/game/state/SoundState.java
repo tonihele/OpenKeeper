@@ -22,11 +22,11 @@ import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import java.io.File;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.MentorType;
@@ -61,7 +61,7 @@ public class SoundState extends AbstractPauseAwareState {
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(SoundState.class.getName());
+    private static final Logger logger = System.getLogger(SoundState.class.getName());
     
     private Main app;
     private AppStateManager stateManager;
@@ -167,14 +167,14 @@ public class SoundState extends AbstractPauseAwareState {
                     + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(new Speech(speechId, file, listener));
         } catch (RuntimeException e) {
-            LOGGER.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
+            logger.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
         }
     }
 
     private void playSpeech(Speech speech) {
         speechNode = new AudioNode(app.getAssetManager(), speech.file, DataType.Buffer);
         if (speechNode == null) {
-            LOGGER.log(Level.WARNING, "Audio file {0} not found", speech.file);
+            logger.log(Level.WARNING, "Audio file {0} not found", speech.file);
             return;
         }
         speechNode.setLooping(false);
@@ -207,7 +207,7 @@ public class SoundState extends AbstractPauseAwareState {
 
         backgroundNode = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (backgroundNode == null) {
-            LOGGER.log(Level.WARNING, "Audio file {0} not found", file);
+            logger.log(Level.WARNING, "Audio file {0} not found", file);
             return;
         }
         backgroundNode.setLooping(false);

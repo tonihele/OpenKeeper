@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
@@ -47,7 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  */
 public final class RoomControllerFactory {
 
-    private static final Logger LOGGER = Logger.getLogger(RoomControllerFactory.class.getName());
+    private static final Logger logger = System.getLogger(RoomControllerFactory.class.getName());
 
     private RoomControllerFactory() {
         // Nope
@@ -116,7 +116,7 @@ public final class RoomControllerFactory {
             default:
 
                 // TODO
-                LOGGER.log(Level.WARNING, "Room {0} not exist", roomName);
+                logger.log(Level.WARNING, "Room {0} not exist", roomName);
                 return new NormalRoomController(kwdFile, roomInstance, objectsController);
         }
     }
