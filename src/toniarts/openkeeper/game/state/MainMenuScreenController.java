@@ -801,7 +801,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         ListBox<TableRow> listBox = screen.findNiftyControl("keyboardSetup", ListBox.class);
         int i = 0;
         int selected = 0;
-        KeyNames kNames = new KeyNames();
         listBox.clear();
         List<Settings.Setting> settings = Settings.Setting.getSettings(Settings.SettingCategory.CONTROLS);
 
