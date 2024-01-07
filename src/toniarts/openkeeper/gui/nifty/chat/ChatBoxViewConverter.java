@@ -53,11 +53,11 @@ public class ChatBoxViewConverter implements ListBoxViewConverter<ChatEntry> {
             logger.log(Level.ERROR, "Text entry of the chat line does not contain the required text renderer.");
             return;
         }
-        textRenderer.setText(item.getLabel());
+        textRenderer.setText(item.label());
 
         // If keeper ID is set, color the line
-        if (item.getKeeperId() != 0) {
-            java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.getKeeperId());
+        if (item.keeperId() != 0) {
+            java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.keeperId());
             textRenderer.setColor(new Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1f));
         } else {
             textRenderer.setColor(new Color("#bbbcbb"));
@@ -76,7 +76,7 @@ public class ChatBoxViewConverter implements ListBoxViewConverter<ChatEntry> {
             logger.log(Level.ERROR, "Text entry of the chat line does not contain the required text renderer.");
             return 0;
         }
-        return ((textRenderer.getFont() == null) ? 0 : textRenderer.getFont().getWidth(item.getLabel()));
+        return ((textRenderer.getFont() == null) ? 0 : textRenderer.getFont().getWidth(item.label()));
     }
 
 }

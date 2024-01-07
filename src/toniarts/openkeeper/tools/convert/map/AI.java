@@ -56,7 +56,7 @@ public class AI {
             String[] names = name().toLowerCase().split("_");
             StringBuilder sb = new StringBuilder(name().length());
             for (String item : names) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append(" ");
                 }
                 sb.append(Character.toUpperCase(item.charAt(0)));

@@ -164,10 +164,10 @@ public class ConvertFonts extends ConversionTask {
             // Convert & save the font files
             FontCreator fc = new FontCreator(new Bf4File(file), fontSize, imageFileName);
             for (FontImage fontImage : fc.getFontImages()) {
-                Path destPath = Paths.get(destination, fontImage.getFileName());
+                Path destPath = Paths.get(destination, fontImage.fileName());
                 try (OutputStream os = Files.newOutputStream(destPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
                         BufferedOutputStream bos = new BufferedOutputStream(os)) {
-                    ImageIO.write(fontImage.getFontImage(), "png", bos);
+                    ImageIO.write(fontImage.fontImage(), "png", bos);
                 }
             }
             try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(descriptionFileName), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {

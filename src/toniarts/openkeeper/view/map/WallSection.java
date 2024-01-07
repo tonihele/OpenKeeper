@@ -25,7 +25,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class WallSection {
+public record WallSection(toniarts.openkeeper.view.map.WallSection.WallDirection direction, List<Point> coordinates) {
 
     public enum WallDirection {
 
@@ -42,19 +42,4 @@ public class WallSection {
         private final float angle;
     }
 
-    private final WallDirection direction;
-    private final List<Point> coordinates;
-
-    public WallSection(WallDirection direction, List<Point> coordinates) {
-        this.direction = direction;
-        this.coordinates = coordinates;
-    }
-
-    public List<Point> getCoordinates() {
-        return coordinates;
-    }
-
-    public WallDirection getDirection() {
-        return direction;
-    }
 }

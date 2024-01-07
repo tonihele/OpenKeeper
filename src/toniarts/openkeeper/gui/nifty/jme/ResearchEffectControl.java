@@ -46,11 +46,11 @@ public class ResearchEffectControl extends AbstractNiftyJmeControl {
         super.bind(nifty, screen, element, parameter);
 
         String colorString = parameter.get("color");
-        if (colorString != null && !"".equals(colorString)) {
+        if (colorString != null && !colorString.isEmpty()) {
             color = new Color(Integer.parseInt(colorString), true);
         }
         image = parameter.getWithDefault("image", "");
-        if ("".equals(image)) {
+        if (image.isEmpty()) {
             image = null;
         }
 

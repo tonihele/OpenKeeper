@@ -64,8 +64,7 @@ public class PlayerCameraRotateControl extends Control {
     public void setParent(IContainer parent) {
         super.setParent(parent);
 
-        if (parent instanceof ActionPoint) {
-            ActionPoint ap = (ActionPoint) parent;
+        if (parent instanceof ActionPoint ap) {
             Vector3f location = WorldUtils.ActionPointToVector3f(ap);
             camera.setLookAt(location);
         }

@@ -28,7 +28,7 @@ import toniarts.openkeeper.game.network.message.MessageTime;
 @Deprecated
 public class ClientListener implements MessageListener<Client> {
 
-    private NetworkClient client;
+    private final NetworkClient client;
 
     public ClientListener(NetworkClient client) {
         this.client = client;

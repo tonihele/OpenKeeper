@@ -104,11 +104,11 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
         clientInfo.setReady(true);
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, Arrays.asList(clientInfo), gameSession, app);
+        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, List.of(clientInfo), gameSession, app);
         stateManager.attach(gameClientState);
 
         // The game server
-        GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : Arrays.asList(keeper), campaign, gameSession);
+        GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : List.of(keeper), campaign, gameSession);
         stateManager.attach(gameServerState);
     }
 

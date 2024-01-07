@@ -46,13 +46,13 @@ public class TagContent extends HashMap<String, Object> implements Information {
     public final static String BA_SUBTYPE_BINARY = "byte[] subtypeBinary", BA_CONTENT_BINARY = "byte[] contentBinary";
 
     /**
-     * Constructs a new, empty
-     * <code>TagContent</code> with the specified initial capacity.
+     * Constructs a new
+     * <code>TagContent</code> with the specified contents.
      *
-     * @param initialCapacity the initial number of buckets
+     * @param m existing mappings
      */
-    public TagContent(int initialCapacity) {
-        super(initialCapacity);
+    public TagContent(Map<String, Object> m) {
+        super(m);
     }
 
     /**
@@ -236,12 +236,7 @@ public class TagContent extends HashMap<String, Object> implements Information {
      */
     @Override
     public Object clone() {
-        TagContent clone = new TagContent(size());
-
-        for (Map.Entry<String, Object> entry : this.entrySet()) {
-            clone.put(entry.getKey(), entry.getValue());
-        }
-        return clone;
+        return new TagContent(this);
     }
 
     /**

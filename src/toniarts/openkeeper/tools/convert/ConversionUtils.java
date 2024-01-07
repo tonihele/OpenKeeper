@@ -214,7 +214,7 @@ public class ConversionUtils {
                 if (val > leftOver) {
                     break;
                 } else if ((val & leftOver) == val) {
-                    if (sb.length() > 0) {
+                    if (!sb.isEmpty()) {
                         sb.append(", ");
                     }
                     sb.append(val);

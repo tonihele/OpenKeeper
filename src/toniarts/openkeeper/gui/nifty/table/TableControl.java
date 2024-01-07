@@ -87,7 +87,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             private void createColumn(final int i, final TableColumn col) {
                 panel(new PanelBuilder("#headerColPanel-" + i) {
                     {
-                        width(col.getWidth() + "%");
+                        width(col.width() + "%");
                         height("100%");
                         textVAlignCenter();
                         childLayoutCenter();
@@ -95,8 +95,8 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
                         marginRight("2px");
 
                         // The contents
-                        if (col.getType() == String.class) {
-                            control(new LabelBuilder("#headerCol-" + i, col.getHeader()) {
+                        if (col.type() == String.class) {
+                            control(new LabelBuilder("#headerCol-" + i, col.header()) {
                                 {
                                     style("menuTextSmall");
                                 }
@@ -172,15 +172,15 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             private void createColumn(final int i, final TableColumn col) {
                 panel(new PanelBuilder("#colPanel-" + i) {
                     {
-                        width(col.getWidth() + "%");
+                        width(col.width() + "%");
                         height("100%");
                         textVAlignCenter();
                         childLayoutCenter();
-                        backgroundColor(col.getColor());
+                        backgroundColor(col.color());
                         marginRight("2px");
 
                         // The contents
-                        if (col.getType() == String.class) {
+                        if (col.type() == String.class) {
                             text(new TextBuilder("#col-" + i) {
                                 {
                                     style("menuTextSmall");

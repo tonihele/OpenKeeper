@@ -81,7 +81,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private final toniarts.openkeeper.game.data.Level levelObject;
 
     private GameLogicManager gameLogicThread;
-    private TriggerControl triggerControl = null;
+    private final TriggerControl triggerControl = null;
     private CreatureTriggerLogicController creatureTriggerState;
     private ObjectTriggerLogicController objectTriggerState;
     private DoorTriggerLogicController doorTriggerState;

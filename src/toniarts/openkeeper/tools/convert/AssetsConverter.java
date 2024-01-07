@@ -84,9 +84,9 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
 
         public String getSettingName() {
             String[] names = this.toString().toLowerCase().split(" ");
-            String name = "";
+            StringBuilder name = new StringBuilder();
             for (String item : names) {
-                name += Character.toUpperCase(item.charAt(0)) + item.substring(1);
+                name.append(Character.toUpperCase(item.charAt(0))).append(item.substring(1));
             }
             return name + "Version";
         }

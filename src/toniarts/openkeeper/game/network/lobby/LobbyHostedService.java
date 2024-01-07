@@ -322,7 +322,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
         return keepers;
     }
 
-    private abstract class AbstractLobbySessionImpl implements LobbySession, LobbySessionListener {
+    private static abstract class AbstractLobbySessionImpl implements LobbySession, LobbySessionListener {
 
         private final ClientInfo clientInfo;
 

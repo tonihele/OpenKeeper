@@ -178,7 +178,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
 
         state.multiplayerCreate(game.getRealText(),
-                Integer.valueOf(port.getRealText()),
+                Integer.parseInt(port.getRealText()),
                 player.getRealText());
 
         // Overlay
@@ -413,7 +413,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 // Ask for players and map
                 refreshPlayerList(lobbyState.getLobbySession().getPlayers());
-                populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()).getMap());
+                populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()).map());
 
                 Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                 if (title != null) {
@@ -609,7 +609,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             return;
         }
 
-        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).getMap();
+        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).map();
         if (state.mapSelector.isMPD()) {
             // on mpd we show the briefing
             state.selectedLevel = new CustomMPDLevel(map);
@@ -808,9 +808,9 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         for (Settings.Setting setting : settings) {
             String keys = "";
             if (setting.getSpecialKey() != null) {
-                keys = (kNames.getName(setting.getSpecialKey()) + " + ").replace("Left ", "").replace("Right ", "");
+                keys = (KeyNames.getName(setting.getSpecialKey()) + " + ").replace("Left ", "").replace("Right ", "");
             }
-            keys += kNames.getName((int) setting.getDefaultValue()).replace("Left ", "").replace("Right ", "");
+            keys += KeyNames.getName((int) setting.getDefaultValue()).replace("Left ", "").replace("Right ", "");
             TableRow row = new TableRow(i++, String.format("${menu.%s}", setting.getTranslationKey()), keys);
             listBox.addItem(row);
         }
@@ -857,8 +857,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         listBox.clear();
         for (MapSelector.GameMapContainer mapContainer : state.mapSelector.getMaps()) {
 
-            String name = mapContainer.getMapName();
-            KwdFile kwd = mapContainer.getMap();
+            String name = mapContainer.mapName();
+            KwdFile kwd = mapContainer.map();
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
                 // the resource tables in all the other levels are completely wrong, so we just use it for custom mpd maps
                 name = kwd.getGameLevel().getLevelName().isEmpty() ? kwd.getGameLevel().getName() : kwd.getGameLevel().getLevelName();
@@ -867,7 +867,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     String.valueOf(kwd.getGameLevel().getPlayerCount()),
                     String.format("%s x %s", kwd.getMap().getWidth(), kwd.getMap().getHeight())));
 
-            if (selectMap && kwd.equals(state.mapSelector.getMap().getMap())) {
+            if (selectMap && kwd.equals(state.mapSelector.getMap().map())) {
                 listBox.selectItemByIndex(i);
             }
             i++;
@@ -885,7 +885,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 @Override
                 public void onMapChanged(String mapName) {
-                    populateSelectedMap(state.mapSelector.getMap(mapName).getMap());
+                    populateSelectedMap(state.mapSelector.getMap(mapName).map());
                 }
 
                 @Override
