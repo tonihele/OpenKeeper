@@ -42,37 +42,14 @@ public class FontCreator {
     private final String description;
     private final List<FontImage> fontImages;
 
-    // TODO: Perfect candidate for being a record :)
-    public class FontImage {
-
-        private final String fileName;
-        private final BufferedImage fontImage;
-        private final int page;
-
-        public FontImage(String fileName, BufferedImage fontImage, int page) {
-            this.fileName = fileName;
-            this.fontImage = fontImage;
-            this.page = page;
-        }
-
-        public String getFileName() {
-            return fileName;
-        }
-
-        public BufferedImage getFontImage() {
-            return fontImage;
-        }
-
-        public int getPage() {
-            return page;
-        }
+    public record FontImage(String fileName, BufferedImage fontImage, int page) {
 
         @Override
-        public String toString() {
-            return "FontImage{" + "fileName=" + fileName + ", page=" + page + '}';
-        }
+            public String toString() {
+                return "FontImage{" + "fileName=" + fileName + ", page=" + page + '}';
+            }
 
-    }
+        }
 
     public FontCreator(Bf4File fontFile, int fontSize, String fileName) {
         fontImages = new ArrayList<>();

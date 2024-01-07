@@ -296,19 +296,9 @@ public class SoundState extends AbstractPauseAwareState {
     }
 
     /**
-     * Simple wrapper for a speech to play
-     */
-    private static class Speech {
-
-        private final int speechId;
-        private final String file;
-        private final ISpeechListener listener;
-
-        public Speech(int speechId, String file, ISpeechListener listener) {
-            this.speechId = speechId;
-            this.file = file;
-            this.listener = listener;
-        }
+         * Simple wrapper for a speech to play
+         */
+        private record Speech(int speechId, String file, ISpeechListener listener) {
 
     }
 

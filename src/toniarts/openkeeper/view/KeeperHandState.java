@@ -304,7 +304,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     }
 
-    private class KeeperHandItem implements Comparable<KeeperHandItem> {
+    private static class KeeperHandItem implements Comparable<KeeperHandItem> {
 
         private int index;
         private IEntityViewControl item;

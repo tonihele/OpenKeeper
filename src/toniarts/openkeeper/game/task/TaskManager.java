@@ -437,8 +437,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 Iterator<Task> iter = entry.getValue().iterator();
                 while (iter.hasNext()) {
                     Task task = iter.next();
-                    if (task instanceof AbstractTileTask) {
-                        AbstractTileTask tileTask = (AbstractTileTask) task;
+                    if (task instanceof AbstractTileTask tileTask) {
                         if (tileTask.isRemovable()) {
                             iter.remove();
                             if (tileTask.getAssigneeCount() == 0) {

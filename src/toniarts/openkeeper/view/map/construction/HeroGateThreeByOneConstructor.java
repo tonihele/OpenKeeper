@@ -81,24 +81,24 @@ public class HeroGateThreeByOneConstructor extends RoomConstructor {
         for (WallSection section : roomInstance.getWallSections()) {
 
             int i = 0;
-            int sectionSize = section.getCoordinates().size();
+            int sectionSize = section.coordinates().size();
 
-            for (Point p : section.getCoordinates()) {
+            for (Point p : section.coordinates()) {
 
                 int piece;
                 if (sectionSize == 3) {
-                    piece = (section.getDirection() == WallDirection.EAST
-                            || section.getDirection() == WallDirection.NORTH) ? 2 - i : i;
+                    piece = (section.direction() == WallDirection.EAST
+                            || section.direction() == WallDirection.NORTH) ? 2 - i : i;
                 } else {
                     piece = 6;
                 }
                 i++;
                 float yAngle = 0;
-                if (section.getDirection() == WallDirection.NORTH) {
+                if (section.direction() == WallDirection.NORTH) {
                     yAngle = -FastMath.HALF_PI;
-                } else if (section.getDirection() == WallDirection.SOUTH) {
+                } else if (section.direction() == WallDirection.SOUTH) {
                     yAngle = FastMath.HALF_PI;
-                } else if (section.getDirection() == WallDirection.EAST) {
+                } else if (section.direction() == WallDirection.EAST) {
                     yAngle = FastMath.PI;
                 }
                 //yAngle = -section.getDirection().ordinal() * FastMath.HALF_PI;

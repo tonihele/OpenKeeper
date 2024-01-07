@@ -497,10 +497,9 @@ public class AssetUtils {
                                     || artResource.getType() == ArtResource.ArtResourceType.MESH_COLLECTION
                                     || artResource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH) {
                                 models.add(loadModel(assetManager, artResource.getName(), artResource));
-                            } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Terrain) {
+                            } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Terrain terrain) {
 
                                 // With terrains, we need to see the contruction type
-                                Terrain terrain = (Terrain) obj;
                                 if (method.getName().startsWith("getTaggedTopResource") || method.getName().startsWith("getSideResource")) {
                                     models.add(loadModel(assetManager, artResource.getName(), artResource));
                                 } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
@@ -517,10 +516,9 @@ public class AssetUtils {
                                 else if (!terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)) {
                                     models.add(loadModel(assetManager, artResource.getName(), artResource));
                                 }
-                            } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Room) {
+                            } else if (artResource.getType() == ArtResource.ArtResourceType.TERRAIN_MESH && obj instanceof Room room) {
 
                                 // With terrains, we need to see the contruction type
-                                Room room = (Room) obj;
                                 int count = 0;
                                 int start = 0;
                                 switch (room.getTileConstruction()) {

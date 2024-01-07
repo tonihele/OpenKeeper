@@ -16,7 +16,7 @@ public class BitReader {
 
     protected int deficit;
     protected int curInt;
-    private ByteBuffer bb;
+    private final ByteBuffer bb;
     private int initPos;
 
     public BitReader(ByteBuffer bb) {

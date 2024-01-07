@@ -31,7 +31,7 @@ public class GameLoop {
     private final IGameLoopManager gameLoopManager;
     private final Runner loop;
 
-    private long updateRate;
+    private final long updateRate;
     private long idleSleepTime = 0;
     private final AtomicBoolean pauseFlag = new AtomicBoolean(false);
 

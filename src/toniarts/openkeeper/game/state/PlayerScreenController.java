@@ -188,7 +188,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         if (type == Type.SELL) {
             this.playButtonSound(GlobalCategory.GUI_SELL);
         }
-        state.interactionState.setInteractionState(type, Integer.valueOf(id));
+        state.interactionState.setInteractionState(type, Integer.parseInt(id));
     }
 
     @Override
@@ -1158,7 +1158,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void playSound(String category, String id) {
-        SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.valueOf(id));
+        SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.parseInt(id));
         if (soundHandler != null) {
             soundHandler.play();
         }
@@ -1501,7 +1501,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     }
 
-    private class GameMenu {
+    private static class GameMenu {
 
         protected String title;
         protected String action;

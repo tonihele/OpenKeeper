@@ -398,8 +398,7 @@ public class ModelViewer extends SimpleApplication {
                 spat.depthFirstTraversal(new SceneGraphVisitor() {
                     @Override
                     public void visit(Spatial spatial) {
-                        if (spatial instanceof Geometry) {
-                            Geometry g = (Geometry) spatial;
+                        if (spatial instanceof Geometry g) {
                             Mesh normalMesh = TangentBinormalGenerator.genTbnLines(g.getMesh(), 0.1f);
                             Geometry normalGeometry = new Geometry(g.getName() + "Normal", normalMesh);
                             Material mat = new Material(assetManager,

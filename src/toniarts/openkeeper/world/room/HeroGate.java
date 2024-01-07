@@ -93,7 +93,7 @@ public class HeroGate extends GenericRoom {
         Point start = roomInstance.getCoordinates().get(0);
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         int south = 0;
-        for (WallSection section : roomInstance.getWallSections()) {
+        /*for (WallSection section : roomInstance.getWallSections()) {
             int i = 0;
             for (Point p : section.getCoordinates()) {
                 int piece;
@@ -149,7 +149,7 @@ public class HeroGate extends GenericRoom {
                 //part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(part);
             }
-        }
+        }*/
         return root;
     }
 

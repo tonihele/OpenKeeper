@@ -92,8 +92,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
-    private Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
-    private InteractionState interactionState = new InteractionState();
+    private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
+    private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
     private Element view;
 

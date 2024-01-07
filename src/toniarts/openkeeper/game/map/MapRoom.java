@@ -32,7 +32,7 @@ public class MapRoom implements Savable {
 
     private int health;
     private int maxHealth;
-    private boolean destroyed = false;
+    private final boolean destroyed = false;
     private short ownerId;
     private short roomId;
     private List<Point> tiles;

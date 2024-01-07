@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 public class DungeonHeartConstruction implements IGameLogicUpdatable {
 
     private static final float GRAVITY = 9.81f;
-    private float velocity = 7f;
+    private final float velocity = 7f;
     private final EntityData entityData;
     private final Set<EntityId> dungeonHeartPlugs;
     private final Map<EntityId, Set<PlugPiece>> dungeonHeartPlugPieces;
@@ -164,7 +164,7 @@ public class DungeonHeartConstruction implements IGameLogicUpdatable {
         }
     }
 
-    private class PlugPiece {
+    private static class PlugPiece {
 
         public PlugPiece() {
         }

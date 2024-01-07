@@ -43,7 +43,7 @@ public abstract class LocalServerSearch {
     private int port = 7575;
     private final ServerQuery[] threads;
     private final LinkedList<NetworkServer> queue;
-    private List<NetworkServer> servers = new ArrayList();
+    private final List<NetworkServer> servers = new ArrayList();
 
     public LocalServerSearch(int port) {
         this.port = port;

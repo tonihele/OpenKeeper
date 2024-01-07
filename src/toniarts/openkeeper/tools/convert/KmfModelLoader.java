@@ -787,7 +787,7 @@ public final class KmfModelLoader implements AssetLoader {
      * A frame info identifies an vertex transition, it has the start and the
      * end pose frame indexes (key frames) which will identify it
      */
-    private final class FrameInfo implements Comparable<KmfModelLoader.FrameInfo> {
+    private final static class FrameInfo implements Comparable<KmfModelLoader.FrameInfo> {
 
         private final int previousPoseFrame;
         private final int nextPoseFrame;

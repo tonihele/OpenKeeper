@@ -134,14 +134,14 @@ public abstract class RoomConstructor {
 
         for (WallSection section : roomInstance.getWallSections()) {
 
-            if (section.getDirection() != direction) {
+            if (section.direction() != direction) {
                 continue;
             }
 
-            int sectionSize = section.getCoordinates().size();
+            int sectionSize = section.coordinates().size();
             for (int i = 0; i < sectionSize; i++) {
                 // skip others
-                if (!p.equals(section.getCoordinates().get(i))) {
+                if (!p.equals(section.coordinates().get(i))) {
                     continue;
                 }
 
@@ -149,8 +149,8 @@ public abstract class RoomConstructor {
                 if (i == 0 || i == (sectionSize - 1)) {
                     Vector3f moveFirst;
                     Vector3f moveSecond;
-                    if (section.getDirection() == WallSection.WallDirection.WEST
-                            || section.getDirection() == WallSection.WallDirection.SOUTH) {
+                    if (section.direction() == WallSection.WallDirection.WEST
+                            || section.direction() == WallSection.WallDirection.SOUTH) {
                         moveFirst = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
                         moveSecond = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
                     } else { // NORTH, EAST
@@ -160,8 +160,8 @@ public abstract class RoomConstructor {
 
                     spatial = new BatchNode();
                     int firstPiece = (i == 0 ? 4 : 6);
-                    if (firstPiece == 4 && (section.getDirection() == WallSection.WallDirection.EAST
-                            || section.getDirection() == WallSection.WallDirection.NORTH)) {
+                    if (firstPiece == 4 && (section.direction() == WallSection.WallDirection.EAST
+                            || section.direction() == WallSection.WallDirection.NORTH)) {
                         firstPiece = 5; // The sorting direction forces us to do this
                     }
 
@@ -173,8 +173,8 @@ public abstract class RoomConstructor {
 
                     // Second
                     int secondPiece = (i == (sectionSize - 1) ? 5 : 6);
-                    if (secondPiece == 5 && (section.getDirection() == WallSection.WallDirection.EAST
-                            || section.getDirection() == WallSection.WallDirection.NORTH)) {
+                    if (secondPiece == 5 && (section.direction() == WallSection.WallDirection.EAST
+                            || section.direction() == WallSection.WallDirection.NORTH)) {
                         secondPiece = 4; // The sorting direction forces us to do this
                     }
 
@@ -189,7 +189,7 @@ public abstract class RoomConstructor {
                     spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i), artResource);
                     spatial.rotate(0, yAngle, 0);
 
-                    switch (section.getDirection()) {
+                    switch (section.direction()) {
                         case WEST:
                             spatial.move(-MapViewController.TILE_WIDTH, 0, 0);
                             break;

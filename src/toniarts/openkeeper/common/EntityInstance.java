@@ -146,7 +146,7 @@ public class EntityInstance<T> {
      * construction?)<br>
      * The order is "natural", starting from origin
      */
-    private final class PointComparator implements Comparator<Point> {
+    private static final class PointComparator implements Comparator<Point> {
 
         @Override
         public int compare(Point o1, Point o2) {

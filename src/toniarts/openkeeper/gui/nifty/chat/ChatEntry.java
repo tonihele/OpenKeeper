@@ -21,28 +21,6 @@ package toniarts.openkeeper.gui.nifty.chat;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChatEntry {
-
-    private final String label;
-    private final int playerId;
-    private final short keeperId;
-
-    public ChatEntry(String label, int playerId, short keeperId) {
-        this.label = label;
-        this.playerId = playerId;
-        this.keeperId = keeperId;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public int getPlayerId() {
-        return playerId;
-    }
-
-    public short getKeeperId() {
-        return keeperId;
-    }
+public record ChatEntry(String label, int playerId, short keeperId) {
 
 }

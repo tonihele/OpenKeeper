@@ -43,14 +43,12 @@ public class ServerListener implements MessageListener<HostedConnection> {
 //            source.getServer().broadcast(message);
 //
 //        } else
-        if (message instanceof MessageTime) {
+        if (message instanceof MessageTime msg) {
             // Send the latest game time back
-            MessageTime msg = (MessageTime) message;
             long time = host.getGameTime();
             source.send(msg.updateGameTime(time).setReliable(true));
 
-        } else if (message instanceof MessagePlayerInfo) {
-            MessagePlayerInfo msg = (MessagePlayerInfo) message;
+        } else if (message instanceof MessagePlayerInfo msg) {
 
             // Send a message back to the player with their entity ID
             source.send(new MessagePlayerInfo(msg.getName(), msg.getMemory()).setReliable(true));

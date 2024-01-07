@@ -33,7 +33,7 @@ public abstract class ServerQuery extends Thread {
     
     private static final Logger logger = System.getLogger(ServerQuery.class.getName());
     
-    private LinkedList<NetworkServer> queue;
+    private final LinkedList<NetworkServer> queue;
 
     public ServerQuery(LinkedList queue) {
         this.queue = queue;

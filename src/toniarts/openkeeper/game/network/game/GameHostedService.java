@@ -385,8 +385,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         public void messageReceived(HostedConnection source, Message message) {
             ClientInfo clientInfo = playersByConnection.get(source);
 
-            if (message instanceof GameLoadProgressData) {
-                GameLoadProgressData data = (GameLoadProgressData) message;
+            if (message instanceof GameLoadProgressData data) {
                 logger.log(Level.TRACE, "onLoadStatus({0},{1})", new Object[]{data.getProgress(), clientInfo.getKeeper().getId()});
 
                 clientInfo.setLoadingProgress(data.getProgress());
