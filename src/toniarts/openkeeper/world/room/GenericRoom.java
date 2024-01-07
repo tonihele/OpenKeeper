@@ -295,7 +295,7 @@ public abstract class GenericRoom {
         float yAngle = FastMath.PI;
         String resource = roomInstance.getRoom().getCompleteResource().getName();
 
-        for (WallSection section : roomInstance.getWallSections()) {
+        /*for (WallSection section : roomInstance.getWallSections()) {
 
             if (section.getDirection() != direction) {
                 continue;
@@ -371,7 +371,7 @@ public abstract class GenericRoom {
 
                 return spatial;
             }
-        }
+        }*/
 
         return null;
     }

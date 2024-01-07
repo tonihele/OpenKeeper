@@ -408,7 +408,7 @@ public abstract class AbstractRoomController implements IRoomController {
      * @param roomId the room ID
      * @return the object ID for the room pillar or {@code null} if not found
      */
-    protected final static Short getPillarObject(short roomId) {
+    protected static Short getPillarObject(short roomId) {
 
         // FIXME: Is this data available somewhere??
         switch (roomId) {

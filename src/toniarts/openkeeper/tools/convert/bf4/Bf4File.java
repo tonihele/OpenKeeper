@@ -350,7 +350,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
     /**
      * Small class to write in 4-bits
      */
-    private class FourBitWriter {
+    private static class FourBitWriter {
 
         private final byte[] data;
         private int position = 0;

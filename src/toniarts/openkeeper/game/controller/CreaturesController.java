@@ -192,8 +192,7 @@ public class CreaturesController implements ICreaturesController {
         Thing.HeroParty.Objective objective = null;
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
-        if (creature instanceof Thing.GoodCreature) {
-            Thing.GoodCreature goodCreature = (Thing.GoodCreature) creature;
+        if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
             level = goodCreature.getLevel();
@@ -201,20 +200,17 @@ public class CreaturesController implements ICreaturesController {
             objective = goodCreature.getObjective();
             objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
             objectiveTargetActionPointId = goodCreature.getObjectiveTargetActionPointId();
-        } else if (creature instanceof Thing.NeutralCreature) {
-            Thing.NeutralCreature neutralCreature = (Thing.NeutralCreature) creature;
+        } else if (creature instanceof Thing.NeutralCreature neutralCreature) {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
             level = neutralCreature.getLevel();
             ownerId = Player.NEUTRAL_PLAYER_ID;
-        } else if (creature instanceof Thing.KeeperCreature) {
-            Thing.KeeperCreature keeperCreature = (Thing.KeeperCreature) creature;
+        } else if (creature instanceof Thing.KeeperCreature keeperCreature) {
             triggerId = keeperCreature.getTriggerId();
             healthPercentage = keeperCreature.getInitialHealth();
             level = keeperCreature.getLevel();
             ownerId = keeperCreature.getPlayerId();
-        } else if (creature instanceof Thing.DeadBody) {
-            Thing.DeadBody deadBody = (Thing.DeadBody) creature;
+        } else if (creature instanceof Thing.DeadBody deadBody) {
             ownerId = deadBody.getPlayerId();
         }
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),

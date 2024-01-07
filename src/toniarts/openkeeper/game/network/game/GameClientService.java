@@ -214,8 +214,7 @@ public class GameClientService extends AbstractClientService
 
         @Override
         public void messageReceived(Client source, Message message) {
-            if (message instanceof GameLoadProgressData) {
-                GameLoadProgressData data = (GameLoadProgressData) message;
+            if (message instanceof GameLoadProgressData data) {
                 logger.log(Level.TRACE, "onLoadStatusUpdate({0},{1})", new Object[]{data.getProgress(), data.getKeeperId()});
                 for (GameSessionListener l : listeners.getArray()) {
                     l.onLoadStatusUpdate(data.getProgress(), data.getKeeperId());

@@ -80,7 +80,7 @@ public class HeroGateThreeByOne extends GenericRoom {
         // Get the wall points
         //Point center = roomInstance.getCenter();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        for (WallSection section : roomInstance.getWallSections()) {
+        /*for (WallSection section : roomInstance.getWallSections()) {
 
             int i = 0;
             int sectionSize = section.getCoordinates().size();
@@ -113,7 +113,7 @@ public class HeroGateThreeByOne extends GenericRoom {
                 //tile.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(tile);
             }
-        }
+        }*/
         return root;
     }
 

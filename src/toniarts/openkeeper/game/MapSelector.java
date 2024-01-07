@@ -165,39 +165,23 @@ public class MapSelector {
     /**
      * Compares the maps by their name
      */
-    private class MapComparator implements Comparator<GameMapContainer> {
+    private static class MapComparator implements Comparator<GameMapContainer> {
 
         @Override
         public int compare(GameMapContainer o1, GameMapContainer o2) {
-            return o1.getMapName().compareToIgnoreCase(o2.getMapName());
+            return o1.mapName().compareToIgnoreCase(o2.mapName());
         }
 
     }
 
     /**
-     * Small container class that holds the actual map data and the name
-     */
-    public class GameMapContainer {
-
-        private final KwdFile map;
-        private final String mapName;
-
-        public GameMapContainer(KwdFile map, String mapName) {
-            this.map = map;
-            this.mapName = mapName;
-        }
-
-        public KwdFile getMap() {
-            return map;
-        }
-
-        public String getMapName() {
-            return mapName;
-        }
+         * Small container class that holds the actual map data and the name
+         */
+        public record GameMapContainer(KwdFile map, String mapName) {
 
         @Override
-        public String toString() {
-            return mapName;
+            public String toString() {
+                return mapName;
+            }
         }
-    }
 }

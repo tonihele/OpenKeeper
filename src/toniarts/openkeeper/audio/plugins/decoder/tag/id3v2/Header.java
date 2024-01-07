@@ -33,20 +33,20 @@ import toniarts.openkeeper.audio.plugins.decoder.tag.TagException;
 final class Header {
 
     private final static int MAXIMUM_TAGSIZE = 256000000;
-    private boolean unsynchronizated;
+    private final boolean unsynchronizated;
     private boolean extendedHeader;
     private boolean experimental;
     private boolean footer;
     private boolean tagIsUpdate;
     private boolean tagRestrictions;
-    private int version;
-    private int tagSize;
+    private final int version;
+    private final int tagSize;
     private int extendedHeaderTagSize;
     private int paddingSize;
     private boolean protection;
     private long crc;
     private int skippedDataLength;
-    private ID3v2 tag;
+    private final ID3v2 tag;
 
     // Checks an ID3v2 header from an input stream.
     Header(InputStream stream, ID3v2 tag) throws TagException, IOException {

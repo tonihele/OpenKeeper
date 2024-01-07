@@ -89,23 +89,25 @@ public class TriggerControl extends Control {
         for (int i = trigger.getLastTriggerIndex() + 1; i < trigger.getQuantity(); i++) {
             TriggerData value = trigger.getChild(i);
 
-            if (value == null) {
-                logger.log(Level.WARNING, "Trigger is null!");
+            switch (value) {
+                case null -> logger.log(Level.WARNING, "Trigger is null!");
+                case TriggerGenericData triggerGenericData -> {
 
-            } else if (value instanceof TriggerGenericData) {
-
-                if (next == null && isActive((TriggerGenericData) value)) {
-                    trigger.setLastTrigger((TriggerGenericData) value);
-                    next = (TriggerGenericData) value;
+                    if (next == null && isActive(triggerGenericData)) {
+                        trigger.setLastTrigger((TriggerGenericData) value);
+                        next = (TriggerGenericData) value;
+                    }
                 }
+                case TriggerActionData triggerActionData -> {
 
-            } else if (value instanceof TriggerActionData) {
-
-                //System.out.println(String.format("%s: %d %s", this.getClass().getSimpleName(), trigger.getId(), trigger.getType()));
-                doAction((TriggerActionData) value);
-                if (!trigger.isRepeateable()) {
-                    trigger.detachChild(value);
-                    i--;
+                    //System.out.println(String.format("%s: %d %s", this.getClass().getSimpleName(), trigger.getId(), trigger.getType()));
+                    doAction(triggerActionData);
+                    if (!trigger.isRepeateable()) {
+                        trigger.detachChild(value);
+                        i--;
+                    }
+                }
+                default -> {
                 }
             }
         }

@@ -63,7 +63,7 @@ public class GameClientState extends AbstractPauseAwareState {
     
     private static final Logger logger = System.getLogger(GameClientState.class.getName());
 
-    private Main app;
+    private final Main app;
 
     private AppStateManager stateManager;
 
