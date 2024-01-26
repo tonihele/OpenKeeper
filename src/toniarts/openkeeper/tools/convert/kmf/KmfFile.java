@@ -207,7 +207,7 @@ public final class KmfFile {
 
         m.setFlag(rawKmf.readIntegerAsFlag(Material.MaterialFlag.class));
         m.setBrightness(rawKmf.readFloat());
-        m.setGamma(rawKmf.readFloat());
+        m.setShininess(rawKmf.readFloat());
 
         // Environment map
         m.setEnvironmentMappingTexture(rawKmf.readVaryingLengthStrings(1).get(0));

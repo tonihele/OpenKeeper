@@ -666,7 +666,7 @@ public final class KmfModelLoader implements AssetLoader {
             material.setTexture("DiffuseMap", tex);
             material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
             material.setColor("Diffuse", ColorRGBA.White); // Experimental
-            material.setFloat("Shininess", 128 * mat.getBrightness()); // Use the brightness as shininess... Experimental
+            material.setFloat("Shininess", mat.getShininess());
 
             // Set some flags
             setMaterialFlags(material, mat);
