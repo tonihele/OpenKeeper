@@ -33,7 +33,7 @@ public final class Material {
 
         HAS_ALPHA(0x0001),
         // closely related to 0x1 but both exist in isolation too
-        UNKNOWN2(0x0002), // Some sort of shininess, used e.g. in axe blade, piranha tail
+        DOUBLE_SIDED(0x0002), // Some sort of shininess, used e.g. in axe blade, piranha tail
         ALPHA_ADDITIVE(0x0004), // Also emits "light" / glows..?
         UNKNOWN8(0x0008), // ice? only set on #TRANS25#icey
         UNKNOWN10(0x0010), // only used for 'Angel Bed RibsCreature Bed_Dark Angel2'

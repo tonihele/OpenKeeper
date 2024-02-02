@@ -25,6 +25,7 @@ import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
+import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.material.plugin.export.material.J3MExporter;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
@@ -67,6 +68,7 @@ import toniarts.openkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
+import toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag;
 import toniarts.openkeeper.tools.modelviewer.ModelViewer;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
@@ -563,20 +565,23 @@ public final class KmfModelLoader implements AssetLoader {
     private void setMaterialFlags(Material material, toniarts.openkeeper.tools.convert.kmf.Material kmfMaterial) {
 
         // Read the flags & stuff
-        if (kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA)) {
+        if (kmfMaterial.getFlag().contains(MaterialFlag.HAS_ALPHA)) {
             material.setTransparent(true);
             material.setFloat("AlphaDiscardThreshold", 0.1f);
             material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
         }
-        if (kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE)) {
+        if (kmfMaterial.getFlag().contains(MaterialFlag.ALPHA_ADDITIVE)) {
             material.setTransparent(true);
             material.setFloat("AlphaDiscardThreshold", 0.1f);
             material.getAdditionalRenderState().setDepthWrite(false);
             material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.AlphaAdditive);
         }
 
+        if (kmfMaterial.getFlag().contains(MaterialFlag.DOUBLE_SIDED))
+            material.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
+
         // Shadows thing is just a guess, like, they seem to be small light sources
-        material.setReceivesShadows(!kmfMaterial.getFlag().contains(toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE));
+        material.setReceivesShadows(!kmfMaterial.getFlag().contains(MaterialFlag.ALPHA_ADDITIVE));
     }
 
     /**
