@@ -20,11 +20,11 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -43,7 +43,7 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  */
 public abstract class TgqFile implements AutoCloseable {
     
-    private static final Logger LOGGER = Logger.getLogger(TgqFile.class.getName());
+    private static final Logger logger = System.getLogger(TgqFile.class.getName());
 
     private final IResourceReader file;
     private EAAudioHeader audioHeader;
@@ -173,7 +173,7 @@ public abstract class TgqFile implements AutoCloseable {
                 videoFrameIndex++;
             }
             default -> {
-                LOGGER.log(Level.WARNING, "Unkown tag {0}!", tag);
+                logger.log(Level.WARNING, "Unkown tag {0}!", tag);
             }
         }
 
@@ -233,7 +233,7 @@ public abstract class TgqFile implements AutoCloseable {
                 }
                 default -> {
                     int val = getValue(reader);
-                    LOGGER.log(Level.INFO, "Did not process tag {0}! Value: " + val, tag);
+                    logger.log(Level.INFO, "Did not process tag {0}! Value: " + val, tag);
                 }
             }
         }
@@ -275,7 +275,7 @@ public abstract class TgqFile implements AutoCloseable {
                     return true;
                 }
                 default -> {
-                    LOGGER.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
+                    logger.log(Level.INFO, "Did not process sub stream tag {0}!", subTag);
                     getValue(reader);
                 }
             }

@@ -21,6 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,9 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.SequencedMap;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -48,10 +48,10 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class WadFile {
 
-    private static final Logger LOGGER = Logger.getLogger(WadFile.class.getName());
+    private static final Logger logger = System.getLogger(WadFile.class.getName());
     
     private final Path file;
-    private final Map<String, WadFileEntry> wadFileEntries;
+    private final SequencedMap<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
     private static final int WAD_HEADER_VERSION = 2;
 
@@ -114,7 +114,7 @@ public class WadFile {
             // The file names itself aren't unique, but with the path they are
             rawWad.seek(nameOffset);
             byte[] nameArray = rawWad.read(nameSize);
-            wadFileEntries = new LinkedHashMap<>(files);
+            wadFileEntries = LinkedHashMap.newLinkedHashMap(files);
             String path = "";
             for (WadFileEntry entry : entries) {
                 int offset = entry.getNameOffset() - nameOffset;
@@ -379,7 +379,7 @@ public class WadFile {
             }
         } // Of while()
         if (!finished) {
-            LOGGER.log(Level.WARNING, "File {0} might not be successfully extracted!", fileName);
+            logger.log(Level.WARNING, "File {0} might not be successfully extracted!", fileName);
         }
         return dest;
     }

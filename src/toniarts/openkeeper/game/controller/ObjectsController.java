@@ -19,11 +19,11 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
@@ -56,7 +56,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -67,7 +67,7 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class ObjectsController implements IObjectsController {
 
-    private static final Logger LOGGER = Logger.getLogger(ObjectsController.class.getName());
+    private static final Logger logger = System.getLogger(ObjectsController.class.getName());
     
     public final static short OBJECT_GOLD_ID = 1;
     //public final static short OBJECT_GOLD_BAG_ID = 2;
@@ -133,7 +133,7 @@ public class ObjectsController implements IObjectsController {
                 }
                 loadObject(object);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
+                logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
     }
@@ -181,7 +181,7 @@ public class ObjectsController implements IObjectsController {
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
-        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? MapLoader.UNDERFLOOR_HEIGHT : MapLoader.FLOOR_HEIGHT); // FIXME: no
+        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? MapViewController.UNDERFLOOR_HEIGHT : MapViewController.FLOOR_HEIGHT); // FIXME: no
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components

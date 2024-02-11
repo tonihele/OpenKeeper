@@ -44,8 +44,7 @@ public interface ObjectiveTask extends Task {
     default Task getNextTask() {
         Task nextTask = getTaskQueue().peekFirst();
         if (nextTask != null) {
-            if (nextTask instanceof ObjectiveTask) {
-                ObjectiveTask nextObjectiveTask = (ObjectiveTask) nextTask;
+            if (nextTask instanceof ObjectiveTask nextObjectiveTask) {
                 nextTask = nextObjectiveTask.getNextTask();
                 if (nextTask == null) {
                     getTaskQueue().removeFirst();
@@ -67,8 +66,7 @@ public interface ObjectiveTask extends Task {
     default Task getCurrentTask() {
         Task nextTask = getTaskQueue().peekFirst();
         if (nextTask != null) {
-            if (nextTask instanceof ObjectiveTask) {
-                ObjectiveTask nextObjectiveTask = (ObjectiveTask) nextTask;
+            if (nextTask instanceof ObjectiveTask nextObjectiveTask) {
                 nextObjectiveTask.getCurrentTask();
             }
             return nextTask;

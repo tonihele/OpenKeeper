@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.data.IIndexable;
  * @deprecated temporary file. Maybe we should delete it
  * @author ArchDemon
  */
+@Deprecated
 public enum HornyType implements IIndexable {
 
     HORNG014(1);

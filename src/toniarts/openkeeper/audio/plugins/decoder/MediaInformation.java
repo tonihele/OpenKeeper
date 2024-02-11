@@ -176,9 +176,7 @@ public class MediaInformation extends HashMap<String, Object> implements Hashkey
      */
     public final void embed(MediaInformation information) {
         if (information != null) {
-            for (Map.Entry<String, Object> entry : information.entrySet()) {
-                put(entry.getKey(), entry.getValue());
-            }
+            this.putAll(information);
         }
     }
 

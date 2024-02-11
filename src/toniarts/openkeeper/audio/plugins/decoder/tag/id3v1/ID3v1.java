@@ -77,19 +77,19 @@ public final class ID3v1 extends Tag {
     }
 
     private void buildKeyMapTable() {
-        if (!title.trim().equals("")) {
+        if (!title.trim().isEmpty()) {
             put(S_TITLE, title);
         }
-        if (!artist.trim().equals("")) {
+        if (!artist.trim().isEmpty()) {
             put(S_ARTIST, artist);
         }
-        if (!album.trim().equals("")) {
+        if (!album.trim().isEmpty()) {
             put(S_ALBUM, album);
         }
-        if (!year.trim().equals("")) {
+        if (!year.trim().isEmpty()) {
             put(S_YEAR, year);
         }
-        if (!comment.trim().equals("")) {
+        if (!comment.trim().isEmpty()) {
             put(S_COMMENT, comment);
         }
         if (genre >= 0 && genre < GENRE.length) {
@@ -101,7 +101,7 @@ public final class ID3v1 extends Tag {
             t[0] = (byte) track;
             String buffer = new String(t);
 
-            if (!buffer.trim().equals("")) {
+            if (!buffer.trim().isEmpty()) {
                 put(S_TRACK, buffer);
             }
         }

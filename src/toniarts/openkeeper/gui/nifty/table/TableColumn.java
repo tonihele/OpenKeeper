@@ -21,41 +21,14 @@ import de.lessvoid.nifty.tools.Color;
 /**
  * Table column model
  *
+ * @param type Either string or boolean
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TableColumn {
-
-    private final String header;
-    private final int width;
-    private final Class type; // Either string or boolean
-    private final Color color;
-
-    public TableColumn(String header, int width, Class type, Color color) {
-        this.header = header;
-        this.width = width;
-        this.type = type;
-        this.color = color;
-    }
-
-    public String getHeader() {
-        return header;
-    }
-
-    public Color getColor() {
-        return color;
-    }
-
-    public Class getType() {
-        return type;
-    }
-
-    public int getWidth() {
-        return width;
-    }
+public record TableColumn(String header, int width, Class type, Color color) {
 
     protected static TableColumn parse(String property) throws ClassNotFoundException {
         String[] params = property.split(";");
-        return new TableColumn(params[0], Integer.valueOf(params[1]), Class.forName(params[2]), new Color(params[3]));
+        return new TableColumn(params[0], Integer.parseInt(params[1]), Class.forName(params[2]), new Color(params[3]));
     }
 
     @Override

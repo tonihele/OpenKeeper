@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.ILoader;
+import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 
 /**

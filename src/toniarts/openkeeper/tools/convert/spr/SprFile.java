@@ -21,13 +21,13 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -46,7 +46,7 @@ public class SprFile {
         protected int framesCount;
     }
     
-    private static final Logger LOGGER = Logger.getLogger(SprFile.class.getName());
+    private static final Logger logger = System.getLogger(SprFile.class.getName());
 
     public static final int[] PALETTE = getHalftonePalette();
 
@@ -80,7 +80,7 @@ public class SprFile {
         header.tag = dataReader.readString(4);
 
         if (!header.tag.equals(PSFB)) {
-            LOGGER.log(Level.SEVERE, "This is not sprite file");
+            logger.log(Level.ERROR, "This is not sprite file");
             throw new RuntimeException("This is not sprite file");
         }
 

@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -48,7 +48,7 @@ public class PartyController implements IPartyController {
     private final short partyId;
     private final int triggerId;
     private final String name;
-    private final Map<Thing.GoodCreature, ICreatureController> members;
+    private final SequencedMap<Thing.GoodCreature, ICreatureController> members;
     private PartyType type;
     private ICreatureController leader;
     private boolean created = false;
@@ -57,7 +57,7 @@ public class PartyController implements IPartyController {
         partyId = heroParty.getId();
         name = heroParty.getName();
         triggerId = heroParty.getTriggerId();
-        members = new LinkedHashMap<>(heroParty.getHeroPartyMembers().size());
+        members = LinkedHashMap.newLinkedHashMap(heroParty.getHeroPartyMembers().size());
         for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
             members.put(creature, null);
         }

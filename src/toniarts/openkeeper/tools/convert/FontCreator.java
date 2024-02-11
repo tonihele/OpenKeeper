@@ -42,37 +42,14 @@ public class FontCreator {
     private final String description;
     private final List<FontImage> fontImages;
 
-    // TODO: Perfect candidate for being a record :)
-    public class FontImage {
-
-        private final String fileName;
-        private final BufferedImage fontImage;
-        private final int page;
-
-        public FontImage(String fileName, BufferedImage fontImage, int page) {
-            this.fileName = fileName;
-            this.fontImage = fontImage;
-            this.page = page;
-        }
-
-        public String getFileName() {
-            return fileName;
-        }
-
-        public BufferedImage getFontImage() {
-            return fontImage;
-        }
-
-        public int getPage() {
-            return page;
-        }
+    public record FontImage(String fileName, BufferedImage fontImage, int page) {
 
         @Override
-        public String toString() {
-            return "FontImage{" + "fileName=" + fileName + ", page=" + page + '}';
-        }
+            public String toString() {
+                return "FontImage{" + "fileName=" + fileName + ", page=" + page + '}';
+            }
 
-    }
+        }
 
     public FontCreator(Bf4File fontFile, int fontSize, String fileName) {
         fontImages = new ArrayList<>();
@@ -148,59 +125,61 @@ public class FontCreator {
         int y = 0;
         int page = 0;
 
-        Set<Integer> insertedChars = new HashSet<>(fontFile.getCount());
+        Set<Integer> insertedChars = HashSet.newHashSet(fontFile.getCount());
         for (Bf4Entry entry : fontFile) {
-            if (!insertedChars.contains((int) entry.getCharacter())) {
-                insertedChars.add((int) entry.getCharacter());
-                if (entry.getImage() != null) {
+            if (insertedChars.contains((int) entry.getCharacter())) {
+                continue;
+            }
 
-                    // See if we still fit & draw
-                    if (x + entry.getWidth() > fontImage.getWidth()) {
-                        x = 0;
-                        y += fontFile.getMaxHeight();
-                    }
-                    if (y + fontFile.getMaxHeight() > fontImage.getHeight()) {
+            insertedChars.add((int) entry.getCharacter());
+            if (entry.getImage() != null) {
 
-                        // New page entirely
-                        g.dispose();
-                        fontImages.add(createPagedFontImage(fileName, page, fontImage));
-                        fontImage = getFontImage(size);
-                        g = (Graphics2D) fontImage.getGraphics();
+                // See if we still fit & draw
+                if (x + entry.getWidth() > fontImage.getWidth()) {
+                    x = 0;
+                    y += fontFile.getMaxHeight();
+                }
+                if (y + fontFile.getMaxHeight() > fontImage.getHeight()) {
 
-                        x = 0;
-                        y = 0;
-                        page++;
-                    }
+                    // New page entirely
+                    g.dispose();
+                    fontImages.add(createPagedFontImage(fileName, page, fontImage));
+                    fontImage = getFontImage(size);
+                    g = (Graphics2D) fontImage.getGraphics();
 
-                    g.drawImage(entry.getImage(), x, y, null);
+                    x = 0;
+                    y = 0;
+                    page++;
                 }
 
-                // Update description
-                sb.append("char id=");
-                sb.append(Integer.toString(entry.getCharacter()));
-                sb.append("    x=");
-                sb.append(x);
-                sb.append("    y=");
-                sb.append(y);
-                sb.append("    width=");
-                sb.append(entry.getWidth());
-                sb.append("    height=");
-                sb.append(entry.getHeight());
-                sb.append("    xoffset=");
-                sb.append(entry.getOffsetX());
-                sb.append("    yoffset=");
-                sb.append(entry.getOffsetY());
-                sb.append("    xadvance=");
-                sb.append(entry.getOuterWidth());
-                sb.append("    page=");
-                sb.append(page);
-                sb.append("    chnl=0\n");
+                g.drawImage(entry.getImage(), x, y, null);
+            }
 
-                if (entry.getImage() != null) {
+            // Update description
+            sb.append("char id=");
+            sb.append(Integer.toString(entry.getCharacter()));
+            sb.append("    x=");
+            sb.append(x);
+            sb.append("    y=");
+            sb.append(y);
+            sb.append("    width=");
+            sb.append(entry.getWidth());
+            sb.append("    height=");
+            sb.append(entry.getHeight());
+            sb.append("    xoffset=");
+            sb.append(entry.getOffsetX());
+            sb.append("    yoffset=");
+            sb.append(entry.getOffsetY());
+            sb.append("    xadvance=");
+            sb.append(entry.getOuterWidth());
+            sb.append("    page=");
+            sb.append(page);
+            sb.append("    chnl=0\n");
 
-                    // Update the x pos
-                    x += entry.getWidth();
-                }
+            if (entry.getImage() != null) {
+
+                // Update the x pos
+                x += entry.getWidth();
             }
         }
         g.dispose();

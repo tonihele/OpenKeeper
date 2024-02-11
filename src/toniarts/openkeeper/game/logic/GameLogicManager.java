@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.utils.IGameLoopManager;
 
 /**
@@ -28,7 +28,7 @@ import toniarts.openkeeper.utils.IGameLoopManager;
  */
 public class GameLogicManager implements IGameLoopManager {
     
-    private static final Logger LOGGER = Logger.getLogger(GameLogicManager.class.getName());
+    private static final Logger logger = System.getLogger(GameLogicManager.class.getName());
 
     private long ticks = 0;
     private double timeElapsed = 0.0;
@@ -57,13 +57,13 @@ public class GameLogicManager implements IGameLoopManager {
             try {
                 updatable.processTick(tpf, timeElapsed);
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error in game logic tick on " + updatable.getClass() + "!", e);
+                logger.log(Level.ERROR, "Error in game logic tick on " + updatable.getClass() + "!", e);
             }
         }
 
         // Logging
         long tickTime = System.nanoTime() - start;
-        LOGGER.log(tickTime < delta ? Level.FINEST : Level.SEVERE, "Tick took {0} ms!", TimeUnit.MILLISECONDS.convert(tickTime, TimeUnit.NANOSECONDS));
+        logger.log(tickTime < delta ? Level.TRACE : Level.ERROR, "Tick took {0} ms!", TimeUnit.MILLISECONDS.convert(tickTime, TimeUnit.NANOSECONDS));
 
         // Increase ticks & time
         timeElapsed += tpf;

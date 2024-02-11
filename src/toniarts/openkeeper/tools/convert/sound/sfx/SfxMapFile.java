@@ -40,7 +40,7 @@ public class SfxMapFile {
     private final int unknown_2; // not used
 
     private final Path file;
-    private SfxMapFileEntry[] entries;
+    private final SfxMapFileEntry[] entries;
 
     public SfxMapFile(Path file) {
         this.file = file;

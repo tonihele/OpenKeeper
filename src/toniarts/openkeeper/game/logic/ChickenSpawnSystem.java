@@ -76,7 +76,7 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
         maximumFreerangeChickenCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER).getValue();
 
         // Populate entrance list
-        playerControllersById = new HashMap<>(playerControllers.size(), 1f);
+        playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController player : playerControllers) {
             playerControllersById.put(player.getKeeper().getId(), player);
 
@@ -106,10 +106,10 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
         // Listen for freerange chickens
         // For know we know this for the food and decay tag, not very elegant perhaps
         freerangeChickens = objectsController.getEntityData().getEntities(Food.class, Decay.class, Owner.class);
-        freeRangeChickenOwners = new HashMap<>(playerControllersById.size() * maximumFreerangeChickenCount);
-        freeRangeChickensByPlayer = new HashMap<>(playerControllers.size(), 1f);
+        freeRangeChickenOwners = HashMap.newHashMap(playerControllersById.size() * maximumFreerangeChickenCount);
+        freeRangeChickensByPlayer = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController player : playerControllers) {
-            freeRangeChickensByPlayer.put(player.getKeeper().getId(), new HashSet<>(maximumFreerangeChickenCount));
+            freeRangeChickensByPlayer.put(player.getKeeper().getId(), HashSet.newHashSet(maximumFreerangeChickenCount));
         }
         processAddedChickenEntities(freerangeChickens);
     }

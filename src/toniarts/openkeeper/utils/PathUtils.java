@@ -19,6 +19,8 @@ package toniarts.openkeeper.utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -32,13 +34,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
 public class PathUtils {
     
-    private static final Logger LOGGER = Logger.getLogger(PathUtils.class.getName());
+    private static final Logger logger = System.getLogger(PathUtils.class.getName());
 
     private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
     private static final PathTree PATH_CACHE = new PathTree();
@@ -175,7 +175,7 @@ public class PathUtils {
         try {
             return getRealFileName(rootPath, path).substring(rootPath.length());
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
+            logger.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
             return path;
         }
     }
@@ -278,9 +278,9 @@ public class PathUtils {
                 }
             });
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, ex, () -> {
+            logger.log(Level.ERROR, () -> {
                 return "Failed to delete file/folder " + file + "!";
-            });
+            }, ex);
             return false;
         }
         return true;

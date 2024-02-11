@@ -18,6 +18,8 @@ package toniarts.openkeeper.game;
 
 import com.jme3.math.FastMath;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,8 +28,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -40,7 +40,7 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public class MapSelector {
     
-    private static final Logger LOGGER = Logger.getLogger(MapSelector.class.getName());
+    private static final Logger logger = System.getLogger(MapSelector.class.getName());
 
     private final List<GameMapContainer> skirmishMaps = new ArrayList<>();
     private final List<GameMapContainer> multiplayerMaps = new ArrayList<>();
@@ -69,7 +69,7 @@ public class MapSelector {
                 }
             }
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to load the maps!", ex);
+            logger.log(Level.ERROR, "Failed to load the maps!", ex);
         }
 
         // Sort them
@@ -165,39 +165,23 @@ public class MapSelector {
     /**
      * Compares the maps by their name
      */
-    private class MapComparator implements Comparator<GameMapContainer> {
+    private static class MapComparator implements Comparator<GameMapContainer> {
 
         @Override
         public int compare(GameMapContainer o1, GameMapContainer o2) {
-            return o1.getMapName().compareToIgnoreCase(o2.getMapName());
+            return o1.mapName().compareToIgnoreCase(o2.mapName());
         }
 
     }
 
     /**
-     * Small container class that holds the actual map data and the name
-     */
-    public class GameMapContainer {
-
-        private final KwdFile map;
-        private final String mapName;
-
-        public GameMapContainer(KwdFile map, String mapName) {
-            this.map = map;
-            this.mapName = mapName;
-        }
-
-        public KwdFile getMap() {
-            return map;
-        }
-
-        public String getMapName() {
-            return mapName;
-        }
+         * Small container class that holds the actual map data and the name
+         */
+        public record GameMapContainer(KwdFile map, String mapName) {
 
         @Override
-        public String toString() {
-            return mapName;
+            public String toString() {
+                return mapName;
+            }
         }
-    }
 }

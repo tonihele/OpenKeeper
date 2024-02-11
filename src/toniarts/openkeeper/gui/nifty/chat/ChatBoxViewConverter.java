@@ -20,7 +20,8 @@ import de.lessvoid.nifty.controls.ListBox.ListBoxViewConverter;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.tools.Color;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 
 /**
@@ -31,7 +32,7 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  */
 public class ChatBoxViewConverter implements ListBoxViewConverter<ChatEntry> {
 
-    private static final Logger log = Logger.getLogger(ChatBoxViewConverter.class.getName());
+    private static final Logger logger = System.getLogger(ChatBoxViewConverter.class.getName());
     
     private static final String CHAT_LINE_TEXT = "#chat-line-text";
 
@@ -45,18 +46,18 @@ public class ChatBoxViewConverter implements ListBoxViewConverter<ChatEntry> {
     public final void display(final Element listBoxItem, final ChatEntry item) {
         final Element text = listBoxItem.findElementById(CHAT_LINE_TEXT);
         if (text == null) {
-            log.severe("Failed to locate text part of chat line! Can't display entry.");
+            logger.log(Level.ERROR, "Failed to locate text part of chat line! Can't display entry.");
         }
         final TextRenderer textRenderer = text.getRenderer(TextRenderer.class);
         if (textRenderer == null) {
-            log.severe("Text entry of the chat line does not contain the required text renderer.");
+            logger.log(Level.ERROR, "Text entry of the chat line does not contain the required text renderer.");
             return;
         }
-        textRenderer.setText(item.getLabel());
+        textRenderer.setText(item.label());
 
         // If keeper ID is set, color the line
-        if (item.getKeeperId() != 0) {
-            java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.getKeeperId());
+        if (item.keeperId() != 0) {
+            java.awt.Color c = MapThumbnailGenerator.getPlayerColor(item.keeperId());
             textRenderer.setColor(new Color(c.getRed() / 255.0f, c.getGreen() / 255.0f, c.getBlue() / 255.0f, 1f));
         } else {
             textRenderer.setColor(new Color("#bbbcbb"));
@@ -67,15 +68,15 @@ public class ChatBoxViewConverter implements ListBoxViewConverter<ChatEntry> {
     public final int getWidth(final Element listBoxItem, final ChatEntry item) {
         final Element text = listBoxItem.findElementById(CHAT_LINE_TEXT);
         if (text == null) {
-            log.severe("Failed to locate text part of chat line! Can't display entry.");
+            logger.log(Level.ERROR, "Failed to locate text part of chat line! Can't display entry.");
             return 0;
         }
         final TextRenderer textRenderer = text.getRenderer(TextRenderer.class);
         if (textRenderer == null) {
-            log.severe("Text entry of the chat line does not contain the required text renderer.");
+            logger.log(Level.ERROR, "Text entry of the chat line does not contain the required text renderer.");
             return 0;
         }
-        return ((textRenderer.getFont() == null) ? 0 : textRenderer.getFont().getWidth(item.getLabel()));
+        return ((textRenderer.getFont() == null) ? 0 : textRenderer.getFont().getWidth(item.label()));
     }
 
 }

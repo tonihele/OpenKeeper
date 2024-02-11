@@ -22,7 +22,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.tools.convert.map.Effect;
 
 /**
@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.Effect;
 @Deprecated
 public abstract class EffectControl extends AbstractControl {
     
-    private static final Logger log = Logger.getLogger(EffectControl.class.getName());
+    private static final Logger log = System.getLogger(EffectControl.class.getName());
     
     private Effect effect;
 

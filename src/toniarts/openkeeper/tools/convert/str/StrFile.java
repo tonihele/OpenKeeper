@@ -17,6 +17,8 @@
 package toniarts.openkeeper.tools.convert.str;
 
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -24,12 +26,11 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
-import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
+import toniarts.openkeeper.tools.convert.IResourceChunkReader;
 import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 
 /**
@@ -41,7 +42,7 @@ import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
  */
 public class StrFile {
 
-    private static final Logger LOGGER = Logger.getLogger(StrFile.class.getName());
+    private static final Logger logger = System.getLogger(StrFile.class.getName());
     
     private static final String STR_HEADER_IDENTIFIER = "BFST";
     private static final int STR_HEADER_SIZE = 12;
@@ -52,7 +53,7 @@ public class StrFile {
     //
     private final MbToUniFile codePage;
     private final int fileId;
-    private final LinkedHashMap<Integer, String> entries;
+    private final SequencedMap<Integer, String> entries;
 
     /**
      * Constructs a new STR file reader<br>
@@ -101,7 +102,7 @@ public class StrFile {
             Collections.sort(offsetsCopy);
 
             // Decode the entries
-            entries = new LinkedHashMap<>(offsetsCount);
+            entries = LinkedHashMap.newLinkedHashMap(offsetsCount);
             for (int i = 0; i < offsetsCount; i++) {
 
                 // Seek to the data and read it
@@ -112,7 +113,7 @@ public class StrFile {
                 IResourceChunkReader data = rawStr.readChunk(dataLength);
                 // FIXME should we throws Exception?
                 if (data.length() < dataLength) {
-                    LOGGER.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, data.length()});
+                    logger.log(Level.WARNING, "Entry {0} was supposed to be {1} but only {2} could be read!", new Object[]{i, dataLength, data.length()});
                 }
 
                 // Encode the string
@@ -166,7 +167,7 @@ public class StrFile {
             switch (chunkType) {
                 case CHUNK_TYPE_END: { // End
                     if (chunkLength != 0) {
-                        LOGGER.severe("End chunk has non-zero length!");
+                        logger.log(Level.ERROR, "End chunk has non-zero length!");
                         return null;
                     }
                     break;
@@ -183,7 +184,7 @@ public class StrFile {
                 }
                 case CHUNK_TYPE_STRING: { // String
                     if (chunkLength > byteBuffer.remaining()) {
-                        LOGGER.severe("Chunk length exceeds the remaining bytes length!");
+                        logger.log(Level.ERROR, "Chunk length exceeds the remaining bytes length!");
                         return null;
                     }
 
@@ -194,7 +195,7 @@ public class StrFile {
                     break;
                 }
                 default: {
-                    LOGGER.severe("Invalid chunk type!");
+                    logger.log(Level.ERROR, "Invalid chunk type!");
                     return null;
                 }
             }
@@ -269,7 +270,7 @@ public class StrFile {
      *
      * @return the entries
      */
-    public LinkedHashMap<Integer, String> getEntries() {
+    public SequencedMap<Integer, String> getEntries() {
         return entries;
     }
 

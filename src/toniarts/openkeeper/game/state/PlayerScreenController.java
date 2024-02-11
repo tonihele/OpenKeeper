@@ -59,6 +59,8 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -66,8 +68,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -124,7 +124,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         MAIN, QUIT, CONFIRMATION;
     }
     
-    private static final Logger LOGGER = Logger.getLogger(PlayerScreenController.class.getName());
+    private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
@@ -188,7 +188,7 @@ public class PlayerScreenController implements IPlayerScreenController {
         if (type == Type.SELL) {
             this.playButtonSound(GlobalCategory.GUI_SELL);
         }
-        state.interactionState.setInteractionState(type, Integer.valueOf(id));
+        state.interactionState.setInteractionState(type, Integer.parseInt(id));
     }
 
     @Override
@@ -524,7 +524,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             try {
                 nifty.addResourceBundle("level", Main.getResourceBundle(levelResource));
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Failed to load the level dictionary!", ex);
+                logger.log(Level.WARNING, "Failed to load the level dictionary!", ex);
             }
         }
 
@@ -643,7 +643,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             ImageRenderer renderer = panel.getRenderer(ImageRenderer.class);
             renderer.setImage(niftyImage);
         } catch (IOException ex) {
-            LOGGER.log(Level.SEVERE, "Failed to open the background image!", ex);
+            logger.log(Level.ERROR, "Failed to open the background image!", ex);
         }
 
 //        PlayerManaControl manaControl = state.getPlayer().getManaControl();
@@ -1158,7 +1158,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void playSound(String category, String id) {
-        SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.valueOf(id));
+        SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.parseInt(id));
         if (soundHandler != null) {
             soundHandler.play();
         }
@@ -1501,7 +1501,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     }
 
-    private class GameMenu {
+    private static class GameMenu {
 
         protected String title;
         protected String action;

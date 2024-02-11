@@ -35,7 +35,6 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.ThingLoader;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -219,7 +218,7 @@ public class FiveByFiveRotated extends GenericRoom implements ICreatureEntrance 
                             if (animControl != null) {
                                 AnimChannel channel = animControl.createChannel();
                                 channel.setAnim("anim");
-                                AnimationLoader.setLoopModeOnChannel(spatial, channel);
+                                //AnimationLoader.setLoopModeOnChannel(spatial, channel);
 
                                 // Don't batch animated objects, seems not to work
                                 spatial.setBatchHint(Spatial.BatchHint.Never);

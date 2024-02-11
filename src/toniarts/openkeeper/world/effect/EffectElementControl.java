@@ -22,7 +22,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 import static toniarts.openkeeper.world.effect.EffectControl.calculateVelocity;
 
@@ -33,7 +33,7 @@ import static toniarts.openkeeper.world.effect.EffectControl.calculateVelocity;
 @Deprecated
 public abstract class EffectElementControl extends AbstractControl {
     
-    private static final Logger log = Logger.getLogger(EffectElementControl.class.getName());
+    private static final Logger log = System.getLogger(EffectElementControl.class.getName());
     
     private EffectElement effect;
 

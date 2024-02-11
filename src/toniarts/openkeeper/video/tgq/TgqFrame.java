@@ -17,10 +17,11 @@
 package toniarts.openkeeper.video.tgq;
 
 import java.awt.image.BufferedImage;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.BitReader;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 
@@ -37,7 +38,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  */
 public class TgqFrame implements Comparable<TgqFrame> {
     
-    private static final Logger logger = Logger.getLogger(TgqFrame.class.getName());
+    private static final Logger logger = System.getLogger(TgqFrame.class.getName());
 
     private final int width;
     private final int height;
@@ -278,7 +279,7 @@ public class TgqFrame implements Comparable<TgqFrame> {
             code = decodeVlc(bitReader, DC_VLC_BITS, DC_CROMINANCE_VLC)[2];
         }
         if (code < 0) {
-            logger.severe("Invalid DC code!");
+            logger.log(Level.ERROR, "Invalid DC code!");
             return 0xFFFF;
         }
 

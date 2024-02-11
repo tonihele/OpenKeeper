@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class LocalLobby implements LobbyService, LobbyClientService {
 
-    private final Map<Integer, ClientInfo> players = new HashMap<>(4);
+    private final Map<Integer, ClientInfo> players = HashMap.newHashMap(4);
     private final List<LobbySessionListener> listeners = new CopyOnWriteArrayList<>();
     private String map;
     private int maxPlayers = 0;

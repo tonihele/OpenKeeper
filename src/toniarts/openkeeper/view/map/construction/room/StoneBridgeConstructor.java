@@ -25,8 +25,8 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.construction.QuadConstructor;
-import toniarts.openkeeper.world.MapLoader;
 
 /**
  *
@@ -85,7 +85,7 @@ public class StoneBridgeConstructor extends QuadConstructor {
                             piece = 1;
                             yAngle = FastMath.HALF_PI;
                         }
-                        movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                        movement = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -MapViewController.TILE_WIDTH / 4);
                     } else if (i == 1 && k == 0) { // North east corner
                         if (N && E && NE) {
                             piece = 3;
@@ -101,7 +101,7 @@ public class StoneBridgeConstructor extends QuadConstructor {
                         } else {
                             piece = 1;
                         }
-                        movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, -MapLoader.TILE_WIDTH / 4);
+                        movement = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -MapViewController.TILE_WIDTH / 4);
                     } else if (i == 0 && k == 1) { // South west corner
                         if (S && W && SW) {
                             piece = 3;
@@ -117,7 +117,7 @@ public class StoneBridgeConstructor extends QuadConstructor {
                             piece = 1;
                             yAngle = FastMath.PI;
                         }
-                        movement = new Vector3f(-MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                        movement = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, MapViewController.TILE_WIDTH / 4);
                     } else { // South east corner if (i == 1 && k == 1)
                         if (S && E && SE) {
                             piece = 3;
@@ -135,7 +135,7 @@ public class StoneBridgeConstructor extends QuadConstructor {
                             piece = 1;
                             yAngle = -FastMath.HALF_PI;
                         }
-                        movement = new Vector3f(MapLoader.TILE_WIDTH / 4, 0, MapLoader.TILE_WIDTH / 4);
+                        movement = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, MapViewController.TILE_WIDTH / 4);
                     }
 
                     // Load the piece

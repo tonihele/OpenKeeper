@@ -23,6 +23,8 @@ import com.jme3.scene.Node;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +35,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.getAssetsFolder;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -52,7 +52,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class ConvertModels extends ConversionTask {
 
-    private static final Logger LOGGER = Logger.getLogger(ConvertModels.class.getName());
+    private static final Logger logger = System.getLogger(ConvertModels.class.getName());
 
     private final AssetManager assetManager;
     private final ExecutorService executorService;
@@ -82,7 +82,7 @@ public class ConvertModels extends ConversionTask {
             try {
                 executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to wait model saving complete!", ex);
+                logger.log(Level.ERROR, "Failed to wait model saving complete!", ex);
             }
         }
     }
@@ -94,7 +94,7 @@ public class ConvertModels extends ConversionTask {
      * @param destination Destination folder
      */
     private void convertModels(String dungeonKeeperFolder, String destination, AssetManager assetManager) {
-        LOGGER.log(Level.INFO, "Extracting models to: {0}", destination);
+        logger.log(Level.INFO, "Extracting models to: {0}", destination);
         updateStatus(null, null);
         Path dest = Paths.get(destination);
         PathUtils.deleteFolder(dest);
@@ -120,7 +120,7 @@ public class ConvertModels extends ConversionTask {
         } catch (IOException ex) {
             throw new RuntimeException("Could not open the meshes.wad archive!", ex);
         }
-        Map<String, KmfFile> kmfs = new LinkedHashMap<>(wad.getWadFileEntryCount());
+        Map<String, KmfFile> kmfs = LinkedHashMap.newLinkedHashMap(wad.getWadFileEntryCount());
         AtomicInteger progress = new AtomicInteger(0);
         int total = wad.getWadFileEntryCount();
         for (final String entry : wad.getWadFileEntries()) {
@@ -128,7 +128,7 @@ public class ConvertModels extends ConversionTask {
 
                 // See if we already have this model
                 if (!overwriteData && Files.exists(Paths.get(destination, entry.substring(0, entry.length() - 4).concat(".j3o")))) {
-                    LOGGER.log(Level.INFO, "File {0} already exists, skipping!", entry);
+                    logger.log(Level.INFO, "File {0} already exists, skipping!", entry);
                     updateStatus(progress.incrementAndGet(), total);
                     continue;
                 }
@@ -151,7 +151,7 @@ public class ConvertModels extends ConversionTask {
                     return;
                 }
             } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Failed to create a file for WAD entry " + entry + "!", ex);
+                logger.log(Level.ERROR, "Failed to create a file for WAD entry " + entry + "!", ex);
                 throw ex;
             }
         }
@@ -198,13 +198,13 @@ public class ConvertModels extends ConversionTask {
                     updateStatus(progress.incrementAndGet(), total);
                 } catch (Exception ex) {
                     String msg = "Failed to export KMF entry " + name + "!";
-                    LOGGER.log(Level.SEVERE, msg, ex);
+                    logger.log(Level.ERROR, msg, ex);
                     onError(new RuntimeException(msg, ex));
                 }
             });
         } catch (Exception ex) {
             String msg = "Failed to convert KMF entry " + name + "!";
-            LOGGER.log(Level.SEVERE, msg, ex);
+            logger.log(Level.ERROR, msg, ex);
             throw new RuntimeException(msg, ex);
         }
     }

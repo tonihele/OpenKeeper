@@ -22,8 +22,8 @@ import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class ChickenController extends EntityController implements IChickenController {
     
-    private static final Logger LOGGER = Logger.getLogger(ChickenController.class.getName());
+    private static final Logger logger = System.getLogger(ChickenController.class.getName());
 
     private final INavigationService navigationService;
     private final IGameTimer gameTimer;
@@ -113,7 +113,7 @@ public class ChickenController extends EntityController implements IChickenContr
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
-            LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getChickenCoordinates(), destination});
+            logger.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getChickenCoordinates(), destination});
             return true;
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));

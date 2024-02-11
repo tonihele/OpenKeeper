@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
  */
 public class PlayerTrapControl extends AbstractResearchablePlayerControl<Trap, ResearchableEntity, PlayerTrapListener> /*implements RoomListener*/ {
 
-    private int trapCount = 0;
+    private final int trapCount = 0;
 
     public PlayerTrapControl(Keeper keeper, List<Trap> traps) {
         super(keeper, keeper.getAvailableTraps(), traps);

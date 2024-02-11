@@ -53,10 +53,10 @@ final class Frame {
     private byte encryptionId;
     private int frameLength;
     private int skippedDataLength;
-    private int version;
+    private final int version;
     private int unflatedFrameLength;
     private int state;
-    private ID3v2 tag;
+    private final ID3v2 tag;
 
     Frame(InputStream stream, ID3v2 tag, int version) throws IOException, TagException {
         skippedDataLength = 0;

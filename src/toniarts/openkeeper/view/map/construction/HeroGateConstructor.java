@@ -45,18 +45,18 @@ public class HeroGateConstructor extends RoomConstructor {
         int south = 0;
         for (WallSection section : roomInstance.getWallSections()) {
             int i = 0;
-            for (Point p : section.getCoordinates()) {
+            for (Point p : section.coordinates()) {
                 int piece;
 
                 Spatial part;
                 float yAngle = 0;
-                switch (section.getDirection()) {
+                switch (section.direction()) {
                     case SOUTH:
                         piece = (i == 1) ? 5 : 7;
                         break;
 
                     case EAST:
-                        if (section.getCoordinates().size() == 1) {
+                        if (section.coordinates().size() == 1) {
                             piece = 6; // outside gate
                         } else {
                             piece = 7;
@@ -66,7 +66,7 @@ public class HeroGateConstructor extends RoomConstructor {
 
                     case WEST:
                         // FIXME if gate skip walls ???
-                        if (section.getCoordinates().size() == 1) {
+                        if (section.coordinates().size() == 1) {
                             piece = 6; // inside gate
                             yAngle = FastMath.PI;
                         } else {
@@ -96,7 +96,7 @@ public class HeroGateConstructor extends RoomConstructor {
                     part.rotate(0, yAngle, 0);
                 }
                 moveSpatial(part, p);
-                //part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
+                //part.move(-MapViewController.TILE_WIDTH / 2, 0, -MapViewController.TILE_WIDTH / 2);
                 root.attachChild(part);
             }
         }
