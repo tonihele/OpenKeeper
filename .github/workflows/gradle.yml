@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
@@ -27,7 +27,8 @@ jobs:
       with:
         name: distribution
         path: build/distributions/OpenKeeper.zip
-    - uses: marvinpinto/action-automatic-releases@latest
+    - if: github.ref_name == 'releases-test'
+      uses: marvinpinto/action-automatic-releases@latest
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "latest"
