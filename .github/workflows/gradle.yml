@@ -28,8 +28,8 @@ jobs:
       with:
         name: distribution
         path: build/distributions/OpenKeeper.zip
-    - if: github.ref_name == 'releases-test'
-      uses: marvinpinto/action-automatic-releases@latest
+    - uses: marvinpinto/action-automatic-releases@latest
+      if: github.ref_name == 'releases-test'
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "latest"
