@@ -284,6 +284,9 @@ public class Settings {
         // Assing some app level settings
         settings.setTitle(TITLE);
         settings.setIcons(getApplicationIcons());
+
+        // We don't allow this to be changed, assets were not meant to use this
+        settings.setGammaCorrection(false);
     }
 
     /**
