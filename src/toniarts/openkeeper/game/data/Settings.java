@@ -267,10 +267,6 @@ public class Settings {
         // Init the settings
         this.settings = settings;
 
-        //Default resolution
-        if (!this.settings.containsKey("Width") || !this.settings.containsKey("Height")) {
-            this.settings.setResolution(800, 600); // Default resolution
-        }
         if (Files.exists(USER_SETTINGS_FILE)) {
             try (InputStream in = Files.newInputStream(USER_SETTINGS_FILE);
                     BufferedInputStream bin = new BufferedInputStream(in)) {
