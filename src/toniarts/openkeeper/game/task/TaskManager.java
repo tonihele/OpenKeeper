@@ -233,7 +233,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
-            if (oldTaskId != null && taskId == oldTaskId) {
+            if (oldTaskId == null || taskId == oldTaskId) {
                 continue;
             }
 
