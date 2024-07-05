@@ -32,7 +32,6 @@ import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Trains creature
@@ -66,7 +65,12 @@ public class Train extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
+        return getAccessibleTargetNextToLocation(creature);
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+        return true;
     }
 
     @Override
@@ -91,4 +95,8 @@ public class Train extends AbstractCapacityCriticalRoomTask {
         return TaskType.TRAIN;
     }
 
+    @Override
+    public boolean isRemovable() {
+        return true;
+    }
 }
