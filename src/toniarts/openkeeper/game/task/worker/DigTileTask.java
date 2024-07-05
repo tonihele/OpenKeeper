@@ -24,7 +24,6 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Dig a tile task, for workers
@@ -45,23 +44,7 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-
-        // Find an accessible target
-        // TODO: entity's location?
-        for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
-            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
-                if (navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
-
-                    // TODO: intelligent coordinates?
-                    Vector2f target = new Vector2f(p.x, p.y);
-                    if (isReachable(creature, target)) {
-                        return target;
-                    }
-                }
-            }
-        }
-
-        return null;
+        return getAccessibleTargetNextToLocation(creature);
     }
 
     @Override
