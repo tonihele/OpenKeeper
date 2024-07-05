@@ -36,7 +36,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomTraineeControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomTraineeControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
+    protected RoomTraineeControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
         super(kwdFile, parent, objectsController, gameTimer);
     }
 

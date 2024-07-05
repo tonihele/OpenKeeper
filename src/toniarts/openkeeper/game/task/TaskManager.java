@@ -656,27 +656,29 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
-            case GOLD: {
+            case GOLD -> {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
-            case LAIR: {
+            case LAIR -> {
                 return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
             }
-            case RESEARCHER: {
+            case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
             }
-            case PRISONER: {
+            case PRISONER -> {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
-            case SPECIAL:
-            case SPELL_BOOK: {
+            case SPECIAL, SPELL_BOOK -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
-            case TRAINEE: {
+            case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
             }
+            default -> {
+                logger.log(Level.DEBUG, "No task defined for " + objectType);
+                return null;
+            }
         }
-        return null;
     }
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
