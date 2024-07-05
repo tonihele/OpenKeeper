@@ -146,7 +146,7 @@ public class WorldUtils {
             addIfValidCoordinate(mapData, point.x + 1, point.y + 1, tileCoords); // SE
         }
 
-        return tileCoords.toArray(new Point[0]);
+        return tileCoords.toArray(Point[]::new);
     }
 
     private static void addIfValidCoordinate(IMapDataInformation mapData, final int x, final int y, List<Point> tileCoords) {
