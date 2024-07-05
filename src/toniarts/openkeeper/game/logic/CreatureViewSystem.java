@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
+import static toniarts.openkeeper.game.task.TaskType.TRAIN;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -161,6 +162,10 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                 return Creature.AnimationType.SLEEPING;
             case DIG_TILE:
                 return Creature.AnimationType.MELEE_ATTACK;
+            case TRAIN:
+                return Creature.AnimationType.MELEE_ATTACK;
+            case RESEARCH:
+                return Creature.AnimationType.RESEARCHING;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
