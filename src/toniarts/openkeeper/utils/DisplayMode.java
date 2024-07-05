@@ -14,48 +14,43 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.state;
+package toniarts.openkeeper.utils;
 
 import com.jme3.system.AppSettings;
-import java.awt.DisplayMode;
 import java.util.Collection;
+import java.util.Set;
 import java.util.TreeSet;
 
 /**
+ * Our own presentation of display mode. Groups everything under resolution.
  *
  * @author ArchDemon
  */
-public final class MyDisplayMode implements Comparable<MyDisplayMode> {
+public final class DisplayMode implements Comparable<DisplayMode> {
 
-    private final int height;
     private final int width;
-    private final Collection<Integer> refreshRates = new TreeSet<>();
-    private final Collection<Integer> bitDepths = new TreeSet<>();
+    private final int height;
+    private final Set<Integer> refreshRates = new TreeSet<>();
+    private final Set<Integer> bitDepths = new TreeSet<>();
 
-    public MyDisplayMode(DisplayMode dm) {
-        height = dm.getHeight();
-        width = dm.getWidth();
-        addBitDepth(dm);
-        addRefreshRate(dm);
+    public DisplayMode(int width, int height) {
+        this.width = width;
+        this.height = height;
     }
 
-    MyDisplayMode(AppSettings settings) {
+    public DisplayMode(AppSettings settings) {
         height = settings.getHeight();
         width = settings.getWidth();
         bitDepths.add(settings.getBitsPerPixel());
         refreshRates.add(settings.getFrequency());
     }
 
-    public void addRefreshRate(DisplayMode dm) {
-        if (dm.getRefreshRate() != DisplayMode.REFRESH_RATE_UNKNOWN && !refreshRates.contains(dm.getRefreshRate())) {
-            refreshRates.add(dm.getRefreshRate());
-        }
+    protected void addRefreshRate(Integer refreshRate) {
+        refreshRates.add(refreshRate);
     }
 
-    public void addBitDepth(DisplayMode dm) {
-        if (dm.getBitDepth() != DisplayMode.BIT_DEPTH_MULTI && !bitDepths.contains(dm.getBitDepth())) {
-            bitDepths.add(dm.getBitDepth());
-        }
+    protected void addBitDepth(Integer bitDepth) {
+        bitDepths.add(bitDepth);
     }
 
     public int getWidth() {
@@ -67,9 +62,6 @@ public final class MyDisplayMode implements Comparable<MyDisplayMode> {
     }
 
     public Collection<Integer> getBitDepths() {
-        if (bitDepths.isEmpty()) {
-            bitDepths.add(24); // Add default
-        }
         return bitDepths;
     }
 
@@ -85,7 +77,7 @@ public final class MyDisplayMode implements Comparable<MyDisplayMode> {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final MyDisplayMode other = (MyDisplayMode) obj;
+        final DisplayMode other = (DisplayMode) obj;
         if (this.height != other.height) {
             return false;
         }
@@ -106,7 +98,7 @@ public final class MyDisplayMode implements Comparable<MyDisplayMode> {
     }
 
     @Override
-    public int compareTo(MyDisplayMode o) {
+    public int compareTo(DisplayMode o) {
         int result = Integer.compare(width, o.width);
         if (result == 0) {
             result = Integer.compare(height, o.height);
