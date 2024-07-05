@@ -69,21 +69,23 @@ public class Research extends AbstractCapacityCriticalRoomTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
 
         // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+        if (executionDuration - getExecutionDuration(creature) < 1.0f) {
+            return;
+        }
 
-            // Advance players spell research
-            ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerSecond());
-            if (researchableEntity != null) {
+        setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
-                // Create a spell book
-                EntityId entityId = objectsController.addRoomSpellBook((short) 0, getTaskLocation().x, getTaskLocation().y, researchableEntity);
-                entityId = (EntityId) getRoomObjectControl().addItem(entityId, null);
-                if (entityId != null) {
+        // Advance players spell research
+        ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerSecond());
+        if (researchableEntity != null) {
 
-                    // Failed add, wut
-                    objectsController.createController(entityId).remove();
-                }
+            // Create a spell book
+            EntityId entityId = objectsController.addRoomSpellBook((short) 0, getTaskLocation().x, getTaskLocation().y, researchableEntity);
+            entityId = (EntityId) getRoomObjectControl().addItem(entityId, null);
+            if (entityId != null) {
+
+                // Failed add, wut
+                objectsController.createController(entityId).remove();
             }
         }
     }
