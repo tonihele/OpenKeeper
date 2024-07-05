@@ -233,6 +233,10 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            if (oldTaskId != null && taskId == oldTaskId) {
+                continue;
+            }
+
             Task task = tasksByIds.get(oldTaskId);
             if (task != null) {
                 task.unassign(creaturesController.createController(entity.getId()));
