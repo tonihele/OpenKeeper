@@ -72,6 +72,7 @@ import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
@@ -91,6 +92,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -110,6 +112,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final INavigationService navigationService;
     private final ILevelInfo levelInfo;
     private final IEntityPositionLookup entityPositionLookup;
+    private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
     private final EntitySet taskEntities;
     private final EntitySet unconsciousEntities;
@@ -123,7 +126,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
-            Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup) {
+            Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
@@ -132,6 +136,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         this.navigationService = navigationService;
         this.levelInfo = levelInfo;
         this.entityPositionLookup = entityPositionLookup;
+        this.gameSettings = gameSettings;
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -228,6 +233,10 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            if (oldTaskId == null || taskId == oldTaskId) {
+                continue;
+            }
+
             Task task = tasksByIds.get(oldTaskId);
             if (task != null) {
                 task.unassign(creaturesController.createController(entity.getId()));
@@ -615,15 +624,16 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                         return task.isValid(creature);
                     }
 
-                    if (task instanceof AbstractCapacityCriticalRoomTask) {
+                    if (task instanceof AbstractCapacityCriticalRoomTask abstractCapacityCriticalRoomTask) {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
                         }
-                        taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
+                        taskPoints.put(target, abstractCapacityCriticalRoomTask);
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
                     tasksByIds.put(task.getId(), task);
+
                     return true;
                 }
             }
@@ -646,24 +656,29 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
-            case GOLD: {
+            case GOLD -> {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
-            case LAIR: {
+            case LAIR -> {
                 return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
             }
-            case RESEARCHER: {
+            case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
             }
-            case PRISONER: {
+            case PRISONER -> {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
-            case SPECIAL:
-            case SPELL_BOOK: {
+            case SPECIAL, SPELL_BOOK -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
+            case TRAINEE -> {
+                return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+            }
+            default -> {
+                logger.log(Level.DEBUG, "No task defined for " + objectType);
+                return null;
+            }
         }
-        return null;
     }
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
@@ -720,6 +735,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         switch (jobType) {
             case RESEARCH: {
                 return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
+            }
+            case TRAIN: {
+                return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
             }
             default:
                 return false;

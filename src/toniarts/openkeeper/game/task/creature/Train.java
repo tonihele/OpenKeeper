@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2023 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,52 +17,65 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
-import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.Map;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
 /**
- * Research researchable entities for the keeper
+ * Trains creature
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Research extends AbstractCapacityCriticalRoomTask {
+public class Train extends AbstractCapacityCriticalRoomTask {
 
-    private final PlayerResearchControl researchControl;
-    private final IObjectsController objectsController;
+    private final IGameWorldController gameWorldController;
+    private final IPlayerController playerController;
+    private final int trainingRoomMaxExperienceLevel;
+    private final int trainingCost;
 
-    public Research(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerResearchControl researchControl, IObjectsController objectsController) {
+    public Train(final INavigationService navigationService, final IMapController mapController,
+            Point p, short playerId, IRoomController room, TaskManager taskManager,
+            IGameWorldController gameWorldController, Map<MiscType, MiscVariable> gameSettings,
+            IPlayerController playerController) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
-        this.researchControl = researchControl;
-        this.objectsController = objectsController;
+        this.gameWorldController = gameWorldController;
+        this.playerController = playerController;
+
+        trainingRoomMaxExperienceLevel = (int) gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue();
+        trainingCost = Math.abs((int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND).getValue());
     }
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return (researchControl.isAnythingToReaseach() && !getRoom().getObjectControl(getRoomObjectType()).isFullCapacity());
+        return playerController.getKeeper().getGold() >= trainingCost && creature.getLevel() < trainingRoomMaxExperienceLevel && super.isValid(creature);
     }
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
+        return getAccessibleTargetNextToLocation(creature);
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+        return true;
     }
 
     @Override
     protected ObjectType getRoomObjectType() {
-        return ObjectType.SPELL_BOOK;
+        return ObjectType.TRAINEE;
     }
 
     @Override
@@ -74,25 +87,16 @@ public class Research extends AbstractCapacityCriticalRoomTask {
         }
 
         setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
-
-        // Advance players spell research
-        ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerSecond());
-        if (researchableEntity != null) {
-
-            // Create a spell book
-            EntityId entityId = objectsController.addRoomSpellBook((short) 0, getTaskLocation().x, getTaskLocation().y, researchableEntity);
-            entityId = (EntityId) getRoomObjectControl().addItem(entityId, null);
-            if (entityId != null) {
-
-                // Failed add, wut
-                objectsController.createController(entityId).remove();
-            }
-        }
+        gameWorldController.substractGold(trainingCost, playerId);
     }
 
     @Override
     public TaskType getTaskType() {
-        return TaskType.RESEARCH;
+        return TaskType.TRAIN;
     }
 
+    @Override
+    public boolean isRemovable() {
+        return true;
+    }
 }

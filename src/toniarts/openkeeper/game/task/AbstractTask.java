@@ -158,6 +158,35 @@ public abstract class AbstractTask implements Task {
         return (navigationService.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
     }
 
+    /**
+     * Tries to find a accessible target, a tile next to a tile where the task
+     * is supposed to happen
+     *
+     * @param creature the creature trying to reach this
+     * @return task location next to the wanted tile
+     */
+    protected Vector2f getAccessibleTargetNextToLocation(ICreatureController creature) {
+        for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+            for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+                if (p.equals(getTaskLocation())) {
+                    continue;
+                }
+
+                if (!navigationService.isAccessible(mapController.getMapData().getTile(p), mapController.getMapData().getTile(taskPerformLocation), creature)) {
+                    continue;
+                }
+
+                // TODO: intelligent coordinates?
+                Vector2f target = new Vector2f(p.x, p.y);
+                if (isReachable(creature, target)) {
+                    return target;
+                }
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public boolean isFaceTarget() {
         return false;
