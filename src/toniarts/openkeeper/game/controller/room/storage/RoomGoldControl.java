@@ -48,7 +48,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
 
     @Override
     public Integer addItem(Integer sum, Point p) {
-        if (p != null) {
+        if (p != null && parent.isTileAccessible(null, p)) {
             sum = putGold(sum, p);
         }
 
