@@ -65,13 +65,13 @@ abstract class Output extends Initializer {
     int counter;
     private float[] frameBufferZeroValues;
     private byte[] buffer, zeroBuffer;
-    private int obuffersize;
-    private int frameBufferAnalyzerSize;
+    private final int obuffersize;
+    private final int frameBufferAnalyzerSize;
     private int readPos, size;
     private int flushCount = 0;
     private boolean frequencyMode;
     private boolean switched;
-    private boolean bigEndian;
+    private final boolean bigEndian;
 
     /**
      * Constructs an instance of
@@ -144,9 +144,9 @@ abstract class Output extends Initializer {
     private void setNumberOfOccupiedSubbands() {
         Frame i = (Frame) information;
 
-        int frequency = ((Integer) i.get(AudioInformation.I_SAMPLE_RATE)).intValue();
+        int frequency = (Integer) i.get(AudioInformation.I_SAMPLE_RATE);
 
-        int deviceFrequencyLimit = ((Integer) info.get(AudioInformation.I_DEVICE_SAMPLE_RATE)).intValue();
+        int deviceFrequencyLimit = (Integer) info.get(AudioInformation.I_DEVICE_SAMPLE_RATE);
 
         if (deviceFrequencyLimit >= frequency) {
             return;

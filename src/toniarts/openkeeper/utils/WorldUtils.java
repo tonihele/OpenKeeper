@@ -25,7 +25,7 @@ import java.util.List;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * Contains transforms from tile indexes and world coordinates
@@ -46,7 +46,7 @@ public class WorldUtils {
      * @return position on 3D world with y = 0
      */
     public static Vector3f pointToVector3f(final int x, final int y) {
-        return new Vector3f(x * MapLoader.TILE_WIDTH, 0, y * MapLoader.TILE_WIDTH);
+        return new Vector3f(x * MapViewController.TILE_WIDTH, 0, y * MapViewController.TILE_WIDTH);
     }
 
     /**
@@ -58,9 +58,9 @@ public class WorldUtils {
     public static Vector3f ActionPointToVector3f(final ActionPoint ap) {
 
         return new Vector3f(
-                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapLoader.TILE_WIDTH,
+                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapViewController.TILE_WIDTH,
                 0,
-                (ap.getStart().y + ap.getEnd().y) / 2.0f * MapLoader.TILE_WIDTH);
+                (ap.getStart().y + ap.getEnd().y) / 2.0f * MapViewController.TILE_WIDTH);
     }
 
     /**
@@ -72,8 +72,8 @@ public class WorldUtils {
     public static Vector2f ActionPointToVector2f(final ActionPoint ap) {
 
         return new Vector2f(
-                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapLoader.TILE_WIDTH,
-                (ap.getStart().y + ap.getEnd().y) / 2.0f * MapLoader.TILE_WIDTH);
+                (ap.getStart().x + ap.getEnd().x) / 2.0f * MapViewController.TILE_WIDTH,
+                (ap.getStart().y + ap.getEnd().y) / 2.0f * MapViewController.TILE_WIDTH);
     }
 
     /**
@@ -86,7 +86,7 @@ public class WorldUtils {
     }
 
     public static Vector2f pointToVector2f(final int x, final int y) {
-        return new Vector2f(x * MapLoader.TILE_WIDTH, y * MapLoader.TILE_WIDTH);
+        return new Vector2f(x * MapViewController.TILE_WIDTH, y * MapViewController.TILE_WIDTH);
     }
 
     public static Vector2f pointToVector2f(final Point p) {
@@ -94,7 +94,7 @@ public class WorldUtils {
     }
 
     public static Vector2 pointToVector2(final int x, final int y) {
-        return new Vector2(x * MapLoader.TILE_WIDTH, y * MapLoader.TILE_WIDTH);
+        return new Vector2(x * MapViewController.TILE_WIDTH, y * MapViewController.TILE_WIDTH);
     }
 
     public static Vector2 pointToVector2(final Point p) {
@@ -114,7 +114,7 @@ public class WorldUtils {
     }
 
     public static Point vectorToPoint(final float x, final float y) {
-        return new Point(Math.round(x / MapLoader.TILE_WIDTH), Math.round(y / MapLoader.TILE_WIDTH));
+        return new Point(Math.round(x / MapViewController.TILE_WIDTH), Math.round(y / MapViewController.TILE_WIDTH));
     }
 
     public static Vector2 vector3fToVector2(Vector3f v) {
@@ -146,7 +146,7 @@ public class WorldUtils {
             addIfValidCoordinate(mapData, point.x + 1, point.y + 1, tileCoords); // SE
         }
 
-        return tileCoords.toArray(new Point[0]);
+        return tileCoords.toArray(Point[]::new);
     }
 
     private static void addIfValidCoordinate(IMapDataInformation mapData, final int x, final int y, List<Point> tileCoords) {

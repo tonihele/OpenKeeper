@@ -64,11 +64,11 @@ public class MapTile implements EntityComponent {
         this.index = mapTile.index;
 
         if (mapTile.selection != null && !mapTile.selection.isEmpty()) {
-            this.selection = new HashMap<>(4, 1);
+            this.selection = HashMap.newHashMap(4);
             this.selection.putAll(mapTile.selection);
         }
         if (mapTile.flashing != null && !mapTile.flashing.isEmpty()) {
-            this.flashing = new HashMap<>(4, 1);
+            this.flashing = HashMap.newHashMap(4);
             this.flashing.putAll(mapTile.flashing);
         }
     }

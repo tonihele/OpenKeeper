@@ -70,7 +70,7 @@ public class LobbyUtils {
             Collections.sort(keepers, (ClientInfo o1, ClientInfo o2) -> Short.compare(o2.getKeeper().getId(), o1.getKeeper().getId()));
             int playersToKick = players.size() - maxPlayers;
             int playersKicked = 0;
-            kickedPlayers = new HashSet<>(playersToKick);
+            kickedPlayers = HashSet.newHashSet(playersToKick);
             for (ClientInfo keeper : keepers) {
                 if (keeper.getKeeper().isAi()) {
                     kickedPlayers.add(keeper);

@@ -42,16 +42,14 @@ import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
@@ -84,6 +82,8 @@ import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.DisplayMode;
+import toniarts.openkeeper.utils.DisplayModeUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 
@@ -93,7 +93,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public class MainMenuScreenController implements IMainMenuScreenController {
     
-    private static final Logger LOGGER = Logger.getLogger(MainMenuScreenController.class.getName());
+    private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -178,7 +178,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         TextField port = screen.findNiftyControl("gamePort", TextField.class);
 
         state.multiplayerCreate(game.getRealText(),
-                Integer.valueOf(port.getRealText()),
+                Integer.parseInt(port.getRealText()),
                 player.getRealText());
 
         // Overlay
@@ -191,7 +191,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         /*
          ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
          if (games == null) {
-         logger.warning("Element multiplayerGamesTable not found");
+         logger.log(Level.WARNING, "Element multiplayerGamesTable not found");
          return;
          }
          TableRow row = games.getFocusItem();
@@ -234,7 +234,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
          ListBox<TableRow> games = screen.findNiftyControl("multiplayerGamesTable", ListBox.class);
          if (games == null) {
-         logger.warning("Element multiplayerGamesTable not found");
+         logger.log(Level.WARNING, "Element multiplayerGamesTable not found");
          return;
          }
          games.clear();
@@ -271,7 +271,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
-        MyDisplayMode mdm = (MyDisplayMode) res.getSelection();
+        DisplayMode mdm = (DisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
         // Set the settings
@@ -413,7 +413,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 // Ask for players and map
                 refreshPlayerList(lobbyState.getLobbySession().getPlayers());
-                populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()).getMap());
+                populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()).map());
 
                 Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
                 if (title != null) {
@@ -568,7 +568,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     @NiftyEventSubscriber(id = "resolution")
-    public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<MyDisplayMode> event) {
+    public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<DisplayMode> event) {
 
         // Set the bit depths
         DropDown bitDepth = screen.findNiftyControl("bitDepth", DropDown.class);
@@ -609,7 +609,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             return;
         }
 
-        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).getMap();
+        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).map();
         if (state.mapSelector.isMPD()) {
             // on mpd we show the briefing
             state.selectedLevel = new CustomMPDLevel(map);
@@ -729,9 +729,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         // Application settings
         AppSettings settings = Main.getUserSettings().getAppSettings();
 
-        GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-        MyDisplayMode mdm = new MyDisplayMode(settings);
-        List<MyDisplayMode> resolutions = state.getResolutions(device);
+        DisplayMode mdm = new DisplayMode(settings);
+        List<DisplayMode> resolutions = DisplayModeUtils.getInstance().getDisplayModes();
         int resolutionSelectedIndex = Collections.binarySearch(resolutions, mdm);
 
         // Get values to the settings screen
@@ -762,7 +761,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         // Fullscreen
         CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
         fullscreen.setChecked(settings.isFullscreen());
-        fullscreen.setEnabled(device.isFullScreenSupported());
+        fullscreen.setEnabled(DisplayModeUtils.getInstance().isFullScreenSupported());
 
         // VSync
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
@@ -801,16 +800,15 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         ListBox<TableRow> listBox = screen.findNiftyControl("keyboardSetup", ListBox.class);
         int i = 0;
         int selected = 0;
-        KeyNames kNames = new KeyNames();
         listBox.clear();
         List<Settings.Setting> settings = Settings.Setting.getSettings(Settings.SettingCategory.CONTROLS);
 
         for (Settings.Setting setting : settings) {
             String keys = "";
             if (setting.getSpecialKey() != null) {
-                keys = (kNames.getName(setting.getSpecialKey()) + " + ").replace("Left ", "").replace("Right ", "");
+                keys = (KeyNames.getName(setting.getSpecialKey()) + " + ").replace("Left ", "").replace("Right ", "");
             }
-            keys += kNames.getName((int) setting.getDefaultValue()).replace("Left ", "").replace("Right ", "");
+            keys += KeyNames.getName((int) setting.getDefaultValue()).replace("Left ", "").replace("Right ", "");
             TableRow row = new TableRow(i++, String.format("${menu.%s}", setting.getTranslationKey()), keys);
             listBox.addItem(row);
         }
@@ -857,8 +855,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         listBox.clear();
         for (MapSelector.GameMapContainer mapContainer : state.mapSelector.getMaps()) {
 
-            String name = mapContainer.getMapName();
-            KwdFile kwd = mapContainer.getMap();
+            String name = mapContainer.mapName();
+            KwdFile kwd = mapContainer.map();
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
                 // the resource tables in all the other levels are completely wrong, so we just use it for custom mpd maps
                 name = kwd.getGameLevel().getLevelName().isEmpty() ? kwd.getGameLevel().getName() : kwd.getGameLevel().getLevelName();
@@ -867,7 +865,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     String.valueOf(kwd.getGameLevel().getPlayerCount()),
                     String.format("%s x %s", kwd.getMap().getWidth(), kwd.getMap().getHeight())));
 
-            if (selectMap && kwd.equals(state.mapSelector.getMap().getMap())) {
+            if (selectMap && kwd.equals(state.mapSelector.getMap().map())) {
                 listBox.selectItemByIndex(i);
             }
             i++;
@@ -885,7 +883,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
 
                 @Override
                 public void onMapChanged(String mapName) {
-                    populateSelectedMap(state.mapSelector.getMap(mapName).getMap());
+                    populateSelectedMap(state.mapSelector.getMap(mapName).map());
                 }
 
                 @Override
@@ -1130,7 +1128,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.SEVERE, null, ex);
+            logger.log(Logger.Level.ERROR, ex);
         }
 
         nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
@@ -1222,7 +1220,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1250,7 +1248,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                     subObjectiveImage.setHeight(img.getHeight());
                     subObjectiveImage.show();
                 } catch (Exception e) {
-                    LOGGER.log(java.util.logging.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
+                    logger.log(Logger.Level.WARNING, "Can't find image {0}", objectiveImage.replace("$index", "1"));
                     subObjectiveImage.hide();
                 }
 
@@ -1288,7 +1286,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
             mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
-            LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "0"));
+            logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "0"));
             mainObjectiveImage.hide();
         }
 
@@ -1306,7 +1304,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
                 subObjectiveImage.setHeight(img.getHeight());
                 subObjectiveImage.show();
             } catch (Exception e) {
-                LOGGER.warning("Can't find image " + objectiveImage.replace("$index", "1"));
+                logger.log(Logger.Level.WARNING, "Can't find image " + objectiveImage.replace("$index", "1"));
                 subObjectiveImage.hide();
             }
         }

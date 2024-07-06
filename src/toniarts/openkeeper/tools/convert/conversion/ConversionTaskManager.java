@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.conversion;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -28,8 +30,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.conversion.graph.BreadthFirstTraverser;
 import toniarts.openkeeper.tools.convert.conversion.graph.Graph;
@@ -44,7 +44,7 @@ import toniarts.openkeeper.tools.convert.conversion.graph.TaskNode;
  */
 public class ConversionTaskManager {
 
-    private static final Logger LOGGER = Logger.getLogger(ConversionTaskManager.class.getName());
+    private static final Logger logger = System.getLogger(ConversionTaskManager.class.getName());
     private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
 
     private final ExecutorService executorService;
@@ -99,7 +99,7 @@ public class ConversionTaskManager {
         try {
             executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.HOURS);
         } catch (InterruptedException ex) {
-            LOGGER.log(Level.SEVERE, "Conversion tasks failed to complete!", ex);
+            logger.log(Level.ERROR, "Conversion tasks failed to complete!", ex);
         }
 
         return !failure;
@@ -122,21 +122,21 @@ public class ConversionTaskManager {
 
     private void executeTask(TaskNode node) {
         if (failure) {
-            LOGGER.log(Level.INFO, "Aborting execution of task {0}!", node);
+            logger.log(Level.INFO, "Aborting execution of task {0}!", node);
             return;
         }
-        LOGGER.log(Level.INFO, "Starting task {0}!", node);
+        logger.log(Level.INFO, "Starting task {0}!", node);
 
         Future task = executorService.submit(() -> {
             try {
                 node.executeTask();
 
-                LOGGER.log(Level.INFO, "Task {0} finished!", node);
+                logger.log(Level.INFO, "Task {0} finished!", node);
 
                 executeNextTask(node);
             } catch (Exception e) {
                 failure = true;
-                LOGGER.log(Level.SEVERE, "Task " + node + " failed! Aborting...", e);
+                logger.log(Level.ERROR, "Task " + node + " failed! Aborting...", e);
 
                 executorService.shutdown();
             }

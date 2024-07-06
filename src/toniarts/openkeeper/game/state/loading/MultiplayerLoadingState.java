@@ -26,7 +26,6 @@ import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -44,11 +43,10 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  */
 public abstract class MultiplayerLoadingState extends LoadingState implements IPlayerLoadingProgress {
 
-    private static final List<String> AVAILABLE_SCREENS = Arrays.asList("M-LoadingScreen1024x768.png",
-            "M-LoadingScreen1280x1024.png", "M-LoadingScreen1600x1200.png", "M-LoadingScreen400x300.png",
-            "M-LoadingScreen512x384.png", "M-LoadingScreen640x480.png", "M-LoadingScreen800x600.png");
-    private static final List<Integer> AVAILABLE_WIDTHS = new ArrayList<>(AVAILABLE_SCREENS.size());
-    private static final Map<Integer, String> SCREENS = new HashMap<>(AVAILABLE_SCREENS.size());
+    private static final String[] availableScreens = {"M-LoadingScreen1024x768.png",            "M-LoadingScreen1280x1024.png", "M-LoadingScreen1600x1200.png", "M-LoadingScreen400x300.png",
+        "M-LoadingScreen512x384.png", "M-LoadingScreen640x480.png", "M-LoadingScreen800x600.png"};
+    private static final List<Integer> availableWidths = new ArrayList<>(availableScreens.length);
+    private static final Map<Integer, String> screens = HashMap.newHashMap(availableScreens.length);
     private static final float BAR_OFFSET = 17.580f / 100;
     private static final float BAR_MARGIN = 5.825f / 100;
     private final List<Geometry> progressBars = new ArrayList<>(4);
@@ -57,14 +55,14 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
 
         // Select by width
         Pattern p = Pattern.compile("M-LoadingScreen(?<width>\\d+)x(?<height>\\d+)\\.png");
-        for (String screen : AVAILABLE_SCREENS) {
+        for (String screen : availableScreens) {
             Matcher m = p.matcher(screen);
             m.matches();
-            int width = Integer.valueOf(m.group("width"));
-            AVAILABLE_WIDTHS.add(width);
-            SCREENS.put(width, screen);
+            int width = Integer.parseInt(m.group("width"));
+            availableWidths.add(width);
+            screens.put(width, screen);
         }
-        Collections.sort(AVAILABLE_WIDTHS);
+        Collections.sort(availableWidths);
     }
 
     public MultiplayerLoadingState(final Main app, String name) {
@@ -99,13 +97,13 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
     protected Texture getLoadingScreenTexture() {
 
         // Use binary search to get the nearest resolution index
-        int index = Collections.binarySearch(AVAILABLE_WIDTHS, Main.getUserSettings().getAppSettings().getWidth());
+        int index = Collections.binarySearch(availableWidths, Main.getUserSettings().getAppSettings().getWidth());
         if (index < 0) {
-            index = Math.min(AVAILABLE_WIDTHS.size() - 1, ~index + 1);
+            index = Math.min(availableWidths.size() - 1, ~index + 1);
         }
 
         // Load up the texture, there are few localized ones available
-        String screen = SCREENS.get(AVAILABLE_WIDTHS.get(index));
+        String screen = screens.get(availableWidths.get(index));
         TextureKey texKey = new TextureKey(getLocalizedLoadingScreenTextureFolder() + screen);
         return assetManager.loadTexture(texKey);
     }

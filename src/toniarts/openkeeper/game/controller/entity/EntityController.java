@@ -20,8 +20,9 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Objects;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Gold;
@@ -46,7 +47,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class EntityController implements IEntityController {
     
-    private static final Logger LOGGER = Logger.getLogger(EntityController.class.getName());
+    private static final Logger logger = System.getLogger(EntityController.class.getName());
 
     protected final EntityId entityId;
     protected final EntityData entityData;
@@ -165,7 +166,7 @@ public class EntityController implements IEntityController {
             return;
         }
         if (position == null) {
-            LOGGER.warning(() -> "Entity died and is part of room storage (" + roomStorage + ") but hasn't got location!");
+            logger.log(Level.WARNING, () -> "Entity died and is part of room storage (" + roomStorage + ") but hasn't got location!");
             return;
         }
 

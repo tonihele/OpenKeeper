@@ -17,7 +17,7 @@
 package toniarts.openkeeper.world.object;
 
 import com.jme3.scene.control.AbstractControl;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
 import toniarts.openkeeper.utils.AssetUtils;
 import static toniarts.openkeeper.world.MapLoader.COLOR_FLASH;
 import toniarts.openkeeper.world.control.IInteractiveControl;
@@ -29,7 +29,7 @@ import toniarts.openkeeper.world.control.IInteractiveControl;
 @Deprecated
 public abstract class HighlightControl extends AbstractControl implements IInteractiveControl {
     
-    private static final Logger logger = Logger.getLogger(HighlightControl.class.getName());
+    private static final Logger logger = System.getLogger(HighlightControl.class.getName());
 
     private boolean active = false;
 

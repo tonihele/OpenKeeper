@@ -84,7 +84,7 @@ public final class ID3v2 extends Tag {
     private int tagSize;
     private int version;
     private int skippedDataLength;
-    private MpxReader info;
+    private final MpxReader info;
 
     /**
      * Provides access to ID3v2 tag.

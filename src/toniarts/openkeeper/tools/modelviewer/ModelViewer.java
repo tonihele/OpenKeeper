@@ -53,6 +53,8 @@ import de.lessvoid.nifty.controls.ListBox;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,8 +64,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.game.data.ISoundable;
@@ -123,7 +123,7 @@ public class ModelViewer extends SimpleApplication {
         }
     }
     
-    private static final Logger LOGGER = Logger.getLogger(ModelViewer.class.getName());
+    private static final Logger logger = System.getLogger(ModelViewer.class.getName());
     
     //private final static float SCALE = 2;
     private static String dkIIFolder;
@@ -265,7 +265,7 @@ public class ModelViewer extends SimpleApplication {
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
-                 LOGGER.log(Level.SEVERE, "Failed to handle: " + kmfModel, e);
+                 logger.log(Level.ERROR, "Failed to handle: " + kmfModel, e);
             }
         }
     }
@@ -398,8 +398,7 @@ public class ModelViewer extends SimpleApplication {
                 spat.depthFirstTraversal(new SceneGraphVisitor() {
                     @Override
                     public void visit(Spatial spatial) {
-                        if (spatial instanceof Geometry) {
-                            Geometry g = (Geometry) spatial;
+                        if (spatial instanceof Geometry g) {
                             Mesh normalMesh = TangentBinormalGenerator.genTbnLines(g.getMesh(), 0.1f);
                             Geometry normalGeometry = new Geometry(g.getName() + "Normal", normalMesh);
                             Material mat = new Material(assetManager,
@@ -620,7 +619,7 @@ public class ModelViewer extends SimpleApplication {
                     object.add(key.substring(0, key.length() - 4));
                 }
             } catch (IOException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to load the maps!", ex);
+                logger.log(Level.ERROR, "Failed to load the maps!", ex);
             }
         }
 

@@ -21,6 +21,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.view.map.WallSection;
 import toniarts.openkeeper.world.EntityInstance;
 import toniarts.openkeeper.world.MapData;
 import toniarts.openkeeper.world.TileData;

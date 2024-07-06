@@ -22,14 +22,14 @@ import com.jme3.math.Vector2f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.ai.creature.CreatureState;
 import toniarts.openkeeper.game.data.PlayerSpell;
@@ -63,7 +63,7 @@ import toniarts.openkeeper.world.trap.TrapLoader;
 @Deprecated
 public class ThingLoader {
     
-    private static final Logger logger = Logger.getLogger(ThingLoader.class.getName());
+    private static final Logger logger = System.getLogger(ThingLoader.class.getName());
 
     private final WorldState worldState;
     private final CreatureLoader creatureLoader;

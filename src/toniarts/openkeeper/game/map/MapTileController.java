@@ -73,7 +73,7 @@ public class MapTileController extends AbstractMapTileInformation implements IMa
     public void setSelected(boolean selected, short playerId) {
         MapTile mapTileComponent = new MapTile(getEntityComponent(MapTile.class));
         if (mapTileComponent.selection == null) {
-            mapTileComponent.selection = new HashMap<>(4, 1);
+            mapTileComponent.selection = HashMap.newHashMap(4);
         }
         mapTileComponent.selection.put(playerId, selected);
         entityData.setComponent(entityId, mapTileComponent);
@@ -83,7 +83,7 @@ public class MapTileController extends AbstractMapTileInformation implements IMa
     public void setFlashed(boolean flashed, short playerId) {
         MapTile mapTileComponent = new MapTile(getEntityComponent(MapTile.class));
         if (mapTileComponent.flashing == null) {
-            mapTileComponent.flashing = new HashMap<>(4, 1);
+            mapTileComponent.flashing = HashMap.newHashMap(4);
         }
         mapTileComponent.flashing.put(playerId, flashed);
         entityData.setComponent(entityId, mapTileComponent);

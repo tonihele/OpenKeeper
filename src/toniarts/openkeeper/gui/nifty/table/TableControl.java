@@ -30,10 +30,11 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.mapping.MenuInputMapping;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 /**
  * Table control, build on top of the Nifty ListBox<br>
@@ -45,7 +46,7 @@ import java.util.logging.Logger;
  */
 public class TableControl<T extends TableRow> extends ListBoxControl<T> {
     
-    private static final Logger logger = Logger.getLogger(TableControl.class.getName());
+    private static final Logger logger = System.getLogger(TableControl.class.getName());
 
     private List<TableColumn> tableColumns;
     private Element headers;
@@ -61,7 +62,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             try {
                 tableColumns.add(TableColumn.parse(prmtrs.get("col" + i)));
             } catch (ClassNotFoundException ex) {
-                logger.log(Level.SEVERE, "Failed to init a column!", ex);
+                logger.log(Level.ERROR, "Failed to init a column!", ex);
             }
         }
 
@@ -86,7 +87,7 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             private void createColumn(final int i, final TableColumn col) {
                 panel(new PanelBuilder("#headerColPanel-" + i) {
                     {
-                        width(col.getWidth() + "%");
+                        width(col.width() + "%");
                         height("100%");
                         textVAlignCenter();
                         childLayoutCenter();
@@ -94,8 +95,8 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
                         marginRight("2px");
 
                         // The contents
-                        if (col.getType() == String.class) {
-                            control(new LabelBuilder("#headerCol-" + i, col.getHeader()) {
+                        if (col.type() == String.class) {
+                            control(new LabelBuilder("#headerCol-" + i, col.header()) {
                                 {
                                     style("menuTextSmall");
                                 }
@@ -171,15 +172,15 @@ public class TableControl<T extends TableRow> extends ListBoxControl<T> {
             private void createColumn(final int i, final TableColumn col) {
                 panel(new PanelBuilder("#colPanel-" + i) {
                     {
-                        width(col.getWidth() + "%");
+                        width(col.width() + "%");
                         height("100%");
                         textVAlignCenter();
                         childLayoutCenter();
-                        backgroundColor(col.getColor());
+                        backgroundColor(col.color());
                         marginRight("2px");
 
                         // The contents
-                        if (col.getType() == String.class) {
+                        if (col.type() == String.class) {
                             text(new TextBuilder("#col-" + i) {
                                 {
                                     style("menuTextSmall");

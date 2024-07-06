@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
@@ -44,8 +43,6 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class MovementSystem implements IGameLogicUpdatable {
-
-    private static final Logger LOGGER = Logger.getLogger(MovementSystem.class.getName());
     
     private final static boolean INDEPENDENT_FACING = false;
     

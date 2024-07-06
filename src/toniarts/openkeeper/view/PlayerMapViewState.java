@@ -27,12 +27,12 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
@@ -62,7 +62,7 @@ import toniarts.openkeeper.world.listener.TileChangeListener;
  */
 public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
     
-    private static final Logger LOGGER = Logger.getLogger(PlayerMapViewState.class.getName());
+    private static final Logger logger = System.getLogger(PlayerMapViewState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -256,7 +256,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         @Override
         protected IMapTileInformation addObject(Entity e) {
-            LOGGER.log(Level.FINEST, "MapTileContainer.addObject({0})", e);
+            logger.log(Level.TRACE, "MapTileContainer.addObject({0})", e);
 
             IMapTileInformation result = new MapTileInformation(e);
             Point p = result.getLocation();
@@ -277,7 +277,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 return;
             }
 
-            LOGGER.log(Level.FINEST, "MapTileContainer.updateObjects({0})", set.size());
+            logger.log(Level.TRACE, "MapTileContainer.updateObjects({0})", set.size());
 
             // Collect the tiles
             Point[] updatableTiles = new Point[set.size()];
@@ -285,7 +285,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             for (Entity e : set) {
                 IMapTileInformation object = getObject(e.getId());
                 if (object == null) {
-                    LOGGER.log(Level.WARNING, "Update: No matching object for entity:{0}", e);
+                    logger.log(Level.WARNING, "Update: No matching object for entity:{0}", e);
                     continue;
                 }
                 updatableTiles[i] = object.getLocation();
@@ -304,7 +304,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         @Override
         protected void removeObject(IMapTileInformation object, Entity e) {
-            LOGGER.log(Level.FINEST, "MapTileContainer.removeObject({0})", e);
+            logger.log(Level.TRACE, "MapTileContainer.removeObject({0})", e);
         }
 
         @Override
@@ -337,7 +337,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     /**
      * Single map tile that taps into the entity information
      */
-    private class MapTileInformation extends AbstractMapTileInformation {
+    private static class MapTileInformation extends AbstractMapTileInformation {
 
         private final Entity entity;
 

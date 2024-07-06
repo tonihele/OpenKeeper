@@ -50,7 +50,7 @@ public class SlapSystem implements IGameLogicUpdatable {
     private final EntitySet objectEntities;
     private final EntityData entityData;
     private final int maxSlapDuration;
-    private final Map<Short, PlayerStatsControl> statControls = new HashMap<>(4);
+    private final Map<Short, PlayerStatsControl> statControls;
     private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
 
     private final static int EFFICIENCY_BONUS = 10;
@@ -59,6 +59,7 @@ public class SlapSystem implements IGameLogicUpdatable {
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
+        statControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             statControls.put(playerController.getKeeper().getId(), playerController.getStatsControl());
         }

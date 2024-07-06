@@ -33,15 +33,23 @@ public class TaskComponent implements EntityComponent {
     public Point targetLocation;
     public TaskType taskType;
 
+    /**
+     * How long we have contributed to the task
+     */
+    public float taskDuration;
+    public boolean taskStarted;
+
     public TaskComponent() {
         // For serialization
     }
 
-    public TaskComponent(long taskId, EntityId targetEntity, Point targetLocation, TaskType taskType) {
+    public TaskComponent(long taskId, EntityId targetEntity, Point targetLocation, TaskType taskType, float taskDuration, boolean taskStarted) {
         this.taskId = taskId;
         this.targetEntity = targetEntity;
         this.targetLocation = targetLocation;
         this.taskType = taskType;
+        this.taskDuration = taskDuration;
+        this.taskStarted = taskStarted;
     }
 
 }

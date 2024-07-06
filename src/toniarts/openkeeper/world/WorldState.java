@@ -37,6 +37,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Line;
 import java.awt.Point;
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.ai.creature.CreatureState;
@@ -65,8 +65,8 @@ import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.selection.SelectionArea;
-import toniarts.openkeeper.world.animation.AnimationLoader;
 import toniarts.openkeeper.world.control.FlashTileControl;
 import toniarts.openkeeper.world.control.IInteractiveControl;
 import toniarts.openkeeper.world.creature.CreatureControl;
@@ -92,7 +92,7 @@ import toniarts.openkeeper.world.room.control.RoomGoldControl;
 @Deprecated
 public abstract class WorldState extends AbstractAppState {
     
-    private static final Logger logger = Logger.getLogger(WorldState.class.getName());
+    private static final Logger logger = System.getLogger(WorldState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -350,6 +350,7 @@ public abstract class WorldState extends AbstractAppState {
      *
      * @return KwdFile
      */
+    @Deprecated
     public KwdFile getLevelData() {
         return kwdFile;
     }

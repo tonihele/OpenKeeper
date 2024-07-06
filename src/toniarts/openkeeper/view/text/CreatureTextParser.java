@@ -137,47 +137,68 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
 
     private static String getTaskTooltip(TaskComponent taskComponent, IMapInformation mapInformation) {
         switch (taskComponent.taskType) {
-            case CLAIM_LAIR:
+            case CLAIM_LAIR -> {
                 return Utils.getMainTextResourceBundle().getString("2627");
-            case CAPTURE_ENEMY_CREATURE:
+            }
+            case CAPTURE_ENEMY_CREATURE -> {
                 return Utils.getMainTextResourceBundle().getString("2621");
-            case CARRY_CREATURE_TO_JAIL:
+            }
+            case CARRY_CREATURE_TO_JAIL -> {
                 return Utils.getMainTextResourceBundle().getString("2619");
-            case CARRY_CREATURE_TO_LAIR:
+            }
+            case CARRY_CREATURE_TO_LAIR -> {
                 return Utils.getMainTextResourceBundle().getString("2619");
-            case CARRY_GOLD_TO_TREASURY:
+            }
+            case CARRY_GOLD_TO_TREASURY -> {
                 return Utils.getMainTextResourceBundle().getString("2786");
-            case CARRY_OBJECT_TO_STORAGE:
+            }
+            case CARRY_OBJECT_TO_STORAGE -> {
                 return Utils.getMainTextResourceBundle().getString("2609"); // TODO: these are really awfully specific, we need to fine grain this
-            case CLAIM_ROOM:
+            }
+            case CLAIM_ROOM -> {
                 return Utils.getMainTextResourceBundle().getString("2602");
-            case CLAIM_TILE:
+            }
+            case CLAIM_TILE -> {
                 return Utils.getMainTextResourceBundle().getString("2601");
-            case CLAIM_WALL:
+            }
+            case CLAIM_WALL -> {
                 return Utils.getMainTextResourceBundle().getString("2603");
-            case DIG_TILE:
+            }
+            case DIG_TILE -> {
                 IMapTileInformation tile = mapInformation.getMapData().getTile(taskComponent.targetLocation);
                 return Utils.getMainTextResourceBundle().getString(tile.getGold() > 0 ? "2605" : "2600");
-            case FETCH_OBJECT:
+            }
+            case FETCH_OBJECT -> {
                 return Utils.getMainTextResourceBundle().getString("2608");
-            case GO_TO_LOCATION:
+            }
+            case GO_TO_LOCATION -> {
                 return Utils.getMainTextResourceBundle().getString("2670");
-            case GO_TO_SLEEP:
+            }
+            case GO_TO_SLEEP -> {
                 return Utils.getMainTextResourceBundle().getString("2671");
-            case KILL_PLAYER:
+            }
+            case KILL_PLAYER -> {
                 return Utils.getMainTextResourceBundle().getString("2645");
-            case REPAIR_WALL:
+            }
+            case REPAIR_WALL -> {
                 return Utils.getMainTextResourceBundle().getString("2604");
-            case RESCUE_CREATURE:
+            }
+            case RESCUE_CREATURE -> {
                 return Utils.getMainTextResourceBundle().getString("2617");
-            case RESEARCH:
+            }
+            case RESEARCH -> {
                 return Utils.getMainTextResourceBundle().getString("2625");
-            case GO_TO_EAT: {
+            }
+            case GO_TO_EAT -> {
                 return Utils.getMainTextResourceBundle().getString("2668");
             }
+            case TRAIN -> {
+                return Utils.getMainTextResourceBundle().getString("2633");
+            }
+            default -> {
+                return "";
+            }
         }
-
-        return "";
     }
 
     @Override

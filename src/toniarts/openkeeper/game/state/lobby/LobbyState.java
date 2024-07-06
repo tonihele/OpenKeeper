@@ -68,7 +68,7 @@ public class LobbyState extends AbstractAppState {
 
         // We as the host should set the initial map
         if (lobbyService != null) {
-            lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
+            lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
         }
     }
 
@@ -118,12 +118,12 @@ public class LobbyState extends AbstractAppState {
 
     public void setRandomMap() {
         mapSelector.random();
-        lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
+        lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
     }
 
     public void setMap(int selectedMapIndex) {
         mapSelector.selectMap(selectedMapIndex);
-        lobbyService.setMap(mapSelector.getMap().getMapName(), mapSelector.getMap().getMap().getGameLevel().getPlayerCount());
+        lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
     }
 
     private void startGame(List<ClientInfo> players) {
@@ -146,7 +146,7 @@ public class LobbyState extends AbstractAppState {
             }
         }
 
-        KwdFile kwdFile = mapSelector.getMap().getMap(); // This might get read twice on the hosting machine
+        KwdFile kwdFile = mapSelector.getMap().map(); // This might get read twice on the hosting machine
         if (isOnline() && !fallback) {
             gameSessionService = stateManager.getState(ConnectionState.class).getGameSessionServerService();
             gameClientService = stateManager.getState(ConnectionState.class).getGameClientService();
@@ -183,57 +183,50 @@ public class LobbyState extends AbstractAppState {
     }
 
     /**
-     * Small class to filter all the notifications to the render thread
-     */
-    private static class SafeLobbySessionListener implements LobbySessionListener {
-
-        private final LobbyState lobbyState;
-        private final LobbySessionListener listener;
-
-        public SafeLobbySessionListener(LobbyState lobbyState, LobbySessionListener listener) {
-            this.lobbyState = lobbyState;
-            this.listener = listener;
-        }
+         * Small class to filter all the notifications to the render thread
+         */
+        private record SafeLobbySessionListener(LobbyState lobbyState,
+                                                LobbySessionListener listener) implements LobbySessionListener {
 
         @Override
-        public void onPlayerListChanged(List<ClientInfo> players) {
-            runOnRenderThread(() -> {
-                listener.onPlayerListChanged(players);
-            });
+            public void onPlayerListChanged(List<ClientInfo> players) {
+                runOnRenderThread(() -> {
+                    listener.onPlayerListChanged(players);
+                });
 
-            // Start game if we are all ready
-            if (lobbyState.isHosting()) {
-                for (ClientInfo clientInfo : players) {
-                    if (!clientInfo.isReady()) {
-                        return;
+                // Start game if we are all ready
+                if (lobbyState.isHosting()) {
+                    for (ClientInfo clientInfo : players) {
+                        if (!clientInfo.isReady()) {
+                            return;
+                        }
                     }
+                    lobbyState.getLobbyService().startGame();
                 }
-                lobbyState.getLobbyService().startGame();
+            }
+
+            @Override
+            public void onMapChanged(String mapName) {
+                runOnRenderThread(() -> {
+                    listener.onMapChanged(mapName);
+                });
+            }
+
+            @Override
+            public void onGameStarted(String mapName, List<ClientInfo> players) {
+                runOnRenderThread(() -> {
+                    listener.onGameStarted(mapName, players);
+                });
+                lobbyState.startGame(players);
+            }
+
+            private void runOnRenderThread(Runnable runnable) {
+                if (lobbyState.isRenderThread()) {
+                    runnable.run();
+                } else {
+                    lobbyState.app.enqueue(runnable);
+                }
             }
         }
-
-        @Override
-        public void onMapChanged(String mapName) {
-            runOnRenderThread(() -> {
-                listener.onMapChanged(mapName);
-            });
-        }
-
-        @Override
-        public void onGameStarted(String mapName, List<ClientInfo> players) {
-            runOnRenderThread(() -> {
-                listener.onGameStarted(mapName, players);
-            });
-            lobbyState.startGame(players);
-        }
-
-        private void runOnRenderThread(Runnable runnable) {
-            if (lobbyState.isRenderThread()) {
-                runnable.run();
-            } else {
-                lobbyState.app.enqueue(runnable);
-            }
-        }
-    }
 
 }

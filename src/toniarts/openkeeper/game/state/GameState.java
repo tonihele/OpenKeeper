@@ -20,6 +20,8 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,8 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadFactory;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.GameResult;
@@ -66,7 +66,7 @@ import toniarts.openkeeper.world.WorldState;
 @Deprecated
 public class GameState extends AbstractPauseAwareState implements IGameLogicUpdatable {
     
-    private static final Logger logger = Logger.getLogger(GameState.class.getName());
+    private static final Logger logger = System.getLogger(GameState.class.getName());
 
     public static final int LEVEL_TIMER_MAX_COUNT = 16;
     private static final int LEVEL_FLAG_MAX_COUNT = 128;
@@ -81,7 +81,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
     private final toniarts.openkeeper.game.data.Level levelObject;
 
     private GameLogicManager gameLogicThread;
-    private TriggerControl triggerControl = null;
+    private final TriggerControl triggerControl = null;
     private CreatureTriggerLogicController creatureTriggerState;
     private ObjectTriggerLogicController objectTriggerState;
     private DoorTriggerLogicController doorTriggerState;
@@ -236,7 +236,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
 
                     setProgress(1.0f, Player.KEEPER1_ID);
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Failed to load the game!", e);
+                    logger.log(Level.ERROR, "Failed to load the game!", e);
                 }
             }
 
@@ -494,7 +494,7 @@ public class GameState extends AbstractPauseAwareState implements IGameLogicUpda
             try {
                 Main.getUserSettings().save();
             } catch (IOException ex) {
-                logger.log(Level.SEVERE, "Failed to save the level progress!", ex);
+                logger.log(Level.ERROR, "Failed to save the level progress!", ex);
             }
         }
     }

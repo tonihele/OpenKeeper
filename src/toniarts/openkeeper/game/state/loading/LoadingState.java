@@ -28,9 +28,9 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Locale;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 
 /**
@@ -40,7 +40,7 @@ import toniarts.openkeeper.Main;
  */
 public abstract class LoadingState extends AbstractAppState {
     
-    private static final Logger LOGGER = Logger.getLogger(LoadingState.class.getName());
+    private static final Logger logger = System.getLogger(LoadingState.class.getName());
 
     protected static final float BAR_WIDTH = 25.375f / 100;
     protected static final float BAR_HEIGHT = 2.5f / 100;
@@ -157,7 +157,7 @@ public abstract class LoadingState extends AbstractAppState {
             try {
                 loadingThread.join();
             } catch (InterruptedException ex) {
-                LOGGER.log(Level.SEVERE, "Failed to wait for the thread to complete!", ex);
+                logger.log(Level.ERROR, "Failed to wait for the thread to complete!", ex);
             }
         }
 
@@ -191,7 +191,7 @@ public abstract class LoadingState extends AbstractAppState {
             try {
                 onLoad();
             } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Failed to load!", ex);
+                logger.log(Level.ERROR, "Failed to load!", ex);
             }
 
             // Enqueue to the render thread

@@ -34,11 +34,10 @@ import com.jme3.scene.CameraNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.CameraControl.ControlDirection;
 import java.awt.Point;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * Our wrapper on JME cinematic class, produces ready cinematics from camera
@@ -50,12 +49,9 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class Cinematic extends com.jme3.cinematic.Cinematic {
 
-    private static final Logger LOGGER = Logger.getLogger(Cinematic.class.getName());
-    
     private final AssetManager assetManager;
     private static final boolean IS_DEBUG = false;
     private static final String CAMERA_NAME = "Motion cam";
-    private final AppStateManager stateManager;
     private final CameraSweepData cameraSweepData;
     private final Camera cam;
     private final Vector3f start;
@@ -83,7 +79,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     public Cinematic(final Main app, String cameraSweepFile, final Vector3f start) {
 
         this(app.getAssetManager(), app.getCamera(), app.getListener(),
-                start.addLocal(0, MapLoader.FLOOR_HEIGHT, 0),
+                start.addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
                 cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
@@ -105,7 +101,6 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
         super(scene);
 
         this.assetManager = assetManager;
-        this.stateManager = stateManager;
         this.audioListener = audioListener;
         this.start = start;
         this.cam = cam;
@@ -172,7 +167,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // The waypoints
         for (CameraSweepDataEntry entry : cameraSweepData.getEntries()) {
-            path.addWayPoint(entry.getPosition().mult(MapLoader.TILE_WIDTH).addLocal(startLocation));
+            path.addWayPoint(entry.getPosition().mult(MapViewController.TILE_WIDTH).addLocal(startLocation));
         }
         //path.setCurveTension(0.5f);
         if (IS_DEBUG) {
@@ -237,7 +232,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
             final CameraSweepDataEntry entry, Listener audioListener) {
 
         // Set Position
-        cam.setLocation(startLocation.add(entry.getPosition().mult(MapLoader.TILE_WIDTH)));
+        cam.setLocation(startLocation.add(entry.getPosition().mult(MapViewController.TILE_WIDTH)));
 
         // Set the rotation
         cam.setRotation(entry.getRotation());

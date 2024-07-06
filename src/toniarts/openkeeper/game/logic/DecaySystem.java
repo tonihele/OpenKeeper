@@ -23,7 +23,6 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.Set;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Position;
@@ -35,8 +34,6 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class DecaySystem implements IGameLogicUpdatable {
-    
-    private static final Logger LOGGER = Logger.getLogger(DecaySystem.class.getName());
 
     private final EntitySet decayEntities;
     private final EntityData entityData;

@@ -23,10 +23,11 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Thing.Room.Direction;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
-import toniarts.openkeeper.world.room.WallSection.WallDirection;
 
 /**
  * FIXME some problem with wall when reinforce near tile
@@ -79,7 +80,7 @@ public class HeroGateThreeByOne extends GenericRoom {
         // Get the wall points
         //Point center = roomInstance.getCenter();
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
-        for (WallSection section : roomInstance.getWallSections()) {
+        /*for (WallSection section : roomInstance.getWallSections()) {
 
             int i = 0;
             int sectionSize = section.getCoordinates().size();
@@ -112,7 +113,7 @@ public class HeroGateThreeByOne extends GenericRoom {
                 //tile.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(tile);
             }
-        }
+        }*/
         return root;
     }
 

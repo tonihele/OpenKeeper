@@ -41,7 +41,6 @@ import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings;
@@ -78,8 +77,6 @@ import toniarts.openkeeper.world.creature.CreatureControl;
  */
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
-    
-    private static final Logger LOGGER = Logger.getLogger(PlayerInteractionState.class.getName());
 
     private static final int SPELL_POSSESSION_ID = 2;
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
@@ -96,8 +93,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
-    private Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
-    private InteractionState interactionState = new InteractionState();
+    private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
+    private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
     private Element view;
 

@@ -27,8 +27,8 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import static toniarts.openkeeper.game.controller.room.AbstractRoomController.hasSameTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.room.WallSection;
+import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.WallSection;
 
 /**
  * The temple... there is the hand and special pillar (rather torch) placement
@@ -85,26 +85,26 @@ public class TempleController extends DoubleQuadController {
             // The model is in the center, rotation will not do any good, nudge them over the small sub quads, or corners of the tile
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x + MapLoader.TILE_WIDTH / 4;
-                pos.z = pos.z - MapLoader.TILE_WIDTH / 4;
+                pos.x = pos.x + MapViewController.TILE_WIDTH / 4;
+                pos.z = pos.z - MapViewController.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x + MapLoader.TILE_WIDTH / 4;
-                pos.z = pos.z + MapLoader.TILE_WIDTH / 4;
+                pos.x = pos.x + MapViewController.TILE_WIDTH / 4;
+                pos.z = pos.z + MapViewController.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x - MapLoader.TILE_WIDTH / 4;
-                pos.z = pos.z + MapLoader.TILE_WIDTH / 4;
+                pos.x = pos.x - MapViewController.TILE_WIDTH / 4;
+                pos.z = pos.z + MapViewController.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x - MapLoader.TILE_WIDTH / 4;
-                pos.z = pos.z - MapLoader.TILE_WIDTH / 4;
+                pos.x = pos.x - MapViewController.TILE_WIDTH / 4;
+                pos.z = pos.z - MapViewController.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
         }

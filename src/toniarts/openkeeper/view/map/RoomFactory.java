@@ -17,8 +17,8 @@
 package toniarts.openkeeper.view.map;
 
 import com.jme3.asset.AssetManager;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
@@ -45,7 +45,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  */
 public final class RoomFactory {
 
-    private static final Logger LOGGER = Logger.getLogger(RoomFactory.class.getName());
+    private static final Logger logger = System.getLogger(RoomFactory.class.getName());
 
     private RoomFactory() {
         // Nope
@@ -121,7 +121,7 @@ public final class RoomFactory {
             default:
 
                 // TODO
-                LOGGER.log(Level.WARNING, "Room {0} not exist", roomName);
+                logger.log(Level.WARNING, "Room {0} not exist", roomName);
         }
         return null;
     }

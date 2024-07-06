@@ -36,8 +36,8 @@ import com.jme3.texture.plugins.AWTLoader;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
@@ -50,7 +50,7 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
 @Deprecated
 public class UnitFlowerControl extends BillboardControl {
     
-    private static final Logger logger = Logger.getLogger(UnitFlowerControl.class.getName());
+    private static final Logger logger = System.getLogger(UnitFlowerControl.class.getName());
 
     private static final float DISPLAY_SECONDS = 2.5f;
 
@@ -300,7 +300,7 @@ public class UnitFlowerControl extends BillboardControl {
                 BufferedImage img = ImageIO.read(assetManager.locateAsset(new AssetKey(image)).openStream());
                 g.drawImage(img, (width - img.getWidth()) / 2, (height - img.getHeight()) / 2, null);
             } catch (Exception ex) {
-                logger.log(Level.SEVERE, "Can't load the texture " + image + "!", ex);
+                logger.log(Level.ERROR, "Can't load the texture " + image + "!", ex);
             }
         }
     }

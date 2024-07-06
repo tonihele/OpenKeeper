@@ -19,19 +19,21 @@ package toniarts.openkeeper.game.network;
 import com.jme3.network.Client;
 import com.jme3.network.Network;
 import java.io.IOException;
-import java.net.InetAddress;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.LinkedList;
-import java.util.logging.Logger;
+
 
 /**
  * @deprecated
  * @author ArchDemon
  */
+@Deprecated
 public abstract class ServerQuery extends Thread {
     
-    private static final Logger logger = Logger.getLogger(ServerQuery.class.getName());
+    private static final Logger logger = System.getLogger(ServerQuery.class.getName());
     
-    private LinkedList<NetworkServer> queue;
+    private final LinkedList<NetworkServer> queue;
 
     public ServerQuery(LinkedList queue) {
         this.queue = queue;
@@ -58,7 +60,7 @@ public abstract class ServerQuery extends Thread {
                 onFound(server);
                 client.close();
             } catch (IOException ex) {
-                logger.log(java.util.logging.Level.SEVERE, String.format("No %s. %s", server.getHost(), ex.getLocalizedMessage()));
+                logger.log(Level.ERROR, String.format("No %s. %s", server.getHost(), ex.getLocalizedMessage()));
             }
         }
     }

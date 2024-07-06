@@ -22,6 +22,7 @@ import com.jme3.scene.BatchNode;
 import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.map.WallSection;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
 import toniarts.openkeeper.world.object.ObjectLoader;
@@ -92,7 +93,7 @@ public class HeroGate extends GenericRoom {
         Point start = roomInstance.getCoordinates().get(0);
         String modelName = roomInstance.getRoom().getCompleteResource().getName();
         int south = 0;
-        for (WallSection section : roomInstance.getWallSections()) {
+        /*for (WallSection section : roomInstance.getWallSections()) {
             int i = 0;
             for (Point p : section.getCoordinates()) {
                 int piece;
@@ -148,7 +149,7 @@ public class HeroGate extends GenericRoom {
                 //part.move(-MapLoader.TILE_WIDTH / 2, 0, -MapLoader.TILE_WIDTH / 2);
                 root.attachChild(part);
             }
-        }
+        }*/
         return root;
     }
 

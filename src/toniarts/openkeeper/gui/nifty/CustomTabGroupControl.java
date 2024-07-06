@@ -32,9 +32,9 @@ import de.lessvoid.nifty.elements.events.ElementShowEvent;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.loaderv2.types.ElementType;
 import de.lessvoid.nifty.screen.Screen;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bushe.swing.event.EventTopicSubscriber;
 
 /**
@@ -165,7 +165,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
     /**
      * The logger that takes care for the output of log messages in this class.
      */
-    private static final Logger log = Logger.getLogger(CustomTabGroupControl.class.getName());
+    private static final Logger logger = System.getLogger(CustomTabGroupControl.class.getName());
 
     /**
      * The subscriber of the show events for this control. This is required to
@@ -254,11 +254,11 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
         contentPanel = elmnt.findElementById("#tab-content-panel");
 
         if (tabButtonPanel == null) {
-            log.severe("Panel for the tabs not found. Tab group will not work properly. Looked for: #tab-button-panel");
+            logger.log(Level.ERROR, "Panel for the tabs not found. Tab group will not work properly. Looked for: #tab-button-panel");
         } else {
             final Element buttonElement = tabButtonPanel.findElementById("#button-template");
             if (buttonElement == null) {
-                log.severe("No template for tab button found. Tab group will be unable to display tabs. Looked for: "
+                logger.log(Level.ERROR, "No template for tab button found. Tab group will be unable to display tabs. Looked for: "
                         + "#button-template");
             } else {
                 buttonTemplate = buttonElement.getElementType().copy();
@@ -271,7 +271,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
             }
         }
         if (contentPanel == null) {
-            log.severe("Content panel not found. Tab group will be unable to display tab content. Looked for: "
+            logger.log(Level.ERROR, "Content panel not found. Tab group will be unable to display tab content. Looked for: "
                     + "#tab-content-pane");
         }
     }
@@ -297,7 +297,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
             for (final Element element : contentPanel.getChildren()) {
                 final Tab tabControl = element.getNiftyControl(Tab.class);
                 if (tabControl == null) {
-                    log.log(Level.WARNING, "Element without tab control detected. Removing: {0}", element.getId());
+                    logger.log(Level.WARNING, "Element without tab control detected. Removing: {0}", element.getId());
                     element.markForRemoval();
                 } else {
                     initTab(tabControl);
@@ -314,7 +314,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
         Element button = getButton(tabIndex);
         if (button == null) {
             if (buttonTemplate == null || nifty == null || screen == null || tabButtonPanel == null) {
-                log.severe("Tab can't be initialized. Binding not done yet or binding failed.");
+                logger.log(Level.ERROR, "Tab can't be initialized. Binding not done yet or binding failed.");
                 return;
             }
             final ElementType newButtonTemplate = buttonTemplate.copy();
@@ -446,7 +446,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
             final Element button = getButton(i);
 
             if (button == null) {
-                log.warning("Something is wrong with the tabs. Tab button not there anymore.");
+                logger.log(Level.WARNING, "Something is wrong with the tabs. Tab button not there anymore.");
                 continue;
             }
 
@@ -494,7 +494,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
     @Override
     public void onStartScreen() {
         if (nifty == null || screen == null) {
-            log.severe("Starting screen failed. Seems the binding is not done yet.");
+            logger.log(Level.ERROR, "Starting screen failed. Seems the binding is not done yet.");
         }
         String id = getId();
         if (id != null) {
@@ -548,7 +548,7 @@ public class CustomTabGroupControl extends AbstractController implements TabGrou
             if (id != null) {
                 Tab tab = getTabAtIndex(index);
                 if (tab == null) {
-                    log.severe("Tab with valid index returned null. This looks like a internal error.");
+                    logger.log(Level.ERROR, "Tab with valid index returned null. This looks like a internal error.");
                 } else {
                     nifty.publishEvent(id, new TabSelectedEvent(this, tab, index));
                 }

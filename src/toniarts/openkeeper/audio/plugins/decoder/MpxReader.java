@@ -704,7 +704,7 @@ public class MpxReader extends Frame {
      * @param b the input array
      * @return the integer value
      */
-    protected final static int getShortInt(byte b[]) {
+    protected static int getShortInt(byte b[]) {
         return b[0] << 16 & 0xFF0000 | b[1] << 8 & 0xFF00 | b[2] & 0xFF;
     }
 

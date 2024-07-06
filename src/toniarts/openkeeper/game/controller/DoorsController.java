@@ -20,9 +20,9 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
@@ -41,7 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.world.MapLoader;
+import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the doors in the world TODO:
@@ -52,7 +52,7 @@ import toniarts.openkeeper.world.MapLoader;
  */
 public class DoorsController implements IDoorsController {
     
-    private static final Logger LOGGER = Logger.getLogger(DoorsController.class.getName());
+    private static final Logger logger = System.getLogger(DoorsController.class.getName());
 
     private KwdFile kwdFile;
     private EntityData entityData;
@@ -96,7 +96,7 @@ public class DoorsController implements IDoorsController {
                 }
                 loadDoor(door);
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Could not load Thing.", ex);
+                logger.log(Level.WARNING, "Could not load Thing.", ex);
             }
         }
     }
@@ -112,7 +112,7 @@ public class DoorsController implements IDoorsController {
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = MapLoader.FLOOR_HEIGHT;
+        pos.y = MapViewController.FLOOR_HEIGHT;
         float rotation = 0;
         if (canTileSupportDoor(x, y - 1, ownerId) && canTileSupportDoor(x, y + 1, ownerId)) {
             rotation = -FastMath.HALF_PI;

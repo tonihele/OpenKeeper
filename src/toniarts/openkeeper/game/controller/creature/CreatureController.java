@@ -25,11 +25,11 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -93,7 +93,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class CreatureController extends EntityController implements ICreatureController {
     
-    private static final Logger LOGGER = Logger.getLogger(CreatureController.class.getName());
+    private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -105,8 +105,6 @@ public class CreatureController extends EntityController implements ICreatureCon
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
-    private float taskDuration = 0.0f;
-    private boolean taskStarted = false;
     private float motionless = 0;
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
@@ -264,7 +262,6 @@ public class CreatureController extends EntityController implements ICreatureCon
             assignedTask.unassign(this);
             entityData.removeComponent(entityId, TaskComponent.class);
         }
-        taskStarted = false;
     }
 
     @Override
@@ -395,9 +392,12 @@ public class CreatureController extends EntityController implements ICreatureCon
 
     @Override
     public void executeAssignedTask() {
-        taskStarted = true;
+        TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (!taskComponent.taskStarted) {
+            entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration, true));
+        }
         if (isAssignedTaskValid()) {
-            getAssignedTask().executeTask(this, taskDuration);
+            getAssignedTask().executeTask(this, taskComponent.taskDuration);
         }
     }
 
@@ -442,7 +442,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
-            LOGGER.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getCreatureCoordinates(), destination});
+            logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
@@ -828,8 +828,9 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
 
         // Task timer
-        if (taskStarted) {
-            taskDuration += tpf;
+        TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (taskComponent != null && taskComponent.taskStarted) {
+            entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration + tpf, taskComponent.taskStarted));
         }
 
         stateMachine.update();
@@ -908,9 +909,8 @@ public class CreatureController extends EntityController implements ICreatureCon
         // Unassign previous task
         unassingCurrentTask();
 
-        taskDuration = 0.0f;
         //workNavigationRequired = true;
-        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType()));
+        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType(), 0.0f, false));
     }
 
     @Override
@@ -1239,7 +1239,7 @@ public class CreatureController extends EntityController implements ICreatureCon
             entityData.removeComponent(object.getEntityId(), Gold.class);
             object.remove();
         } else {
-            LOGGER.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
+            logger.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
         }
     }
 

@@ -35,6 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.map.WallSection;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
 import toniarts.openkeeper.world.effect.EffectManagerState;
@@ -182,7 +183,7 @@ public abstract class GenericRoom {
      * for the wall spatials by the map loader in normal map drawing situation
      *
      * @see #getWallSpatial(java.awt.Point,
-     * toniarts.openkeeper.world.room.WallSection.WallDirection)
+     * toniarts.openkeeper.view.map.WallSection.WallDirection)
      * @return contructed wall
      */
     protected BatchNode constructWall() {
@@ -294,7 +295,7 @@ public abstract class GenericRoom {
         float yAngle = FastMath.PI;
         String resource = roomInstance.getRoom().getCompleteResource().getName();
 
-        for (WallSection section : roomInstance.getWallSections()) {
+        /*for (WallSection section : roomInstance.getWallSections()) {
 
             if (section.getDirection() != direction) {
                 continue;
@@ -370,7 +371,7 @@ public abstract class GenericRoom {
 
                 return spatial;
             }
-        }
+        }*/
 
         return null;
     }

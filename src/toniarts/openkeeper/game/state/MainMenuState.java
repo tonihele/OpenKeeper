@@ -31,16 +31,12 @@ import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import java.awt.DisplayMode;
-import java.awt.GraphicsDevice;
 import java.io.File;
 import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
@@ -74,7 +70,6 @@ import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -84,7 +79,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  */
 public class MainMenuState extends AbstractAppState {
     
-    private static final Logger LOGGER = Logger.getLogger(MainMenuState.class.getName());
+    private static final Logger logger = System.getLogger(MainMenuState.class.getName());
 
     protected Main app;
     protected Node rootNode;
@@ -190,7 +185,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadCameraStartLocation() {
         Player player = kwdFile.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
-        startLocation.addLocal(0, MapLoader.FLOOR_HEIGHT, 0);
+        startLocation.addLocal(0, MapViewController.FLOOR_HEIGHT, 0);
 
         // Set the actual camera location
         loadCameraStartLocation("EnginePath250");
@@ -285,7 +280,7 @@ public class MainMenuState extends AbstractAppState {
                         try {
                             loadMenuScene(this, MainMenuState.this.assetManager, MainMenuState.this.app);
                         } catch (IOException ex) {
-                            LOGGER.log(Level.SEVERE, "Failed to load the main menu scene!", ex);
+                            logger.log(Level.ERROR, "Failed to load the main menu scene!", ex);
                         }
                     }
 
@@ -336,14 +331,14 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().setSetting(Setting.GAME_NAME, game);
             Main.getUserSettings().save();
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+            logger.log(Level.ERROR, "Failed to save user settings!", ex);
         }
     }
 
     public void multiplayerConnect(String hostAddress, String player) {
         String[] address = hostAddress.split(":");
         String host = address[0];
-        int port = (address.length == 2) ? Integer.valueOf(address[1]) : Main.getUserSettings().getInteger(Setting.MULTIPLAYER_LAST_PORT);
+        int port = (address.length == 2) ? Integer.parseInt(address[1]) : Main.getUserSettings().getInteger(Setting.MULTIPLAYER_LAST_PORT);
 
         // Connect, connection is lazy
         ConnectionState connectionState = new ConnectionState(host, port, player) {
@@ -365,7 +360,7 @@ public class MainMenuState extends AbstractAppState {
             Main.getUserSettings().save();
 
         } catch (IOException ex) {
-            LOGGER.log(java.util.logging.Level.SEVERE, "Failed to save user settings!", ex);
+            logger.log(Level.ERROR, "Failed to save user settings!", ex);
         }
     }
 
@@ -399,7 +394,7 @@ public class MainMenuState extends AbstractAppState {
         if (chatService != null) {
             chatService.sendMessage(text);
         } else {
-            LOGGER.warning("Connection not initialized!");
+            logger.log(Level.WARNING, "Connection not initialized!");
         }
     }
 
@@ -439,7 +434,7 @@ public class MainMenuState extends AbstractAppState {
             // Create the level state
             LocalGameSession.createLocalGame(selectedLevel.getKwdFile(), true, stateManager, app);
         } else {
-            LOGGER.log(Level.WARNING, "Unknown type of Level {0}", type);
+            logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
         }
 
@@ -463,7 +458,7 @@ public class MainMenuState extends AbstractAppState {
             stateManager.attach(movieState);
             inputManager.setCursorVisible(false);
         } catch (Exception e) {
-            LOGGER.log(java.util.logging.Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
+            logger.log(Level.WARNING, "Failed to initiate playing " + movieFile + "!", e);
         }
     }
 
@@ -533,38 +528,6 @@ public class MainMenuState extends AbstractAppState {
         levelBriefing = null;
     }
 
-    /**
-     * Gets the resolutions supported by the given device. The resolutions are
-     * sorted by their native order
-     *
-     * @param device the graphics device to query resolutions from
-     * @return sorted list of available resolutions
-     */
-    protected List<MyDisplayMode> getResolutions(GraphicsDevice device) {
-
-        // Get from the system
-        DisplayMode[] modes = device.getDisplayModes();
-
-        List<MyDisplayMode> displayModes = new ArrayList<>(modes.length);
-
-        // Loop them through
-        for (DisplayMode dm : modes) {
-
-            // They may already exist, then just add the possible resfresh rate
-            MyDisplayMode mdm = new MyDisplayMode(dm);
-            int index = Collections.binarySearch(displayModes, mdm);
-            if (index > -1) {
-                mdm = displayModes.get(index);
-                mdm.addRefreshRate(dm);
-                mdm.addBitDepth(dm);
-            } else {
-                displayModes.add(~index, mdm);
-            }
-        }
-
-        return displayModes;
-    }
-
     public void doDebriefing(GameResult result) {
         setEnabled(true);
         if (selectedLevel != null && result != null) {
@@ -591,7 +554,7 @@ public class MainMenuState extends AbstractAppState {
             try {
                 AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
-                LOGGER.log(java.util.logging.Level.WARNING, "Failed to generate map file out of {0}!", map);
+                logger.log(Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
             }
         }
@@ -612,7 +575,7 @@ public class MainMenuState extends AbstractAppState {
     /**
      * Main menu version of the player entity view state
      */
-    private class MainMenuEntityViewState extends PlayerEntityViewState {
+    private static class MainMenuEntityViewState extends PlayerEntityViewState {
 
         public MainMenuEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
@@ -622,7 +585,7 @@ public class MainMenuState extends AbstractAppState {
 
     }
 
-    private class MainMenuPlayerService implements PlayerService {
+    private static class MainMenuPlayerService implements PlayerService {
 
         @Override
         public void setWidescreen(boolean enable, short playerId) {
