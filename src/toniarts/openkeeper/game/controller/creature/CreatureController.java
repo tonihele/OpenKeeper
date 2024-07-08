@@ -858,7 +858,21 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public void addGold(int amount) {
         Gold gold = entityData.getComponent(entityId, Gold.class);
-        entityData.setComponent(entityId, new Gold(gold.gold + amount, gold.maxGold));
+
+        // Drop excess gold, we can only carry so much
+        boolean hasMaxGold = gold.maxGold > 0;
+        int maxGoldCanAdd = hasMaxGold ? gold.maxGold - gold.gold : Integer.MAX_VALUE;
+        int goldToAdd = Math.min(amount, maxGoldCanAdd);
+        int looseGold = amount - goldToAdd;
+
+        if (goldToAdd > 0) {
+            entityData.setComponent(entityId, new Gold(gold.gold + goldToAdd, gold.maxGold));
+        }
+
+        if (looseGold > 0) {
+            Point coordinates = getCreatureCoordinates();
+            objectsController.addLooseGold(getOwnerId(), coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        }
     }
 
     @Override
