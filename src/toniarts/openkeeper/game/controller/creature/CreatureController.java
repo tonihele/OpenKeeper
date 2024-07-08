@@ -1136,29 +1136,38 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public boolean isStateTimeExceeded() {
         double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
+        double stateTargetTime;
 
         switch (stateMachine.getCurrentState()) {
-            case STUNNED: {
+            case STUNNED -> {
                 // Hmm, this might actually be the level variable, the stun seems to be the time fallen when dropped
-                return timeSpent >= entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
-            case FALLEN: {
-                return timeSpent >= entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+            case FALLEN -> {
+                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
-            case GETTING_UP: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.GET_UP);
+            case GETTING_UP -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.GET_UP);
             }
-            case ENTERING_DUNGEON: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
+            case ENTERING_DUNGEON -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
             }
-            case MELEE_ATTACK: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
+            case MELEE_ATTACK -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
             }
-            case EATING: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.EATING);
+            case EATING -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.EATING);
+            }
+            case FLEE -> {
+                // I couldn't find a variable for this, so lets use this for now
+                stateTargetTime = gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue();
+            }
+            default -> {
+                stateTargetTime = Double.MAX_VALUE;
             }
         }
-        return false;
+
+        return stateTargetTime < timeSpent;
     }
 
     private static double getAnimationTime(Creature creature, Creature.AnimationType animation) {
