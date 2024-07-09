@@ -860,8 +860,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         Gold gold = entityData.getComponent(entityId, Gold.class);
 
         // Drop excess gold, we can only carry so much
-        boolean hasMaxGold = gold.maxGold > 0;
-        int maxGoldCanAdd = hasMaxGold ? gold.maxGold - gold.gold : Integer.MAX_VALUE;
+        int maxGoldCanAdd = gold.maxGold - gold.gold;
         int goldToAdd = Math.min(amount, maxGoldCanAdd);
         int looseGold = amount - goldToAdd;
 
