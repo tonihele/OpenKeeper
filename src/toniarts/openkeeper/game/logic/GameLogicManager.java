@@ -32,9 +32,11 @@ public class GameLogicManager implements IGameLoopManager {
 
     private long ticks = 0;
     private double timeElapsed = 0.0;
+    private final float fixedTickInterval;
     protected final IGameLogicUpdatable[] updatables;
 
-    public GameLogicManager(IGameLogicUpdatable... updatables) {
+    public GameLogicManager(float fixedTickInterval, IGameLogicUpdatable... updatables) {
+        this.fixedTickInterval = fixedTickInterval;
         this.updatables = updatables;
     }
 
@@ -50,12 +52,11 @@ public class GameLogicManager implements IGameLoopManager {
 
         // Update game time
         long start = System.nanoTime();
-        float tpf = delta / 1000000000f;
 
         // Update updatables
         for (IGameLogicUpdatable updatable : updatables) {
             try {
-                updatable.processTick(tpf, timeElapsed);
+                updatable.processTick(fixedTickInterval, timeElapsed);
             } catch (Exception e) {
                 logger.log(Level.ERROR, "Error in game logic tick on " + updatable.getClass() + "!", e);
             }
@@ -66,7 +67,7 @@ public class GameLogicManager implements IGameLoopManager {
         logger.log(tickTime < delta ? Level.TRACE : Level.ERROR, "Tick took {0} ms!", TimeUnit.MILLISECONDS.convert(tickTime, TimeUnit.NANOSECONDS));
 
         // Increase ticks & time
-        timeElapsed += tpf;
+        timeElapsed += fixedTickInterval;
         ticks++;
     }
 

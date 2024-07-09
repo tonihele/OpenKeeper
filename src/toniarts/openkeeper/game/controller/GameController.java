@@ -249,7 +249,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
 
         // Create the game loops ready to start
         // Game logic
-        gameLogicThread = new GameLogicManager(positionSystem,
+        gameLogicThread = new GameLogicManager(
+                1f / kwdFile.getGameLevel().getTicksPerSec(),
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
