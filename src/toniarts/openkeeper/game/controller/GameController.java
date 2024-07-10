@@ -49,7 +49,6 @@ import toniarts.openkeeper.game.logic.CreatureViewSystem;
 import toniarts.openkeeper.game.logic.DeathSystem;
 import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
-import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
@@ -251,6 +250,9 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Game logic
         gameLogicThread = new GameLogicManager(
                 1f / kwdFile.getGameLevel().getTicksPerSec(),
+                new CreatureFallSystem(entityData),
+                new MovementSystem(entityData),
+                positionSystem,
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
@@ -274,11 +276,11 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
 
         // Animation systems
-        gameAnimationThread = new GameLogicManager(new DungeonHeartConstruction(entityData, getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)), new CreatureFallSystem(entityData));
-        gameAnimationLoop = new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "GameAnimation");
+        //gameAnimationThread = new GameLogicManager(new DungeonHeartConstruction(entityData, getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)), new CreatureFallSystem(entityData));
+        //gameAnimationLoop = new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "GameAnimation");
 
         // Steering
-        steeringCalculatorLoop = new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
+        //steeringCalculatorLoop = new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
     }
 
     public void startGame() {
@@ -286,7 +288,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         // Game logic thread & movement
         gameLogicLoop.start();
         gameAnimationLoop.start();
-        steeringCalculatorLoop.start();
+        //steeringCalculatorLoop.start();
     }
 
     private void setupPlayers() {

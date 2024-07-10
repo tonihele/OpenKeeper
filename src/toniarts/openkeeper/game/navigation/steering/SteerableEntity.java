@@ -38,7 +38,7 @@ public class SteerableEntity implements ISteerableEntity {
     private float maxLinearAcceleration = 4;
     private float maxAngularSpeed = 20.0f;
     private float maxAngularAcceleration = 20.0f;
-    private float zeroLinearSpeedThreshold = 0.01f;
+    private float zeroLinearSpeedThreshold = 0.1f;
     private final float boundingRadius;
 
     public SteerableEntity(EntityId entityId, float maxSpeed, float boundingRadius, float xPos, float yPos, float orientation) {
@@ -46,7 +46,7 @@ public class SteerableEntity implements ISteerableEntity {
         this.boundingRadius = boundingRadius;
         this.maxLinearSpeed = maxSpeed;
         // FIXME how calculate acceleration? mass & maxLinearSpeed?
-        this.maxLinearAcceleration = maxLinearSpeed * 4;
+        this.maxLinearAcceleration = maxLinearSpeed;
         // FIXME how calculate zero linear speed threshold?
         //zeroLinearSpeedThreshold = maxLinearSpeed / 3;
         this.position.x = xPos;

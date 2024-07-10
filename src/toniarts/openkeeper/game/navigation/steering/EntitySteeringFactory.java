@@ -66,9 +66,9 @@ public class EntitySteeringFactory {
 
                 // Navigate
                 FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(steerable,
-                        new LinePath<>(SteeringUtils.pathToArray(path), true), 0.2f);
-                followPath.setDecelerationRadius(0.2f);
-                followPath.setArrivalTolerance(0.1f);
+                        new LinePath<>(SteeringUtils.pathToArray(path), true), 0.5f);
+                followPath.setDecelerationRadius(1f);
+                followPath.setArrivalTolerance(0.25f);
                 prioritySteering.add(followPath);
             }
 
