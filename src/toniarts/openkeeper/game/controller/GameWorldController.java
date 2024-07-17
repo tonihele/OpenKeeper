@@ -995,8 +995,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // Cast the spell
         Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
-        int shotData1 = researchableEntity.isUpgraded() ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
-        int shotData2 = researchableEntity.isUpgraded() ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
+        boolean spellUpgraded = researchableEntity.isUpgraded();
+        int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
+        int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
         switch (shot.getProcessType()) {
             case CREATE_CREATURE -> {
                 creaturesController.spawnCreature((short) shotData1, playerId, shotData2, position, ICreaturesController.SpawnType.CONJURE);
