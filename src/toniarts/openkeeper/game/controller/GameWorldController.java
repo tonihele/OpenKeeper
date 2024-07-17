@@ -990,6 +990,8 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             }
         }
 
+        // Deduct the mana
+        playerControllers.get(playerId).getManaControl().updateMana(0, keeperSpell.getManaCost());
 
         // Cast the spell
         Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
@@ -1004,7 +1006,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             }
             default ->
                 logger.log(Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
-        }
+        }        
     }
 
     @Override
