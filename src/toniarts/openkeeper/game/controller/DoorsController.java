@@ -112,7 +112,7 @@ public class DoorsController implements IDoorsController {
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = MapViewController.FLOOR_HEIGHT;
+        pos.y = WorldUtils.FLOOR_HEIGHT;
         float rotation = 0;
         if (canTileSupportDoor(x, y - 1, ownerId) && canTileSupportDoor(x, y + 1, ownerId)) {
             rotation = -FastMath.HALF_PI;

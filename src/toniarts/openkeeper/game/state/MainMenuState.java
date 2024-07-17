@@ -185,7 +185,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadCameraStartLocation() {
         Player player = kwdFile.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
-        startLocation.addLocal(0, MapViewController.FLOOR_HEIGHT, 0);
+        startLocation.addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
 
         // Set the actual camera location
         loadCameraStartLocation("EnginePath250");

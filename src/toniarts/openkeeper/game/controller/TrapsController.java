@@ -105,7 +105,7 @@ public class TrapsController implements ITrapsController {
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
-        pos.y = MapViewController.FLOOR_HEIGHT;
+        pos.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
         Trap trap = kwdFile.getTrapById(trapId);

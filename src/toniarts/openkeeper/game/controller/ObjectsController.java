@@ -181,7 +181,7 @@ public class ObjectsController implements IObjectsController {
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
-        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? MapViewController.UNDERFLOOR_HEIGHT : MapViewController.FLOOR_HEIGHT); // FIXME: no
+        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT); // FIXME: no
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
