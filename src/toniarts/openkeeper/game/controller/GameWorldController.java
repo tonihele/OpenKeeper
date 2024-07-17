@@ -68,6 +68,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
@@ -79,6 +80,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -92,7 +94,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class GameWorldController implements IGameWorldController, IPlayerActions {
     
-    private static final Logger LOGGER = Logger.getLogger(GameWorldController.class.getName());
+    private static final Logger logger = Logger.getLogger(GameWorldController.class.getName());
 
     /**
      * When dealing with gold... We currently better lock it. Logic stuff
@@ -126,7 +128,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     }
 
     public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
-        entityPositionLookup = gameController.getEntityLookupService();
 
         // Load objects
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
@@ -767,7 +768,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // Add position
         // Maybe in the future the physics deal with this and we just need to detect that we are airborne
-        Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? 1 : 2), coordinates.y);
+        Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
         entityData.setComponent(entity, new Position(0, pos));
 
         // If we got state, add it
@@ -867,7 +868,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             return false;
         }
 
-        // Is it iteractable?
+        // Is it interactable?
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
         if (interaction == null) {
             return false;
@@ -889,7 +890,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
         KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(keeperSpellId);
         if (keeperSpell == null) {
-            LOGGER.log(Level.WARNING, "Invalid spell ID for spell casting received, was: {0}", keeperSpellId);
+            logger.log(Level.WARNING, "Invalid spell ID for spell casting received, was: {0}", keeperSpellId);
             return;
         }
 
@@ -898,13 +899,19 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             mapTile = entityPositionLookup.getEntityLocation(target);
         }
         if (mapTile == null) {
-            LOGGER.log(Level.WARNING, "Invalid map location for spell casting received, was: {0}", tile);
+            logger.log(Level.WARNING, "Invalid map location for spell casting received, was: {0}", tile);
             return;
         }
 
         Keeper player = players.get(playerId);
         if (player == null) {
-            LOGGER.log(Level.WARNING, "Invalid player for spell casting received, was: {0}", playerId);
+            logger.log(Level.WARNING, "Invalid player for spell casting received, was: {0}", playerId);
+            return;
+        }
+
+        ResearchableEntity researchableEntity = playerControllers.get(playerId).getSpellControl().getTypes().get(keeperSpell);
+        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+            logger.log(Level.WARNING, "Player spell is not available", playerId);
             return;
         }
 
@@ -958,54 +965,65 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             }
         }
         switch (keeperSpell.getTargetRule()) {
-            case ALL:
-            case LAND:
-                break;
-            case NONE:
+            case ALL, LAND -> {
+            }
+            case NONE -> {
                 return;
-            case ALL_CREATURES: {
+            }
+            case ALL_CREATURES -> {
                 if (creature == null) {
                     return;
                 }
-                break;
             }
-            case ENEMY_CREATURES: {
+            case ENEMY_CREATURES -> {
                 if (owner == null) {
                     return;
                 }
                 if (!player.isEnemy(owner)) {
                     return;
                 }
-                break;
             }
-            case OWN_CREATURES:
-            case POSESSION: {
+            case OWN_CREATURES, POSESSION -> {
                 if (creature == null || owner == null || owner != playerId) {
                     return;
                 }
             }
         }
 
+
         // Cast the spell
+        Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
+        int shotData1 = researchableEntity.isUpgraded() ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
+        int shotData2 = researchableEntity.isUpgraded() ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
+        switch (shot.getProcessType()) {
+            case CREATE_CREATURE -> {
+                creaturesController.spawnCreature((short) shotData1, playerId, shotData2, position, ICreaturesController.SpawnType.CONJURE);
+            }
+            case MODIFY_HEALTH -> {
+
+            }
+            default ->
+                logger.log(Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
+        }
     }
 
     @Override
     public void placeDoor(short doorId, Point tile, short playerId) {
         Door door = kwdFile.getDoorById(doorId);
         if (door == null) {
-            LOGGER.log(Level.WARNING, "Invalid door ID for door placement received, was: {0}", door);
+            logger.log(Level.WARNING, "Invalid door ID for door placement received, was: {0}", door);
             return;
         }
 
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
         if (mapTile == null) {
-            LOGGER.log(Level.WARNING, "Invalid map location for door placement received, was: {0}", tile);
+            logger.log(Level.WARNING, "Invalid map location for door placement received, was: {0}", tile);
             return;
         }
 
         Keeper player = players.get(playerId);
         if (player == null) {
-            LOGGER.log(Level.WARNING, "Invalid player for door placement received, was: {0}", playerId);
+            logger.log(Level.WARNING, "Invalid player for door placement received, was: {0}", playerId);
             return;
         }
 
@@ -1016,19 +1034,19 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     public void placeTrap(short trapId, Point tile, short playerId) {
         Trap trap = kwdFile.getTrapById(trapId);
         if (trap == null) {
-            LOGGER.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trap);
+            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trap);
             return;
         }
 
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
         if (mapTile == null) {
-            LOGGER.log(Level.WARNING, "Invalid map location for trap placement received, was: {0}", tile);
+            logger.log(Level.WARNING, "Invalid map location for trap placement received, was: {0}", tile);
             return;
         }
 
         Keeper player = players.get(playerId);
         if (player == null) {
-            LOGGER.log(Level.WARNING, "Invalid player for trap placement received, was: {0}", playerId);
+            logger.log(Level.WARNING, "Invalid player for trap placement received, was: {0}", playerId);
             return;
         }
 
@@ -1051,5 +1069,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     public ITrapsController getTrapsController() {
         return trapsController;
+    }
+
+    public void setEntityPositionLookup(IEntityPositionLookup entityPositionLookup) {
+        this.entityPositionLookup = entityPositionLookup;
     }
 }

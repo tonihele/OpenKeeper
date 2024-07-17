@@ -30,6 +30,12 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreaturesController extends IEntityWrapper<ICreatureController> {
 
+    public enum SpawnType {
+        PLACE,
+        ENTRANCE,
+        CONJURE
+    }
+
     /**
      * Spawn a creature
      *
@@ -46,11 +52,10 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * @param playerId the owner
      * @param level the creature level
      * @param position the position to spawn to, may be {@code null}
-     * @param entrance whether this an enrance for the creature (coming out of a
-     * portal)
+     * @param spawnType what type of entrance the creature is going to make
      * @return the actual spawned creature
      */
-    EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, boolean entrance);
+    EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, SpawnType spawnType);
 
     /**
      * Spawn a hero party
