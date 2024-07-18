@@ -183,8 +183,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
-        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
-            this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
+        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level level1) {
+            this.levelObject = level1;
         } else {
             this.levelObject = null;
         }
