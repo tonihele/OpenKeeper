@@ -79,7 +79,7 @@ public final class KeeperSpellCastValidator {
             }
             Owner ownerComponent = entityData.getComponent(target, Owner.class);
             if (ownerComponent != null) {
-                owner = ownerComponent.ownerId;
+                owner = ownerComponent.controlId;
             }
         }
 
