@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Map;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
@@ -74,7 +75,7 @@ public class ShotsController implements IShotsController {
 
             }
             case MODIFY_HEALTH -> {
-
+                EntityController.setDamage(entityData, target, -shotData1);
             }
             default ->
                 logger.log(Logger.Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
