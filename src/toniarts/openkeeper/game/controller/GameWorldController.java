@@ -22,6 +22,7 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.lang.System.Logger.Level;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,8 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -94,7 +93,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class GameWorldController implements IGameWorldController, IPlayerActions {
     
-    private static final Logger logger = Logger.getLogger(GameWorldController.class.getName());
+    private static final System.Logger logger = System.getLogger(GameWorldController.class.getName());
 
     /**
      * When dealing with gold... We currently better lock it. Logic stuff
