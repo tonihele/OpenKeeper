@@ -72,7 +72,6 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -923,73 +922,8 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             return;
         }
 
-        // Where allowed to cast
-        boolean isSolid = mapController.isSolid(tile);
-        switch (keeperSpell.getCastRule()) {
-            case OWN_LAND: {
-                if (isSolid || mapTile.getOwnerId() != playerId) {
-                    return;
-                }
-                break;
-            }
-            case OWN_AND_NEUTRAL_LAND: {
-                if (isSolid || mapTile.getOwnerId() != playerId || mapTile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
-                    return;
-                }
-                break;
-            }
-            case ENEMY_LAND: {
-                if (isSolid || !players.get(playerId).isEnemy(mapTile.getOwnerId())) {
-                    return;
-                }
-            }
-            case ANY_LAND:
-                if (isSolid) {
-                    return;
-                }
-            case ANYWHERE:
-                break;
-            case NONE:
-                return;
-        }
-
-        // The target cast upon
-        Creature creature = null;
-        Short owner = null;
-        if (target != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
-            if (creatureComponent != null) {
-                creature = kwdFile.getCreature(creatureComponent.creatureId);
-            }
-            Owner ownerComponent = entityData.getComponent(target, Owner.class);
-            if (ownerComponent != null) {
-                owner = ownerComponent.ownerId;
-            }
-        }
-        switch (keeperSpell.getTargetRule()) {
-            case ALL, LAND -> {
-            }
-            case NONE -> {
-                return;
-            }
-            case ALL_CREATURES -> {
-                if (creature == null) {
-                    return;
-                }
-            }
-            case ENEMY_CREATURES -> {
-                if (owner == null) {
-                    return;
-                }
-                if (!player.isEnemy(owner)) {
-                    return;
-                }
-            }
-            case OWN_CREATURES, POSESSION -> {
-                if (creature == null || owner == null || owner != playerId) {
-                    return;
-                }
-            }
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target)) {
+            return;
         }
 
         // Deduct the mana
