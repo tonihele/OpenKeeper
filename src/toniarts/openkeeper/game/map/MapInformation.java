@@ -238,4 +238,14 @@ public class MapInformation<T extends IMapDataInformation<S>, S extends IMapTile
         return kwdFile.getTerrain(tile.getTerrainId());
     }
 
+    @Override
+    public boolean isSolid(Point p) {
+        S tile = getMapData().getTile(p);
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+
 }

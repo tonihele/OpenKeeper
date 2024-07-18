@@ -148,4 +148,12 @@ public interface IMapInformation<T extends IMapTileInformation> {
      */
     public boolean isLava(Point p);
 
+    /**
+     * Is tile at the coordinates solid
+     *
+     * @param p coordinate
+     * @return is the tile solid
+     */
+    public boolean isSolid(Point p);
+
 }
