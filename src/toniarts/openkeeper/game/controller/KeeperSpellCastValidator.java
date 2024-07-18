@@ -59,8 +59,13 @@ public final class KeeperSpellCastValidator {
             Keeper player,
             EntityData entityData,
             EntityId target) {
-        return checkCastRule(mapInformation, mapTile, keeperSpell, player)
+        return checkPlayerMana(keeperSpell, player)
+                && checkCastRule(mapInformation, mapTile, keeperSpell, player)
                 && checkTargetRule(target, entityData, kwdFile, keeperSpell, player);
+    }
+
+    private static boolean checkPlayerMana(KeeperSpell keeperSpell, Keeper player) {
+        return keeperSpell.getManaCost() <= player.getMana();
     }
 
     private static boolean checkTargetRule(EntityId target, EntityData entityData, KwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {

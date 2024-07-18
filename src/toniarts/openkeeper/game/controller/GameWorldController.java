@@ -917,11 +917,6 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // Validate
-        // Mana...
-        if (keeperSpell.getManaCost() > player.getMana()) {
-            return;
-        }
-
         if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target)) {
             return;
         }
