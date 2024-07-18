@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -56,7 +57,6 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -156,6 +156,11 @@ public class ObjectsController implements IObjectsController {
     @Override
     public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation) {
         return loadObject(objectId, ownerId, pos, rotation, null, null, null, null, null);
+    }
+
+    @Override
+    public EntityId loadObject(short objectId, short ownerId, Vector2f pos, float rotation) {
+        return loadObject(objectId, ownerId, new Vector3f(pos.x, WorldUtils.FLOOR_HEIGHT, pos.y), rotation);
     }
 
     @Override

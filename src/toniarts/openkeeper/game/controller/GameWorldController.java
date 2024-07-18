@@ -79,7 +79,6 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -108,6 +107,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     private ICreaturesController creaturesController;
     private IDoorsController doorsController;
     private ITrapsController trapsController;
+    private IShotsController shotsController;
     private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final SortedMap<Short, Keeper> players;
@@ -142,6 +142,9 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
         // Load the traps
         trapsController = new TrapsController(kwdFile, entityData, gameSettings, gameController, levelInfo);
+
+        // Init handlers
+        shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController);
 
         // Setup player stuff
         initPlayerMoney();
@@ -921,7 +924,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // Where allowed to cast
-        boolean isSolid = kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID);
+        boolean isSolid = mapController.isSolid(tile);
         switch (keeperSpell.getCastRule()) {
             case OWN_LAND: {
                 if (isSolid || mapTile.getOwnerId() != playerId) {
@@ -993,20 +996,10 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         playerControllers.get(playerId).getManaControl().updateMana(0, keeperSpell.getManaCost());
 
         // Cast the spell
-        Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
-        switch (shot.getProcessType()) {
-            case CREATE_CREATURE -> {
-                creaturesController.spawnCreature((short) shotData1, playerId, shotData2, position, ICreaturesController.SpawnType.CONJURE);
-            }
-            case MODIFY_HEALTH -> {
-
-            }
-            default ->
-                logger.log(Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
-        }        
+        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, position, target);
     }
 
     @Override
