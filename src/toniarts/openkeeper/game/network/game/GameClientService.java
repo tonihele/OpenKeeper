@@ -417,5 +417,12 @@ public class GameClientService extends AbstractClientService
                 l.onResearchStatusChanged(keeperId, researchableEntity);
             }
         }
+
+        @Override
+        public void setPossession(EntityId target) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.setPossession(target);
+            }
+        }
     }
 }

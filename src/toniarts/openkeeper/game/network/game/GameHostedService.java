@@ -376,6 +376,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
+    @Override
+    public void setPossession(EntityId target, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().setPossession(target);
+                break;
+            }
+        }
+    }
+
     private class ServerMessageListener implements MessageListener<HostedConnection> {
 
         public ServerMessageListener() {
@@ -696,6 +706,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             getCallback().onResearchStatusChanged(keeperId, researchableEntity);
+        }
+
+        @Override
+        public void setPossession(EntityId target) {
+            getCallback().setPossession(target);
         }
 
     }

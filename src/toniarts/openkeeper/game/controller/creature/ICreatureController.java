@@ -247,4 +247,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean isRecuperating();
 
+    /**
+     * Sets creature possession on/off
+     *
+     * @param possessed should the creature be posessed or AI driven
+     */
+    public void setPossession(boolean possessed);
+
 }

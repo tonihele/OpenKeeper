@@ -36,6 +36,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
@@ -66,7 +67,6 @@ import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -775,7 +775,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
-    protected abstract void onPossession(CreatureControl creature);
+    protected abstract void onPossession(EntityId creature);
 
     public static class InteractionState {
 

@@ -74,4 +74,8 @@ public class PlayerManaControl {
     public void removeListener(PlayerManaListener listener) {
         listeners.remove(listener);
     }
+
+    public boolean hasEnoughMana(int manaDrain) {
+        return keeper.getMana() - manaDrain + keeper.getManaGain() - keeper.getManaLoose() > 0;
+    }
 }

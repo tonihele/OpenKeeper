@@ -72,7 +72,7 @@ public class ShotsController implements IShotsController {
                 objectsController.loadObject((short) shotData1, playerId, position, 0);
             }
             case POSSESS_CREATURE -> {
-
+                creaturesController.createController(target).setPossession(true);
             }
             case MODIFY_HEALTH -> {
                 EntityController.setDamage(entityData, target, -shotData1);

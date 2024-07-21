@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.Main;
@@ -458,6 +457,15 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onResearchStatusChanged(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void setPossession(EntityId target, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.setPossession(target);
+            }
         }
     }
 

@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
@@ -55,6 +56,7 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -1251,6 +1253,39 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void setPossession(boolean possessed) {
+        if (possessed) {
+            startPossession();
+        } else {
+            endPossession();
+        }
+    }
+
+    private void startPossession() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        int manaDrain = creatureComponent != null ? creatureComponent.posessionManaCost : 0;
+        Mana mana = entityData.getComponent(entityId, Mana.class);
+        entityData.setComponent(entityId, new Mana(mana != null ? -manaDrain - mana.manaGeneration : -manaDrain));
+        entityData.setComponent(entityId, new Possessed(manaDrain, gameTimer.getGameTime()));
+        entityData.removeComponent(entityId, CreatureAi.class);
+        entityData.removeComponent(entityId, Navigation.class);
+    }
+
+    private void endPossession() {
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.IDLE, getCreature().getCreatureId()));
+
+        // Return the mana flow
+        Possessed possessed = entityData.getComponent(entityId, Possessed.class);
+        Mana mana = entityData.getComponent(entityId, Mana.class);
+        int manaGeneration = mana.manaGeneration + possessed.manaDrain;
+        if (manaGeneration == 0) {
+            entityData.removeComponent(entityId, Mana.class);
+        } else {
+            entityData.setComponent(entityId, new Mana(manaGeneration));
+        }
     }
 
 }

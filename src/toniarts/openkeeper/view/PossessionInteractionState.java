@@ -28,12 +28,12 @@ import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.view.PossessionCameraControl.Direction;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * State for managing player interactions in the world while possessing a
@@ -57,7 +57,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     private AppStateManager stateManager;
     private InputManager inputManager;
 
-    private CreatureControl target;
+    private EntityId target;
     private RawInputListener inputListener;
     public Vector2f mousePosition = Vector2f.ZERO;
     private Action action;
@@ -97,21 +97,21 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
                     stateManager.getState(PossessionCameraState.class).setEnabled(true);
                 }
             };
-            target.getSpatial().addControl(pcc);
+            //target.getSpatial().addControl(pcc);
         } else {
             stateManager.getState(PossessionCameraState.class).setEnabled(false);
             app.getInputManager().removeRawInputListener(inputListener);
 
             PlayerCamera pc = stateManager.getState(PlayerCameraState.class).getCamera();
             pc.initialize();
-            pc.setLookAt(target.getSpatial().getLocalTranslation());
+            //pc.setLookAt(target.getSpatial().getLocalTranslation());
             PossessionCameraControl pcc = new PossessionCameraControl(app.getCamera(), Direction.EXIT) {
                 @Override
                 public void onExit() {
                     PossessionInteractionState.this.onExit();
                 }
             };
-            target.getSpatial().addControl(pcc);
+            //target.getSpatial().addControl(pcc);
             target = null;
         }
     }
@@ -144,11 +144,11 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
         }
     }
 
-    public CreatureControl getTarget() {
+    public EntityId getTarget() {
         return target;
     }
 
-    public void setTarget(CreatureControl target) {
+    public void setTarget(EntityId target) {
         this.target = target;
         stateManager.getState(PossessionCameraState.class).setTarget(target);
     }
