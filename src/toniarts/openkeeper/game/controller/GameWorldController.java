@@ -922,7 +922,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // Deduct the mana
-        playerControllers.get(playerId).getManaControl().updateMana(0, keeperSpell.getManaCost());
+        playerControllers.get(playerId).getManaControl().addMana(-keeperSpell.getManaCost());
 
         // Cast the spell
         boolean spellUpgraded = researchableEntity.isUpgraded();

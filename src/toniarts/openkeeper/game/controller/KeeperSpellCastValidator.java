@@ -65,7 +65,7 @@ public final class KeeperSpellCastValidator {
     }
 
     private static boolean checkPlayerMana(KeeperSpell keeperSpell, Keeper player) {
-        return keeperSpell.getManaCost() <= player.getMana();
+        return keeperSpell.getManaCost() <= player.getMana() - player.getManaLoose();
     }
 
     private static boolean checkTargetRule(EntityId target, EntityData entityData, KwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {
