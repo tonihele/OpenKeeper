@@ -33,6 +33,7 @@ import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
 import com.jme3.system.JmeSystem;
 import de.lessvoid.nifty.Nifty;
@@ -330,6 +331,9 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+
+        if (debug)
+            ((GLRenderer)renderer).setDebugEnabled(true); // get debug names for GL objects
 
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);

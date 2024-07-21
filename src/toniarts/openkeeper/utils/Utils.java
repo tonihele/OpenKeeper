@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.ResourceBundle;
+import java.util.random.RandomGenerator;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import toniarts.openkeeper.Main;
@@ -171,6 +172,15 @@ public class Utils {
      */
     public static <T> Optional<T> getRandomItem(Collection<T> collection) {
         return collection.stream().skip(RANDOM.nextInt(collection.size())).findFirst();
+    }
+
+    /**
+     * Returns the random generator used by the game
+     *
+     * @return random generator
+     */
+    public static RandomGenerator getRandom() {
+        return RANDOM;
     }
 
     /**

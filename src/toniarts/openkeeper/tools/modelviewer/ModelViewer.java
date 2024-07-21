@@ -36,6 +36,7 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
@@ -202,6 +203,8 @@ public class ModelViewer extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+
+        ((GLRenderer)renderer).setDebugEnabled(true); // get debug names for GL objects
 
         // Distribution locator
         assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
