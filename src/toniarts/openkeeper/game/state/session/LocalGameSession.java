@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.Main;
@@ -375,6 +374,27 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     }
 
     @Override
+    public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCastKeeperSpell(keeperSpellId, target, tile, position, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void placeDoor(short doorId, Point tile) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onPlaceDoor(doorId, tile, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void placeTrap(short trapId, Point tile) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onPlaceTrap(trapId, tile, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void updateTiles(List<Point> updatedTiles) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onTilesChange(updatedTiles);
@@ -437,6 +457,15 @@ public class LocalGameSession implements GameSessionServerService, GameSessionCl
     public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onResearchStatusChanged(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void setPossession(EntityId target, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.setPossession(target);
+            }
         }
     }
 

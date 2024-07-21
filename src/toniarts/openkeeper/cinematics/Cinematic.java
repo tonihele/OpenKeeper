@@ -79,7 +79,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
     public Cinematic(final Main app, String cameraSweepFile, final Vector3f start) {
 
         this(app.getAssetManager(), app.getCamera(), app.getListener(),
-                start.addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
+                start.addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
                 cameraSweepFile, app.getRootNode(), app.getStateManager());
     }
 
@@ -167,7 +167,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
 
         // The waypoints
         for (CameraSweepDataEntry entry : cameraSweepData.getEntries()) {
-            path.addWayPoint(entry.getPosition().mult(MapViewController.TILE_WIDTH).addLocal(startLocation));
+            path.addWayPoint(entry.getPosition().mult(WorldUtils.TILE_WIDTH).addLocal(startLocation));
         }
         //path.setCurveTension(0.5f);
         if (IS_DEBUG) {
@@ -232,7 +232,7 @@ public class Cinematic extends com.jme3.cinematic.Cinematic {
             final CameraSweepDataEntry entry, Listener audioListener) {
 
         // Set Position
-        cam.setLocation(startLocation.add(entry.getPosition().mult(MapViewController.TILE_WIDTH)));
+        cam.setLocation(startLocation.add(entry.getPosition().mult(WorldUtils.TILE_WIDTH)));
 
         // Set the rotation
         cam.setRotation(entry.getRotation());

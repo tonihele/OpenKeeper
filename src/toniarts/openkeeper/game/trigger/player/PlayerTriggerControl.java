@@ -286,7 +286,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     break;
                 }
                 ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
-                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), true);
+                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
                 break;
 
             case SET_PORTAL_STATUS: // Creature part. Only for keeper x

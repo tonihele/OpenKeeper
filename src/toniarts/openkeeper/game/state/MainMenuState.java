@@ -185,7 +185,7 @@ public class MainMenuState extends AbstractAppState {
     private void loadCameraStartLocation() {
         Player player = kwdFile.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
-        startLocation.addLocal(0, MapViewController.FLOOR_HEIGHT, 0);
+        startLocation.addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
 
         // Set the actual camera location
         loadCameraStartLocation("EnginePath250");
@@ -589,57 +589,62 @@ public class MainMenuState extends AbstractAppState {
 
         @Override
         public void setWidescreen(boolean enable, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public boolean isInTransition() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void doTransition(short pathId, Vector3f start, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void rotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void showMessage(int textId, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void zoomViewToPoint(Vector3f point, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void zoomViewToEntity(EntityId entityId, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void setGamePaused(boolean paused) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public void showUnitFlower(EntityId entityId, int interval, short playerId) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setPossession(EntityId target, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
     }

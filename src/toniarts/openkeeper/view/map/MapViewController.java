@@ -73,14 +73,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     
     private static final Logger logger = System.getLogger(MapViewController.class.getName());
 
-    public final static float TILE_WIDTH = 1;
-    public final static float TILE_HEIGHT = 1;
-    public final static float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2; // FIXME use Terrain Torch Height
-    public final static float TOP_HEIGHT = 2 * TILE_HEIGHT;
-    public final static float FLOOR_HEIGHT = 1 * TILE_HEIGHT;
-    public final static float UNDERFLOOR_HEIGHT = 0 * TILE_HEIGHT;
-    public final static float WATER_LEVEL = MapViewController.FLOOR_HEIGHT - 0.07f;
-
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
@@ -510,21 +502,21 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
             name = "Torch1";
             angleY = -FastMath.HALF_PI;
-            position = new Vector3f(0, TORCH_HEIGHT, -TILE_WIDTH / 2);
+            position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, -WorldUtils.TILE_WIDTH / 2);
 
         } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // West
             name = "Torch1";
-            position = new Vector3f(-TILE_WIDTH / 2, TORCH_HEIGHT, 0);
+            position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
 
         } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // South
             name = "Torch1";
             angleY = FastMath.HALF_PI;
-            position = new Vector3f(0, TORCH_HEIGHT, TILE_WIDTH / 2);
+            position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, WorldUtils.TILE_WIDTH / 2);
 
         } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // East
             name = "Torch1";
             angleY = FastMath.PI;
-            position = new Vector3f(TILE_WIDTH / 2, TORCH_HEIGHT, 0);
+            position = new Vector3f(WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
         }
 
         // Move to tile and right height

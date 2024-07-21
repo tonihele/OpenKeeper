@@ -199,7 +199,7 @@ public class TriggerControl extends Control {
                 Point p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
                 // TODO: flags!
-                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), false);
+                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
                 break;
 
             case MAKE:

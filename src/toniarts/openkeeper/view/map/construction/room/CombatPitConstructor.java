@@ -23,9 +23,8 @@ import com.jme3.scene.Spatial;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
-
-import static toniarts.openkeeper.view.map.MapViewController.TILE_WIDTH;
 
 /**
  * Manages combat pit door placement, currently it is decoupled from the actual
@@ -80,7 +79,7 @@ public class CombatPitConstructor extends DoubleQuadConstructor {
                     // This is true, the door is always like this, it might not look correct visually (the opposite quads of the door...) but it is
                     Spatial part = AssetUtils.loadModel(assetManager, modelName + "14", artResource);
                     AssetUtils.translateToTile(part, new Point(x, y));
-                    part.move(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                    part.move(-WorldUtils.TILE_WIDTH / 4, 0, -WorldUtils.TILE_WIDTH / 4);
 
                     root.attachChild(part);
 

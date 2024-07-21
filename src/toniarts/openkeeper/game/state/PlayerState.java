@@ -55,7 +55,6 @@ import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.world.MapLoader;
 import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.creature.CreatureControl;
 import toniarts.openkeeper.world.room.GenericRoom;
 import toniarts.openkeeper.world.room.RoomInstance;
 
@@ -193,7 +192,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
                 }
 
                 @Override
-                protected void onPossession(CreatureControl creature) {
+                protected void onPossession(EntityId entityId) {
                     // Disable states
                     for (AbstractAppState state : appStates) {
                         if (state instanceof PossessionInteractionState
@@ -203,7 +202,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
                         state.setEnabled(false);
                     }
                     // Enable state
-                    possessionState.setTarget(creature);
+                    possessionState.setTarget(entityId);
                     possessionState.setEnabled(true);
 
                     screen.goToScreen(PlayerScreenController.SCREEN_POSSESSION_ID);
@@ -463,7 +462,7 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     }
 
     protected Creature getPossessionCreature() {
-        return possessionState.getTarget().getCreature();
+        return null/*possessionState.getTarget().getCreature()*/;
     }
 
     protected InteractionState getInteractionState() {
@@ -568,6 +567,10 @@ public class PlayerState extends AbstractAppState implements PlayerListener {
     @Override
     public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
         screen.updateEntityResearch(researchableEntity);
+    }
+
+    void setPossession(EntityId target) {
+
     }
 
 }

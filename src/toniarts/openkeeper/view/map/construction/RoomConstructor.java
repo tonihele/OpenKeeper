@@ -17,6 +17,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.WallSection;
 
 /**
@@ -151,11 +152,11 @@ public abstract class RoomConstructor {
                     Vector3f moveSecond;
                     if (section.direction() == WallSection.WallDirection.WEST
                             || section.direction() == WallSection.WallDirection.SOUTH) {
-                        moveFirst = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
-                        moveSecond = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
+                        moveFirst = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
                     } else { // NORTH, EAST
-                        moveFirst = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
-                        moveSecond = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -3 * MapViewController.TILE_WIDTH / 4);
+                        moveFirst = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
+                        moveSecond = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
                     }
 
                     spatial = new BatchNode();
@@ -191,17 +192,17 @@ public abstract class RoomConstructor {
 
                     switch (section.direction()) {
                         case WEST:
-                            spatial.move(-MapViewController.TILE_WIDTH, 0, 0);
+                            spatial.move(-WorldUtils.TILE_WIDTH, 0, 0);
                             break;
                         case SOUTH:
-                            spatial.move(0, 0, MapViewController.TILE_WIDTH);
+                            spatial.move(0, 0, WorldUtils.TILE_WIDTH);
                             break;
                         case EAST:
-                            spatial.move(MapViewController.TILE_WIDTH, 0, 0);
+                            spatial.move(WorldUtils.TILE_WIDTH, 0, 0);
                             break;
                         default:
                             // NORTH
-                            spatial.move(0, 0, -MapViewController.TILE_WIDTH);
+                            spatial.move(0, 0, -WorldUtils.TILE_WIDTH);
                             break;
                     }
                 }

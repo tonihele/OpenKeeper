@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert.map;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Container class for *Triggers.kld
@@ -32,7 +33,7 @@ public abstract class Trigger {
     private int idNext; // SiblingID
     private int idChild; // ChildID
     private short repeatTimes; // Repeat x times, 255 = always
-    protected HashMap<String, Number> data = null;
+    protected Map<String, Number> data = null;
 
     public Trigger(KwdFile kwdFile) {
         this.kwdFile = kwdFile;

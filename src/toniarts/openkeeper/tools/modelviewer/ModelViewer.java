@@ -409,9 +409,11 @@ public class ModelViewer extends SimpleApplication {
                             mat.setColor("Color", ColorRGBA.Red);
                             normalGeometry.setMaterial(mat);
                             nodeNormals.attachChild(normalGeometry);
-                            
-                            g.setMaterial(new Material(assetManager,
-                                    "Common/MatDefs/Misc/ShowNormals.j3md"));
+
+                            if (!g.isGrouped()) {
+                                g.setMaterial(new Material(assetManager,
+                                        "Common/MatDefs/Misc/ShowNormals.j3md"));
+                            }
                         }
                     }
                 });

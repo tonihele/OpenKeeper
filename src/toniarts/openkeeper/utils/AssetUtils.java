@@ -645,7 +645,7 @@ public class AssetUtils {
     }
 
     public static void scale(final Spatial spatial) {
-        spatial.scale(MapViewController.TILE_WIDTH, MapViewController.TILE_HEIGHT, MapViewController.TILE_WIDTH);
+        spatial.scale(WorldUtils.TILE_WIDTH, WorldUtils.TILE_HEIGHT, WorldUtils.TILE_WIDTH);
     }
 
     /**

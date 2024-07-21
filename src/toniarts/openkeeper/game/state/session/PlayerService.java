@@ -127,4 +127,12 @@ public interface PlayerService {
      */
     public void showUnitFlower(EntityId entityId, int interval, short playerId);
 
+    /**
+     * Set player possession mode on/off
+     *
+     * @param target possession target, null if possession ends
+     * @param playerId player ID that posesses
+     */
+    public void setPossession(EntityId target, short playerId);
+
 }

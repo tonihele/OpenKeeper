@@ -27,14 +27,13 @@ import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
-import java.awt.Point;
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.FunnyCameraContol;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  *
@@ -47,7 +46,7 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
     private Main app;
     private InputManager inputManager;
 
-    private CreatureControl target;
+    private EntityId target;
     private Creature creature;
     public Vector2f mousePosition = Vector2f.ZERO;
 
@@ -115,7 +114,7 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
             camera = new PossessionCamera(app.getCamera(), creature.getAttributes().getSpeed(), creature.getFirstPersonOscillateScale());
             loadCameraStartLocation();
 
-            FunnyCameraContol fcc = new FunnyCameraContol(app.getCamera(), target.getSpatial());
+            FunnyCameraContol fcc = new FunnyCameraContol(app.getCamera(), null/*target.getSpatial()*/);
             fcc.setLookAtOffset(new Vector3f(0, creature.getAttributes().getEyeHeight(), 0));
             fcc.setHeight(creature.getAttributes().getHeight());
             fcc.setDistance(1.5f);
@@ -124,7 +123,7 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
             registerInput();
         } else {
             unregisterInput();
-            target.getSpatial().removeControl(FunnyCameraContol.class);
+            //target.getSpatial().removeControl(FunnyCameraContol.class);
             target = null;
         }
     }
@@ -133,10 +132,10 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
      * Load the initial camera position
      */
     private void loadCameraStartLocation() {
-        Point p = target.getCreatureCoordinates();
-        Vector3f startLocation = new Vector3f(p.x, target.getHeight(), p.y);
+        //Point p = target.getCreatureCoordinates();
+        //Vector3f startLocation = new Vector3f(p.x, target.getHeight(), p.y);
         Camera cam = app.getCamera();
-        cam.setLocation(startLocation.addLocal(0, creature.getAttributes().getEyeHeight(), 0));
+        //cam.setLocation(startLocation.addLocal(0, creature.getAttributes().getEyeHeight(), 0));
         //cam.setFrustumPerspective(45, cam.getWidth() / cam.getHeight(), 0.1f, creature.getDistanceCanSee() * 10);
         cam.setAxes(Vector3f.UNIT_X, Vector3f.UNIT_Y, Vector3f.UNIT_Z);
     }
@@ -237,8 +236,8 @@ public class PossessionCameraState extends AbstractPauseAwareState implements Ac
         app.getListener().setRotation(app.getCamera().getRotation());
     }
 
-    public void setTarget(CreatureControl target) {
+    public void setTarget(EntityId target) {
         this.target = target;
-        creature = this.target.getCreature();
+        //creature = this.target.getCreature();
     }
 }

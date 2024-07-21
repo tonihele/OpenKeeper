@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -183,8 +184,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
-        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
-            this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
+        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level level1) {
+            this.levelObject = level1;
         } else {
             this.levelObject = null;
         }
@@ -218,6 +219,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameWorldController.createNewGame(this, this);
 
         positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(), gameWorldController.getObjectsController());
+        gameWorldController.setEntityPositionLookup(positionSystem);
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
@@ -647,6 +649,12 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     @Override
     public GameResult getGameResult() {
         return gameResult;
+    }
+
+    @Override
+    public void setPossession(EntityId target, short playerId) {
+        players.get(playerId).setPossession(target != null);
+        playerService.setPossession(target, playerId);
     }
 
     @Override
