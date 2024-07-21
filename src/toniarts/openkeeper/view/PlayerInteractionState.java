@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -730,7 +731,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @return true if spell can be cast
      */
     private boolean castSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile, Vector2f position) {
-        if (!canCastSpell(keeperSpell, object, tile, position)) {
+        if (!canCastSpell(keeperSpell, object, tile)) {
             return false;
         }
         gameClientState.getGameClientService().castKeeperSpell(keeperSpell.getId(), object != null ? object.getEntityId() : null, tile, position);
@@ -738,8 +739,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return true;
     }
 
-    private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile, Vector2f position) {
-        return true;
+    private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), entityData, object != null ? object.getEntityId() : null);
     }
 
     /**
