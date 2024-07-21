@@ -253,8 +253,8 @@ public class ObjectsController implements IObjectsController {
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
 
         // Add a slight offset to make things look nicer, stuff not clumping together
-        pos.x = pos.x + Utils.getRandom().nextFloat(MapViewController.TILE_WIDTH) - (MapViewController.TILE_WIDTH / 2f);
-        pos.z = pos.z + Utils.getRandom().nextFloat(MapViewController.TILE_WIDTH) - (MapViewController.TILE_WIDTH / 2f);
+        pos.x = pos.x + Utils.getRandom().nextFloat(WorldUtils.TILE_WIDTH) - (WorldUtils.TILE_WIDTH / 2f);
+        pos.z = pos.z + Utils.getRandom().nextFloat(WorldUtils.TILE_WIDTH) - (WorldUtils.TILE_WIDTH / 2f);
         return loadObject(OBJECT_GOLD_ID, ownerId, pos, 0, money, null, null, null, maxMoney);
     }
 
