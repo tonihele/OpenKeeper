@@ -284,7 +284,7 @@ public class HealthSystem implements IGameLogicUpdatable {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (gameTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.startTime, tortured.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1));
                 delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be

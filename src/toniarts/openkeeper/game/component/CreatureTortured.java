@@ -25,15 +25,17 @@ import com.simsilica.es.EntityComponent;
  */
 public class CreatureTortured implements EntityComponent {
 
-    public double startTime;
+    public double timeTortured;
+    public double tortureCheckTime;
     public double healthCheckTime;
 
     public CreatureTortured() {
         // For serialization
     }
 
-    public CreatureTortured(double startTime, double healthCheckTime) {
-        this.startTime = startTime;
+    public CreatureTortured(double timeTortured, double tortureCheckTime, double healthCheckTime) {
+        this.timeTortured = timeTortured;
+        this.tortureCheckTime = tortureCheckTime;
         this.healthCheckTime = healthCheckTime;
     }
 

@@ -1310,4 +1310,25 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
     }
 
+    @Override
+    public void convertCreature(short playerId) {
+
+        // Remove our lair from the last player
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        if (creatureSleep != null && creatureSleep.lairObjectId != null) {
+            entityData.removeEntity(creatureSleep.lairObjectId);
+            entityData.setComponent(entityId, new CreatureSleep(null, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+        }
+
+        // Set new owner
+        entityData.setComponent(entityId, new Owner(playerId, playerId));
+
+        // Remove good player stuff
+        entityData.removeComponent(entityId, Objective.class);
+        entityData.removeComponent(entityId, Party.class);
+
+        // Reset AI
+        getStateMachine().changeState(CreatureState.IDLE);
+    }
+
 }

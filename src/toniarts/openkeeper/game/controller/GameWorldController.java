@@ -761,7 +761,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
                     // Set the component, continue the torturing time if such is possible
                     CreatureTortured tortured = entityData.getComponent(entity, CreatureTortured.class);
-                    entityData.setComponent(entity, new CreatureTortured(tortured != null ? tortured.startTime : gameTimer.getGameTime(), gameTimer.getGameTime()));
+                    entityData.setComponent(entity, new CreatureTortured(tortured != null ? tortured.timeTortured : 0.0d, gameTimer.getGameTime(), gameTimer.getGameTime()));
                 }
             }
             tortureOrImprisonment = imprison || torture;
