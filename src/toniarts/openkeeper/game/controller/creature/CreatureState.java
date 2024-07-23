@@ -256,8 +256,8 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         @Override
-            public void exit(ICreatureController entity) {
-                entity.setAttackTarget(null);
+        public void exit(ICreatureController entity) {
+
         }
 
         @Override

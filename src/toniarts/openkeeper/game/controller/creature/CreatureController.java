@@ -515,7 +515,6 @@ public class CreatureController extends EntityController implements ICreatureCon
         } else {
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
-
         return attackTargetController;
     }
 
@@ -526,8 +525,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
     }
 
-    @Override
-    public void setAttackTarget(EntityId entity) {
+    private void setAttackTarget(EntityId entity) {
         if (entity == null) {
             entityData.removeComponent(entityId, AttackTarget.class);
         } else {
