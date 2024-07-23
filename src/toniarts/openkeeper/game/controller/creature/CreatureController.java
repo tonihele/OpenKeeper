@@ -1331,7 +1331,6 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Remove good player stuff
         entityData.removeComponent(entity, Objective.class);
-        entityData.removeComponent(entity, Party.class);
 
         // Reset AI
         getStateMachine().changeState(CreatureState.IDLE);
