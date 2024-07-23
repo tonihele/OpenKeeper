@@ -86,6 +86,8 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public ICreatureController getAttackTarget();
 
+    public void setAttackTarget(EntityId entity);
+
     public boolean isWithinAttackDistance(EntityId attackTarget);
 
     public void stopCreature();
