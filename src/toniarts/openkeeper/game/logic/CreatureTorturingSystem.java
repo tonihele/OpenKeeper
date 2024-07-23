@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -45,7 +46,7 @@ public class CreatureTorturingSystem implements IGameLogicUpdatable {
         this.mapInformation = mapInformation;
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
-        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class);
+        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
     }
 
     @Override
@@ -64,11 +65,15 @@ public class CreatureTorturingSystem implements IGameLogicUpdatable {
             CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
             if (creatureTortured.timeTortured + tpf >= creatureComponent.tortureTimeToConvert) {
 
-                // Convert!
+                Owner owner = entity.get(Owner.class);
                 short playerId = mapInformation.getMapData().getTile(WorldUtils.vectorToPoint(entity.get(Position.class).position)).getOwnerId();
-                entityData.removeComponent(entity.getId(), CreatureTortured.class);
-                creaturesController.createController(entity.getId()).convertCreature(playerId);
-                continue;
+                if (owner.ownerId != playerId) {
+
+                    // Convert!
+                    entityData.removeComponent(entity.getId(), CreatureTortured.class);
+                    creaturesController.createController(entity.getId()).convertCreature(playerId);
+                    continue;
+                }
             }
 
             entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, gameTime, creatureTortured.healthCheckTime));
