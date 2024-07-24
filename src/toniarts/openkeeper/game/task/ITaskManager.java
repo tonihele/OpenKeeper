@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.simsilica.es.EntityId;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -108,5 +109,19 @@ public interface ITaskManager {
      * @return true if the task was assigned
      */
     boolean assignEatTask(ICreatureController creature);
+
+    /**
+     * Adds a creature to unemployment queue. You need to separately process the
+     * queue
+     *
+     * @param creature the unemployed creature
+     * @param workResult result callback
+     */
+    void addToUnemployedWorkerQueue(ICreatureController creature, Consumer<Boolean> workResult);
+
+    /**
+     * Processes the unemployed workers
+     */
+    void processUnemployedWorkerQueue();
 
 }

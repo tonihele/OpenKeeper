@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.data.ObjectiveType;
@@ -64,7 +65,7 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean goToSleep();
 
-    public boolean findWork();
+    public void findWork(Consumer<Boolean> workResult);
 
     public boolean isWorker();
 

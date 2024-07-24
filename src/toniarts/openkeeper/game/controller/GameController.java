@@ -265,7 +265,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ChickenSpawnSystem(gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
-                new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
+                new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),

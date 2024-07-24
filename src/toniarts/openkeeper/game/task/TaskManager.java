@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -123,6 +124,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+    private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
@@ -797,8 +799,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         Task task = tasksByIds.get(taskId);
 
         // For nested task, return the actual task
-        if (task != null && task instanceof AbstractObjectiveTask) {
-            return ((AbstractObjectiveTask) task).getCurrentTask();
+        if (task != null && task instanceof AbstractObjectiveTask nestedTask) {
+            return nestedTask.getCurrentTask();
         }
 
         return task;
@@ -813,6 +815,23 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         return mapTile;
+    }
+
+    @Override
+    public void addToUnemployedWorkerQueue(ICreatureController creature, Consumer<Boolean> workResult) {
+        unemployedCreatures.put(creature, workResult);
+    }
+
+    @Override
+    public void processUnemployedWorkerQueue() {
+        if (unemployedCreatures.isEmpty()) {
+            return;
+        }
+
+        unemployedCreatures.forEach((creature, workResult) -> {
+            workResult.accept(assignTask(creature, false));
+        });
+        unemployedCreatures.clear();
     }
 
 }

@@ -30,6 +30,7 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -338,18 +339,20 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public boolean findWork() {
+    public void findWork(Consumer<Boolean> workResult) {
 
         // See if we have some available work
         if (isWorker()) {
-            return (taskManager.assignTask(this, false));
+            taskManager.addToUnemployedWorkerQueue(this, workResult);
+            return;
         }
 
         short owner = getOwnerId();
         if (owner == Player.NEUTRAL_PLAYER_ID || owner == Player.GOOD_PLAYER_ID) {
 
             // Currently no creature specific jobs offered for neutral or good players
-            return false;
+            workResult.accept(false);
+            return;
         }
 
         // See that is there a prefered job for us
@@ -365,10 +368,11 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Choose
         if (!jobs.isEmpty()) {
-            return (taskManager.assignTask(this, chooseOnWeight(jobs).getJobType()));
+            workResult.accept(taskManager.assignTask(this, chooseOnWeight(jobs).getJobType()));
+            return;
         }
 
-        return false;
+        workResult.accept(false);
     }
 
     private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
