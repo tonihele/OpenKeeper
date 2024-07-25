@@ -51,20 +51,13 @@ public class TriggerControl extends Control {
     private static final short TIME_LIMIT_TIMER_ID = 16;
 
     protected TriggerGenericData trigger;
-    protected TriggerGenericData root;
+    protected final TriggerGenericData root;
 
-    protected ILevelInfo levelInfo;
-    protected IGameTimer gameTimer;
-    protected IGameController gameController;
-    protected IMapController mapController;
-    protected ICreaturesController creaturesController;
-
-    /**
-     * empty serialization constructor
-     */
-    public TriggerControl() {
-        super();
-    }
+    protected final ILevelInfo levelInfo;
+    protected final IGameTimer gameTimer;
+    protected final IGameController gameController;
+    protected final IMapController mapController;
+    protected final ICreaturesController creaturesController;
 
     public TriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId) {

@@ -37,7 +37,6 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the traps in the world TODO:

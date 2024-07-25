@@ -29,11 +29,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 public class PartyTriggerControl extends TriggerControl {
 
-    private IPartyController partyController;
-
-    public PartyTriggerControl() { // empty serialization constructor
-        super();
-    }
+    private final IPartyController partyController;
 
     public PartyTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId,

@@ -172,12 +172,14 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Scan for neutral creatures to claim
         short ownerId = getOwnerId();
-        if (ownerId != Player.NEUTRAL_PLAYER_ID && ownerId != Player.GOOD_PLAYER_ID) {
-            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-                Owner owner = entityData.getComponent(entity, Owner.class);
-                if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
-                    entityData.setComponent(entity, new Owner(ownerId, ownerId));
-                }
+        if (ownerId == Player.NEUTRAL_PLAYER_ID || ownerId == Player.GOOD_PLAYER_ID) {
+            return;
+        }
+
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            Owner owner = entityData.getComponent(entity, Owner.class);
+            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
+                convertCreature(entity, ownerId);
             }
         }
     }
@@ -1308,6 +1310,30 @@ public class CreatureController extends EntityController implements ICreatureCon
         } else {
             entityData.setComponent(entityId, new Mana(manaGeneration));
         }
+    }
+
+    @Override
+    public void convertCreature(short playerId) {
+        convertCreature(entityId, playerId);
+    }
+
+    private void convertCreature(EntityId entity, short playerId) {
+
+        // Remove our lair from the last player
+        CreatureSleep creatureSleep = entityData.getComponent(entity, CreatureSleep.class);
+        if (creatureSleep != null && creatureSleep.lairObjectId != null) {
+            entityData.removeEntity(creatureSleep.lairObjectId);
+            entityData.setComponent(entity, new CreatureSleep(null, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+        }
+
+        // Set new owner
+        entityData.setComponent(entity, new Owner(playerId, playerId));
+
+        // Remove good player stuff
+        entityData.removeComponent(entity, Objective.class);
+
+        // Reset AI
+        getStateMachine().changeState(CreatureState.IDLE);
     }
 
 }

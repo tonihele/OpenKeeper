@@ -225,7 +225,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         }
 
         // Set new owner
-        if (currentDrawnOwnerId == Player.NEUTRAL_PLAYER_ID && currentDrawnOwnerId != getOwnerId()) {
+        if (currentDrawnOwnerId != getOwnerId()) {
             material.setBoolean("FlashColors", false);
             currentDrawnOwnerId = getOwnerId();
             setFlowerColor(getPlayerColor(currentDrawnOwnerId));

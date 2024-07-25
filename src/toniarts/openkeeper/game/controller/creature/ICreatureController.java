@@ -254,4 +254,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void setPossession(boolean possessed);
 
+    /**
+     * Converts creature to another player's bidding
+     *
+     * @param playerId the new player ID
+     */
+    public void convertCreature(short playerId);
+
 }

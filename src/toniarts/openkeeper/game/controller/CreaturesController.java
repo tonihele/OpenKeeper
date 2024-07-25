@@ -395,7 +395,7 @@ public class CreaturesController implements ICreaturesController {
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
-                entityData.setComponent(entityId, new CreatureTortured(gameTimer.getGameTime(), gameTimer.getGameTime()));
+                entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.TORTURED;
             }
         }
