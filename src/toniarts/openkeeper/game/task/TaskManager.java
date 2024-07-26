@@ -831,7 +831,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         while (!unemployedWorkers.isEmpty() && !priorizedTasks.isEmpty()) {
 
             // With each iteration we sort to fill the jobs as even as possible (assignee count changes)
-            Collections.sort(priorizedTasks);
+            Collections.sort(priorizedTasks, (o1, o2) -> sortByTaskStatusAndDistance(o1, o2));
 
             Iterator<TaskWorkerPriority> iter = priorizedTasks.iterator();
             while (iter.hasNext()) {
@@ -862,26 +862,25 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
     }
 
-    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) implements Comparable<TaskWorkerPriority> {
+    private int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
 
-        @Override
-        public int compareTo(TaskWorkerPriority taskWorkerPriority) {
-
-            // Fill in jobs that have no workers first
-            int result = Integer.compare(task.getAssigneeCount(), taskWorkerPriority.task.getAssigneeCount());
-            if (result != 0) {
-                return result;
-            }
-
-            // Closest creature gets the job
-            result = Integer.compare(points, taskWorkerPriority.points);
-            if (result != 0) {
-                return result;
-            }
-
-            // If the same, compare by date added
-            return task.getTaskCreated().compareTo(taskWorkerPriority.task.getTaskCreated());
+        // Fill in jobs that have no workers first
+        int result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
+        if (result != 0) {
+            return result;
         }
+
+        // Closest creature gets the job
+        result = Integer.compare(o1.points, o2.points);
+        if (result != 0) {
+            return result;
+        }
+
+        // If the same, compare by date added
+        return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
+    }
+
+    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
 
     }
 
