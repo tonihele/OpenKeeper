@@ -67,16 +67,6 @@ public interface ITaskManager {
     boolean assignSleepTask(ICreatureController creature);
 
     /**
-     * Assign a task to a creature
-     *
-     * @param creature the creature to assign a task to
-     * @param byDistance whether we should assign the closest task (i.e. if a
-     * player drops the creature somewhere)
-     * @return true if a task was assigned
-     */
-    boolean assignTask(ICreatureController creature, boolean byDistance);
-
-    /**
      * Assigns a creature to given task type
      *
      * @param creature the creature asking for the task

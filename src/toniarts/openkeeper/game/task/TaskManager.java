@@ -507,47 +507,6 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
-    @Override
-    public boolean assignTask(ICreatureController creature, boolean byDistance) {
-
-        Set<Task> taskQueue = taskQueues.get(creature.getOwnerId());
-        if (taskQueue == null) {
-            return false;
-//            throw new IllegalArgumentException("This task manager instance is not for the given player!");
-        }
-
-        // Sort by distance & priority
-        final Point currentLocation = creature.getCreatureCoordinates();
-        List<Task> prioritisedTaskQueue = new ArrayList<>(taskQueue);
-        Collections.sort(prioritisedTaskQueue, (Task t, Task t1) -> {
-            int result = Integer.compare(t.getAssigneeCount(), t1.getAssigneeCount());
-            if (result == 0) {
-                result = Integer.compare(
-                        WorldUtils.calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(),
-                        WorldUtils.calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority()
-                );
-
-                if (result == 0) {
-                    // If the same, compare by date added
-                    return t.getTaskCreated().compareTo(t1.getTaskCreated());
-                }
-            }
-            return result;
-        });
-
-        // Take the first available task from the sorted queue
-        for (Task task : prioritisedTaskQueue) {
-            if (task.canAssign(creature)) {
-
-                // Assign to first task
-                task.assign(creature, true);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public void addTask(short playerId, Task task) {
         Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
