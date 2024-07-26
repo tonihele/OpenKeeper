@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -814,7 +815,14 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
             for (Task task : taskQueue) {
-                int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
+                Vector2f target = task.getTarget(creature);
+                if (target == null) {
+
+                    // Can't reach
+                    continue;
+                }
+
+                int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
                 priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
             }
         }
