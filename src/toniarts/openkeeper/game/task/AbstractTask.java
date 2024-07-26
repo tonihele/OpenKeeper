@@ -111,8 +111,13 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
+    public boolean isFull() {
+        return getAssigneeCount() >= getMaxAllowedNumberOfAsignees();
+    }
+
+    @Override
     public boolean canAssign(ICreatureController creature) {
-        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid(creature) && isReachable(creature));
+        return (!isFull() && isValid(creature) && isReachable(creature));
     }
 
     @Override

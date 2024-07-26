@@ -78,6 +78,13 @@ public interface Task {
     int getMaxAllowedNumberOfAsignees();
 
     /**
+     * Is the task assignee count already full
+     *
+     * @return {@code true} if additional workers can't be assigned anymore
+     */
+    boolean isFull();
+
+    /**
      * Task priority, added to distance when evaluating tasks to give out. The
      * bigger the number, the less urgent the task is
      *

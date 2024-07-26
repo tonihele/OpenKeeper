@@ -150,4 +150,9 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
         return taskId;
     }
 
+    @Override
+    public boolean isFull() {
+        return task.isFull();
+    }
+
 }

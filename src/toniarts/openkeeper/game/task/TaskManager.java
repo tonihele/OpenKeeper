@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -828,10 +829,93 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return;
         }
 
-        unemployedCreatures.forEach((creature, workResult) -> {
-            workResult.accept(assignTask(creature, false));
-        });
+        unemployedCreatures
+                .entrySet()
+                .stream()
+                .collect(Collectors.groupingBy((creature) -> creature.getKey().getOwnerId()))
+                .entrySet()
+                .forEach((creaturesByOwnerId) -> {
+                    processUnemployedWorkers(taskQueues.getOrDefault(creaturesByOwnerId.getKey(), Collections.emptySet()), creaturesByOwnerId.getValue());
+                });
         unemployedCreatures.clear();
+    }
+
+    private void processUnemployedWorkers(Set<Task> tasks, List<Entry<ICreatureController, Consumer<Boolean>>> workers) {
+        Set<Task> taskQueue = new HashSet<>(tasks);
+        Map<ICreatureController, Consumer<Boolean>> unemployedWorkers = workers
+                .stream()
+                .collect(Collectors.toMap((entry) -> entry.getKey(), (entry) -> entry.getValue()));
+
+        // Process each available task for each available worker
+        List<TaskWorkerPriority> priorizedTasks = new ArrayList<>(workers.size() + tasks.size());
+        for (Entry<ICreatureController, Consumer<Boolean>> workerEntry : unemployedWorkers.entrySet()) {
+            ICreatureController creature = workerEntry.getKey();
+            Consumer<Boolean> workResult = workerEntry.getValue();
+            final Point currentLocation = creature.getCreatureCoordinates();
+
+            // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
+            for (Task task : taskQueue) {
+                int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
+            }
+        }
+
+        // Go through the tasks and assign workers
+        while (!unemployedWorkers.isEmpty() && !priorizedTasks.isEmpty()) {
+
+            // With each iteration we sort to fill the jobs as even as possible (assignee count changes)
+            Collections.sort(priorizedTasks);
+
+            Iterator<TaskWorkerPriority> iter = priorizedTasks.iterator();
+            while (iter.hasNext()) {
+                TaskWorkerPriority taskWorkerPriority = iter.next();
+
+                // See if the task is full or the worker is not unemployed anymore or that the task can't actually be handled by this creature
+                if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)
+                        || taskWorkerPriority.task.isFull()
+                        || !taskWorkerPriority.task.canAssign(taskWorkerPriority.creature)) {
+                    iter.remove();
+                    continue;
+                }
+
+                // Assign task
+                taskWorkerPriority.task.assign(taskWorkerPriority.creature, true);
+                taskWorkerPriority.workResult.accept(Boolean.TRUE);
+
+                // Prune list and re-sort tasks
+                unemployedWorkers.remove(taskWorkerPriority.creature);
+                iter.remove();
+                break;
+            }
+        }
+
+        // Finally anybody without assigment will get feedback
+        unemployedWorkers.forEach((t, u) -> {
+            u.accept(Boolean.FALSE);
+        });
+    }
+
+    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) implements Comparable<TaskWorkerPriority> {
+
+        @Override
+        public int compareTo(TaskWorkerPriority taskWorkerPriority) {
+
+            // Fill in jobs that have no workers first
+            int result = Integer.compare(task.getAssigneeCount(), taskWorkerPriority.task.getAssigneeCount());
+            if (result != 0) {
+                return result;
+            }
+
+            // Closest creature gets the job
+            result = Integer.compare(points, taskWorkerPriority.points);
+            if (result != 0) {
+                return result;
+            }
+
+            // If the same, compare by date added
+            return task.getTaskCreated().compareTo(taskWorkerPriority.task.getTaskCreated());
+        }
+
     }
 
 }
