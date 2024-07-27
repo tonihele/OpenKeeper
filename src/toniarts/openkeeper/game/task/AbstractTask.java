@@ -22,7 +22,9 @@ import java.awt.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -111,8 +113,13 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
+    public boolean isFull() {
+        return getAssigneeCount() >= getMaxAllowedNumberOfAsignees();
+    }
+
+    @Override
     public boolean canAssign(ICreatureController creature) {
-        return (assignees.size() < getMaxAllowedNumberOfAsignees() && isValid(creature) && isReachable(creature));
+        return (!isFull() && isValid(creature) && isReachable(creature));
     }
 
     @Override
@@ -166,6 +173,7 @@ public abstract class AbstractTask implements Task {
      * @return task location next to the wanted tile
      */
     protected Vector2f getAccessibleTargetNextToLocation(ICreatureController creature) {
+        List<Point> accessibleTiles = new ArrayList<>();
         for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
             for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
                 if (p.equals(getTaskLocation())) {
@@ -176,11 +184,23 @@ public abstract class AbstractTask implements Task {
                     continue;
                 }
 
-                // TODO: intelligent coordinates?
-                Vector2f target = new Vector2f(p.x, p.y);
-                if (isReachable(creature, target)) {
-                    return target;
-                }
+                accessibleTiles.add(p);
+            }
+        }
+
+        if (accessibleTiles.isEmpty()) {
+            return null;
+        }
+
+        // Sort by manhattan distance to the creature and get the first reachable one
+        Point startingPoint = WorldUtils.vectorToPoint(creature.getPosition());
+        accessibleTiles.sort((o1, o2) -> {
+            return Integer.compare(WorldUtils.calculateDistance(startingPoint, o1), WorldUtils.calculateDistance(startingPoint, o2));
+        });
+        for (Point p : accessibleTiles) {
+            Vector2f target = new Vector2f(p.x, p.y);
+            if (isReachable(creature, target)) {
+                return target;
             }
         }
 
