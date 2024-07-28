@@ -29,6 +29,7 @@
     </style>
     <!-- custom effects -->
     <registerEffect name="simpleHintEx" class="toniarts.openkeeper.gui.nifty.effect.SimpleHintEx" />
+    <registerEffect name="horizontalAutoScroll" class="toniarts.openkeeper.gui.nifty.effect.HorizontalAutoScroll" />
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -104,8 +105,8 @@
                         </panel>
                     </panel>
 
-                    <panel width="*" align="left" valign="center" childLayout="center">
-                        <control name="label" id="tooltip" style="textSmall" text="" />
+                    <panel width="*" childLayout="overlay">
+                        <control name="auto-scroll-text" id="tooltip" textStyle="textSmall" text="" />
                     </panel>
                     <panel width="64px" align="left" valign="center" />
                 </panel>
