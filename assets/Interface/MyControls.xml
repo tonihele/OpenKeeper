@@ -558,4 +558,16 @@
         </panel>
     </controlDefinition>
 
+    <controlDefinition name="auto-scroll-text" controller="toniarts.openkeeper.gui.nifty.autoscrolltext.AutoScrollTextControl">
+        <panel width="*" align="left" valign="center" childLayout="overlay" childClip="true">
+            <control name="label" id="#text" style="textSmall" text="$text">
+                <effect>
+                    <onCustom name="horizontalAutoScroll" length="70000" start="0" end="85000" inherit="true" onEndEffect="$action" />
+                </effect>
+            </control>
+            <!-- <control name="label" id="#text" style="textSmall" text="cvcvbcbv" /> -->
+
+        </panel>
+    </controlDefinition>
+
 </nifty-controls>
