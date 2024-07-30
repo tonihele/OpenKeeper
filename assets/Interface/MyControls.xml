@@ -562,7 +562,7 @@
         <panel width="*" align="left" valign="center" childLayout="overlay" childClip="true">
             <control name="label" id="#text" style="textSmall" text="$text">
                 <effect>
-                    <onCustom name="horizontalAutoScroll" length="70000" start="0" end="85000" inherit="true" />
+                    <onCustom name="horizontalAutoScroll" length="21474836" start="0" end="85000" inherit="true" />
                 </effect>
             </control>
         </panel>
