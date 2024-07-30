@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
  */
 public class HorizontalAutoScroll implements EffectImpl {
 
-    private static final float EFFECT_SPEED = 2500f;
+    private static final float EFFECT_SPEED = 0.085f;
     private float end = 100;
     private float start = 0;
     private float timeWhenChangedDirection = 0;
@@ -41,6 +41,13 @@ public class HorizontalAutoScroll implements EffectImpl {
     private float currentXOffset;
     private boolean reverse = false;
 
+    /**
+     * Keeps constant speed. Normalized time in
+     * {@link #execute(de.lessvoid.nifty.elements.Element, float, de.lessvoid.nifty.effects.Falloff, de.lessvoid.nifty.render.NiftyRenderEngine)}
+     * is relative to the effect length.
+     */
+    private float speedFactor;
+
     @Override
     public void activate(
             @Nonnull final Nifty nifty,
@@ -48,11 +55,12 @@ public class HorizontalAutoScroll implements EffectImpl {
             @Nonnull final EffectProperties parameter) {
         end = Integer.parseInt(parameter.getProperty("end", "0"));
         start = Integer.parseInt(parameter.getProperty("start", "0"));
-        delay = Integer.parseInt(parameter.getProperty("delay", "0")) / 100f;
+        delay = Integer.parseInt(parameter.getProperty("delay", "0")) * 1000f;
         delayStart = 0;
         reverse = start < end;
         timeWhenChangedDirection = 0;
         currentXOffset = 0;
+        speedFactor = Integer.parseInt(parameter.getProperty("length", "1000"));
     }
 
     @Override
@@ -61,30 +69,31 @@ public class HorizontalAutoScroll implements EffectImpl {
             final float normalizedTime,
             @Nullable final Falloff falloff,
             @Nonnull final NiftyRenderEngine r) {
-        if (normalizedTime - delayStart < delay) {
-            timeWhenChangedDirection = normalizedTime;
+        float denormalizedTime = normalizedTime * speedFactor;
+        if (denormalizedTime - delayStart < delay) {
+            timeWhenChangedDirection = denormalizedTime;
 
-            // Keep us always "on the go", if we don't apply the moveTo, posission will be reset
+            // Keep us always "on the go", if we don't apply the moveTo, position will be reset
             r.moveTo(currentXOffset, 0);
 
             return;
         }
 
         if (reverse) {
-            currentXOffset = Math.max(end - (normalizedTime - timeWhenChangedDirection) * EFFECT_SPEED, start);
+            currentXOffset = Math.max(end - (denormalizedTime - timeWhenChangedDirection) * EFFECT_SPEED, start);
         } else {
-            currentXOffset = Math.min(start + (normalizedTime - timeWhenChangedDirection) * EFFECT_SPEED, end);
+            currentXOffset = Math.min(start + (denormalizedTime - timeWhenChangedDirection) * EFFECT_SPEED, end);
         }
         r.moveTo(currentXOffset, 0);
 
         if (currentXOffset >= end) {
             reverse = true;
-            timeWhenChangedDirection = normalizedTime;
-            delayStart = normalizedTime;
+            timeWhenChangedDirection = denormalizedTime;
+            delayStart = denormalizedTime;
         } else if (currentXOffset <= start) {
             reverse = false;
-            timeWhenChangedDirection = normalizedTime;
-            delayStart = normalizedTime;
+            timeWhenChangedDirection = denormalizedTime;
+            delayStart = denormalizedTime;
         }
     }
 
