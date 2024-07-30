@@ -11,7 +11,7 @@
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
     <useControls filename="Interface/MyControls.xml" />
-    <!--<resourceBundle id="menu" filename="Interface/Texts/Text" />-->
+    <!-- inline styles -->
     <style id="textManaChange">
         <attributes font="Interface/Fonts/Ingame10.fnt" />
     </style>
@@ -27,6 +27,9 @@
     <style id="textGold">
         <attributes font="Interface/Fonts/Ingame28.fnt" color="#ffdd33" />
     </style>
+    <!-- custom effects -->
+    <registerEffect name="simpleHintEx" class="toniarts.openkeeper.gui.nifty.effect.SimpleHintEx" />
+    <registerEffect name="horizontalAutoScroll" class="toniarts.openkeeper.gui.nifty.effect.HorizontalAutoScroll" />
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -46,8 +49,8 @@
                         <panel childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
                             <effect>
                                 <onHover name="hint" hintText="${menu.2133}" hintDelay="200" />
-                                <onHover name="simpleHint" hintText="${menu.2134}" targetElement="tooltip" />
-                                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                <onHover name="simpleHintEx" hintText="${menu.2134}" targetElement="tooltip" />
+                                <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                             </effect>
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/Mana-Bg-01.png" />
@@ -56,8 +59,8 @@
                             <panel backgroundImage="Textures/GUI/Windows/heart-hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2139}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.2140}" targetElement="tooltip" />
-                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" hintText="${menu.2140}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/heart-bg.png" align="left" valign="center">
                                     <interact onSecondaryClick="zoomToDungeon()" />
@@ -81,8 +84,8 @@
                             <interact onClick="grabGold()"/>
                             <effect>
                                 <onHover name="hint" hintText="${menu.2141}" hintDelay="200" />
-                                <onHover name="simpleHint" hintText="${menu.2142}" targetElement="tooltip" />
-                                <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                <onHover name="simpleHintEx" hintText="${menu.2142}" targetElement="tooltip" />
+                                <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                             </effect>
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-00.png" />
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
@@ -91,8 +94,8 @@
                             <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.2144}" targetElement="tooltip" />
-                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" hintText="${menu.2144}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                                 <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                             </panel>
@@ -102,8 +105,8 @@
                         </panel>
                     </panel>
 
-                    <panel width="*" align="left" valign="center" childLayout="center">
-                        <control name="label" id="tooltip" style="textSmall" text="" />
+                    <panel width="*" childLayout="overlay">
+                        <control name="auto-scroll-text" id="tooltip" textStyle="textSmall" text="" />
                     </panel>
                     <panel width="64px" align="left" valign="center" />
                 </panel>
@@ -227,8 +230,8 @@
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-00.png" post="true"/>
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-00.png" post="true"/>
                                     <onHover name="hint" hintText="${menu.1803}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.1804}" targetElement="tooltip" />
-                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" hintText="${menu.1804}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
 
@@ -240,8 +243,8 @@
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
                                         <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
                                         <onHover name="hint" hintText="${menu.1805}" hintDelay="200" />
-                                        <onHover name="simpleHint" hintText="${menu.1806}" targetElement="tooltip" />
-                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                        <onHover name="simpleHintEx" hintText="${menu.1806}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                     </effect>
                                 </panel>
                             </panel>
@@ -252,8 +255,8 @@
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-02.png" post="true"/>
                                     <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-02.png" post="true" />
                                     <onHover name="hint" hintText="${menu.1801}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.1802}" targetElement="tooltip" />
-                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" hintText="${menu.1802}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
                             <!-- mag magnifier -->
@@ -264,8 +267,8 @@
                                     <!-- original game have no next effect -->
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true" />
                                     <onHover name="hint" hintText="${menu.1799}" hintDelay="200" />
-                                    <onHover name="simpleHint" hintText="${menu.1800}" targetElement="tooltip" />
-                                    <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                    <onHover name="simpleHintEx" hintText="${menu.1800}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
                         </panel>
@@ -280,8 +283,8 @@
                                     <interact onClick="togglePanel()" />
                                     <effect>
                                         <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
-                                        <onHover name="simpleHint" hintText="${menu.2162}" targetElement="tooltip" />
-                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                        <onHover name="simpleHintEx" hintText="${menu.2162}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                     </effect>
                                 </image>
                                 <!-- Objective -->
@@ -290,8 +293,8 @@
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Tabs/Messages/mt-objective-01.png" post="true"/>
                                         <onHover name="hint" hintText="${menu.2163}" hintDelay="200" />
-                                        <onHover name="simpleHint" hintText="${menu.2164}" targetElement="tooltip" />
-                                        <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                                        <onHover name="simpleHintEx" hintText="${menu.2164}" targetElement="tooltip" />
+                                        <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                     </effect>
                                 </image>
                             </panel>

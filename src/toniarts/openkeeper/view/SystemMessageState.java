@@ -123,12 +123,14 @@ public class SystemMessageState extends AbstractPauseAwareState {
 
     @Override
     public void update(float tpf) {
-        if (systemMessagesQueue != null) {
-            for (Element child : systemMessagesQueue.getChildren()) {
-                SystemMessageControl control = child.getControl(SystemMessageControl.class);
-                if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
-                    child.markForRemoval();
-                }
+        if (systemMessagesQueue == null) {
+            return;
+        }
+
+        for (Element child : systemMessagesQueue.getChildren()) {
+            SystemMessageControl control = child.getControl(SystemMessageControl.class);
+            if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
+                child.markForRemoval();
             }
         }
     }
