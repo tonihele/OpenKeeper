@@ -17,13 +17,17 @@
 package toniarts.openkeeper.game.controller.entity;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
@@ -122,11 +126,11 @@ public class EntityController implements IEntityController {
 
     @Override
     public void removePossession() {
-        handleLootDrop(entityId);
-        handleAssociatedEntities(entityId);
+        handleLootDrop();
+        handleAssociatedEntities();
     }
 
-    private void handleLootDrop(EntityId entityId) {
+    private void handleLootDrop() {
 
         // Drop gold
         Gold gold = entityData.getComponent(entityId, Gold.class);
@@ -143,22 +147,25 @@ public class EntityController implements IEntityController {
         // TODO:
     }
 
-    private void handleAssociatedEntities(EntityId entityId) {
-        RoomStorage roomStorage = null;
-        Position position = null;
+    private void handleAssociatedEntities() {
+        removeLair();
+        removeFromRoomStrorage();
+        removeAttacks();
+    }
 
-        // Get rid of lairs
+    protected void removeFromRoomStrorage() {
+        RoomStorage roomStorage = entityData.getComponent(entityId, RoomStorage.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        removeRoomStorage(roomStorage, position, entityId);
+    }
+
+    protected void removeLair() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         if (creatureSleep != null && creatureSleep.lairObjectId != null) {
-            roomStorage = entityData.getComponent(creatureSleep.lairObjectId, RoomStorage.class);
-            position = entityData.getComponent(creatureSleep.lairObjectId, Position.class);
+            RoomStorage roomStorage = entityData.getComponent(creatureSleep.lairObjectId, RoomStorage.class);
+            Position position = entityData.getComponent(creatureSleep.lairObjectId, Position.class);
             removeRoomStorage(roomStorage, position, creatureSleep.lairObjectId);
         }
-
-        // We are a property of a room
-        roomStorage = entityData.getComponent(entityId, RoomStorage.class);
-        position = entityData.getComponent(entityId, Position.class);
-        removeRoomStorage(roomStorage, position, entityId);
     }
 
     private void removeRoomStorage(RoomStorage roomStorage, Position position, EntityId entityId) {
@@ -173,6 +180,15 @@ public class EntityController implements IEntityController {
         IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
         roomObjectControl.removeItem(entityId);
+    }
+
+    private void removeAttacks() {
+        EntitySet spells = entityData.getEntities(new FieldFilter<>(CreatureSpell.class, "creatureId", entityId), CreatureSpell.class);
+
+        // Remove all spells
+        for (Entity entity : spells) {
+            entityData.removeEntity(entity.getId());
+        }
     }
 
     @Override

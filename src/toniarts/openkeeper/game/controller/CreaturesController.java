@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -42,6 +43,7 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
@@ -303,6 +305,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack, regeneration);
+        setSpells(entity, creature, level);
 
         entityData.setComponent(entity, creatureComponent);
         entityData.setComponent(entity, creatureExperience);
@@ -445,6 +448,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Update stats
         setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack, regeneration);
+        setSpells(entityId, kwdFile.getCreature(creatureComponent.creatureId), level);
 
         // Set the new components to the entity
         entityData.setComponents(entityId, creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack);
@@ -585,6 +589,34 @@ public class CreaturesController implements ICreaturesController {
 
         // Load the creature anew
         loadCreature(newEntityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, SpawnType.PLACE, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
+    }
+
+    private void setSpells(EntityId entityId, Creature creature, int level) {
+
+        // Get the spells the creature should have
+        Map<Short, toniarts.openkeeper.tools.convert.map.CreatureSpell> availableSpells = creature.getSpells()
+                .stream()
+                .filter((spell) -> spell.getLevelAvailable() >= level)
+                .collect(Collectors.toMap((spell) -> spell.getCreatureSpellId(), (spell) -> kwdFile.getCreatureSpellById(spell.getCreatureSpellId())));
+
+        // ... and compare it to the list we have
+        EntitySet ownedSpells = entityData.getEntities(new FieldFilter<>(CreatureSpell.class, "creatureId", entityId), CreatureSpell.class);
+
+        // Remove all spells we should not have
+        for (Entity entity : ownedSpells) {
+            CreatureSpell spell = entity.get(CreatureSpell.class);
+            if (availableSpells.containsKey(spell.creatureSpellId)) {
+                availableSpells.remove(spell.creatureSpellId);
+            } else {
+                entityData.removeEntity(entity.getId());
+            }
+        }
+
+        // All that is left is to add the remaining spells to the creature
+        for (toniarts.openkeeper.tools.convert.map.CreatureSpell spell : availableSpells.values()) {
+            EntityId spellEntity = entityData.createEntity();
+            entityData.setComponent(spellEntity, new CreatureSpell(spell.getCreatureSpellId(), entityId, spell.getRechargeTime(), spell.getRange()));
+        }
     }
 
 }

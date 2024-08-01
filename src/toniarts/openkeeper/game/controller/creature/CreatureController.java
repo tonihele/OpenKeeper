@@ -1322,13 +1322,10 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     private void convertCreature(EntityId entity, short playerId) {
+        removeFromRoomStrorage();
 
         // Remove our lair from the last player
-        CreatureSleep creatureSleep = entityData.getComponent(entity, CreatureSleep.class);
-        if (creatureSleep != null && creatureSleep.lairObjectId != null) {
-            entityData.removeEntity(creatureSleep.lairObjectId);
-            entityData.setComponent(entity, new CreatureSleep(null, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
-        }
+        removeLair();
 
         // Set new owner
         entityData.setComponent(entity, new Owner(playerId, playerId));
