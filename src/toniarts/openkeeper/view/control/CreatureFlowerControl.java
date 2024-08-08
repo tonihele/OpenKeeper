@@ -202,6 +202,8 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 return "Textures/GUI/moods/SJ-Library.png";
             case GO_TO_EAT:
                 return "Textures/GUI/moods/SJ-Hungry.png";
+            case TRAIN:
+                return "Textures/GUI/moods/SJ-Training.png";
             default:
                 return null;
         }
@@ -223,7 +225,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         }
 
         // Set new owner
-        if (currentDrawnOwnerId == Player.NEUTRAL_PLAYER_ID && currentDrawnOwnerId != getOwnerId()) {
+        if (currentDrawnOwnerId != getOwnerId()) {
             material.setBoolean("FlashColors", false);
             currentDrawnOwnerId = getOwnerId();
             setFlowerColor(getPlayerColor(currentDrawnOwnerId));

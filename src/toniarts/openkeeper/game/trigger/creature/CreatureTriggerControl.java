@@ -80,7 +80,7 @@ public class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatur
                 }
                 return false;
             case CREATURE_CONVERTED:
-                return false;
+                return instanceControl.getOwnerId() != getPlayerId();
             case CREATURE_CLAIMED:
                 if (instanceControl != null) {
                     return instanceControl.isClaimed();

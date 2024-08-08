@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -55,8 +56,8 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -159,6 +160,11 @@ public class ObjectsController implements IObjectsController {
     }
 
     @Override
+    public EntityId loadObject(short objectId, short ownerId, Vector2f pos, float rotation) {
+        return loadObject(objectId, ownerId, new Vector3f(pos.x, WorldUtils.FLOOR_HEIGHT, pos.y), rotation);
+    }
+
+    @Override
     public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, ResearchableType researchableType, Short researchTypeId) {
         return loadObject(objectId, ownerId, x, y, 0, money, researchableType, researchTypeId, null, null);
     }
@@ -181,7 +187,7 @@ public class ObjectsController implements IObjectsController {
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
-        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? MapViewController.UNDERFLOOR_HEIGHT : MapViewController.FLOOR_HEIGHT); // FIXME: no
+        pos.y = (objectId == OBJECT_HEART_ID || objectId == FiveByFiveRotatedController.OBJECT_BIG_STEPS_ID || objectId == FiveByFiveRotatedController.OBJECT_ARCHES_ID || objectId == TempleController.OBJECT_TEMPLE_HAND_ID ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT); // FIXME: no
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
@@ -244,7 +250,12 @@ public class ObjectsController implements IObjectsController {
 
     @Override
     public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney) {
-        return loadObject(OBJECT_GOLD_ID, ownerId, x, y, 0, money, null, null, null, maxMoney);
+        Vector3f pos = WorldUtils.pointToVector3f(x, y);
+
+        // Add a slight offset to make things look nicer, stuff not clumping together
+        pos.x = pos.x + Utils.getRandom().nextFloat(WorldUtils.TILE_WIDTH) - (WorldUtils.TILE_WIDTH / 2f);
+        pos.z = pos.z + Utils.getRandom().nextFloat(WorldUtils.TILE_WIDTH) - (WorldUtils.TILE_WIDTH / 2f);
+        return loadObject(OBJECT_GOLD_ID, ownerId, pos, 0, money, null, null, null, maxMoney);
     }
 
     @Override

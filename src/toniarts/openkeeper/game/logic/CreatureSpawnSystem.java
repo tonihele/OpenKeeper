@@ -127,7 +127,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
 
                 // Spawn imp
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), false);
+                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.PLACE);
                 spawned = true;
             }
         } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
@@ -152,7 +152,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
             if (!possibleCreatures.isEmpty()) {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), true);
+                entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.ENTRANCE);
                 spawned = true;
             }
         }
@@ -252,14 +252,14 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
         }
 
         private void addRoom(IRoomController room) {
-            if (room instanceof ICreatureEntrance) {
-                entrances.add((ICreatureEntrance) room);
+            if (room instanceof ICreatureEntrance iCreatureEntrance) {
+                entrances.add(iCreatureEntrance);
             }
         }
 
         private void removeRoom(IRoomController room) {
-            if (room instanceof ICreatureEntrance) {
-                entrances.remove((ICreatureEntrance) room);
+            if (room instanceof ICreatureEntrance iCreatureEntrance) {
+                entrances.remove(iCreatureEntrance);
             }
         }
 

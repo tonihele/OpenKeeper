@@ -153,4 +153,33 @@ public interface IGameWorldController {
      * @return objects controller
      */
     public IObjectsController getObjectsController();
+
+    /**
+     * Cast a keeper spell on target / location
+     *
+     * @param keeperSpellId the spell casted
+     * @param target the target casted on (can be null)
+     * @param tile the tile casted on
+     * @param position the actual coordinates of the cast
+     * @param playerId the player who is casting
+     */
+    public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId);
+
+    /**
+     * Place a door (blueprint.. manufacturing order)
+     *
+     * @param doorId the door to place
+     * @param tile the tile to place the door to
+     * @param playerId the player placing the door
+     */
+    public void placeDoor(short doorId, Point tile, short playerId);
+
+    /**
+     * Place a trap (blueprint.. manufacturing order)
+     *
+     * @param trapId the door to place
+     * @param tile the tile to place the trap to
+     * @param playerId the player placing the trap
+     */
+    public void placeTrap(short trapId, Point tile, short playerId);
 }

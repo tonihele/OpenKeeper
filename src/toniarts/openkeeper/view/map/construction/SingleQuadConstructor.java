@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import static toniarts.openkeeper.view.map.MapViewController.TILE_WIDTH;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  *
@@ -94,7 +94,7 @@ public class SingleQuadConstructor extends SingleTileConstructor {
                     }
 
                     yAngle = FastMath.PI;
-                    movement = new Vector3f(-TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                    movement = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, -WorldUtils.TILE_WIDTH / 4);
 
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
@@ -108,7 +108,7 @@ public class SingleQuadConstructor extends SingleTileConstructor {
                     }
 
                     yAngle = FastMath.HALF_PI;
-                    movement = new Vector3f(TILE_WIDTH / 4, 0, -TILE_WIDTH / 4);
+                    movement = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, -WorldUtils.TILE_WIDTH / 4);
 
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
@@ -122,7 +122,7 @@ public class SingleQuadConstructor extends SingleTileConstructor {
                     }
 
                     yAngle = -FastMath.HALF_PI;
-                    movement = new Vector3f(-TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
+                    movement = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, WorldUtils.TILE_WIDTH / 4);
 
                 } else { // (i == 1 && k == 1) South east corner
                     if (S && E && SE) {
@@ -136,7 +136,7 @@ public class SingleQuadConstructor extends SingleTileConstructor {
                     }
 
                     yAngle = 0;
-                    movement = new Vector3f(TILE_WIDTH / 4, 0, TILE_WIDTH / 4);
+                    movement = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, WorldUtils.TILE_WIDTH / 4);
                 }
 
                 // Load the piece

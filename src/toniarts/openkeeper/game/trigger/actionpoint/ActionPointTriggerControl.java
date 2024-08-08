@@ -41,12 +41,8 @@ public class ActionPointTriggerControl extends TriggerControl {
 
     private static final Logger logger = System.getLogger(ActionPointTriggerControl.class.getName());
 
-    private ActionPoint ap;
-    private IEntityPositionLookup entityPositionLookup;
-
-    public ActionPointTriggerControl() { // empty serialization constructor
-        super();
-    }
+    private final ActionPoint ap;
+    private final IEntityPositionLookup entityPositionLookup;
 
     public ActionPointTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId, ActionPoint ap,

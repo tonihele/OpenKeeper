@@ -51,20 +51,13 @@ public class TriggerControl extends Control {
     private static final short TIME_LIMIT_TIMER_ID = 16;
 
     protected TriggerGenericData trigger;
-    protected TriggerGenericData root;
+    protected final TriggerGenericData root;
 
-    protected ILevelInfo levelInfo;
-    protected IGameTimer gameTimer;
-    protected IGameController gameController;
-    protected IMapController mapController;
-    protected ICreaturesController creaturesController;
-
-    /**
-     * empty serialization constructor
-     */
-    public TriggerControl() {
-        super();
-    }
+    protected final ILevelInfo levelInfo;
+    protected final IGameTimer gameTimer;
+    protected final IGameController gameController;
+    protected final IMapController mapController;
+    protected final ICreaturesController creaturesController;
 
     public TriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId) {
@@ -199,7 +192,7 @@ public class TriggerControl extends Control {
                 Point p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
                 // TODO: flags!
-                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), false);
+                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
                 break;
 
             case MAKE:

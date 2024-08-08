@@ -28,6 +28,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.task.ITaskManager;
 
 /**
  * Handles creature logic updates, the creature AI updates that is. The AI is
@@ -43,9 +44,11 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
     private final SafeArrayList<ICreatureController> creatureControllers;
     private final Map<EntityId, ICreatureController> creatureControllersByEntityId;
     private final ICreaturesController creaturesController;
+    private final ITaskManager taskManager;
 
-    public CreatureAiSystem(EntityData entityData, ICreaturesController creaturesController) {
+    public CreatureAiSystem(EntityData entityData, ICreaturesController creaturesController, ITaskManager taskManager) {
         this.creaturesController = creaturesController;
+        this.taskManager = taskManager;
 
         creatureEntities = entityData.getEntities(CreatureAi.class);
         creatureControllers = new SafeArrayList<>(ICreatureController.class);
@@ -67,6 +70,9 @@ public class CreatureAiSystem implements IGameLogicUpdatable {
         for (ICreatureController creatureController : creatureControllers.getArray()) {
             creatureController.processTick(tpf, gameTime);
         }
+
+        // We have a specialty here, process creature worker queue
+        taskManager.processUnemployedWorkerQueue();
     }
 
     private void processAddedEntities(Set<Entity> entities) {

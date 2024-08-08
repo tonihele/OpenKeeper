@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -37,6 +38,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -72,6 +75,7 @@ import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
@@ -91,6 +95,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -110,6 +115,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final INavigationService navigationService;
     private final ILevelInfo levelInfo;
     private final IEntityPositionLookup entityPositionLookup;
+    private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
     private final EntitySet taskEntities;
     private final EntitySet unconsciousEntities;
@@ -120,10 +126,12 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+    private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
-            Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup) {
+            Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
@@ -132,6 +140,7 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         this.navigationService = navigationService;
         this.levelInfo = levelInfo;
         this.entityPositionLookup = entityPositionLookup;
+        this.gameSettings = gameSettings;
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -228,6 +237,10 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            if (oldTaskId == null || taskId == oldTaskId) {
+                continue;
+            }
+
             Task task = tasksByIds.get(oldTaskId);
             if (task != null) {
                 task.unassign(creaturesController.createController(entity.getId()));
@@ -495,47 +508,6 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
-    @Override
-    public boolean assignTask(ICreatureController creature, boolean byDistance) {
-
-        Set<Task> taskQueue = taskQueues.get(creature.getOwnerId());
-        if (taskQueue == null) {
-            return false;
-//            throw new IllegalArgumentException("This task manager instance is not for the given player!");
-        }
-
-        // Sort by distance & priority
-        final Point currentLocation = creature.getCreatureCoordinates();
-        List<Task> prioritisedTaskQueue = new ArrayList<>(taskQueue);
-        Collections.sort(prioritisedTaskQueue, (Task t, Task t1) -> {
-            int result = Integer.compare(t.getAssigneeCount(), t1.getAssigneeCount());
-            if (result == 0) {
-                result = Integer.compare(
-                        WorldUtils.calculateDistance(currentLocation, t.getTaskLocation()) + t.getPriority(),
-                        WorldUtils.calculateDistance(currentLocation, t1.getTaskLocation()) + t1.getPriority()
-                );
-
-                if (result == 0) {
-                    // If the same, compare by date added
-                    return t.getTaskCreated().compareTo(t1.getTaskCreated());
-                }
-            }
-            return result;
-        });
-
-        // Take the first available task from the sorted queue
-        for (Task task : prioritisedTaskQueue) {
-            if (task.canAssign(creature)) {
-
-                // Assign to first task
-                task.assign(creature, true);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public void addTask(short playerId, Task task) {
         Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
@@ -615,15 +587,16 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
                         return task.isValid(creature);
                     }
 
-                    if (task instanceof AbstractCapacityCriticalRoomTask) {
+                    if (task instanceof AbstractCapacityCriticalRoomTask abstractCapacityCriticalRoomTask) {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
                         }
-                        taskPoints.put(target, (AbstractCapacityCriticalRoomTask) task);
+                        taskPoints.put(target, abstractCapacityCriticalRoomTask);
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
                     tasksByIds.put(task.getId(), task);
+
                     return true;
                 }
             }
@@ -646,24 +619,29 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private AbstractTask getRoomTask(ObjectType objectType, Point target, EntityId targetEntity, ICreatureController creature, IRoomController room) {
         switch (objectType) {
-            case GOLD: {
+            case GOLD -> {
                 return new CarryGoldToTreasuryTask(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController);
             }
-            case LAIR: {
+            case LAIR -> {
                 return new ClaimLair(navigationService, mapController, target, creature.getOwnerId(), room, this);
             }
-            case RESEARCHER: {
+            case RESEARCHER -> {
                 return new Research(navigationService, mapController, target, creature.getOwnerId(), room, this, playerControllers.get(creature.getOwnerId()).getResearchControl(), objectsController);
             }
-            case PRISONER: {
+            case PRISONER -> {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
-            case SPECIAL:
-            case SPELL_BOOK: {
+            case SPECIAL, SPELL_BOOK -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
+            case TRAINEE -> {
+                return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+            }
+            default -> {
+                logger.log(Level.DEBUG, "No task defined for " + objectType);
+                return null;
+            }
         }
-        return null;
     }
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
@@ -720,6 +698,9 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         switch (jobType) {
             case RESEARCH: {
                 return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
+            }
+            case TRAIN: {
+                return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
             }
             default:
                 return false;
@@ -779,8 +760,8 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         Task task = tasksByIds.get(taskId);
 
         // For nested task, return the actual task
-        if (task != null && task instanceof AbstractObjectiveTask) {
-            return ((AbstractObjectiveTask) task).getCurrentTask();
+        if (task != null && task instanceof AbstractObjectiveTask nestedTask) {
+            return nestedTask.getCurrentTask();
         }
 
         return task;
@@ -795,6 +776,112 @@ public class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         return mapTile;
+    }
+
+    @Override
+    public void addToUnemployedWorkerQueue(ICreatureController creature, Consumer<Boolean> workResult) {
+        unemployedCreatures.put(creature, workResult);
+    }
+
+    @Override
+    public void processUnemployedWorkerQueue() {
+        if (unemployedCreatures.isEmpty()) {
+            return;
+        }
+
+        unemployedCreatures
+                .entrySet()
+                .stream()
+                .collect(Collectors.groupingBy((creature) -> creature.getKey().getOwnerId()))
+                .entrySet()
+                .forEach((creaturesByOwnerId) -> {
+                    processUnemployedWorkers(taskQueues.getOrDefault(creaturesByOwnerId.getKey(), Collections.emptySet()), creaturesByOwnerId.getValue());
+                });
+        unemployedCreatures.clear();
+    }
+
+    private void processUnemployedWorkers(Set<Task> tasks, List<Entry<ICreatureController, Consumer<Boolean>>> workers) {
+        Set<Task> taskQueue = new HashSet<>(tasks);
+        Map<ICreatureController, Consumer<Boolean>> unemployedWorkers = workers
+                .stream()
+                .collect(Collectors.toMap((entry) -> entry.getKey(), (entry) -> entry.getValue()));
+
+        // Process each available task for each available worker
+        List<TaskWorkerPriority> priorizedTasks = new ArrayList<>(workers.size() + tasks.size());
+        for (Entry<ICreatureController, Consumer<Boolean>> workerEntry : unemployedWorkers.entrySet()) {
+            ICreatureController creature = workerEntry.getKey();
+            Consumer<Boolean> workResult = workerEntry.getValue();
+            final Point currentLocation = creature.getCreatureCoordinates();
+
+            // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
+            for (Task task : taskQueue) {
+                Vector2f target = task.getTarget(creature);
+                if (target == null) {
+
+                    // Can't reach
+                    continue;
+                }
+
+                int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
+            }
+        }
+
+        // Go through the tasks and assign workers
+        while (!unemployedWorkers.isEmpty() && !priorizedTasks.isEmpty()) {
+
+            // With each iteration we sort to fill the jobs as even as possible (assignee count changes)
+            Collections.sort(priorizedTasks, (o1, o2) -> sortByTaskStatusAndDistance(o1, o2));
+
+            Iterator<TaskWorkerPriority> iter = priorizedTasks.iterator();
+            while (iter.hasNext()) {
+                TaskWorkerPriority taskWorkerPriority = iter.next();
+
+                // See if the task is full or the worker is not unemployed anymore or that the task can't actually be handled by this creature
+                if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)
+                        || taskWorkerPriority.task.isFull()
+                        || !taskWorkerPriority.task.canAssign(taskWorkerPriority.creature)) {
+                    iter.remove();
+                    continue;
+                }
+
+                // Assign task
+                taskWorkerPriority.task.assign(taskWorkerPriority.creature, true);
+                taskWorkerPriority.workResult.accept(Boolean.TRUE);
+
+                // Prune list and re-sort tasks
+                unemployedWorkers.remove(taskWorkerPriority.creature);
+                iter.remove();
+                break;
+            }
+        }
+
+        // Finally anybody without assigment will get feedback
+        unemployedWorkers.forEach((t, u) -> {
+            u.accept(Boolean.FALSE);
+        });
+    }
+
+    private int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
+
+        // Fill in jobs that have no workers first
+        int result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
+        if (result != 0) {
+            return result;
+        }
+
+        // Closest creature gets the job
+        result = Integer.compare(o1.points, o2.points);
+        if (result != 0) {
+            return result;
+        }
+
+        // If the same, compare by date added
+        return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
+    }
+
+    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+
     }
 
 }

@@ -620,6 +620,11 @@ public class GameClientState extends AbstractPauseAwareState {
 
             return null;
         }
+
+        @Override
+        public void setPossession(EntityId target) {
+            playerState.setPossession(target);
+        }
     }
 
     public IMapInformation getMapClientService() {

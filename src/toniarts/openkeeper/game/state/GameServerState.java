@@ -264,6 +264,21 @@ public class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
+            gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId);
+        }
+
+        @Override
+        public void onPlaceDoor(short doorId, Point tile, short playerId) {
+            gameWorldController.placeDoor(doorId, tile, playerId);
+        }
+
+        @Override
+        public void onPlaceTrap(short trapId, Point tile, short playerId) {
+            gameWorldController.placeTrap(trapId, tile, playerId);
+        }
+
+        @Override
         public void onTransitionEnd(short playerId) {
             // We are not really interested in this, the status is also tracked in the local clients
         }
