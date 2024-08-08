@@ -20,6 +20,8 @@ import com.simsilica.es.EntityComponent;
 import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
@@ -35,14 +37,13 @@ public class MapTile implements EntityComponent {
 
     public int randomTextureIndex;
 
-    /* Refers to the room this tile holds */
-    public boolean destroyed = false;
-
     public short terrainId;
     public Tile.BridgeTerrainType bridgeTerrainType;
 
     public Point p;
     public int index;
+
+    public EntityId room;
 
     public MapTile() {
         // For serialization

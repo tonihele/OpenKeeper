@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2021 OpenKeeper
+ * Copyright (C) 2014-2024 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,28 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 
+import java.awt.*;
+
 /**
- * A base room component. This entity is a room
+ * Just a tagging component for portals (creature generators)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RoomComponent implements EntityComponent {
+public class Portal implements EntityComponent {
 
-    public short roomId;
-    public boolean destroyed = false;
+    public Point entrance;
 
-    public RoomComponent() {
+    /**
+     * Last entity spawn time, in game time
+     */
+    public double lastSpawnTime;
+
+    public Portal() {
         // For serialization
     }
 
-    public RoomComponent(short roomId) {
-        this.roomId = roomId;
+    public Portal(Point entrance, double lastSpawnTime) {
+        this.entrance = entrance;
+        this.lastSpawnTime = lastSpawnTime;
     }
-
 }

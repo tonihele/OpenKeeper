@@ -123,7 +123,7 @@ public abstract class AbstractRoomController implements IRoomController {
      * @return the list of pillars constructed
      */
     protected List<EntityId> constructPillars() {
-        // TODO: Maybe replace with something similar than the object placement ENUM, there are only few different scenarios of contructing the pillars
+        // TODO: Maybe replace with something similar than the object placement ENUM, there are only few different scenarios of constructing the pillars
         return Collections.emptyList();
     }
 

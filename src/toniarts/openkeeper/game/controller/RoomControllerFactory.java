@@ -60,35 +60,22 @@ public final class RoomControllerFactory {
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3:
                 return new ThreeByThreeController(kwdFile, roomInstance, objectsController);
-
             case HERO_GATE:
-            //return new HeroGateConstructor(assetManager, roomInstance);
             case HERO_GATE_FRONT_END:
                 return new HeroGateFrontEndController(kwdFile, roomInstance, objectsController);
             case HERO_GATE_2_BY_2:
-                //return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
-                //        case HERO_GATE_3_BY_1:
                 return new NormalRoomController(kwdFile, roomInstance, objectsController);
-            //return new HeroGateThreeByOneConstructor(assetManager, roomInstance);
             case _5_BY_5_ROTATED:
                 return new FiveByFiveRotatedController(kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
-
             case NORMAL:
                 if (roomName.equalsIgnoreCase("Lair")) {
                     return new LairController(kwdFile, roomInstance, objectsController, gameTimer);
                 } else if (roomName.equalsIgnoreCase("Library")) {
                     return new LibraryController(kwdFile, roomInstance, objectsController, gameTimer);
-//                } //else if (roomName.equalsIgnoreCase("Training Room")) {
-//                    return new TrainingRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                } else
                } else if (roomName.equalsIgnoreCase("Work Shop")) {
                     return new WorkshopController(kwdFile, roomInstance, objectsController);
-//                } else if (roomName.equalsIgnoreCase("Guard Room")) {
-//                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Casino")) {
                     return new CasinoController(kwdFile, roomInstance, objectsController);
-//                } else if (roomName.equalsIgnoreCase("Graveyard")) {
-//                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
                 } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
                     return new TortureChamberController(kwdFile, roomInstance, objectsController, gameTimer);
                 } else if (roomName.equalsIgnoreCase("Treasury")) {
@@ -97,13 +84,6 @@ public final class RoomControllerFactory {
                     return new HatcheryController(kwdFile, roomInstance, objectsController, gameTimer);
                 }
                 return new NormalRoomController(kwdFile, roomInstance, objectsController);
-
-//            case QUAD:
-//                if (roomName.equalsIgnoreCase("Hero Stone Bridge") || roomName.equalsIgnoreCase("Stone Bridge")) {
-//                    return new StoneBridge(assetManager, roomInstance, objectLoader, worldState, effectManager);
-//                }
-            // return new QuadConstructor(assetManager, roomInstance);
-//
             case DOUBLE_QUAD:
                 if (roomName.equalsIgnoreCase("Prison")) {
                     return new PrisonController(kwdFile, roomInstance, objectsController, gameTimer);
