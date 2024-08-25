@@ -17,17 +17,14 @@
 package toniarts.openkeeper.game.controller.entity;
 
 import com.jme3.math.Vector3f;
-import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.EntitySet;
-import com.simsilica.es.filter.FieldFilter;
 import java.awt.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureSleep;
-import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
@@ -183,12 +180,16 @@ public class EntityController implements IEntityController {
     }
 
     private void removeAttacks() {
-        EntitySet spells = entityData.getEntities(new FieldFilter<>(CreatureSpell.class, "creatureId", entityId), CreatureSpell.class);
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return;
+        }
 
         // Remove all spells
-        for (Entity entity : spells) {
-            entityData.removeEntity(entity.getId());
+        for (EntityId spellEntityId : creatureSpells.creatureSpells) {
+            entityData.removeEntity(spellEntityId);
         }
+        entityData.removeComponent(entityId, CreatureSpells.class);
     }
 
     @Override

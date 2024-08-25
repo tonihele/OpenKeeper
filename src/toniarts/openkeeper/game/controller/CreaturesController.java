@@ -28,6 +28,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
@@ -598,17 +600,22 @@ public class CreaturesController implements ICreaturesController {
                 .stream()
                 .filter((spell) -> spell.getLevelAvailable() >= level)
                 .collect(Collectors.toMap((spell) -> spell.getCreatureSpellId(), (spell) -> kwdFile.getCreatureSpellById(spell.getCreatureSpellId())));
+        List<EntityId> creatureSpellIds = new ArrayList<>(availableSpells.size());
+        boolean spellsChanged = false;
 
         // ... and compare it to the list we have
-        EntitySet ownedSpells = entityData.getEntities(new FieldFilter<>(CreatureSpell.class, "creatureId", entityId), CreatureSpell.class);
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        List<EntityId> ownedSpells = creatureSpells != null ? creatureSpells.creatureSpells : Collections.emptyList();
 
         // Remove all spells we should not have
-        for (Entity entity : ownedSpells) {
-            CreatureSpell spell = entity.get(CreatureSpell.class);
+        for (EntityId spellEntityId : ownedSpells) {
+            CreatureSpell spell = entityData.getComponent(spellEntityId, CreatureSpell.class);
             if (availableSpells.containsKey(spell.creatureSpellId)) {
                 availableSpells.remove(spell.creatureSpellId);
+                creatureSpellIds.add(spellEntityId);
             } else {
-                entityData.removeEntity(entity.getId());
+                entityData.removeEntity(spellEntityId);
+                spellsChanged = true;
             }
         }
 
@@ -616,6 +623,15 @@ public class CreaturesController implements ICreaturesController {
         for (toniarts.openkeeper.tools.convert.map.CreatureSpell spell : availableSpells.values()) {
             EntityId spellEntity = entityData.createEntity();
             entityData.setComponent(spellEntity, new CreatureSpell(spell.getCreatureSpellId(), entityId, spell.getRechargeTime(), spell.getRange()));
+            creatureSpellIds.add(spellEntity);
+            spellsChanged = true;
+        }
+
+        // Update the creature spell catalog
+        if (creatureSpellIds.isEmpty()) {
+            entityData.removeComponent(entityId, CreatureSpells.class);
+        } else if (spellsChanged) {
+            entityData.setComponent(entityId, new CreatureSpells(creatureSpellIds));
         }
     }
 
