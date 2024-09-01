@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -63,6 +62,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats.StatType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
 import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
+import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
