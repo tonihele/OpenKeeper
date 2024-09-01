@@ -17,15 +17,15 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import java.awt.Point;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * A base room component. This entity is a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RoomComponent implements EntityComponent {
+public final class RoomComponent implements EntityComponent {
 
     public short roomId;
     public boolean destroyed = false;

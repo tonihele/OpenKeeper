@@ -17,15 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-
-import java.awt.*;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Just a tagging component for imp generators
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ImpGenerator implements EntityComponent {
+public final class ImpGenerator implements EntityComponent {
 
     public Point entrance;
 

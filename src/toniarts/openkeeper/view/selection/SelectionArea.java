@@ -1,12 +1,12 @@
 package toniarts.openkeeper.view.selection;
 
 import com.jme3.math.Vector2f;
-import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -131,7 +131,7 @@ public final class SelectionArea implements Iterable<List<Point>> {
      */
     private final class AreaIterator implements Iterator<List<Point>> {
 
-        private final Point cursor = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
+        private Point cursor = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
         private final Point start = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
         private final Point end = WorldUtils.vectorToPoint(SelectionArea.this.getEnd());
 
@@ -144,29 +144,32 @@ public final class SelectionArea implements Iterable<List<Point>> {
         public List<Point> next() {
             List result = new ArrayList<>();
 
-            while (cursor.y >= start.y && cursor.x <= end.x) {
+            int x = cursor.x;
+            int y = cursor.y;
+            while (y >= start.y && x <= end.x) {
                 check();
-                result.add(new Point(cursor.x, cursor.y));
+                result.add(new Point(x, y));
 
-                cursor.x++;
-                cursor.y--;
+                x++;
+                y--;
             }
 
-            if (cursor.y < start.y) {
-                cursor.y = start.y + (cursor.x - start.x);
-                cursor.x = start.x;
+            if (y < start.y) {
+                y = start.y + (x - start.x);
+                x = start.x;
             }
 
-            if (cursor.x > end.x) {
-                cursor.y += (cursor.x - start.x) + 1;
-                cursor.x = start.x;
+            if (x > end.x) {
+                y += (x - start.x) + 1;
+                x = start.x;
             }
 
-            if (cursor.y > end.y) {
-                cursor.x = start.x + (cursor.y - end.y);
-                cursor.y = end.y;
+            if (y > end.y) {
+                x = start.x + (y - end.y);
+                y = end.y;
             }
 
+            cursor = new Point(x, y);
             return result;
         }
 
