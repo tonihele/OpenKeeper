@@ -376,6 +376,16 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
+    @Override
+    public void setPossession(EntityId target, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().setPossession(target);
+                break;
+            }
+        }
+    }
+
     private class ServerMessageListener implements MessageListener<HostedConnection> {
 
         public ServerMessageListener() {
@@ -577,6 +587,27 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
 
         @Override
+        public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onCastKeeperSpell(keeperSpellId, target, tile, position, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void placeDoor(short doorId, Point tile) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onPlaceDoor(doorId, tile, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void placeTrap(short trapId, Point tile) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onPlaceTrap(trapId, tile, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public EntityData getEntityData() {
             return null; // Cached on client...
         }
@@ -675,6 +706,11 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             getCallback().onResearchStatusChanged(keeperId, researchableEntity);
+        }
+
+        @Override
+        public void setPossession(EntityId target) {
+            getCallback().setPossession(target);
         }
 
     }

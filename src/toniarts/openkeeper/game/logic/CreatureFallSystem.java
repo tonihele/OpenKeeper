@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.MapViewController;
 
 /**
@@ -54,9 +55,9 @@ public class CreatureFallSystem implements IGameLogicUpdatable {
         for (Entity entity : fallEntities) {
             Position position = entity.get(Position.class);
             Position newPosition = new Position(position.rotation, position.position);
-            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, MapViewController.FLOOR_HEIGHT);
+            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
             entity.set(newPosition);
-            if (newPosition.position.y == MapViewController.FLOOR_HEIGHT) {
+            if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
 
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);

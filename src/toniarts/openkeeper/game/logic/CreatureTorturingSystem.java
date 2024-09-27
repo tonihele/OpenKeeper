@@ -19,12 +19,13 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
-import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
-import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Handles creatures torturing. When enough... persuasion has been received...
@@ -35,13 +36,17 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 public class CreatureTorturingSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
+    private final ICreaturesController creaturesController;
+    private final IMapInformation mapInformation;
     private final EntitySet torturedEntities;
 
-    public CreatureTorturingSystem(EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapInformation mapInformation) {
         this.entityData = entityData;
+        this.creaturesController = creaturesController;
+        this.mapInformation = mapInformation;
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
-        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class);
+        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
     }
 
     @Override
@@ -52,11 +57,26 @@ public class CreatureTorturingSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (Entity entity : torturedEntities) {
-            Health health = entity.get(Health.class);
+            CreatureTortured creatureTortured = entity.get(CreatureTortured.class);
+            if (creatureTortured.tortureCheckTime >= gameTime) {
+                continue;
+            }
 
-            // TODO: Join the persuating player army!!
+            CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+            if (creatureTortured.timeTortured + tpf >= creatureComponent.tortureTimeToConvert) {
 
-            // TODO: Mood (to MoodSystem)
+                Owner owner = entity.get(Owner.class);
+                short playerId = mapInformation.getMapData().getTile(WorldUtils.vectorToPoint(entity.get(Position.class).position)).getOwnerId();
+                if (owner.ownerId != playerId) {
+
+                    // Convert!
+                    entityData.removeComponent(entity.getId(), CreatureTortured.class);
+                    creaturesController.createController(entity.getId()).convertCreature(playerId);
+                    continue;
+                }
+            }
+
+            entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, gameTime, creatureTortured.healthCheckTime));
         }
     }
 

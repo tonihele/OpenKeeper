@@ -82,7 +82,7 @@ public final class KwdFile {
     
     private static final Logger logger = System.getLogger(KwdFile.class.getName());
 
-    // These are needed in various places, I don't know how to else regognize these
+    // These are needed in various places, I don't know how to else recognize these
     private final static short ROOM_PORTAL_ID = 3;
     private final static short ROOM_DUNGEON_HEART_ID = 5;
     private final static short TRIGGER_GENERIC = 213;
@@ -3136,6 +3136,10 @@ public final class KwdFile {
         List<Shot> c = new ArrayList(shots.values());
         Collections.sort(c);
         return c;
+    }
+
+    public Shot getShotById(short shotId) {
+        return shots.get(shotId);
     }
 
     public GameMap getMap() {

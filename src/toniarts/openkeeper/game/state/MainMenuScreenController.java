@@ -42,8 +42,6 @@ import de.lessvoid.nifty.render.NiftyImage;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
@@ -84,6 +82,8 @@ import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.DisplayMode;
+import toniarts.openkeeper.utils.DisplayModeUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 
@@ -271,7 +271,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
-        MyDisplayMode mdm = (MyDisplayMode) res.getSelection();
+        DisplayMode mdm = (DisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
         // Set the settings
@@ -568,7 +568,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
     }
 
     @NiftyEventSubscriber(id = "resolution")
-    public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<MyDisplayMode> event) {
+    public void onResolutionChanged(final String id, final DropDownSelectionChangedEvent<DisplayMode> event) {
 
         // Set the bit depths
         DropDown bitDepth = screen.findNiftyControl("bitDepth", DropDown.class);
@@ -729,9 +729,8 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         // Application settings
         AppSettings settings = Main.getUserSettings().getAppSettings();
 
-        GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-        MyDisplayMode mdm = new MyDisplayMode(settings);
-        List<MyDisplayMode> resolutions = state.getResolutions(device);
+        DisplayMode mdm = new DisplayMode(settings);
+        List<DisplayMode> resolutions = DisplayModeUtils.getInstance().getDisplayModes();
         int resolutionSelectedIndex = Collections.binarySearch(resolutions, mdm);
 
         // Get values to the settings screen
@@ -762,7 +761,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         // Fullscreen
         CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
         fullscreen.setChecked(settings.isFullscreen());
-        fullscreen.setEnabled(device.isFullScreenSupported());
+        fullscreen.setEnabled(DisplayModeUtils.getInstance().isFullScreenSupported());
 
         // VSync
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
@@ -801,7 +800,6 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         ListBox<TableRow> listBox = screen.findNiftyControl("keyboardSetup", ListBox.class);
         int i = 0;
         int selected = 0;
-        KeyNames kNames = new KeyNames();
         listBox.clear();
         List<Settings.Setting> settings = Settings.Setting.getSettings(Settings.SettingCategory.CONTROLS);
 

@@ -53,7 +53,6 @@ dependencies {
     implementation fileTree(dir: 'lib', include: ['*.jar'])
     implementation "org.jmonkeyengine:jme3-core:$jmonkeyengine_version"
     implementation "org.jmonkeyengine:jme3-desktop:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-awt-dialogs:$jmonkeyengine_version"
     implementation "org.jmonkeyengine:jme3-plugins:$jmonkeyengine_version"
     implementation "org.jmonkeyengine:jme3-effects:$jmonkeyengine_version"
     implementation "org.jmonkeyengine:jme3-networking:$jmonkeyengine_version"
@@ -124,5 +123,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '8.6'
+    gradleVersion = '8.9'
 }

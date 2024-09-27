@@ -85,26 +85,26 @@ public class TempleController extends DoubleQuadController {
             // The model is in the center, rotation will not do any good, nudge them over the small sub quads, or corners of the tile
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x + MapViewController.TILE_WIDTH / 4;
-                pos.z = pos.z - MapViewController.TILE_WIDTH / 4;
+                pos.x = pos.x + WorldUtils.TILE_WIDTH / 4;
+                pos.z = pos.z - WorldUtils.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.EAST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x + MapViewController.TILE_WIDTH / 4;
-                pos.z = pos.z + MapViewController.TILE_WIDTH / 4;
+                pos.x = pos.x + WorldUtils.TILE_WIDTH / 4;
+                pos.z = pos.z + WorldUtils.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
             if (freeDirections.contains(WallSection.WallDirection.SOUTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x - MapViewController.TILE_WIDTH / 4;
-                pos.z = pos.z + MapViewController.TILE_WIDTH / 4;
+                pos.x = pos.x - WorldUtils.TILE_WIDTH / 4;
+                pos.z = pos.z + WorldUtils.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
             if (freeDirections.contains(WallSection.WallDirection.NORTH) && freeDirections.contains(WallSection.WallDirection.WEST)) {
                 Vector3f pos = WorldUtils.pointToVector3f(p.x, p.y);
-                pos.x = pos.x - MapViewController.TILE_WIDTH / 4;
-                pos.z = pos.z - MapViewController.TILE_WIDTH / 4;
+                pos.x = pos.x - WorldUtils.TILE_WIDTH / 4;
+                pos.z = pos.z - WorldUtils.TILE_WIDTH / 4;
                 pillars.add(constructPillar(pos));
             }
         }

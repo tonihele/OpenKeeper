@@ -48,15 +48,8 @@ public class PlayerTriggerControl extends TriggerControl {
     
     private static final Logger logger = System.getLogger(PlayerTriggerControl.class.getName());
 
-    private short playerId;
-    private PlayerService playerService;
-
-    /**
-     * empty serialization constructor
-     */
-    public PlayerTriggerControl() {
-        super();
-    }
+    private final short playerId;
+    private final PlayerService playerService;
 
     public PlayerTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
@@ -66,8 +59,8 @@ public class PlayerTriggerControl extends TriggerControl {
         this.playerService = playerService;
     }
 
-    public void setPlayer(short playerId) {
-        this.playerId = playerId;
+    public short getPlayerId() {
+        return playerId;
     }
 
     @Override
@@ -246,7 +239,6 @@ public class PlayerTriggerControl extends TriggerControl {
 
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
-//                return playerState.isTransitionEnd();
 
             case GUI_BUTTON_PRESSED:
                 return false;
@@ -286,7 +278,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     break;
                 }
                 ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
-                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), true);
+                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
                 break;
 
             case SET_PORTAL_STATUS: // Creature part. Only for keeper x

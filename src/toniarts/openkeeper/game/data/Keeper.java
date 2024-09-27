@@ -48,6 +48,7 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int manaLoose;
     private int maxMana;
     private Point dungeonHeartLocation;
+    private boolean possession;
     private List<ResearchableEntity> availableRooms = new ArrayList<>();
     private List<ResearchableEntity> availableSpells = new ArrayList<>();
     private List<Short> availableCreatures = new ArrayList<>();
@@ -217,6 +218,14 @@ public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setDungeonHeartLocation(Point dungeonHeartLocation) {
         this.dungeonHeartLocation = dungeonHeartLocation;
+    }
+
+    public boolean isPossession() {
+        return possession;
+    }
+
+    public void setPossession(boolean possession) {
+        this.possession = possession;
     }
 
     public List<ResearchableEntity> getAvailableRooms() {

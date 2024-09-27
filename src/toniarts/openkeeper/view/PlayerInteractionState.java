@@ -36,6 +36,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import java.awt.Point;
@@ -43,6 +44,7 @@ import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -52,6 +54,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -65,7 +68,6 @@ import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
-import toniarts.openkeeper.world.creature.CreatureControl;
 
 /**
  * State for managing player interactions in the world. Heavily drawn from
@@ -554,8 +556,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                     if (evt.isPressed()) {
                         if (interactionState.getType() == Type.SPELL) {
+                            castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
                             //TODO correct interactiveControl.isPickable
-                            if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
+                            /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
                                     && interactiveControl.isPickable(player.getPlayerId())) {
                                 CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
                                 if (cc != null) {
@@ -564,7 +567,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                     // TODO disable selection box
                                     setInteractionState(Type.NONE, 0);
                                 }
-                            }
+                            }*/
                         } else if (interactionState.getType() == Type.TRAP) {
                             //TODO put trap
                         } else if (interactionState.getType() == Type.DOOR) {
@@ -719,6 +722,28 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     /**
+     * Cast a keeper spell
+     *
+     * @param keeperSpell the spell
+     * @param object pointed object, can be null
+     * @param tile the tile index
+     * @param position the actual cursor position
+     * @return true if spell can be cast
+     */
+    private boolean castSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile, Vector2f position) {
+        if (!canCastSpell(keeperSpell, object, tile)) {
+            return false;
+        }
+        gameClientState.getGameClientService().castKeeperSpell(keeperSpell.getId(), object != null ? object.getEntityId() : null, tile, position);
+
+        return true;
+    }
+
+    private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), entityData, object != null ? object.getEntityId() : null);
+    }
+
+    /**
      * Picks up an object, places it in Keeper's hand
      *
      * @param object the object to pickup
@@ -751,7 +776,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
-    protected abstract void onPossession(CreatureControl creature);
+    protected abstract void onPossession(EntityId creature);
 
     public static class InteractionState {
 

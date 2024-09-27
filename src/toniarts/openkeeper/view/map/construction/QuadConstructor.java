@@ -26,6 +26,7 @@ import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.MapViewController;
 
 /**
@@ -90,7 +91,7 @@ public class QuadConstructor extends RoomConstructor {
                         piece = 1;
                         yAngle = FastMath.HALF_PI;
                     }
-                    movement = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, -MapViewController.TILE_WIDTH / 4);
+                    movement = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, -WorldUtils.TILE_WIDTH / 4);
                 } else if (i == 1 && k == 0) { // North east corner
                     if (N && E && NE) {
                         piece = 3;
@@ -106,7 +107,7 @@ public class QuadConstructor extends RoomConstructor {
                     } else {
                         piece = 1;
                     }
-                    movement = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, -MapViewController.TILE_WIDTH / 4);
+                    movement = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, -WorldUtils.TILE_WIDTH / 4);
                 } else if (i == 0 && k == 1) { // South west corner
                     if (S && W && SW) {
                         piece = 3;
@@ -122,7 +123,7 @@ public class QuadConstructor extends RoomConstructor {
                         piece = 1;
                         yAngle = FastMath.PI;
                     }
-                    movement = new Vector3f(-MapViewController.TILE_WIDTH / 4, 0, MapViewController.TILE_WIDTH / 4);
+                    movement = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, WorldUtils.TILE_WIDTH / 4);
                 } else { // South east corner if (i == 1 && k == 1)
                     if (S && E && SE) {
                         piece = 3;
@@ -140,7 +141,7 @@ public class QuadConstructor extends RoomConstructor {
                         piece = 1;
                         yAngle = -FastMath.HALF_PI;
                     }
-                    movement = new Vector3f(MapViewController.TILE_WIDTH / 4, 0, MapViewController.TILE_WIDTH / 4);
+                    movement = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, WorldUtils.TILE_WIDTH / 4);
                 }
                 // Load the piece
                 Spatial part = AssetUtils.loadModel(assetManager, modelName + (base + piece), artResource);

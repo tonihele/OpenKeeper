@@ -34,10 +34,6 @@ public abstract class AbstractThingTriggerControl<T> extends PlayerTriggerContro
 
     protected T instanceControl;
 
-    public AbstractThingTriggerControl() { // empty serialization constructor
-        super();
-    }
-
     public AbstractThingTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
             final PlayerService playerService) {

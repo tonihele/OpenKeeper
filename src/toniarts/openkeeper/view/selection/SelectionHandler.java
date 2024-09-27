@@ -55,7 +55,7 @@ public abstract class SelectionHandler {
 
     public SelectionHandler(Main app) {
         this.app = app;
-        this.selectionArea = new SelectionArea(MapViewController.TILE_WIDTH);
+        this.selectionArea = new SelectionArea(WorldUtils.TILE_WIDTH);
 
         setupVisualsForSelection();
     }
@@ -73,7 +73,7 @@ public abstract class SelectionHandler {
 
         Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
         Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
-        dir.multLocal((MapViewController.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
+        dir.multLocal((WorldUtils.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
         
         pointedPosition.set(dir.getX(), dir.getZ());
         pointedTileIndex = WorldUtils.vectorToPoint(pointedPosition);
@@ -163,11 +163,11 @@ public abstract class SelectionHandler {
             float delta = 0.01f;
 
             Vector2f position = selectionArea.getCenter();
-            wireBoxGeo.setLocalTranslation(position.x, MapViewController.FLOOR_HEIGHT, position.y);
+            wireBoxGeo.setLocalTranslation(position.x, WorldUtils.FLOOR_HEIGHT, position.y);
 
-            wireBox.updatePositions(MapViewController.TILE_WIDTH / 2 * dx + delta,
-                    MapViewController.FLOOR_HEIGHT + delta,
-                    MapViewController.TILE_WIDTH / 2 * dy + delta);
+            wireBox.updatePositions(WorldUtils.TILE_WIDTH / 2 * dx + delta,
+                    WorldUtils.FLOOR_HEIGHT + delta,
+                    WorldUtils.TILE_WIDTH / 2 * dy + delta);
 
             // Selection color indicator
             ColorIndicator newSelectionColor = getColorIndicator();
@@ -188,7 +188,7 @@ public abstract class SelectionHandler {
         matWireBox.setColor("Color", selectionColor.getColor());
         matWireBox.getAdditionalRenderState().setLineWidth(6);
 
-        this.wireBox = new WireBox(MapViewController.TILE_WIDTH, MapViewController.TILE_WIDTH, MapViewController.TILE_WIDTH);
+        this.wireBox = new WireBox(WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH);
         this.wireBox.setDynamic();
 
         this.wireBoxGeo = new Geometry("wireBox", wireBox);

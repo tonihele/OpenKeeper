@@ -30,6 +30,7 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -47,6 +48,7 @@ import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
@@ -55,6 +57,7 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.RoomStorage;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -105,8 +108,6 @@ public class CreatureController extends EntityController implements ICreatureCon
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
-    private float taskDuration = 0.0f;
-    private boolean taskStarted = false;
     private float motionless = 0;
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
@@ -172,12 +173,14 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Scan for neutral creatures to claim
         short ownerId = getOwnerId();
-        if (ownerId != Player.NEUTRAL_PLAYER_ID && ownerId != Player.GOOD_PLAYER_ID) {
-            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-                Owner owner = entityData.getComponent(entity, Owner.class);
-                if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
-                    entityData.setComponent(entity, new Owner(ownerId, ownerId));
-                }
+        if (ownerId == Player.NEUTRAL_PLAYER_ID || ownerId == Player.GOOD_PLAYER_ID) {
+            return;
+        }
+
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            Owner owner = entityData.getComponent(entity, Owner.class);
+            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
+                convertCreature(entity, ownerId);
             }
         }
     }
@@ -264,7 +267,6 @@ public class CreatureController extends EntityController implements ICreatureCon
             assignedTask.unassign(this);
             entityData.removeComponent(entityId, TaskComponent.class);
         }
-        taskStarted = false;
     }
 
     @Override
@@ -339,18 +341,20 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public boolean findWork() {
+    public void findWork(Consumer<Boolean> workResult) {
 
         // See if we have some available work
         if (isWorker()) {
-            return (taskManager.assignTask(this, false));
+            taskManager.addToUnemployedWorkerQueue(this, workResult);
+            return;
         }
 
         short owner = getOwnerId();
         if (owner == Player.NEUTRAL_PLAYER_ID || owner == Player.GOOD_PLAYER_ID) {
 
             // Currently no creature specific jobs offered for neutral or good players
-            return false;
+            workResult.accept(false);
+            return;
         }
 
         // See that is there a prefered job for us
@@ -366,10 +370,11 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Choose
         if (!jobs.isEmpty()) {
-            return (taskManager.assignTask(this, chooseOnWeight(jobs).getJobType()));
+            workResult.accept(taskManager.assignTask(this, chooseOnWeight(jobs).getJobType()));
+            return;
         }
 
-        return false;
+        workResult.accept(false);
     }
 
     private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
@@ -395,9 +400,12 @@ public class CreatureController extends EntityController implements ICreatureCon
 
     @Override
     public void executeAssignedTask() {
-        taskStarted = true;
+        TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (!taskComponent.taskStarted) {
+            entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration, true));
+        }
         if (isAssignedTaskValid()) {
-            getAssignedTask().executeTask(this, taskDuration);
+            getAssignedTask().executeTask(this, taskComponent.taskDuration);
         }
     }
 
@@ -828,8 +836,9 @@ public class CreatureController extends EntityController implements ICreatureCon
         }
 
         // Task timer
-        if (taskStarted) {
-            taskDuration += tpf;
+        TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (taskComponent != null && taskComponent.taskStarted) {
+            entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration + tpf, taskComponent.taskStarted));
         }
 
         stateMachine.update();
@@ -857,7 +866,20 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public void addGold(int amount) {
         Gold gold = entityData.getComponent(entityId, Gold.class);
-        entityData.setComponent(entityId, new Gold(gold.gold + amount, gold.maxGold));
+
+        // Drop excess gold, we can only carry so much
+        int maxGoldCanAdd = gold.maxGold - gold.gold;
+        int goldToAdd = Math.min(amount, maxGoldCanAdd);
+        int looseGold = amount - goldToAdd;
+
+        if (goldToAdd > 0) {
+            entityData.setComponent(entityId, new Gold(gold.gold + goldToAdd, gold.maxGold));
+        }
+
+        if (looseGold > 0) {
+            Point coordinates = getCreatureCoordinates();
+            objectsController.addLooseGold(getOwnerId(), coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        }
     }
 
     @Override
@@ -908,9 +930,8 @@ public class CreatureController extends EntityController implements ICreatureCon
         // Unassign previous task
         unassingCurrentTask();
 
-        taskDuration = 0.0f;
         //workNavigationRequired = true;
-        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType()));
+        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType(), 0.0f, false));
     }
 
     @Override
@@ -1122,29 +1143,38 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public boolean isStateTimeExceeded() {
         double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
+        double stateTargetTime;
 
         switch (stateMachine.getCurrentState()) {
-            case STUNNED: {
+            case STUNNED -> {
                 // Hmm, this might actually be the level variable, the stun seems to be the time fallen when dropped
-                return timeSpent >= entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
-            case FALLEN: {
-                return timeSpent >= entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+            case FALLEN -> {
+                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
-            case GETTING_UP: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.GET_UP);
+            case GETTING_UP -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.GET_UP);
             }
-            case ENTERING_DUNGEON: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
+            case ENTERING_DUNGEON -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
             }
-            case MELEE_ATTACK: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
+            case MELEE_ATTACK -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
             }
-            case EATING: {
-                return timeSpent >= getAnimationTime(creature, Creature.AnimationType.EATING);
+            case EATING -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.EATING);
+            }
+            case FLEE -> {
+                // I couldn't find a variable for this, so lets use this for now
+                stateTargetTime = gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue();
+            }
+            default -> {
+                stateTargetTime = Double.MAX_VALUE;
             }
         }
-        return false;
+
+        return stateTargetTime < timeSpent;
     }
 
     private static double getAnimationTime(Creature creature, Creature.AnimationType animation) {
@@ -1251,6 +1281,63 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void setPossession(boolean possessed) {
+        if (possessed) {
+            startPossession();
+        } else {
+            endPossession();
+        }
+    }
+
+    private void startPossession() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        int manaDrain = creatureComponent != null ? creatureComponent.posessionManaCost : 0;
+        Mana mana = entityData.getComponent(entityId, Mana.class);
+        entityData.setComponent(entityId, new Mana(mana != null ? -manaDrain - mana.manaGeneration : -manaDrain));
+        entityData.setComponent(entityId, new Possessed(manaDrain, gameTimer.getGameTime()));
+        entityData.removeComponent(entityId, CreatureAi.class);
+        entityData.removeComponent(entityId, Navigation.class);
+    }
+
+    private void endPossession() {
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.IDLE, getCreature().getCreatureId()));
+
+        // Return the mana flow
+        Possessed possessed = entityData.getComponent(entityId, Possessed.class);
+        Mana mana = entityData.getComponent(entityId, Mana.class);
+        int manaGeneration = mana.manaGeneration + possessed.manaDrain;
+        if (manaGeneration == 0) {
+            entityData.removeComponent(entityId, Mana.class);
+        } else {
+            entityData.setComponent(entityId, new Mana(manaGeneration));
+        }
+    }
+
+    @Override
+    public void convertCreature(short playerId) {
+        convertCreature(entityId, playerId);
+    }
+
+    private void convertCreature(EntityId entity, short playerId) {
+
+        // Remove our lair from the last player
+        CreatureSleep creatureSleep = entityData.getComponent(entity, CreatureSleep.class);
+        if (creatureSleep != null && creatureSleep.lairObjectId != null) {
+            entityData.removeEntity(creatureSleep.lairObjectId);
+            entityData.setComponent(entity, new CreatureSleep(null, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+        }
+
+        // Set new owner
+        entityData.setComponent(entity, new Owner(playerId, playerId));
+
+        // Remove good player stuff
+        entityData.removeComponent(entity, Objective.class);
+
+        // Reset AI
+        getStateMachine().changeState(CreatureState.IDLE);
     }
 
 }

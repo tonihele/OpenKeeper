@@ -121,4 +121,7 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     @Asynchronous
     public void onShowUnitFlower(EntityId entityId, int interval);
 
+    @Asynchronous
+    public void setPossession(EntityId target);
+
 }

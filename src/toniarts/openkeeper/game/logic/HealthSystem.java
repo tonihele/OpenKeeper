@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -241,6 +242,7 @@ public class HealthSystem implements IGameLogicUpdatable {
     }
 
     private void processUnconscious(EntityId entityId, Health health, double gameTime) {
+        entityData.removeComponent(entityId, AttackTarget.class);
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(gameTime));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
@@ -284,7 +286,7 @@ public class HealthSystem implements IGameLogicUpdatable {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (gameTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.startTime, tortured.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1));
                 delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be

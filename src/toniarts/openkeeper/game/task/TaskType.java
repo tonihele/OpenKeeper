@@ -40,5 +40,6 @@ public enum TaskType {
     FETCH_OBJECT,
     REPAIR_WALL,
     RESCUE_CREATURE,
-    GO_TO_EAT
+    GO_TO_EAT,
+    TRAIN
 }

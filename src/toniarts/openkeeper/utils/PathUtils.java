@@ -202,45 +202,53 @@ public class PathUtils {
 
         // See cache
         String cachedName = FILENAME_CACHE.get(fileKey);
-        if (cachedName == null) {
-            synchronized (FILENAME_LOCK) {
+        if (cachedName != null) {
+            return cachedName;
+        }
+        
+        synchronized (FILENAME_LOCK) {
+            
+            cachedName = FILENAME_CACHE.get(fileKey);
+            if (cachedName != null) {
+                return cachedName;
+            }
 
-                // If it exists as such, that is super!
-                Path testFile = Paths.get(fileName);
-                if (Files.exists(testFile)) {
-                    cachedName = testFile.toRealPath().toString();
+            // If it exists as such, that is super!
+            Path testFile = Paths.get(fileName);
+            if (Files.exists(testFile)) {
+                cachedName = testFile.toRealPath().toString();
+                FILENAME_CACHE.put(fileKey, cachedName);
+
+                return cachedName;
+            }
+
+            // Otherwise we need to do a recursive search
+            String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
+            final String[] path = fileName.substring(certainPath.length()).split(QUOTED_FILE_SEPARATOR);
+
+            // If the path length is 1, lets try, maybe it was just the file name
+            if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
+                Path p = Paths.get(certainPath, path[0]);
+                if (Files.exists(p)) {
+                    cachedName = p.toRealPath().toString();
                     FILENAME_CACHE.put(fileKey, cachedName);
-
+                    
                     return cachedName;
                 }
-
-                // Otherwise we need to do a recursive search
-                String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
-                final String[] path = fileName.substring(certainPath.length()).split(QUOTED_FILE_SEPARATOR);
-
-                // If the path length is 1, lets try, maybe it was just the file name
-                if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
-                    Path p = Paths.get(certainPath, path[0]);
-                    if (Files.exists(p)) {
-                        cachedName = p.toRealPath().toString();
-                        FILENAME_CACHE.put(fileKey, cachedName);
-                        return cachedName;
-                    }
-                }
-
-                // Find the file
-                final Path realPathAsPath = Paths.get(certainPath);
-                FileFinder fileFinder = new FileFinder(realPathAsPath, path);
-                Files.walkFileTree(realPathAsPath, fileFinder);
-                FILENAME_CACHE.put(fileKey, fileFinder.file);
-                cachedName = fileFinder.file;
-                if (fileFinder.file == null) {
-                    throw new IOException("File not found " + testFile + "!");
-                }
-
-                // Cache the known path
-                PATH_CACHE.setPathToCache(fileFinder.file);
             }
+
+            // Find the file
+            final Path realPathAsPath = Paths.get(certainPath);
+            FileFinder fileFinder = new FileFinder(realPathAsPath, path);
+            Files.walkFileTree(realPathAsPath, fileFinder);
+            FILENAME_CACHE.put(fileKey, fileFinder.file);
+            cachedName = fileFinder.file;
+            if (fileFinder.file == null) {
+                throw new IOException("File not found " + testFile + "!");
+            }
+
+            // Cache the known path
+            PATH_CACHE.setPathToCache(fileFinder.file);
         }
 
         return cachedName;

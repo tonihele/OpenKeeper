@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -183,8 +184,8 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
-        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level) {
-            this.levelObject = (toniarts.openkeeper.game.data.Level) selectedLevel;
+        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level level1) {
+            this.levelObject = level1;
         } else {
             this.levelObject = null;
         }
@@ -218,12 +219,13 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
         gameWorldController.createNewGame(this, this);
 
         positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(), gameWorldController.getObjectsController());
+        gameWorldController.setEntityPositionLookup(positionSystem);
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
         // Initialize tasks
-        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this, positionSystem);
+        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this, positionSystem, gameSettings);
 
         // The triggers
         partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
@@ -255,7 +257,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
                 new SlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController(), this, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureTorturingSystem(entityData, gameSettings),
+                new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(), gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, kwdFile, playerControllers.values()),
@@ -263,7 +265,7 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
                 new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ChickenSpawnSystem(gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
-                new CreatureAiSystem(entityData, gameWorldController.getCreaturesController()),
+                new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
@@ -647,6 +649,12 @@ public class GameController implements IGameLogicUpdatable, AutoCloseable, IGame
     @Override
     public GameResult getGameResult() {
         return gameResult;
+    }
+
+    @Override
+    public void setPossession(EntityId target, short playerId) {
+        players.get(playerId).setPossession(target != null);
+        playerService.setPossession(target, playerId);
     }
 
     @Override

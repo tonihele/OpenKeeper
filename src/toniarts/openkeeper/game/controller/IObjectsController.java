@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -36,6 +37,8 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
     public EntityId loadObject(short objectId, short ownerId, int x, int y, float rotation);
 
     public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation);
+
+    public EntityId loadObject(short objectId, short ownerId, Vector2f pos, float rotation);
 
     public EntityId loadObject(short objectId, short ownerId, int x, int y, Integer money, ResearchableType researchableType, Short researchTypeId);
 

@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
@@ -73,7 +74,6 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the game objects in the world TODO:
@@ -214,30 +214,30 @@ public class CreaturesController implements ICreaturesController {
             ownerId = deadBody.getPlayerId();
         }
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
-                triggerId != null && triggerId != 0 ? triggerId : null, false, objective, objectiveTargetPlayerId, objectiveTargetActionPointId);
+                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId);
     }
 
     @Override
-    public EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, boolean entrance) {
-        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, entrance, null, (short) 0, 0);
+    public EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, SpawnType spawnType) {
+        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, spawnType, null, (short) 0, 0);
     }
 
     private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money,
-            Integer triggerId, boolean entrance, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId) {
+            Integer triggerId, SpawnType spawnType, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId) {
         EntityId entity = entityData.createEntity();
         Creature creature = kwdFile.getCreature(creatureId);
 
-        return loadCreature(entity, creature, healthPercentage, money, level, entrance, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+        return loadCreature(entity, creature, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
     }
 
-    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, boolean entrance, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
         String name = Utils.generateCreatureName();
         String bloodType = Utils.generateBloodType();
 
-        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, entrance, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
     }
 
-    private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, boolean entrance, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+    private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
         short creatureId = creature.getId();
 
         // Create health, unless dead body
@@ -279,8 +279,24 @@ public class CreaturesController implements ICreaturesController {
             entityData.setComponent(entity, new CreatureHunger(gameTimer.getGameTime(), 0));
         }
 
-        CreatureState creatureState = entrance ? CreatureState.ENTERING_DUNGEON : getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
-        entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
+        CreatureState creatureState;
+        switch (spawnType) {
+            case ENTRANCE -> {
+                creatureState = CreatureState.ENTERING_DUNGEON;
+            }
+            case PLACE -> {
+                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
+            }
+            case CONJURE -> {
+                creatureState = null;
+                entityData.setComponent(entity, new CreatureFall());
+            }
+            default ->
+                throw new RuntimeException("SpawnType " + spawnType + " not handled!");
+        }
+        if (creatureState != null) {
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
+        }
 
         // Regeneration
         Regeneration regeneration = new Regeneration();
@@ -320,7 +336,7 @@ public class CreaturesController implements ICreaturesController {
 
         // Position
         // FIXME: no floor height
-        entityData.setComponent(entity, new Position(rotation, new Vector3f(x, MapViewController.FLOOR_HEIGHT, y)));
+        entityData.setComponent(entity, new Position(rotation, new Vector3f(x, spawnType == SpawnType.CONJURE ? WorldUtils.DROP_HEIGHT : WorldUtils.FLOOR_HEIGHT, y)));
 
         // Mobility
         entityData.setComponent(entity, new Mobile(creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY),
@@ -379,7 +395,7 @@ public class CreaturesController implements ICreaturesController {
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
-                entityData.setComponent(entityId, new CreatureTortured(gameTimer.getGameTime(), gameTimer.getGameTime()));
+                entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.TORTURED;
             }
         }
@@ -568,7 +584,7 @@ public class CreaturesController implements ICreaturesController {
         EntityId newEntityId = entityData.createEntity();
 
         // Load the creature anew
-        loadCreature(newEntityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, false, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
+        loadCreature(newEntityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, SpawnType.PLACE, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
     }
 
 }

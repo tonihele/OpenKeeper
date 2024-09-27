@@ -800,4 +800,9 @@ public final class MapController extends Container implements IMapController {
 
         return capacity;
     }
+
+    @Override
+    public boolean isSolid(Point p) {
+        return mapInformation.isSolid(p);
+    }
 }
