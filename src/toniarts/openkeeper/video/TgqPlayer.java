@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
@@ -46,7 +47,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
 public abstract class TgqPlayer {
 
     private static final Logger logger = System.getLogger(TgqPlayer.class.getName());
-    
+
     private final Path file;
     private static final int FPS = 25; // The specs say 15 FPS, but with this they are totally in sync, dunno why
     private static final int FRAME_INTERVAL = (int) Math.floor(1000 / FPS); // In milliseconds
@@ -63,6 +64,12 @@ public abstract class TgqPlayer {
     private SourceDataLine line;
     private final Object bufferedEvent = new Object();
     private final Object audioHeaderEvent = new Object();
+
+    /**
+     * We need to wait the audio to be cleaned up properly or otherwise other
+     * things may fail to init it after us
+     */
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
     private boolean stopped = true;
 
     public TgqPlayer(Path file) {
@@ -118,6 +125,15 @@ public abstract class TgqPlayer {
             // Kill the audio player as well
             if (audioPlaybackThread != null && audioPlaybackThread.isAlive()) {
                 audioPlaybackThread.interrupt();
+            }
+
+            // Wait for the threads to die down
+            if (countDownLatch.getCount() != 0) {
+                try {
+                    countDownLatch.await();
+                } catch (InterruptedException ex) {
+                    logger.log(Level.WARNING, "Interrupted while waiting for count down latch", ex);
+                }
             }
         } finally {
 
@@ -249,6 +265,7 @@ public abstract class TgqPlayer {
                 }
 
                 // Make sure we call stop at the end
+                countDownLatch.countDown();
                 stop();
             }
         }
