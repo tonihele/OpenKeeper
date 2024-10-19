@@ -1228,6 +1228,11 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
+        if (health == null) {
+            logger.log(Level.INFO, "Tried to imprison me but I don't have any health left!");
+            return;
+        }
+
         entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
