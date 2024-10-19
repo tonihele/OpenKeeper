@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_ATTACK;
 import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -145,6 +146,8 @@ public class CreatureViewSystem implements IGameLogicUpdatable {
                 return Creature.AnimationType.SLEEPING;
             case MELEE_ATTACK:
                 return Creature.AnimationType.MELEE_ATTACK;
+            case CAST_SPELL:
+                return Creature.AnimationType.CAST_SPELL;
             case EATING:
                 return Creature.AnimationType.EATING;
             default:
