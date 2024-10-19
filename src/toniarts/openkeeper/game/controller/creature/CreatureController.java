@@ -28,6 +28,7 @@ import java.awt.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -42,6 +43,8 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -83,6 +86,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -95,7 +99,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreatureController extends EntityController implements ICreatureController {
-    
+
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
     private final INavigationService navigationService;
@@ -544,25 +548,43 @@ public class CreatureController extends EntityController implements ICreatureCon
         float distanceNeeded = entityData.getComponent(entityId, CreatureMeleeAttack.class).range; // The melee range, the shortest range
         if (creature.getFightStyle() == Creature.FightStyle.SUPPORT) {
 
-            // TODO: Creature spells
             // Get max distance we can cast all spells, and hopefully stay safe
             Float shortestDistance = null;
-//            for (CreatureAttack attack : attacks) {
-//                if (!attack.isMelee() && attack.isAvailable() && attack.isAttacking()) {
-//                    if (shortestDistance == null) {
-//                        shortestDistance = attack.getRange();
-//                    } else {
-//                        shortestDistance = Math.min(shortestDistance, attack.getRange());
-//                    }
-//                }
-//            }
+            for (CreatureSpell attack : getCreatureSpells()) {
+                toniarts.openkeeper.tools.convert.map.CreatureSpell spell = levelInfo.getLevelData().getCreatureSpellById(attack.creatureSpellId);
+                if (spell.getFlags().contains(CreatureSpellFlag.IS_ATTACKING)) {
+                    if (shortestDistance == null) {
+                        shortestDistance = attack.range;
+                    } else {
+                        shortestDistance = Math.min(shortestDistance, attack.range);
+                    }
+                }
+            }
             if (shortestDistance != null) {
                 distanceNeeded = shortestDistance;
             }
         }
 
         // TODO: currently we move only with a tile precision, so accept attack if on the same tile already
-        return distanceNeeded >= getDistanceToCreature(attackTarget) || (isStopped() && isAtSameTile(attackTarget));
+        return isInRange(distanceNeeded, attackTarget);
+    }
+
+    private boolean isInRange(float range, EntityId target) {
+        return range >= getDistanceToCreature(target) || (isStopped() && isAtSameTile(target));
+    }
+
+    private List<CreatureSpell> getCreatureSpells() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return Collections.emptyList();
+        }
+
+        List<CreatureSpell> spells = new ArrayList<>(creatureSpells.creatureSpells.size());
+        for (EntityId entity : creatureSpells.creatureSpells) {
+            spells.add(entityData.getComponent(entity, CreatureSpell.class));
+        }
+
+        return spells;
     }
 
     private boolean isAtSameTile(EntityId attackTarget) {
