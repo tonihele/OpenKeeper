@@ -155,6 +155,13 @@ public interface IGameWorldController {
     public IObjectsController getObjectsController();
 
     /**
+     * Get the shots controller
+     *
+     * @return shots controller
+     */
+    public IShotsController getShotsController();
+
+    /**
      * Cast a keeper spell on target / location
      *
      * @param keeperSpellId the spell casted

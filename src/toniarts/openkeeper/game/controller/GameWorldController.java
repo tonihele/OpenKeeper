@@ -928,7 +928,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
-        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, position, target);
+        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);
     }
 
     @Override
@@ -993,6 +993,11 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     public ITrapsController getTrapsController() {
         return trapsController;
+    }
+
+    @Override
+    public IShotsController getShotsController() {
+        return shotsController;
     }
 
     public void setEntityPositionLookup(IEntityPositionLookup entityPositionLookup) {

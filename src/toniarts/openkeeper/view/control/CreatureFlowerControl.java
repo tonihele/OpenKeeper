@@ -136,6 +136,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
         if (creatureAi != null) {
             switch (creatureAi.getCreatureState()) {
+                case CAST_SPELL:
                 case FIGHT:
                 case MELEE_ATTACK: {
                     return "Textures/GUI/moods/SJ-Fighting.png";
@@ -225,9 +226,10 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         }
 
         // Set new owner
-        if (currentDrawnOwnerId != getOwnerId()) {
+        short currentOwnerId = getOwnerId();
+        if (currentDrawnOwnerId != currentOwnerId) {
             material.setBoolean("FlashColors", false);
-            currentDrawnOwnerId = getOwnerId();
+            currentDrawnOwnerId = currentOwnerId;
             setFlowerColor(getPlayerColor(currentDrawnOwnerId));
         }
     }

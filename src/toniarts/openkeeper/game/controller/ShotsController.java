@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
@@ -29,6 +29,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJE
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  *
@@ -62,11 +63,11 @@ public class ShotsController implements IShotsController {
     }
 
     @Override
-    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector2f position, EntityId target) {
+    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
         Shot shot = kwdFile.getShotById(shotTypeId);
         switch (shot.getProcessType()) {
             case CREATE_CREATURE -> {
-                creaturesController.spawnCreature((short) shotData1, playerId, shotData2, position, ICreaturesController.SpawnType.CONJURE);
+                creaturesController.spawnCreature((short) shotData1, playerId, shotData2, WorldUtils.vector3fToVector2f(position), ICreaturesController.SpawnType.CONJURE);
             }
             case CREATE_OBJECT -> {
                 objectsController.loadObject((short) shotData1, playerId, position, 0);
