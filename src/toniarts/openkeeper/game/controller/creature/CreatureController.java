@@ -28,8 +28,11 @@ import java.awt.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -42,6 +45,8 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -68,6 +73,8 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IShotsController;
+import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_ATTACK;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -83,6 +90,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -95,7 +103,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class CreatureController extends EntityController implements ICreatureController {
-    
+
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
     private final INavigationService navigationService;
@@ -105,6 +113,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     private final ICreaturesController creaturesController;
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
+    private final IShotsController shotsController;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -113,7 +122,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -123,6 +132,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         this.creaturesController = creaturesController;
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
+        this.shotsController = shotsController;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -541,28 +551,82 @@ public class CreatureController extends EntityController implements ICreatureCon
 
     @Override
     public boolean isWithinAttackDistance(EntityId attackTarget) {
-        float distanceNeeded = entityData.getComponent(entityId, CreatureMeleeAttack.class).range; // The melee range, the shortest range
-        if (creature.getFightStyle() == Creature.FightStyle.SUPPORT) {
+        float distanceNeeded = Math.max(getPreferredAttackDistance(), getPossibleAttackDistance());
 
-            // TODO: Creature spells
-            // Get max distance we can cast all spells, and hopefully stay safe
-            Float shortestDistance = null;
-//            for (CreatureAttack attack : attacks) {
-//                if (!attack.isMelee() && attack.isAvailable() && attack.isAttacking()) {
-//                    if (shortestDistance == null) {
-//                        shortestDistance = attack.getRange();
-//                    } else {
-//                        shortestDistance = Math.min(shortestDistance, attack.getRange());
-//                    }
-//                }
-//            }
-            if (shortestDistance != null) {
-                distanceNeeded = shortestDistance;
+        // TODO: currently we move only with a tile precision, so accept attack if on the same tile already
+        return isInRange(distanceNeeded, attackTarget);
+    }
+
+    /**
+     * Gets currently possible maximum attack distance for this creature,
+     * includes the cooldowns
+     *
+     * @return maximum distance can attack at the moment
+     */
+    private float getPossibleAttackDistance() {
+        float distanceNeeded = entityData.getComponent(entityId, CreatureMeleeAttack.class).range;
+        for (CreatureSpell attack : getCreatureSpells()) {
+            toniarts.openkeeper.tools.convert.map.CreatureSpell spell = levelInfo.getLevelData().getCreatureSpellById(attack.creatureSpellId);
+            if (spell.getFlags().contains(CreatureSpellFlag.IS_ATTACKING) && isAttackRecharged(attack)) {
+                distanceNeeded = Math.max(distanceNeeded, attack.range);
             }
         }
 
-        // TODO: currently we move only with a tile precision, so accept attack if on the same tile already
-        return distanceNeeded >= getDistanceToCreature(attackTarget) || (isStopped() && isAtSameTile(attackTarget));
+        return distanceNeeded;
+    }
+
+    /**
+     * Gets the preferred attack distance from target for this creature's
+     * figting style
+     *
+     * @return preferred attack distance
+     */
+    private float getPreferredAttackDistance() {
+        float distanceNeeded = entityData.getComponent(entityId, CreatureMeleeAttack.class).range; // The melee range, the shortest range
+        if (creature.getFightStyle() == Creature.FightStyle.SUPPORT) {
+
+            // Get max distance we can cast all spells, and hopefully stay safe
+            Optional<Float> shortestDistance = getShortestAttackSpellDistanceNeeded();
+            if (shortestDistance.isPresent()) {
+                distanceNeeded = shortestDistance.get();
+            }
+        }
+
+        return distanceNeeded;
+    }
+
+    private Optional<Float> getShortestAttackSpellDistanceNeeded() {
+        Float shortestDistance = null;
+        for (CreatureSpell attack : getCreatureSpells()) {
+            toniarts.openkeeper.tools.convert.map.CreatureSpell spell = levelInfo.getLevelData().getCreatureSpellById(attack.creatureSpellId);
+            if (spell.getFlags().contains(CreatureSpellFlag.IS_ATTACKING)) {
+                if (shortestDistance == null) {
+                    shortestDistance = attack.range;
+                } else {
+                    shortestDistance = Math.min(shortestDistance, attack.range);
+                }
+            }
+        }
+
+        return Optional.ofNullable(shortestDistance);
+    }
+
+    private boolean isInRange(float range, EntityId target) {
+        return range >= getDistanceToCreature(target) || (isStopped() && isAtSameTile(target));
+    }
+
+    private List<CreatureSpell> getCreatureSpells() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return Collections.emptyList();
+        }
+
+        List<CreatureSpell> spells = new ArrayList<>(creatureSpells.creatureSpells.size());
+        for (EntityId entity : creatureSpells.creatureSpells) {
+            spells.add(entityData.getComponent(entity, CreatureSpell.class));
+        }
+
+        return spells;
     }
 
     private boolean isAtSameTile(EntityId attackTarget) {
@@ -577,17 +641,60 @@ public class CreatureController extends EntityController implements ICreatureCon
     @Override
     public void executeAttack(EntityId attackTarget) {
 
-        // Now just the melee attack
-        // TODO: spells
         // TODO: how to apply the damage? Create a component for THIS creature that adds the damage to enemy after the countdown is finished?
+        // Always prefer melee if in range
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
-        if (isAttackRecharged(creatureMeleeAttack)) {
-            entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
-            stateMachine.changeState(CreatureState.MELEE_ATTACK);
+        if (isInRange(creatureMeleeAttack.range, attackTarget)) {
+            if (isAttackRecharged(creatureMeleeAttack)) {
+                entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+                stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
-            // Set the damage
-            setDamage(attackTarget, creatureMeleeAttack.damage);
+                // Set the damage
+                setDamage(attackTarget, creatureMeleeAttack.damage);
+            }
+        } else {
+            Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
+            if (attack.isPresent()) {
+                CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+                for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+                    CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+                    if (spell.creatureSpellId == attack.get().creatureSpellId) {
+                        entityData.setComponent(creatureSpellEntity, new CreatureSpell(attack.get(), gameTimer.getGameTime()));
+                        break;
+                    }
+                }
+                stateMachine.changeState(CreatureState.CAST_SPELL);
+
+                // TODO: What is the alternative shot all about?
+                toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId);
+                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget);
+
+                // TODO: Of course not like that, the shot is created and it does what it does
+                // Set the damage
+                setDamage(attackTarget, creatureSpell.getShotData1());
+            }
         }
+    }
+
+    /**
+     * Gets preferred attack creature spell that is available to cast to the
+     * target
+     *
+     * @param attackTarget target to attack
+     * @return creature spell to cast on the unsuspecting victim
+     */
+    private Optional<CreatureSpell> getPreferredAttackSpell(EntityId attackTarget) {
+        List<CreatureSpell> creatureSpells = getCreatureSpells();
+        if (creatureSpells.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // Sort in order of preference
+        return creatureSpells
+                .stream()
+                .filter(creatureSpell -> isAttackRecharged(creatureSpell) && isInRange(creatureSpell.range, attackTarget) && levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING))
+                .sorted(Comparator.<CreatureSpell>comparingInt(creatureSpell -> levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getCombatPoints()).reversed())
+                .findFirst();
     }
 
     private boolean isAttackRecharged(Attack attack) {
@@ -1128,6 +1235,11 @@ public class CreatureController extends EntityController implements ICreatureCon
 
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
+        if (health == null) {
+            logger.log(Level.INFO, "Tried to imprison me but I don't have any health left!");
+            return;
+        }
+
         entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
@@ -1161,6 +1273,9 @@ public class CreatureController extends EntityController implements ICreatureCon
             }
             case MELEE_ATTACK -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
+            }
+            case CAST_SPELL -> {
+                stateTargetTime = getAnimationTime(creature, Creature.AnimationType.CAST_SPELL);
             }
             case EATING -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.EATING);
@@ -1322,13 +1437,10 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     private void convertCreature(EntityId entity, short playerId) {
+        removeFromRoomStrorage();
 
         // Remove our lair from the last player
-        CreatureSleep creatureSleep = entityData.getComponent(entity, CreatureSleep.class);
-        if (creatureSleep != null && creatureSleep.lairObjectId != null) {
-            entityData.removeEntity(creatureSleep.lairObjectId);
-            entityData.setComponent(entity, new CreatureSleep(null, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
-        }
+        removeLair();
 
         // Set new owner
         entityData.setComponent(entity, new Owner(playerId, playerId));

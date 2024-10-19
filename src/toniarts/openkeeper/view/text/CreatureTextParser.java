@@ -102,6 +102,8 @@ public class CreatureTextParser extends EntityTextParser<Creature> {
             case FLEE: {
                 return Utils.getMainTextResourceBundle().getString("2658");
             }
+            case MELEE_ATTACK:
+            case CAST_SPELL:
             case FIGHT: {
                 return Utils.getMainTextResourceBundle().getString("2651");
             }
