@@ -136,6 +136,7 @@ public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
         if (creatureAi != null) {
             switch (creatureAi.getCreatureState()) {
+                case CAST_SPELL:
                 case FIGHT:
                 case MELEE_ATTACK: {
                     return "Textures/GUI/moods/SJ-Fighting.png";
