@@ -129,6 +129,14 @@ public class WorldUtils {
         return new Vector2(v.x, v.z);
     }
 
+    public static Vector3f vector2fToVector3(Vector2f v) {
+        return new Vector3f(v.x, TILE_HEIGHT / 2f, v.y);
+    }
+
+    public static Vector2f vector3fToVector2f(Vector3f v) {
+        return new Vector2f(v.x, v.z);
+    }
+
     /**
      * Get surrounding tile coordinates
      *

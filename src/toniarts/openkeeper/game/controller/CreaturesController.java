@@ -564,7 +564,7 @@ public class CreaturesController implements ICreaturesController {
     }
 
     private ICreatureController createCreatureController(EntityId id, CreatureComponent creatureComponent) {
-        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo, gameController.getGameWorldController().getObjectsController());
+        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo, gameController.getGameWorldController().getObjectsController(), gameController.getGameWorldController().getShotsController());
     }
 
     @Override

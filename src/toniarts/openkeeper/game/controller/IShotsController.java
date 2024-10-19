@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 
 /**
@@ -33,10 +33,10 @@ public interface IShotsController {
      * @param shotTypeId shot type to create
      * @param shotData1 arbitrary value, interpreted per shot
      * @param shotData2 arbitrary value, interpreted per shot
-     * @param playerId owher of the shot
-     * @param position 2D coordinate of the shot origin
+     * @param playerId owner of the shot
+     * @param position coordinate of the shot origin
      * @param target shot target, can be null
      */
-    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector2f position, EntityId target);
+    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target);
 
 }

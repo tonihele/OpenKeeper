@@ -73,6 +73,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IShotsController;
 import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_ATTACK;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -112,6 +113,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     private final ICreaturesController creaturesController;
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
+    private final IShotsController shotsController;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -120,7 +122,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -130,6 +132,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         this.creaturesController = creaturesController;
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
+        this.shotsController = shotsController;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -662,9 +665,13 @@ public class CreatureController extends EntityController implements ICreatureCon
                 }
                 stateMachine.changeState(CreatureState.CAST_SPELL);
 
+                // TODO: What is the alternative shot all about?
+                toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId);
+                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget);
+
                 // TODO: Of course not like that, the shot is created and it does what it does
                 // Set the damage
-                setDamage(attackTarget, levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId).getShotData1());
+                setDamage(attackTarget, creatureSpell.getShotData1());
             }
         }
     }
