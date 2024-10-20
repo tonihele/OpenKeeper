@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
-import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
  * View control that is intended specifically for doors
@@ -45,7 +45,7 @@ public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
     private boolean initialized = false;
 
     public DoorViewControl(EntityId entityId, EntityData entityData, Door data, DoorViewState viewState, AssetManager assetManager,
-            TextParser textParser, GameObject lockObject) {
+            EntityTextParser<Door> textParser, GameObject lockObject) {
         super(entityId, entityData, data, viewState, assetManager, textParser);
 
         this.lockObject = lockObject;

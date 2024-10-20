@@ -61,7 +61,7 @@ public abstract class EntityTextParser<T> {
         return "Parameter " + index + " not implemented!";
     }
 
-    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+    public Collection<Class<? extends EntityComponent>> getWatchedComponents() {
         List<Class<? extends EntityComponent>> components = new ArrayList<>();
         components.add(Health.class);
         components.add(Gold.class);

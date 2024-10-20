@@ -400,7 +400,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     //tooltip.setText(room.getTooltip(player.getPlayerId()));
                     tooltip.setText("");
                 } else {
-                    tooltip.setText(textParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
+                    tooltip.setText(textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
                 }
             } else {
                 tooltip.setText("");

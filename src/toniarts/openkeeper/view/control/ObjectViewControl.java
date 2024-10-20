@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
-import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
  * View control that is intended specifically for objects
@@ -39,7 +39,7 @@ public class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewS
     private boolean initialized = false;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
-            AssetManager assetManager, TextParser textParser) {
+            AssetManager assetManager, EntityTextParser<GameObject> textParser) {
         super(entityId, entityData, data, state, assetManager, textParser);
     }
 

@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
-import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
  * View control that is intended specifically for creatures
@@ -40,7 +40,7 @@ import toniarts.openkeeper.view.text.TextParser;
 public class CreatureViewControl extends EntityViewControl<Creature, Creature.AnimationType> {
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
-            AssetManager assetManager, TextParser textParser) {
+            AssetManager assetManager, EntityTextParser<Creature> textParser) {
         super(entityId, entityData, data, animation, assetManager, textParser);
     }
 

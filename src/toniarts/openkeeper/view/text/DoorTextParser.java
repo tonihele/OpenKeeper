@@ -51,7 +51,7 @@ public class DoorTextParser extends EntityTextParser<Door> {
     }
 
     @Override
-    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+    public Collection<Class<? extends EntityComponent>> getWatchedComponents() {
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
 
         components.add(DoorComponent.class);

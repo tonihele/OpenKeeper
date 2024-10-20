@@ -16,15 +16,6 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.Entity;
-import com.simsilica.es.EntityComponent;
-import java.util.Collection;
-import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.tools.convert.map.Trap;
-
 /**
  * Provides text parsing services for users
  *
@@ -32,16 +23,14 @@ import toniarts.openkeeper.tools.convert.map.Trap;
  */
 public interface TextParser {
 
-    String parseText(String text, Entity entity, Creature creature);
+    CreatureTextParser getCreatureTextParser();
 
-    String parseText(String text, Entity entity, Trap trap);
+    TrapTextParser getTrapTextParser();
 
-    String parseText(String text, Entity entity, Door door);
+    DoorTextParser getDoorTextParser();
 
-    String parseText(String text, Entity entity, GameObject gameObject);
+    ObjectTextParser getObjectTextParser();
 
-    String parseText(String text, IMapTileInformation mapTile);
-
-    Collection<Class<? extends EntityComponent>> getWatchedComponents();
+    MapTileTextParser getMapTileTextParser();
 
 }
