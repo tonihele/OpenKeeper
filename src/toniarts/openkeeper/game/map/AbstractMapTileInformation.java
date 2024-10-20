@@ -148,6 +148,11 @@ public abstract class AbstractMapTileInformation implements IMapTileInformation 
     }
 
     @Override
+    public EntityId getRoomId() {
+        return getEntityComponent(MapTile.class).room;
+    }
+
+    @Override
     public int hashCode() {
         int hash = 7;
         hash = 41 * hash + Objects.hashCode(this.entityId);

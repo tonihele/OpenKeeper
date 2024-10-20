@@ -160,4 +160,11 @@ public class MapTileController extends AbstractMapTileInformation implements IMa
         return entityData.getComponent(entityId, type);
     }
 
+    @Override
+    public void setRoomId(EntityId roomId) {
+        MapTile mapTileComponent = new MapTile(getEntityComponent(MapTile.class));
+        mapTileComponent.room = roomId;
+        entityData.setComponent(entityId, mapTileComponent);
+    }
+
 }

@@ -22,6 +22,8 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
@@ -61,6 +63,8 @@ public final class RoomControllerFactory {
         String roomName = roomInstance.getRoom().getName();
         EntityId entity = entityData.createEntity();
 
+        setRoomComponents(entity, entityData, roomInstance);
+
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3 -> {
                 return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController);
@@ -87,6 +91,12 @@ public final class RoomControllerFactory {
             }
 
         }
+    }
+
+    private static void setRoomComponents(EntityId entity, EntityData entityData, RoomInstance roomInstance) {
+        entityData.setComponents(entity,
+                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed(), roomInstance.getDirection()),
+                new Owner(roomInstance.getOwnerId(), roomInstance.getOwnerId()));
     }
 
     private static IRoomController constructDoubleQuad(EntityId entity, EntityData entityData, String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {

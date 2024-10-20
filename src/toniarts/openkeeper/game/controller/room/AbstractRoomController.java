@@ -254,6 +254,9 @@ public abstract class AbstractRoomController implements IRoomController {
 
         // Remove objects
         removeObjects();
+
+        // Remove us
+        entityData.removeEntity(entityId);
     }
 
     private void removeObjects() {
@@ -261,15 +264,15 @@ public abstract class AbstractRoomController implements IRoomController {
         // Clear the old ones
         // TODO: recycle?
         for (EntityId entityId : pillars) {
-            objectsController.getEntityData().removeEntity(entityId);
+            entityData.removeEntity(entityId);
         }
         pillars.clear();
         for (EntityId entityId : floorFurniture) {
-            objectsController.getEntityData().removeEntity(entityId);
+            entityData.removeEntity(entityId);
         }
         floorFurniture.clear();
         for (EntityId entityId : wallFurniture) {
-            objectsController.getEntityData().removeEntity(entityId);
+            entityData.removeEntity(entityId);
         }
         wallFurniture.clear();
     }

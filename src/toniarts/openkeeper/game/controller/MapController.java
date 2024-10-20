@@ -124,6 +124,12 @@ public final class MapController extends Container implements IMapController {
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
 
+        // Set the room instance to the tiles
+        for (Point roomCoordinate : roomInstance.getCoordinates()) {
+            IMapTileController roomTile = mapData.getTile(roomCoordinate);
+            roomTile.setRoomId(roomController.getEntityId());
+        }
+
         // TODO: A bit of a design problem here
         /**
          * Unclear responsibilities between the world and map controller.
@@ -359,6 +365,14 @@ public final class MapController extends Container implements IMapController {
             roomControllers.remove(instance);
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
+            }
+
+            // Remove room from the tiles
+            for (Point roomCoordinate : instance.getCoordinates()) {
+                IMapTileController roomTile = mapData.getTile(roomCoordinate);
+                if (roomTile.getRoomId().equals(roomController.getEntityId())) {
+                    roomTile.setRoomId(null);
+                }
             }
 
             // TODO: A bit of a design problem here
