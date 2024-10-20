@@ -64,7 +64,7 @@ public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        this.creature.imprison(playerId);
+        this.creature.imprison(playerId, room.getEntityId());
         executed = true;
 
         // Set the dragged state

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -27,7 +28,6 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import static toniarts.openkeeper.game.controller.room.AbstractRoomController.hasSameTile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.WallSection;
 
 /**
@@ -40,8 +40,8 @@ public class TempleController extends DoubleQuadController {
     public static final short OBJECT_TEMPLE_HAND_ID = 66;
     private static final int MIN_HAND_SIZE = 5;
 
-    public TempleController(KwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
-        super(kwdFile, roomInstance, objectsController);
+    public TempleController(EntityId entityId, EntityData entityData, KwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }
 
     @Override

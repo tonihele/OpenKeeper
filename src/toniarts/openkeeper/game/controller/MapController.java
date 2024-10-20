@@ -120,7 +120,7 @@ public final class MapController extends Container implements IMapController {
         findRoom(p, roomInstance);
 
         // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
+        IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
 

@@ -1231,7 +1231,7 @@ public class CreatureController extends EntityController implements ICreatureCon
     }
 
     @Override
-    public void imprison(short playerId) {
+    public void imprison(short playerId, EntityId roomId) {
 
         // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
@@ -1243,7 +1243,7 @@ public class CreatureController extends EntityController implements ICreatureCon
         entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
-        entityData.setComponent(entityId, new RoomStorage(AbstractRoomController.ObjectType.PRISONER));
+        entityData.setComponent(entityId, new RoomStorage(roomId, AbstractRoomController.ObjectType.PRISONER));
 
         // Switch the control to the imprisoning player
         Owner owner = entityData.getComponent(entityId, Owner.class);

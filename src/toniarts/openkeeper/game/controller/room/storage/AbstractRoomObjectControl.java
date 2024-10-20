@@ -159,7 +159,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     }
 
     protected void setRoomStorageToItem(EntityId entityId, boolean changeOwner) {
-        objectsController.getEntityData().setComponent(entityId, new RoomStorage(getObjectType()));
+        objectsController.getEntityData().setComponent(entityId, new RoomStorage(parent.getEntityId(), getObjectType()));
         ObjectComponent objectComponent = objectsController.getEntityData().getComponent(entityId, ObjectComponent.class);
         if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.DIE_OVER_TIME_IF_NOT_IN_ROOM)) {
             objectsController.getEntityData().removeComponent(entityId, Decay.class);

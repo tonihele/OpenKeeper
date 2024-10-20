@@ -446,4 +446,9 @@ public abstract class AbstractRoomController implements IRoomController {
                 return null; // No pillars
         }
     }
+
+    @Override
+    public EntityId getEntityId() {
+        return entityId;
+    }
 }

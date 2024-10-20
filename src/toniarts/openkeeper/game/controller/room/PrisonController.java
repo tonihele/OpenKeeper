@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Collection;
 import toniarts.openkeeper.common.RoomInstance;
@@ -37,9 +39,8 @@ public class PrisonController extends DoubleQuadController {
 
     private Point door;
 
-    public PrisonController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-             IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+    public PrisonController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
         addObjectControl(new RoomPrisonerControl(kwdFile, this, objectsController, gameTimer) {
             @Override

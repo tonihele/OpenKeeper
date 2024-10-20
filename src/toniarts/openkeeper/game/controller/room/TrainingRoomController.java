@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -29,9 +31,9 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public class TrainingRoomController extends NormalRoomController {
 
-    public TrainingRoomController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+    public TrainingRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
         addObjectControl(new RoomTraineeControl(kwdFile, this, objectsController, gameTimer) {
 

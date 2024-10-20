@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
@@ -39,6 +41,8 @@ import toniarts.openkeeper.game.controller.room.TreasuryController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
 /**
  * A factory class you can use to build buildings
@@ -53,72 +57,73 @@ public final class RoomControllerFactory {
         // Nope
     }
 
-    public static IRoomController constructRoom(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
+    public static IRoomController constructRoom(EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, IGameTimer gameTimer) {
         String roomName = roomInstance.getRoom().getName();
+        EntityId entity = entityData.createEntity();
 
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3 -> {
-                return new ThreeByThreeController(kwdFile, roomInstance, objectsController);
+                return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
             case HERO_GATE, HERO_GATE_FRONT_END -> {
-                return new HeroGateFrontEndController(kwdFile, roomInstance, objectsController);
+                return new HeroGateFrontEndController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
             case HERO_GATE_2_BY_2 -> {
-                return new NormalRoomController(kwdFile, roomInstance, objectsController);
+                return new NormalRoomController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
             case _5_BY_5_ROTATED -> {
-                return new FiveByFiveRotatedController(kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
+                return new FiveByFiveRotatedController(entity, entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
             }
             case NORMAL -> {
-                return constructNormal(roomName, kwdFile, roomInstance, objectsController, gameTimer, gameSettings);
+                return constructNormal(entity, entityData, roomName, kwdFile, roomInstance, objectsController, gameTimer, gameSettings);
             }
             case DOUBLE_QUAD -> {
-                return constructDoubleQuad(roomName, kwdFile, roomInstance, objectsController, gameTimer);
+                return constructDoubleQuad(entity, entityData, roomName, kwdFile, roomInstance, objectsController, gameTimer);
             }
             default -> {
                 // TODO
                 logger.log(Level.WARNING, "Room {0} not exist", roomName);
-                return new NormalRoomController(kwdFile, roomInstance, objectsController);
+                return new NormalRoomController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
+
         }
     }
 
-    private static IRoomController constructDoubleQuad(String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
+    private static IRoomController constructDoubleQuad(EntityId entity, EntityData entityData, String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         if (roomName.equalsIgnoreCase("Prison")) {
-            return new PrisonController(kwdFile, roomInstance, objectsController, gameTimer);
+            return new PrisonController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Combat Pit")) {
-            return new CombatPitController(kwdFile, roomInstance, objectsController);
+            return new CombatPitController(entity, entityData, kwdFile, roomInstance, objectsController);
         } else if (roomName.equalsIgnoreCase("Temple")) {
-            return new TempleController(kwdFile, roomInstance, objectsController);
+            return new TempleController(entity, entityData, kwdFile, roomInstance, objectsController);
         }
 
-        return new DoubleQuadController(kwdFile, roomInstance, objectsController);
+        return new DoubleQuadController(entity, entityData, kwdFile, roomInstance, objectsController);
     }
 
-    private static IRoomController constructNormal(String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    private static IRoomController constructNormal(EntityId entity, EntityData entityData, String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         if (roomName.equalsIgnoreCase("Lair")) {
-            return new LairController(kwdFile, roomInstance, objectsController, gameTimer);
+            return new LairController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Library")) {
-            return new LibraryController(kwdFile, roomInstance, objectsController, gameTimer);
+            return new LibraryController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Training Room")) {
-            return new TrainingRoomController(kwdFile, roomInstance, objectsController, gameTimer);
+            return new TrainingRoomController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Work Shop")) {
-            return new WorkshopController(kwdFile, roomInstance, objectsController);
+            return new WorkshopController(entity, entityData, kwdFile, roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Guard Room")) {
 //                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
         } else if (roomName.equalsIgnoreCase("Casino")) {
-            return new CasinoController(kwdFile, roomInstance, objectsController);
+            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController);
 //                } else if (roomName.equalsIgnoreCase("Graveyard")) {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
         } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
-            return new TortureChamberController(kwdFile, roomInstance, objectsController, gameTimer);
+            return new TortureChamberController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Treasury")) {
-            return new TreasuryController(kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
+            return new TreasuryController(entity, entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
         } else if (roomName.equalsIgnoreCase("Hatchery")) {
-            return new HatcheryController(kwdFile, roomInstance, objectsController, gameTimer);
+            return new HatcheryController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         }
 
-        return new NormalRoomController(kwdFile, roomInstance, objectsController);
+        return new NormalRoomController(entity, entityData, kwdFile, roomInstance, objectsController);
     }
 }

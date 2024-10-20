@@ -116,4 +116,6 @@ public interface IRoomController {
 
     public boolean isFullCapacity();
 
+    public EntityId getEntityId();
+
 }
