@@ -140,7 +140,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         if (interaction == null) {
             return false;
         }
-        return (interaction.interactable || interaction.slappable) && getOwnerId() == playerId;
+        return (interaction.interactable || interaction.slappable) && getControlId() == playerId;
     }
 
     @Override
@@ -195,6 +195,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     @Override
     public short getOwnerId() {
         return entity.get(Owner.class).ownerId;
+    }
+
+    @Override
+    public short getControlId() {
+        return entity.get(Owner.class).controlId;
     }
 
     @Override

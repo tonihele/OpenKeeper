@@ -590,7 +590,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
     @Override
     public void pickUp(EntityId entity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData, mapController)) {
+        if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
             putToKeeperHand(playerHandControl, entity, playerId);
         }
     }
@@ -636,7 +636,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
     }
 
-    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData, IMapController mapController) {
+    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         // Check if picked up already
@@ -645,18 +645,8 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
             return false;
         }
 
-        // The if entity if help up us (prison or torture), we have the authority and ownership
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        CreatureImprisoned imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class);
-        CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
-        Position position = entityData.getComponent(entityId, Position.class);
-        Point p = WorldUtils.vectorToPoint(position.position);
-        if ((imprisoned != null || tortured != null) && mapController.getMapData().getTile(p).getOwnerId() == playerId) {
-            return true;
-        }
-
-        // The owner only
-        if (owner == null || owner.ownerId != playerId) {
+        if (owner == null || owner.controlId != playerId) {
             return false;
         }
 
