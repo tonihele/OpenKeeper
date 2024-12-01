@@ -95,7 +95,7 @@ public final class RoomControllerFactory {
 
     private static void setRoomComponents(EntityId entity, EntityData entityData, RoomInstance roomInstance) {
         entityData.setComponents(entity,
-                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed(), roomInstance.getDirection()),
+                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed()),
                 new Owner(roomInstance.getOwnerId(), roomInstance.getOwnerId()));
     }
 

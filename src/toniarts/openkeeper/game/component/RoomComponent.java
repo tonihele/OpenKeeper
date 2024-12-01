@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  * A base room component. This entity is a room
@@ -28,7 +27,6 @@ public class RoomComponent implements EntityComponent {
 
     public short roomId;
     public boolean destroyed = false;
-    public Thing.Room.Direction direction;
 
     public RoomComponent() {
         // For serialization
@@ -38,10 +36,9 @@ public class RoomComponent implements EntityComponent {
         this.roomId = roomId;
     }
 
-    public RoomComponent(short roomId, boolean destroyed, Thing.Room.Direction direction) {
+    public RoomComponent(short roomId, boolean destroyed) {
         this.roomId = roomId;
         this.destroyed = destroyed;
-        this.direction = direction;
     }
 
 }
