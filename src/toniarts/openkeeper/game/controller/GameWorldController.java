@@ -662,37 +662,37 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
 
     @Override
     public void interact(EntityId entity, short playerId) {
-        if (canInteract(entity, playerId, entityData)) {
+        if (!canInteract(entity, playerId, entityData)) {
+            return;
+        }
 
-            // Doors
-            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
-            if (doorComponent != null) {
-                if (!doorComponent.blueprint) {
-                    entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
-                    DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
-                    if (doorViewState != null) {
-                        entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
-                    }
-                }
-                return;
+        // Doors
+        DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+        if (doorComponent != null && !doorComponent.blueprint) {
+            entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
+            DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
+            if (doorViewState != null) {
+                entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
             }
 
-            Interaction interaction = entityData.getComponent(entity, Interaction.class);
+            return;
+        }
 
-            // Creatures (slapping)
-            // TODO: Slap limit
-            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            if (creatureComponent != null && interaction.slappable) {
-                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-                return;
-            }
+        Interaction interaction = entityData.getComponent(entity, Interaction.class);
 
-            // Objects
-            ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
-            if (objectComponent != null && interaction.slappable) {
-                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-                return;
-            }
+        // Creatures (slapping)
+        // TODO: Slap limit
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        if (creatureComponent != null && interaction.slappable) {
+            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            return;
+        }
+
+        // Objects
+        ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+        if (objectComponent != null && interaction.slappable) {
+            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            return;
         }
     }
 
