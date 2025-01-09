@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -73,7 +76,6 @@ public abstract class AbstractRoomController implements IRoomController {
     protected final RoomInstance roomInstance;
     private ObjectType defaultObjectType;
     private final Map<ObjectType, IRoomObjectControl> objectControls = new HashMap<>();
-    protected boolean destroyed = false;
     protected boolean[][] map;
     protected Point start;
     protected final IObjectsController objectsController;
@@ -238,14 +240,9 @@ public abstract class AbstractRoomController implements IRoomController {
         return (T) objectControls.get(objectType);
     }
 
-    /**
-     * Destroy the room, marks the room as destroyed and releases all the
-     * controls. The room <strong>should not</strong> be used after this.
-     */
     @Override
-    public void destroy() {
-        destroyed = true;
-        roomInstance.setDestroyed(destroyed);
+    public void remove() {
+        roomInstance.setDestroyed(true);
 
         // Destroy the controls
         for (IRoomObjectControl control : objectControls.values()) {
@@ -263,23 +260,34 @@ public abstract class AbstractRoomController implements IRoomController {
 
         // Clear the old ones
         // TODO: recycle?
-        for (EntityId entityId : pillars) {
-            entityData.removeEntity(entityId);
+        for (EntityId entity : pillars) {
+            entityData.removeEntity(entity);
         }
         pillars.clear();
-        for (EntityId entityId : floorFurniture) {
-            entityData.removeEntity(entityId);
+        for (EntityId entity : floorFurniture) {
+            entityData.removeEntity(entity);
         }
         floorFurniture.clear();
-        for (EntityId entityId : wallFurniture) {
-            entityData.removeEntity(entityId);
+        for (EntityId entity : wallFurniture) {
+            entityData.removeEntity(entity);
         }
         wallFurniture.clear();
     }
 
     @Override
+    public void destroy() {
+        RoomComponent roomComponent = new RoomComponent(getRoomComponent());
+        roomComponent.destroyed = true;
+        entityData.setComponent(entityId, roomComponent);
+    }
+
+    @Override
     public boolean isDestroyed() {
-        return destroyed;
+        return getRoomComponent().destroyed;
+    }
+
+    private RoomComponent getRoomComponent() {
+        return entityData.getComponent(entityId, RoomComponent.class);
     }
 
     /**
@@ -364,7 +372,7 @@ public abstract class AbstractRoomController implements IRoomController {
     public void captured(short playerId) {
 
         // Nothing, hmm, should we move some logic here from the MapController
-        roomInstance.setOwnerId(playerId);
+        entityData.setComponent(entityId, new Owner(playerId, playerId));
 
         // Notify the controls
         for (IRoomObjectControl control : objectControls.values()) {
@@ -453,5 +461,38 @@ public abstract class AbstractRoomController implements IRoomController {
     @Override
     public EntityId getEntityId() {
         return entityId;
+    }
+
+    @Override
+    public int getHealth() {
+        return entityData.getComponent(entityId, Health.class).health;
+    }
+
+    @Override
+    public int getMaxHealth() {
+        return entityData.getComponent(entityId, Health.class).maxHealth;
+    }
+
+    @Override
+    public Integer getHealthPercent() {
+        Health health = entityData.getComponent(entityId, Health.class);
+        return Math.round((float) health.health / health.maxHealth * 100);
+    }
+
+    @Override
+    public boolean isAtFullHealth() {
+        Health health = entityData.getComponent(entityId, Health.class);
+
+        return (health.health == health.maxHealth);
+    }
+
+    @Override
+    public short getOwnerId() {
+        return entityData.getComponent(entityId, Owner.class).ownerId;
+    }
+
+    @Override
+    public short getRoomId() {
+        return roomInstance.getEntity().getId();
     }
 }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.text;
 
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IRoomsInformation;
 
 /**
  * A kind of facade to the different kind of parsers. Many of them share the
@@ -31,13 +32,15 @@ public class TextParserService implements TextParser {
     private final DoorTextParser doorTextParser;
     private final ObjectTextParser objectTextParser;
     private final MapTileTextParser mapTileTextParser;
+    private final RoomTextParser roomTextParser;
 
-    public TextParserService(IMapInformation mapInformation) {
+    public TextParserService(IMapInformation mapInformation, IRoomsInformation roomsInformation) {
         this.creatureTextParser = new CreatureTextParser(mapInformation);
         this.trapTextParser = new TrapTextParser();
         this.doorTextParser = new DoorTextParser();
         this.objectTextParser = new ObjectTextParser();
         this.mapTileTextParser = new MapTileTextParser();
+        this.roomTextParser = new RoomTextParser(roomsInformation);
     }
 
     @Override
@@ -63,5 +66,10 @@ public class TextParserService implements TextParser {
     @Override
     public MapTileTextParser getMapTileTextParser() {
         return mapTileTextParser;
+    }
+
+    @Override
+    public RoomTextParser getRoomTextParser() {
+        return roomTextParser;
     }
 }

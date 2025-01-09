@@ -22,6 +22,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.room.CasinoController;
@@ -95,8 +96,9 @@ public final class RoomControllerFactory {
 
     private static void setRoomComponents(EntityId entity, EntityData entityData, RoomInstance roomInstance) {
         entityData.setComponents(entity,
-                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed()),
-                new Owner(roomInstance.getOwnerId(), roomInstance.getOwnerId()));
+                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed(), roomInstance.getCenter()),
+                new Owner(roomInstance.getOwnerId(), roomInstance.getOwnerId()),
+                new Health(roomInstance.getHealth(), roomInstance.getMaxHealth()));
     }
 
     private static IRoomController constructDoubleQuad(EntityId entity, EntityData entityData, String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {

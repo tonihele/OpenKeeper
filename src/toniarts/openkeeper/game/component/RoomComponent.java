@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import java.awt.Point;
 
 /**
  * A base room component. This entity is a room
@@ -28,15 +29,22 @@ public class RoomComponent implements EntityComponent {
     public short roomId;
     public boolean destroyed = false;
 
+    /**
+     * Room center, for convenience
+     */
+    public Point location;
+
     public RoomComponent() {
         // For serialization
     }
 
-    public RoomComponent(short roomId) {
-        this.roomId = roomId;
+    public RoomComponent(RoomComponent roomComponent) {
+        roomId = roomComponent.roomId;
+        destroyed = roomComponent.destroyed;
+        location = roomComponent.location;
     }
 
-    public RoomComponent(short roomId, boolean destroyed) {
+    public RoomComponent(short roomId, boolean destroyed, Point location) {
         this.roomId = roomId;
         this.destroyed = destroyed;
     }

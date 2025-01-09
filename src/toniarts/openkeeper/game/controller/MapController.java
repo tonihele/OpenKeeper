@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.controller.map.FlashTileControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.map.IMapData;
@@ -116,8 +117,19 @@ public final class MapController extends Container implements IMapController {
 
         // Find it
         RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(mapTile.getTerrainId()));
+        Keeper owner = levelInfo.getPlayer(mapTile.getOwnerId());
+        roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart() && (owner == null || owner.isDestroyed()));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
+        int health = 0;
+        int maxHealth = 0;
+        for (Point coordinate : roomInstance.getCoordinates()) {
+            IMapTileController roomTile = mapData.getTile(coordinate);
+            health += roomTile.getHealth();
+            maxHealth += roomTile.getMaxHealth();
+        }
+        roomInstance.setHealth(health);
+        roomInstance.setMaxHealth(maxHealth);
 
         // Create a controller for it
         IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
@@ -360,7 +372,7 @@ public final class MapController extends Container implements IMapController {
 
             // Signal the room
             IRoomController roomController = getRoomController(instance);
-            roomController.destroy();
+            roomController.remove();
 
             roomControllers.remove(instance);
             for (Point p : instance.getCoordinates()) {

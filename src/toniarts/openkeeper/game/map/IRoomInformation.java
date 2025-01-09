@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2018 OpenKeeper
+ * Copyright (C) 2014-2024 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,24 +14,47 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.text;
+package toniarts.openkeeper.game.map;
+
+import com.simsilica.es.EntityId;
 
 /**
- * Provides text parsing services for users
+ * A kind of a room container with no editing functionalities
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface TextParser {
+public interface IRoomInformation {
 
-    CreatureTextParser getCreatureTextParser();
+    /**
+     * Get the entity ID of this room
+     *
+     * @return
+     */
+    EntityId getEntityId();
 
-    TrapTextParser getTrapTextParser();
+    int getHealth();
 
-    DoorTextParser getDoorTextParser();
+    int getMaxHealth();
 
-    ObjectTextParser getObjectTextParser();
+    Integer getHealthPercent();
 
-    MapTileTextParser getMapTileTextParser();
+    /**
+     * Is room at full health
+     *
+     * @return true if full health
+     */
+    boolean isAtFullHealth();
 
-    RoomTextParser getRoomTextParser();
+    short getOwnerId();
+
+    short getRoomId();
+
+    /**
+     * Is this room instance destroyed?
+     *
+     * @see #remove()
+     * @return is the room destroyed
+     */
+    boolean isDestroyed();
+
 }

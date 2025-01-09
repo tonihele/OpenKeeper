@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2018 OpenKeeper
+ * Copyright (C) 2014-2024 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,24 +14,18 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.text;
+package toniarts.openkeeper.game.map;
+
+import com.simsilica.es.EntityId;
 
 /**
- * Provides text parsing services for users
+ * Holds the rooms data
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> the room data type
  */
-public interface TextParser {
+public interface IRoomsInformation<T extends IRoomInformation> {
 
-    CreatureTextParser getCreatureTextParser();
+    T getRoomInformation(EntityId entityId);
 
-    TrapTextParser getTrapTextParser();
-
-    DoorTextParser getDoorTextParser();
-
-    ObjectTextParser getObjectTextParser();
-
-    MapTileTextParser getMapTileTextParser();
-
-    RoomTextParser getRoomTextParser();
 }

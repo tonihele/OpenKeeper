@@ -176,37 +176,37 @@ public class GameServerState extends AbstractAppState {
         public void run() {
 
             // Make sure the KWD file is fully loaded
-            kwdFile.load();
+                kwdFile.load();
 
-            // Create the central game controller
-            gameController = new GameController(kwdFile, players, gameService.getEntityData(), kwdFile.getVariables(), gameService);
-            gameController.createNewGame();
+                // Create the central game controller
+                gameController = new GameController(kwdFile, players, gameService.getEntityData(), kwdFile.getVariables(), gameService);
+                gameController.createNewGame();
 
-            gameWorldController = gameController.getGameWorldController();
-            mapController = gameWorldController.getMapController();
-            gameWorldController.addListener(playerActionListener);
+                gameWorldController = gameController.getGameWorldController();
+                mapController = gameWorldController.getMapController();
+                gameWorldController.addListener(playerActionListener);
 
-            // Send the the initial game data
-            gameService.sendGameData(gameController.getPlayers());
+                // Send the the initial game data
+                gameService.sendGameData(gameController.getPlayers());
 
-            // Set up a listener for the map
-            mapController.addListener(mapListener);
+                // Set up a listener for the map
+                mapController.addListener(mapListener);
 
-            // Set up a listener for the player changes, they are per player
-            for (IPlayerController playerController : gameController.getPlayerControllers()) {
-                playerController.addListener(gameService);
-            }
+                // Set up a listener for the player changes, they are per player
+                for (IPlayerController playerController : gameController.getPlayerControllers()) {
+                    playerController.addListener(gameService);
+                }
 
-            // Nullify the thread object
-            loader = null;
+                // Nullify the thread object
+                loader = null;
 
-            // Mark the server end ready
-            synchronized (loadingObject) {
-                gameLoaded = true;
-                loadingObject.notifyAll();
+                // Mark the server end ready
+                synchronized (loadingObject) {
+                    gameLoaded = true;
+                    loadingObject.notifyAll();
+                }
             }
         }
-    }
 
     /**
      * Listen for basically clients' requests
