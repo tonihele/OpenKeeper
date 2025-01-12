@@ -17,11 +17,10 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.simsilica.es.EntityId;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
@@ -63,6 +62,7 @@ public class MapTile implements EntityComponent {
         this.bridgeTerrainType = mapTile.bridgeTerrainType;
         this.p = mapTile.p;
         this.index = mapTile.index;
+        this.room = mapTile.room;
 
         if (mapTile.selection != null && !mapTile.selection.isEmpty()) {
             this.selection = HashMap.newHashMap(4);

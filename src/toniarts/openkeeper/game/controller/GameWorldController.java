@@ -402,7 +402,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     substractGoldCapacityFromPlayer(firstInstance); // Important to update the gold here
                     firstInstance.addCoordinates(instancePlots);
                     for (Point p : instancePlots) {
-                        mapController.getRoomCoordinates().put(p, firstInstance);
+                        mapController.addRoomCoordinate(firstInstance, p);
                     }
 
                     // Update the merged room
@@ -416,7 +416,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
                     updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
                     if (!firstInstance.equals(instance)) {
                         firstInstance.addCoordinate(p);
-                        mapController.getRoomCoordinates().put(p, firstInstance);
+                        mapController.addRoomCoordinate(firstInstance, p);
                     }
                 }
             }
@@ -425,7 +425,7 @@ public class GameWorldController implements IGameWorldController, IPlayerActions
         }
 
         // Update
-        mapController.updateRooms(updatableTiles.toArray(new Point[0]));
+        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
 
         // New room, calculate gold capacity
         RoomInstance instance = mapController.getRoomCoordinates().get(instancePlots.get(0));

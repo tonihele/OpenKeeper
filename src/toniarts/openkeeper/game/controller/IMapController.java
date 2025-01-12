@@ -218,4 +218,12 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      */
     public int getPlayerSkeletonCapacity(short playerId);
 
+    /**
+     * Add a coordinate to a room
+     *
+     * @param roomInstance roomInstance to add
+     * @param point coordinate to add
+     */
+    public void addRoomCoordinate(RoomInstance roomInstance, Point point);
+
 }

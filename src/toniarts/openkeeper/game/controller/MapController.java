@@ -375,12 +375,10 @@ public final class MapController extends Container implements IMapController {
             roomController.remove();
 
             roomControllers.remove(instance);
-            for (Point p : instance.getCoordinates()) {
-                roomCoordinates.remove(p);
-            }
-
-            // Remove room from the tiles
             for (Point roomCoordinate : instance.getCoordinates()) {
+                roomCoordinates.remove(roomCoordinate);
+
+                // Remove room from the tile
                 IMapTileController roomTile = mapData.getTile(roomCoordinate);
                 if (roomTile.getRoomId().equals(roomController.getEntityId())) {
                     roomTile.setRoomId(null);
@@ -830,5 +828,11 @@ public final class MapController extends Container implements IMapController {
     @Override
     public boolean isSolid(Point p) {
         return mapInformation.isSolid(p);
+    }
+
+    @Override
+    public void addRoomCoordinate(RoomInstance roomInstance, Point point) {
+        roomCoordinates.put(point, roomInstance);
+        getMapData().getTile(point).setRoomId(getRoomController(roomInstance).getEntityId());
     }
 }
