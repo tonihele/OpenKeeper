@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractRoomController implements IRoomController {
+public abstract class AbstractRoomController extends AbstractRoomInformation implements IRoomController {
 
     /**
      * The type of object the room houses
@@ -85,6 +85,7 @@ public abstract class AbstractRoomController implements IRoomController {
 
     public AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile, 
             RoomInstance roomInstance, IObjectsController objectsController) {
+        super(entityId);
         this.entityId = entityId;
         this.entityData = entityData;
         this.kwdFile = kwdFile;
@@ -287,7 +288,7 @@ public abstract class AbstractRoomController implements IRoomController {
     }
 
     private RoomComponent getRoomComponent() {
-        return entityData.getComponent(entityId, RoomComponent.class);
+        return getEntityComponent(RoomComponent.class);
     }
 
     /**
@@ -459,40 +460,7 @@ public abstract class AbstractRoomController implements IRoomController {
     }
 
     @Override
-    public EntityId getEntityId() {
-        return entityId;
-    }
-
-    @Override
-    public int getHealth() {
-        return entityData.getComponent(entityId, Health.class).health;
-    }
-
-    @Override
-    public int getMaxHealth() {
-        return entityData.getComponent(entityId, Health.class).maxHealth;
-    }
-
-    @Override
-    public Integer getHealthPercent() {
-        Health health = entityData.getComponent(entityId, Health.class);
-        return Math.round((float) health.health / health.maxHealth * 100);
-    }
-
-    @Override
-    public boolean isAtFullHealth() {
-        Health health = entityData.getComponent(entityId, Health.class);
-
-        return (health.health == health.maxHealth);
-    }
-
-    @Override
-    public short getOwnerId() {
-        return entityData.getComponent(entityId, Owner.class).ownerId;
-    }
-
-    @Override
-    public short getRoomId() {
-        return roomInstance.getEntity().getId();
+    protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
+        return entityData.getComponent(entityId, type);
     }
 }

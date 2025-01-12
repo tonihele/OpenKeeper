@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.map;
+package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
@@ -22,6 +22,7 @@ import java.util.Objects;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
+import toniarts.openkeeper.game.map.IRoomInformation;
 
 /**
  * A presentation of a single map tile. Gets data from specified entity

@@ -27,7 +27,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
-import toniarts.openkeeper.game.map.AbstractRoomInformation;
+import toniarts.openkeeper.game.controller.room.AbstractRoomInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
