@@ -114,12 +114,9 @@ public final class Main extends SimpleApplication {
         // set a better logging format
         System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
 
-        // Finally start it if everything went ok
-        if (checkSetup(app)) {
-            app.start();
-        } else {
-            logger.log(Level.WARNING, "Application setup not complete!!");
-        }
+        // Check assets
+        AssetsConverter.main(new String[0]);
+        app.start();
     }
 
     /**
@@ -151,30 +148,6 @@ public final class Main extends SimpleApplication {
 
             i++;
         }
-    }
-
-    /**
-     * Check that we have all we need to run this app
-     *
-     * @param app the app (we need asset managers etc.)
-     * @return true if the app is ok for running!
-     * @throws InterruptedException lots of threads waiting
-     */
-    private static boolean checkSetup(final Main app) {
-
-        // First and foremost, the folder
-        if (!PathUtils.checkDkFolder(getDkIIFolder())) {
-            logger.log(Level.WARNING, "Dungeon Keeper II folder not found or valid!");
-            return false;
-        }
-
-        // Check if conversion is needed
-        if (AssetsConverter.isConversionNeeded(Main.getSettings())) {
-            logger.log(Level.WARNING, "Asset conversion is needed. Please run the AssetsConverter tool.");
-            return false;
-        }
-
-        return true;
     }
 
     private static void initSettings(Main app) {
