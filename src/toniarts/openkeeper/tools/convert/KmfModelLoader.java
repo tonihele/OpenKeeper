@@ -37,7 +37,6 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
-import com.jme3.scene.control.LodControl;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
@@ -64,7 +63,6 @@ import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.Grop;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
-import toniarts.openkeeper.tools.convert.kmf.MeshSprite;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
 import toniarts.openkeeper.tools.convert.kmf.Triangle;
 import toniarts.openkeeper.tools.convert.kmf.Uv;
@@ -185,17 +183,20 @@ public final class KmfModelLoader implements AssetLoader {
         node.setLocalTranslation(new Vector3f(sourceMesh.getPos().x, -sourceMesh.getPos().z, sourceMesh.getPos().y));
 
         int index = 0;
-        for (MeshSprite meshSprite : sourceMesh.getSprites()) {
+        for (var subMesh : sourceMesh.getSprites()) {
+
+            if (subMesh.getTriangles().get(0).isEmpty())
+                continue; // FIXME: LODs are broken so we only take L0
 
             //Each sprite represents a geometry (+ mesh) since they each have their own material
             Mesh mesh = new Mesh();
 
             //Vertices, UV (texture coordinates), normals
-            Vector3f[] vertices = new Vector3f[meshSprite.getVertices().size()];
-            Vector2f[] texCoord = new Vector2f[meshSprite.getVertices().size()];
-            Vector3f[] normals = new Vector3f[meshSprite.getVertices().size()];
+            var vertices = new Vector3f[subMesh.getVertices().size()];
+            var texCoord = new Vector2f[subMesh.getVertices().size()];
+            var normals  = new Vector3f[subMesh.getVertices().size()];
             int i = 0;
-            for (MeshVertex meshVertex : meshSprite.getVertices()) {
+            for (MeshVertex meshVertex : subMesh.getVertices()) {
 
                 //Vertice
                 javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
@@ -212,19 +213,19 @@ public final class KmfModelLoader implements AssetLoader {
                 i++;
             }
 
-            // Triangles, we have LODs here
-            VertexBuffer[] lodLevels = createIndices(meshSprite.getTriangles());
-
-            //Set the buffers
-            mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
+            // Create LOD levels
+            // FIXME: LODs are broken so we only take L0
+            var lodLevels = createIndices(subMesh.getTriangles().subList(0, 1));
             mesh.setBuffer(lodLevels[0]);
-            mesh.setLodLevels(lodLevels);
+            // mesh.setLodLevels(lodLevels); // needs to include L0!
+
+            mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
             mesh.setStatic();
 
             // Create geometry
-            Geometry geom = createGeometry(index, sourceMesh.getName(), mesh, materials, meshSprite.getMaterialIndex());
+            Geometry geom = createGeometry(index, sourceMesh.getName(), mesh, materials, subMesh.getMaterialIndex());
 
             //Attach the geometry to the node
             node.attachChild(geom);
@@ -258,6 +259,9 @@ public final class KmfModelLoader implements AssetLoader {
 
         int subMeshIndex = 0;
         for (var subMesh : anim.getSprites()) {
+
+            if (subMesh.getTriangles().get(0).isEmpty())
+                continue; // FIXME: LODs are broken so we only take L0
 
             // Animation
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
@@ -424,17 +428,20 @@ public final class KmfModelLoader implements AssetLoader {
             }
 
             // Create LOD levels
-            var lodLevels = createIndices(subMesh.getTriangles());
-
-            //Set the buffers
-            mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
-            mesh.setBuffer(Type.BindPosePosition, 3, BufferUtils.createFloatBuffer(vertices));
+            // FIXME: LODs are broken so we only take L0
+            var lodLevels = createIndices(subMesh.getTriangles().subList(0, 1));
             mesh.setBuffer(lodLevels[0]);
-            mesh.setLodLevels(lodLevels);
+            //mesh.setLodLevels(lodLevels); // needs to include L0!
+
             mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(texCoord));
+            // used by PoseTrack
+            mesh.setBuffer(Type.BindPosePosition, 3, BufferUtils.createFloatBuffer(vertices));
+            // no BindPoseNormal! not animated in KMF
             mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals));
-            mesh.setBuffer(Type.BindPoseNormal, 3, BufferUtils.createFloatBuffer(normals));
-            mesh.setStreamed();
+
+            // only position buffer is dynamic
+            mesh.setStatic();
+            mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices));
 
             // Create geometry
             Geometry geom = createGeometry(subMeshIndex, anim.getName(), mesh, materials, subMesh.getMaterialIndex());
@@ -513,9 +520,9 @@ public final class KmfModelLoader implements AssetLoader {
         //Create geometry
         var geom = new Geometry(meshName + '_' + subMeshIndex, mesh);
 
-        //Add LOD control
-        LodControl lc = new LodControl();
-        geom.addControl(lc);
+        // LODs are broken
+        //var lc = new LodControl();
+        //geom.addControl(lc);
 
         // Material, set the first
         geom.setMaterial(materials.get(materialIndex).get(0));
