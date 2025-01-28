@@ -191,6 +191,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         state.interactionState.setInteractionState(type, Integer.parseInt(id));
     }
 
+    public void toggleGui() {
+        if (!nifty.getCurrentScreen().getScreenId().equals(SCREEN_EMPTY_ID))
+            nifty.gotoScreen(SCREEN_EMPTY_ID);
+        else
+            nifty.gotoScreen(SCREEN_HUD_ID);
+    }
+
     @Override
     public void togglePanel() {
         // FIXME work but not properly. Map should not move with other things. Need HUD redesign
