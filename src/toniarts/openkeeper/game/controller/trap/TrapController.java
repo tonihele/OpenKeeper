@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapController extends EntityController implements ITrapController {
+public final class TrapController extends EntityController implements ITrapController {
 
     private final Trap trap;
 

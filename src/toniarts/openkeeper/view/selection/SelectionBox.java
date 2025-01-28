@@ -14,7 +14,7 @@ import java.nio.FloatBuffer;
  * @author Philip Willuweit p.willuweit@gmx.de
  * @author Lohnn
  */
-public class SelectionBox extends AbstractBox
+public final class SelectionBox extends AbstractBox
 {
     private Geometry geo;
     private static final short[] GEOMETRY_INDICES_DATA =

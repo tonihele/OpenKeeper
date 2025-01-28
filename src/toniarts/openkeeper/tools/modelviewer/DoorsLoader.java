@@ -31,7 +31,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  *
  * @author ArchDemon
  */
-public class DoorsLoader implements ILoader<Door> {
+public final class DoorsLoader implements ILoader<Door> {
 
     @Override
     public Spatial load(AssetManager assetManager, Door object) {

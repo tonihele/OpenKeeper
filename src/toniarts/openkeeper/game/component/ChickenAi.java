@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.controller.chicken.ChickenState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChickenAi implements EntityComponent {
+public final class ChickenAi implements EntityComponent {
 
     public double stateStartTime;
     private int chickenState;

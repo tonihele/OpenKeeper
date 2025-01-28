@@ -40,7 +40,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorViewSystem implements IGameLogicUpdatable {
+public final class DoorViewSystem implements IGameLogicUpdatable {
 
     private final EntitySet doorEntities;
 

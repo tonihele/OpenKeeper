@@ -31,7 +31,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCamera {
+public final class PlayerCamera {
 
     private final Camera cam;
     private final Thing.Camera presets;

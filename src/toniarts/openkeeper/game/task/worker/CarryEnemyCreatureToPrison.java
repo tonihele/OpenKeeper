@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask {
+public final class CarryEnemyCreatureToPrison extends AbstractCapacityCriticalRoomTask {
 
     private final ICreatureController creature;
     private boolean executed = false;

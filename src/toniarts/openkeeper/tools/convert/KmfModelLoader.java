@@ -753,7 +753,7 @@ public final class KmfModelLoader implements AssetLoader {
         return tex;
     }
 
-    private static class TextureSorter implements Comparator<String> {
+    private static final class TextureSorter implements Comparator<String> {
         
         private static final Pattern PATTERN = Pattern.compile("\\D+(?<number>\\d+)\\.png");
 

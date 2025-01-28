@@ -25,7 +25,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapDistance implements Heuristic<IMapTileInformation> {
+public final class MapDistance implements Heuristic<IMapTileInformation> {
 
     @Override
     public float estimate(IMapTileInformation node, IMapTileInformation endNode) {

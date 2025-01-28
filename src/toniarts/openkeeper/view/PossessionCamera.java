@@ -26,7 +26,7 @@ import com.jme3.renderer.Camera;
  * @author ArchDemon
  */
 
-public class PossessionCamera {
+public final class PossessionCamera {
     private final Camera camera;
     //private static final float ZOOM_SPEED = 25f;
     private float speed;

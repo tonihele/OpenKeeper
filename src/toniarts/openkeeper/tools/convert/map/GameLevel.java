@@ -33,7 +33,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author ArchDemon
  */
-public class GameLevel implements ISoundable, ITriggerable {
+public final class GameLevel implements ISoundable, ITriggerable {
     // KWD data
     //    struct LevelInfoBlock {
     //        ucs2le_t m_wsName[64]; /* 134 */

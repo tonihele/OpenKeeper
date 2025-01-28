@@ -641,7 +641,7 @@ public abstract class GenericRoom {
         return null;
     }
 
-    private static class RoomCount {
+    private static final class RoomCount {
 
         public String placeholder;
         public int amount;

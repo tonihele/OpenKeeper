@@ -27,7 +27,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorFlowerControl extends UnitFlowerControl<Door> {
+public final class DoorFlowerControl extends UnitFlowerControl<Door> {
 
     public DoorFlowerControl(EntityId entityId, EntityData entityData, Door door, AssetManager assetManager) {
         super(entityId, entityData, door, assetManager);

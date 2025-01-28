@@ -31,7 +31,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author ArchDemon
  */
-public class SingleQuadConstructor extends SingleTileConstructor {
+public final class SingleQuadConstructor extends SingleTileConstructor {
 
     public SingleQuadConstructor(KwdFile kwdFile) {
         super(kwdFile);

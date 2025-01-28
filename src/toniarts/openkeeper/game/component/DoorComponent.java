@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorComponent implements EntityComponent {
+public final class DoorComponent implements EntityComponent {
 
     public short doorId;
     public boolean locked;

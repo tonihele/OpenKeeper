@@ -37,7 +37,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapData implements IMapData {
+public final class MapData implements IMapData {
 
     private final int width;
     private final int height;

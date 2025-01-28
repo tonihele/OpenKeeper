@@ -23,7 +23,7 @@ package toniarts.openkeeper.utils;
 import com.jme3.math.FastMath;
 import java.time.LocalDateTime;
 
-public class FullMoon {
+public final class FullMoon {
 
     private static final double SMALL_FLOAT = (1e-12);
     // size of the deviation to be recognised as full moon

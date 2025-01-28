@@ -32,7 +32,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HatcheryController extends NormalRoomController implements IChickenGenerator {
+public final class HatcheryController extends NormalRoomController implements IChickenGenerator {
 
     private double lastSpawnTime;
     private final IGameTimer gameTimer;

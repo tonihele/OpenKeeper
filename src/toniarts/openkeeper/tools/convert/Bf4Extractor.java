@@ -36,7 +36,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Bf4Extractor {
+public final class Bf4Extractor {
 
     private static String dkIIFolder;
 

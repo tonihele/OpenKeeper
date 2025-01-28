@@ -111,7 +111,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author ArchDemon
  */
-public class NetworkServer {
+public final class NetworkServer {
 
     private static boolean initialized = false;
     private final String host;

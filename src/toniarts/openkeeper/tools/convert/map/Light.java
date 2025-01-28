@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Light {
+public final class Light {
 //    struct LightBlock {
 //      int m_kPos[3]; /* 0x1000 = 1.0 */
 //      unsigned int radius; /* same */

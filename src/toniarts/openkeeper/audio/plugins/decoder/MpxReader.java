@@ -34,7 +34,7 @@ import toniarts.openkeeper.audio.plugins.decoder.tag.id3v2.ID3v2;
  *
  * @author	Michael Scheerer
  */
-public class MpxReader extends Frame {
+public final class MpxReader extends Frame {
 
     private final static byte SYSTEM_SYNC_PATTERN = 0x1; // Prefix
     // ISO/IEC 13818-2 6.3.3

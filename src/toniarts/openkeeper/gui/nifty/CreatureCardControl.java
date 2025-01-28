@@ -28,7 +28,7 @@ import toniarts.openkeeper.gui.nifty.WorkerAmountControl.State;
  *
  * @author archdemon
  */
-public class CreatureCardControl extends AbstractCreatureCardControl {
+public final class CreatureCardControl extends AbstractCreatureCardControl {
 
     private short creatureId;
     private Nifty nifty;

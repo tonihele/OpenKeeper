@@ -102,7 +102,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureController extends EntityController implements ICreatureController {
+public final class CreatureController extends EntityController implements ICreatureController {
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 

@@ -24,7 +24,7 @@ import com.simsilica.es.EntityId;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HauledBy implements EntityComponent {
+public final class HauledBy implements EntityComponent {
 
     public EntityId entityId;
 

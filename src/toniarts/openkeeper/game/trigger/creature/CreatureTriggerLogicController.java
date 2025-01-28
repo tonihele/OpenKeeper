@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
+public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {

@@ -24,7 +24,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Objective implements EntityComponent {
+public final class Objective implements EntityComponent {
 
     public Thing.HeroParty.Objective objective;
     public short objectiveTargetPlayerId;

@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KeeperSpell implements Comparable<KeeperSpell>, ISoundable, IIndexable, IGuiSoundable {
+public final class KeeperSpell implements Comparable<KeeperSpell>, ISoundable, IIndexable, IGuiSoundable {
 
     /**
      * Keeper spell flags

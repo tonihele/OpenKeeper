@@ -25,7 +25,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorIconTextParser extends IconTextParser<Door, Trap> {
+public final class DoorIconTextParser extends IconTextParser<Door, Trap> {
 
     @Override
     protected String getReplacement(int index, Door door, Trap trap) {

@@ -88,7 +88,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
+public final class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
 
     private static final Logger logger = System.getLogger(GameController.class.getName());
     

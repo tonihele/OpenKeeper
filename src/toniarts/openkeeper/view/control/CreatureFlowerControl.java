@@ -37,7 +37,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureFlowerControl extends UnitFlowerControl<Creature> {
+public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     private enum Status {
 

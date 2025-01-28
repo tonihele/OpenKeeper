@@ -24,7 +24,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
 
-public class Level extends GeneralLevel {
+public final class Level extends GeneralLevel {
 
     private KwdFile kwdFile;
     private static final Logger logger = System.getLogger(Level.class.getName());

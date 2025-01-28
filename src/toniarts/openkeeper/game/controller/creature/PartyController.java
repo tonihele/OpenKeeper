@@ -40,7 +40,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author ArchDemon
  */
-public class PartyController implements IPartyController {
+public final class PartyController implements IPartyController {
 
     private static final AtomicLong PARTY_ID_GENERATOR = new AtomicLong(1);
 

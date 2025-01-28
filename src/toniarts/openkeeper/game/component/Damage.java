@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Damage implements EntityComponent {
+public final class Damage implements EntityComponent {
 
     public int damage;
 

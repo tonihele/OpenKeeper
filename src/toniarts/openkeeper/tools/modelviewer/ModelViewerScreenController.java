@@ -52,7 +52,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author archdemon
  */
-public class ModelViewerScreenController implements ScreenController {
+public final class ModelViewerScreenController implements ScreenController {
 
     public final static String ID_SCREEN = "start";
 

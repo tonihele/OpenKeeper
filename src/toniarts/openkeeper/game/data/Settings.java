@@ -43,7 +43,7 @@ import static toniarts.openkeeper.game.data.Level.LevelType.Secret;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Settings {
+public final class Settings {
 
     public enum SettingCategory {
 

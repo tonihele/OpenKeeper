@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CarryGoldToTreasuryTask extends AbstractRoomTask {
+public final class CarryGoldToTreasuryTask extends AbstractRoomTask {
 
     private final IGameWorldController gameWorldController;
     private boolean executed = false;

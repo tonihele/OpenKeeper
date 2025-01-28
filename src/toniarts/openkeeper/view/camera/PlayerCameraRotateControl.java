@@ -31,7 +31,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * TODO need testing. What about `relative` ?
  * @author ArchDemon
  */
-public class PlayerCameraRotateControl extends Control {
+public final class PlayerCameraRotateControl extends Control {
     private PlayerCamera camera;
     private int time;
     private float angle;

@@ -33,7 +33,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerTriggerLogicController implements IGameLogicUpdatable {
+public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
 
     private final SafeArrayList<PlayerTriggerControl> playerTriggerControls = new SafeArrayList<>(PlayerTriggerControl.class);
 

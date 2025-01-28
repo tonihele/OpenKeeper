@@ -47,7 +47,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Cinematic extends com.jme3.cinematic.Cinematic {
+public final class Cinematic extends com.jme3.cinematic.Cinematic {
 
     private final AssetManager assetManager;
     private static final boolean IS_DEBUG = false;

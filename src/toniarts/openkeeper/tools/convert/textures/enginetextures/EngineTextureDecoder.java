@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.textures.Dk2TextureDecoder;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EngineTextureDecoder extends Dk2TextureDecoder {
+public final class EngineTextureDecoder extends Dk2TextureDecoder {
 
     private static final short[] jump_table_7af4e0 = {0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,
         0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2, 0x2,

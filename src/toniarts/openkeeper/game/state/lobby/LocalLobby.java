@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LocalLobby implements LobbyService, LobbyClientService {
+public final class LocalLobby implements LobbyService, LobbyClientService {
 
     private final Map<Integer, ClientInfo> players = HashMap.newHashMap(4);
     private final List<LobbySessionListener> listeners = new CopyOnWriteArrayList<>();

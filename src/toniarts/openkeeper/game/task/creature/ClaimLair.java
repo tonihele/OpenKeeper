@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimLair extends AbstractCapacityCriticalRoomTask {
+public final class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
     private boolean executed = false;
 

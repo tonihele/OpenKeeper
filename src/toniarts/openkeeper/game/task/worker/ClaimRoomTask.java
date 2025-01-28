@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.task.TaskType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClaimRoomTask extends ClaimTileTask {
+public final class ClaimRoomTask extends ClaimTileTask {
 
     public ClaimRoomTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
         super(navigationService, mapController, p, playerId);

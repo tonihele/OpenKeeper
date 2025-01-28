@@ -23,7 +23,7 @@ import com.jme3.network.ClientStateListener;
  *
  * @author ArchDemon
  */
-public class ClientStateChangeListener implements ClientStateListener {
+public final class ClientStateChangeListener implements ClientStateListener {
     private final NetworkClient client;
 
     public ClientStateChangeListener(NetworkClient client) {

@@ -33,7 +33,7 @@ import toniarts.openkeeper.view.map.WallSection.WallDirection;
  *
  * @author ArchDemon
  */
-public class HeroGateThreeByOneConstructor extends RoomConstructor {
+public final class HeroGateThreeByOneConstructor extends RoomConstructor {
 
     public HeroGateThreeByOneConstructor(AssetManager assetManager, RoomInstance roomInstance) {
         super(assetManager, roomInstance);

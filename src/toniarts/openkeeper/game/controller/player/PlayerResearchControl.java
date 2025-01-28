@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerResearchControl {
+public final class PlayerResearchControl {
 
     private final Keeper keeper;
     private final KwdFile kwdFile;

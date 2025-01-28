@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConvertMouseCursors extends ConversionTask {
+public final class ConvertMouseCursors extends ConversionTask {
 
     private static final Logger logger = System.getLogger(ConvertMouseCursors.class.getName());
 

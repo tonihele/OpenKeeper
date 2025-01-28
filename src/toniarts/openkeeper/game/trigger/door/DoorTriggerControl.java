@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorTriggerControl extends AbstractThingTriggerControl<IDoorController> {
+public final class DoorTriggerControl extends AbstractThingTriggerControl<IDoorController> {
 
     public DoorTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,

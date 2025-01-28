@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.hiscores;
  *
  * @author ArchDemon
  */
-public class HiScoresEntry {
+public final class HiScoresEntry {
 
     private int score;
     private String name;

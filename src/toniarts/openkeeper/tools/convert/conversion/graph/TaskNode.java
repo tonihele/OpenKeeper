@@ -23,7 +23,7 @@ import toniarts.openkeeper.tools.convert.conversion.IConversionTaskProvider;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskNode extends Node<TaskNode> {
+public final class TaskNode extends Node<TaskNode> {
 
     private final String name;
     private final IConversionTaskProvider task;

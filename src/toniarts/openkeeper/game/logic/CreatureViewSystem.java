@@ -42,7 +42,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureViewSystem implements IGameLogicUpdatable {
+public final class CreatureViewSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet creatureViewEntities;

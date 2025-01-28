@@ -24,7 +24,7 @@ import de.lessvoid.nifty.builder.ControlBuilder;
  * @see GuiIconControl
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GuiIconBuilder extends ControlBuilder {
+public final class GuiIconBuilder extends ControlBuilder {
 
     /**
      * Build a new GUI icon

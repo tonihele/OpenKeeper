@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureHunger implements EntityComponent {
+public final class CreatureHunger implements EntityComponent {
 
     public double lastEatTime;
 

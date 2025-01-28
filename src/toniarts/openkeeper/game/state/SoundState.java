@@ -42,7 +42,7 @@ import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
  *
  * @author ArchDemon
  */
-public class SoundState extends AbstractPauseAwareState {
+public final class SoundState extends AbstractPauseAwareState {
 
     public enum Background {
         AMBIENCE("AMBIENCE"),
@@ -239,7 +239,7 @@ public class SoundState extends AbstractPauseAwareState {
         super.update(tpf);
     }
 
-    private class BackgroundState {
+    private static final class BackgroundState {
 
         private SoundCategory sc;
 

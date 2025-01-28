@@ -778,7 +778,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected abstract void onPossession(EntityId creature);
 
-    public static class InteractionState {
+    public static final class InteractionState {
 
         public enum Type {
 

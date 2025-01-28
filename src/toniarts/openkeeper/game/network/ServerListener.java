@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.network.message.MessageTime;
  *
  * @author ArchDemon
  */
-public class ServerListener implements MessageListener<HostedConnection> {
+public final class ServerListener implements MessageListener<HostedConnection> {
 
     private final NetworkServer host;
 

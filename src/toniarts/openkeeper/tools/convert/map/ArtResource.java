@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class ArtResource {
+public final class ArtResource {
 
     public static final String KEY_ID = "id";
     public static final String KEY_WIDTH = "width";

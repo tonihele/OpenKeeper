@@ -40,7 +40,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Utils {
+public final class Utils {
 
     private static final Logger logger = System.getLogger(Utils.class.getName());
     

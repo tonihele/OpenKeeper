@@ -28,7 +28,7 @@ import toniarts.openkeeper.world.effect.EffectGeometry;
  *
  * @author archdemon
  */
-public class UniversalArtResourceLoader {
+public final class UniversalArtResourceLoader {
 
     public static Spatial load(final AssetManager assetManager, ArtResource resource) {
 

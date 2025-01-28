@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.FileResourceReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class BankMapFile {
+public final class BankMapFile {
 
     private final static int HEADER_ID[] = new int[]{
         0xE9612C01, // dword_674048

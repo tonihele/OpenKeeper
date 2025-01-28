@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Gold implements EntityComponent {
+public final class Gold implements EntityComponent {
 
     public int gold;
     public int maxGold; // Mainly for information on the rendering end

@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, ResearchableEntity, PlayerRoomListener> implements RoomListener {
+public final class PlayerRoomControl extends AbstractResearchablePlayerControl<Room, ResearchableEntity, PlayerRoomListener> implements RoomListener {
 
     private int roomCount = 0;
     private boolean portalsOpen = true;

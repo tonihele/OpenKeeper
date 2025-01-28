@@ -238,7 +238,7 @@ public final class AnimationLoader {
      * Small event listener class to emulate the old AnimationEventListener from
      * jME
      */
-    private static class AnimEventListener {
+    private static final class AnimEventListener {
 
         public AnimEventListener() {
         }

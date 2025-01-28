@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Possessed implements EntityComponent {
+public final class Possessed implements EntityComponent {
 
     /**
      * We mark the mana drain here so that we can easily get the information.

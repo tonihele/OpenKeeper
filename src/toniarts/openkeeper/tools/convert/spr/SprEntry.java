@@ -26,9 +26,9 @@ import toniarts.openkeeper.tools.convert.IResourceChunkReader;
  *
  * @author ArchDemon
  */
-public class SprEntry {
+public final class SprEntry {
 
-    protected class SprEntryHeader {
+    protected static final class SprEntryHeader {
 
         int width;
         int height;

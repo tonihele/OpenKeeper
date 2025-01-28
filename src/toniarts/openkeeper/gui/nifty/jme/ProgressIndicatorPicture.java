@@ -29,7 +29,7 @@ import java.awt.Color;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ProgressIndicatorPicture extends Picture {
+public final class ProgressIndicatorPicture extends Picture {
 
     public ProgressIndicatorPicture(String name) {
         super(name);

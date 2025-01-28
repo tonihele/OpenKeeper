@@ -31,7 +31,7 @@ import java.awt.Color;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ResearchEffectControl extends AbstractNiftyJmeControl {
+public final class ResearchEffectControl extends AbstractNiftyJmeControl {
 
     public static final String CONTROL_NAME = "researchEffect";
 

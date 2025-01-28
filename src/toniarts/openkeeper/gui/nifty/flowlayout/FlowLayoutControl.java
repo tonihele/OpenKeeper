@@ -31,7 +31,7 @@ import de.lessvoid.nifty.screen.Screen;
  * @see CustomScroll
  * @author ArchDemon
  */
-public class FlowLayoutControl extends AbstractController {
+public final class FlowLayoutControl extends AbstractController {
 
     private Nifty nifty;
     private Screen screen;

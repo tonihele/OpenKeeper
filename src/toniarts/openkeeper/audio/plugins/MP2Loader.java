@@ -40,7 +40,7 @@ import toniarts.openkeeper.audio.plugins.decoder.UnsupportedMediaException;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MP2Loader implements AssetLoader {
+public final class MP2Loader implements AssetLoader {
     
     private static final Logger logger = System.getLogger(MP2Loader.class.getName());
 
@@ -54,7 +54,7 @@ public class MP2Loader implements AssetLoader {
     /**
      * Masks the real input stream to decode the MP2
      */
-    private static class MPxStream extends InputStream {
+    private static final class MPxStream extends InputStream {
 
         private final Decoder decoder;
         private final InputStream inputStream;

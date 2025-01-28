@@ -24,7 +24,7 @@ import com.badlogic.gdx.math.Vector2;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EntityLocation implements Location<Vector2> {
+public final class EntityLocation implements Location<Vector2> {
 
     private final Vector2 position;
     private float orientation;

@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  *
  * @author ArchDemon
  */
-public class SfxMapFile {
+public final class SfxMapFile {
 
     private final static int HEADER_ID[] = new int[] {
         0xE9612C00, // dword_674038

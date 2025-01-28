@@ -28,7 +28,7 @@ import toniarts.openkeeper.utils.Utils;
  * @see TriggerGeneric
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TriggerAction extends Trigger {
+public final class TriggerAction extends Trigger {
 
     public enum ActionType implements IValueEnum {
 

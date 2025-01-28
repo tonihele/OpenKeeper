@@ -28,7 +28,7 @@ import toniarts.openkeeper.game.component.Position;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HaulingSystem implements IGameLogicUpdatable {
+public final class HaulingSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet hauledEntities;

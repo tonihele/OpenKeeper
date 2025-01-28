@@ -23,7 +23,7 @@ import toniarts.openkeeper.game.data.Keeper;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ClientInfo {
+public final class ClientInfo {
 
     private int systemMemory;
     private long ping;

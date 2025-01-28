@@ -28,7 +28,7 @@ import toniarts.openkeeper.game.task.TaskType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RepairWallTileTask extends DigTileTask {
+public final class RepairWallTileTask extends DigTileTask {
 
     public RepairWallTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
         super(navigationService, mapController, p, playerId);

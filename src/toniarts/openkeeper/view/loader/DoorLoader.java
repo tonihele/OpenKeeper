@@ -32,7 +32,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorLoader implements ILoader<DoorViewState> {
+public final class DoorLoader implements ILoader<DoorViewState> {
 
     private static final Logger logger = System.getLogger(DoorLoader.class.getName());
     

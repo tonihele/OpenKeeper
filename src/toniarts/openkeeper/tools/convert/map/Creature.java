@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
+public final class Creature implements Comparable<Creature>, ISoundable, IIndexable {
 
     public static enum AnimationType {
         WALK,
@@ -1564,7 +1564,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         return true;
     }
 
-    public class Attraction {
+    public final class Attraction {
 
         private int present; // dac
         private int roomId; // db0
@@ -1595,7 +1595,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         }
     }
 
-    public class Spell { // bytes in these structs might be product of padding
+    public final class Spell { // bytes in these structs might be product of padding
 
         private Vector3f shotOffset;
         private short x0c;
@@ -1689,7 +1689,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         }
     }
 
-    public class Resistance {
+    public final class Resistance {
 
         private AttackType attackType;
         private short value;
@@ -1711,7 +1711,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         }
     }
 
-    public class JobPreference {
+    public final class JobPreference {
 
         private JobType jobType;
         private int moodChange;
@@ -1778,7 +1778,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         }
     }
 
-    public class JobAlternative {
+    public final class JobAlternative {
 
         private JobType jobType;
         private int moodChange;
@@ -1809,7 +1809,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         }
     }
 
-    public class X1323 {
+    public final class X1323 {
 
         private int x00;
         private int x02;
@@ -1831,7 +1831,7 @@ public class Creature implements Comparable<Creature>, ISoundable, IIndexable {
         }
     }
 
-    public class Attributes {
+    public static final class Attributes {
 
         private int expForNextLevel; // f00
         private int expPerSecond; // f04

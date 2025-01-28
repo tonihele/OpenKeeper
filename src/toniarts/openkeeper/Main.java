@@ -87,7 +87,7 @@ import toniarts.openkeeper.video.MovieState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Main extends SimpleApplication {
+public final class Main extends SimpleApplication {
 
     private static final Logger logger = System.getLogger(Main.class.getName());
     

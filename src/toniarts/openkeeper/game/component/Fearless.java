@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Fearless implements EntityComponent {
+public final class Fearless implements EntityComponent {
 
     public Double startTime;
 

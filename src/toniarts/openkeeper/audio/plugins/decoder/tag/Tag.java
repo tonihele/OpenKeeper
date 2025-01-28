@@ -311,7 +311,7 @@ public abstract class Tag extends HashMap<String, Object> implements Information
      */
     @Override
     public Object clone() {
-        class BaseTag extends HashMap<String, Object> implements Information {
+        final class BaseTag extends HashMap<String, Object> implements Information {
 
             @Override
             public Map<String, Object> getHashtable() {

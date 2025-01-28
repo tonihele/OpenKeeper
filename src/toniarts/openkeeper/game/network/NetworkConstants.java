@@ -27,7 +27,7 @@ import com.simsilica.mathd.bits.Vec3Bits;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class NetworkConstants {
+public final class NetworkConstants {
 
     public final static int PROTOCOL_VERSION = 1;
     public final static String GAME_NAME = "OpenKeeper";

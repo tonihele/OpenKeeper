@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class InHand implements EntityComponent {
+public final class InHand implements EntityComponent {
 
     public int index;
     /**

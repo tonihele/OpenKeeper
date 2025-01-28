@@ -43,7 +43,7 @@ public abstract class Thing {
 //        uint8_t x17;
 //        char name[32]; /* 18 */
 //        };
-    public static class ActionPoint extends Thing implements Comparable<ActionPoint>, ITriggerable, IIndexable {
+    public static final class ActionPoint extends Thing implements Comparable<ActionPoint>, ITriggerable, IIndexable {
 
         /**
          * ActionPoint flags
@@ -291,7 +291,7 @@ public abstract class Thing {
         }
     }
 
-    public static class KeeperCreature extends Creature implements ITriggerable {
+    public static final class KeeperCreature extends Creature implements ITriggerable {
 
         private short level;
         private EnumSet<Creature.CreatureFlag> flags; // Short, likely flags
@@ -363,7 +363,7 @@ public abstract class Thing {
 //        uint8_t x12;
 //        uint8_t x13;
 //        };
-    public static class Room extends Thing {
+    public static final class Room extends Thing {
 
         public enum RoomType implements IValueEnum {
 
@@ -491,7 +491,7 @@ public abstract class Thing {
     }
 
     // Contains in GlobalVariables.kwd only
-    public static class Camera extends Thing {
+    public static final class Camera extends Thing {
 
         public static int ID_POSSESION = 2;
         public static int ID_GAME = 3;
@@ -707,7 +707,7 @@ public abstract class Thing {
 //    int32_t x27;
 //    HeroPartyData x2b[16];
 //    };
-    public static class HeroParty extends Thing implements Comparable<HeroParty>, ITriggerable, IIndexable {
+    public static final class HeroParty extends Thing implements Comparable<HeroParty>, ITriggerable, IIndexable {
 
         /**
          * This is really a subset of
@@ -849,7 +849,7 @@ public abstract class Thing {
         /**
          * Represents the party members
          */
-        public class HeroPartyData implements ITriggerable {
+        public static final class HeroPartyData implements ITriggerable {
 
             private int x00;
             private int x04;
@@ -1002,7 +1002,7 @@ public abstract class Thing {
 //        uint8_t x1d;
 //        uint8_t pad[6];
 //        };
-    public static class EffectGenerator extends Thing {
+    public static final class EffectGenerator extends Thing {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
@@ -1096,7 +1096,7 @@ public abstract class Thing {
         }
     }
 
-    public static class DeadBody extends Creature {
+    public static final class DeadBody extends Creature {
 
         private short playerId;
 
@@ -1109,7 +1109,7 @@ public abstract class Thing {
         }
     }
 
-    public static class NeutralCreature extends Creature implements ITriggerable {
+    public static final class NeutralCreature extends Creature implements ITriggerable {
 
         private short level; // level
         private EnumSet<CreatureFlag> flags; // Short, likely flags
@@ -1159,7 +1159,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Door extends Thing implements ITriggerable {
+    public static final class Door extends Thing implements ITriggerable {
 
         public enum DoorFlag implements IValueEnum {
 
@@ -1252,7 +1252,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Object extends Thing implements ITriggerable {
+    public static final class Object extends Thing implements ITriggerable {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
@@ -1329,7 +1329,7 @@ public abstract class Thing {
         }
     }
 
-    public static class Trap extends Thing {
+    public static final class Trap extends Thing {
 
         private int posX; // 0-based coordinate
         private int posY; // 0-based coordinate
@@ -1403,7 +1403,7 @@ public abstract class Thing {
         }
     }
 
-    public static class GoodCreature extends Creature implements ITriggerable {
+    public static final class GoodCreature extends Creature implements ITriggerable {
 
         private short level; // level
         private EnumSet<CreatureFlag> flags; // Short, likely flags

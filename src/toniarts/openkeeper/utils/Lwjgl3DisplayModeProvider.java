@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-class Lwjgl3DisplayModeProvider extends DefaultDisplayModeProvider {
+final class Lwjgl3DisplayModeProvider extends DefaultDisplayModeProvider {
 
     private final Method get;
     private final Method getBlueBits;

@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureAiSystem implements IGameLogicUpdatable {
+public final class CreatureAiSystem implements IGameLogicUpdatable {
 
     private final EntitySet creatureEntities;
 

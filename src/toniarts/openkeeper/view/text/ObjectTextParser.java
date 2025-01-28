@@ -24,7 +24,7 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectTextParser extends EntityTextParser<GameObject> {
+public final class ObjectTextParser extends EntityTextParser<GameObject> {
 
     public ObjectTextParser() {
         super();

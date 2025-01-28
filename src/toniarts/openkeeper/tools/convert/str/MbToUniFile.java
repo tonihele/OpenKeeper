@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MbToUniFile {
+public final class MbToUniFile {
 
     private static final String CODEPAGE_HEADER_IDENTIFIER = "BFMU";
 

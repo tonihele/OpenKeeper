@@ -356,7 +356,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     /**
      * Contains the static(ish) objects...
      */
-    private class ObjectModelContainer extends EntityContainer<Spatial> {
+    private final class ObjectModelContainer extends EntityContainer<Spatial> {
 
         public ObjectModelContainer(EntityData ed) {
             super(ed, Position.class, ObjectViewState.class); // Stuff with position is on the map
@@ -387,7 +387,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     /**
      * Contains the creatures...
      */
-    private class CreatureModelContainer extends EntityContainer<Spatial> {
+    private final class CreatureModelContainer extends EntityContainer<Spatial> {
 
         public CreatureModelContainer(EntityData ed) {
             super(ed, Position.class, CreatureViewState.class); // Stuff with position is on the map
@@ -418,7 +418,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     /**
      * Contains the static doors...
      */
-    private class DoorModelContainer extends EntityContainer<Spatial> {
+    private final class DoorModelContainer extends EntityContainer<Spatial> {
 
         public DoorModelContainer(EntityData ed) {
             super(ed, Position.class, DoorViewState.class); // Stuff with position is on the map
@@ -448,7 +448,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     /**
      * Contains the static traps...
      */
-    private class TrapModelContainer extends EntityContainer<Spatial> {
+    private final class TrapModelContainer extends EntityContainer<Spatial> {
 
         public TrapModelContainer(EntityData ed) {
             super(ed, Position.class, TrapViewState.class); // Stuff with position is on the map

@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectTriggerControl extends AbstractThingTriggerControl<IObjectController> {
+public final class ObjectTriggerControl extends AbstractThingTriggerControl<IObjectController> {
 
     public ObjectTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,

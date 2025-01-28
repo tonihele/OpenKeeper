@@ -63,7 +63,7 @@ import toniarts.openkeeper.world.room.RoomInstance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerState extends AbstractAppState implements PlayerListener {
+public final class PlayerState extends AbstractAppState implements PlayerListener {
 
     protected final Main app;
 

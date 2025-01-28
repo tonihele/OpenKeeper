@@ -38,7 +38,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author archdemon
  */
-public class SoundCategory {
+public final class SoundCategory {
     
     private static final Logger logger = System.getLogger(SoundCategory.class.getName());
 

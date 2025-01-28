@@ -40,7 +40,7 @@ import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class StrFile {
+public final class StrFile {
 
     private static final Logger logger = System.getLogger(StrFile.class.getName());
     

@@ -22,7 +22,7 @@ import toniarts.openkeeper.gui.nifty.chat.Chat;
 /**
  * @author ractoc
  */
-public class ChatTextSendEvent implements NiftyEvent {
+public final class ChatTextSendEvent implements NiftyEvent {
 
     private final Chat chatControl;
     private final String text;

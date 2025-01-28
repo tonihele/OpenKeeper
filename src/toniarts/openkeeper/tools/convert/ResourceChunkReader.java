@@ -33,7 +33,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ResourceChunkReader implements IResourceChunkReader {
+public final class ResourceChunkReader implements IResourceChunkReader {
     
     private static final Logger logger = System.getLogger(ResourceChunkReader.class.getName());
 

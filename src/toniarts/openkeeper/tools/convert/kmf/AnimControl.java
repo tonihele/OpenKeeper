@@ -22,7 +22,7 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AnimControl {
+public final class AnimControl {
 
     private int unknown1;
     private int unknown2;

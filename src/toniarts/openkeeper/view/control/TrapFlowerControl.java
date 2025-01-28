@@ -29,7 +29,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapFlowerControl extends UnitFlowerControl<Trap> {
+public final class TrapFlowerControl extends UnitFlowerControl<Trap> {
 
     public TrapFlowerControl(EntityId entityId, EntityData entityData, Trap trap, AssetManager assetManager) {
         super(entityId, entityData, trap, assetManager);

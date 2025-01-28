@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameLoop {
+public final class GameLoop {
 
     public static final long INTERVAL_FPS_60 = 16666667L;
     private static final String DEFAULT_NAME = "GameLoopThread";
@@ -124,7 +124,7 @@ public class GameLoop {
      * call makeup frames if it gets behind and we'd rather just drop them.
      * Furthermore, this allows us to 'busy wait' for the next 'frame'.
      */
-    protected class Runner extends Thread {
+    protected final class Runner extends Thread {
 
         private final AtomicBoolean go = new AtomicBoolean(true);
 

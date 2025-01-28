@@ -45,7 +45,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapsController implements ITrapsController {
+public final class TrapsController implements ITrapsController {
     
     private static final Logger logger = System.getLogger(TrapsController.class.getName());
 

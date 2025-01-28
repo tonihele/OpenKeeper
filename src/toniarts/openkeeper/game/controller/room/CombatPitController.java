@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author ArchDemon
  */
-public class CombatPitController extends DoubleQuadController {
+public final class CombatPitController extends DoubleQuadController {
 
     private Point door;
 

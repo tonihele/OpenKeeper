@@ -28,7 +28,7 @@ import de.lessvoid.nifty.screen.Screen;
  *
  * @author archdemon
  */
-public class WorkerAmountControl extends AbstractCreatureCardControl {
+public final class WorkerAmountControl extends AbstractCreatureCardControl {
 
     public enum State {
         TOTAL(0),

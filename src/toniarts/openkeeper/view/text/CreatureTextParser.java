@@ -34,7 +34,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureTextParser extends EntityTextParser<Creature> {
+public final class CreatureTextParser extends EntityTextParser<Creature> {
 
     private final IMapInformation mapInformation;
 

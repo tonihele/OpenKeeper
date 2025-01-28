@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Material {
+public final class Material {
 
     public enum MaterialFlag implements IFlagEnum {
 

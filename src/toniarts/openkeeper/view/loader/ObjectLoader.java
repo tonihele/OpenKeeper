@@ -31,7 +31,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectLoader implements ILoader<ObjectViewState> {
+public final class ObjectLoader implements ILoader<ObjectViewState> {
 
     private static final Logger logger = System.getLogger(ObjectLoader.class.getName());
     

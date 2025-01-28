@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ManaCalculatorLogic implements IGameLogicUpdatable {
+public final class ManaCalculatorLogic implements IGameLogicUpdatable {
 
     private float tick = 0;
     private final EntitySet manaEntities;

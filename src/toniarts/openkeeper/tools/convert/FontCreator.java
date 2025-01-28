@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4File;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FontCreator {
+public final class FontCreator {
 
     private static final int MAX_SIZE = 2048;
 

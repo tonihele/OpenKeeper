@@ -3272,7 +3272,7 @@ public final class KwdFile {
     /**
      * Kwd header, few different kinds, handles all
      */
-    private static class KwdHeader {
+    private static final class KwdHeader {
         // struct kwdHeader {
         //     unsigned int id;
         //     unsigned int size;

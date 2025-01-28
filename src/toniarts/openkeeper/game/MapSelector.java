@@ -38,7 +38,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author ArchDemon
  */
-public class MapSelector {
+public final class MapSelector {
     
     private static final Logger logger = System.getLogger(MapSelector.class.getName());
 
@@ -165,7 +165,7 @@ public class MapSelector {
     /**
      * Compares the maps by their name
      */
-    private static class MapComparator implements Comparator<GameMapContainer> {
+    private static final class MapComparator implements Comparator<GameMapContainer> {
 
         @Override
         public int compare(GameMapContainer o1, GameMapContainer o2) {

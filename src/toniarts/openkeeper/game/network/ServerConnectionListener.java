@@ -24,7 +24,7 @@ import com.jme3.network.Server;
  *
  * @author ArchDemon
  */
-public class ServerConnectionListener implements ConnectionListener {
+public final class ServerConnectionListener implements ConnectionListener {
 
     private final NetworkServer host;
 

@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureMood implements EntityComponent {
+public final class CreatureMood implements EntityComponent {
 
     public int moodValue;
 

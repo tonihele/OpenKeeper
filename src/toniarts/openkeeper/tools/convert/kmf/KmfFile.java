@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KmfFile {
+public final class KmfFile {
 
     public enum Type {
 

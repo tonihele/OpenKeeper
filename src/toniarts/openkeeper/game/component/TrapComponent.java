@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapComponent implements EntityComponent {
+public final class TrapComponent implements EntityComponent {
 
     public short trapId;
 

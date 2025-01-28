@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Terrain implements Comparable<Terrain>, ISoundable, IFpsSoundable {
+public final class Terrain implements Comparable<Terrain>, ISoundable, IFpsSoundable {
 
     /**
      * Terrain flags

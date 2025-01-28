@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, ResearchableEntity, PlayerDoorListener> /*implements RoomListener*/ {
+public final class PlayerDoorControl extends AbstractResearchablePlayerControl<Door, ResearchableEntity, PlayerDoorListener> /*implements RoomListener*/ {
 
     private final int doorCount = 0;
 

@@ -24,7 +24,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class WadFileEntry {
+public final class WadFileEntry {
 
     public enum WadFileEntryType implements IValueEnum {
 
