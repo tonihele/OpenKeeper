@@ -1564,7 +1564,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         return true;
     }
 
-    public final class Attraction {
+    public static final class Attraction {
 
         private int present; // dac
         private int roomId; // db0
@@ -1595,7 +1595,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public final class Spell { // bytes in these structs might be product of padding
+    public static final class Spell { // bytes in these structs might be product of padding
 
         private Vector3f shotOffset;
         private short x0c;
@@ -1689,7 +1689,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public final class Resistance {
+    public static final class Resistance {
 
         private AttackType attackType;
         private short value;
@@ -1711,7 +1711,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public final class JobPreference {
+    public static final class JobPreference {
 
         private JobType jobType;
         private int moodChange;
@@ -1778,7 +1778,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public final class JobAlternative {
+    public static final class JobAlternative {
 
         private JobType jobType;
         private int moodChange;
@@ -1809,7 +1809,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public final class X1323 {
+    public static final class X1323 {
 
         private int x00;
         private int x02;
