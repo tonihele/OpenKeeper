@@ -120,6 +120,9 @@ public final class Main extends SimpleApplication {
         app.showSettings = false;
         initSettings(app);
 
+        // set a better logging format
+        System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
+
         // Finally start it if everything went ok
         if (checkSetup(app)) {
             app.start();
