@@ -25,6 +25,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.Spatial.BatchHint;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.control.BillboardControl;
 import com.jme3.texture.Texture;
@@ -78,6 +79,7 @@ public final class TorchControl extends BillboardControl {
                 result = new Geometry("torch flame", createMesh(0.5f, 0.5f));
                 result.setMaterial(material);
                 result.setQueueBucket(RenderQueue.Bucket.Translucent);
+                result.setBatchHint(BatchHint.Never); // prevent constant updates of the wall batches
                 result.move(0.14f, 0.2f, 0);
                 result.setShadowMode(RenderQueue.ShadowMode.Off);
 
