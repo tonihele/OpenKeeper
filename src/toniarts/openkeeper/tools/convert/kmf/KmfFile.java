@@ -63,7 +63,7 @@ public final class KmfFile {
     private int version;
     private Type type;
     private List<Material> materials;
-    private List<Mesh> meshes;
+    private Mesh mesh;
     private Anim anim;
     private List<Grop> grops;
     private static final String KMF_HEADER_IDENTIFIER = "KMSH";
@@ -141,27 +141,17 @@ public final class KmfFile {
         }
 
         // KMSH/MESH, there are n amount of these
-        meshes = new ArrayList<>();
-        String temp = "";
-        do {
-            if (!rawKmfReader.hasRemaining()) {
-                break; // EOF
-            }
-            temp = rawKmfReader.readString(4);
-            if (KMF_MESH.equals(temp)) {
-                meshes.add(parseMesh(rawKmfReader));
-            } else {
-                break;
-            }
-        } while (true);
+        String fourCC = rawKmfReader.readString(4);
+        if (KMF_MESH.equals(fourCC))
+            mesh = parseMesh(rawKmfReader);
 
         // KMSH/ANIM
-        if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
+        if (type == Type.ANIM && KMF_ANIM.equals(fourCC)) {
             anim = parseAnim(rawKmfReader);
         }
 
         // KMSH/GROP
-        if (type == Type.GROP && KMF_GROP.equals(temp)) {
+        if (type == Type.GROP && KMF_GROP.equals(fourCC)) {
             grops = parseGrop(rawKmfReader);
         }
     }
@@ -646,8 +636,8 @@ public final class KmfFile {
         return materials;
     }
 
-    public List<Mesh> getMeshes() {
-        return meshes;
+    public Mesh getMesh() {
+        return mesh;
     }
 
     public Anim getAnim() {
