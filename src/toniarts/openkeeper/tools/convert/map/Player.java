@@ -26,7 +26,7 @@ import toniarts.openkeeper.game.data.ITriggerable;
  *
  * Thank you https://github.com/werkt
  */
-public class Player implements Comparable<Player>, ITriggerable {
+public final class Player implements Comparable<Player>, ITriggerable {
 
     public static final short GOOD_PLAYER_ID = 1;
     public static final short NEUTRAL_PLAYER_ID = 2;

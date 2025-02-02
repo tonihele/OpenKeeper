@@ -33,7 +33,7 @@ import toniarts.openkeeper.audio.plugins.decoder.Information;
  *
  * @author Michael Scheerer
  */
-public class TagContent extends HashMap<String, Object> implements Information {
+public final class TagContent extends HashMap<String, Object> implements Information {
 
     /**
      * String content keys

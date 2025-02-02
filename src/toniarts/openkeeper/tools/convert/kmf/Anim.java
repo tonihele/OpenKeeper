@@ -24,7 +24,7 @@ import javax.vecmath.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Anim {
+public final class Anim {
 
     public enum FrameFactorFunction {
 

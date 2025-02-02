@@ -70,7 +70,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AssetUtils {
+public final class AssetUtils {
 
     private static final Logger logger = System.getLogger(AssetUtils.class.getName());
     

@@ -53,7 +53,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapThumbnailGenerator {
+public final class MapThumbnailGenerator {
 
     private static final Logger logger = System.getLogger(MapThumbnailGenerator.class.getName());
     

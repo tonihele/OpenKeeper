@@ -180,7 +180,7 @@ public abstract class LoadingState extends AbstractAppState {
      */
     abstract public void onLoadComplete();
 
-    private class LoadingThread extends Thread {
+    private final class LoadingThread extends Thread {
 
         public LoadingThread(String name) {
             super(name);

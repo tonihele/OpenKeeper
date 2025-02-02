@@ -42,7 +42,7 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MovementSystem implements IGameLogicUpdatable {
+public final class MovementSystem implements IGameLogicUpdatable {
     
     private final static boolean INDEPENDENT_FACING = false;
     

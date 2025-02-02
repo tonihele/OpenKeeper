@@ -36,7 +36,7 @@ public class EffectGeometry extends Geometry {
     private ColorRGBA color;
     private int frames = 1;
 
-    private class EffectGeometryControl extends AbstractControl {
+    private final class EffectGeometryControl extends AbstractControl {
 
         @Override
         protected void controlUpdate(float tpf) {

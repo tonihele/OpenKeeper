@@ -44,7 +44,7 @@ import toniarts.openkeeper.tools.convert.bf4.Bf4Entry.FontEntryFlag;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Bf4File implements Iterable<Bf4Entry> {
+public final class Bf4File implements Iterable<Bf4Entry> {
 
     private static final String BF4_HEADER_IDENTIFIER = "F4FB";
     private static final int BITS_PER_PIXEL = 4;
@@ -350,7 +350,7 @@ public class Bf4File implements Iterable<Bf4Entry> {
     /**
      * Small class to write in 4-bits
      */
-    private static class FourBitWriter {
+    private static final class FourBitWriter {
 
         private final byte[] data;
         private int position = 0;

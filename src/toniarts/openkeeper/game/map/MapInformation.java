@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @param <T> the map data container
  * @param <S> the tile type of the map data container
  */
-public class MapInformation<T extends IMapDataInformation<S>, S extends IMapTileInformation> implements IMapInformation<S> {
+public final class MapInformation<T extends IMapDataInformation<S>, S extends IMapTileInformation> implements IMapInformation<S> {
 
     private final T mapData;
     private final KwdFile kwdFile;

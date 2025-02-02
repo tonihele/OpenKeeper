@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Regeneration implements EntityComponent {
+public final class Regeneration implements EntityComponent {
 
     public int ownLandHealthIncrease;
     public Double timeOnOwnLand;

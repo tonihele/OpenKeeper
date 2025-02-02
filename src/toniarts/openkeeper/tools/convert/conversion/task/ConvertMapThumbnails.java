@@ -43,7 +43,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConvertMapThumbnails extends ConversionTask {
+public final class ConvertMapThumbnails extends ConversionTask {
 
     private static final Logger logger = System.getLogger(ConvertMapThumbnails.class.getName());
 

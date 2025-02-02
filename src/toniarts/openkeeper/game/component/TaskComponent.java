@@ -26,7 +26,7 @@ import toniarts.openkeeper.game.task.TaskType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskComponent implements EntityComponent {
+public final class TaskComponent implements EntityComponent {
 
     public long taskId;
     public EntityId targetEntity;

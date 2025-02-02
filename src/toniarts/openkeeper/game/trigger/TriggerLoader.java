@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-public class TriggerLoader {
+public final class TriggerLoader {
 
     private final Map<Integer, Trigger> triggers;
 

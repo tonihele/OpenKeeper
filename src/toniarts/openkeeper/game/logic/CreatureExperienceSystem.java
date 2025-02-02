@@ -48,7 +48,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureExperienceSystem implements IGameLogicUpdatable {
+public final class CreatureExperienceSystem implements IGameLogicUpdatable {
 
     private enum ExperienceGainReason {
         NONE,

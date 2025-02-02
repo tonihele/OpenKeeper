@@ -31,7 +31,7 @@ import toniarts.openkeeper.Main;
  *
  * @author ArchDemon
  */
-public class FlashTileViewState extends AbstractAppState {
+public final class FlashTileViewState extends AbstractAppState {
 
     private float tick = 0;
     public static final float FLASH_PERIOD = 0.5f;

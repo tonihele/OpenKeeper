@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerTrapControl extends AbstractResearchablePlayerControl<Trap, ResearchableEntity, PlayerTrapListener> /*implements RoomListener*/ {
+public final class PlayerTrapControl extends AbstractResearchablePlayerControl<Trap, ResearchableEntity, PlayerTrapListener> /*implements RoomListener*/ {
 
     private final int trapCount = 0;
 

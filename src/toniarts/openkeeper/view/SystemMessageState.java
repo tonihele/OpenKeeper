@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author ufdada
  */
-public class SystemMessageState extends AbstractPauseAwareState {
+public final class SystemMessageState extends AbstractPauseAwareState {
 
     private static final float MESSAGE_LIFETIME = 60000f;
 

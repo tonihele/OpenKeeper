@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerObjective implements EntityComponent {
+public final class PlayerObjective implements EntityComponent {
 
     public ObjectiveType objective;
 

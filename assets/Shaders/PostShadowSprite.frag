@@ -1,25 +1,25 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
 #import "Common/ShaderLib/Shadows.glsllib"
 #if defined(PSSM) || defined(FADE)
-varying float shadowPosition;
+in float shadowPosition;
 #endif
 
-varying vec4 projCoord0;
-varying vec4 projCoord1;
-varying vec4 projCoord2;
-varying vec4 projCoord3;
+in vec4 projCoord0;
+in vec4 projCoord1;
+in vec4 projCoord2;
+in vec4 projCoord3;
 #ifndef BACKFACE_SHADOWS
-    varying float nDotL;
+    in float nDotL;
 #endif
 
 #ifdef POINTLIGHT
-    varying vec4 projCoord4;
-    varying vec4 projCoord5;
+    in vec4 projCoord4;
+    in vec4 projCoord5;
     uniform vec3 m_LightPos;
-    varying vec4 worldPos;
+    in vec4 worldPos;
 #else
     #ifndef PSSM        
-        varying float lightDot;
+        in float lightDot;
     #endif
 #endif
 
@@ -30,7 +30,7 @@ varying vec4 projCoord3;
         uniform sampler2D m_DiffuseMap;
     #endif
     uniform float m_AlphaDiscardThreshold;
-    varying vec2 texCoord;
+    in vec2 texCoord;
 #endif
 
 #ifdef FADE

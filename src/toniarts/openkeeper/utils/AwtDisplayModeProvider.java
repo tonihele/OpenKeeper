@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-class AwtDisplayModeProvider extends DefaultDisplayModeProvider {
+final class AwtDisplayModeProvider extends DefaultDisplayModeProvider {
 
     public AwtDisplayModeProvider() {
     }

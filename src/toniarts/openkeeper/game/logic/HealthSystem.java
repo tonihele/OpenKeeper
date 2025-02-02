@@ -62,7 +62,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HealthSystem implements IGameLogicUpdatable {
+public final class HealthSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
     private final EntityData entityData;

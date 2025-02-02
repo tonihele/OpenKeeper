@@ -28,7 +28,7 @@ import java.util.List;
  *
  * @author ArchDemon
  */
-public class GlobalCategory {
+public final class GlobalCategory {
     
     private static final Logger logger = System.getLogger(GlobalCategory.class.getName());
 

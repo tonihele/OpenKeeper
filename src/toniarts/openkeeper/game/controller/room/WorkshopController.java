@@ -33,7 +33,7 @@ import toniarts.openkeeper.view.map.WallSection;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class WorkshopController extends NormalRoomController {
+public final class WorkshopController extends NormalRoomController {
 
     public WorkshopController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(kwdFile, roomInstance, objectsController);

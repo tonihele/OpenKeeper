@@ -20,7 +20,7 @@ package toniarts.openkeeper.game.sound;
  *
  * @author archdemon
  */
-public class SoundFile implements Comparable<SoundFile> {
+public final class SoundFile implements Comparable<SoundFile> {
 
     private final int id;
     private final SoundGroup group;

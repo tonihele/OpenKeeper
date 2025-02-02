@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TreasuryController extends NormalRoomController {
+public final class TreasuryController extends NormalRoomController {
 
     private final Integer goldPerTile;
 

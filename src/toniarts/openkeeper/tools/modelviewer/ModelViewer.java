@@ -97,7 +97,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ModelViewer extends SimpleApplication {
+public final class ModelViewer extends SimpleApplication {
 
     public enum Types {
 

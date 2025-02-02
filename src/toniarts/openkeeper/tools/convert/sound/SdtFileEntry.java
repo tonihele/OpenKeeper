@@ -23,7 +23,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SdtFileEntry {
+public final class SdtFileEntry {
 
     public enum SoundType implements IValueEnum {
 

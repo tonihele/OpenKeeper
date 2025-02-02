@@ -38,7 +38,7 @@ import static toniarts.openkeeper.tools.modelviewer.DebugUtils.makeGeometry;
 
  @author Alex Cham aka Jcrypto
  */
-public class Debug {
+public final class Debug {
 
     public static void showNodeAxes(AssetManager am, Node n, float axisLen) {
         Vector3f v = new Vector3f(axisLen, 0, 0);

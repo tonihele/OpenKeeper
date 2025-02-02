@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Threat implements EntityComponent {
+public final class Threat implements EntityComponent {
 
     public int threat;
 

@@ -51,7 +51,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameServerState extends AbstractAppState {
+public final class GameServerState extends AbstractAppState {
     
     private static final Logger logger = System.getLogger(GameServerState.class.getName());
 
@@ -162,7 +162,7 @@ public class GameServerState extends AbstractAppState {
     /**
      * Load the game
      */
-    private class GameLoader extends Thread {
+    private final class GameLoader extends Thread {
 
         private final List<Keeper> players;
 
@@ -211,7 +211,7 @@ public class GameServerState extends AbstractAppState {
     /**
      * Listen for basically clients' requests
      */
-    private class GameSessionServiceListenerImpl implements GameSessionServiceListener {
+    private final class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
         @Override
         public void onStartGame() {
@@ -371,7 +371,7 @@ public class GameServerState extends AbstractAppState {
     /**
      * Listen for the map changes
      */
-    private class MapListenerImpl implements MapListener {
+    private final class MapListenerImpl implements MapListener {
 
         @Override
         public void onTilesChange(List<Point> updatedTiles) {
@@ -387,7 +387,7 @@ public class GameServerState extends AbstractAppState {
     /**
      * Listen for the player actions
      */
-    private class PlayerActionListenerImpl implements PlayerActionListener {
+    private final class PlayerActionListenerImpl implements PlayerActionListener {
 
         @Override
         public void onBuild(short keeperId, List<Point> tiles) {

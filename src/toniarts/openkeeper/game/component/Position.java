@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Position implements EntityComponent {
+public final class Position implements EntityComponent {
 
     public float rotation; // We are essentially 2D game, so around y-axis
     public Vector3f position;

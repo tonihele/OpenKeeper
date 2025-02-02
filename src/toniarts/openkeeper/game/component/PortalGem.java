@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PortalGem implements EntityComponent {
+public final class PortalGem implements EntityComponent {
 
     public PortalGem() {
         // For serialization

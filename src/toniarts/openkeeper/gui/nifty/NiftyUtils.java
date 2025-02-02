@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class NiftyUtils {
+public final class NiftyUtils {
 
     private NiftyUtils() {
     }

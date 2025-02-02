@@ -25,7 +25,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SpellIconTextParser extends IconTextParser<KeeperSpell, ResearchableEntity> {
+public final class SpellIconTextParser extends IconTextParser<KeeperSpell, ResearchableEntity> {
 
     @Override
     protected String getReplacement(int index, KeeperSpell keeperSpell, ResearchableEntity spell) {

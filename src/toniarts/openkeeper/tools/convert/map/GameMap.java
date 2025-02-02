@@ -25,7 +25,7 @@ package toniarts.openkeeper.tools.convert.map;
  *
  * Thank you https://github.com/werkt
  */
-public class GameMap {
+public final class GameMap {
 
     private Tile[][] tiles;
     private int width;

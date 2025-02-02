@@ -40,7 +40,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LobbyState extends AbstractAppState {
+public final class LobbyState extends AbstractAppState {
 
     private Main app;
     private AppStateManager stateManager;

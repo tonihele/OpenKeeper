@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FiveByFiveRotatedController extends AbstractRoomController implements ICreatureEntrance {
+public final class FiveByFiveRotatedController extends AbstractRoomController implements ICreatureEntrance {
 
     public static final short OBJECT_HEART_ID = 13;
     public static final short OBJECT_ARCHES_ID = 86;

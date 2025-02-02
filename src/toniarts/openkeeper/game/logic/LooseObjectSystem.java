@@ -44,7 +44,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LooseObjectSystem implements IGameLogicUpdatable {
+public final class LooseObjectSystem implements IGameLogicUpdatable {
 
     private final EntitySet looseObjectEntities;
 

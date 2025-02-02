@@ -86,7 +86,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreaturesController implements ICreaturesController {
+public final class CreaturesController implements ICreaturesController {
     
     private static final Logger logger = System.getLogger(CreaturesController.class.getName());
 

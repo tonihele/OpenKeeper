@@ -12,7 +12,7 @@ import java.nio.ByteOrder;
  * @author The JCodec project
  *
  */
-public class BitReader {
+public final class BitReader {
 
     protected int deficit;
     protected int curInt;

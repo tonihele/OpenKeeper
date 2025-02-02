@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureComponent implements EntityComponent {
+public final class CreatureComponent implements EntityComponent {
 
     public String name;
     public String bloodType;

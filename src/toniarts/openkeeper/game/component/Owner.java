@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Owner implements EntityComponent {
+public final class Owner implements EntityComponent {
 
     public short ownerId;
 

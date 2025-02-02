@@ -24,7 +24,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
  */
 
 
-public class TriggerActionData extends TriggerData {
+public final class TriggerActionData extends TriggerData {
 
     private TriggerAction.ActionType actionType;
 

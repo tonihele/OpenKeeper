@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ImageUtil {
+public final class ImageUtil {
 
     /**
      * Creates a BufferedImage out of raw byte data

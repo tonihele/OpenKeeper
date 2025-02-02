@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorViewState implements EntityComponent {
+public final class DoorViewState implements EntityComponent {
 
     public short doorId;
     public boolean locked;

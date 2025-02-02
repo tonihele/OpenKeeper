@@ -24,7 +24,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Bf4Entry implements Comparable<Bf4Entry> {
+public final class Bf4Entry implements Comparable<Bf4Entry> {
 
     /**
      * Describes the encoding methods used in the font image

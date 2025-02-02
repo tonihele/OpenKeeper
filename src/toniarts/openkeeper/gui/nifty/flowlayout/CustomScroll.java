@@ -40,7 +40,7 @@ import java.util.List;
  *
  * @author ArchDemon
  */
-public class CustomScroll extends AbstractController {
+public final class CustomScroll extends AbstractController {
 
     private Nifty nifty;
     private Screen screen;

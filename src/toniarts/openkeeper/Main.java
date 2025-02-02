@@ -87,7 +87,7 @@ import toniarts.openkeeper.video.MovieState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Main extends SimpleApplication {
+public final class Main extends SimpleApplication {
 
     private static final Logger logger = System.getLogger(Main.class.getName());
     
@@ -119,6 +119,9 @@ public class Main extends SimpleApplication {
         // Read settings and convert resources if needed
         app.showSettings = false;
         initSettings(app);
+
+        // set a better logging format
+        System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
 
         // Finally start it if everything went ok
         if (checkSetup(app)) {

@@ -24,7 +24,7 @@ import com.simsilica.es.EntityId;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSleep implements EntityComponent {
+public final class CreatureSleep implements EntityComponent {
 
     public EntityId lairObjectId;
     public double lastSleepTime;

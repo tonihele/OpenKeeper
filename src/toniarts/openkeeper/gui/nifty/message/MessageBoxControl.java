@@ -30,7 +30,7 @@ import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_
  *
  * @author ufdada
  */
-public class MessageBoxControl extends AbstractController {
+public final class MessageBoxControl extends AbstractController {
 
     private Nifty nifty;
     private Screen hud;

@@ -38,7 +38,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Train extends AbstractCapacityCriticalRoomTask {
+public final class Train extends AbstractCapacityCriticalRoomTask {
 
     private final IGameWorldController gameWorldController;
     private final IPlayerController playerController;

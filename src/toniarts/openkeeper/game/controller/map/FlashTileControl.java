@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.controller.IMapController;
  *
  * @author ArchDemon
  */
-public class FlashTileControl extends Control {
+public final class FlashTileControl extends Control {
 
     private float time;
     private List<Point> points;

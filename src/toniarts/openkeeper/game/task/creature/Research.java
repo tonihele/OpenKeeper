@@ -37,7 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Research extends AbstractCapacityCriticalRoomTask {
+public final class Research extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerResearchControl researchControl;
     private final IObjectsController objectsController;

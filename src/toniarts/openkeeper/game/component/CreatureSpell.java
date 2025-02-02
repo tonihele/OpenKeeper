@@ -24,7 +24,7 @@ import com.simsilica.es.EntityId;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSpell extends Attack {
+public final class CreatureSpell extends Attack {
 
     public short creatureSpellId;
     public EntityId creatureId;

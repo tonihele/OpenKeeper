@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Senses implements EntityComponent {
+public final class Senses implements EntityComponent {
 
     public float distanceCanHear;
     public float distanceCanSee;

@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HorizontalAutoScroll implements EffectImpl {
+public final class HorizontalAutoScroll implements EffectImpl {
 
     private static final float EFFECT_SPEED = 0.085f;
     private float end = 100;

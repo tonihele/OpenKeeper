@@ -26,7 +26,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapLoader {
+public final class MapLoader {
 
     private static String dkIIFolder;
 

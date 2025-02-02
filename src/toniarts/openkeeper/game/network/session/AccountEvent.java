@@ -46,7 +46,7 @@ import com.simsilica.event.EventType;
  *
  * @author Paul Speed
  */
-public class AccountEvent {
+public final class AccountEvent {
 
     /**
      * Singals that a player has successfully logged in.

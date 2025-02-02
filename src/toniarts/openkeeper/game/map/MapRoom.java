@@ -28,7 +28,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapRoom implements Savable {
+public final class MapRoom implements Savable {
 
     private int health;
     private int maxHealth;

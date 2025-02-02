@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LobbyClientService extends AbstractClientService
+public final class LobbyClientService extends AbstractClientService
         implements toniarts.openkeeper.game.state.lobby.LobbyClientService {
 
     private static final Logger logger = System.getLogger(LobbyClientService.class.getName());
@@ -124,7 +124,7 @@ public class LobbyClientService extends AbstractClientService
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
      */
-    private class LobbySessionCallback implements LobbySessionListener {
+    private final class LobbySessionCallback implements LobbySessionListener {
 
         @Override
         public void onMapChanged(String mapName) {

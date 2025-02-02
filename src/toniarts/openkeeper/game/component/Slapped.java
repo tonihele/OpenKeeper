@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Slapped implements EntityComponent {
+public final class Slapped implements EntityComponent {
 
     public double startTime;
 

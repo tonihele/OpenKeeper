@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Placeable implements EntityComponent {
+public final class Placeable implements EntityComponent {
 
     public Placeable() {
         // For serialization

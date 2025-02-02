@@ -40,7 +40,7 @@ import toniarts.openkeeper.game.controller.chicken.IChickenController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChickenAiSystem implements IGameLogicUpdatable {
+public final class ChickenAiSystem implements IGameLogicUpdatable {
 
     private final EntitySet chickenEntities;
     private final EntitySet chickenViewEntities;

@@ -1,6 +1,8 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
 #import "Common/ShaderLib/Instancing.glsllib"
 #import "Common/ShaderLib/Skinning.glsllib"
+#import "Common/ShaderLib/MorphAnim.glsllib"
+
 uniform mat4 m_LightViewProjectionMatrix0;
 uniform mat4 m_LightViewProjectionMatrix1;
 uniform mat4 m_LightViewProjectionMatrix2;
@@ -11,41 +13,41 @@ uniform float g_Time;
 uniform int m_NumberOfTiles;
 uniform int m_Speed;
 
-varying vec4 projCoord0;
-varying vec4 projCoord1;
-varying vec4 projCoord2;
-varying vec4 projCoord3;
+out vec4 projCoord0;
+out vec4 projCoord1;
+out vec4 projCoord2;
+out vec4 projCoord3;
 
 #ifdef POINTLIGHT
     uniform mat4 m_LightViewProjectionMatrix4;
     uniform mat4 m_LightViewProjectionMatrix5;
     uniform vec3 m_LightPos;
-    varying vec4 projCoord4;
-    varying vec4 projCoord5;
-    varying vec4 worldPos;
+    out vec4 projCoord4;
+    out vec4 projCoord5;
+    out vec4 worldPos;
 #else
     uniform vec3 m_LightDir;
     #ifndef PSSM
         uniform vec3 m_LightPos;
-        varying float lightDot;
+        out float lightDot;
     #endif
 #endif
 
 #if defined(PSSM) || defined(FADE)
-varying float shadowPosition;
+out float shadowPosition;
 #endif
 
-varying vec2 texCoord;
+out vec2 texCoord;
 
-attribute vec3 inPosition;
+in vec3 inPosition;
 
 #ifndef BACKFACE_SHADOWS
-    attribute vec3 inNormal;
-    varying float nDotL;
+    in vec3 inNormal;
+    out float nDotL;
 #endif
 
 #ifdef DISCARD_ALPHA
-    attribute vec2 inTexCoord;
+    in vec2 inTexCoord;
 #endif
 
 const mat4 biasMat = mat4(0.5, 0.0, 0.0, 0.0,
@@ -56,7 +58,7 @@ const mat4 biasMat = mat4(0.5, 0.0, 0.0, 0.0,
 
 void main(){
    vec4 modelSpacePos = vec4(inPosition, 1.0);
-  
+
    #ifdef NUM_MORPH_TARGETS
        Morph_Compute(modelSpacePos);
    #endif
@@ -69,7 +71,7 @@ void main(){
 
     #if defined(PSSM) || defined(FADE)
          shadowPosition = gl_Position.z;
-    #endif  
+    #endif
 
     #ifndef POINTLIGHT
         vec4 worldPos=vec4(0.0);

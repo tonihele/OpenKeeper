@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Health implements EntityComponent {
+public final class Health implements EntityComponent {
 
     public int health;
     public int maxHealth;

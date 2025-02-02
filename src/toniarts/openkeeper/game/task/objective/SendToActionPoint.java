@@ -28,7 +28,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SendToActionPoint extends GoToTask {
+public final class SendToActionPoint extends GoToTask {
 
     protected final ActionPoint actionPoint;
     private boolean executed = false;

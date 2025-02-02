@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Mobile implements EntityComponent {
+public final class Mobile implements EntityComponent {
 
     public boolean canFly;
     public boolean canWalkOnWater;

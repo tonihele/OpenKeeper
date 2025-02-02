@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EAAudioFrame implements Comparable<EAAudioFrame> {
+public final class EAAudioFrame implements Comparable<EAAudioFrame> {
 
     private static final int EA_ADPCM_TABLE[] = {
         0, 240, 460, 392,

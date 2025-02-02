@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Party implements EntityComponent {
+public final class Party implements EntityComponent {
 
     public long partyId;
 

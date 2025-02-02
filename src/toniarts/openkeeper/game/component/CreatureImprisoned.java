@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureImprisoned implements EntityComponent {
+public final class CreatureImprisoned implements EntityComponent {
 
     public double startTime;
     public double healthCheckTime;

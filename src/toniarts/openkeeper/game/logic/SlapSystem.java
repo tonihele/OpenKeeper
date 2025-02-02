@@ -43,7 +43,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SlapSystem implements IGameLogicUpdatable {
+public final class SlapSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
     private final EntitySet creatureEntities;

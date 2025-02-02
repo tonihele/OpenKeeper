@@ -236,7 +236,7 @@ public class ConnectionState extends AbstractAppState {
         }
     }
 
-    private class ConnectionObserver implements ClientStateListener, ErrorListener<Client> {
+    private final class ConnectionObserver implements ClientStateListener, ErrorListener<Client> {
 
         @Override
         public void clientConnected(final Client c) {
@@ -257,7 +257,7 @@ public class ConnectionState extends AbstractAppState {
         }
     }
 
-    private class AccountObserver implements AccountSessionListener {
+    private final class AccountObserver implements AccountSessionListener {
 
         @Override
         public void notifyLoginStatus(final boolean loggedIn) {
@@ -270,7 +270,7 @@ public class ConnectionState extends AbstractAppState {
         public void showError(final String title, final String message, final Throwable e, final boolean fatal);
     }
 
-    private class Connector extends Thread {
+    private final class Connector extends Thread {
 
         public Connector() {
             super("GameConnector");

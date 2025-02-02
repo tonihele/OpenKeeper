@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.data.ISoundable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameObject implements Comparable<GameObject>, ISoundable {
+public final class GameObject implements Comparable<GameObject>, ISoundable {
 
     /**
      * Object flags

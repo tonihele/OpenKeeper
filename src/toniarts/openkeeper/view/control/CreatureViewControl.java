@@ -37,7 +37,7 @@ import toniarts.openkeeper.view.text.TextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureViewControl extends EntityViewControl<Creature, Creature.AnimationType> {
+public final class CreatureViewControl extends EntityViewControl<Creature, Creature.AnimationType> {
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, TextParser textParser) {

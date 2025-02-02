@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.textures.Dk2TextureDecoder;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LoadingScreenTextureDecoder extends Dk2TextureDecoder {
+public final class LoadingScreenTextureDecoder extends Dk2TextureDecoder {
 
     @Override
     protected void decompress_block(ByteBuffer out, int stride, boolean alphaFlag) {

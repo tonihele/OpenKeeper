@@ -42,7 +42,7 @@ import toniarts.openkeeper.view.text.TextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapLoaderAppState extends AbstractAppState {
+public final class MapLoaderAppState extends AbstractAppState {
 
     protected AssetManager assetManager;
     protected AppStateManager stateManager;
@@ -109,7 +109,7 @@ public class MapLoaderAppState extends AbstractAppState {
         unloadMap();
     }
 
-    private static class MapEntityViewState extends PlayerEntityViewState {
+    private static final class MapEntityViewState extends PlayerEntityViewState {
 
         public MapEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
@@ -118,7 +118,7 @@ public class MapLoaderAppState extends AbstractAppState {
         }
     }
 
-    private static class MapPlayerService implements PlayerService {
+    private static final class MapPlayerService implements PlayerService {
 
         public MapPlayerService() {
         }

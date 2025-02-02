@@ -33,7 +33,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DecaySystem implements IGameLogicUpdatable {
+public final class DecaySystem implements IGameLogicUpdatable {
 
     private final EntitySet decayEntities;
     private final EntityData entityData;

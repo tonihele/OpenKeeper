@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChickenGenerator implements EntityComponent {
+public final class ChickenGenerator implements EntityComponent {
 
     public ChickenGenerator() {
         // For serialization

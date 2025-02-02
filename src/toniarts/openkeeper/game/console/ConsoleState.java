@@ -28,7 +28,7 @@ import toniarts.openkeeper.view.PlayerInteractionState;
  *
  * @author ArchDemon
  */
-public class ConsoleState extends AbstractPauseAwareState {
+public final class ConsoleState extends AbstractPauseAwareState {
 
     private Main app;
     private GameConsole console;

@@ -39,7 +39,7 @@ import toniarts.openkeeper.game.network.message.StreamedMessage;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class StreamingClientService extends AbstractClientService {
+public final class StreamingClientService extends AbstractClientService {
     
     private static final Logger logger = System.getLogger(StreamingClientService.class.getName());
 
@@ -86,7 +86,7 @@ public class StreamingClientService extends AbstractClientService {
     /**
      * Listens to the messages and parses them up
      */
-    private class StreamedMessageServiceListenerImpl implements MessageListener<Client> {
+    private final class StreamedMessageServiceListenerImpl implements MessageListener<Client> {
 
         @Override
         public void messageReceived(Client source, Message m) {

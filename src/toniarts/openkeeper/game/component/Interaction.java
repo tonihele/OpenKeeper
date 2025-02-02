@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Interaction implements EntityComponent {
+public final class Interaction implements EntityComponent {
 
     public boolean interactable;
     public boolean slappable;

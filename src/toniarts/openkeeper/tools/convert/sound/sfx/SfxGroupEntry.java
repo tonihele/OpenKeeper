@@ -22,7 +22,7 @@ import java.util.Arrays;
  *
  * @author archdemon
  */
-public class SfxGroupEntry {
+public final class SfxGroupEntry {
 
     //private final static byte SIZE = 20; // 20 bytes
 

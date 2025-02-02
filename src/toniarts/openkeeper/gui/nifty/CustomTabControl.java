@@ -32,7 +32,7 @@ import java.lang.System.Logger.Level;
  *
  * @author ArchDemon
  */
-public class CustomTabControl extends AbstractController implements Tab, TabGroupMember {
+public final class CustomTabControl extends AbstractController implements Tab, TabGroupMember {
 
     private static final Logger logger = System.getLogger(CustomTabControl.class.getName());
     /**

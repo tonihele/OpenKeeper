@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DungeonHeartConstruction implements IGameLogicUpdatable {
+public final class DungeonHeartConstruction implements IGameLogicUpdatable {
 
     private static final float GRAVITY = 9.81f;
     private final float velocity = 7f;
@@ -164,7 +164,7 @@ public class DungeonHeartConstruction implements IGameLogicUpdatable {
         }
     }
 
-    private static class PlugPiece {
+    private static final class PlugPiece {
 
         public PlugPiece() {
         }

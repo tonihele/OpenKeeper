@@ -36,7 +36,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Keeper implements Comparable<Keeper>, IIndexable, Savable {
+public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;

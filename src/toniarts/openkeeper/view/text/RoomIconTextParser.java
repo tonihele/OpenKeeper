@@ -24,7 +24,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RoomIconTextParser extends SimpleIconTextParser<Room> {
+public final class RoomIconTextParser extends SimpleIconTextParser<Room> {
 
     @Override
     protected String getReplacement(int index, Room room) {

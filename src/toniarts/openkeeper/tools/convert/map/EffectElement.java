@@ -27,7 +27,7 @@ import toniarts.openkeeper.world.effect.IEffect;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EffectElement implements Comparable<EffectElement>, IEffect {
+public final class EffectElement implements Comparable<EffectElement>, IEffect {
 
     /**
      * Effect element flags

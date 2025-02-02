@@ -35,7 +35,7 @@ import toniarts.openkeeper.game.task.TaskType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GoToEat extends AbstractTask {
+public final class GoToEat extends AbstractTask {
 
     private boolean executed = false;
     private final IEntityPositionLookup entityPositionLookup;

@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author ArchDemon
  */
-public class SFChunk {
+public final class SFChunk {
 
     public static enum SFSampleLink implements IValueEnum {
         monoSample(1),
@@ -365,7 +365,7 @@ public class SFChunk {
         return result;
     }
 
-    protected class sfVersionTag { // <iver-rec>
+    protected static final class sfVersionTag { // <iver-rec>
 
         protected int major;
         protected int minor;
@@ -381,7 +381,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfPresetHeader { // <phdr-rec>
+    protected static final class sfPresetHeader { // <phdr-rec>
 
         protected String achPresetName;
         protected int wPreset;
@@ -410,7 +410,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfPresetBag { // <pbag-rec>
+    protected static final class sfPresetBag { // <pbag-rec>
 
         protected int wGenNdx;
         protected int wModNdx;
@@ -426,7 +426,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfInst { // <inst-rec>
+    protected static final class sfInst { // <inst-rec>
 
         protected String achInstName;
         protected int wInstBagNdx;
@@ -442,7 +442,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfInstBag { // <ibag-rec>
+    protected static final class sfInstBag { // <ibag-rec>
 
         protected int wInstGenNdx;
         protected int wInstModNdx;
@@ -458,7 +458,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfSample { // <shdr-rec>
+    protected static final class sfSample { // <shdr-rec>
 
         protected String achSampleName;
         protected long dwStart;
@@ -494,7 +494,7 @@ public class SFChunk {
         }
     }
 
-    protected class rangesType {
+    protected static final class rangesType {
 
         protected short byLo;
         protected short byHi;
@@ -505,7 +505,7 @@ public class SFChunk {
         }
     }
 
-    protected class genAmountType {
+    protected static final class genAmountType {
 
         protected rangesType ranges;
         protected short shAmount;
@@ -518,7 +518,7 @@ public class SFChunk {
         }
     }
 
-    protected class SFModulator {
+    protected static final class SFModulator {
 
         protected Modulators bIndex = null; // A 7 bit value specifying the controller source
         protected boolean cc; // MIDI Continuous Controller Flag
@@ -537,7 +537,7 @@ public class SFChunk {
         }
     }
 
-    protected class SFGenerator {
+    protected static final class SFGenerator {
 
         protected Generators bIndex = null;
         protected boolean cc;
@@ -556,7 +556,7 @@ public class SFChunk {
         }
     }
 
-    protected class SFTransform {
+    protected static final class SFTransform {
 
         protected Transforms bIndex = null;
         protected boolean cc;
@@ -575,7 +575,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfModList { // <pmod-rec>
+    protected static final class sfModList { // <pmod-rec>
 
         protected SFModulator sfModSrcOper;
         protected SFGenerator sfModDestOper;
@@ -599,7 +599,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfGenList { // <pgen-rec>
+    protected static final class sfGenList { // <pgen-rec>
 
         protected SFGenerator sfGenOper;
         protected genAmountType genAmount;
@@ -615,7 +615,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfInstModList { // <imod-rec>
+    protected static final class sfInstModList { // <imod-rec>
 
         protected SFModulator sfModSrcOper;
         protected SFGenerator sfModDestOper;
@@ -639,7 +639,7 @@ public class SFChunk {
         }
     }
 
-    protected class sfInstGenList { // <igen-rec>
+    protected static final class sfInstGenList { // <igen-rec>
 
         protected SFGenerator sfGenOper;
         protected genAmountType genAmount;

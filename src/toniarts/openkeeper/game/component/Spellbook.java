@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.data.ResearchableType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Spellbook implements EntityComponent {
+public final class Spellbook implements EntityComponent {
 
     public ResearchableType type;
     public short typeId;

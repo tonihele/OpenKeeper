@@ -23,7 +23,7 @@ import java.util.Objects;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FilePath {
+public final class FilePath {
 
     private MapDataTypeEnum id; // unsigned int
     private int unknown2;

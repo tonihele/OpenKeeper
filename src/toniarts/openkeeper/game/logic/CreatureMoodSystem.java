@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureMoodSystem implements IGameLogicUpdatable {
+public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet moodEntities;

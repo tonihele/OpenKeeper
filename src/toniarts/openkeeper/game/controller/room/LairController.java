@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LairController extends NormalRoomController {
+public final class LairController extends NormalRoomController {
 
     public LairController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             IGameTimer gameTimer) {

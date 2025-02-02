@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.data.Keeper;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerHandControl {
+public final class PlayerHandControl {
 
     private final EntityId[] stack;
     private final EntityData entityData;

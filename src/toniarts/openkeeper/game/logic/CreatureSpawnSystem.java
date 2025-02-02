@@ -54,7 +54,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSpawnSystem implements IGameLogicUpdatable {
+public final class CreatureSpawnSystem implements IGameLogicUpdatable {
 
     private final ICreaturesController creaturesController;
     private final int minimumImpCount;
@@ -223,7 +223,7 @@ public class CreatureSpawnSystem implements IGameLogicUpdatable {
      * In DK 2 it is not possible to place spawn points in game, but but we
      * don't know that
      */
-    private class EntranceListener implements RoomListener {
+    private final class EntranceListener implements RoomListener {
 
         private final short playerId;
 

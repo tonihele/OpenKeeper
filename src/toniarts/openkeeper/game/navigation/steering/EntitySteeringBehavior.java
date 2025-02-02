@@ -27,7 +27,7 @@ import com.badlogic.gdx.math.Vector2;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EntitySteeringBehavior extends PrioritySteering<Vector2> implements Comparable<EntitySteeringBehavior> {
+public final class EntitySteeringBehavior extends PrioritySteering<Vector2> implements Comparable<EntitySteeringBehavior> {
 
     private final ISteerableEntity steerableEntity;
 

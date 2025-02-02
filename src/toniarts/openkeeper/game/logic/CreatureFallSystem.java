@@ -33,7 +33,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureFallSystem implements IGameLogicUpdatable {
+public final class CreatureFallSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final EntitySet fallEntities;

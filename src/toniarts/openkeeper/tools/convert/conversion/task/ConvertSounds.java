@@ -37,7 +37,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConvertSounds extends ConversionTask {
+public final class ConvertSounds extends ConversionTask {
 
     private static final Logger logger = System.getLogger(ConvertSounds.class.getName());
 

@@ -29,7 +29,7 @@ import toniarts.openkeeper.gui.nifty.WorkerAmountControl.State;
  *
  * @author archdemon
  */
-public class WorkerEqualControl extends AbstractController {
+public final class WorkerEqualControl extends AbstractController {
 
     private Nifty nifty;
     private Element element;

@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  *
  * @author ArchDemon
  */
-public class PlayerManaControl {
+public final class PlayerManaControl {
 
     private final Keeper keeper;
     private final SafeArrayList<PlayerManaListener> listeners = new SafeArrayList<>(PlayerManaListener.class);

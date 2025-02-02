@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PauseableScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
+public final class PauseableScheduledThreadPoolExecutor extends ScheduledThreadPoolExecutor {
 
     private boolean paused;
     private final ReentrantLock pauseLock = new ReentrantLock();

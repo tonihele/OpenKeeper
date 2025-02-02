@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.map.MapData;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameData {
+public final class GameData {
 
     private Collection<Keeper> players;
     private MapData mapData;

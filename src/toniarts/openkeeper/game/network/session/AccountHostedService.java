@@ -55,7 +55,7 @@ import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
  *
  * @author Paul Speed
  */
-public class AccountHostedService extends AbstractHostedConnectionService {
+public final class AccountHostedService extends AbstractHostedConnectionService {
 
     private static final Logger logger = System.getLogger(AccountHostedService.class.getName());
 
@@ -112,7 +112,7 @@ public class AccountHostedService extends AbstractHostedConnectionService {
     /**
      * The connection-specific 'host' for the AccountSession.
      */
-    private class AccountSessionImpl implements AccountSession {
+    private final class AccountSessionImpl implements AccountSession {
 
         private final HostedConnection conn;
         private AccountSessionListener callback;

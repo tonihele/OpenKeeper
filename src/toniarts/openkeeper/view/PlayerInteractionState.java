@@ -712,6 +712,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                 }
 
+                if (evt.isPressed() && evt.getKeyCode() == (int)Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
+                    stateManager.getState(PlayerState.class).getScreen().toggleGui();
+                }
+
             }
 
             @Override
@@ -778,7 +782,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected abstract void onPossession(EntityId creature);
 
-    public static class InteractionState {
+    public static final class InteractionState {
 
         public enum Type {
 

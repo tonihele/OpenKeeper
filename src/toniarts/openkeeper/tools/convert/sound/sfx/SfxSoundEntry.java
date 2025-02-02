@@ -20,7 +20,7 @@ package toniarts.openkeeper.tools.convert.sound.sfx;
  *
  * @author archdemon
  */
-public class SfxSoundEntry {
+public final class SfxSoundEntry {
 
     protected final static byte SIZE = 16; // 16 bytes
 

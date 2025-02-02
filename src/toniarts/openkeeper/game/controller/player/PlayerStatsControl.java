@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerStatsControl {
+public final class PlayerStatsControl {
 
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();

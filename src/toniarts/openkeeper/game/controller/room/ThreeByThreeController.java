@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
+public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
     private double lastSpawnTime = Double.MIN_VALUE;
 

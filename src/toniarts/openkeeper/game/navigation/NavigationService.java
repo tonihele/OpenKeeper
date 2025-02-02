@@ -39,7 +39,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class NavigationService implements INavigationService {
+public final class NavigationService implements INavigationService {
     
     private static final Logger logger = System.getLogger(NavigationService.class.getName());
 

@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Room implements Comparable<Room>, ISoundable, IIndexable {
+public final class Room implements Comparable<Room>, ISoundable, IIndexable {
 
     /**
      * Room flags

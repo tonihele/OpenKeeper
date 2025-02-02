@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.listener.PlayerGoldListener;
  *
  * @author ArchDemon
  */
-public class PlayerGoldControl {
+public final class PlayerGoldControl {
 
     private int goldMax = 0;
     private final Keeper keeper;

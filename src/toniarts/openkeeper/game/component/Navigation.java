@@ -26,7 +26,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Navigation implements EntityComponent {
+public final class Navigation implements EntityComponent {
 
     public Point target;
     public Point faceTarget;

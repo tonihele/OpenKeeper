@@ -29,7 +29,7 @@ import toniarts.openkeeper.view.map.WallSection;
  *
  * @author ArchDemon
  */
-public class HeroGateConstructor extends RoomConstructor {
+public final class HeroGateConstructor extends RoomConstructor {
 
     public HeroGateConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance) {
         super(assetManager, roomInstance);

@@ -27,7 +27,7 @@ import com.jme3.scene.control.AbstractControl;
  *
  * @author Toni
  */
-public class RotatorControl extends AbstractControl {
+public final class RotatorControl extends AbstractControl {
 
     private static final float TURN_RATE = FastMath.PI;
 

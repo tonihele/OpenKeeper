@@ -23,7 +23,7 @@ import com.jme3.network.AbstractMessage;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class StreamedMessage extends AbstractMessage {
+public final class StreamedMessage extends AbstractMessage {
 
     private int totalSize;
     private byte[] payload;

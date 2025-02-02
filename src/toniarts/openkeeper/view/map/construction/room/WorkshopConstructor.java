@@ -24,7 +24,7 @@ import toniarts.openkeeper.view.map.construction.NormalConstructor;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class WorkshopConstructor extends NormalConstructor {
+public final class WorkshopConstructor extends NormalConstructor {
 
     private final boolean[][] bigTiles;
 

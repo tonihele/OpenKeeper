@@ -22,7 +22,7 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MeshControl {
+public final class MeshControl {
 
     private int unknown1;
     private int unknown2;

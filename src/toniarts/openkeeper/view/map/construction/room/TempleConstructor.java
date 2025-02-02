@@ -37,7 +37,7 @@ import static toniarts.openkeeper.view.map.construction.DoubleQuadConstructor.co
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TempleConstructor extends DoubleQuadConstructor {
+public final class TempleConstructor extends DoubleQuadConstructor {
 
     private final KwdFile kwdFile;
 

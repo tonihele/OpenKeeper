@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * @author archdemon
  */
-public class GameResult {
+public final class GameResult {
 
     public enum ResultType {
         TOTAL_RATING,

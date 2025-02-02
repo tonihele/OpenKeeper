@@ -59,7 +59,7 @@ import toniarts.openkeeper.view.text.TextParserService;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameClientState extends AbstractPauseAwareState {
+public final class GameClientState extends AbstractPauseAwareState {
     
     private static final Logger logger = System.getLogger(GameClientState.class.getName());
 
@@ -294,7 +294,7 @@ public class GameClientState extends AbstractPauseAwareState {
         return textParser;
     }
 
-    private class GameSessionListenerImpl implements GameSessionListener {
+    private final class GameSessionListenerImpl implements GameSessionListener {
 
         private final Object mapDataLoadingObject = new Object();
         private volatile boolean mapDataLoaded = false;

@@ -38,7 +38,7 @@ import toniarts.openkeeper.view.text.TextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
+public final class DoorViewControl extends EntityViewControl<Door, DoorViewState> {
 
     private final GameObject lockObject;
     private Spatial lockSpatial;

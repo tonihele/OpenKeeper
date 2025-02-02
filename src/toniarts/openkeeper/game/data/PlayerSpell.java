@@ -27,7 +27,7 @@ import java.io.IOException;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpell extends ResearchableEntity {
+public final class PlayerSpell extends ResearchableEntity {
 
     public PlayerSpell() {
     }

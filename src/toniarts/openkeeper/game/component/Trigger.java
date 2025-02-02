@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Trigger implements EntityComponent {
+public final class Trigger implements EntityComponent {
 
     public int triggerId;
 

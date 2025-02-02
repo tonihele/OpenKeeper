@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureExperience implements EntityComponent {
+public final class CreatureExperience implements EntityComponent {
 
     public int level;
     public int experience;

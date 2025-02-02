@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureTorturingSystem implements IGameLogicUpdatable {
+public final class CreatureTorturingSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final ICreaturesController creaturesController;

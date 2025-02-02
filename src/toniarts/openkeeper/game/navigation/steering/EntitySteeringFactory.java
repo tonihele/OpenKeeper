@@ -29,7 +29,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EntitySteeringFactory {
+public final class EntitySteeringFactory {
 
     private EntitySteeringFactory() {
     }

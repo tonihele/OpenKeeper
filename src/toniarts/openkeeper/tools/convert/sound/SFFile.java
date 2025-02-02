@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
  *
  * @author ArchDemon
  */
-public class SFFile {
+public final class SFFile {
 
     private final SFChunk chunk;
 

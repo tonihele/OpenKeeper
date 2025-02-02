@@ -29,7 +29,7 @@ import com.jme3.input.event.TouchEvent;
  *
  * @author ArchDemon
  */
-public class ConsoleInputListener implements RawInputListener {
+public final class ConsoleInputListener implements RawInputListener {
     private final AppState app;
 
     public ConsoleInputListener(AppState app) {

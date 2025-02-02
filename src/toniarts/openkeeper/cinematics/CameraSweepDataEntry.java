@@ -30,7 +30,7 @@ import java.io.IOException;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CameraSweepDataEntry implements Savable {
+public final class CameraSweepDataEntry implements Savable {
 
     private Vector3f position;
     private Quaternion rotation;

@@ -38,9 +38,9 @@ import toniarts.openkeeper.tools.convert.spr.SprEntry.SprEntryHeader;
  *
  * @author ArchDemon
  */
-public class SprFile {
+public final class SprFile {
 
-    private class SprHeader {
+    private static final class SprHeader {
 
         protected String tag; // PSFB
         protected int framesCount;
@@ -90,8 +90,8 @@ public class SprFile {
         dataReader = data.readChunk(8 * header.framesCount);
         sprites = new ArrayList<>(header.framesCount);
         for (int i = 0; i < header.framesCount; i++) {
-            SprEntry sprite = new SprEntry();
-            SprEntryHeader entryHeader = sprite.new SprEntryHeader();
+            var sprite = new SprEntry();
+            var entryHeader = new SprEntryHeader();
             entryHeader.width = dataReader.readUnsignedShort();
             entryHeader.height = dataReader.readUnsignedShort();
             entryHeader.offset = dataReader.readUnsignedIntegerAsLong();

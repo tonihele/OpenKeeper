@@ -41,7 +41,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HeroGateFrontEndConstructor extends RoomConstructor {
+public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
     public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance) {
         super(assetManager, roomInstance);

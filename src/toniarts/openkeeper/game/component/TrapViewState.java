@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapViewState implements EntityComponent {
+public final class TrapViewState implements EntityComponent {
 
     public short trapId;
     public boolean blueprint;

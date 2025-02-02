@@ -30,7 +30,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CarryCreatureToLairTask extends AbstractTileTask {
+public final class CarryCreatureToLairTask extends AbstractTileTask {
 
     private final ICreatureController creature;
     private boolean executed = false;

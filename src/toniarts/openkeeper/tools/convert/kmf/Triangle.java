@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Triangle {
+public final class Triangle {
 
     private final byte[] triangle;
 

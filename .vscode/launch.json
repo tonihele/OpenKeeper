@@ -8,14 +8,20 @@
 			"type": "java",
 			"name": "Launch Game",
 			"request": "launch",
+			"projectName": "OpenKeeper",
 			"mainClass": "toniarts.openkeeper.Main",
 			"args": "-nomovies -level mpd4 -debug",
+			"console": "internalConsole",
+			"internalConsoleOptions": "openOnSessionStart",
 		},
 		{
 			"type": "java",
 			"name": "Launch Modelviewer",
 			"request": "launch",
+			"projectName": "OpenKeeper",
 			"mainClass": "toniarts.openkeeper.tools.modelviewer.ModelViewer",
+			"console": "internalConsole",
+			"internalConsoleOptions": "openOnSessionStart",
 		},
 	]
 }

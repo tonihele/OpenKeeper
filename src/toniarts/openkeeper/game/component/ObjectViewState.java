@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectViewState implements EntityComponent {
+public final class ObjectViewState implements EntityComponent {
 
     public short objectId;
     public GameObject.State state;

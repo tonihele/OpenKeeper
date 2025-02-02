@@ -22,7 +22,7 @@ import java.util.Arrays;
  *
  * @author archdemon
  */
-public class SfxEEEntry {
+public final class SfxEEEntry {
 
     // private final static byte SIZE = 42; // 42 bytes
 

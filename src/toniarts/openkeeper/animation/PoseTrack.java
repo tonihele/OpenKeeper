@@ -55,7 +55,7 @@ public final class PoseTrack extends MorphTrack {
 
     private PoseTrack.PoseFrame[] frames;
 
-    public static class PoseFrame implements Savable, Cloneable {
+    public static final class PoseFrame implements Savable, Cloneable {
 
         Pose[] poses;
         float[] weights;

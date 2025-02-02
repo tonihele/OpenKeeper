@@ -337,7 +337,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     /**
      * Single map tile that taps into the entity information
      */
-    private static class MapTileInformation extends AbstractMapTileInformation {
+    private static final class MapTileInformation extends AbstractMapTileInformation {
 
         private final Entity entity;
 

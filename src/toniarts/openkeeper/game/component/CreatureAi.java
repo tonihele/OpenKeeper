@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureAi implements EntityComponent {
+public final class CreatureAi implements EntityComponent {
 
     public double stateStartTime;
     private int creatureState;

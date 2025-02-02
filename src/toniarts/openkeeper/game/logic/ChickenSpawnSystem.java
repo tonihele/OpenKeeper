@@ -50,7 +50,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChickenSpawnSystem implements IGameLogicUpdatable {
+public final class ChickenSpawnSystem implements IGameLogicUpdatable {
 
     private final IObjectsController objectsController;
     private final IMapController mapController;
@@ -248,7 +248,7 @@ public class ChickenSpawnSystem implements IGameLogicUpdatable {
         }
     }
 
-    private class EntranceListener implements RoomListener {
+    private final class EntranceListener implements RoomListener {
 
         private final short playerId;
 

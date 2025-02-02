@@ -44,7 +44,7 @@ import toniarts.openkeeper.tools.convert.map.AI;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LobbyHostedService extends AbstractHostedConnectionService implements LobbyService {
+public final class LobbyHostedService extends AbstractHostedConnectionService implements LobbyService {
 
     private static final Logger logger = System.getLogger(LobbyHostedService.class.getName());
 
@@ -343,7 +343,7 @@ public class LobbyHostedService extends AbstractHostedConnectionService implemen
      * at all it's convenient for our other code not to have to worry about the
      * internal delegate.
      */
-    private class LobbySessionImpl extends AbstractLobbySessionImpl {
+    private final class LobbySessionImpl extends AbstractLobbySessionImpl {
 
         private final HostedConnection conn;
         private LobbySessionListener callback;

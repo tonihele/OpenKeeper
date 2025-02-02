@@ -263,7 +263,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     protected abstract void updateCursor();
 
-    private class InHandLoaderCreatureModelContainer extends EntityContainer<KeeperHandItem> {
+    private final class InHandLoaderCreatureModelContainer extends EntityContainer<KeeperHandItem> {
 
         public InHandLoaderCreatureModelContainer(EntityData entityData) {
             super(entityData, new FieldFilter(InHand.class, "playerId", playerId), InHand.class);
@@ -304,7 +304,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     }
 
-    private static class KeeperHandItem implements Comparable<KeeperHandItem> {
+    private static final class KeeperHandItem implements Comparable<KeeperHandItem> {
 
         private int index;
         private IEntityViewControl item;
