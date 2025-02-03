@@ -234,10 +234,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         return mapRoomContainer;
     }
 
-    /**
-     * Single map tile that taps into the entity information
-     */
-    private static final class MapTileInformation extends AbstractMapTileInformation {
+    public interface ILoadCompleteNotifier {
 
         void onLoadComplete();
 
