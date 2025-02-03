@@ -33,7 +33,7 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectController extends EntityController implements IObjectController {
+public final class ObjectController extends EntityController implements IObjectController {
 
     private final GameObject object;
 

@@ -52,7 +52,7 @@ import toniarts.openkeeper.game.network.NetworkConstants;
  *
  * @author Paul Speed
  */
-public class AccountClientService extends AbstractClientService
+public final class AccountClientService extends AbstractClientService
         implements AccountSession {
 
     private static final Logger logger = System.getLogger(AccountClientService.class.getName());
@@ -117,7 +117,7 @@ public class AccountClientService extends AbstractClientService
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
      */
-    private class AccountSessionCallback implements AccountSessionListener {
+    private final class AccountSessionCallback implements AccountSessionListener {
 
         @Override
         public void notifyLoginStatus(boolean loggedIn) {

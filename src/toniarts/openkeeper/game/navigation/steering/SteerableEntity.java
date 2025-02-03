@@ -27,7 +27,7 @@ import toniarts.openkeeper.world.creature.steering.CreatureLocation;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SteerableEntity implements ISteerableEntity {
+public final class SteerableEntity implements ISteerableEntity {
 
     private final EntityId entityId;
     private final Vector2 position = new Vector2();

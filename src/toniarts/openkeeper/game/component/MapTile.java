@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapTile implements EntityComponent {
+public final class MapTile implements EntityComponent {
 
     // TODO: Get rid of these, not a correct place to store this information
     public Map<Short, Boolean> selection;

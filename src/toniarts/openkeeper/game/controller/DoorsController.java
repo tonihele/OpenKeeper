@@ -50,7 +50,7 @@ import toniarts.openkeeper.view.map.MapViewController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorsController implements IDoorsController {
+public final class DoorsController implements IDoorsController {
     
     private static final Logger logger = System.getLogger(DoorsController.class.getName());
 

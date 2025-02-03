@@ -66,7 +66,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectsController implements IObjectsController {
+public final class ObjectsController implements IObjectsController {
 
     private static final Logger logger = System.getLogger(ObjectsController.class.getName());
     

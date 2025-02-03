@@ -50,7 +50,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConvertModels extends ConversionTask {
+public final class ConvertModels extends ConversionTask {
 
     private static final Logger logger = System.getLogger(ConvertModels.class.getName());
 

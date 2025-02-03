@@ -50,7 +50,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
+public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
 
     private final EntityData entityData;
     private final IMapController mapController;

@@ -23,7 +23,7 @@ import javax.vecmath.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AnimGeom {
+public final class AnimGeom {
 
     /**
      * Frame Base Modulus

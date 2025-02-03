@@ -41,7 +41,7 @@ import org.bushe.swing.event.EventTopicSubscriber;
  *
  * @author ArchDemon
  */
-public class CustomTabGroupControl extends AbstractController implements TabGroup {
+public final class CustomTabGroupControl extends AbstractController implements TabGroup {
 
     /**
      * This class is used for the event handlers that are needed for the tab

@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class HeroGateFrontEndController extends NormalRoomController {
+public final class HeroGateFrontEndController extends NormalRoomController {
 
     private static final short OBJECT_BANNER_ONE_ID = 89;
     //private static final int OBJECT_CANDLE_STICK_ID = 110;  // empty resource?

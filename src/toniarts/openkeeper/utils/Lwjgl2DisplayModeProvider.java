@@ -26,7 +26,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-class Lwjgl2DisplayModeProvider extends DefaultDisplayModeProvider {
+final class Lwjgl2DisplayModeProvider extends DefaultDisplayModeProvider {
 
     private final Method getBitsPerPixel;
     private final Method getFrequency;

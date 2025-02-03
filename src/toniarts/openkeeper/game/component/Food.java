@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Food implements EntityComponent {
+public final class Food implements EntityComponent {
 
     public Food() {
         // For serialization

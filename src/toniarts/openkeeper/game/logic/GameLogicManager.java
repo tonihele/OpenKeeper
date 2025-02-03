@@ -26,7 +26,7 @@ import toniarts.openkeeper.utils.IGameLoopManager;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameLogicManager implements IGameLoopManager {
+public final class GameLogicManager implements IGameLoopManager {
     
     private static final Logger logger = System.getLogger(GameLogicManager.class.getName());
 

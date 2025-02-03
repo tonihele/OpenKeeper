@@ -31,7 +31,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConversionUtils {
+public final class ConversionUtils {
 
     private static final Logger logger = System.getLogger(ConversionUtils.class.getName());
 

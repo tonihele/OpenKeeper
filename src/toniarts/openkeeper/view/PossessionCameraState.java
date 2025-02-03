@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  *
  * @author ArchDemon
  */
-public class PossessionCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
+public final class PossessionCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
     private static final Logger logger = System.getLogger(PossessionCameraState.class.getName());
     

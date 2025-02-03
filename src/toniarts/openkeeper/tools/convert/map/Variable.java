@@ -83,7 +83,7 @@ public class Variable {
     public final static int UNKNOWN_17 = 17;
     public final static int UNKNOWN_77 = 77;
 
-    public static class CreaturePool extends Variable {
+    public static final class CreaturePool extends Variable {
 
         private int creatureId;
         private int value;
@@ -119,7 +119,7 @@ public class Variable {
         }
     }
 
-    public static class Availability extends Variable {
+    public static final class Availability extends Variable {
 
         public enum AvailabilityType implements IValueEnum {
 
@@ -310,7 +310,7 @@ public class Variable {
         }
     }
 
-    public static class CreatureFirstPerson extends CreatureStats {
+    public static final class CreatureFirstPerson extends CreatureStats {
 
         @Override
         public String toString() {
@@ -318,7 +318,7 @@ public class Variable {
         }
     }
 
-    public static class MiscVariable extends Variable {
+    public static final class MiscVariable extends Variable {
 
         public enum MiscType implements IValueEnum {
 
@@ -613,7 +613,7 @@ public class Variable {
         }
     }
 
-    public static class Unknown extends Variable {
+    public static final class Unknown extends Variable {
 
         public int variableId;
         private int value;
@@ -685,7 +685,7 @@ public class Variable {
 
     }
 
-    public static class Sacrifice extends Variable {
+    public static final class Sacrifice extends Variable {
 
         private SacrificeType type1; // byte
         private short id1; // byte
@@ -777,7 +777,7 @@ public class Variable {
         }
     }
 
-    public static class PlayerAlliance extends Variable {
+    public static final class PlayerAlliance extends Variable {
 
         private int playerIdOne;
         private int playerIdTwo;

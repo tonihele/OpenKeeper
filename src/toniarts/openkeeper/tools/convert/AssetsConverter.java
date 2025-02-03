@@ -60,7 +60,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     public enum ConvertProcess {
 
         TEXTURES(7, new ConvertProcess[]{}),
-        MODELS(10, new ConvertProcess[]{TEXTURES}),
+        MODELS(11, new ConvertProcess[]{TEXTURES}),
         MOUSE_CURSORS(4, new ConvertProcess[]{}),
         MUSIC_AND_SOUNDS(4, new ConvertProcess[]{}),
         INTERFACE_TEXTS(3, new ConvertProcess[]{}),

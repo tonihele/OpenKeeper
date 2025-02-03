@@ -26,7 +26,7 @@ import toniarts.openkeeper.view.map.WallSection;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RoomInstance extends EntityInstance<Room> {
+public final class RoomInstance extends EntityInstance<Room> {
 
     private List<WallSection> wallSections;
     private final Thing.Room.Direction direction;

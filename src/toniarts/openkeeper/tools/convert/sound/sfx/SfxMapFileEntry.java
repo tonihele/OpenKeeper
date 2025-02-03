@@ -22,7 +22,7 @@ import java.util.Arrays;
  *
  * @author archdemon
  */
-public class SfxMapFileEntry {
+public final class SfxMapFileEntry {
 
     // private final static byte SIZE = 24; // 24 bytes
 

@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AnimVertex extends Vertex {
+public final class AnimVertex extends Vertex {
 
     private int itabIndex;
 

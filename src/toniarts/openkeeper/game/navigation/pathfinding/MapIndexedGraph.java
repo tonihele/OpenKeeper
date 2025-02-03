@@ -34,7 +34,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapIndexedGraph implements IndexedGraph<IMapTileInformation> {
+public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> {
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;

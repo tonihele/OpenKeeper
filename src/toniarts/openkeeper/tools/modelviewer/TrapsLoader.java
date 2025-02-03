@@ -31,7 +31,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  *
  * @author ArchDemon
  */
-public class TrapsLoader implements ILoader<Trap> {
+public final class TrapsLoader implements ILoader<Trap> {
 
     @Override
     public Spatial load(AssetManager assetManager, Trap object) {

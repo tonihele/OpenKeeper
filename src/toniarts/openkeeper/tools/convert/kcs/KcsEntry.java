@@ -24,7 +24,7 @@ import javax.vecmath.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KcsEntry {
+public final class KcsEntry {
 
     private Vector3f position;
     private Vector3f direction;

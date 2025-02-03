@@ -42,7 +42,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author archdemon
  */
-public class SoundsLoader {
+public final class SoundsLoader {
     
     private static final Logger logger = System.getLogger(SoundsLoader.class.getName());
     

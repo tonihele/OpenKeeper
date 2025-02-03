@@ -34,7 +34,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
+public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
     private boolean initialized = false;
 

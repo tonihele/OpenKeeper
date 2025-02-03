@@ -29,7 +29,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SteeringUtils {
+public final class SteeringUtils {
 
     private SteeringUtils() {
         // Nope...

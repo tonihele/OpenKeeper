@@ -41,7 +41,7 @@ import toniarts.openkeeper.gui.nifty.chat.event.ChatTextSendEvent;
  * @author Mark
  * @version 0.1
  */
-public class ChatControl extends AbstractController implements KeyInputHandler, Chat {
+public final class ChatControl extends AbstractController implements KeyInputHandler, Chat {
     
     private static final Logger logger = System.getLogger(ChatControl.class.getName());
 

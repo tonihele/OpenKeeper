@@ -36,7 +36,7 @@ import toniarts.openkeeper.video.tgq.TgqFrame;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MovieMaterial {
+public final class MovieMaterial {
     
     private static final Logger logger = System.getLogger(MovieMaterial.class.getName());
 

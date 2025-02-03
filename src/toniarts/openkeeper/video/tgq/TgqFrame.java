@@ -36,7 +36,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TgqFrame implements Comparable<TgqFrame> {
+public final class TgqFrame implements Comparable<TgqFrame> {
     
     private static final Logger logger = System.getLogger(TgqFrame.class.getName());
 

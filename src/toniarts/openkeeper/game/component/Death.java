@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Death implements EntityComponent {
+public final class Death implements EntityComponent {
 
     public double startTime;
 

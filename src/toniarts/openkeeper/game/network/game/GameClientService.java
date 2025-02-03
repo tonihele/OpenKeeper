@@ -48,7 +48,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameClientService extends AbstractClientService
+public final class GameClientService extends AbstractClientService
         implements GameSessionClientService {
 
     private static final Logger logger = System.getLogger(GameClientService.class.getName());
@@ -222,7 +222,7 @@ public class GameClientService extends AbstractClientService
         getDelegate().placeTrap(trapId, tile);
     }
 
-    private class ClientMessageListener implements MessageListener<Client> {
+    private final class ClientMessageListener implements MessageListener<Client> {
 
         public ClientMessageListener() {
         }
@@ -242,7 +242,7 @@ public class GameClientService extends AbstractClientService
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
      */
-    private class GameSessionCallback implements GameSessionListener {
+    private final class GameSessionCallback implements GameSessionListener {
 
         @Override
         public void onGameDataLoaded(Collection<Keeper> players) {

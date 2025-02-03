@@ -28,7 +28,7 @@ import java.nio.IntBuffer;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 
-public class Cursor extends JmeCursor {
+public final class Cursor extends JmeCursor {
 
     public static final int DELAY = 30;
 

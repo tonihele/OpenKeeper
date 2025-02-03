@@ -163,7 +163,7 @@ public abstract class TgqPlayer {
      * This thread handles the audio playback, critical to the process since the
      * video is synced to the audio
      */
-    private class AudioPlayer implements Runnable {
+    private final class AudioPlayer implements Runnable {
 
         public AudioPlayer() {
         }
@@ -294,7 +294,7 @@ public abstract class TgqPlayer {
     /**
      * Plays the actual video frames, is synced to audio
      */
-    private class VideoPlayer implements Runnable {
+    private final class VideoPlayer implements Runnable {
 
         public VideoPlayer() {
         }
@@ -371,7 +371,7 @@ public abstract class TgqPlayer {
     /**
      * Decoder, decodes the movie frames, keeps the buffers filled
      */
-    private class TgqDecoder implements Runnable {
+    private final class TgqDecoder implements Runnable {
 
         private final Path file;
 

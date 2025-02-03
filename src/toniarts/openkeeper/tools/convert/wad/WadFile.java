@@ -46,7 +46,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class WadFile {
+public final class WadFile {
 
     private static final Logger logger = System.getLogger(WadFile.class.getName());
     

@@ -7,7 +7,7 @@ plugins {
 }
 
 ext {
-    jmonkeyengine_version = '3.6.1-stable'
+    jmonkeyengine_version = '3.7.0-stable'
     license = file("$rootDir/license.txt")
 }
 
@@ -60,8 +60,8 @@ dependencies {
     implementation "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
     implementation "com.badlogicgames.gdx:gdx-ai:1.8.2"
     implementation "javax.vecmath:vecmath:1.5.2"
-    implementation "com.simsilica:zay-es:1.5.0"
-    implementation "com.simsilica:zay-es-net:1.5.2"
+    implementation "com.simsilica:zay-es:1.6.0"
+    implementation "com.simsilica:zay-es-net:1.6.0"
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
 }
@@ -123,5 +123,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '8.9'
+    gradleVersion = '8.10.2'
 }

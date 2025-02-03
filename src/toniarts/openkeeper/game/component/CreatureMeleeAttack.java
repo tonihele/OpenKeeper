@@ -23,7 +23,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureMeleeAttack extends Attack {
+public final class CreatureMeleeAttack extends Attack {
 
     public int attackType;
     public int damage;

@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 /**
  * @author ractoc
  */
-public class ChatBuilder extends ControlBuilder {
+public final class ChatBuilder extends ControlBuilder {
 
     public ChatBuilder(final int lines) {
         super("nifty-chat");

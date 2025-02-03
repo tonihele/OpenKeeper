@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureEfficiency implements EntityComponent {
+public final class CreatureEfficiency implements EntityComponent {
 
     public int efficiencyPercentage;
 

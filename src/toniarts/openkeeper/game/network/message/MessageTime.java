@@ -29,7 +29,7 @@ import com.jme3.network.serializing.Serializable;
  *  @author    Paul Speed          from  MonkeyTrap example
  */
 @Serializable
-public class MessageTime extends AbstractMessage {
+public final class MessageTime extends AbstractMessage {
 
     private long time;
     private long sent;

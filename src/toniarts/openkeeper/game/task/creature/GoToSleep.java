@@ -29,7 +29,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GoToSleep extends AbstractTileTask {
+public final class GoToSleep extends AbstractTileTask {
 
     private boolean executed = false;
     private final ICreatureController creature;

@@ -30,7 +30,7 @@ import java.nio.file.Paths;
 
 
 
-public class SettingUtils {
+public final class SettingUtils {
 
     private static final Logger logger = System.getLogger(SettingUtils.class.getName());
     

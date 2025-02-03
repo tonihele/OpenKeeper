@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class BankMapLoader {
+public final class BankMapLoader {
 
     private static String dkIIFolder;
 

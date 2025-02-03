@@ -33,7 +33,7 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<EntityId>, Short> {
+public final class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<EntityId>, Short> {
 
     private List<CreatureListener> creatureListeners;
     private final Creature imp;

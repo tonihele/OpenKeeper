@@ -27,7 +27,7 @@ import java.io.*;
  *
  * @author	Michael Scheerer
  */
-class LayerIIDecoder extends LayerIDecoder {
+final class LayerIIDecoder extends LayerIDecoder {
     // ISO/IEC 11172-3 Annex B Table B.4
 
     private final static double E[] = {

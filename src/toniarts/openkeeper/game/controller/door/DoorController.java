@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorController extends EntityController implements IDoorController {
+public final class DoorController extends EntityController implements IDoorController {
 
     private final Door door;
 

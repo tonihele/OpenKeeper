@@ -117,7 +117,7 @@ import toniarts.openkeeper.view.text.TrapIconTextParser;
  *
  * @author ArchDemon
  */
-public class PlayerScreenController implements IPlayerScreenController {
+public final class PlayerScreenController implements IPlayerScreenController {
 
     private enum PauseMenuState {
 
@@ -189,6 +189,13 @@ public class PlayerScreenController implements IPlayerScreenController {
             this.playButtonSound(GlobalCategory.GUI_SELL);
         }
         state.interactionState.setInteractionState(type, Integer.parseInt(id));
+    }
+
+    public void toggleGui() {
+        if (!nifty.getCurrentScreen().getScreenId().equals(SCREEN_EMPTY_ID))
+            nifty.gotoScreen(SCREEN_EMPTY_ID);
+        else
+            nifty.gotoScreen(SCREEN_HUD_ID);
     }
 
     @Override
@@ -1173,7 +1180,7 @@ public class PlayerScreenController implements IPlayerScreenController {
      * Simple class to handle the population, methods and updates of the
      * creature cards and worker amounts
      */
-    private static class CreatureCardManager {
+    private static final class CreatureCardManager {
 
         private final IPlayerScreenController playerScreenController;
         private final KwdFile kwdFile;
@@ -1426,7 +1433,7 @@ public class PlayerScreenController implements IPlayerScreenController {
             workerAmountControl.setTotal(impTotal);
         }
 
-        private class EventListener implements CreatureCardEventListener {
+        private final class EventListener implements CreatureCardEventListener {
 
             private final Map<Short, Integer> selectionIndices = new HashMap<>();
 
@@ -1501,7 +1508,7 @@ public class PlayerScreenController implements IPlayerScreenController {
 
     }
 
-    private static class GameMenu {
+    private static final class GameMenu {
 
         protected String title;
         protected String action;

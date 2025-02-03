@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.FileResourceReader;
  *
  * @author ArchDemon
  */
-public class HiScoresFile {
+public final class HiScoresFile {
 
     private final List<HiScoresEntry> hiScoresEntries;
 

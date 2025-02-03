@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Door implements Comparable<Door>, ISoundable, IIndexable {
+public final class Door implements Comparable<Door>, ISoundable, IIndexable {
 
     /**
      * Door flags

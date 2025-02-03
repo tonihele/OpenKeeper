@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KmfFile {
+public final class KmfFile {
 
     public enum Type {
 
@@ -63,7 +63,7 @@ public class KmfFile {
     private int version;
     private Type type;
     private List<Material> materials;
-    private List<Mesh> meshes;
+    private Mesh mesh;
     private Anim anim;
     private List<Grop> grops;
     private static final String KMF_HEADER_IDENTIFIER = "KMSH";
@@ -125,7 +125,7 @@ public class KmfFile {
 
         // Read the identifier
         checkHeader(rawKmfReader, KMF_HEADER_IDENTIFIER);
-        rawKmfReader.skipBytes(4);
+        rawKmfReader.skipBytes(4); // skip section size
         version = rawKmfReader.readUnsignedInteger();
 
         // KMSH/HEAD
@@ -141,27 +141,17 @@ public class KmfFile {
         }
 
         // KMSH/MESH, there are n amount of these
-        meshes = new ArrayList<>();
-        String temp = "";
-        do {
-            if (!rawKmfReader.hasRemaining()) {
-                break; // EOF
-            }
-            temp = rawKmfReader.readString(4);
-            if (KMF_MESH.equals(temp)) {
-                meshes.add(parseMesh(rawKmfReader));
-            } else {
-                break;
-            }
-        } while (true);
+        String fourCC = rawKmfReader.readString(4);
+        if (KMF_MESH.equals(fourCC))
+            mesh = parseMesh(rawKmfReader);
 
         // KMSH/ANIM
-        if (type == Type.ANIM && KMF_ANIM.equals(temp)) {
+        if (type == Type.ANIM && KMF_ANIM.equals(fourCC)) {
             anim = parseAnim(rawKmfReader);
         }
 
         // KMSH/GROP
-        if (type == Type.GROP && KMF_GROP.equals(temp)) {
+        if (type == Type.GROP && KMF_GROP.equals(fourCC)) {
             grops = parseGrop(rawKmfReader);
         }
     }
@@ -173,7 +163,7 @@ public class KmfFile {
      * @param rawKmf kmf file starting on HEAD
      */
     private void parseHead(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         this.type = Type.toType(rawKmf.readUnsignedInteger());
         int unknown = rawKmf.readUnsignedInteger();
     }
@@ -185,7 +175,7 @@ public class KmfFile {
      * @param rawKmf kmf file starting on MATL
      */
     private void parseMatl(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         int materialsCount = rawKmf.readUnsignedInteger();
 
         // Read the materials
@@ -203,7 +193,7 @@ public class KmfFile {
      * @param rawKmf kmf file starting on MATL
      */
     private Material parseMat2(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         // Create the material
         Material m = new Material();
@@ -217,7 +207,7 @@ public class KmfFile {
 
         m.setFlag(rawKmf.readIntegerAsFlag(Material.MaterialFlag.class));
         m.setBrightness(rawKmf.readFloat());
-        m.setGamma(rawKmf.readFloat());
+        m.setShininess(rawKmf.readFloat());
 
         // Environment map
         m.setEnvironmentMappingTexture(rawKmf.readVaryingLengthStrings(1).get(0));
@@ -232,11 +222,11 @@ public class KmfFile {
      * @param rawKmf kmf file starting on mesh
      */
     private Mesh parseMesh(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         //KMSH/MESH/HEAD
         checkHeader(rawKmf, KMF_HEAD);
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         //Create the mesh
         Mesh m = new Mesh();
@@ -275,7 +265,7 @@ public class KmfFile {
      * @param rawKmf kmf file starting on mesh
      */
     private List<MeshControl> parseMeshControls(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         int controlCount = rawKmf.readUnsignedInteger();
         List<MeshControl> controls = new ArrayList<>(controlCount);
@@ -307,7 +297,7 @@ public class KmfFile {
             //Sprite headers
             //KMSH/MESH/SPRS/SPHD
             checkHeader(rawKmf, KMF_MESH_SPRITES_HEADER);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
 
             //Create new sprite
             MeshSprite sprite = new MeshSprite();
@@ -327,7 +317,7 @@ public class KmfFile {
             //Sprite data
             //KMSH/MESH/SPRS/SPRS
             checkHeader(rawKmf, KMF_MESH_SPRITES_DATA_HEADER);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
 
             MeshSprite sprite = sprites.get(i);
             sprite.setMaterialIndex(rawKmf.readUnsignedInteger());
@@ -373,11 +363,12 @@ public class KmfFile {
      * @param rawKmf kmf file starting on geom
      */
     private List<Vector3f> parseMeshGeoms(IResourceChunkReader rawKmf, int geomCount) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         List<Vector3f> geometries = new ArrayList<>(geomCount);
 
         //Geometries
         for (int i = 0; i < geomCount; i++) {
+            // TODO: scale them?
             geometries.add(new Vector3f(rawKmf.readFloat(),
                     rawKmf.readFloat(),
                     rawKmf.readFloat()));
@@ -393,11 +384,11 @@ public class KmfFile {
      * @param rawKmf kmf file starting on ANIM
      */
     private Anim parseAnim(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         //KMSH/ANIM/HEAD
         checkHeader(rawKmf, KMF_HEAD);
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         //Create the anim
         Anim a = new Anim();
@@ -431,7 +422,7 @@ public class KmfFile {
         //KMSH/ANIM/SPRS/ITAB
         //indexCount sized chunks for each 128 frame block
         checkHeader(rawKmf, KMF_ANIM_SPRITES_ITAB_HEADER);
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         int chunks = (int) Math.floor((frameCount - 1) / 128.0 + 1);
         int[][] itab = new int[chunks][indexCount];
         for (int chunk = 0; chunk < chunks; chunk++) {
@@ -444,25 +435,24 @@ public class KmfFile {
         //Sprite geometries
         //KMSH/ANIM/SPRS/GEOM
         checkHeader(rawKmf, KMF_MESH_GEOM);
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         List<AnimGeom> geometries = new ArrayList<>(geomCount + 1);
         AnimGeom geom = null;
         for (int i = 0; i < geomCount; i++) {
 
-            //10 bits, BITS, yes BITS, per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
+            //10 bits per coordinate (Z, Y, X) = 30 bits (2 last bits can be thrown away)
             // ^ so read 4 bytes
             // + 1 byte for frame base
             int coordinates = rawKmf.readUnsignedInteger();
-            geom = new AnimGeom();
-
-            float x = (((coordinates >> 20) & 0x3ff) - 0x200) / 511.0f;
-            float y = (((coordinates >> 10) & 0x3ff) - 0x200) / 511.0f;
-            float z = (((coordinates >> 0) & 0x3ff) - 0x200) / 511.0f;
+            float x = (((coordinates >> 20) % 1024) - 512) / 511.0f;
+            float y = (((coordinates >> 10) % 1024) - 512) / 511.0f;
+            float z = (((coordinates >>  0) % 1024) - 512) / 511.0f;
 
             Vector3f v = new Vector3f(x, y, z);
             v.scale(a.getScale()); // Scale
-            geom.setGeometry(v);
 
+            geom = new AnimGeom();
+            geom.setGeometry(v);
             geom.setFrameBase(rawKmf.readUnsignedByte());
             geometries.add(geom);
         }
@@ -475,7 +465,7 @@ public class KmfFile {
         //Sprite offsets
         //KMSH/ANIM/SPRS/VGEO
         checkHeader(rawKmf, KMF_ANIM_SPRITES_VGEO_HEADER);
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         short[][] offsets = new short[indexCount][frameCount];
         for (int i = 0; i < indexCount; i++) {
             for (int frame = 0; frame < frameCount; frame++) {
@@ -494,7 +484,7 @@ public class KmfFile {
      * @param rawKmf kmf file starting on mesh
      */
     private List<AnimControl> parseAnimControls(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         int controlCount = rawKmf.readUnsignedInteger();
         List<AnimControl> controls = new ArrayList<>(controlCount);
@@ -518,7 +508,7 @@ public class KmfFile {
      * @param rawKmf kmf file starting on sprite
      */
     private List<AnimSprite> parseAnimSprites(IResourceChunkReader rawKmf, int sprsCount, int lodCount) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         List<AnimSprite> sprites = new ArrayList<>(sprsCount);
 
         //Headers
@@ -527,7 +517,7 @@ public class KmfFile {
             //Sprite headers
             //KMSH/ANIM/SPRS/SPHD
             checkHeader(rawKmf, KMF_MESH_SPRITES_HEADER);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
 
             //Create new sprite
             AnimSprite sprite = new AnimSprite();
@@ -547,7 +537,7 @@ public class KmfFile {
             //Sprite data
             //KMSH/ANIM/SPRS/SPRS
             checkHeader(rawKmf, KMF_MESH_SPRITES_DATA_HEADER);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
 
             AnimSprite sprite = sprites.get(i);
             sprite.setMaterialIndex(rawKmf.readUnsignedInteger());
@@ -555,7 +545,7 @@ public class KmfFile {
             //The triangles, for each lod level
             //KMSH/ANIM/SPRS/SPRS/POLY
             checkHeader(rawKmf, KMF_ANIM_SPRITES_POLY_HEADER);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
             List<List<Triangle>> trianglesPerLod = new ArrayList<>(lodCount);
             for (int j = 0; j < lodCount; j++) {
                 int numTris = sprite.getTriangleCounts().get(j);
@@ -574,7 +564,7 @@ public class KmfFile {
             //Anim vertices
             //KMSH/ANIM/SPRS/SPRS/VERT
             checkHeader(rawKmf, KMF_ANIM_SPRITES_VERT_HEADER);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
             List<AnimVertex> vertices = new ArrayList<>(sprite.getVerticeCount());
             for (int j = 0; j < sprite.getVerticeCount(); j++) {
                 AnimVertex animVertex = new AnimVertex();
@@ -596,11 +586,11 @@ public class KmfFile {
      * @param rawKmf kmf file starting on grop
      */
     private List<Grop> parseGrop(IResourceChunkReader rawKmf) throws IOException {
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
 
         //KMSH/GROP/HEAD
         checkHeader(rawKmf, KMF_HEAD);
-        rawKmf.skipBytes(4);
+        rawKmf.skipBytes(4); // skip section size
         int elementCount = rawKmf.readUnsignedInteger();
 
         //Read the elements
@@ -609,7 +599,7 @@ public class KmfFile {
 
             //KMSH/GROP/ELEM
             checkHeader(rawKmf, KMF_GROP_ELEM);
-            rawKmf.skipBytes(4);
+            rawKmf.skipBytes(4); // skip section size
 
             //Read it
             Grop grop = new Grop();
@@ -646,8 +636,8 @@ public class KmfFile {
         return materials;
     }
 
-    public List<Mesh> getMeshes() {
-        return meshes;
+    public Mesh getMesh() {
+        return mesh;
     }
 
     public Anim getAnim() {

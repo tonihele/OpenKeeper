@@ -34,7 +34,7 @@ import toniarts.openkeeper.audio.plugins.decoder.MpxReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MpegToWav {
+public final class MpegToWav {
 
     public static void main(String[] args) {
         ByteBuffer header = ByteBuffer.wrap(new byte[]{

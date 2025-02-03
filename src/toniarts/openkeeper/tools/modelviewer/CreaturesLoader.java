@@ -35,7 +35,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  *
  * @author ArchDemon
  */
-public class CreaturesLoader implements ILoader<Creature> {
+public final class CreaturesLoader implements ILoader<Creature> {
 
     @Override
     public Spatial load(AssetManager assetManager, Creature object) {

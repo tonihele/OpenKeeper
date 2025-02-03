@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 
-public class PathUtils {
+public final class PathUtils {
     
     private static final Logger logger = System.getLogger(PathUtils.class.getName());
 
@@ -297,7 +297,7 @@ public class PathUtils {
     /**
      * File finder, recursively tries to find a file ignoring case
      */
-    private static class FileFinder extends SimpleFileVisitor<Path> {
+    private static final class FileFinder extends SimpleFileVisitor<Path> {
 
         private int level = 0;
         private String file;
@@ -349,7 +349,7 @@ public class PathUtils {
      * Represents a simple path tree cache, with unlimited number of roots.
      * Offers some methods to manage the tree.
      */
-    private static class PathTree extends HashMap<String, PathNode> {
+    private static final class PathTree extends HashMap<String, PathNode> {
 
         /**
          * Add the path to cache from KNOWN file
@@ -424,7 +424,7 @@ public class PathUtils {
     /**
      * Path node that represents a single folder
      */
-    private static class PathNode {
+    private static final class PathNode {
 
         private final String path;
         private final String name;

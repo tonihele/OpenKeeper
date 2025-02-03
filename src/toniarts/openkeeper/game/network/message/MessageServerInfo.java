@@ -26,7 +26,7 @@ import com.jme3.network.serializing.Serializable;
  * @author ArchDemon
  */
 @Serializable
-public class MessageServerInfo extends AbstractMessage {
+public final class MessageServerInfo extends AbstractMessage {
 
     private String name;
     private String map;

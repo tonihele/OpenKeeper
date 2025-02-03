@@ -22,7 +22,7 @@ package toniarts.openkeeper.tools.convert.textures.enginetextures;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EngineTextureEntry {
+public final class EngineTextureEntry {
 
     private int resX;
     private int resY;

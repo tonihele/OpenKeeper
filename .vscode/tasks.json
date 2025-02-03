@@ -4,7 +4,7 @@
 		{
 			"label": "build",
 			"type": "shell",
-			"command": "gradlew build --parallel --no-daemon",
+			"command": "gradlew compileJava --parallel --no-daemon --warning-mode all",
 			"problemMatcher": "$gradle",
 			"group": {
 				"kind": "build",

@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * Thank you https://github.com/werkt
  */
-public class Trap implements Comparable<Trap>, ISoundable, IIndexable {
+public final class Trap implements Comparable<Trap>, ISoundable, IIndexable {
 
     /**
      * Trap flags

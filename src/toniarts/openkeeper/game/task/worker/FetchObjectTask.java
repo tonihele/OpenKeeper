@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FetchObjectTask extends AbstractTileTask {
+public final class FetchObjectTask extends AbstractTileTask {
 
     private final IObjectController gameObject;
     private final TaskManager taskManager;

@@ -44,7 +44,7 @@ import java.util.List;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <T> The table row class
  */
-public class TableControl<T extends TableRow> extends ListBoxControl<T> {
+public final class TableControl<T extends TableRow> extends ListBoxControl<T> {
     
     private static final Logger logger = System.getLogger(TableControl.class.getName());
 

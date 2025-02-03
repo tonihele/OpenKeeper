@@ -29,7 +29,7 @@ import com.jme3.scene.control.AbstractControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <T> the type of Nifty control
  */
-public class SimpleJmeControl<T extends AbstractNiftyJmeControl> extends AbstractControl {
+public final class SimpleJmeControl<T extends AbstractNiftyJmeControl> extends AbstractControl {
 
     private final T jmeControl;
 

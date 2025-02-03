@@ -37,7 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KillPlayer extends AbstractObjectiveTask {
+public final class KillPlayer extends AbstractObjectiveTask {
 
     protected final short targetPlayerId;
     protected final ICreatureController creature;

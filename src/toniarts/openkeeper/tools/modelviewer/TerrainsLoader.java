@@ -32,7 +32,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TerrainsLoader implements ILoader<Terrain> {
+public final class TerrainsLoader implements ILoader<Terrain> {
 
     @Override
     public Spatial load(AssetManager assetManager, Terrain object) {

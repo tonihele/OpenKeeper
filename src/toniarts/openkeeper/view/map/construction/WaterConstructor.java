@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  *
  * @author ArchDemon
  */
-public class WaterConstructor extends SingleTileConstructor {
+public final class WaterConstructor extends SingleTileConstructor {
 
     public WaterConstructor(KwdFile kwdFile) {
         super(kwdFile);

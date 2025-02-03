@@ -78,7 +78,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MainMenuState extends AbstractAppState {
+public final class MainMenuState extends AbstractAppState {
     
     private static final Logger logger = System.getLogger(MainMenuState.class.getName());
 
@@ -562,7 +562,7 @@ public class MainMenuState extends AbstractAppState {
         return asset;
     }
 
-    private class MainMenuConnectionErrorListener implements ConnectionErrorListener {
+    private final class MainMenuConnectionErrorListener implements ConnectionErrorListener {
 
         @Override
         public void showError(String title, String message, Throwable e, boolean fatal) {
@@ -576,7 +576,7 @@ public class MainMenuState extends AbstractAppState {
     /**
      * Main menu version of the player entity view state
      */
-    private static class MainMenuEntityViewState extends PlayerEntityViewState {
+    private static final class MainMenuEntityViewState extends PlayerEntityViewState {
 
         public MainMenuEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
@@ -586,7 +586,7 @@ public class MainMenuState extends AbstractAppState {
 
     }
 
-    private static class MainMenuPlayerService implements PlayerService {
+    private static final class MainMenuPlayerService implements PlayerService {
 
         @Override
         public void setWidescreen(boolean enable, short playerId) {

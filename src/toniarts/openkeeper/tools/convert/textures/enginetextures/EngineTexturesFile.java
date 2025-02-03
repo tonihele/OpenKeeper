@@ -47,7 +47,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EngineTexturesFile implements Iterable<String> {
+public final class EngineTexturesFile implements Iterable<String> {
     
     private static final Logger logger = System.getLogger(EngineTexturesFile.class.getName());
 

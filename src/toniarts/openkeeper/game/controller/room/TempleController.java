@@ -35,7 +35,7 @@ import toniarts.openkeeper.view.map.WallSection;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TempleController extends DoubleQuadController {
+public final class TempleController extends DoubleQuadController {
 
     public static final short OBJECT_TEMPLE_HAND_ID = 66;
     private static final int MIN_HAND_SIZE = 5;

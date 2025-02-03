@@ -19,7 +19,7 @@ import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
  *
  * This is for the level pick up
  */
-public class MainMenuInteraction implements RawInputListener {
+public final class MainMenuInteraction implements RawInputListener {
     private final MainMenuState mainMenuState;
     private FrontEndLevelControl currentControl;
 

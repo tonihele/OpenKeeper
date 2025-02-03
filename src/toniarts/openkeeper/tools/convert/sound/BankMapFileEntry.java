@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.sound;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class BankMapFileEntry {
+public final class BankMapFileEntry {
 
     private long unknown1; // 0xFFFFFFFF in all files. resets to 0 in DK2 source
     private int unknown2; // 6746904, 6746032, 6746020, 6683824

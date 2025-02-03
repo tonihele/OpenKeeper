@@ -21,7 +21,7 @@ package toniarts.openkeeper.video.tgq;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EAAudioHeader {
+public final class EAAudioHeader {
 
     public enum Platform {
 

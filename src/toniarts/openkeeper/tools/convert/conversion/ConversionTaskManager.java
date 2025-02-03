@@ -42,7 +42,7 @@ import toniarts.openkeeper.tools.convert.conversion.graph.TaskNode;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConversionTaskManager {
+public final class ConversionTaskManager {
 
     private static final Logger logger = System.getLogger(ConversionTaskManager.class.getName());
     private static final int MAX_THREADS = Runtime.getRuntime().availableProcessors();
@@ -191,7 +191,7 @@ public class ConversionTaskManager {
      *
      * @author Toni Helenius <helenius.toni@gmail.com>
      */
-    public class TaskExecuterGraphTraverser extends BreadthFirstTraverser<TaskNode> {
+    public final class TaskExecuterGraphTraverser extends BreadthFirstTraverser<TaskNode> {
 
         public void traverse(TaskNode startNode) {
             traverse(startNode, (node) -> {

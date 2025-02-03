@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TortureChamberController extends NormalRoomController {
+public final class TortureChamberController extends NormalRoomController {
 
     public TortureChamberController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);

@@ -24,7 +24,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureFall implements EntityComponent {
+public final class CreatureFall implements EntityComponent {
 
     public CreatureFall() {
         // For serialization

@@ -34,7 +34,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class RescueCreatureTask extends AbstractTileTask {
+public final class RescueCreatureTask extends AbstractTileTask {
 
     private final ICreatureController creature;
     private final TaskManager taskManager;

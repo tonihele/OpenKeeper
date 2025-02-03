@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PossessedSystem implements IGameLogicUpdatable {
+public final class PossessedSystem implements IGameLogicUpdatable {
 
     private final EntitySet possessedEntities;
     private final Map<Short, PlayerManaControl> manaControls;

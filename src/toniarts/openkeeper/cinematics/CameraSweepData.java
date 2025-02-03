@@ -30,7 +30,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CameraSweepData implements Savable {
+public final class CameraSweepData implements Savable {
 
     private List<CameraSweepDataEntry> entries;
 

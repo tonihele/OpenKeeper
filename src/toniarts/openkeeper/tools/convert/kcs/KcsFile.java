@@ -37,7 +37,7 @@ import toniarts.openkeeper.tools.convert.IResourceReader;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class KcsFile {
+public final class KcsFile {
 
     private List<KcsEntry> kcsEntries;
 

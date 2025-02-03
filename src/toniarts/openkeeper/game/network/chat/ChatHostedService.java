@@ -54,7 +54,7 @@ import static toniarts.openkeeper.game.network.lobby.LobbyHostedService.ATTRIBUT
  *
  * @author Paul Speed
  */
-public class ChatHostedService extends AbstractHostedConnectionService {
+public final class ChatHostedService extends AbstractHostedConnectionService {
 
     private static final Logger logger = System.getLogger(ChatHostedService.class.getName());
 
@@ -161,7 +161,7 @@ public class ChatHostedService extends AbstractHostedConnectionService {
      * at all it's convenient for our other code not to have to worry about the
      * internal delegate.
      */
-    private class ChatSessionImpl implements ChatSession, ChatSessionListener {
+    private final class ChatSessionImpl implements ChatSession, ChatSessionListener {
 
         private final HostedConnection conn;
         private ChatSessionListener callback;

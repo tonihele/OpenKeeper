@@ -31,7 +31,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
  *
  * @author archdemon
  */
-public class WorldUtils {
+public final class WorldUtils {
 
     public static final float TILE_HEIGHT = 1;
     public static final float TILE_WIDTH = 1;

@@ -56,7 +56,7 @@ import toniarts.openkeeper.utils.GameLoop;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameHostedService extends AbstractHostedConnectionService implements GameSessionServerService {
+public final class GameHostedService extends AbstractHostedConnectionService implements GameSessionServerService {
 
     /**
      * Someone is listening on the other end, for that we need a message type
@@ -386,7 +386,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
         }
     }
 
-    private class ServerMessageListener implements MessageListener<HostedConnection> {
+    private final class ServerMessageListener implements MessageListener<HostedConnection> {
 
         public ServerMessageListener() {
         }
@@ -412,7 +412,7 @@ public class GameHostedService extends AbstractHostedConnectionService implement
      * at all it's convenient for our other code not to have to worry about the
      * internal delegate.
      */
-    private class GameSessionImpl implements GameSession, GameSessionListener {
+    private final class GameSessionImpl implements GameSession, GameSessionListener {
 
         private final HostedConnection conn;
         private final ClientInfo clientInfo;

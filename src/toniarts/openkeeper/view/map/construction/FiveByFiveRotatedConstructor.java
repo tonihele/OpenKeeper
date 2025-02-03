@@ -30,7 +30,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FiveByFiveRotatedConstructor extends RoomConstructor {
+public final class FiveByFiveRotatedConstructor extends RoomConstructor {
 
     public FiveByFiveRotatedConstructor(AssetManager assetManager, RoomInstance roomInstance) {
         super(assetManager, roomInstance);

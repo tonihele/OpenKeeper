@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpellbookSystem implements IGameLogicUpdatable {
+public final class PlayerSpellbookSystem implements IGameLogicUpdatable {
 
     private final KwdFile kwdFile;
     private final EntitySet spellbookEntities;

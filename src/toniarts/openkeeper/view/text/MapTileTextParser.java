@@ -24,7 +24,7 @@ import toniarts.openkeeper.utils.TextUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapTileTextParser {
+public final class MapTileTextParser {
 
     public MapTileTextParser() {
     }

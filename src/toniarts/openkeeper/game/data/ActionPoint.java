@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author ArchDemon
  */
-public class ActionPoint extends Container implements ITriggerable {
+public final class ActionPoint extends Container implements ITriggerable {
 
     private final int id;
     private final int triggerId;

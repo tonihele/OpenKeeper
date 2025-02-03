@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <T> the container map tile type
  */
-public class MapIterator<T extends IMapTileInformation> implements Iterator<T> {
+public final class MapIterator<T extends IMapTileInformation> implements Iterator<T> {
 
     private final Point cursor = new Point();
     private final IMapDataInformation<T> mapDataInformation;

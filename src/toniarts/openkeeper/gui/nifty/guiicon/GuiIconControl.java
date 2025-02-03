@@ -29,7 +29,7 @@ import de.lessvoid.nifty.screen.Screen;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GuiIconControl extends AbstractController {
+public final class GuiIconControl extends AbstractController {
 
     private Nifty nifty;
     private Screen screen;

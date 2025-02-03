@@ -26,7 +26,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TextureExtractor {
+public final class TextureExtractor {
 
     private static String dkIIFolder;
 

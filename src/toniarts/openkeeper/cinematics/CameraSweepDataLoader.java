@@ -26,7 +26,7 @@ import java.io.IOException;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CameraSweepDataLoader implements AssetLoader {
+public final class CameraSweepDataLoader implements AssetLoader {
 
     public static final String FILE_EXTENSION = "csd";
 

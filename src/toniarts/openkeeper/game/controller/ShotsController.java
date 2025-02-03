@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ShotsController implements IShotsController {
+public final class ShotsController implements IShotsController {
 
     private static final Logger logger = System.getLogger(ShotsController.class.getName());
 

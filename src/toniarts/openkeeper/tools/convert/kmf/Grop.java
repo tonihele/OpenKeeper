@@ -23,7 +23,7 @@ import javax.vecmath.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Grop {
+public final class Grop {
 
     //ELEM
     /**

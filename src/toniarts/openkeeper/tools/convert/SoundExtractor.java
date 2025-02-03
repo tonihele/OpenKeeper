@@ -36,7 +36,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SoundExtractor {
+public final class SoundExtractor {
 
     private static String dkIIFolder;
 

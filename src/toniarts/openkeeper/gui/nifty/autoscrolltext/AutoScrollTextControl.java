@@ -38,7 +38,7 @@ import toniarts.openkeeper.gui.nifty.effect.HorizontalAutoScroll;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AutoScrollTextControl extends AbstractController implements Label {
+public final class AutoScrollTextControl extends AbstractController implements Label {
     
     private static final Logger logger = System.getLogger(AutoScrollTextControl.class.getName());
 

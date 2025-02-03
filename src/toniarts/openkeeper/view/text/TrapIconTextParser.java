@@ -24,7 +24,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapIconTextParser extends SimpleIconTextParser<Trap> {
+public final class TrapIconTextParser extends SimpleIconTextParser<Trap> {
 
     @Override
     protected String getReplacement(int index, Trap trap) {

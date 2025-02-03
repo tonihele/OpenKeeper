@@ -12,7 +12,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * @author 7willuwe : Philip Willuweit
  */
-public class SelectionArea implements Iterable<List<Point>> {
+public final class SelectionArea implements Iterable<List<Point>> {
 
     private Vector2f start = new Vector2f();
     private Vector2f end = new Vector2f();
@@ -129,7 +129,7 @@ public class SelectionArea implements Iterable<List<Point>> {
     /**
      * An optimized version of AbstractList.Itr
      */
-    private class AreaIterator implements Iterator<List<Point>> {
+    private final class AreaIterator implements Iterator<List<Point>> {
 
         private final Point cursor = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
         private final Point start = WorldUtils.vectorToPoint(SelectionArea.this.getStart());

@@ -26,14 +26,14 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DisplayModeUtils implements DisplayModeProvider {
+public final class DisplayModeUtils implements DisplayModeProvider {
 
     /**
      * The delegate for the actual provider
      */
     private final DisplayModeProvider displayModeProvider;
 
-    private static class SingletonHelper {
+    private static final class SingletonHelper {
 
         private static final DisplayModeUtils INSTANCE = new DisplayModeUtils();
     }

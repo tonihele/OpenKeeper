@@ -24,7 +24,7 @@ import com.simsilica.es.EntityId;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class FollowTarget implements EntityComponent {
+public final class FollowTarget implements EntityComponent {
 
     public EntityId entityId;
 

@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author archdemon
  */
-public class SoundGroup {
+public final class SoundGroup {
     
     private static final Logger logger = System.getLogger(SoundGroup.class.getName());
 

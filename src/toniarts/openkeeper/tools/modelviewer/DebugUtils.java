@@ -28,7 +28,7 @@ import com.jme3.scene.Node;
  * Example Vector Summ
  * @author Alex Cham aka Jcrypto
  */
-public class DebugUtils {
+public final class DebugUtils {
     //
     public static Node makeNode(String name) {
         Node n = new Node(name);

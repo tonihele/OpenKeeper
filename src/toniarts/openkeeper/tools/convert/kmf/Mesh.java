@@ -24,7 +24,7 @@ import javax.vecmath.Vector3f;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Mesh {
+public final class Mesh {
 
     //HEAD
     private String name;

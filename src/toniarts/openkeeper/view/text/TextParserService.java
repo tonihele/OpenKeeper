@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.map.IRoomsInformation;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TextParserService implements TextParser {
+public final class TextParserService implements TextParser {
 
     private final CreatureTextParser creatureTextParser;
     private final TrapTextParser trapTextParser;

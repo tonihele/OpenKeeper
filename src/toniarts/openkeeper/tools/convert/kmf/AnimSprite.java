@@ -21,5 +21,5 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class AnimSprite extends Sprite<AnimVertex> {
+public final class AnimSprite extends Sprite<AnimVertex> {
 }

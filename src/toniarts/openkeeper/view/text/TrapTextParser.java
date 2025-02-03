@@ -25,7 +25,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapTextParser extends EntityTextParser<Trap> {
+public final class TrapTextParser extends EntityTextParser<Trap> {
 
     public TrapTextParser() {
         super();

@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSpells implements EntityComponent {
+public final class CreatureSpells implements EntityComponent {
 
     public List<EntityId> creatureSpells;
 

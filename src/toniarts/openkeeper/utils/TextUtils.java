@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TextUtils {
+public final class TextUtils {
 
     private final static Pattern PATTERN = Pattern.compile("%(\\d+|%)");
 

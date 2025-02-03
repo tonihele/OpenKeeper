@@ -29,7 +29,7 @@ import toniarts.openkeeper.view.PlayerCamera;
  *
  * @author ArchDemon
  */
-public class PlayerCameraControl extends Control {
+public final class PlayerCameraControl extends Control {
     private PlayerCamera camera;
     private Vector3f from, to;
     private float tick = 0;

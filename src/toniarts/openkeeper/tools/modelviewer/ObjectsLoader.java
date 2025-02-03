@@ -31,7 +31,7 @@ import toniarts.openkeeper.world.effect.EffectManagerState;
  *
  * @author archdemon
  */
-public class ObjectsLoader implements ILoader<GameObject> {
+public final class ObjectsLoader implements ILoader<GameObject> {
 
     @Override
     public Spatial load(AssetManager assetManager, GameObject object) {

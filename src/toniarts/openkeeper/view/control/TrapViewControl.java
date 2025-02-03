@@ -35,7 +35,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
+public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
 
     private boolean initialized = false;
 

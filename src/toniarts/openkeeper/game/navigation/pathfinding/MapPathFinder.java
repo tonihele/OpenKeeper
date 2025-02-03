@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapPathFinder extends IndexedAStarPathFinder<IMapTileInformation> {
+public final class MapPathFinder extends IndexedAStarPathFinder<IMapTileInformation> {
 
     public MapPathFinder(MapIndexedGraph graph, boolean calculateMetrics) {
         super(graph, calculateMetrics);

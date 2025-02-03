@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.textures.ImageUtil;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LoadingScreenFile {
+public final class LoadingScreenFile {
 
     private final BufferedImage image;
 

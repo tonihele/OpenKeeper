@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-public class TriggerGenericData extends TriggerData {
+public final class TriggerGenericData extends TriggerData {
     
     private static final Logger logger = System.getLogger(TriggerGenericData.class.getName());
 

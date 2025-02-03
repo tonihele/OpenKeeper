@@ -23,7 +23,7 @@ import com.jme3.network.AbstractMessage;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameLoadProgressData extends AbstractMessage {
+public final class GameLoadProgressData extends AbstractMessage {
 
     private short keeperId;
     private float progress;

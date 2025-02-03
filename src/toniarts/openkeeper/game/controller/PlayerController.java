@@ -42,7 +42,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerController implements IPlayerController {
+public final class PlayerController implements IPlayerController {
 
     private final Keeper keeper;
     private final PlayerGoldControl goldControl;

@@ -57,7 +57,7 @@ import toniarts.openkeeper.view.camera.PlayerCameraRotateControl;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
+public final class PlayerCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
     private Main app;
     private AppStateManager stateManager;

@@ -27,7 +27,7 @@ import de.lessvoid.nifty.screen.Screen;
  *
  * @author archdemon
  */
-public class CreatureControl implements Controller {
+public final class CreatureControl implements Controller {
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {

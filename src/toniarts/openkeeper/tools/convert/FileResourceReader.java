@@ -35,7 +35,7 @@ import java.nio.file.StandardOpenOption;
  *
  * @author archdemon
  */
-public class FileResourceReader implements ISeekableResourceReader {
+public final class FileResourceReader implements ISeekableResourceReader {
     
     private static final Logger logger = System.getLogger(FileResourceReader.class.getName());
 

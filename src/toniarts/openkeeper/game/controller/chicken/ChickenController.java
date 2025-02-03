@@ -47,7 +47,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ChickenController extends EntityController implements IChickenController {
+public final class ChickenController extends EntityController implements IChickenController {
     
     private static final Logger logger = System.getLogger(ChickenController.class.getName());
 

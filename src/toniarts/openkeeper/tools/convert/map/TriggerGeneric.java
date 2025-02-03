@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  * @see TriggerAction
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TriggerGeneric extends Trigger {
+public final class TriggerGeneric extends Trigger {
 
     public enum ComparisonType implements IValueEnum {
 

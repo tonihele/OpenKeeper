@@ -23,7 +23,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Mana implements EntityComponent {
+public final class Mana implements EntityComponent {
 
     public int manaGeneration;
 

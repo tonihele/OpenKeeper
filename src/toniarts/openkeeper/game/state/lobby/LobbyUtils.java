@@ -30,7 +30,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class LobbyUtils {
+public final class LobbyUtils {
 
     private LobbyUtils() {
         // No, nope...

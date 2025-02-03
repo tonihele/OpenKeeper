@@ -23,7 +23,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  *
  * @author ArchDemon
  */
-public class AI {
+public final class AI {
 
     public enum AIType implements IValueEnum {
 

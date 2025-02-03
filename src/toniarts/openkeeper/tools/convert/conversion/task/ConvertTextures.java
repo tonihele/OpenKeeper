@@ -46,7 +46,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConvertTextures extends ConversionTask {
+public final class ConvertTextures extends ConversionTask {
 
     private static final Logger logger = System.getLogger(ConvertTextures.class.getName());
 

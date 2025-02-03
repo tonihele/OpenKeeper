@@ -25,7 +25,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureViewState implements EntityComponent {
+public final class CreatureViewState implements EntityComponent {
 
     public short creatureId;
     public double stateStartTime;

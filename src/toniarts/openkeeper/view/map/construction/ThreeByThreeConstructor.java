@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ThreeByThreeConstructor extends RoomConstructor {
+public final class ThreeByThreeConstructor extends RoomConstructor {
 
     public ThreeByThreeConstructor(AssetManager assetManager, RoomInstance roomInstance) {
         super(assetManager, roomInstance);

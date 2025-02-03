@@ -27,7 +27,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CasinoController extends NormalRoomController {
+public final class CasinoController extends NormalRoomController {
 
     public CasinoController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController) {

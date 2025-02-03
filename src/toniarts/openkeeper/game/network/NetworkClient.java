@@ -43,7 +43,7 @@ import toniarts.openkeeper.game.network.streaming.StreamingClientService;
  *
  * @author ArchDemon
  */
-public class NetworkClient implements ChatSession {
+public final class NetworkClient implements ChatSession {
     
     private static final Logger logger = System.getLogger(NetworkClient.class.getName());
 

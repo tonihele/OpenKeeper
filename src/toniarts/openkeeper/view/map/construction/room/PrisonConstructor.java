@@ -33,7 +33,7 @@ import toniarts.openkeeper.view.map.construction.DoubleQuadConstructor;
  *
  * @author ArchDemon
  */
-public class PrisonConstructor extends DoubleQuadConstructor {
+public final class PrisonConstructor extends DoubleQuadConstructor {
 
     public PrisonConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance) {
         super(assetManager, roomInstance);

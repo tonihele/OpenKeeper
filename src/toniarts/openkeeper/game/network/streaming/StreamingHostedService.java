@@ -33,7 +33,7 @@ import toniarts.openkeeper.game.network.message.StreamedMessage;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class StreamingHostedService extends AbstractHostedService {
+public final class StreamingHostedService extends AbstractHostedService {
     
     private static final Logger logger = System.getLogger(StreamingHostedService.class.getName());
 

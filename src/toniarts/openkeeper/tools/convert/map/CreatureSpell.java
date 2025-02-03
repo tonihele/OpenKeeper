@@ -25,7 +25,7 @@ import java.util.EnumSet;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CreatureSpell implements Comparable<CreatureSpell> {
+public final class CreatureSpell implements Comparable<CreatureSpell> {
 
     /**
      * Creature spell flags

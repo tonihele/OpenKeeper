@@ -28,7 +28,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DoorTextParser extends EntityTextParser<Door> {
+public final class DoorTextParser extends EntityTextParser<Door> {
 
     public DoorTextParser() {
         super();

@@ -37,7 +37,7 @@ import java.nio.file.StandardOpenOption;
  * 
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class BufferedResourceReader implements IResourceReader {
+public final class BufferedResourceReader implements IResourceReader {
     
     private static final Logger logger = System.getLogger(BufferedResourceReader.class.getName());
 

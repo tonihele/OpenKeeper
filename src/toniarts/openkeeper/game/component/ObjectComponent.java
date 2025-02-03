@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectComponent implements EntityComponent {
+public final class ObjectComponent implements EntityComponent {
 
     public short objectId;
 

@@ -37,7 +37,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  *
  * @author ArchDemon
  */
-public class ActionPointTriggerControl extends TriggerControl {
+public final class ActionPointTriggerControl extends TriggerControl {
 
     private static final Logger logger = System.getLogger(ActionPointTriggerControl.class.getName());
 

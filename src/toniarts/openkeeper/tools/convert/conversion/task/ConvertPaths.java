@@ -47,7 +47,7 @@ import toniarts.openkeeper.utils.PathUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ConvertPaths extends ConversionTask {
+public final class ConvertPaths extends ConversionTask {
 
     private static final Logger logger = System.getLogger(ConvertPaths.class.getName());
 

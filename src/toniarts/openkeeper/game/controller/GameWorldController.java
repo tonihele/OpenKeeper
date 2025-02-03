@@ -89,7 +89,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class GameWorldController implements IGameWorldController, IPlayerActions {
+public final class GameWorldController implements IGameWorldController, IPlayerActions {
     
     private static final System.Logger logger = System.getLogger(GameWorldController.class.getName());
 

@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  *
  * @author ArchDemon
  */
-public class PrisonController extends DoubleQuadController {
+public final class PrisonController extends DoubleQuadController {
 
     private static final short OBJECT_DOOR_ID = 109;
     private static final short OBJECT_DOORBAR_ID = 116;

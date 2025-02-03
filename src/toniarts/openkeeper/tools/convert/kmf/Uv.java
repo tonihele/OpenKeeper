@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Uv {
+public final class Uv {
 
     private final int[] uv;
 

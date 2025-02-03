@@ -34,7 +34,7 @@ import toniarts.openkeeper.world.WorldState;
  *
  * @author ArchDemon
  */
-public class GameConsole {
+public final class GameConsole {
 
     private final Console console;
     private ConsoleCommands consoleCommands;
@@ -120,7 +120,7 @@ public class GameConsole {
         return console;
     }
 
-    public class SimpleCommand implements ConsoleCommand {
+    public final class SimpleCommand implements ConsoleCommand {
 
         @Override
         public void execute(final String[] args) {
@@ -155,7 +155,7 @@ public class GameConsole {
         }
     }
 
-    private class ParameterCommand implements ConsoleCommand {
+    private final class ParameterCommand implements ConsoleCommand {
 
         @Override
         public void execute(final String[] args) {

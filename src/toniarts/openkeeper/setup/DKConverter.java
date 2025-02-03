@@ -276,7 +276,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
     /**
      * A thread that handles the conversion process
      */
-    private static class Converter extends Thread {
+    private static final class Converter extends Thread {
 
         private final String dungeonKeeperFolder;
         private final AssetManager assetManager;
@@ -329,7 +329,7 @@ public abstract class DKConverter extends javax.swing.JFrame implements IFrameCl
         }
     }
 
-    private static class Progress {
+    private static final class Progress {
 
         private Integer current;
         private Integer max;

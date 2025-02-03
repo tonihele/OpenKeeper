@@ -33,7 +33,7 @@ import toniarts.openkeeper.view.map.construction.QuadConstructor;
  *
  * @author ArchDemon
  */
-public class StoneBridgeConstructor extends QuadConstructor {
+public final class StoneBridgeConstructor extends QuadConstructor {
 
     public StoneBridgeConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance) {
         super(assetManager, roomInstance);

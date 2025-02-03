@@ -41,6 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.Creature.JobAlternative;
 import toniarts.openkeeper.tools.convert.map.Creature.OffsetType;
+import toniarts.openkeeper.tools.convert.map.Creature.Resistance;
 import toniarts.openkeeper.tools.convert.map.Creature.Spell;
 import toniarts.openkeeper.tools.convert.map.Creature.X1323;
 import toniarts.openkeeper.tools.convert.map.Door.DoorFlag;
@@ -1271,7 +1272,7 @@ public final class KwdFile {
             creature.setLight(readLight(reader));
             Attraction[] attractions = new Attraction[2];
             for (int x = 0; x < attractions.length; x++) {
-                Attraction attraction = creature.new Attraction();
+                var attraction = new Attraction();
                 attraction.setPresent(reader.readUnsignedInteger());
                 attraction.setRoomId(reader.readUnsignedShort());
                 attraction.setRoomSize(reader.readUnsignedShort());
@@ -1282,7 +1283,7 @@ public final class KwdFile {
             creature.setFirstPersonOscillateScale(reader.readIntegerAsFloat());
             List<Spell> spells = new ArrayList<>(3);
             for (int x = 0; x < 3; x++) {
-                Spell spell = creature.new Spell();
+                var spell = new Spell();
                 spell.setShotOffset(reader.readIntegerAsFloat(),
                         reader.readIntegerAsFloat(),
                         reader.readIntegerAsFloat());
@@ -1302,7 +1303,7 @@ public final class KwdFile {
             creature.setSpells(spells);
             Creature.Resistance[] resistances = new Creature.Resistance[4];
             for (int x = 0; x < resistances.length; x++) {
-                Creature.Resistance resistance = creature.new Resistance();
+                var resistance = new Resistance();
                 resistance.setAttackType(reader.readByteAsEnum(Creature.AttackType.class));
                 resistance.setValue(reader.readUnsignedByte());
                 resistances[x] = resistance;
@@ -1318,7 +1319,7 @@ public final class KwdFile {
             creature.setHateJobs(hateJobs);
             JobAlternative[] alternatives = new JobAlternative[3];
             for (int x = 0; x < alternatives.length; x++) {
-                JobAlternative alternative = creature.new JobAlternative();
+                var alternative = new JobAlternative();
                 alternative.setJobType(reader.readIntegerAsEnum(Creature.JobType.class));
                 alternative.setMoodChange(reader.readUnsignedShort());
                 alternative.setManaChange(reader.readUnsignedShort());
@@ -1448,7 +1449,7 @@ public final class KwdFile {
             creature.setAnimation(AnimationType.BACK_OFF, readArtResource(reader));
             X1323[] x1323s = new X1323[48];
             for (int x = 0; x < x1323s.length; x++) {
-                X1323 x1323 = creature.new X1323();
+                var x1323 = new X1323();
                 x1323.setX00(reader.readUnsignedShort());
                 x1323.setX02(reader.readUnsignedShort());
                 x1323s[x] = x1323;
@@ -1512,7 +1513,7 @@ public final class KwdFile {
     private Creature.JobPreference[] readJobPreferences(int count, Creature creature, IResourceChunkReader reader) {
         Creature.JobPreference[] preferences = new Creature.JobPreference[count];
         for (int x = 0; x < preferences.length; x++) {
-            Creature.JobPreference jobPreference = creature.new JobPreference();
+            var jobPreference = new Creature.JobPreference();
             jobPreference.setJobType(reader.readIntegerAsEnum(Creature.JobType.class));
             jobPreference.setMoodChange(reader.readUnsignedShort());
             jobPreference.setManaChange(reader.readUnsignedShort());
@@ -3272,7 +3273,7 @@ public final class KwdFile {
     /**
      * Kwd header, few different kinds, handles all
      */
-    private static class KwdHeader {
+    private static final class KwdHeader {
         // struct kwdHeader {
         //     unsigned int id;
         //     unsigned int size;

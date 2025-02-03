@@ -24,7 +24,7 @@ import toniarts.openkeeper.gui.nifty.table.TableRow;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerTableRow extends TableRow {
+public final class PlayerTableRow extends TableRow {
 
     private final ClientInfo clientInfo;
 

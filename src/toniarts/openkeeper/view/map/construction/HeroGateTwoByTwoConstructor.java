@@ -27,7 +27,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author ArchDemon
  */
-public class HeroGateTwoByTwoConstructor extends RoomConstructor {
+public final class HeroGateTwoByTwoConstructor extends RoomConstructor {
 
     public HeroGateTwoByTwoConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance) {
         super(assetManager, roomInstance);

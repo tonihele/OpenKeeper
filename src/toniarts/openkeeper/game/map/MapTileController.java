@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MapTileController extends AbstractMapTileInformation implements IMapTileController {
+public final class MapTileController extends AbstractMapTileInformation implements IMapTileController {
 
     private final EntityData entityData;
 

@@ -35,7 +35,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class CarryObjectToStorageTask extends AbstractCapacityCriticalRoomTask {
+public final class CarryObjectToStorageTask extends AbstractCapacityCriticalRoomTask {
 
     private final IObjectController gameObject;
     private boolean executed = false;

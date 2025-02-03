@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
  *
  * @author ArchDemon
  */
-public class ActionPointTriggerLogicController implements IGameLogicUpdatable {
+public final class ActionPointTriggerLogicController implements IGameLogicUpdatable {
 
     private final SafeArrayList<ActionPointTriggerControl> triggers = new SafeArrayList<>(ActionPointTriggerControl.class);
 

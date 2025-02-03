@@ -34,7 +34,7 @@ import java.io.IOException;
  *
  * @author ArchDemon
  */
-public class FunnyCameraContol  implements Control, JmeCloneable {
+public final class FunnyCameraContol  implements Control, JmeCloneable {
     protected Spatial target = null;
 
     protected float distance = 10;

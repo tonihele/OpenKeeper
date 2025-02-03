@@ -31,7 +31,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TrapLoader implements ILoader<TrapViewState> {
+public final class TrapLoader implements ILoader<TrapViewState> {
     
     private static final Logger logger = System.getLogger(TrapLoader.class.getName());
 

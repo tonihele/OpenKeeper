@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
-public class PartyTriggerControl extends TriggerControl {
+public final class PartyTriggerControl extends TriggerControl {
 
     private final IPartyController partyController;
 

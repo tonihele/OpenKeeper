@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, ResearchableEntity, PlayerSpellListener> {
+public final class PlayerSpellControl extends AbstractResearchablePlayerControl<KeeperSpell, ResearchableEntity, PlayerSpellListener> {
 
     public PlayerSpellControl(Keeper keeper, List<KeeperSpell> keeperSpells) {
         super(keeper, keeper.getAvailableSpells(), keeperSpells);

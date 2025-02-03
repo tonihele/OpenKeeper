@@ -42,9 +42,9 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
  *
  * @author ArchDemon
  */
-public class HiScores implements Savable {
+public final class HiScores implements Savable {
 
-    public static class HiScoresEntry implements Savable, Comparable<HiScoresEntry> {
+    public static final class HiScoresEntry implements Savable, Comparable<HiScoresEntry> {
 
         protected int score;
         protected String name;

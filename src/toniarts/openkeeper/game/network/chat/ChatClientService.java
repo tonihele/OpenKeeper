@@ -49,7 +49,7 @@ import toniarts.openkeeper.game.network.NetworkConstants;
  *
  * @author Paul Speed
  */
-public class ChatClientService extends AbstractClientService
+public final class ChatClientService extends AbstractClientService
         implements ChatSession {
 
     private static final Logger logger = System.getLogger(ChatClientService.class.getName());
@@ -125,7 +125,7 @@ public class ChatClientService extends AbstractClientService
      * Shared with the server over RMI so that it can notify us about account
      * related stuff.
      */
-    private class ChatSessionCallback implements ChatSessionListener {
+    private final class ChatSessionCallback implements ChatSessionListener {
 
         @Override
         public void playerJoined(int playerId, String playerName) {

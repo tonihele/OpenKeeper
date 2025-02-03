@@ -34,7 +34,7 @@ import toniarts.openkeeper.Main;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class EndGameState extends AbstractAppState implements RawInputListener {
+public final class EndGameState extends AbstractAppState implements RawInputListener {
 
     private Main app;
     private AppStateManager stateManager;

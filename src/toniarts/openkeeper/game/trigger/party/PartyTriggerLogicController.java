@@ -29,7 +29,7 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
  *
  * @author ArchDemon
  */
-public class PartyTriggerLogicController implements IGameLogicUpdatable {
+public final class PartyTriggerLogicController implements IGameLogicUpdatable {
 
     private final SafeArrayList<PartyTriggerControl> partyControllers = new SafeArrayList<>(PartyTriggerControl.class);
 

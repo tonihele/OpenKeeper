@@ -27,7 +27,7 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class PlayerTableRowViewConverter extends TableRowViewConverter<PlayerTableRow> {
+public final class PlayerTableRowViewConverter extends TableRowViewConverter<PlayerTableRow> {
 
     @Override
     protected void displayString(Element element, PlayerTableRow item, String itemData) {

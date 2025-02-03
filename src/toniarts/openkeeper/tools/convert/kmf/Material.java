@@ -27,19 +27,20 @@ import toniarts.openkeeper.tools.convert.IFlagEnum;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Material {
+public final class Material {
 
     public enum MaterialFlag implements IFlagEnum {
 
         HAS_ALPHA(0x0001),
-        UNKNOWN2(0x0002), // Some sort of shininess
+        // closely related to 0x1 but both exist in isolation too
+        DOUBLE_SIDED(0x0002), // Some sort of shininess, used e.g. in axe blade, piranha tail
         ALPHA_ADDITIVE(0x0004), // Also emits "light" / glows..?
-        UNKNOWN4(0x0008),
-        UNKNOWN5(0x0010),
-        UNKNOWN6(0x0020),
-        UNKNOWN7(0x0040),
-        UNKNOWN8(0x0080), // Some sort of glow?
-        UNKNOWN9(0x0100); // Environment mapped, invisible guys have this???
+        UNKNOWN8(0x0008), // ice? only set on #TRANS25#icey
+        UNKNOWN10(0x0010), // only used for 'Angel Bed RibsCreature Bed_Dark Angel2'
+        UNKNOWN20(0x0020), // never used?
+        IS_SHININESS_SET(0x0040), // metal? sword, pickimpback etc.
+        IS_BRIGHTNESS_SET(0x0080), // Some sort of glow? e.g. Lava
+        INVISIBLE(0x0100); // Environment mapped, invisible guys have this???
         private final long flagValue;
 
         private MaterialFlag(long flagValue) {
@@ -55,7 +56,7 @@ public class Material {
     private List<String> textures;
     private EnumSet<MaterialFlag> flag;
     private float brightness;
-    private float gamma;
+    private float shininess;
     private String environmentMappingTexture;
 
     public String getName() {
@@ -90,12 +91,13 @@ public class Material {
         this.brightness = brightness;
     }
 
-    public float getGamma() {
-        return gamma;
+    public float getShininess() {
+        return shininess;
     }
 
-    protected void setGamma(float gamma) {
-        this.gamma = gamma;
+    protected void setShininess(float shininess) {
+        if (flag.contains(MaterialFlag.IS_SHININESS_SET))
+            this.shininess = shininess;
     }
 
     public String getEnvironmentMappingTexture() {
@@ -159,7 +161,7 @@ public class Material {
         if (Float.floatToIntBits(this.brightness) != Float.floatToIntBits(other.brightness)) {
             return false;
         }
-        if (Float.floatToIntBits(this.gamma) != Float.floatToIntBits(other.gamma)) {
+        if (Float.floatToIntBits(this.shininess) != Float.floatToIntBits(other.shininess)) {
             return false;
         }
         if (!Objects.equals(this.name, other.name)) {

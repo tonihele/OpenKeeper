@@ -35,7 +35,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class DeathSystem implements IGameLogicUpdatable {
+public final class DeathSystem implements IGameLogicUpdatable {
 
     private final IEntityPositionLookup entityPositionLookup;
     private final EntitySet deathEntities;

@@ -37,7 +37,7 @@ import javax.annotation.Nullable;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class SimpleHintEx implements EffectImpl {
+public final class SimpleHintEx implements EffectImpl {
 
     /**
      * target element.

@@ -26,7 +26,7 @@ import com.simsilica.es.EntityId;
  * @author ArchDemon
  */
 @Serializable
-public class MessagePlayerInfo extends AbstractMessage {
+public final class MessagePlayerInfo extends AbstractMessage {
 
     private String name;
     private int memory;

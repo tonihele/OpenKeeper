@@ -104,7 +104,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class TaskManager implements ITaskManager, IGameLogicUpdatable {
+public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
 

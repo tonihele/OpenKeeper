@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class ObjectiveDigTileTask extends DigTileTask {
+public final class ObjectiveDigTileTask extends DigTileTask {
 
     public ObjectiveDigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
         super(navigationService, mapController, p, playerId);

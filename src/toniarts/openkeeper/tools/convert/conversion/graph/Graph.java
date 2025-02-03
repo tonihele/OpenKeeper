@@ -30,7 +30,7 @@ import java.util.Set;
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @param <T> The node type
  */
-public class Graph<T extends Node> {
+public final class Graph<T extends Node> {
 
     private final Map<T, T> nodes = new HashMap<>();
     private final Set<T> rootNodes = new HashSet<>();

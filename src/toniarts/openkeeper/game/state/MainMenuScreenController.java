@@ -91,7 +91,7 @@ import toniarts.openkeeper.utils.Utils;
  *
  * @author ArchDemon
  */
-public class MainMenuScreenController implements IMainMenuScreenController {
+public final class MainMenuScreenController implements IMainMenuScreenController {
     
     private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
@@ -1134,7 +1134,7 @@ public class MainMenuScreenController implements IMainMenuScreenController {
         nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
     }
 
-    public static class Cutscene {
+    public static final class Cutscene {
 
         protected String image;
         protected String click;

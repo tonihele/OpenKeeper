@@ -49,7 +49,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Water {
+public final class Water {
 
     /**
      * TODO: Options loaded from elsewhere

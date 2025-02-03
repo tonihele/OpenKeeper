@@ -21,7 +21,7 @@ package toniarts.openkeeper.tools.convert.kmf;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class MeshVertex extends Vertex {
+public final class MeshVertex extends Vertex {
 
     private int geomIndex;
 
