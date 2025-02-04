@@ -15,9 +15,9 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-        maven { url "https://jitpack.io" }
+        maven { url = "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven { url = "https://oss.sonatype.org/content/repositories/releases/" }
+        maven { url = "https://jitpack.io" }
     }
 }
 
@@ -123,5 +123,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '8.10.2'
+    gradleVersion = '8.12.1'
 }
