@@ -7,7 +7,7 @@ plugins {
 }
 
 ext {
-    jmonkeyengine_version = '3.7.0-stable'
+    jmonkeyengine_version = '3.8.0-stable'
     license = file("$rootDir/license.txt")
 }
 
@@ -123,5 +123,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '8.12.1'
+    gradleVersion = '8.14'
 }
