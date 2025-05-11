@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -807,7 +808,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 .collect(Collectors.toMap((entry) -> entry.getKey(), (entry) -> entry.getValue()));
 
         // Process each available task for each available worker
-        List<TaskWorkerPriority> priorizedTasks = new ArrayList<>(workers.size() + tasks.size());
+        List<TaskWorkerPriority> priorizedTasks = new LinkedList<>();
         for (Entry<ICreatureController, Consumer<Boolean>> workerEntry : unemployedWorkers.entrySet()) {
             ICreatureController creature = workerEntry.getKey();
             Consumer<Boolean> workResult = workerEntry.getValue();
