@@ -20,6 +20,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureGenerator;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
@@ -30,10 +31,10 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
-    private double lastSpawnTime = Double.MIN_VALUE;
-
     public ThreeByThreeController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
+
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
     }
 
     @Override
@@ -51,17 +52,17 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public double getLastSpawnTime() {
-        return lastSpawnTime;
+        return getEntityComponent(CreatureGenerator.class).lastSpawnTime;
     }
 
     @Override
     public void onSpawn(double time, EntityId entityId) {
-        this.lastSpawnTime = time;
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), time));
     }
 
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        lastSpawnTime = Double.MIN_VALUE;
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
     }
 }

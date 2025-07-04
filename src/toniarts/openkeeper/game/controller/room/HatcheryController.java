@@ -34,7 +34,6 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class HatcheryController extends NormalRoomController implements IChickenGenerator {
 
-    private double lastSpawnTime;
     private final IGameTimer gameTimer;
     private final RoomFoodControl roomFoodControl;
 
@@ -51,7 +50,7 @@ public final class HatcheryController extends NormalRoomController implements IC
         addObjectControl(roomFoodControl);
 
         this.gameTimer = gameTimer;
-        lastSpawnTime = gameTimer.getGameTime();
+        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
     }
 
     @Override
@@ -67,12 +66,12 @@ public final class HatcheryController extends NormalRoomController implements IC
 
     @Override
     public double getLastSpawnTime() {
-        return lastSpawnTime;
+        return getEntityComponent(ChickenGenerator.class).lastSpawnTime;
     }
 
     @Override
     public void onSpawn(double time, EntityId entityId) {
-        this.lastSpawnTime = time;
+        entityData.setComponent(entityId, new ChickenGenerator(time));
         if (entityId != null) {
             this.roomFoodControl.addItem(entityId, start);
         }
@@ -81,7 +80,7 @@ public final class HatcheryController extends NormalRoomController implements IC
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        lastSpawnTime = gameTimer.getGameTime();
+        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
     }
 
     @Override

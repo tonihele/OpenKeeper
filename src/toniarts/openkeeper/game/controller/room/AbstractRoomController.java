@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -366,7 +367,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      */
     @Override
     public boolean isDungeonHeart() {
-        return false;
+        return getEntityComponent(DungeonHeart.class) != null;
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2019 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,23 +19,14 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Just a tagging component for chicken generators
+ * Just a tagging component for dungeon heart
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class ChickenGenerator implements EntityComponent {
+public final class DungeonHeart implements EntityComponent {
 
-    /**
-     * Last entity spawn time, in game time
-     */
-    public double lastSpawnTime;
-
-    public ChickenGenerator() {
+    public DungeonHeart() {
         // For serialization
-    }
-
-    public ChickenGenerator(double lastSpawnTime) {
-        this.lastSpawnTime = lastSpawnTime;
     }
 
 }

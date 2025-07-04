@@ -20,16 +20,15 @@ import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -43,14 +42,14 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     public static final short OBJECT_BIG_STEPS_ID = 88;
     public static final short OBJECT_PLUG_ID = 96;
 
-    private double lastSpawnTime = Double.MIN_VALUE;
-    private final List<Point> spawnPoints = new ArrayList<>(16);
-
     public FiveByFiveRotatedController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
         final int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
+
+        entityData.setComponent(entityId, new DungeonHeart());
+
         addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
 
             @Override
@@ -66,15 +65,19 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     @Override
+    public void destroy() {
+        super.destroy();
+
+        entityData.removeComponent(entityId, ImpGenerator.class);
+    }
+
+    @Override
     public void construct() {
         super.construct();
 
-        // Init the spawn points
-        spawnPoints.clear();
-        for (Point p : roomInstance.getCoordinates()) {
-            if (isTileAccessible(null, null, p.x, p.y)) {
-                spawnPoints.add(p);
-            }
+        // Init the spawn point
+        if (!isDestroyed()) {
+            entityData.setComponent(entityId, new ImpGenerator(start, Double.MIN_VALUE));
         }
     }
 
@@ -108,6 +111,7 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     private void constructDestroyed(Point center) {
+        // TODO:
     }
 
     @Override
@@ -119,31 +123,25 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     @Override
-    public boolean isDungeonHeart() {
-        return true;
-    }
-
-    @Override
     public Point getEntranceCoordinate() {
-
-        // FIXME: Is it random truly or just one corner??
-        return Utils.getRandomItem(spawnPoints);
+        return getEntityComponent(ImpGenerator.class).entrance;
     }
 
     @Override
     public double getLastSpawnTime() {
-        return lastSpawnTime;
+        return getEntityComponent(ImpGenerator.class).lastSpawnTime;
     }
 
     @Override
     public void onSpawn(double time, EntityId entityId) {
-        this.lastSpawnTime = time;
+        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, time));
     }
 
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        lastSpawnTime = Double.MIN_VALUE;
+
+        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, Double.MIN_VALUE));
     }
 
 }

@@ -277,14 +277,14 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
         }
 
         private void addRoom(IRoomController room) {
-            if (room instanceof IChickenGenerator) {
-                entrances.add((IChickenGenerator) room);
+            if (room instanceof IChickenGenerator chickenGenerator) {
+                entrances.add(chickenGenerator);
             }
         }
 
         private void removeRoom(IRoomController room) {
-            if (room instanceof IChickenGenerator) {
-                entrances.remove((IChickenGenerator) room);
+            if (room instanceof IChickenGenerator chickenGenerator) {
+                entrances.remove(chickenGenerator);
             }
         }
 
