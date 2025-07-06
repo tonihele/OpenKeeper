@@ -395,7 +395,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (tile != null) {
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    tooltip.setText(tile.getOwnerId() != player.getPlayerId() ? Utils.getMainTextResourceBundle().getString("2471") : textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(kwdFile.getRoomByTerrain(terrain.getTerrainId()).getTooltipStringId())), tile.getRoomId()));
+                    tooltip.setText(getRoomTooltip(tile, terrain));
                 } else {
                     tooltip.setText(textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
                 }
@@ -420,6 +420,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         return (interactiveControl != null);
+    }
+
+    private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
+        if (tile.getOwnerId() != player.getPlayerId()) {
+            return Utils.getMainTextResourceBundle().getString("2471");
+        }
+
+        // Override dungeon heart JELLY text
+        Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+        String bundleKey = kwdFile.getDungeonHeart() == room ? "2579" : Integer.toString(room.getTooltipStringId());
+
+        return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey), tile.getRoomId());
     }
 
     private void updateInteractiveObjectOnCursor() {
