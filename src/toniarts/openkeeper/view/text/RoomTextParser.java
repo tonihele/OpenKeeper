@@ -19,7 +19,6 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.TextUtils;
 
 /**
@@ -29,11 +28,9 @@ import toniarts.openkeeper.utils.TextUtils;
  */
 public class RoomTextParser {
 
-    private final KwdFile kwdFile;
     private final IRoomsInformation roomsInformation;
 
-    public RoomTextParser(KwdFile kwdFile, IRoomsInformation roomsInformation) {
-        this.kwdFile = kwdFile;
+    public RoomTextParser(IRoomsInformation roomsInformation) {
         this.roomsInformation = roomsInformation;
     }
 
@@ -82,10 +79,6 @@ public class RoomTextParser {
         }
 
         return "Parameter " + index + " not implemented!";
-
-//                if (roomInstance.getOwnerId() != playerId) {
-//            return notOwnedTooltip;
-//        }
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {

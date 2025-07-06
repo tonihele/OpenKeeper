@@ -162,7 +162,7 @@ public final class MainMenuState extends AbstractAppState {
         if (loadingScreen != null) {
             loadingScreen.setProgress(1.0f);
         }
-        mainMenuEntityViewState = new MainMenuEntityViewState(kwdFile, assetManager, mainMenuEntityData, Player.KEEPER1_ID, new TextParserService(kwdFile, gameController.getGameWorldController().getMapController(), null), menuNode);
+        mainMenuEntityViewState = new MainMenuEntityViewState(kwdFile, assetManager, mainMenuEntityData, Player.KEEPER1_ID, new TextParserService(gameController.getGameWorldController().getMapController(), null), menuNode);
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
 

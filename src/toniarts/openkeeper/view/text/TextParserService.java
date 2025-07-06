@@ -18,7 +18,6 @@ package toniarts.openkeeper.view.text;
 
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 /**
  * A kind of facade to the different kind of parsers. Many of them share the
@@ -35,13 +34,13 @@ public final class TextParserService implements TextParser {
     private final MapTileTextParser mapTileTextParser;
     private final RoomTextParser roomTextParser;
 
-    public TextParserService(KwdFile kwdFile, IMapInformation mapInformation, IRoomsInformation roomsInformation) {
+    public TextParserService(IMapInformation mapInformation, IRoomsInformation roomsInformation) {
         this.creatureTextParser = new CreatureTextParser(mapInformation);
         this.trapTextParser = new TrapTextParser();
         this.doorTextParser = new DoorTextParser();
         this.objectTextParser = new ObjectTextParser();
         this.mapTileTextParser = new MapTileTextParser();
-        this.roomTextParser = new RoomTextParser(kwdFile, roomsInformation);
+        this.roomTextParser = new RoomTextParser(roomsInformation);
     }
 
     @Override
