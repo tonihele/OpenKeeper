@@ -39,7 +39,7 @@ public final class TreasuryController extends NormalRoomController {
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
         goldPerTile = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_TREASURY_TILE).getValue();
-        addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomGoldControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
             protected int getGoldPerObject() {

@@ -50,7 +50,7 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
 
         entityData.setComponent(entityId, new DungeonHeart());
 
-        addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomGoldControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
             protected int getGoldPerObject() {

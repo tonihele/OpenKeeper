@@ -42,7 +42,7 @@ public final class PrisonController extends DoubleQuadController {
     public PrisonController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomPrisonerControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomPrisonerControl(kwdFile, this, entityData, gameTimer) {
             @Override
             protected Collection<Point> getCoordinates() {
 

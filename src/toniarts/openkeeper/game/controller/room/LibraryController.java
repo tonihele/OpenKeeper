@@ -36,14 +36,14 @@ public final class LibraryController extends NormalRoomController {
             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomResearcherControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomResearcherControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
                 return getFurnitureCount();
             }
         });
-        addObjectControl(new RoomSpellBookControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomSpellBookControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

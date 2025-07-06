@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -31,8 +31,8 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomPrisonerControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
+    public RoomPrisonerControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+        super(kwdFile, parent, entityData, gameTimer);
     }
 
     @Override

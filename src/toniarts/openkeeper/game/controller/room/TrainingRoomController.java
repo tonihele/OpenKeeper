@@ -35,7 +35,7 @@ public final class TrainingRoomController extends NormalRoomController {
             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomTraineeControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomTraineeControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

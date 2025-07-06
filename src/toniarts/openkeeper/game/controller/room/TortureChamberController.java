@@ -35,7 +35,7 @@ public final class TortureChamberController extends NormalRoomController {
     public TortureChamberController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomTortureeControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomTortureeControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

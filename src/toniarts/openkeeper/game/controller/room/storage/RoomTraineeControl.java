@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -23,7 +24,6 @@ import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -36,8 +36,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomTraineeControl extends AbstractRoomObjectControl<EntityId> {
 
-    protected RoomTraineeControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
+    protected RoomTraineeControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+        super(kwdFile, parent, entityData, gameTimer);
     }
 
     @Override
@@ -79,10 +79,10 @@ public abstract class RoomTraineeControl extends AbstractRoomObjectControl<Entit
         // Only furniture
         List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
         for (EntityId oc : parent.getFloorFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(objectsController.getEntityData().getComponent(oc, Position.class).position));
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
         for (EntityId oc : parent.getWallFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(objectsController.getEntityData().getComponent(oc, Position.class).position));
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
 
         return coordinates;

@@ -35,7 +35,7 @@ public final class LairController extends NormalRoomController {
             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
-        addObjectControl(new RoomLairControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomLairControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

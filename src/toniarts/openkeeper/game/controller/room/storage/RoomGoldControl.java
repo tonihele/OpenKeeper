@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -40,10 +41,13 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer> {
 
+    private final IObjectsController objectsController;
     private int storedGold = 0;
 
-    public RoomGoldControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
+    public RoomGoldControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
+        super(kwdFile, parent, entityData, gameTimer);
+
+        this.objectsController = objectsController;
     }
 
     @Override
@@ -72,7 +76,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         Collection<EntityId> goldPiles = objectsByCoordinate.get(p);
         Gold goldPile = null;
         if (goldPiles != null && !goldPiles.isEmpty()) {
-            goldPile = objectsController.getEntityData().getComponent(goldPiles.iterator().next(), Gold.class);
+            goldPile = entityData.getComponent(goldPiles.iterator().next(), Gold.class);
             pointStoredGold = goldPile.gold;
         }
         if (pointStoredGold < getGoldPerObject()) {
@@ -123,7 +127,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         Map<Point, Integer> storedGoldList = new HashMap<>(objectsByCoordinate.size());
         for (Entry<Point, Collection<EntityId>> entry : objectsByCoordinate.entrySet()) {
             for (EntityId entityId : entry.getValue()) {
-                storedGoldList.put(entry.getKey(), objectsController.getEntityData().getComponent(entityId, Gold.class).gold);
+                storedGoldList.put(entry.getKey(), entityData.getComponent(entityId, Gold.class).gold);
             }
         }
 
@@ -144,10 +148,10 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
 
         // Substract the gold from the player
         //parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
-        Gold goldPile = objectsController.getEntityData().getComponent(object, Gold.class);
+        Gold goldPile = entityData.getComponent(object, Gold.class);
         storedGold -= goldPile.gold;
         if (goldPile.gold == 0) {
-            objectsController.getEntityData().removeEntity(object);
+            entityData.removeEntity(object);
         }
     }
 
@@ -162,7 +166,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         for (Collection<EntityId> goldPiles : objectsByCoordinate.values()) {
             if (!goldPiles.isEmpty()) {
                 EntityId goldEntity = goldPiles.iterator().next();
-                Gold goldPile = objectsController.getEntityData().getComponent(goldPiles.iterator().next(), Gold.class);
+                Gold goldPile = entityData.getComponent(goldPiles.iterator().next(), Gold.class);
                 int goldToRemove = Math.min(goldPile.gold, amount);
                 amount -= goldToRemove;
                 goldPile.gold = goldPile.gold - goldToRemove;

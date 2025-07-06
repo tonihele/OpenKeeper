@@ -40,7 +40,7 @@ public final class HatcheryController extends NormalRoomController implements IC
     public HatcheryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
 
-        roomFoodControl = new RoomFoodControl(kwdFile, this, objectsController, gameTimer) {
+        roomFoodControl = new RoomFoodControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {

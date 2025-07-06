@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.awt.Point;
@@ -52,6 +53,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class ChickenSpawnSystem implements IGameLogicUpdatable {
 
+    private final EntityData entityData;
     private final IObjectsController objectsController;
     private final IMapController mapController;
     private final int maximumFreerangeChickenCount;
@@ -65,9 +67,10 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
     private final Map<Short, Set<EntityId>> freeRangeChickensByPlayer;
     private final Map<EntityId, Short> freeRangeChickenOwners;
 
-    public ChickenSpawnSystem(IObjectsController objectsController, Collection<IPlayerController> playerControllers,
+    public ChickenSpawnSystem(EntityData entityData, IObjectsController objectsController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
             IMapController mapController) {
+        this.entityData = entityData;
         this.objectsController = objectsController;
         this.mapController = mapController;
 
@@ -100,12 +103,12 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
         }
 
         // Listen for the coops, also room specific generation...
-        freerangeChickenGenerators = objectsController.getEntityData().getEntities(ChickenGenerator.class, Position.class);
+        freerangeChickenGenerators = entityData.getEntities(ChickenGenerator.class, Position.class);
         processAddedEntities(freerangeChickenGenerators);
 
         // Listen for freerange chickens
         // For know we know this for the food and decay tag, not very elegant perhaps
-        freerangeChickens = objectsController.getEntityData().getEntities(Food.class, Decay.class, Owner.class);
+        freerangeChickens = entityData.getEntities(Food.class, Decay.class, Owner.class);
         freeRangeChickenOwners = HashMap.newHashMap(playerControllersById.size() * maximumFreerangeChickenCount);
         freeRangeChickensByPlayer = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController player : playerControllers) {
@@ -158,7 +161,7 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
                     // Spawn a free range chicken
                     // Don't give the entity ID, it is not added to room inventory
                     // TODO: Need to have the generator IN USE component etc. This goes for all the objects, how we use them
-                    Position position = objectsController.getEntityData().getComponent(generator.get(), Position.class);
+                    Position position = entityData.getComponent(generator.get(), Position.class);
                     objectsController.spawnFreerangeChicken(entrance.getRoomInstance().getOwnerId(), position.position.clone(), gameTime);
                     spawned = true;
                 }
