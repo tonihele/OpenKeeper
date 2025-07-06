@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.AbstractResearchablePlayerControl;
@@ -55,7 +55,7 @@ public final class PlayerSpellbookSystem implements IGameLogicUpdatable {
             }
         }
 
-        spellbookEntities = entityData.getEntities(new FieldFilter(RoomStorage.class, "objectType", AbstractRoomController.ObjectType.SPELL_BOOK), Spellbook.class, RoomStorage.class, Owner.class);
+        spellbookEntities = entityData.getEntities(new FieldFilter(Stored.class, "objectType", AbstractRoomController.ObjectType.SPELL_BOOK), Spellbook.class, Stored.class, Owner.class);
         processAddedEntities(spellbookEntities);
     }
 

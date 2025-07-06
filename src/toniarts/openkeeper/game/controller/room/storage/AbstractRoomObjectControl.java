@@ -28,7 +28,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -100,7 +100,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
      */
     @Override
     public void removeItem(EntityId object) {
-        entityData.removeComponent(object, RoomStorage.class);
+        entityData.removeComponent(object, Stored.class);
         addNoRoomDecay(object);
         for (Collection<EntityId> objects : objectsByCoordinate.values()) {
             if (objects.remove(object)) {
@@ -158,7 +158,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     }
 
     protected void setRoomStorageToItem(EntityId entityId, boolean changeOwner) {
-        entityData.setComponent(entityId, new RoomStorage(parent.getEntityId(), getObjectType()));
+        entityData.setComponent(entityId, new Stored(parent.getEntityId(), getObjectType()));
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.DIE_OVER_TIME_IF_NOT_IN_ROOM)) {
             entityData.removeComponent(entityId, Decay.class);

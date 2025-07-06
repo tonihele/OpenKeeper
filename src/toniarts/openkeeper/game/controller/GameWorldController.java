@@ -54,7 +54,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -621,7 +621,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
-        RoomStorage roomStorage = entityData.getComponent(entity, RoomStorage.class);
+        Stored roomStorage = entityData.getComponent(entity, Stored.class);
         IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         if (roomController != null && roomStorage != null) {
             IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);

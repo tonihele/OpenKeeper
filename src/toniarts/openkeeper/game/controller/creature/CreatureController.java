@@ -63,7 +63,7 @@ import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -1243,7 +1243,7 @@ public final class CreatureController extends EntityController implements ICreat
         entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
-        entityData.setComponent(entityId, new RoomStorage(roomId, AbstractRoomController.ObjectType.PRISONER));
+        entityData.setComponent(entityId, new Stored(roomId, AbstractRoomController.ObjectType.PRISONER));
 
         // Switch the control to the imprisoning player
         Owner owner = entityData.getComponent(entityId, Owner.class);

@@ -29,7 +29,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -76,7 +76,7 @@ public final class ChickenController extends EntityController implements IChicke
         final Position position = entityData.getComponent(entityId, Position.class);
         final Mobile mobile = entityData.getComponent(entityId, Mobile.class);
         final Owner owner = entityData.getComponent(entityId, Owner.class);
-        final RoomStorage roomStorage = entityData.getComponent(entityId, RoomStorage.class);
+        final Stored roomStorage = entityData.getComponent(entityId, Stored.class);
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
             Point destination = null;

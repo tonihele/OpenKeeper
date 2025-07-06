@@ -77,7 +77,7 @@ import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Spellbook;
@@ -199,7 +199,7 @@ public final class NetworkServer {
             Serializer.registerClass(PortalGem.class, new FieldSerializer());
             Serializer.registerClass(Position.class, new FieldSerializer());
             Serializer.registerClass(Regeneration.class, new FieldSerializer());
-            Serializer.registerClass(RoomStorage.class, new FieldSerializer());
+            Serializer.registerClass(Stored.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
