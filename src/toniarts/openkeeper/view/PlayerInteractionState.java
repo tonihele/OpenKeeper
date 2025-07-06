@@ -395,10 +395,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (tile != null) {
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    //RoomInstance roomInstance = getWorldHandler().getMapLoader().getRoomCoordinates().get(new Point((int) p.x, (int) p.y));
-                    //GenericRoom room = getWorldHandler().getMapLoader().getRoomActuals().get(roomInstance);
-                    //tooltip.setText(room.getTooltip(player.getPlayerId()));
-                    tooltip.setText(textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(kwdFile.getRoomByTerrain(terrain.getTerrainId()).getTooltipStringId())), tile.getRoomId()));
+                    tooltip.setText(tile.getOwnerId() != player.getPlayerId() ? Utils.getMainTextResourceBundle().getString("2471") : textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(kwdFile.getRoomByTerrain(terrain.getTerrainId()).getTooltipStringId())), tile.getRoomId()));
                 } else {
                     tooltip.setText(textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
                 }
