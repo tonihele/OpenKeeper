@@ -37,12 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public abstract class RoomTortureeControl extends AbstractRoomObjectControl<EntityId> {
 
     public RoomTortureeControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
-        super(kwdFile, parent, entityData, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return objectsByCoordinate.size();
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.TORTUREE);
     }
 
     @Override
@@ -51,18 +46,23 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     }
 
     @Override
-    public ObjectType getObjectType() {
-        return ObjectType.TORTUREE;
-    }
-
-    @Override
     public EntityId addItem(EntityId torturee, Point p) {
         setRoomStorageToItem(torturee, false);
+        addCurrentCapacity(1);
+
         return torturee;
     }
 
     @Override
+    public void removeItem(EntityId object) {
+        super.removeItem(object);
+
+        addCurrentCapacity(-1);
+    }
+
+    @Override
     public void destroy() {
+        super.destroy();
 
         // TODO: The creature is released
     }

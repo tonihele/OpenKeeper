@@ -31,9 +31,18 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class LairController extends NormalRoomController {
 
+    private final IGameTimer gameTimer;
+
     public LairController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             IGameTimer gameTimer) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.LAIR);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
 
         addObjectControl(new RoomLairControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
@@ -43,4 +52,5 @@ public final class LairController extends NormalRoomController {
             }
         });
     }
+
 }

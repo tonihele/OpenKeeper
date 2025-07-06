@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -75,7 +76,6 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final EntityData entityData;
     protected final KwdFile kwdFile;
     protected final RoomInstance roomInstance;
-    private ObjectType defaultObjectType;
     private final Map<ObjectType, IRoomObjectControl> objectControls = new HashMap<>();
     protected boolean[][] map;
     protected Point start;
@@ -85,8 +85,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     private final Set<EntityId> pillars;
 
     public AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile, 
-            RoomInstance roomInstance, IObjectsController objectsController) {
+            RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
         super(entityId);
+
         this.entityId = entityId;
         this.entityData = entityData;
         this.kwdFile = kwdFile;
@@ -97,6 +98,12 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         } else {
             pillars = Collections.emptySet();
         }
+
+        entityData.setComponents(entityId,
+                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed(), defaultStorageType, roomInstance.getCenter()),
+                new Owner(roomInstance.getOwnerId(), roomInstance.getOwnerId()),
+                new Health(roomInstance.getHealth(), roomInstance.getMaxHealth())
+        );
     }
 
     protected void setupCoordinates() {
@@ -227,9 +234,6 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
     protected final void addObjectControl(IRoomObjectControl control) {
         objectControls.put(control.getObjectType(), control);
-        if (defaultObjectType == null) {
-            defaultObjectType = control.getObjectType();
-        }
     }
 
     @Override
@@ -302,37 +306,24 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         return hasObjectControl(ObjectType.GOLD);
     }
 
-    /**
-     * Get room max capacity
-     *
-     * @return room max capacity
-     */
-    protected int getMaxCapacity() {
-        IRoomObjectControl control = getDefaultRoomObjectControl();
+    @Override
+    public int getMaxCapacity(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.get(objectType);
         if (control != null) {
             return control.getMaxCapacity();
         }
+
         return 0;
     }
 
-    /**
-     * Get used capacity
-     *
-     * @return the used capacity of the room
-     */
-    protected int getUsedCapacity() {
-        IRoomObjectControl control = getDefaultRoomObjectControl();
+    @Override
+    public int getUsedCapacity(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.get(objectType);
         if (control != null) {
             return control.getCurrentCapacity();
         }
-        return 0;
-    }
 
-    private IRoomObjectControl getDefaultRoomObjectControl() {
-        if (defaultObjectType != null) {
-            return objectControls.get(defaultObjectType);
-        }
-        return null;
+        return 0;
     }
 
     @Override

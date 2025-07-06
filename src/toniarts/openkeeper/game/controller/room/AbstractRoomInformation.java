@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IRoomInformation;
 
 /**
- * A presentation of a single map tile. Gets data from specified entity
+ * A presentation of a single room entity. Gets data from specified entity
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -87,6 +87,21 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     }
 
     @Override
+    public AbstractRoomController.ObjectType getDefaultStorageType() {
+        return getEntityComponent(RoomComponent.class).defaultStorageType;
+    }
+
+    @Override
+    public int getMaxCapacity() {
+        return getMaxCapacity(getDefaultStorageType());
+    }
+
+    @Override
+    public int getUsedCapacity() {
+        return getUsedCapacity(getDefaultStorageType());
+    }
+
+    @Override
     public int hashCode() {
         int hash = 7;
         hash = 41 * hash + Objects.hashCode(this.entityId);
@@ -110,5 +125,4 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
         }
         return true;
     }
-
 }

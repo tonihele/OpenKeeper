@@ -37,12 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public abstract class RoomResearcherControl extends AbstractRoomObjectControl<EntityId> {
 
     public RoomResearcherControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
-        super(kwdFile, parent, entityData, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return objectsByCoordinate.size();
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.RESEARCHER);
     }
 
     @Override
@@ -51,18 +46,23 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
     }
 
     @Override
-    public ObjectType getObjectType() {
-        return ObjectType.RESEARCHER;
-    }
-
-    @Override
     public EntityId addItem(EntityId researcher, Point p) {
         setRoomStorageToItem(researcher, false);
+        addCurrentCapacity(1);
+
         return researcher;
     }
 
     @Override
+    public void removeItem(EntityId object) {
+        super.removeItem(object);
+
+        addCurrentCapacity(-1);
+    }
+
+    @Override
     public void destroy() {
+        super.destroy();
 
         // TODO: The researcher can't do his/her job
     }

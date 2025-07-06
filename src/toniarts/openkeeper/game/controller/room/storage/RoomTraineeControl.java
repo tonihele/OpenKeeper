@@ -37,12 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public abstract class RoomTraineeControl extends AbstractRoomObjectControl<EntityId> {
 
     protected RoomTraineeControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
-        super(kwdFile, parent, entityData, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return objectsByCoordinate.size();
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.TRAINEE);
     }
 
     @Override
@@ -51,19 +46,23 @@ public abstract class RoomTraineeControl extends AbstractRoomObjectControl<Entit
     }
 
     @Override
-    public ObjectType getObjectType() {
-        return ObjectType.TRAINEE;
-    }
-
-    @Override
     public EntityId addItem(EntityId trainee, Point p) {
         setRoomStorageToItem(trainee, false);
+        addCurrentCapacity(1);
 
         return trainee;
     }
 
     @Override
+    public void removeItem(EntityId object) {
+        super.removeItem(object);
+
+        addCurrentCapacity(-1);
+    }
+
+    @Override
     public void destroy() {
+        super.destroy();
 
         // TODO: The trainee can't do his/her job
     }

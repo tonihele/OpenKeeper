@@ -42,13 +42,30 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     public static final short OBJECT_BIG_STEPS_ID = 88;
     public static final short OBJECT_PLUG_ID = 96;
 
+    private final IGameTimer gameTimer;
+    private final int maxGold;
+
     public FiveByFiveRotatedController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
-        final int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GOLD);
+
+        this.gameTimer = gameTimer;
+        maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
 
         entityData.setComponent(entityId, new DungeonHeart());
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+
+        entityData.removeComponent(entityId, ImpGenerator.class);
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
 
         addObjectControl(new RoomGoldControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
@@ -62,18 +79,6 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
                 return 16;
             }
         });
-    }
-
-    @Override
-    public void destroy() {
-        super.destroy();
-
-        entityData.removeComponent(entityId, ImpGenerator.class);
-    }
-
-    @Override
-    public void construct() {
-        super.construct();
 
         // Init the spawn point
         if (!isDestroyed()) {

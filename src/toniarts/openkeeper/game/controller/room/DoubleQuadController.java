@@ -36,8 +36,14 @@ public class DoubleQuadController extends NormalRoomController {
 
     public DoubleQuadController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        this(entityId, entityData, kwdFile, roomInstance, objectsController, null);
     }
+
+    public DoubleQuadController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, defaultStorageType);
+    }
+
 
     @Override
     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {

@@ -32,7 +32,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
     public ThreeByThreeController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
         entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
     }

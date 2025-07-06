@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.TextUtils;
 
 /**
@@ -28,9 +29,11 @@ import toniarts.openkeeper.utils.TextUtils;
  */
 public class RoomTextParser {
 
+    private final KwdFile kwdFile;
     private final IRoomsInformation roomsInformation;
 
-    public RoomTextParser(IRoomsInformation roomsInformation) {
+    public RoomTextParser(KwdFile kwdFile, IRoomsInformation roomsInformation) {
+        this.kwdFile = kwdFile;
         this.roomsInformation = roomsInformation;
     }
 
@@ -45,24 +48,37 @@ public class RoomTextParser {
             case 37:
                 return Integer.toString(room.getHealthPercent()); // Health
             case 38:
-                return ""; // Used capacity
+                return Integer.toString(room.getUsedCapacity()); // Used capacity
             case 39:
-                return ""; // Max capacity
-            case 44: // Portal
-            case 45: // Lairs
-            case 46: // Hatchery
-            case 47: // Treasure
-            case 48: // Library
-            case 49: // Training Room
-            case 50: // Workshop
-            case 51: // Guard Rooms
-            case 53: // Combat Pit
-            case 54: // Torture
-            case 58: // Prison
-            case 61: // Graveyard
-            case 62: // Temple
-            case 63: // Casino
-                return "0"; // amount
+                return Integer.toString(room.getMaxCapacity()); // Max capacity
+            case 44:
+                return getRoomAmount(room, 3); // Portal
+            case 45:
+                return getRoomAmount(room, 2); // Lair
+            case 46:
+                return getRoomAmount(room, 4); // Hatchery
+            case 47:
+                return getRoomAmount(room, 1); // Treasury
+            case 48:
+                return getRoomAmount(room, 6); // Library
+            case 49:
+                return getRoomAmount(room, 7); // Training Room
+            case 50:
+                return getRoomAmount(room, 10); // Workshop
+            case 51:
+                return getRoomAmount(room, 9); // Guard Room
+            case 53:
+                return getRoomAmount(room, 16); // Combat Pit
+            case 54:
+                return getRoomAmount(room, 12); // Torture
+            case 58:
+                return getRoomAmount(room, 11); // Prison
+            case 61:
+                return getRoomAmount(room, 14); // Graveyard
+            case 62:
+                return getRoomAmount(room, 13); // Temple
+            case 63:
+                return getRoomAmount(room, 15); // Casino
         }
 
         return "Parameter " + index + " not implemented!";
@@ -70,6 +86,10 @@ public class RoomTextParser {
 //                if (roomInstance.getOwnerId() != playerId) {
 //            return notOwnedTooltip;
 //        }
+    }
+
+    private String getRoomAmount(IRoomInformation room, int roomId) {
+        return Integer.toString(roomsInformation.getRoomCount(room.getOwnerId(), (short) roomId));
     }
 
 }

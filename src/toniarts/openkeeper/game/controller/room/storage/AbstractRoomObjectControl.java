@@ -28,9 +28,11 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -49,18 +51,27 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     protected final EntityData entityData;
     private final IGameTimer gameTimer;
     protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
+    private final EntityId entityId;
 
     public AbstractRoomObjectControl(KwdFile kwdFile, IRoomController parent, EntityData entityData,
-            IGameTimer gameTimer) {
+            IGameTimer gameTimer, AbstractRoomController.ObjectType objectType) {
         this.kwdFile = kwdFile;
         this.parent = parent;
         this.entityData = entityData;
         this.gameTimer = gameTimer;
+
+        entityId = entityData.createEntity();
+        entityData.setComponent(entityId, new Storage(parent.getEntityId(), objectType, 0, calculateMaxCapacity()));
     }
 
     protected abstract int getObjectsPerTile();
 
     protected abstract int getNumberOfAccessibleTiles();
+
+    @Override
+    public void destroy() {
+        entityData.removeEntity(entityId);
+    }
 
     /**
      * Get a room objects
@@ -79,7 +90,11 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
      * @return max capacity in number of objects
      */
     @Override
-    public int getMaxCapacity() {
+    public final int getMaxCapacity() {
+        return entityData.getComponent(entityId, Storage.class).maxCapacity;
+    }
+
+    protected int calculateMaxCapacity() {
         return getObjectsPerTile() * getNumberOfAccessibleTiles();
     }
 
@@ -91,6 +106,21 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     @Override
     public boolean isFullCapacity() {
         return getCurrentCapacity() >= getMaxCapacity();
+    }
+
+    @Override
+    public final int getCurrentCapacity() {
+        return entityData.getComponent(entityId, Storage.class).currentCapacity;
+    }
+
+    @Override
+    public final AbstractRoomController.ObjectType getObjectType() {
+        return entityData.getComponent(entityId, Storage.class).objectType;
+    }
+
+    protected final void addCurrentCapacity(int amount) {
+        Storage currentStorage = entityData.getComponent(entityId, Storage.class);
+        entityData.setComponent(entityId, new Storage(currentStorage.room, currentStorage.objectType, currentStorage.currentCapacity + amount, currentStorage.maxCapacity));
     }
 
     /**
@@ -165,7 +195,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         }
 
         // Also set the owner if there is one already
-        changeEntityOwner(entityId, parent.getRoomInstance().getOwnerId(), changeOwner);
+        changeEntityOwner(entityId, parent.getOwnerId(), changeOwner);
     }
 
     @Override

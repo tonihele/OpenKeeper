@@ -35,10 +35,18 @@ import toniarts.openkeeper.utils.Utils;
 public final class HatcheryController extends NormalRoomController implements IChickenGenerator {
 
     private final IGameTimer gameTimer;
-    private final RoomFoodControl roomFoodControl;
+    private RoomFoodControl roomFoodControl;
 
     public HatcheryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.FOOD);
+
+        this.gameTimer = gameTimer;
+        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
 
         roomFoodControl = new RoomFoodControl(kwdFile, this, entityData, gameTimer) {
 
@@ -48,9 +56,6 @@ public final class HatcheryController extends NormalRoomController implements IC
             }
         };
         addObjectControl(roomFoodControl);
-
-        this.gameTimer = gameTimer;
-        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
     }
 
     @Override
@@ -81,17 +86,6 @@ public final class HatcheryController extends NormalRoomController implements IC
     public void captured(short playerId) {
         super.captured(playerId);
         entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
-    }
-
-    @Override
-    protected int getUsedCapacity() {
-        // TODO: General problem how do we tie objects to room, with component of course but how does the room know
-        return super.getUsedCapacity();
-    }
-
-    @Override
-    protected int getMaxCapacity() {
-        return roomInstance.getCoordinates().size();
     }
 
     @Override

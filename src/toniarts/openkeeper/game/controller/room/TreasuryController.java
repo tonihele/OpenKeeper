@@ -33,12 +33,21 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  */
 public final class TreasuryController extends NormalRoomController {
 
+    private final IGameTimer gameTimer;
     private final Integer goldPerTile;
 
     public TreasuryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GOLD);
+
+        this.gameTimer = gameTimer;
         goldPerTile = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_TREASURY_TILE).getValue();
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
         addObjectControl(new RoomGoldControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
@@ -51,6 +60,5 @@ public final class TreasuryController extends NormalRoomController {
                 return roomInstance.getCoordinates().size();
             }
         });
-
     }
 }

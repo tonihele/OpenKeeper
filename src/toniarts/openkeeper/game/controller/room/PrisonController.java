@@ -37,10 +37,20 @@ public final class PrisonController extends DoubleQuadController {
     private static final short OBJECT_DOOR_ID = 109;
     private static final short OBJECT_DOORBAR_ID = 116;
 
+    private final IGameTimer gameTimer;
+
     private Point door;
 
-    public PrisonController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+    public PrisonController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.PRISONER);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
 
         addObjectControl(new RoomPrisonerControl(kwdFile, this, entityData, gameTimer) {
             @Override

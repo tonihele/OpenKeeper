@@ -32,12 +32,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
     public RoomPrisonerControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
-        super(kwdFile, parent, entityData, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return objectsByCoordinate.size();
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.PRISONER);
     }
 
     @Override
@@ -45,19 +40,26 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
         return 1;
     }
 
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.PRISONER;
-    }
 
     @Override
     public EntityId addItem(EntityId creature, Point p) {
         setRoomStorageToItem(creature, false);
+        addCurrentCapacity(1);
+
         return creature;
     }
 
     @Override
+    public void removeItem(EntityId object) {
+        super.removeItem(object);
+
+        addCurrentCapacity(-1);
+    }
+
+    @Override
     public void destroy() {
+        super.destroy();
+
         // TODO: The prisoners are released!
     }
 

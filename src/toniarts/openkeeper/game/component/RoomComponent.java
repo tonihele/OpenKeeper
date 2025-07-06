@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import java.awt.Point;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
  * A base room component. This entity is a room
@@ -28,6 +29,11 @@ public class RoomComponent implements EntityComponent {
 
     public short roomId;
     public boolean destroyed = false;
+
+    /**
+     * Default storage type, maybe null
+     */
+    public AbstractRoomController.ObjectType defaultStorageType;
 
     /**
      * Room center, for convenience
@@ -41,12 +47,19 @@ public class RoomComponent implements EntityComponent {
     public RoomComponent(RoomComponent roomComponent) {
         roomId = roomComponent.roomId;
         destroyed = roomComponent.destroyed;
+        defaultStorageType = roomComponent.defaultStorageType;
         location = roomComponent.location;
     }
 
     public RoomComponent(short roomId, boolean destroyed, Point location) {
+        this(roomId, destroyed, null, location);
+    }
+
+    public RoomComponent(short roomId, boolean destroyed, AbstractRoomController.ObjectType defaultStorageType, Point location) {
         this.roomId = roomId;
         this.destroyed = destroyed;
+        this.defaultStorageType = defaultStorageType;
+        this.location = location;
     }
 
 }

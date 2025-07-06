@@ -37,25 +37,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<EntityId> {
 
-    private int storedSpellBooks = 0;
-
     public RoomSpellBookControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
-        super(kwdFile, parent, entityData, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return storedSpellBooks;
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.SPELL_BOOK);
     }
 
     @Override
     protected int getObjectsPerTile() {
         return 2; // 2 spell books per floor furniture tile
-    }
-
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.SPELL_BOOK;
     }
 
     @Override
@@ -91,12 +79,14 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Ent
         spellBooks.add(value);
         objectsByCoordinate.put(p, spellBooks);
         setRoomStorageToItem(value, true);
-        storedSpellBooks++;
+        addCurrentCapacity(1);
+
         return null;
     }
 
     @Override
     public void destroy() {
+        super.destroy();
 
         // The keeper has no more access to the spells
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());

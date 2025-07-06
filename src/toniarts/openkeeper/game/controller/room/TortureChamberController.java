@@ -32,8 +32,17 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class TortureChamberController extends NormalRoomController {
 
+    private final IGameTimer gameTimer;
+
     public TortureChamberController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.TORTUREE);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
 
         addObjectControl(new RoomTortureeControl(kwdFile, this, entityData, gameTimer) {
 
@@ -43,5 +52,4 @@ public final class TortureChamberController extends NormalRoomController {
             }
         });
     }
-
 }

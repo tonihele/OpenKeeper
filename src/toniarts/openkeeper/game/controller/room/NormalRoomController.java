@@ -40,7 +40,12 @@ public class NormalRoomController extends AbstractRoomController {
 
     public NormalRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+        this(entityId, entityData, kwdFile, roomInstance, objectsController, null);
+    }
+
+    public NormalRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, defaultStorageType);
     }
 
     @Override

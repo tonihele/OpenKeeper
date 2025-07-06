@@ -28,4 +28,6 @@ public interface IRoomsInformation<T extends IRoomInformation> {
 
     T getRoomInformation(EntityId entityId);
 
+    int getRoomCount(short ownerId, short roomId);
+
 }

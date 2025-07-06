@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.map;
 
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
  * A kind of a room container with no editing functionalities
@@ -56,5 +57,37 @@ public interface IRoomInformation {
      * @return is the room destroyed
      */
     boolean isDestroyed();
+
+    /**
+     * Get maximum capacity by default storage type
+     *
+     * @return maximum capacity
+     */
+    int getMaxCapacity();
+
+    /**
+     * Get used capacity by default storage type
+     *
+     * @return current used capacity
+     */
+    int getUsedCapacity();
+
+    /**
+     * Get maximum capacity by the object type
+     *
+     * @param objectType the storage type
+     * @return maximum capacity
+     */
+    int getMaxCapacity(AbstractRoomController.ObjectType objectType);
+
+    /**
+     * Get used capacity by the object type
+     *
+     * @param objectType the storage type
+     * @return current used capacity
+     */
+    int getUsedCapacity(AbstractRoomController.ObjectType objectType);
+
+    AbstractRoomController.ObjectType getDefaultStorageType();
 
 }

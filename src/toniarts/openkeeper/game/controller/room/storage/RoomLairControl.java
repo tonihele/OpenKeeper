@@ -37,22 +37,11 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId> {
 
     private final IObjectsController objectsController;
-    private int lairs = 0;
 
     public RoomLairControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
-        super(kwdFile, parent, entityData, gameTimer);
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.LAIR);
 
         this.objectsController = objectsController;
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return lairs;
-    }
-
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.LAIR;
     }
 
     @Override
@@ -72,12 +61,14 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         objects.add(object);
         objectsByCoordinate.put(p, objects);
         setRoomStorageToItem(object, true);
-        lairs++;
+        addCurrentCapacity(1);
+
         return object;
     }
 
     @Override
     public void destroy() {
+        super.destroy();
 
         // Just release all the lairs
         removeAllObjects();
@@ -86,7 +77,7 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
     @Override
     public void removeItem(EntityId object) {
         super.removeItem(object);
-        lairs--;
+        addCurrentCapacity(-1);
 
         // Lairs get removed for real
         entityData.removeEntity(object);
