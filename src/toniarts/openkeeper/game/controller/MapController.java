@@ -628,6 +628,7 @@ public final class MapController extends Container implements IMapController {
         // Apply the damage equally to all tiles so that the overall condition can be checked easily
         // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
         int damagePerTile = Math.abs(damage / roomTiles.size());
+        int currentHealth = 0;
         for (Point p : roomTiles) {
             IMapTileController roomTile = getMapData().getTile(p);
             if (applyDamage(roomTile, damagePerTile)) {
@@ -653,11 +654,16 @@ public final class MapController extends Container implements IMapController {
                 notifyTileChange(roomTiles);
                 IRoomController roomController = getRoomController(room);
                 roomController.captured(playerId);
+                roomController.setHealth(roomController.getMaxHealth());
                 notifyOnCapturedByEnemy(owner, roomController);
                 notifyOnCaptured(playerId, roomController);
-                break;
+                return;
             }
+            currentHealth += roomTile.getHealth();
         }
+
+        IRoomController roomController = getRoomController(room);
+        roomController.setHealth(currentHealth);
     }
 
     public int mineGold(IMapTileController tile, int amount) {

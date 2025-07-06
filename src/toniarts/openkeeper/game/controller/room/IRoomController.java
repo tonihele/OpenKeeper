@@ -119,4 +119,6 @@ public interface IRoomController extends IRoomInformation {
 
     public boolean isFullCapacity();
 
+    public void setHealth(int health);
+
 }

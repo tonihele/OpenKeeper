@@ -106,6 +106,12 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         );
     }
 
+    @Override
+    public void setHealth(int health) {
+        Health healthComponent = getEntityComponent(Health.class);
+        entityData.setComponent(entityId, new Health(health, healthComponent.maxHealth));
+    }
+
     protected void setupCoordinates() {
         map = roomInstance.getCoordinatesAsMatrix();
         start = roomInstance.getMatrixStartPoint();
