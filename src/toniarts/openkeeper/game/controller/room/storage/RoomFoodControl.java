@@ -34,7 +34,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomFoodControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+    protected RoomFoodControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.FOOD);
     }
 

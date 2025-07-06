@@ -48,7 +48,7 @@ public abstract class MapTileContainer extends EntityContainer<IMapTileInformati
     private final Consumer<Point[]> tileUpdateCallback;
     private int tilesAdded = 0;
 
-    public MapTileContainer(EntityData entityData, KwdFile kwdFile, Consumer<Point[]> tileUpdateCallback) {
+    protected MapTileContainer(EntityData entityData, KwdFile kwdFile, Consumer<Point[]> tileUpdateCallback) {
         super(entityData, MapTile.class, Owner.class, Health.class, Gold.class, Mana.class);
 
         this.tileUpdateCallback = tileUpdateCallback;

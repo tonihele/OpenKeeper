@@ -33,7 +33,7 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
 
     protected final EntityId entityId;
 
-    public AbstractRoomInformation(EntityId entityId) {
+    protected AbstractRoomInformation(EntityId entityId) {
         this.entityId = entityId;
     }
 

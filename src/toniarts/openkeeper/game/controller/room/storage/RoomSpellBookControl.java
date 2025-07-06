@@ -37,7 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomSpellBookControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+    protected RoomSpellBookControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.SPELL_BOOK);
     }
 

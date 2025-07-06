@@ -72,7 +72,6 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         ISOLATED;
     }
 
-    protected final EntityId entityId;
     protected final EntityData entityData;
     protected final KwdFile kwdFile;
     protected final RoomInstance roomInstance;
@@ -84,11 +83,10 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
 
-    public AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile, 
+    protected AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
         super(entityId);
 
-        this.entityId = entityId;
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.roomInstance = roomInstance;
