@@ -264,11 +264,6 @@ public final class ObjectsController implements IObjectsController {
     }
 
     @Override
-    public EntityData getEntityData() {
-        return entityData;
-    }
-
-    @Override
     public IObjectController createController(EntityId entityId) {
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         if (objectComponent == null) {

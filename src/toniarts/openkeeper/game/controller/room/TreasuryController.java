@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -31,13 +33,22 @@ import toniarts.openkeeper.tools.convert.map.Variable;
  */
 public final class TreasuryController extends NormalRoomController {
 
+    private final IGameTimer gameTimer;
     private final Integer goldPerTile;
 
-    public TreasuryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+    public TreasuryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GOLD);
+
+        this.gameTimer = gameTimer;
         goldPerTile = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_TREASURY_TILE).getValue();
-        addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomGoldControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
             protected int getGoldPerObject() {
@@ -49,6 +60,5 @@ public final class TreasuryController extends NormalRoomController {
                 return roomInstance.getCoordinates().size();
             }
         });
-
     }
 }

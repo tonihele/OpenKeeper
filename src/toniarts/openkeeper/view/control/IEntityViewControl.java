@@ -180,6 +180,13 @@ public interface IEntityViewControl<T, S> extends Control {
     public short getOwnerId();
 
     /**
+     * Get the control ID of the entity
+     *
+     * @return the player ID of the one in charge
+     */
+    public short getControlId();
+
+    /**
      * Get the entity ID
      *
      * @return the entity ID

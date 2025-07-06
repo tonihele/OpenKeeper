@@ -16,17 +16,8 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.Entity;
-import com.simsilica.es.EntityComponent;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.game.map.IRoomsInformation;
 
 /**
  * A kind of facade to the different kind of parsers. Many of them share the
@@ -41,47 +32,44 @@ public final class TextParserService implements TextParser {
     private final DoorTextParser doorTextParser;
     private final ObjectTextParser objectTextParser;
     private final MapTileTextParser mapTileTextParser;
+    private final RoomTextParser roomTextParser;
 
-    public TextParserService(IMapInformation mapInformation) {
+    public TextParserService(IMapInformation mapInformation, IRoomsInformation roomsInformation) {
         this.creatureTextParser = new CreatureTextParser(mapInformation);
         this.trapTextParser = new TrapTextParser();
         this.doorTextParser = new DoorTextParser();
         this.objectTextParser = new ObjectTextParser();
         this.mapTileTextParser = new MapTileTextParser();
+        this.roomTextParser = new RoomTextParser(roomsInformation);
     }
 
     @Override
-    public String parseText(String text, Entity entity, Creature creature) {
-        return creatureTextParser.parseText(text, entity, creature);
+    public CreatureTextParser getCreatureTextParser() {
+        return creatureTextParser;
     }
 
     @Override
-    public String parseText(String text, Entity entity, Trap trap) {
-        return trapTextParser.parseText(text, entity, trap);
+    public TrapTextParser getTrapTextParser() {
+        return trapTextParser;
     }
 
     @Override
-    public String parseText(String text, Entity entity, Door door) {
-        return doorTextParser.parseText(text, entity, door);
+    public DoorTextParser getDoorTextParser() {
+        return doorTextParser;
     }
 
     @Override
-    public String parseText(String text, Entity entity, GameObject gameObject) {
-        return objectTextParser.parseText(text, entity, gameObject);
+    public ObjectTextParser getObjectTextParser() {
+        return objectTextParser;
     }
 
     @Override
-    public String parseText(String text, IMapTileInformation mapTile) {
-        return mapTileTextParser.parseText(text, mapTile);
+    public MapTileTextParser getMapTileTextParser() {
+        return mapTileTextParser;
     }
 
     @Override
-    public Collection<Class<? extends EntityComponent>> getWatchedComponents() {
-        List<Class<? extends EntityComponent>> components = new ArrayList<>();
-
-        components.addAll(creatureTextParser.getWatchedComponents());
-
-        return components;
+    public RoomTextParser getRoomTextParser() {
+        return roomTextParser;
     }
-    
 }

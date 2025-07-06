@@ -32,6 +32,8 @@ public final class RoomInstance extends EntityInstance<Room> {
     private final Thing.Room.Direction direction;
     private short ownerId;
     private boolean destroyed = false;
+    private int health;
+    private int maxHealth;
 
     public RoomInstance(Room room) {
         this(room, null);
@@ -81,6 +83,22 @@ public final class RoomInstance extends EntityInstance<Room> {
 
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public void setHealth(int health) {
+        this.health = health;
+    }
+
+    public int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
     }
 
 }

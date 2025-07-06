@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2018 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,24 +17,16 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
- * Tags an entity to be storaged on a room
+ * Just a tagging component for dungeon heart
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class RoomStorage implements EntityComponent {
+public final class DungeonHeart implements EntityComponent {
 
-    // TODO: maybe replace with room ID
-    public AbstractRoomController.ObjectType objectType;
-
-    public RoomStorage() {
+    public DungeonHeart() {
         // For serialization
-    }
-
-    public RoomStorage(AbstractRoomController.ObjectType objectType) {
-        this.objectType = objectType;
     }
 
 }

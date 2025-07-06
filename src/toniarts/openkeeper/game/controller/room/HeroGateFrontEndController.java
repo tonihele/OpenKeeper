@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -39,8 +41,9 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
 
-    public HeroGateFrontEndController(KwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
-        super(kwdFile, roomInstance, objectsController);
+    public HeroGateFrontEndController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }
 
     @Override

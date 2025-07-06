@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -35,20 +36,12 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId> {
 
-    private int lairs = 0;
+    private final IObjectsController objectsController;
 
-    public RoomLairControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
-    }
+    public RoomLairControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.LAIR);
 
-    @Override
-    public int getCurrentCapacity() {
-        return lairs;
-    }
-
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.LAIR;
+        this.objectsController = objectsController;
     }
 
     @Override
@@ -59,8 +52,8 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         }
 
         // FIXME: KWD stuff should not be used anymore in this level, all data must be in in-game objects
-        Owner owner = objectsController.getEntityData().getComponent(creature, Owner.class);
-        CreatureComponent creatureComponent = objectsController.getEntityData().getComponent(creature, CreatureComponent.class);
+        Owner owner = entityData.getComponent(creature, Owner.class);
+        CreatureComponent creatureComponent = entityData.getComponent(creature, CreatureComponent.class);
         EntityId object = objectsController.loadObject(kwdFile.getCreature(creatureComponent.creatureId).getLairObjectId(), owner.ownerId, p.x, p.y);
         if (objects == null) {
             objects = new ArrayList<>(1);
@@ -68,12 +61,14 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         objects.add(object);
         objectsByCoordinate.put(p, objects);
         setRoomStorageToItem(object, true);
-        lairs++;
+        addCurrentCapacity(1);
+
         return object;
     }
 
     @Override
     public void destroy() {
+        super.destroy();
 
         // Just release all the lairs
         removeAllObjects();
@@ -82,10 +77,10 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
     @Override
     public void removeItem(EntityId object) {
         super.removeItem(object);
-        lairs--;
+        addCurrentCapacity(-1);
 
         // Lairs get removed for real
-        objectsController.getEntityData().removeEntity(object);
+        entityData.removeEntity(object);
     }
 
     @Override

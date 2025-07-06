@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.HashSet;
 import java.util.Set;
@@ -32,9 +34,16 @@ public class DoubleQuadController extends NormalRoomController {
 
     protected Set<Point> insideCoordinates;
 
-    public DoubleQuadController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
-        super(kwdFile, roomInstance, objectsController);
+    public DoubleQuadController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController) {
+        this(entityId, entityData, kwdFile, roomInstance, objectsController, null);
     }
+
+    public DoubleQuadController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, defaultStorageType);
+    }
+
 
     @Override
     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {

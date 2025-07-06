@@ -41,7 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.animation.AnimationControl;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
-import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
  * General entity controller, a bridge between entities and view
@@ -58,14 +58,14 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     protected S currentState;
     protected S targetState;
     protected final AssetManager assetManager;
-    protected final TextParser textParser;
+    protected final EntityTextParser<T> textParser;
     protected boolean isAnimationPlaying = false;
 
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Interaction.class, Owner.class);
 
     private boolean active = false;
 
-    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, TextParser textParser) {
+    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, EntityTextParser<T> textParser) {
         this.entityId = entityId;
         this.currentState = state;
         this.targetState = state;
@@ -140,7 +140,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         if (interaction == null) {
             return false;
         }
-        return (interaction.interactable || interaction.slappable) && getOwnerId() == playerId;
+        return (interaction.interactable || interaction.slappable) && getControlId() == playerId;
     }
 
     @Override
@@ -195,6 +195,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     @Override
     public short getOwnerId() {
         return entity.get(Owner.class).ownerId;
+    }
+
+    @Override
+    public short getControlId() {
+        return entity.get(Owner.class).controlId;
     }
 
     @Override

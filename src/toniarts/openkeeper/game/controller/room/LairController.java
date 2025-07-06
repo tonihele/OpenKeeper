@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -29,11 +31,20 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class LairController extends NormalRoomController {
 
-    public LairController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-            IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+    private final IGameTimer gameTimer;
 
-        addObjectControl(new RoomLairControl(kwdFile, this, objectsController, gameTimer) {
+    public LairController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.LAIR);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomLairControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
@@ -41,4 +52,5 @@ public final class LairController extends NormalRoomController {
             }
         });
     }
+
 }

@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.controller.map.FlashTileControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.map.IMapData;
@@ -116,13 +117,30 @@ public final class MapController extends Container implements IMapController {
 
         // Find it
         RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(mapTile.getTerrainId()));
+        Keeper owner = levelInfo.getPlayer(mapTile.getOwnerId());
+        roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart() && (owner == null || owner.isDestroyed()));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
+        int health = 0;
+        int maxHealth = 0;
+        for (Point coordinate : roomInstance.getCoordinates()) {
+            IMapTileController roomTile = mapData.getTile(coordinate);
+            health += roomTile.getHealth();
+            maxHealth += roomTile.getMaxHealth();
+        }
+        roomInstance.setHealth(health);
+        roomInstance.setMaxHealth(maxHealth);
 
         // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
+        IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
         roomController.construct();
         roomControllers.put(roomInstance, roomController);
+
+        // Set the room instance to the tiles
+        for (Point roomCoordinate : roomInstance.getCoordinates()) {
+            IMapTileController roomTile = mapData.getTile(roomCoordinate);
+            roomTile.setRoomId(roomController.getEntityId());
+        }
 
         // TODO: A bit of a design problem here
         /**
@@ -354,11 +372,17 @@ public final class MapController extends Container implements IMapController {
 
             // Signal the room
             IRoomController roomController = getRoomController(instance);
-            roomController.destroy();
+            roomController.remove();
 
             roomControllers.remove(instance);
-            for (Point p : instance.getCoordinates()) {
-                roomCoordinates.remove(p);
+            for (Point roomCoordinate : instance.getCoordinates()) {
+                roomCoordinates.remove(roomCoordinate);
+
+                // Remove room from the tile
+                IMapTileController roomTile = mapData.getTile(roomCoordinate);
+                if (roomTile.getRoomId().equals(roomController.getEntityId())) {
+                    roomTile.setRoomId(null);
+                }
             }
 
             // TODO: A bit of a design problem here
@@ -604,6 +628,7 @@ public final class MapController extends Container implements IMapController {
         // Apply the damage equally to all tiles so that the overall condition can be checked easily
         // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
         int damagePerTile = Math.abs(damage / roomTiles.size());
+        int currentHealth = 0;
         for (Point p : roomTiles) {
             IMapTileController roomTile = getMapData().getTile(p);
             if (applyDamage(roomTile, damagePerTile)) {
@@ -629,11 +654,16 @@ public final class MapController extends Container implements IMapController {
                 notifyTileChange(roomTiles);
                 IRoomController roomController = getRoomController(room);
                 roomController.captured(playerId);
+                roomController.setHealth(roomController.getMaxHealth());
                 notifyOnCapturedByEnemy(owner, roomController);
                 notifyOnCaptured(playerId, roomController);
-                break;
+                return;
             }
+            currentHealth += roomTile.getHealth();
         }
+
+        IRoomController roomController = getRoomController(room);
+        roomController.setHealth(currentHealth);
     }
 
     public int mineGold(IMapTileController tile, int amount) {
@@ -804,5 +834,11 @@ public final class MapController extends Container implements IMapController {
     @Override
     public boolean isSolid(Point p) {
         return mapInformation.isSolid(p);
+    }
+
+    @Override
+    public void addRoomCoordinate(RoomInstance roomInstance, Point point) {
+        roomCoordinates.put(point, roomInstance);
+        getMapData().getTile(point).setRoomId(getRoomController(roomInstance).getEntityId());
     }
 }

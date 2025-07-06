@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -30,18 +32,27 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class LibraryController extends NormalRoomController {
 
-    public LibraryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-            IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+    private final IGameTimer gameTimer;
 
-        addObjectControl(new RoomResearcherControl(kwdFile, this, objectsController, gameTimer) {
+    public LibraryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.RESEARCHER);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomResearcherControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
                 return getFurnitureCount();
             }
         });
-        addObjectControl(new RoomSpellBookControl(kwdFile, this, objectsController, gameTimer) {
+        addObjectControl(new RoomSpellBookControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
@@ -49,5 +60,4 @@ public final class LibraryController extends NormalRoomController {
             }
         });
     }
-
 }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -35,8 +36,8 @@ import toniarts.openkeeper.view.map.WallSection;
  */
 public final class WorkshopController extends NormalRoomController {
 
-    public WorkshopController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
-        super(kwdFile, roomInstance, objectsController);
+    public WorkshopController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }
 
     @Override

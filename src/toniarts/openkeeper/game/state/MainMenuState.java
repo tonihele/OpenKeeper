@@ -70,6 +70,7 @@ import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.TextParserService;
 import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
@@ -161,7 +162,7 @@ public final class MainMenuState extends AbstractAppState {
         if (loadingScreen != null) {
             loadingScreen.setProgress(1.0f);
         }
-        mainMenuEntityViewState = new MainMenuEntityViewState(kwdFile, assetManager, mainMenuEntityData, Player.KEEPER1_ID, null, menuNode);
+        mainMenuEntityViewState = new MainMenuEntityViewState(kwdFile, assetManager, mainMenuEntityData, Player.KEEPER1_ID, new TextParserService(gameController.getGameWorldController().getMapController(), null), menuNode);
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
 

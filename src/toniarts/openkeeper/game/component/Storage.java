@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2019 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,25 +17,29 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
- * Just a tagging component for chicken generators
+ * Acts as kind of summary for items stored in a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class ChickenGenerator implements EntityComponent {
+public final class Storage implements EntityComponent {
 
-    /**
-     * Last entity spawn time, in game time
-     */
-    public double lastSpawnTime;
+    public EntityId room;
+    public AbstractRoomController.ObjectType objectType;
+    public int currentCapacity;
+    public int maxCapacity;
 
-    public ChickenGenerator() {
+    public Storage() {
         // For serialization
     }
 
-    public ChickenGenerator(double lastSpawnTime) {
-        this.lastSpawnTime = lastSpawnTime;
+    public Storage(EntityId room, AbstractRoomController.ObjectType objectType, int currentCapacity, int maxCapacity) {
+        this.room = room;
+        this.objectType = objectType;
+        this.currentCapacity = currentCapacity;
+        this.maxCapacity = maxCapacity;
     }
-
 }

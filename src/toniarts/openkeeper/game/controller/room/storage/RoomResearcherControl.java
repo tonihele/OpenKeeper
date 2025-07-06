@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -23,7 +24,6 @@ import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -36,13 +36,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomResearcherControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomResearcherControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return objectsByCoordinate.size();
+    public RoomResearcherControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.RESEARCHER);
     }
 
     @Override
@@ -51,18 +46,23 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
     }
 
     @Override
-    public ObjectType getObjectType() {
-        return ObjectType.RESEARCHER;
-    }
-
-    @Override
     public EntityId addItem(EntityId researcher, Point p) {
         setRoomStorageToItem(researcher, false);
+        addCurrentCapacity(1);
+
         return researcher;
     }
 
     @Override
+    public void removeItem(EntityId object) {
+        super.removeItem(object);
+
+        addCurrentCapacity(-1);
+    }
+
+    @Override
     public void destroy() {
+        super.destroy();
 
         // TODO: The researcher can't do his/her job
     }
@@ -78,10 +78,10 @@ public abstract class RoomResearcherControl extends AbstractRoomObjectControl<En
         // Only furniture
         List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
         for (EntityId oc : parent.getFloorFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(objectsController.getEntityData().getComponent(oc, Position.class).position));
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
         for (EntityId oc : parent.getWallFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(objectsController.getEntityData().getComponent(oc, Position.class).position));
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
         return coordinates;
     }

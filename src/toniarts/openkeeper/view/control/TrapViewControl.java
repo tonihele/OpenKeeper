@@ -28,7 +28,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.view.text.TextParser;
+import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
  * View control that is intended specifically for traps
@@ -40,7 +40,7 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
     private boolean initialized = false;
 
     public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState,
-            AssetManager assetManager, TextParser textParser) {
+            AssetManager assetManager, EntityTextParser<Trap> textParser) {
         super(entityId, entityData, data, viewState, assetManager, textParser);
     }
 

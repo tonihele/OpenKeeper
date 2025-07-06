@@ -54,7 +54,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -402,7 +402,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                     substractGoldCapacityFromPlayer(firstInstance); // Important to update the gold here
                     firstInstance.addCoordinates(instancePlots);
                     for (Point p : instancePlots) {
-                        mapController.getRoomCoordinates().put(p, firstInstance);
+                        mapController.addRoomCoordinate(firstInstance, p);
                     }
 
                     // Update the merged room
@@ -416,7 +416,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                     updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
                     if (!firstInstance.equals(instance)) {
                         firstInstance.addCoordinate(p);
-                        mapController.getRoomCoordinates().put(p, firstInstance);
+                        mapController.addRoomCoordinate(firstInstance, p);
                     }
                 }
             }
@@ -425,7 +425,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Update
-        mapController.updateRooms(updatableTiles.toArray(new Point[0]));
+        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
 
         // New room, calculate gold capacity
         RoomInstance instance = mapController.getRoomCoordinates().get(instancePlots.get(0));
@@ -590,7 +590,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public void pickUp(EntityId entity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData, mapController)) {
+        if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
             putToKeeperHand(playerHandControl, entity, playerId);
         }
     }
@@ -621,7 +621,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
-        RoomStorage roomStorage = entityData.getComponent(entity, RoomStorage.class);
+        Stored roomStorage = entityData.getComponent(entity, Stored.class);
         IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         if (roomController != null && roomStorage != null) {
             IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
@@ -636,7 +636,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
-    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData, IMapController mapController) {
+    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         // Check if picked up already
@@ -645,18 +645,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        // The if entity if help up us (prison or torture), we have the authority and ownership
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        CreatureImprisoned imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class);
-        CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
-        Position position = entityData.getComponent(entityId, Position.class);
-        Point p = WorldUtils.vectorToPoint(position.position);
-        if ((imprisoned != null || tortured != null) && mapController.getMapData().getTile(p).getOwnerId() == playerId) {
-            return true;
-        }
-
-        // The owner only
-        if (owner == null || owner.ownerId != playerId) {
+        if (owner == null || owner.controlId != playerId) {
             return false;
         }
 
@@ -672,37 +662,37 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void interact(EntityId entity, short playerId) {
-        if (canInteract(entity, playerId, entityData)) {
+        if (!canInteract(entity, playerId, entityData)) {
+            return;
+        }
 
-            // Doors
-            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
-            if (doorComponent != null) {
-                if (!doorComponent.blueprint) {
-                    entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
-                    DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
-                    if (doorViewState != null) {
-                        entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
-                    }
-                }
-                return;
+        // Doors
+        DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+        if (doorComponent != null && !doorComponent.blueprint) {
+            entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
+            DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
+            if (doorViewState != null) {
+                entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
             }
 
-            Interaction interaction = entityData.getComponent(entity, Interaction.class);
+            return;
+        }
 
-            // Creatures (slapping)
-            // TODO: Slap limit
-            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            if (creatureComponent != null && interaction.slappable) {
-                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-                return;
-            }
+        Interaction interaction = entityData.getComponent(entity, Interaction.class);
 
-            // Objects
-            ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
-            if (objectComponent != null && interaction.slappable) {
-                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-                return;
-            }
+        // Creatures (slapping)
+        // TODO: Slap limit
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        if (creatureComponent != null && interaction.slappable) {
+            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            return;
+        }
+
+        // Objects
+        ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+        if (objectComponent != null && interaction.slappable) {
+            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            return;
         }
     }
 

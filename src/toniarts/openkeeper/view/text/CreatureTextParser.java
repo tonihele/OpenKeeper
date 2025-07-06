@@ -204,7 +204,7 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
     }
 
     @Override
-    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+    public Collection<Class<? extends EntityComponent>> getWatchedComponents() {
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
 
         components.add(TaskComponent.class);

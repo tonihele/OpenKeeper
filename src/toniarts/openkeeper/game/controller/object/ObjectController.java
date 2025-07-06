@@ -20,7 +20,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -56,7 +56,7 @@ public final class ObjectController extends EntityController implements IObjectC
 
     @Override
     public boolean isStoredInRoom() {
-        return entityData.getComponent(entityId, RoomStorage.class) != null;
+        return entityData.getComponent(entityId, Stored.class) != null;
     }
 
     @Override

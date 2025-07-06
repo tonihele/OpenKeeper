@@ -49,7 +49,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -504,7 +504,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private void createFetchObjectTask(Entity entity, short playerId) {
         ObjectComponent objectComponent = entity.get(ObjectComponent.class);
-        if (objectComponent != null && objectComponent.objectType != null && entityData.getComponent(entity.getId(), RoomStorage.class) == null) {
+        if (objectComponent != null && objectComponent.objectType != null && entityData.getComponent(entity.getId(), Stored.class) == null) {
             addTask(playerId, getObjectTask(objectsController.createController(entity.getId()), playerId));
         }
     }

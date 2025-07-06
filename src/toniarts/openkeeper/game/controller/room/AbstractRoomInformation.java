@@ -14,51 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.map;
+package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
-import java.awt.Point;
 import java.util.Objects;
-import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
-import toniarts.openkeeper.game.component.Mana;
-import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType;
+import toniarts.openkeeper.game.component.RoomComponent;
+import toniarts.openkeeper.game.map.IRoomInformation;
 
 /**
- * A presentation of a single map tile. Gets data from specified entity
+ * A presentation of a single room entity. Gets data from specified entity
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractMapTileInformation implements IMapTileInformation {
+public abstract class AbstractRoomInformation implements IRoomInformation {
 
     protected final EntityId entityId;
 
-    public AbstractMapTileInformation(EntityId entityId) {
+    protected AbstractRoomInformation(EntityId entityId) {
         this.entityId = entityId;
     }
 
     protected abstract <T extends EntityComponent> T getEntityComponent(Class<T> type);
-
-    @Override
-    public boolean isSelected(short playerId) {
-        MapTile mapTileComponent = getEntityComponent(MapTile.class);
-        if (mapTileComponent.selection != null) {
-            return mapTileComponent.selection.getOrDefault(playerId, false);
-        }
-        return false;
-    }
-
-    @Override
-    public boolean isFlashed(short playerId) {
-        MapTile mapTileComponent = getEntityComponent(MapTile.class);
-        if (mapTileComponent.flashing != null) {
-            return mapTileComponent.flashing.getOrDefault(playerId, false);
-        }
-        return false;
-    }
 
     @Override
     public short getOwnerId() {
@@ -66,53 +45,8 @@ public abstract class AbstractMapTileInformation implements IMapTileInformation 
     }
 
     @Override
-    public short getTerrainId() {
-        return getEntityComponent(MapTile.class).terrainId;
-    }
-
-    @Override
-    public BridgeTerrainType getBridgeTerrainType() {
-        return getEntityComponent(MapTile.class).bridgeTerrainType;
-    }
-
-    @Override
-    public int getRandomTextureIndex() {
-        return getEntityComponent(MapTile.class).randomTextureIndex;
-    }
-
-    @Override
-    public int getX() {
-        return getLocation().x;
-    }
-
-    @Override
-    public int getY() {
-        return getLocation().y;
-    }
-
-    /**
-     * Get tile index in MapData 2D array as Point
-     *
-     * @return
-     */
-    @Override
-    public Point getLocation() {
-        return getEntityComponent(MapTile.class).p;
-    }
-
-    @Override
-    public int getIndex() {
-        return getEntityComponent(MapTile.class).index;
-    }
-
-    @Override
     public int getHealth() {
         return getEntityComponent(Health.class).health;
-    }
-
-    @Override
-    public int getGold() {
-        return getEntityComponent(Gold.class).gold;
     }
 
     @Override
@@ -124,11 +58,6 @@ public abstract class AbstractMapTileInformation implements IMapTileInformation 
     public Integer getHealthPercent() {
         Health health = getEntityComponent(Health.class);
         return Math.round((float) health.health / health.maxHealth * 100);
-    }
-
-    @Override
-    public int getManaGain() {
-        return getEntityComponent(Mana.class).manaGeneration;
     }
 
     /**
@@ -148,8 +77,28 @@ public abstract class AbstractMapTileInformation implements IMapTileInformation 
     }
 
     @Override
-    public EntityId getRoomId() {
-        return getEntityComponent(MapTile.class).room;
+    public short getRoomId() {
+        return getEntityComponent(RoomComponent.class).roomId;
+    }
+
+    @Override
+    public boolean isDestroyed() {
+        return getEntityComponent(RoomComponent.class).destroyed;
+    }
+
+    @Override
+    public AbstractRoomController.ObjectType getDefaultStorageType() {
+        return getEntityComponent(RoomComponent.class).defaultStorageType;
+    }
+
+    @Override
+    public int getMaxCapacity() {
+        return getMaxCapacity(getDefaultStorageType());
+    }
+
+    @Override
+    public int getUsedCapacity() {
+        return getUsedCapacity(getDefaultStorageType());
     }
 
     @Override
@@ -170,11 +119,10 @@ public abstract class AbstractMapTileInformation implements IMapTileInformation 
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final AbstractMapTileInformation other = (AbstractMapTileInformation) obj;
+        final AbstractRoomInformation other = (AbstractRoomInformation) obj;
         if (!Objects.equals(this.entityId, other.entityId)) {
             return false;
         }
         return true;
     }
-
 }

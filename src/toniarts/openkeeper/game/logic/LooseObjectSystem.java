@@ -29,7 +29,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -80,7 +80,7 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
 
         // Attach loose objects to rooms
         for (EntityId entityId : looseObjectEntityIds.getArray()) {
-            RoomStorage roomStorage = entityData.getComponent(entityId, RoomStorage.class);
+            Stored roomStorage = entityData.getComponent(entityId, Stored.class);
             if (roomStorage != null) {
 
                 // TODO: Dunno if this the best way, we always iterate through a lot of unnecessary objects

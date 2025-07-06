@@ -160,4 +160,11 @@ public final class MapTileController extends AbstractMapTileInformation implemen
         return entityData.getComponent(entityId, type);
     }
 
+    @Override
+    public void setRoomId(EntityId roomId) {
+        MapTile mapTileComponent = new MapTile(getEntityComponent(MapTile.class));
+        mapTileComponent.room = roomId;
+        entityData.setComponent(entityId, mapTileComponent);
+    }
+
 }

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -40,10 +41,12 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer> {
 
-    private int storedGold = 0;
+    private final IObjectsController objectsController;
 
-    public RoomGoldControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
+    public RoomGoldControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.GOLD);
+
+        this.objectsController = objectsController;
     }
 
     @Override
@@ -72,14 +75,14 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         Collection<EntityId> goldPiles = objectsByCoordinate.get(p);
         Gold goldPile = null;
         if (goldPiles != null && !goldPiles.isEmpty()) {
-            goldPile = objectsController.getEntityData().getComponent(goldPiles.iterator().next(), Gold.class);
+            goldPile = entityData.getComponent(goldPiles.iterator().next(), Gold.class);
             pointStoredGold = goldPile.gold;
         }
         if (pointStoredGold < getGoldPerObject()) {
             int goldToStore = Math.min(sum, getGoldPerObject() - pointStoredGold);
             pointStoredGold += goldToStore;
             sum -= goldToStore;
-            storedGold += goldToStore;
+            addCurrentCapacity(goldToStore);
 
             // Add the visuals
             if (goldPile == null) {
@@ -105,17 +108,8 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
     }
 
     @Override
-    public int getCurrentCapacity() {
-        return storedGold;
-    }
-
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.GOLD;
-    }
-
-    @Override
     public void destroy() {
+        super.destroy();
 
         // You can do this easier by deleting room gold at the end, but for the sake
         // of OCD I don't want to spawn in the new gold even logically before the old is deleted
@@ -123,7 +117,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         Map<Point, Integer> storedGoldList = new HashMap<>(objectsByCoordinate.size());
         for (Entry<Point, Collection<EntityId>> entry : objectsByCoordinate.entrySet()) {
             for (EntityId entityId : entry.getValue()) {
-                storedGoldList.put(entry.getKey(), objectsController.getEntityData().getComponent(entityId, Gold.class).gold);
+                storedGoldList.put(entry.getKey(), entityData.getComponent(entityId, Gold.class).gold);
             }
         }
 
@@ -144,10 +138,10 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
 
         // Substract the gold from the player
         //parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
-        Gold goldPile = objectsController.getEntityData().getComponent(object, Gold.class);
-        storedGold -= goldPile.gold;
+        Gold goldPile = entityData.getComponent(object, Gold.class);
+        addCurrentCapacity(-goldPile.gold);
         if (goldPile.gold == 0) {
-            objectsController.getEntityData().removeEntity(object);
+            entityData.removeEntity(object);
         }
     }
 
@@ -162,14 +156,14 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         for (Collection<EntityId> goldPiles : objectsByCoordinate.values()) {
             if (!goldPiles.isEmpty()) {
                 EntityId goldEntity = goldPiles.iterator().next();
-                Gold goldPile = objectsController.getEntityData().getComponent(goldPiles.iterator().next(), Gold.class);
+                Gold goldPile = entityData.getComponent(goldPiles.iterator().next(), Gold.class);
                 int goldToRemove = Math.min(goldPile.gold, amount);
                 amount -= goldToRemove;
                 goldPile.gold = goldPile.gold - goldToRemove;
 
                 // Substract the gold from the player
                 //parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(goldToRemove);
-                storedGold -= goldToRemove;
+                addCurrentCapacity(-goldToRemove);
 
                 // Add to removal list if empty item
                 if (goldPile.gold == 0) {
@@ -191,7 +185,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
     }
 
     @Override
-    public int getMaxCapacity() {
+    protected int calculateMaxCapacity() {
         return getObjectsPerTile() * getNumberOfAccessibleTiles() * getGoldPerObject();
     }
 

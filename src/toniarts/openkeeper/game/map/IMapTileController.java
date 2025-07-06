@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.map;
 
+import com.simsilica.es.EntityId;
 import java.awt.Point;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -52,5 +53,7 @@ public interface IMapTileController extends IMapTileInformation {
     void setSelected(boolean selected, short playerId);
 
     void setTerrainId(short terrainId);
+
+    void setRoomId(EntityId entityId);
 
 }

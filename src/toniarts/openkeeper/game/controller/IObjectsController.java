@@ -18,7 +18,6 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -47,8 +46,6 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
     public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney);
 
     public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity);
-
-    public EntityData getEntityData();
 
     /**
      * Spawns an chicken in specified position. Yes, chickens are object. And an

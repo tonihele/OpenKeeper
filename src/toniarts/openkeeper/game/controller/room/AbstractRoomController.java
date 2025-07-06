@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.Collections;
@@ -25,6 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -35,7 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public abstract class AbstractRoomController implements IRoomController {
+public abstract class AbstractRoomController extends AbstractRoomInformation implements IRoomController {
 
     /**
      * The type of object the room houses
@@ -48,7 +54,7 @@ public abstract class AbstractRoomController implements IRoomController {
 
     /**
      * How the objects are laid out, there is always a 1 tile margin from the
-     * sides. I don't know where this information really is, so I hardcoded it.
+     * sides. I don't know where this information really is, so I hard coded it.
      */
     public enum RoomObjectLayout {
 
@@ -66,11 +72,10 @@ public abstract class AbstractRoomController implements IRoomController {
         ISOLATED;
     }
 
+    protected final EntityData entityData;
     protected final KwdFile kwdFile;
     protected final RoomInstance roomInstance;
-    private ObjectType defaultObjectType;
     private final Map<ObjectType, IRoomObjectControl> objectControls = new HashMap<>();
-    protected boolean destroyed = false;
     protected boolean[][] map;
     protected Point start;
     protected final IObjectsController objectsController;
@@ -78,7 +83,11 @@ public abstract class AbstractRoomController implements IRoomController {
     protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
 
-    public AbstractRoomController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    protected AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
+        super(entityId);
+
+        this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.roomInstance = roomInstance;
         this.objectsController = objectsController;
@@ -87,6 +96,18 @@ public abstract class AbstractRoomController implements IRoomController {
         } else {
             pillars = Collections.emptySet();
         }
+
+        entityData.setComponents(entityId,
+                new RoomComponent(roomInstance.getRoom().getRoomId(), roomInstance.isDestroyed(), defaultStorageType, roomInstance.getCenter()),
+                new Owner(roomInstance.getOwnerId(), roomInstance.getOwnerId()),
+                new Health(roomInstance.getHealth(), roomInstance.getMaxHealth())
+        );
+    }
+
+    @Override
+    public void setHealth(int health) {
+        Health healthComponent = getEntityComponent(Health.class);
+        entityData.setComponent(entityId, new Health(health, healthComponent.maxHealth));
     }
 
     protected void setupCoordinates() {
@@ -117,7 +138,7 @@ public abstract class AbstractRoomController implements IRoomController {
      * @return the list of pillars constructed
      */
     protected List<EntityId> constructPillars() {
-        // TODO: Maybe replace with something similar than the object placement ENUM, there are only few different scenarios of contructing the pillars
+        // TODO: Maybe replace with something similar than the object placement ENUM, there are only few different scenarios of constructing the pillars
         return Collections.emptyList();
     }
 
@@ -217,9 +238,6 @@ public abstract class AbstractRoomController implements IRoomController {
 
     protected final void addObjectControl(IRoomObjectControl control) {
         objectControls.put(control.getObjectType(), control);
-        if (defaultObjectType == null) {
-            defaultObjectType = control.getObjectType();
-        }
     }
 
     @Override
@@ -232,14 +250,9 @@ public abstract class AbstractRoomController implements IRoomController {
         return (T) objectControls.get(objectType);
     }
 
-    /**
-     * Destroy the room, marks the room as destroyed and releases all the
-     * controls. The room <strong>should not</strong> be used after this.
-     */
     @Override
-    public void destroy() {
-        destroyed = true;
-        roomInstance.setDestroyed(destroyed);
+    public void remove() {
+        roomInstance.setDestroyed(true);
 
         // Destroy the controls
         for (IRoomObjectControl control : objectControls.values()) {
@@ -248,29 +261,43 @@ public abstract class AbstractRoomController implements IRoomController {
 
         // Remove objects
         removeObjects();
+
+        // Remove us
+        entityData.removeEntity(entityId);
     }
 
     private void removeObjects() {
 
         // Clear the old ones
         // TODO: recycle?
-        for (EntityId entityId : pillars) {
-            objectsController.getEntityData().removeEntity(entityId);
+        for (EntityId entity : pillars) {
+            entityData.removeEntity(entity);
         }
         pillars.clear();
-        for (EntityId entityId : floorFurniture) {
-            objectsController.getEntityData().removeEntity(entityId);
+        for (EntityId entity : floorFurniture) {
+            entityData.removeEntity(entity);
         }
         floorFurniture.clear();
-        for (EntityId entityId : wallFurniture) {
-            objectsController.getEntityData().removeEntity(entityId);
+        for (EntityId entity : wallFurniture) {
+            entityData.removeEntity(entity);
         }
         wallFurniture.clear();
     }
 
     @Override
+    public void destroy() {
+        RoomComponent roomComponent = new RoomComponent(getRoomComponent());
+        roomComponent.destroyed = true;
+        entityData.setComponent(entityId, roomComponent);
+    }
+
+    @Override
     public boolean isDestroyed() {
-        return destroyed;
+        return getRoomComponent().destroyed;
+    }
+
+    private RoomComponent getRoomComponent() {
+        return getEntityComponent(RoomComponent.class);
     }
 
     /**
@@ -283,37 +310,24 @@ public abstract class AbstractRoomController implements IRoomController {
         return hasObjectControl(ObjectType.GOLD);
     }
 
-    /**
-     * Get room max capacity
-     *
-     * @return room max capacity
-     */
-    protected int getMaxCapacity() {
-        IRoomObjectControl control = getDefaultRoomObjectControl();
+    @Override
+    public int getMaxCapacity(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.get(objectType);
         if (control != null) {
             return control.getMaxCapacity();
         }
+
         return 0;
     }
 
-    /**
-     * Get used capacity
-     *
-     * @return the used capacity of the room
-     */
-    protected int getUsedCapacity() {
-        IRoomObjectControl control = getDefaultRoomObjectControl();
+    @Override
+    public int getUsedCapacity(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.get(objectType);
         if (control != null) {
             return control.getCurrentCapacity();
         }
-        return 0;
-    }
 
-    private IRoomObjectControl getDefaultRoomObjectControl() {
-        if (defaultObjectType != null) {
-            return objectControls.get(defaultObjectType);
-        }
-        return null;
+        return 0;
     }
 
     @Override
@@ -348,14 +362,14 @@ public abstract class AbstractRoomController implements IRoomController {
      */
     @Override
     public boolean isDungeonHeart() {
-        return false;
+        return getEntityComponent(DungeonHeart.class) != null;
     }
 
     @Override
     public void captured(short playerId) {
 
         // Nothing, hmm, should we move some logic here from the MapController
-        roomInstance.setOwnerId(playerId);
+        entityData.setComponent(entityId, new Owner(playerId, playerId));
 
         // Notify the controls
         for (IRoomObjectControl control : objectControls.values()) {
@@ -439,5 +453,10 @@ public abstract class AbstractRoomController implements IRoomController {
             default:
                 return null; // No pillars
         }
+    }
+
+    @Override
+    protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
+        return entityData.getComponent(entityId, type);
     }
 }

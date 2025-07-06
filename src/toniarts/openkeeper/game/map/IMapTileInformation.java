@@ -76,4 +76,6 @@ public interface IMapTileInformation {
 
     boolean isSelected(short playerId);
 
+    EntityId getRoomId();
+
 }

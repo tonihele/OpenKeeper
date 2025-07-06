@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomStorage;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -151,7 +151,7 @@ public class EntityController implements IEntityController {
     }
 
     protected void removeFromRoomStrorage() {
-        RoomStorage roomStorage = entityData.getComponent(entityId, RoomStorage.class);
+        Stored roomStorage = entityData.getComponent(entityId, Stored.class);
         Position position = entityData.getComponent(entityId, Position.class);
         removeRoomStorage(roomStorage, position, entityId);
     }
@@ -159,13 +159,13 @@ public class EntityController implements IEntityController {
     protected void removeLair() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         if (creatureSleep != null && creatureSleep.lairObjectId != null) {
-            RoomStorage roomStorage = entityData.getComponent(creatureSleep.lairObjectId, RoomStorage.class);
+            Stored roomStorage = entityData.getComponent(creatureSleep.lairObjectId, Stored.class);
             Position position = entityData.getComponent(creatureSleep.lairObjectId, Position.class);
             removeRoomStorage(roomStorage, position, creatureSleep.lairObjectId);
         }
     }
 
-    private void removeRoomStorage(RoomStorage roomStorage, Position position, EntityId entityId) {
+    private void removeRoomStorage(Stored roomStorage, Position position, EntityId entityId) {
         if (roomStorage == null) {
             return;
         }

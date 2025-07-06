@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room.storage;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
@@ -24,7 +25,6 @@ import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -37,25 +37,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<EntityId> {
 
-    private int storedSpellBooks = 0;
-
-    public RoomSpellBookControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return storedSpellBooks;
+    protected RoomSpellBookControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.SPELL_BOOK);
     }
 
     @Override
     protected int getObjectsPerTile() {
         return 2; // 2 spell books per floor furniture tile
-    }
-
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.SPELL_BOOK;
     }
 
     @Override
@@ -80,10 +68,10 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Ent
         }
 
         // Set the position correctly
-        Position oldPos = objectsController.getEntityData().getComponent(value, Position.class);
+        Position oldPos = entityData.getComponent(value, Position.class);
         Vector3f newPos = WorldUtils.pointToVector3f(p);
         newPos.y = oldPos.position.y;
-        objectsController.getEntityData().setComponent(value, new Position(oldPos.rotation, newPos));
+        entityData.setComponent(value, new Position(oldPos.rotation, newPos));
 
         if (spellBooks == null) {
             spellBooks = new ArrayList<>(getObjectsPerTile());
@@ -91,12 +79,14 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Ent
         spellBooks.add(value);
         objectsByCoordinate.put(p, spellBooks);
         setRoomStorageToItem(value, true);
-        storedSpellBooks++;
+        addCurrentCapacity(1);
+
         return null;
     }
 
     @Override
     public void destroy() {
+        super.destroy();
 
         // The keeper has no more access to the spells
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
@@ -113,7 +103,7 @@ public abstract class RoomSpellBookControl extends AbstractRoomObjectControl<Ent
         // Only floor furniture
         List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount());
         for (EntityId oc : parent.getFloorFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(objectsController.getEntityData().getComponent(oc, Position.class).position));
+            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
         return coordinates;
     }

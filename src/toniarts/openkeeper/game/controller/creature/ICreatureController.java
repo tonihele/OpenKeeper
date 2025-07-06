@@ -194,8 +194,9 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * to the prison
      *
      * @param playerId the imprisoner player
+     * @param roomId the room in which to imprison
      */
-    public void imprison(short playerId);
+    public void imprison(short playerId, EntityId roomId);
 
     /**
      * Is the (neutral) creature claimed

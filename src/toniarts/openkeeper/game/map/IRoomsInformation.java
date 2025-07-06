@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2019 OpenKeeper
+ * Copyright (C) 2014-2024 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,28 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.map;
 
-import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
 
 /**
- * Just a tagging component for chicken generators
+ * Holds the rooms data
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
+ * @param <T> the room data type
  */
-public final class ChickenGenerator implements EntityComponent {
+public interface IRoomsInformation<T extends IRoomInformation> {
 
-    /**
-     * Last entity spawn time, in game time
-     */
-    public double lastSpawnTime;
+    T getRoomInformation(EntityId entityId);
 
-    public ChickenGenerator() {
-        // For serialization
-    }
-
-    public ChickenGenerator(double lastSpawnTime) {
-        this.lastSpawnTime = lastSpawnTime;
-    }
+    int getRoomCount(short ownerId, short roomId);
 
 }

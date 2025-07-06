@@ -16,13 +16,13 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -34,20 +34,8 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId> {
 
-    private int chickens = 0;
-
-    public RoomFoodControl(KwdFile kwdFile, IRoomController parent, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, parent, objectsController, gameTimer);
-    }
-
-    @Override
-    public int getCurrentCapacity() {
-        return chickens;
-    }
-
-    @Override
-    public ObjectType getObjectType() {
-        return ObjectType.FOOD;
+    protected RoomFoodControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+        super(kwdFile, parent, entityData, gameTimer, ObjectType.FOOD);
     }
 
     @Override
@@ -59,12 +47,14 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
         objects.add(entity);
         objectsByCoordinate.put(p, objects);
         setRoomStorageToItem(entity, true);
-        chickens++;
+        addCurrentCapacity(1);
+
         return entity;
     }
 
     @Override
     public void destroy() {
+        super.destroy();
 
         // We don't destroy the chickens, that would be inhumane, but we set them free
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
@@ -78,12 +68,11 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
     @Override
     public void removeItem(EntityId object) {
         super.removeItem(object);
-        chickens--;
+        addCurrentCapacity(-1);
     }
 
     @Override
     protected int getObjectsPerTile() {
         return 1;
     }
-
 }

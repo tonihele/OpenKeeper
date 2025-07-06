@@ -21,6 +21,7 @@ import java.awt.Point;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
@@ -28,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IRoomController {
+public interface IRoomController extends IRoomInformation {
 
     /**
      * Constructs a room
@@ -96,17 +97,19 @@ public interface IRoomController {
     public boolean isDungeonHeart();
 
     /**
-     * Notify and mark the room as destroyed
-     */
-    public void destroy();
-
-    /**
-     * Is this room instance destroyed? Not in the world anymore.
+     * Remove the room, marks the room as destroyed and releases all the
+     * controls. The room <strong>should not</strong> be used after this.
      *
      * @see #destroy()
-     * @return is the room destroyed
      */
-    public boolean isDestroyed();
+    public void remove();
+
+    /**
+     * Marks the room as destroyed
+     *
+     * @see #remove()
+     */
+    public void destroy();
 
     /**
      * Signal that the room has been captured
@@ -115,5 +118,7 @@ public interface IRoomController {
     public void captured(short playerId);
 
     public boolean isFullCapacity();
+
+    public void setHealth(int health);
 
 }

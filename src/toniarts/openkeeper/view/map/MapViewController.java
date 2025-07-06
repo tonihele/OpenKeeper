@@ -62,7 +62,6 @@ import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
 import toniarts.openkeeper.view.map.construction.SingleQuadConstructor;
 import toniarts.openkeeper.view.map.construction.WaterConstructor;
-import toniarts.openkeeper.world.room.GenericRoom;
 
 /**
  * Loads whole maps, and handles the maps
@@ -85,20 +84,16 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
-    //private final MapData mapData;
     private final AssetManager assetManager;
     private final IMapInformation mapClientService;
-    //private final EffectManagerState effectManager;
     private Node roomsNode;
     private final short playerId;
-    // private final WorldState worldState;
-    //private final ObjectLoader objectLoader;
-    // private final List<RoomInstance> rooms = new ArrayList<>(); // The list of rooms
     private final Set<Point> flashedTiles = new HashSet<>();
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
+    private final Map<Point, Thing.Room> roomThings = new HashMap<>();
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
 
@@ -361,20 +356,17 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         String modelName = artResource.getName();
         Point p = tile.getLocation();
         IMapTileInformation neigbourTile;
-        switch (direction) {
-            case NORTH:
-                neigbourTile = getMapData().getTile(p.x, p.y - 1);
-                break;
-            case SOUTH:
-                neigbourTile = getMapData().getTile(p.x, p.y + 1);
-                break;
-            case EAST:
-                neigbourTile = getMapData().getTile(p.x + 1, p.y);
-                break;
-            default: // WEST
-                neigbourTile = getMapData().getTile(p.x - 1, p.y);
-                break;
-        }
+        neigbourTile = switch (direction) {
+            case NORTH ->
+                getMapData().getTile(p.x, p.y - 1);
+            case SOUTH ->
+                getMapData().getTile(p.x, p.y + 1);
+            case EAST ->
+                getMapData().getTile(p.x + 1, p.y);
+            default ->
+                getMapData().getTile(p.x - 1, p.y); // WEST
+        };
+
         // Check for out of bounds
         if (neigbourTile == null) {
             return loadModel(modelName, artResource);
@@ -553,19 +545,10 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             return roomInstance;
         }
 
-        RoomInstance roomInstance = new RoomInstance(room, thing);
-        findRoom(p, roomInstance);
+        RoomInstance roomInstance = new RoomInstance(room, thing != null ? thing : roomThings.get(p));
+        findRoom(p, roomInstance, thing);
         findRoomWallSections(roomInstance);
-        //rooms.add(roomInstance);
 
-        // Put the thing attributes in
-//        if (thing != null) {
-//            for (Point roomPoint : roomInstance.getCoordinates()) {
-//                MapTile tile = mapData.getTile(roomPoint);
-//                tile.setPlayerId(thing.getPlayerId());
-//                tile.setHealth((int) (tile.getTerrain().getMaxHealth() * (thing.getInitialHealth() / 100f)));
-//            }
-//        }
         Spatial roomNode = handleRoom(roomInstance);
         if (roomNode != null) {
             roomsNode.attachChild(roomNode);
@@ -632,8 +615,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         topTileNode.attachChild(spatial);
         setTileMaterialToGeometries(tile, topTileNode);
         AssetUtils.translateToTile(topTileNode, p);
-
-//        tile.setTopNode(topTileNode);
     }
 
     private void handleSide(IMapTileInformation tile, Node pageNode) {
@@ -650,8 +631,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         setTileMaterialToGeometries(tile, sideTileNode);
         AssetUtils.translateToTile(sideTileNode, p);
-
-//        tile.setSideNode(sideTileNode);
     }
 
     public void flashTile(boolean enabled, List<Point> points) {
@@ -661,7 +640,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             flashedTiles.removeAll(points);
         }
 
-        updateTiles(points.toArray(new Point[0]));
+        updateTiles(points.toArray(Point[]::new));
     }
 
     /**
@@ -736,8 +715,9 @@ public abstract class MapViewController implements ILoader<KwdFile> {
      *
      * @param p starting point
      * @param roomInstance the room instance
+     * @param thing fixed room item
      */
-    private void findRoom(Point p, RoomInstance roomInstance) {
+    private void findRoom(Point p, RoomInstance roomInstance, Thing.Room thing) {
         IMapTileInformation tile = getMapData().getTile(p);
 
         // Get the terrain
@@ -750,18 +730,21 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                     // Add the coordinate
                     roomCoordinates.put(p, roomInstance);
                     roomInstance.addCoordinate(p);
+                    if (thing != null) {
+                        roomThings.put(p, thing);
+                    }
 
                     // Find north
-                    findRoom(new Point(p.x, p.y - 1), roomInstance);
+                    findRoom(new Point(p.x, p.y - 1), roomInstance, thing);
 
                     // Find east
-                    findRoom(new Point(p.x + 1, p.y), roomInstance);
+                    findRoom(new Point(p.x + 1, p.y), roomInstance, thing);
 
                     // Find south
-                    findRoom(new Point(p.x, p.y + 1), roomInstance);
+                    findRoom(new Point(p.x, p.y + 1), roomInstance, thing);
 
                     // Find west
-                    findRoom(new Point(p.x - 1, p.y), roomInstance);
+                    findRoom(new Point(p.x - 1, p.y), roomInstance, thing);
                 }
             }
         }
@@ -870,26 +853,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     /**
-     * Get coordinate / room instance mapping
-     *
-     * @return mapping
-     */
-    public HashMap<Point, RoomInstance> getRoomCoordinates() {
-//        return roomCoordinates;
-        return null;
-    }
-
-    /**
-     * Get list of room instances
-     *
-     * @return room instances
-     */
-    protected List<RoomInstance> getRooms() {
-//        return rooms;
-        return null;
-    }
-
-    /**
      * Remove all the given room instances (and actually removes them from the
      * scene)
      *
@@ -899,11 +862,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         for (RoomInstance instance : instances) {
             roomsNode.detachChild(roomNodes.get(instance));
             roomNodes.remove(instance);
-            //rooms.remove(instance);
 
-            // Signal the room
-            //GenericRoom room = roomActuals.get(instance);
-            //room.destroy();
             roomActuals.remove(instance);
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
@@ -971,15 +930,20 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // See if the starting point has a wall to the given direction
         IMapTileInformation tile;
-        if (wallDirection == WallDirection.NORTH) {
-            tile = getMapData().getTile(p.x, p.y + 1);
-        } else if (wallDirection == WallDirection.EAST) {
-            tile = getMapData().getTile(p.x - 1, p.y);
-        } else if (wallDirection == WallDirection.SOUTH) {
-            tile = getMapData().getTile(p.x, p.y - 1);
-        } else {
+        if (null == wallDirection) {
             tile = getMapData().getTile(p.x + 1, p.y); // West
-        }
+        } else
+            tile = switch (wallDirection) {
+                case NORTH ->
+                    getMapData().getTile(p.x, p.y + 1);
+                case EAST ->
+                    getMapData().getTile(p.x - 1, p.y);
+                case SOUTH ->
+                    getMapData().getTile(p.x, p.y - 1);
+                default ->
+                    getMapData().getTile(p.x + 1, p.y); // West
+            };
+
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
                 && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
@@ -990,38 +954,52 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
             // Traverse possible directions, well one direction, "to the right"
             List<Point> adjacentWallPoints = null;
-            if (wallDirection == WallDirection.NORTH) {
-                Point nextPoint = new Point(p.x + 1, p.y); // East
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else if (wallDirection == WallDirection.EAST) {
-                Point nextPoint = new Point(p.x, p.y + 1); // South
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else if (wallDirection == WallDirection.SOUTH) {
-                Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else {
+            if (null == wallDirection) {
                 Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
                 RoomInstance instance = roomCoordinates.get(nextPoint);
                 if (instance != null && instance.equals(roomInstance)) {
                     adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
                 }
-            }
+            } else
+                switch (wallDirection) {
+                    case NORTH -> {
+                        Point nextPoint = new Point(p.x + 1, p.y); // East
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                    }
+                    case EAST -> {
+                        Point nextPoint = new Point(p.x, p.y + 1); // South
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                    }
+                    case SOUTH -> {
+                        Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                    }
+                    default -> {
+                        Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
+                        RoomInstance instance = roomCoordinates.get(nextPoint);
+                        if (instance != null && instance.equals(roomInstance)) {
+                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
+                        }
+                    }
+                }
 
             // Add the point(s)
             if (adjacentWallPoints != null) {
                 wallPoints.addAll(adjacentWallPoints);
             }
+
             return wallPoints;
         }
+
         return null;
     }
 
@@ -1037,7 +1015,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     }
 
     protected void updateRoomWalls(List<RoomInstance> rooms) {
-        updateRoomWalls(rooms.toArray(new RoomInstance[0]));
+        updateRoomWalls(rooms.toArray(RoomInstance[]::new));
     }
 
     /**
@@ -1049,38 +1027,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // Redraw
         updateRoomWalls(roomInstance);
-//        roomActuals.get(roomInstance).construct();
-//        roomsNode.attachChild(roomActuals.get(roomInstance).construct());
-    }
-
-    /**
-     * Get a rooms by knowing its instance
-     *
-     * @return room
-     */
-    public Map<RoomInstance, GenericRoom> getRoomActuals() {
-//        return roomActuals;
-        return null;
-    }
-
-    /**
-     * Get rooms by function.<br> FIXME: Should the player have ready lists?
-     *
-     * @param objectType the function
-     * @param playerId the player id, can be null
-     * @return list of rooms that match the criteria
-     */
-    public List<GenericRoom> getRoomsByFunction(GenericRoom.ObjectType objectType, Short playerId) {
-        List<GenericRoom> roomsList = new ArrayList<>();
-//        for (Entry<RoomInstance, GenericRoom> entry : roomActuals.entrySet()) {
-//            if (playerId != null && entry.getKey().getOwnerId() != playerId) {
-//                continue;
-//            }
-//            if (entry.getValue().hasObjectControl(objectType)) {
-//                roomsList.add(entry.getValue());
-//            }
-//        }
-        return roomsList;
     }
 
     /**

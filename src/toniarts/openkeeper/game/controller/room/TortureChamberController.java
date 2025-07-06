@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -30,11 +32,19 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class TortureChamberController extends NormalRoomController {
 
-    public TortureChamberController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
-             IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+    private final IGameTimer gameTimer;
 
-        addObjectControl(new RoomTortureeControl(kwdFile, this, objectsController, gameTimer) {
+    public TortureChamberController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,             IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.TORTUREE);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomTortureeControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
@@ -42,5 +52,4 @@ public final class TortureChamberController extends NormalRoomController {
             }
         });
     }
-
 }

@@ -34,14 +34,21 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class HatcheryController extends NormalRoomController implements IChickenGenerator {
 
-    private double lastSpawnTime;
     private final IGameTimer gameTimer;
-    private final RoomFoodControl roomFoodControl;
+    private RoomFoodControl roomFoodControl;
 
-    public HatcheryController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
+    public HatcheryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.FOOD);
 
-        roomFoodControl = new RoomFoodControl(kwdFile, this, objectsController, gameTimer) {
+        this.gameTimer = gameTimer;
+        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        roomFoodControl = new RoomFoodControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
@@ -49,9 +56,6 @@ public final class HatcheryController extends NormalRoomController implements IC
             }
         };
         addObjectControl(roomFoodControl);
-
-        this.gameTimer = gameTimer;
-        lastSpawnTime = gameTimer.getGameTime();
     }
 
     @Override
@@ -67,12 +71,12 @@ public final class HatcheryController extends NormalRoomController implements IC
 
     @Override
     public double getLastSpawnTime() {
-        return lastSpawnTime;
+        return getEntityComponent(ChickenGenerator.class).lastSpawnTime;
     }
 
     @Override
     public void onSpawn(double time, EntityId entityId) {
-        this.lastSpawnTime = time;
+        entityData.setComponent(this.entityId, new ChickenGenerator(time));
         if (entityId != null) {
             this.roomFoodControl.addItem(entityId, start);
         }
@@ -81,18 +85,7 @@ public final class HatcheryController extends NormalRoomController implements IC
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        lastSpawnTime = gameTimer.getGameTime();
-    }
-
-    @Override
-    protected int getUsedCapacity() {
-        // TODO: General problem how do we tie objects to room, with component of course but how does the room know
-        return super.getUsedCapacity();
-    }
-
-    @Override
-    protected int getMaxCapacity() {
-        return roomInstance.getCoordinates().size();
+        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
     }
 
     @Override
@@ -100,7 +93,6 @@ public final class HatcheryController extends NormalRoomController implements IC
         super.constructObjects();
 
         // The only objects we have are coops, they don't seem to have any indicator etc. so to avoid hard coding an ID and to allow maximum editability, all objects in the room generate chickens
-        EntityData entityData = objectsController.getEntityData();
         for (EntityId obj : floorFurniture) {
             entityData.setComponent(obj, new ChickenGenerator());
         }

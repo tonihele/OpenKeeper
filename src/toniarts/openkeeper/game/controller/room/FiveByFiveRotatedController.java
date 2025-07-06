@@ -17,18 +17,18 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.jme3.math.FastMath;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -42,14 +42,32 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     public static final short OBJECT_BIG_STEPS_ID = 88;
     public static final short OBJECT_PLUG_ID = 96;
 
-    private double lastSpawnTime = Double.MIN_VALUE;
-    private final List<Point> spawnPoints = new ArrayList<>(16);
+    private final IGameTimer gameTimer;
+    private final int maxGold;
 
-    public FiveByFiveRotatedController(KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+    public FiveByFiveRotatedController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+            RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
-        super(kwdFile, roomInstance, objectsController);
-        final int maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
-        addObjectControl(new RoomGoldControl(kwdFile, this, objectsController, gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GOLD);
+
+        this.gameTimer = gameTimer;
+        maxGold = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE).getValue();
+
+        entityData.setComponent(entityId, new DungeonHeart());
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+
+        entityData.removeComponent(entityId, ImpGenerator.class);
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomGoldControl(kwdFile, this, entityData, gameTimer, objectsController) {
 
             @Override
             protected int getGoldPerObject() {
@@ -61,18 +79,10 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
                 return 16;
             }
         });
-    }
 
-    @Override
-    public void construct() {
-        super.construct();
-
-        // Init the spawn points
-        spawnPoints.clear();
-        for (Point p : roomInstance.getCoordinates()) {
-            if (isTileAccessible(null, null, p.x, p.y)) {
-                spawnPoints.add(p);
-            }
+        // Init the spawn point
+        if (!isDestroyed()) {
+            entityData.setComponent(entityId, new ImpGenerator(start, Double.MIN_VALUE));
         }
     }
 
@@ -83,6 +93,14 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
         // Because of physics and whatnot, the object are on server, so what about the creation animation?
         // The creation animation should be on the client perhaps... We don't care about it...
         Point center = roomInstance.getCenter();
+        if (isDestroyed()) {
+            constructDestroyed(center);
+        } else {
+            constructNonDestroyed(center);
+        }
+    }
+
+    private void constructNonDestroyed(Point center) {
         floorFurniture.add(objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y));
 
         // Construct the plug
@@ -97,6 +115,10 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
         floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, FastMath.TWO_PI / 3));
     }
 
+    private void constructDestroyed(Point center) {
+        // TODO:
+    }
+
     @Override
     public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
 
@@ -106,31 +128,25 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     @Override
-    public boolean isDungeonHeart() {
-        return true;
-    }
-
-    @Override
     public Point getEntranceCoordinate() {
-
-        // FIXME: Is it random truly or just one corner??
-        return Utils.getRandomItem(spawnPoints);
+        return getEntityComponent(ImpGenerator.class).entrance;
     }
 
     @Override
     public double getLastSpawnTime() {
-        return lastSpawnTime;
+        return getEntityComponent(ImpGenerator.class).lastSpawnTime;
     }
 
     @Override
     public void onSpawn(double time, EntityId entityId) {
-        this.lastSpawnTime = time;
+        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, time));
     }
 
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        lastSpawnTime = Double.MIN_VALUE;
+
+        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, Double.MIN_VALUE));
     }
 
 }
