@@ -77,6 +77,7 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.WadAssetLocator;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
@@ -338,6 +339,8 @@ public final class Main extends SimpleApplication {
             public void onLoad() {
                 try {
                     // Asset loaders
+                    // KMF models
+                    getAssetManager().registerLoader(KmfModelLoader.class, "kmf");
                     // Sound
                     getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
                     // Camera sweep files
