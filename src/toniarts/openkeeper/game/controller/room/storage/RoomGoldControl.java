@@ -86,7 +86,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
 
             // Add the visuals
             if (goldPile == null) {
-                EntityId entityId = objectsController.addRoomGold(parent.getRoomInstance().getOwnerId(), p.x, p.y, pointStoredGold, getGoldPerObject());
+                EntityId entityId = objectsController.addRoomGold(parent.getOwnerId(), p.x, p.y, pointStoredGold, getGoldPerObject());
                 if (goldPiles == null) {
                     goldPiles = new ArrayList<>(1);
                 }
@@ -127,7 +127,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         // Create the loose gold
         if (!storedGoldList.isEmpty()) {
             for (Entry<Point, Integer> entry : storedGoldList.entrySet()) {
-                objectsController.addLooseGold(parent.getRoomInstance().getOwnerId(), entry.getKey().x, entry.getKey().y, entry.getValue(), getGoldPerObject());
+                objectsController.addLooseGold(parent.getOwnerId(), entry.getKey().x, entry.getKey().y, entry.getValue(), getGoldPerObject());
             }
         }
     }

@@ -151,9 +151,9 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
 
                 // Spawn chicken
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                entityId = objectsController.spawnChicken(entrance.getRoomInstance().getOwnerId(), WorldUtils.pointToVector3f(entranceCoordinate));
+                entityId = objectsController.spawnChicken(entrance.getOwnerId(), WorldUtils.pointToVector3f(entranceCoordinate));
                 spawned = true;
-            } else if (freeRangeChickensByPlayer.get(entrance.getRoomInstance().getOwnerId()).size() < maximumFreerangeChickenCount && freerangeChickenGeneratorsByRoom.get(entrance) != null) {
+            } else if (freeRangeChickensByPlayer.get(entrance.getOwnerId()).size() < maximumFreerangeChickenCount && freerangeChickenGeneratorsByRoom.get(entrance) != null) {
                 Set<EntityId> generators = freerangeChickenGeneratorsByRoom.get(entrance);
                 Optional<EntityId> generator = Utils.getRandomItem(generators);
                 if (generator.isPresent()) {
@@ -162,7 +162,7 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
                     // Don't give the entity ID, it is not added to room inventory
                     // TODO: Need to have the generator IN USE component etc. This goes for all the objects, how we use them
                     Position position = entityData.getComponent(generator.get(), Position.class);
-                    objectsController.spawnFreerangeChicken(entrance.getRoomInstance().getOwnerId(), position.position.clone(), gameTime);
+                    objectsController.spawnFreerangeChicken(entrance.getOwnerId(), position.position.clone(), gameTime);
                     spawned = true;
                 }
             }

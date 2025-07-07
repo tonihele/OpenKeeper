@@ -119,7 +119,7 @@ public final class CreatureSpawnSystem implements IGameLogicUpdatable {
         }
 
         double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
-        IPlayerController player = playerControllersById.get(entrance.getRoomInstance().getOwnerId());
+        IPlayerController player = playerControllersById.get(entrance.getOwnerId());
         boolean spawned = false;
         EntityId entityId = null;
         if (timeSinceLastSpawn >= freeImpCoolDownTime && entrance.isDungeonHeart()) {

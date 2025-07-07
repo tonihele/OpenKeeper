@@ -103,7 +103,7 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
             IRoomController roomController = mapController.getRoomControllerByCoordinates(point);
             ObjectComponent objectComponent = entity.get(ObjectComponent.class);
             if (roomController != null && objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
-                short ownerId = roomController.getRoomInstance().getOwnerId();
+                short ownerId = roomController.getOwnerId();
                 if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {
                     synchronized (GameWorldController.GOLD_LOCK) {
                         Gold gold = entityData.getComponent(entityId, Gold.class);
