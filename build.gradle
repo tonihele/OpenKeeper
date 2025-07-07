@@ -32,6 +32,19 @@ application {
     }    
 }
 
+// Asset converter CLI tool
+task assetConverterCLI(type: JavaExec) {
+    group = 'application'
+    description = 'Run the OpenKeeper Asset Converter CLI'
+    mainClass = 'toniarts.openkeeper.tools.convert.AssetConverterCLI'
+    classpath = sourceSets.main.runtimeClasspath
+    
+    // Allow passing arguments
+    if (project.hasProperty('cliArgs')) {
+        args project.cliArgs.split(' ')
+    }
+}
+
 task sourcesJar(type: Jar, dependsOn: [classes, startScripts, distZip, distTar]) {
     from sourceSets.main.allSource
 }
