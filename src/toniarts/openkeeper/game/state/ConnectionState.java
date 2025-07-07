@@ -308,6 +308,7 @@ public class ConnectionState extends AbstractAppState {
                     disconnect();
                     return;
                 }
+                logger.log(Level.ERROR, "Error connecting, disconnecting", e);
                 disconnect();
                 showError("Error Connecting", e, true);
             }
