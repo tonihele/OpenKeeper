@@ -256,17 +256,15 @@ public final class SoundState extends AbstractPauseAwareState {
                 throw new RuntimeException("Category " + category + " does not exist");
             }
 
-            if (this.sc.getGroups().isEmpty()) {
-                throw new RuntimeException("We have no groups in category " + category);
-            }
+            if (this.sc.getGroups().isEmpty())
+                logger.log(Level.WARNING, "We have no groups in category " + category);
 
             int total = 0;
             for (SoundGroup group : this.sc.getGroups().values()) {
                 total += group.getFiles().size();
             }
-            if (total == 0) {
-                throw new RuntimeException("We have no files in groups in category " + category);
-            }
+            if (total == 0)
+                logger.log(Level.WARNING, "We have no files in groups in category " + category);
 
             itGroup = null;
             itFile = null;
