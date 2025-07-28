@@ -274,6 +274,10 @@ public final class GameClientState extends AbstractPauseAwareState {
         return players.values();
     }
 
+    public IPlayerController getPlayerController(short playerId) {
+        return playerControllers.get(playerId);
+    }
+
     /**
      * Get level variable value
      *

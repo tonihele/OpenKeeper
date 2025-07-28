@@ -101,8 +101,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
                 goldPile.gold = pointStoredGold;
             }
 
-            // Add gold to player
-            //parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().addGold(goldToStore);
+            // Player gold is updated by GameWorldController, not here.
         }
         return sum;
     }
@@ -136,8 +135,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
     public void removeItem(EntityId object) {
         super.removeItem(object);
 
-        // Substract the gold from the player
-        //parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(object.getGold());
+        // Player gold is updated by GameWorldController, not here.
         Gold goldPile = entityData.getComponent(object, Gold.class);
         addCurrentCapacity(-goldPile.gold);
         if (goldPile.gold == 0) {
@@ -161,8 +159,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
                 amount -= goldToRemove;
                 goldPile.gold = goldPile.gold - goldToRemove;
 
-                // Substract the gold from the player
-                //parent.getWorldState().getGameState().getPlayer(parent.getRoomInstance().getOwnerId()).getGoldControl().subGold(goldToRemove);
+                // Player gold is updated by GameWorldController, not here.
                 addCurrentCapacity(-goldToRemove);
 
                 // Add to removal list if empty item
