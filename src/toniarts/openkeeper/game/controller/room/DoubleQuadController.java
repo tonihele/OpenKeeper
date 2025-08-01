@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.awt.Point;
+import toniarts.openkeeper.utils.Point;
 import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;

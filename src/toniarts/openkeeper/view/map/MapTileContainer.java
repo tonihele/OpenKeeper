@@ -20,7 +20,6 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
-import java.awt.Point;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +33,7 @@ import toniarts.openkeeper.game.map.AbstractMapTileInformation;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Contains the map tiles

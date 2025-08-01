@@ -17,15 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-
-import java.awt.*;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Just a tagging component for portals (creature generators)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public class Portal implements EntityComponent {
+public final class Portal implements EntityComponent {
 
     public Point entrance;
 
