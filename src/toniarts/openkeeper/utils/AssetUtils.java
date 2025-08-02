@@ -440,6 +440,9 @@ public final class AssetUtils {
                 if (!preWarmedAssets) {
                     try {
 
+                        // Terrain
+                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
+
                         // Objects
                         prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
 
@@ -451,9 +454,6 @@ public final class AssetUtils {
 
                         // Traps
                         prewarmArtResources(kwdFile.getTraps(), assetManager, app);
-
-                        // Terrain
-                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
 
                         // Rooms
                         prewarmArtResources(kwdFile.getRooms(), assetManager, app);
