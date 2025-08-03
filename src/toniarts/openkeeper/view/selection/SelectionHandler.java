@@ -186,7 +186,7 @@ public abstract class SelectionHandler {
         matWireBox = new Material(this.app.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         matWireBox.getAdditionalRenderState().setFaceCullMode(FaceCullMode.Off);
         matWireBox.setColor("Color", selectionColor.getColor());
-        matWireBox.getAdditionalRenderState().setLineWidth(6);
+        matWireBox.getAdditionalRenderState().setLineWidth(6); // TODO: GL_INVALID_VALUE on intel driver
 
         this.wireBox = new WireBox(WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH);
         this.wireBox.setDynamic();

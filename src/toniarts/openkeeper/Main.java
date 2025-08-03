@@ -65,6 +65,7 @@ import java.util.Queue;
 import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
@@ -119,6 +120,8 @@ public final class Main extends SimpleApplication {
         // Read settings and convert resources if needed
         app.showSettings = false;
         initSettings(app);
+        if (debug)
+            app.settings.putBoolean("RendererDebug", true); // create a debug GL context
 
         // set a better logging format
         System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
@@ -335,8 +338,13 @@ public final class Main extends SimpleApplication {
     @Override
     public void simpleInitApp() {
 
-        if (debug)
+        if (debug) {
             ((GLRenderer)renderer).setDebugEnabled(true); // get debug names for GL objects
+            if (GL.getCapabilities().OpenGL43) {
+                GLUtil.setupDebugMessageCallback();
+                GL43C.glDebugMessageControl(GL43.GL_DEBUG_SOURCE_APPLICATION, GL43.GL_DONT_CARE, GL43.GL_DONT_CARE, (int[]) null, false);
+            }
+        }
 
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
