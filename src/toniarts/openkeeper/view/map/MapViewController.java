@@ -31,8 +31,6 @@ import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
-import java.awt.Color;
-import java.awt.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -55,6 +53,8 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Color;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -73,7 +73,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private static final Logger logger = System.getLogger(MapViewController.class.getName());
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
-    public final static ColorRGBA COLOR_TAG = new ColorRGBA(0, 0, 0.8f, 1);
+    private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.6f, 0.6f, 1, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;

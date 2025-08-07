@@ -12,7 +12,7 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import java.awt.Point;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -77,9 +77,7 @@ public abstract class RoomConstructor {
      * Rooms typically don't construct walls themselves, instead they are asked
      * for the wall spatials by the map loader in normal map drawing situation
      *
-     * @see #getWallSpatial(java.awt.Point,
-     * toniarts.openkeeper.view.map.WallSection.WallDirection)
-     * @return constructed wall
+     * @see #getWallSpatial
      */
     protected BatchNode constructWall() {
         return null;

@@ -38,7 +38,6 @@ import com.jme3.texture.Texture2D;
 import com.jme3.texture.plugins.AWTLoader;
 import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -63,7 +62,6 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * Collection of asset related common functions
@@ -442,6 +440,9 @@ public final class AssetUtils {
                 if (!preWarmedAssets) {
                     try {
 
+                        // Terrain
+                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
+
                         // Objects
                         prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
 
@@ -453,9 +454,6 @@ public final class AssetUtils {
 
                         // Traps
                         prewarmArtResources(kwdFile.getTraps(), assetManager, app);
-
-                        // Terrain
-                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
 
                         // Rooms
                         prewarmArtResources(kwdFile.getRooms(), assetManager, app);

@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.map;
 
-import java.awt.Point;
 import java.util.Iterator;
 import java.util.function.Consumer;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Iterates trough the given map container
@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  */
 public final class MapIterator<T extends IMapTileInformation> implements Iterator<T> {
 
-    private final Point cursor = new Point();
+    private Point cursor = new Point();
     private final IMapDataInformation<T> mapDataInformation;
 
     MapIterator(final IMapDataInformation<T> mapDataInformation) {
@@ -42,15 +42,18 @@ public final class MapIterator<T extends IMapTileInformation> implements Iterato
 
     @Override
     public T next() {
-        if (cursor.y >= mapDataInformation.getHeight() || cursor.x >= mapDataInformation.getWidth()) {
+        int x = cursor.x;
+        int y = cursor.y;
+        if (y >= mapDataInformation.getHeight() || x >= mapDataInformation.getWidth()) {
             throw new IndexOutOfBoundsException();
         }
         T result = mapDataInformation.getTile(cursor);
-        cursor.x++;
-        if (cursor.x >= mapDataInformation.getWidth()) {
-            cursor.x = 0;
-            cursor.y++;
+        x++;
+        if (x >= mapDataInformation.getWidth()) {
+            x = 0;
+            y++;
         }
+        cursor = new Point(x, y);
         return result;
     }
 
