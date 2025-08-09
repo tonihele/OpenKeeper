@@ -22,14 +22,14 @@ import com.jme3.font.BitmapText;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.control.BillboardControl;
+
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import toniarts.openkeeper.view.loader.ILoader;
-import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 
 /**
  *

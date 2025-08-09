@@ -17,16 +17,10 @@
 package toniarts.openkeeper.game.controller.player;
 
 import com.simsilica.es.EntityId;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.world.listener.CreatureListener;
+
+import java.util.*;
 
 /**
  * Holds a list of player creatures and functionality related to them
@@ -35,7 +29,6 @@ import toniarts.openkeeper.world.listener.CreatureListener;
  */
 public final class PlayerCreatureControl extends AbstractPlayerControl<Creature, Set<EntityId>, Short> {
 
-    private List<CreatureListener> creatureListeners;
     private final Creature imp;
     private int creatureCount = 0;
 
@@ -67,11 +60,6 @@ public final class PlayerCreatureControl extends AbstractPlayerControl<Creature,
         // Listeners
         if (!isImp(creature)) {
             creatureCount++;
-            if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    // listener.onSpawn(creature);
-                }
-            }
         }
     }
 
@@ -86,11 +74,6 @@ public final class PlayerCreatureControl extends AbstractPlayerControl<Creature,
         // Listeners
         if (!isImp(creature)) {
             creatureCount--;
-            if (creatureListeners != null) {
-                for (CreatureListener listener : creatureListeners) {
-                    //listener.onDie(creature);
-                }
-            }
         }
     }
 
@@ -112,18 +95,6 @@ public final class PlayerCreatureControl extends AbstractPlayerControl<Creature,
         Map<Creature, Set<EntityId>> map = getAllCreatures();
         map.remove(imp);
         return map;
-    }
-
-    /**
-     * Listen to creature updates. Excluding imps
-     *
-     * @param listener the listener
-     */
-    public void addCreatureListener(CreatureListener listener) {
-        if (creatureListeners == null) {
-            creatureListeners = new ArrayList<>();
-        }
-        creatureListeners.add(listener);
     }
 
     private boolean isImp(Creature creature) {

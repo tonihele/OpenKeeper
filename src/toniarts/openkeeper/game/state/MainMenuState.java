@@ -71,7 +71,7 @@ import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
-import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
+import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
 
 /**
  * The main menu state

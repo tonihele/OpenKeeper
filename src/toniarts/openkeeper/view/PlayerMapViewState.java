@@ -23,11 +23,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -37,13 +32,16 @@ import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapViewController;
-import toniarts.openkeeper.world.effect.EffectManagerState;
-import toniarts.openkeeper.world.listener.RoomListener;
-import toniarts.openkeeper.world.listener.TileChangeListener;
+
+import java.lang.System.Logger;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Handles the handling of game world for a player, visually
@@ -63,8 +61,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final MapTileContainer mapTileContainer;
     private Node worldNode;
     private final EffectManagerState effectManager;
-    private List<TileChangeListener> tileChangeListener;
-    private Map<Short, List<RoomListener>> roomListeners;
     private final FlashTileViewState flashTileControl;
     private final MapRoomContainer mapRoomContainer;
 

@@ -22,7 +22,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.world.effect.EffectGeometry;
+import toniarts.openkeeper.view.effect.EffectGeometry;
 
 /**
  *

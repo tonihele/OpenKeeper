@@ -13,7 +13,7 @@ import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
+import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
 
 /**
  *

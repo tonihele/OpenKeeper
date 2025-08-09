@@ -24,39 +24,23 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
-import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
-import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
-import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
-import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
-import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
-import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.controller.player.*;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerListener;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.PlayerCameraState;
-import toniarts.openkeeper.view.PlayerInteractionState;
+import toniarts.openkeeper.view.*;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
-import toniarts.openkeeper.view.PossessionCameraState;
-import toniarts.openkeeper.view.PossessionInteractionState;
-import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.control.EntityViewControl;
-import toniarts.openkeeper.world.MapLoader;
-import toniarts.openkeeper.world.WorldState;
-import toniarts.openkeeper.world.room.GenericRoom;
-import toniarts.openkeeper.world.room.RoomInstance;
+
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -398,9 +382,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     public void quitToDebriefing() {
         // TODO copy results of game from GameState
-        GameState gs = stateManager.getState(GameState.class);
-        GameResult result = gs.getGameResult();
-        gs.detach();
+        GameResult result = new GameResult();
         setEnabled(false);
         stateManager.getState(MainMenuState.class).doDebriefing(result);
     }
@@ -502,16 +484,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     String getTooltipText(String text) {
         int dungeonHealth = 0;
         int paydayCost = 0;
-        MapLoader mapLoader = stateManager.getState(WorldState.class).getMapLoader();
-        for (Map.Entry<RoomInstance, GenericRoom> en : mapLoader.getRoomActuals().entrySet()) {
-            RoomInstance key = en.getKey();
-            GenericRoom value = en.getValue();
-            if (value.isDungeonHeart() && key.getOwnerId() == playerId) {
-                dungeonHealth = key.getHealthPercentage();
-                break;
-            }
-        }
-        // TODO payday cost calculator
+
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));
     }
