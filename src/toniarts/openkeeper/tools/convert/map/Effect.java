@@ -20,7 +20,7 @@ import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
-import toniarts.openkeeper.world.effect.IEffect;
+import toniarts.openkeeper.view.effect.IEffect;
 
 /**
  * Container class for Effects.kwd

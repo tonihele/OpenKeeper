@@ -30,9 +30,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.WallSection;
-import toniarts.openkeeper.world.room.control.FrontEndLevelControl;
 
 /**
  * Loads up a hero gate, front end edition. Main menu. Most of the objects are
@@ -145,23 +143,23 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      *
      * @param map node to attach to
      * @param type level type
-     * @param level level number
+     * @param levelNumber level number
      * @param variation variation, like level "a" etc.
      * @param assetManager the asset manager instance
      * @param start starting point for the room
      * @param p this tile coordinate
      */
-    private void attachAndCreateLevel(Node map, Level.LevelType type, int levelnumber, String variation,
-            AssetManager assetManager, Point start, Point p) {
+    private void attachAndCreateLevel(Node map, Level.LevelType type, int levelNumber, String variation,
+                                      AssetManager assetManager, Point start, Point p) {
 
         String objName = "3dmap_level";
         if (Level.LevelType.Secret.equals(type)) {
             objName = "Secret_Level";
         }
 
-        Spatial lvl = loadObject(objName + levelnumber + (variation == null ? "" : variation),
+        Spatial lvl = loadObject(objName + levelNumber + (variation == null ? "" : variation),
                 assetManager, start, p);
-        lvl.addControl(new FrontEndLevelControl(new Level(type, levelnumber, variation), assetManager));
+        lvl.addControl(new FrontEndLevelControl(new Level(type, levelNumber, variation), assetManager));
         lvl.setBatchHint(Spatial.BatchHint.Never);
         map.attachChild(lvl);
     }

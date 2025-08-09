@@ -90,7 +90,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
-import toniarts.openkeeper.world.effect.EffectManagerState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 
 /**
  * Simple model viewer
