@@ -95,7 +95,7 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 // No position yet, we get it next time
                 continue;
             }
-            if (mapTile.getOwnerId() != Player.GOOD_PLAYER_ID && mapTile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
+            if (mapTile.getOwnerId() == Player.GOOD_PLAYER_ID || mapTile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
                 continue;
             }
 
