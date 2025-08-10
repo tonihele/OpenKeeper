@@ -18,11 +18,12 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
-import java.util.Objects;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IRoomInformation;
+
+import java.util.Objects;
 
 /**
  * A presentation of a single room entity. Gets data from specified entity
@@ -99,6 +100,11 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     @Override
     public int getUsedCapacity() {
         return getUsedCapacity(getDefaultStorageType());
+    }
+
+    @Override
+    public boolean isRemoved() {
+        return getEntityComponent(RoomComponent.class) == null;
     }
 
     @Override
