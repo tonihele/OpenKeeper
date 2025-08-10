@@ -144,12 +144,6 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         storageTypeByRoomCatalog.clear();
         roomByRoomCatalog.clear();
 
-        roomMap.clear();
-        roomsByOwners.clear();
-        ownersByRoom.clear();
-        roomTypesByRoom.clear();
-        roomTypesByOwners.clear();
-
         super.stop();
     }
 
