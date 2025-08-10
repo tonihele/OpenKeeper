@@ -22,13 +22,6 @@ import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.lang.System.Logger.Level;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
@@ -38,6 +31,14 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+
+import java.lang.System.Logger.Level;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Contains the map rooms
@@ -49,8 +50,11 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
     private final Map<EntityId, IRoomInformation> roomMap = new HashMap<>();
     private final Map<Short, Set<EntityId>> roomsByOwners = new HashMap<>();
     private final Map<EntityId, Short> ownersByRoom = new HashMap<>();
+    private final Map<EntityId, Short> roomTypesByRoom = new HashMap<>();
     private final Map<Short, Map<Short, Set<EntityId>>> roomTypesByOwners = new HashMap<>();
     private final Map<EntityId, Map<AbstractRoomController.ObjectType, Entity>> roomCatalogsByRoom = new HashMap<>();
+    private final Map<EntityId, AbstractRoomController.ObjectType> storageTypeByRoomCatalog = new HashMap<>();
+    private final Map<EntityId, EntityId> roomByRoomCatalog = new HashMap<>();
 
     private final EntitySet roomCatalogs;
 
@@ -66,6 +70,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         IRoomInformation result = new RoomInformation(e);
         roomMap.put(e.getId(), result);
         ownersByRoom.put(e.getId(), result.getOwnerId());
+        roomTypesByRoom.put(e.getId(), result.getRoomId());
         roomsByOwners
                 .computeIfAbsent(result.getOwnerId(), (t) -> new HashSet<>())
                 .add(e.getId());
@@ -104,7 +109,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         roomMap.remove(e.getId());
         Short ownerId = ownersByRoom.remove(e.getId());
         roomsByOwners.get(ownerId).remove(e.getId());
-        roomTypesByOwners.get(ownerId).get(object.getRoomId()).remove(e.getId());
+        roomTypesByOwners.get(ownerId).get(roomTypesByRoom.remove(e.getId())).remove(e.getId());
 
         roomCatalogsByRoom.remove(e.getId());
     }
@@ -136,6 +141,8 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         // Also free the room capacity catalog updates
         roomCatalogs.release();
         roomCatalogsByRoom.clear();
+        storageTypeByRoomCatalog.clear();
+        roomByRoomCatalog.clear();
 
         super.stop();
     }
@@ -147,6 +154,8 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
     private void addCatalogs(Set<Entity> entities) {
         for (Entity entity : entities) {
+            storageTypeByRoomCatalog.put(entity.getId(), entity.get(Storage.class).objectType);
+            roomByRoomCatalog.put(entity.getId(), entity.get(Storage.class).room);
             Map<AbstractRoomController.ObjectType, Entity> roomEntities = roomCatalogsByRoom.computeIfAbsent(entity.get(Storage.class).room, (t) -> new HashMap<>());
             roomEntities.put(entity.get(Storage.class).objectType, entity);
         }
@@ -154,8 +163,8 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
     private void removeCatalogs(Set<Entity> entities) {
         for (Entity entity : entities) {
-            Map<AbstractRoomController.ObjectType, Entity> roomEntities = roomCatalogsByRoom.getOrDefault(entity.get(Storage.class).room, Collections.emptyMap());
-            roomEntities.remove(entity.get(Storage.class).objectType);
+            Map<AbstractRoomController.ObjectType, Entity> roomEntities = roomCatalogsByRoom.getOrDefault(roomByRoomCatalog.remove(entity.getId()), Collections.emptyMap());
+            roomEntities.remove(storageTypeByRoomCatalog.remove(entity.getId()));
         }
     }
 

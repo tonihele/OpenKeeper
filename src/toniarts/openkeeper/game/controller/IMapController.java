@@ -6,12 +6,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.utils.Point;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import toniarts.openkeeper.common.RoomInstance;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -20,6 +15,11 @@ import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.utils.Point;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Map related actions available to all players
@@ -78,14 +78,6 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public Collection<IRoomController> getRoomControllers();
 
     /**
-     * Get room instance by coordinates
-     *
-     * @param p the coordinates
-     * @return the room instance in the coordinates
-     */
-    public RoomInstance getRoomInstanceByCoordinates(Point p);
-
-    /**
      * Get room controller by coordinates
      *
      * @param p the coordinates
@@ -94,14 +86,12 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public IRoomController getRoomControllerByCoordinates(Point p);
 
     /**
-     * Get a room controller by a room instance. FIXME: At least with the
-     * current design, the clients do not have this data, so either separate
-     * interface or design controllers so that they share data
+     * Get room controller by entity ID
      *
-     * @param roomInstance the room instance
-     * @return room controller associaced to the given instance
+     * @param entityId the room entity ID
+     * @return the room controller with the ID, if any
      */
-    public IRoomController getRoomController(RoomInstance roomInstance);
+    public IRoomController getRoomController(EntityId entityId);
 
     /**
      * Get all the rooms that implement a certain function i.e. serves as a
@@ -116,25 +106,11 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public List<IRoomController> getRoomsByFunction(AbstractRoomController.ObjectType objectType, Short playerId);
 
     /**
-     * Get all the coordinates that contain rooms and their instances
-     *
-     * @return room coordinates
-     */
-    public Map<Point, RoomInstance> getRoomCoordinates();
-
-    /**
-     * Get room controllers by the instances
-     *
-     * @return the room controllers by instances
-     */
-    public Map<RoomInstance, IRoomController> getRoomControllersByInstances();
-
-    /**
      * Removes room instances
      *
      * @param instances the instances to remove
      */
-    public void removeRoomInstances(RoomInstance... instances);
+    public void removeRoomInstances(EntityId... instances);
 
     /**
      * Update rooms in specified coordinates
@@ -154,8 +130,8 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     int damageTile(Point point, short playerId, ICreatureController creature);
 
     /**
-     * Attempt to claim the tile or room, applies either damage of heal,
-     * depending whose tile is it
+     * Attempt to claim the tile or room, applies either damage or heal,
+     * depending on whose tile is it
      *
      * @param point tile coordinate
      * @param playerId for the player
@@ -222,8 +198,8 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * Add a coordinate to a room
      *
      * @param roomInstance roomInstance to add
-     * @param point coordinate to add
+     * @param points coordinate(s) to add
      */
-    public void addRoomCoordinate(RoomInstance roomInstance, Point point);
+    public void addRoomCoordinate(EntityId roomInstance, Collection<Point> points);
 
 }

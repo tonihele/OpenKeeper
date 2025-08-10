@@ -53,7 +53,7 @@ public interface IRoomInformation {
     /**
      * Is this room instance destroyed?
      *
-     * @see #remove()
+     * @see #isRemoved()
      * @return is the room destroyed
      */
     boolean isDestroyed();
@@ -90,4 +90,11 @@ public interface IRoomInformation {
 
     AbstractRoomController.ObjectType getDefaultStorageType();
 
+    /**
+     * Checks if the room have been removed from the plain of existence.
+     * Meaning that the entity does not exist anymore...
+     *
+     * @return true if removed and this room instance should not be accessed by any means
+     */
+    boolean isRemoved();
 }
