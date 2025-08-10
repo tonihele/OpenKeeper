@@ -18,21 +18,22 @@ package toniarts.openkeeper.game.navigation;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.navigation.pathfinding.MapDistance;
 import toniarts.openkeeper.game.navigation.pathfinding.MapIndexedGraph;
 import toniarts.openkeeper.game.navigation.pathfinding.MapPathFinder;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Offers navigation related services
@@ -66,12 +67,12 @@ public final class NavigationService implements INavigationService {
 
     @Override
     public Point findRandomTileInRoom(Point start, int radius, INavigable navigable) {
-        RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(start);
+        IRoomController roomInstance = mapController.getRoomControllerByCoordinates(start);
         if (roomInstance == null) {
             logger.log(Level.WARNING, () -> "Starting point " + start + " is not in a room!");
             return null;
         }
-        Set<Point> allowedTiles = new HashSet<>(roomInstance.getCoordinates());
+        Set<Point> allowedTiles = new HashSet<>(roomInstance.getRoomInstance().getCoordinates());
 
         return findRandomAccessibleTile(start, radius, navigable, allowedTiles);
     }

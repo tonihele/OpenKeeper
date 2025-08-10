@@ -21,19 +21,6 @@ import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.lang.System.Logger.Level;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.stream.Collectors;
-import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -53,8 +40,8 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -83,6 +70,20 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+
+import java.lang.System.Logger.Level;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.stream.Collectors;
 
 /**
  * Game world controller, controls the game world related actions
@@ -221,13 +222,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (p != null) {
 
                 // Get a room in point
-                RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(p);
-                if (roomInstance != null) {
-                    IRoomController room = mapController.getRoomController(roomInstance);
-                    if (room.canStoreGold()) {
-                        RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
-                    }
+                IRoomController room = mapController.getRoomControllerByCoordinates(p);
+                if (room != null && room.canStoreGold()) {
+                    RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
+                    moneyLeft = control.addItem(sum, p);
                 }
             } else {
 
@@ -295,23 +293,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
-    private void substractGoldCapacityFromPlayer(RoomInstance instance) {
+    private void substractGoldCapacityFromPlayer(EntityId instance) {
         synchronized (GOLD_LOCK) {
             IRoomController roomController = mapController.getRoomController(instance);
             if (roomController.canStoreGold()) {
                 RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
-                PlayerGoldControl playerGoldControl = playerControllers.get(instance.getOwnerId()).getGoldControl();
+                PlayerGoldControl playerGoldControl = playerControllers.get(roomController.getOwnerId()).getGoldControl();
                 playerGoldControl.setGoldMax(playerGoldControl.getGoldMax() - roomGoldControl.getMaxCapacity());
             }
         }
     }
 
-    private void addGoldCapacityToPlayer(RoomInstance instance) {
+    private void addGoldCapacityToPlayer(EntityId instance) {
         synchronized (GOLD_LOCK) {
             IRoomController roomController = mapController.getRoomController(instance);
             if (roomController.canStoreGold()) {
                 RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
-                PlayerGoldControl playerGoldControl = playerControllers.get(instance.getOwnerId()).getGoldControl();
+                PlayerGoldControl playerGoldControl = playerControllers.get(roomController.getOwnerId()).getGoldControl();
                 playerGoldControl.setGoldMax(playerGoldControl.getGoldMax() + roomGoldControl.getMaxCapacity());
             }
         }
@@ -346,7 +344,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Room room = kwdFile.getRoomById(roomId);
         if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))
                 || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
-            instancePlots = new ArrayList(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
+            instancePlots = new ArrayList<>(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
         }
 
         // See that can we afford the building
@@ -374,18 +372,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // See if we hit any of the adjacent rooms
-        Set<RoomInstance> adjacentInstances = new LinkedHashSet<>();
+        Set<EntityId> adjacentInstances = new LinkedHashSet<>();
         for (Point p : buildPlots) {
-            RoomInstance adjacentInstance = mapController.getRoomInstanceByCoordinates(p);
-            if (adjacentInstance != null && adjacentInstance.getRoom().equals(room) && !adjacentInstances.contains(adjacentInstance)) {
+            IRoomController adjacentInstance = mapController.getRoomControllerByCoordinates(p);
+            if (adjacentInstance == null || !adjacentInstance.getRoom().equals(room) || adjacentInstances.contains(adjacentInstance.getEntityId())) {
+                continue;
+            }
 
-                // Same room, see that we own it
-                IMapTileController tile = mapController.getMapData().getTile(p.x, p.y);
-                if (tile.getOwnerId() == playerId) {
+            // Same room, see that we own it
+            IMapTileController tile = mapController.getMapData().getTile(p.x, p.y);
+            if (tile.getOwnerId() == playerId) {
 
-                    // Bingo!
-                    adjacentInstances.add(adjacentInstance);
-                }
+                // Bingo!
+                adjacentInstances.add(adjacentInstance.getEntityId());
             }
         }
 
@@ -393,34 +392,33 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (!adjacentInstances.isEmpty()) {
 
             // Add the mergeable rooms to updatable tiles as well
-            RoomInstance firstInstance = null;
-            for (RoomInstance instance : adjacentInstances) {
+            EntityId firstInstance = null;
+            for (EntityId instance : adjacentInstances) {
 
                 // Merge to the first found room instance
                 if (firstInstance == null) {
                     firstInstance = instance;
                     substractGoldCapacityFromPlayer(firstInstance); // Important to update the gold here
-                    firstInstance.addCoordinates(instancePlots);
-                    for (Point p : instancePlots) {
-                        mapController.addRoomCoordinate(firstInstance, p);
-                    }
+                    mapController.addRoomCoordinate(firstInstance, instancePlots);
+                }
 
-                    // Update the merged room
-                    mapController.getRoomController(instance).construct();
-                } else {
+                for (Point p : mapController.getRoomController(instance).getRoomInstance().getCoordinates()) {
+                    updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
+                    if (!firstInstance.equals(instance)) {
+                        mapController.addRoomCoordinate(firstInstance, Collections.singletonList(p));
+                    }
+                }
+
+                // Remove the merged room
+                if (!firstInstance.equals(instance)) {
                     removeRoomInstance(instance);
                     mapController.removeRoomInstances(instance);
                 }
-
-                for (Point p : instance.getCoordinates()) {
-                    updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
-                    if (!firstInstance.equals(instance)) {
-                        firstInstance.addCoordinate(p);
-                        mapController.addRoomCoordinate(firstInstance, p);
-                    }
-                }
             }
             // TODO: The room health! We need to make sure that the health is distributed evenly
+
+            // Update the merged room
+            mapController.getRoomController(firstInstance).construct();
             addGoldCapacityToPlayer(firstInstance);
         }
 
@@ -428,9 +426,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         mapController.updateRooms(updatableTiles.toArray(Point[]::new));
 
         // New room, calculate gold capacity
-        RoomInstance instance = mapController.getRoomCoordinates().get(instancePlots.get(0));
+        IRoomController instance = mapController.getRoomControllerByCoordinates(instancePlots.getFirst());
         if (adjacentInstances.isEmpty()) {
-            addGoldCapacityToPlayer(instance);
+            addGoldCapacityToPlayer(instance.getEntityId());
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
 
@@ -442,7 +440,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void sell(Vector2f start, Vector2f end, short playerId) {
         List<Point> soldTiles = new ArrayList<>();
         Set<Point> updatableTiles = new HashSet<>();
-        Set<RoomInstance> soldInstances = new HashSet<>();
+        Set<EntityId> soldInstances = new HashSet<>();
         List<Point> roomCoordinates = new ArrayList<>();
         List<Map.Entry<Point, Integer>> moneyToReturnByPoint = new ArrayList<>();
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
@@ -478,7 +476,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
 
                 // Get the instance
-                soldInstances.add(mapController.getRoomCoordinates().get(p));
+                soldInstances.add(tile.getRoomId());
                 updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
         }
@@ -489,22 +487,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Remove the sold instances (will be regenerated) and add them to updatable
-        for (RoomInstance roomInstance : soldInstances) {
-            for (Point p : roomInstance.getCoordinates()) {
+        for (EntityId roomInstance : soldInstances) {
+            IRoomController roomController = mapController.getRoomController(roomInstance);
+            for (Point p : roomController.getRoomInstance().getCoordinates()) {
                 updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
-            roomCoordinates.addAll(roomInstance.getCoordinates());
+            roomCoordinates.addAll(roomController.getRoomInstance().getCoordinates());
             removeRoomInstance(roomInstance);
         }
-        mapController.removeRoomInstances(soldInstances.toArray(new RoomInstance[0]));
+        mapController.removeRoomInstances(soldInstances.toArray(new EntityId[0]));
 
         // Update
         mapController.updateRooms(updatableTiles.toArray(new Point[0]));
 
         // See if any of the rooms survived
-        Set<RoomInstance> newInstances = new HashSet<>();
+        Set<EntityId> newInstances = new HashSet<>();
         for (Point p : roomCoordinates) {
-            RoomInstance instance = mapController.getRoomCoordinates().get(p);
+            EntityId instance = mapController.getMapData().getTile(p).getRoomId();
             if (instance != null && !newInstances.contains(instance)) {
                 newInstances.add(instance);
                 addGoldCapacityToPlayer(instance);
@@ -533,14 +532,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      *
      * @param roomInstance the room to delete
      */
-    private void removeRoomInstance(RoomInstance roomInstance) {
+    private void removeRoomInstance(EntityId roomInstance) {
 
         // Gold
         substractGoldCapacityFromPlayer(roomInstance);
         IRoomController roomController = mapController.getRoomController(roomInstance);
         if (roomController.canStoreGold()) {
             RoomGoldControl roomGoldControl = roomController.getObjectControl(ObjectType.GOLD);
-            PlayerGoldControl playerGoldControl = playerControllers.get(roomInstance.getOwnerId()).getGoldControl();
+            PlayerGoldControl playerGoldControl = playerControllers.get(roomController.getOwnerId()).getGoldControl();
             playerGoldControl.subGold(roomGoldControl.getCurrentCapacity());
         }
     }

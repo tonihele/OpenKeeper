@@ -16,12 +16,15 @@
  */
 package toniarts.openkeeper.common;
 
+import toniarts.openkeeper.utils.Point;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import toniarts.openkeeper.utils.Point;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Holds an entity instance, series of coordinates that together form an entity
@@ -33,7 +36,7 @@ import toniarts.openkeeper.utils.Point;
 public class EntityInstance<T> {
 
     private final T entity;
-    private final List<Point> coordinates = new ArrayList<>();
+    private final SortedSet<Point> coordinates = new TreeSet<>(new PointComparator());
     private Point matrixStartPoint;
     private boolean[][] matrix;
     private int minX = Integer.MAX_VALUE;
@@ -53,23 +56,38 @@ public class EntityInstance<T> {
     }
 
     public void addCoordinate(Point p) {
-        coordinates.add(~Collections.binarySearch(coordinates, p, new PointComparator()), p);
-        minX = Math.min(p.x, minX);
-        maxX = Math.max(p.x, maxX);
-        minY = Math.min(p.y, minY);
-        maxY = Math.max(p.y, maxY);
+        if(!coordinates.add(p)) {
+            return;
+        }
+
+        updateBoundaries(Collections.singletonList(p));
+    }
+
+    private void updateBoundaries(Collection<Point> newPoints) {
+        for(Point point : newPoints) {
+            minX = Math.min(point.x, minX);
+            maxX = Math.max(point.x, maxX);
+            minY = Math.min(point.y, minY);
+            maxY = Math.max(point.y, maxY);
+        }
+
         matrixStartPoint = null;
         matrix = null;
     }
 
     public void addCoordinates(Collection<Point> points) {
-        for (Point p : points) {
-            addCoordinate(p);
+        if(!coordinates.addAll(points)) {
+            return;
         }
+
+        updateBoundaries(points);
     }
 
     public void removeCoordinate(Point p) {
-        coordinates.remove(Collections.binarySearch(coordinates, p, new EntityInstance.PointComparator()));
+        if(!coordinates.remove(p)) {
+            return;
+        }
+
         minX = Math.max(p.x, minX);
         maxX = Math.min(p.x, maxX);
         minY = Math.max(p.y, minY);
@@ -79,7 +97,7 @@ public class EntityInstance<T> {
     }
 
     public boolean hasCoordinate(Point p) {
-        return Collections.binarySearch(coordinates, p, new PointComparator()) >= 0;
+        return coordinates.contains(p);
     }
 
     public Point getCenter() {
@@ -93,7 +111,7 @@ public class EntityInstance<T> {
      * @see #getCoordinatesAsMatrix()
      */
     public List<Point> getCoordinates() {
-        return coordinates;
+        return new ArrayList<>(coordinates);
     }
 
     /**
@@ -102,7 +120,7 @@ public class EntityInstance<T> {
      * The matrix is build in room constraints, so you need to add the first
      * coordinate to the matrix coordinate to get the real world coordinate
      *
-     * @return coordinates as matrix, true value signifies presense of the room
+     * @return coordinates as matrix, true value signifies presence of the room
      * instance in the coordinate
      * @see #getCoordinates()
      * @see #getMatrixStartPoint()
@@ -110,11 +128,11 @@ public class EntityInstance<T> {
     public boolean[][] getCoordinatesAsMatrix() {
         if (matrix == null) {
             int width = maxX - minX + 1;
-            int height = coordinates.get(coordinates.size() - 1).y - getMatrixStartPoint().y + 1;
+            int height = coordinates.last().y - getMatrixStartPoint().y + 1;
             matrix = new boolean[width][height];
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    matrix[x][y] = (Collections.binarySearch(coordinates, new Point(getMatrixStartPoint().x + x, getMatrixStartPoint().y + y), new PointComparator()) > -1);
+                    matrix[x][y] = coordinates.contains(new Point(getMatrixStartPoint().x + x, getMatrixStartPoint().y + y));
                 }
             }
         }
@@ -123,7 +141,7 @@ public class EntityInstance<T> {
 
     /**
      * If you have acquired the matrix already, you can get the matrix start
-     * point (the corner) from here. Otherwise you can't know what real
+     * point (the corner) from here. Otherwise, you can't know what real
      * coordinates the matrix cells represent.
      *
      * @return the upper left corner point of the matrix as real map coordinate
@@ -131,7 +149,7 @@ public class EntityInstance<T> {
      */
     public Point getMatrixStartPoint() {
         if (matrixStartPoint == null) {
-            matrixStartPoint = new Point(minX, coordinates.get(0).y);
+            matrixStartPoint = new Point(minX, coordinates.first().y);
         }
         return matrixStartPoint;
     }
@@ -159,7 +177,7 @@ public class EntityInstance<T> {
     }
 
     /**
-     * Translates a world tile coordinate to local room coordinate, stating at
+     * Translates a world tile coordinate to local room coordinate, starting at
      * the top left corner
      *
      * @param x the x coordinate
@@ -171,7 +189,7 @@ public class EntityInstance<T> {
     }
 
     /**
-     * Translates a world tile coordinate to local room coordinate, stating at
+     * Translates a world tile coordinate to local room coordinate, starting at
      * the top left corner
      *
      * @param x the x coordinate

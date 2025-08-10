@@ -20,14 +20,14 @@ import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
-import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.DEFAULT_COST;
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.WATER_COST;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
  * Map representation for the path finding
@@ -180,8 +180,7 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
                 // Get room obstacles
-                RoomInstance roomInstance = mapController.getRoomInstanceByCoordinates(to.getLocation());
-                IRoomController room = mapController.getRoomController(roomInstance);
+                IRoomController room = mapController.getRoomControllerByCoordinates(to.getLocation());
                 return room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation()) ? DEFAULT_COST : null;
             } else if (navigable.canFly()) {
                 return DEFAULT_COST;

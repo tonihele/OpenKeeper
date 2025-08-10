@@ -21,10 +21,6 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import toniarts.openkeeper.utils.Point;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
@@ -37,6 +33,11 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.Point;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A simple state to scan the loose objects inside rooms. The loose objects are
@@ -98,11 +99,15 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            Entity entity = looseObjectEntities.getEntity(entityId);
             Point point = mapTile.getLocation();
             IRoomController roomController = mapController.getRoomControllerByCoordinates(point);
+            if(roomController == null) {
+                continue;
+            }
+
+            Entity entity = looseObjectEntities.getEntity(entityId);
             ObjectComponent objectComponent = entity.get(ObjectComponent.class);
-            if (roomController != null && objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
+            if (objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
                 short ownerId = roomController.getOwnerId();
                 if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {
                     synchronized (GameWorldController.GOLD_LOCK) {

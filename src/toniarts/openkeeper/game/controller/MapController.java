@@ -19,14 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
-import toniarts.openkeeper.utils.Point;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -48,6 +41,15 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This is controller for the map related functions
@@ -65,8 +67,7 @@ public final class MapController extends Container implements IMapController {
     private final IMapInformation<IMapTileController> mapInformation;
     private final ILevelInfo levelInfo;
 
-    private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>();
-    private final Map<RoomInstance, IRoomController> roomControllers = new HashMap<>();
+    private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
     private final Map<Short, SafeArrayList<RoomListener>> roomListeners = new HashMap<>();
 
@@ -111,7 +112,7 @@ public final class MapController extends Container implements IMapController {
             return;
         }
 
-        if (roomCoordinates.containsKey(p)) {
+        if (roomControllers.containsKey(mapTile.getRoomId())) {
             return;
         }
 
@@ -134,7 +135,7 @@ public final class MapController extends Container implements IMapController {
         // Create a controller for it
         IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
         roomController.construct();
-        roomControllers.put(roomInstance, roomController);
+        roomControllers.put(roomController.getEntityId(), roomController);
 
         // Set the room instance to the tiles
         for (Point roomCoordinate : roomInstance.getCoordinates()) {
@@ -164,28 +165,30 @@ public final class MapController extends Container implements IMapController {
 
         // Get the terrain
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return;
+        }
 
-            if (!roomCoordinates.containsKey(p)) {
-                if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
+        if (roomInstance.hasCoordinate(p)) {
+            return;
+        }
 
-                    // Add the coordinate
-                    roomCoordinates.put(p, roomInstance);
-                    roomInstance.addCoordinate(p);
+        if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
 
-                    // Find north
-                    findRoom(new Point(p.x, p.y - 1), roomInstance);
+            // Add the coordinate
+            roomInstance.addCoordinate(p);
 
-                    // Find east
-                    findRoom(new Point(p.x + 1, p.y), roomInstance);
+            // Find north
+            findRoom(new Point(p.x, p.y - 1), roomInstance);
 
-                    // Find south
-                    findRoom(new Point(p.x, p.y + 1), roomInstance);
+            // Find east
+            findRoom(new Point(p.x + 1, p.y), roomInstance);
 
-                    // Find west
-                    findRoom(new Point(p.x - 1, p.y), roomInstance);
-                }
-            }
+            // Find south
+            findRoom(new Point(p.x, p.y + 1), roomInstance);
+
+            // Find west
+            findRoom(new Point(p.x - 1, p.y), roomInstance);
         }
     }
 
@@ -337,46 +340,29 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
-    public RoomInstance getRoomInstanceByCoordinates(Point p) {
-        return roomCoordinates.get(p);
-    }
-
-    @Override
     public IRoomController getRoomControllerByCoordinates(Point p) {
-        RoomInstance roomInstance = roomCoordinates.get(p);
-        if (roomInstance != null) {
-            return getRoomController(roomInstance);
+        IMapTileInformation tile = getMapData().getTile(p);
+        if(tile == null) {
+            return null;
         }
 
-        return null;
+        return roomControllers.get(tile.getRoomId());
     }
 
     @Override
-    public IRoomController getRoomController(RoomInstance roomInstance) {
-        return roomControllers.get(roomInstance);
+    public IRoomController getRoomController(EntityId entityId) {
+        return roomControllers.get(entityId);
     }
 
     @Override
-    public Map<Point, RoomInstance> getRoomCoordinates() {
-        return roomCoordinates;
-    }
-
-    @Override
-    public Map<RoomInstance, IRoomController> getRoomControllersByInstances() {
-        return roomControllers;
-    }
-
-    @Override
-    public void removeRoomInstances(RoomInstance... instances) {
-        for (RoomInstance instance : instances) {
+    public void removeRoomInstances(EntityId... instances) {
+        for (EntityId instance : instances) {
 
             // Signal the room
-            IRoomController roomController = getRoomController(instance);
+            IRoomController roomController = roomControllers.remove(instance);
             roomController.remove();
 
-            roomControllers.remove(instance);
-            for (Point roomCoordinate : instance.getCoordinates()) {
-                roomCoordinates.remove(roomCoordinate);
+            for (Point roomCoordinate : roomController.getRoomInstance().getCoordinates()) {
 
                 // Remove room from the tile
                 IMapTileController roomTile = mapData.getTile(roomCoordinate);
@@ -406,14 +392,15 @@ public final class MapController extends Container implements IMapController {
     @Override
     public List<IRoomController> getRoomsByFunction(ObjectType objectType, Short playerId) {
         List<IRoomController> roomsList = new ArrayList<>();
-        for (Map.Entry<RoomInstance, IRoomController> entry : roomControllers.entrySet()) {
-            if (playerId != null && entry.getKey().getOwnerId() != playerId) {
+        for (Map.Entry<EntityId, IRoomController> entry : roomControllers.entrySet()) {
+            if (playerId != null && entry.getValue().getOwnerId() != playerId) {
                 continue;
             }
             if (entry.getValue().hasObjectControl(objectType)) {
                 roomsList.add(entry.getValue());
             }
         }
+
         return roomsList;
     }
 
@@ -622,8 +609,8 @@ public final class MapController extends Container implements IMapController {
         }
 
         // Get the room
-        RoomInstance room = getRoomInstanceByCoordinates(point);
-        List<Point> roomTiles = room.getCoordinates();
+        IRoomController room = getRoomControllerByCoordinates(point);
+        List<Point> roomTiles = room.getRoomInstance().getCoordinates();
 
         // Apply the damage equally to all tiles so that the overall condition can be checked easily
         // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
@@ -652,18 +639,16 @@ public final class MapController extends Container implements IMapController {
 
                 // Notify
                 notifyTileChange(roomTiles);
-                IRoomController roomController = getRoomController(room);
-                roomController.captured(playerId);
-                roomController.setHealth(roomController.getMaxHealth());
-                notifyOnCapturedByEnemy(owner, roomController);
-                notifyOnCaptured(playerId, roomController);
+                room.captured(playerId);
+                room.setHealth(room.getMaxHealth());
+                notifyOnCapturedByEnemy(owner, room);
+                notifyOnCaptured(playerId, room);
                 return;
             }
             currentHealth += roomTile.getHealth();
         }
 
-        IRoomController roomController = getRoomController(room);
-        roomController.setHealth(currentHealth);
+        room.setHealth(currentHealth);
     }
 
     public int mineGold(IMapTileController tile, int amount) {
@@ -837,8 +822,10 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
-    public void addRoomCoordinate(RoomInstance roomInstance, Point point) {
-        roomCoordinates.put(point, roomInstance);
-        getMapData().getTile(point).setRoomId(getRoomController(roomInstance).getEntityId());
+    public void addRoomCoordinate(EntityId roomInstance, Collection<Point> points) {
+        roomControllers.get(roomInstance).getRoomInstance().addCoordinates(points);
+        for (Point point : points) {
+            getMapData().getTile(point).setRoomId(roomInstance);
+        }
     }
 }
