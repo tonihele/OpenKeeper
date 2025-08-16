@@ -18,20 +18,16 @@ package toniarts.openkeeper.game.logic;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.concurrent.TimeUnit;
-import toniarts.openkeeper.utils.IGameLoopManager;
 
 /**
  * Runs the game logic tasks, well, doesn't literally run them but wraps them up
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class GameLogicManager implements IGameLoopManager {
-    
+public final class GameLogicManager implements IGameLogicUpdatable {
+
     private static final Logger logger = System.getLogger(GameLogicManager.class.getName());
 
-    private long ticks = 0;
-    private double timeElapsed = 0.0;
     protected final IGameLogicUpdatable[] updatables;
 
     public GameLogicManager(IGameLogicUpdatable... updatables) {
@@ -46,28 +42,15 @@ public final class GameLogicManager implements IGameLoopManager {
     }
 
     @Override
-    public void processTick(long delta) {
-
-        // Update game time
-        long start = System.nanoTime();
-        float tpf = delta / 1000000000f;
-
+    public void processTick(float tpf) {
         // Update updatables
         for (IGameLogicUpdatable updatable : updatables) {
             try {
-                updatable.processTick(tpf, timeElapsed);
+                updatable.processTick(tpf);
             } catch (Exception e) {
                 logger.log(Level.ERROR, "Error in game logic tick on " + updatable.getClass() + "!", e);
             }
         }
-
-        // Logging
-        long tickTime = System.nanoTime() - start;
-        logger.log(tickTime < delta ? Level.TRACE : Level.ERROR, "Tick took {0} ms!", TimeUnit.MILLISECONDS.convert(tickTime, TimeUnit.NANOSECONDS));
-
-        // Increase ticks & time
-        timeElapsed += tpf;
-        ticks++;
     }
 
     @Override
@@ -75,24 +58,6 @@ public final class GameLogicManager implements IGameLoopManager {
         for (IGameLogicUpdatable updatable : updatables) {
             updatable.stop();
         }
-    }
-
-    /**
-     * Get the elapsed game time, in seconds
-     *
-     * @return the game time
-     */
-    public double getGameTime() {
-        return timeElapsed;
-    }
-
-    /**
-     * Get the amount of game ticks ticked over
-     *
-     * @param ticks the ticks
-     */
-    public void setTicks(long ticks) {
-        this.ticks = ticks;
     }
 
 //    private void drawCreatureVisibilities() {
@@ -139,7 +104,4 @@ public final class GameLogicManager implements IGameLoopManager {
 //            worldState.getWorld().attachChild(node);
 //        });
 //    }
-    public long getTicks() {
-        return ticks;
-    }
 }

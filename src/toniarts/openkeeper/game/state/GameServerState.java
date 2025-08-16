@@ -26,7 +26,6 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -37,6 +36,7 @@ import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -52,7 +52,7 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class GameServerState extends AbstractAppState {
-    
+
     private static final Logger logger = System.getLogger(GameServerState.class.getName());
 
     private Main app;
@@ -63,7 +63,6 @@ public final class GameServerState extends AbstractAppState {
     private final Object loadingObject = new Object();
     private volatile boolean gameLoaded = false;
 
-    private final String level;
     private final KwdFile kwdFile;
     private final toniarts.openkeeper.game.data.Level levelObject;
 
@@ -74,7 +73,7 @@ public final class GameServerState extends AbstractAppState {
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
-    private GameController gameController;
+    private GameLoopManager game;
     private IGameWorldController gameWorldController;
 
     /**
@@ -86,7 +85,6 @@ public final class GameServerState extends AbstractAppState {
      * @param gameService the game service
      */
     public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService) {
-        this.level = null;
         this.kwdFile = level;
         this.levelObject = null;
         this.campaign = campaign;
@@ -131,9 +129,8 @@ public final class GameServerState extends AbstractAppState {
     }
 
     /**
-     * If you are getting rid of the game state, use this so that all the
-     * related states are detached on the same render loop. Otherwise the app
-     * might crash.
+     * If you are getting rid of the game state, use this so that all the related states are detached on the
+     * same render loop. Otherwise the app might crash.
      */
     public void detach() {
         if (loader != null && loader.isAlive()) {
@@ -141,9 +138,9 @@ public final class GameServerState extends AbstractAppState {
         }
         stateManager.detach(this);
 
-        if (gameController != null) {
+        if (game != null) {
             try {
-                gameController.close();
+                game.stop();
             } catch (Exception ex) {
                 logger.log(Level.ERROR, "Failed to close the game!", ex);
             }
@@ -176,37 +173,36 @@ public final class GameServerState extends AbstractAppState {
         public void run() {
 
             // Make sure the KWD file is fully loaded
-                kwdFile.load();
+            kwdFile.load();
 
-                // Create the central game controller
-                gameController = new GameController(kwdFile, players, gameService.getEntityData(), kwdFile.getVariables(), gameService);
-                gameController.createNewGame();
+            // Create the central game controller
+            game = new GameLoopManager(kwdFile, gameService, players);
 
-                gameWorldController = gameController.getGameWorldController();
-                mapController = gameWorldController.getMapController();
-                gameWorldController.addListener(playerActionListener);
+            gameWorldController = game.getGameController().getGameWorldController();
+            mapController = gameWorldController.getMapController();
+            gameWorldController.addListener(playerActionListener);
 
-                // Send the the initial game data
-                gameService.sendGameData(gameController.getPlayers());
+            // Send the the initial game data
+            gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
 
-                // Set up a listener for the map
-                mapController.addListener(mapListener);
+            // Set up a listener for the map
+            mapController.addListener(mapListener);
 
-                // Set up a listener for the player changes, they are per player
-                for (IPlayerController playerController : gameController.getPlayerControllers()) {
-                    playerController.addListener(gameService);
-                }
+            // Set up a listener for the player changes, they are per player
+            for (IPlayerController playerController : game.getGameController().getPlayerControllers().values()) {
+                playerController.addListener(gameService);
+            }
 
-                // Nullify the thread object
-                loader = null;
+            // Nullify the thread object
+            loader = null;
 
-                // Mark the server end ready
-                synchronized (loadingObject) {
-                    gameLoaded = true;
-                    loadingObject.notifyAll();
-                }
+            // Mark the server end ready
+            synchronized (loadingObject) {
+                gameLoaded = true;
+                loadingObject.notifyAll();
             }
         }
+    }
 
     /**
      * Listen for basically clients' requests
@@ -230,7 +226,7 @@ public final class GameServerState extends AbstractAppState {
             }
 
             // Start the actual game
-            gameController.startGame();
+            game.start();
         }
 
         @Override
@@ -286,14 +282,14 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void onPauseRequest(short playerId) {
             // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
-            gameController.pauseGame();
+            game.pause();
 
         }
 
         @Override
         public void onResumeRequest(short playerId) {
             // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
-            gameController.resumeGame();
+            game.resume();
         }
 
         @Override
@@ -320,7 +316,7 @@ public final class GameServerState extends AbstractAppState {
                     break;
                 }
                 case MANA: {
-                    gameController.getPlayerController(playerId).getManaControl().addMana(100000);
+                    game.getGameController().getPlayerController(playerId).getManaControl().addMana(100000);
                     break;
                 }
                 case MONEY: {
@@ -332,26 +328,30 @@ public final class GameServerState extends AbstractAppState {
                     break;
                 }
                 case UNLOCK_ROOMS: {
-                    PlayerRoomControl playerRoomControl = gameController.getPlayerController(playerId).getRoomControl();
+                    PlayerRoomControl playerRoomControl = game.getGameController()
+                            .getPlayerController(playerId).getRoomControl();
                     for (Room room : kwdFile.getRooms()) {
                         playerRoomControl.setTypeAvailable(room, true);
                     }
                     break;
                 }
                 case UNLOCK_DOORS_TRAPS: {
-                    PlayerDoorControl playerDoorControl = gameController.getPlayerController(playerId).getDoorControl();
+                    PlayerDoorControl playerDoorControl = game.getGameController()
+                            .getPlayerController(playerId).getDoorControl();
                     for (Door door : kwdFile.getDoors()) {
                         playerDoorControl.setTypeAvailable(door, true);
                     }
 
-                    PlayerTrapControl playerTrapControl = gameController.getPlayerController(playerId).getTrapControl();
+                    PlayerTrapControl playerTrapControl = game.getGameController()
+                            .getPlayerController(playerId).getTrapControl();
                     for (Trap trap : kwdFile.getTraps()) {
                         playerTrapControl.setTypeAvailable(trap, true);
                     }
                     break;
                 }
                 case UNLOCK_SPELLS: {
-                    PlayerSpellControl playerSpellControl = gameController.getPlayerController(playerId).getSpellControl();
+                    PlayerSpellControl playerSpellControl = game.getGameController()
+                            .getPlayerController(playerId).getSpellControl();
                     for (KeeperSpell keeperSpell : kwdFile.getKeeperSpells()) {
                         playerSpellControl.setTypeAvailable(keeperSpell, true);
                         playerSpellControl.setSpellDiscovered(keeperSpell, true);
@@ -359,7 +359,7 @@ public final class GameServerState extends AbstractAppState {
                     break;
                 }
                 case WIN_LEVEL: {
-                    gameController.endGame(playerId, true);
+                    game.getGameController().endGame(playerId, true);
                     break;
                 }
                 default:

@@ -56,7 +56,7 @@ public final class ActionPointTriggerLogicController implements IGameLogicUpdata
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         for (ActionPointTriggerControl triggerControl : triggers.getArray()) {
             triggerControl.update(tpf);
         }

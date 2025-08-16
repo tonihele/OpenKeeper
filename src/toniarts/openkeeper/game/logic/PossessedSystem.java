@@ -28,13 +28,14 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
  * Maintains possessed state, sees when we need to stop possessing
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class PossessedSystem implements IGameLogicUpdatable {
+public final class PossessedSystem extends GameTimeCounter {
 
     private final EntitySet possessedEntities;
     private final Map<Short, PlayerManaControl> manaControls;
@@ -58,11 +59,11 @@ public final class PossessedSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
+        super.processTick(tpf);
+
         if (possessedEntities.applyChanges()) {
-
             processAddedEntities(possessedEntities.getAddedEntities());
-
             processDeletedEntities(possessedEntities.getRemovedEntities());
         }
 
@@ -71,14 +72,14 @@ public final class PossessedSystem implements IGameLogicUpdatable {
             // See if the player is running out of mana
             Possessed possessed = entity.get(Possessed.class);
             Owner owner = entity.get(Owner.class);
-            if (possessed.manaCheckTime + 1 < gameTime) {
+            if (possessed.manaCheckTime + 1 < timeElapsed) {
                 continue;
             }
 
             if (!manaControls.get(owner.ownerId).hasEnoughMana(possessed.manaDrain)) {
                 entityData.removeComponent(entity.getId(), Possessed.class);
             } else {
-                entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, gameTime));
+                entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed));
             }
         }
     }

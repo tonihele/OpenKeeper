@@ -24,20 +24,21 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
- * Handles creature falling (dropped from hand). In the future maybe all these
- * would be handled by a physics thingie?
+ * Handles creature falling (dropped from hand). In the future maybe all these would be handled by a physics
+ * thingie?
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class CreatureFallSystem implements IGameLogicUpdatable {
+public final class CreatureFallSystem extends GameTimeCounter {
+
+    private static final float GRAVITY = 2.0f;
 
     private final EntityData entityData;
     private final EntitySet fallEntities;
-    private static final float GRAVITY = 2.0f;
 
     public CreatureFallSystem(EntityData entityData) {
         this.entityData = entityData;
@@ -46,8 +47,8 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
+        super.processTick(tpf);
         // Add new & remove old
         fallEntities.applyChanges();
 
@@ -64,7 +65,7 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                entityData.setComponent(entity.getId(), new CreatureAi(gameTime, creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
+                entityData.setComponent(entity.getId(), new CreatureAi(timeElapsed, creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
             }
         }
     }

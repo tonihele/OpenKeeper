@@ -92,23 +92,18 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
         // This is just a cache for a tick
         sensedEntitiesByEntity.clear();
 
         if (positionedEntities.applyChanges()) {
-
             processAddedEntities(positionedEntities.getAddedEntities());
-
             processDeletedEntities(positionedEntities.getRemovedEntities());
-
             processChangedEntities(positionedEntities.getChangedEntities());
         }
     }
 
     private void processChangedEntities(Set<Entity> entities) {
-
         // Update
         for (Entity entity : entities) {
             Point p = WorldUtils.vectorToPoint(entity.get(Position.class).position);

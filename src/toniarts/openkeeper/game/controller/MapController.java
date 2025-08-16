@@ -74,22 +74,24 @@ public final class MapController extends Container implements IMapController {
     /**
      * Load map data from a KWD file straight (new game)
      *
-     * @param kwdFile           the KWD file
+     * @param kwdFile the KWD file
      * @param objectsController objects controller
-     * @param gameSettings      the game settings
+     * @param gameSettings the game settings
      * @param gameTimer
      * @param entityData
      * @param levelInfo
      */
-    public MapController(KwdFile kwdFile, IObjectsController objectsController, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+    public MapController(KwdFile kwdFile, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo) {
+
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
-        this.mapData = new MapData(kwdFile, entityData, levelInfo.getPlayers());
+        this.mapData = new MapData(kwdFile, entityData, levelInfo.getPlayers().values());
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.entityData = entityData;
-        this.mapInformation = new MapInformation(mapData, kwdFile, levelInfo.getPlayers());
+        this.mapInformation = new MapInformation(mapData, kwdFile, levelInfo.getPlayers().values());
         this.levelInfo = levelInfo;
 
         // Load rooms
@@ -145,19 +147,16 @@ public final class MapController extends Container implements IMapController {
 
         // TODO: A bit of a design problem here
         /**
-         * Unclear responsibilities between the world and map controller.
-         * Also a result of how we handle the building and selling by
-         * destroying rooms.
-         * But at least keep anyone who is listening intact
+         * Unclear responsibilities between the world and map controller. Also a result of how we handle the
+         * building and selling by destroying rooms. But at least keep anyone who is listening intact
          */
         notifyOnBuild(roomController.getRoomInstance().getOwnerId(), roomController);
     }
 
     /**
-     * Find the room starting from a certain point, rooms are never diagonally
-     * attached
+     * Find the room starting from a certain point, rooms are never diagonally attached
      *
-     * @param p            starting point
+     * @param p starting point
      * @param roomInstance the room instance
      */
     private void findRoom(Point p, RoomInstance roomInstance) {
@@ -342,7 +341,7 @@ public final class MapController extends Container implements IMapController {
     @Override
     public IRoomController getRoomControllerByCoordinates(Point p) {
         IMapTileInformation tile = getMapData().getTile(p);
-        if(tile == null) {
+        if (tile == null) {
             return null;
         }
 
@@ -373,10 +372,8 @@ public final class MapController extends Container implements IMapController {
 
             // TODO: A bit of a design problem here
             /**
-             * Unclear responsibilities between the world and map controller.
-             * Also a result of how we handle the building and selling by
-             * destroying rooms.
-             * But at least keep anyone who is listening intact
+             * Unclear responsibilities between the world and map controller. Also a result of how we handle
+             * the building and selling by destroying rooms. But at least keep anyone who is listening intact
              */
             notifyOnSold(roomController.getRoomInstance().getOwnerId(), roomController);
         }
@@ -386,7 +383,7 @@ public final class MapController extends Container implements IMapController {
      * Get rooms by function.<br> FIXME: Should the player have ready lists?
      *
      * @param objectType the function
-     * @param playerId   the player id, can be null
+     * @param playerId the player id, can be null
      * @return list of rooms that match the criteria
      */
     @Override
@@ -532,7 +529,7 @@ public final class MapController extends Container implements IMapController {
     /**
      * Heal a tile
      *
-     * @param point    the point
+     * @param point the point
      * @param playerId the player applying the healing
      */
     @Override
@@ -593,7 +590,7 @@ public final class MapController extends Container implements IMapController {
     /**
      * Damage a room
      *
-     * @param point    tile coordinate
+     * @param point tile coordinate
      * @param playerId for the player
      */
     private void damageRoom(Point point, short playerId) {
@@ -760,7 +757,7 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         this.update(tpf);
     }
 

@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
@@ -39,7 +40,7 @@ public interface ILevelInfo {
 
     Keeper getPlayer(short playerId);
 
-    Collection<Keeper> getPlayers();
+    Map<Short, Keeper> getPlayers();
 
     int getFlag(int id);
 

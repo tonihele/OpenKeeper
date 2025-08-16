@@ -39,8 +39,7 @@ public interface IGameLogicUpdatable {
      *
      * @param tpf time since the last call to update(), in seconds. Our tick
      * rate.
-     * @param gameTime elapsed game time
      */
-    public void processTick(float tpf, double gameTime);
+    public void processTick(float tpf);
 
 }

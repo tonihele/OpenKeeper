@@ -37,13 +37,16 @@ import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
  * Manages slapping of entities, the added effects etc
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class SlapSystem implements IGameLogicUpdatable {
+public final class SlapSystem extends GameTimeCounter {
+
+    private final static int EFFICIENCY_BONUS = 10;
 
     private final KwdFile kwdFile;
     private final EntitySet creatureEntities;
@@ -52,8 +55,6 @@ public final class SlapSystem implements IGameLogicUpdatable {
     private final int maxSlapDuration;
     private final Map<Short, PlayerStatsControl> statControls;
     private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
-
-    private final static int EFFICIENCY_BONUS = 10;
 
     public SlapSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
@@ -72,29 +73,25 @@ public final class SlapSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
+        super.processTick(tpf);
+
         if (creatureEntities.applyChanges()) {
-
             processDeletedEntities(creatureEntities.getRemovedEntities());
-
             processAddedCreatureEntities(creatureEntities.getAddedEntities());
-
             processChangedEntities(creatureEntities.getChangedEntities());
         }
 
         if (objectEntities.applyChanges()) {
-
             processDeletedEntities(objectEntities.getRemovedEntities());
-
             processAddedObjectEntities(objectEntities.getAddedEntities());
-
             processChangedEntities(objectEntities.getChangedEntities());
         }
 
         // Remove the slap effect from creatures
         // TODO: So many variables, for work efficiency and speeding up, so, figure out
         for (Map.Entry<EntityId, Double> entry : slapStartTimesByEntityId.entrySet()) {
-            if (gameTime - entry.getValue() >= maxSlapDuration) {
+            if (timeElapsed - entry.getValue() >= maxSlapDuration) {
                 entityData.removeComponent(entry.getKey(), Slapped.class);
             }
         }

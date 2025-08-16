@@ -16,29 +16,20 @@
  */
 package toniarts.openkeeper.utils;
 
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+
 /**
  * Simple interface for enabling game logic update
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IGameLoopManager {
+abstract public class GameTimeCounter implements IGameLogicUpdatable {
 
-    /**
-     * Signals start for the manager
-     */
-    public void start();
+    protected double timeElapsed = 0.0;
 
-    /**
-     * Signals stop to the manager
-     */
-    public void stop();
-
-    /**
-     * Process one game tick. Note that this is not likely run from a render
-     * loop. So you can't modify the scene from here.
-     *
-     * @param delta time since the last call to update(), in nanoseconds
-     */
-    public void processTick(long delta);
+    @Override
+    public void processTick(float tpf) {
+        timeElapsed += tpf;
+    }
 
 }

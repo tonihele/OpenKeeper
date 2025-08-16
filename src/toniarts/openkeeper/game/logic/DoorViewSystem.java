@@ -60,7 +60,7 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         // Add new & remove old
         if (doorEntities.applyChanges()) {

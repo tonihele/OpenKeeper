@@ -41,20 +41,19 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
+import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.Utils;
 
 /**
  * Handles creatures spawning, from Portals, Dungeon Hearts...<br>
- * It is confirmed behavior in the original game that multiple portals that have
- * the same counter value will spawn creatures at the same time. Even one could
- * think that since the creature count goes up, we wouldn't be able to spawn
- * more than one creature at the time as the cooldown requirement increases. We
- * replicate this behavior 100% since we actually count the creatures once per
- * tick.
+ * It is confirmed behavior in the original game that multiple portals that have the same counter value will
+ * spawn creatures at the same time. Even one could think that since the creature count goes up, we wouldn't
+ * be able to spawn more than one creature at the time as the cooldown requirement increases. We replicate
+ * this behavior 100% since we actually count the creatures once per tick.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class CreatureSpawnSystem implements IGameLogicUpdatable {
+public final class CreatureSpawnSystem extends GameTimeCounter {
 
     private final ICreaturesController creaturesController;
     private final int minimumImpCount;
@@ -105,20 +104,22 @@ public final class CreatureSpawnSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
+        super.processTick(tpf);
+
         for (ICreatureEntrance entrance : entrances.getArray()) {
-            evaluateAndSpawnCreature(entrance, gameTime);
+            evaluateAndSpawnCreature(entrance);
         }
     }
 
-    private void evaluateAndSpawnCreature(ICreatureEntrance entrance, double gameTime) {
+    private void evaluateAndSpawnCreature(ICreatureEntrance entrance) {
 
         // TODO: we should have a listener for destroy that we can remove the room
         if (entrance.isDestroyed()) {
             return;
         }
 
-        double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
+        double timeSinceLastSpawn = timeElapsed - entrance.getLastSpawnTime();
         IPlayerController player = playerControllersById.get(entrance.getOwnerId());
         boolean spawned = false;
         EntityId entityId = null;
@@ -160,7 +161,7 @@ public final class CreatureSpawnSystem implements IGameLogicUpdatable {
         if (spawned) {
 
             // Reset spawn time
-            entrance.onSpawn(gameTime, entityId);
+            entrance.onSpawn(timeElapsed, entityId);
         }
     }
 
@@ -220,8 +221,7 @@ public final class CreatureSpawnSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * In DK 2 it is not possible to place spawn points in game, but but we
-     * don't know that
+     * In DK 2 it is not possible to place spawn points in game, but but we don't know that
      */
     private final class EntranceListener implements RoomListener {
 

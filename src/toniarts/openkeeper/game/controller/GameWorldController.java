@@ -81,6 +81,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
@@ -91,13 +92,12 @@ import java.util.stream.Collectors;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class GameWorldController implements IGameWorldController, IPlayerActions {
-    
+
     private static final System.Logger logger = System.getLogger(GameWorldController.class.getName());
 
     /**
-     * When dealing with gold... We currently better lock it. Logic stuff
-     * happens in single thread. But player actions are prosessed in real time
-     * by possibly other threads. We must not lose any gold from the world.
+     * When dealing with gold... We currently better lock it. Logic stuff happens in single thread. But player
+     * actions are prosessed in real time by possibly other threads. We must not lose any gold from the world.
      */
     public static final Object GOLD_LOCK = new Object();
 
@@ -110,23 +110,28 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IShotsController shotsController;
     private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
-    private final SortedMap<Short, Keeper> players;
+    private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
 
-    public GameWorldController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, SortedMap<Short, Keeper> players, Map<Short, IPlayerController> playerControllers, IGameTimer gameTimer) {
-        this.kwdFile = kwdFile;
+    public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            Map<Short, IPlayerController> playerControllers, IGameTimer gameTimer) {
+
+        this.kwdFile = levelInfo.getLevelData();
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.playerControllers = playerControllers;
-        this.players = players;
+        this.players = levelInfo.getPlayers();
+
+        this.createNewGame(gameController, levelInfo);
     }
 
-    public void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
+    private void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
 
         // Load objects
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
@@ -189,8 +194,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     /**
-     * Add a lump sum of gold to a player, distributes the gold to the available
-     * rooms
+     * Add a lump sum of gold to a player, distributes the gold to the available rooms
      *
      * @param playerId for the player
      * @param sum the gold sum
@@ -204,8 +208,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     /**
-     * Add a lump sum of gold to a player, distributes the gold to the available
-     * rooms
+     * Add a lump sum of gold to a player, distributes the gold to the available rooms
      *
      * @param playerId for the player
      * @param p a point where to drop the gold, can be {@code  null}
@@ -598,11 +601,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         playerHandControl.push(entity);
 
         /**
-         * TODO: Basically here we can have a concurrency problem, especially
-         * visible with things that have AI. The AI or other systems may be
-         * still processing and manipulating stuff. One way to fix would be to
-         * add this to game loop queue to be executed. That would introduce a
-         * delay though...
+         * TODO: Basically here we can have a concurrency problem, especially visible with things that have
+         * AI. The AI or other systems may be still processing and manipulating stuff. One way to fix would be
+         * to add this to game loop queue to be executed. That would introduce a delay though...
          */
         // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
         // And also no need to create a system for this which saves resources

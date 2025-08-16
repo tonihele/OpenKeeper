@@ -16,7 +16,11 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 
 /**
  * A game loop. This is a fork of Paul Speeds class of a same name.
@@ -25,86 +29,47 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class GameLoop {
 
-    public static final long INTERVAL_FPS_60 = 16666667L;
-    private static final String DEFAULT_NAME = "GameLoopThread";
+    private static final Logger logger = System.getLogger(GameLoop.class.getName());
 
-    private final IGameLoopManager gameLoopManager;
+    public static final long INTERVAL_FPS_60 = 16666667L;
+    private static final String NAME_PREFIX = "Game";
+
+    private final IGameLogicUpdatable gameLoopManager;
     private final Runner loop;
 
     private final long updateRate;
-    private long idleSleepTime = 0;
     private final AtomicBoolean pauseFlag = new AtomicBoolean(false);
 
-    public GameLoop(IGameLoopManager gameLoopManager) {
+    public GameLoop(IGameLogicUpdatable gameLoopManager) {
         this(gameLoopManager, INTERVAL_FPS_60); // 60 FPS
     }
 
-    public GameLoop(IGameLoopManager gameLoopManager, long updateRateNanos) {
-        this(gameLoopManager, updateRateNanos, DEFAULT_NAME);
+    public GameLoop(IGameLogicUpdatable gameLoopManager, long updateRateNanos) {
+        this(gameLoopManager, updateRateNanos, "");
     }
 
-    public GameLoop(IGameLoopManager gameLoopManager, long updateRateNanos, String name) {
-        this(gameLoopManager, updateRateNanos, name, null);
-    }
-
-    public GameLoop(IGameLoopManager gameLoopManager, long updateRateNanos, String name, Long idleSleepTime) {
+    public GameLoop(IGameLogicUpdatable gameLoopManager, long updateRateNanos, String name) {
         this.gameLoopManager = gameLoopManager;
         this.updateRate = updateRateNanos;
-        this.loop = new Runner(name);
-        setIdleSleepTime(idleSleepTime);
+        this.loop = new Runner(NAME_PREFIX + " " + name);
     }
 
     /**
-     * Starts the background game loop thread and initializes and starts the
-     * game system manager (if it hasn't been initialized or started already).
-     * The systems will be initialized and started on the game loop background
-     * thread.
+     * Starts the background game loop thread and initializes and starts the game system manager (if it hasn't
+     * been initialized or started already). The systems will be initialized and started on the game loop
+     * background thread.
      */
     public void start() {
         loop.start();
     }
 
     /**
-     * Stops the background game loop thread, stopping and terminating the game
-     * systems. This method will wait until the thread has been fully shut down
-     * before returning. The systems will be stopped and terminated on the game
-     * loop background thread.
+     * Stops the background game loop thread, stopping and terminating the game systems. This method will wait
+     * until the thread has been fully shut down before returning. The systems will be stopped and terminated
+     * on the game loop background thread.
      */
     public void stop() {
         loop.close();
-    }
-
-    /**
-     * Sets the period of time in milliseconds that the update loop will wait
-     * between time interval checks. This defaults to 0 because on Windows the
-     * default 60 FPS update rate will cause frame drops for a idle sleep time
-     * of 1 or more. However, 0 causes the loop to consume a noticable amount of
-     * CPU. For lower framerates, 1 is recommended and will be set automically
-     * based on the current frame rate interval if null is specified.
-     *
-     * @param millis
-     */
-    public final void setIdleSleepTime(Long millis) {
-        if (millis == null) {
-
-            // Configure a reasonable default
-            if (updateRate > INTERVAL_FPS_60) {
-
-                // Can probably get away with more sleep
-                this.idleSleepTime = 1;
-            } else {
-
-                // Else on Windows, sleep > 0 will take almost as long as
-                // a frame
-                this.idleSleepTime = 0;
-            }
-        } else {
-            this.idleSleepTime = millis;
-        }
-    }
-
-    public Long getIdleSleepTime() {
-        return idleSleepTime;
     }
 
     public void pause() {
@@ -119,10 +84,9 @@ public final class GameLoop {
     }
 
     /**
-     * Use our own thread instead of a java executor because we need more
-     * control over the update loop. ScheduledThreadPoolExecutor will try to
-     * call makeup frames if it gets behind and we'd rather just drop them.
-     * Furthermore, this allows us to 'busy wait' for the next 'frame'.
+     * Use our own thread instead of a java executor because we need more control over the update loop.
+     * ScheduledThreadPoolExecutor will try to call makeup frames if it gets behind and we'd rather just drop
+     * them. Furthermore, this allows us to 'busy wait' for the next 'frame'.
      */
     protected final class Runner extends Thread {
 
@@ -146,13 +110,12 @@ public final class GameLoop {
         public void run() {
             gameLoopManager.start();
 
+            long frameRate = 0;
             long lastTime = System.nanoTime();
             while (go.get()) {
-
                 // Check pause
                 if (pauseFlag.get()) {
                     synchronized (pauseFlag) {
-
                         // We are in a while loop here to protect against spurious interrupts
                         while (pauseFlag.get()) {
                             try {
@@ -169,12 +132,14 @@ public final class GameLoop {
                 long time = System.nanoTime();
                 long delta = time - lastTime;
 
-                if (delta >= updateRate) {
-
-                    // Time to update
+                if (delta + frameRate >= updateRate) {
                     lastTime = time;
-                    gameLoopManager.processTick(delta);
-                    continue;
+                    frameRate += delta - updateRate;
+                    gameLoopManager.processTick(delta / 1_000_000_000f);
+                    long tickTime = System.nanoTime() - time;
+                    // Logging
+                    logger.log(tickTime < updateRate ? Level.TRACE : Level.ERROR, "Loop \"{0}\" took {1} ms!",
+                            getName(), TimeUnit.NANOSECONDS.toMillis(delta));
                 }
 
                 // Wait just a little.  This is an important enough thread
@@ -192,20 +157,19 @@ public final class GameLoop {
                 // Which probably means that on Windows, we'll be responsive
                 // every other loop iteration.  It's an imperfect world and
                 // the only alternative is true CPU heating busy-waiting.
-                if (delta * 2 > updateRate) {
-                    continue;
-                }
-                try {
-
-                    // More then 0 here and we underflow constantly.
-                    // 0 and we gobble up noticable CPU.  Slower update
-                    // rates could probably get away with the longer sleep
-                    // but 60 FPS can't keep up on Windows.  So we'll let
-                    // the sleep time be externally defined for cases
-                    // where the caller knows  better.
-                    Thread.sleep(idleSleepTime);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException("Interrupted sleeping", e);
+                long sleep = TimeUnit.NANOSECONDS.toMillis(updateRate - frameRate);
+                if (sleep > 0) {
+                    try {
+                        // More then 0 here and we underflow constantly.
+                        // 0 and we gobble up noticable CPU.  Slower update
+                        // rates could probably get away with the longer sleep
+                        // but 60 FPS can't keep up on Windows.  So we'll let
+                        // the sleep time be externally defined for cases
+                        // where the caller knows  better.
+                        Thread.sleep(sleep);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException("Interrupted sleeping", e);
+                    }
                 }
             }
 

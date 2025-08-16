@@ -31,9 +31,8 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.ITaskManager;
 
 /**
- * Handles creature logic updates, the creature AI updates that is. The AI is
- * implemented elsewhere for clarity. This class just attaches the AI to the
- * entity having this component and updates it periodically.
+ * Handles creature logic updates, the creature AI updates that is. The AI is implemented elsewhere for
+ * clarity. This class just attaches the AI to the entity having this component and updates it periodically.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -57,18 +56,16 @@ public final class CreatureAiSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
         // Add new & remove old
         if (creatureEntities.applyChanges()) {
             processDeletedEntities(creatureEntities.getRemovedEntities());
-
             processAddedEntities(creatureEntities.getAddedEntities());
         }
 
         // Process ticks
         for (ICreatureController creatureController : creatureControllers.getArray()) {
-            creatureController.processTick(tpf, gameTime);
+            creatureController.processTick(tpf);
         }
 
         // We have a specialty here, process creature worker queue

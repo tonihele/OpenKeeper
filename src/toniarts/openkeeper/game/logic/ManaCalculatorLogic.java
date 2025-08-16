@@ -61,7 +61,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         tick += tpf;
         if (tick >= 1) {
             updateManaSources();

@@ -55,16 +55,15 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
- * Manages and monitors thing healthiness. Beeb... beeb... beeeeeeeeeeeeeeeeeeeb
- * :)
+ * Manages and monitors thing healthiness. Beeb... beeb... beeeeeeeeeeeeeeeeeeeb :)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class HealthSystem implements IGameLogicUpdatable {
+public final class HealthSystem extends GameTimeCounter {
 
-    private final KwdFile kwdFile;
     private final EntityData entityData;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
@@ -83,11 +82,11 @@ public final class HealthSystem implements IGameLogicUpdatable {
     private final EntitySet regeneratedEntities;
     private final EntitySet recuperatingEntities;
 
-    public HealthSystem(EntityData entityData, KwdFile kwdFile, IEntityPositionLookup entityPositionLookup,
+    public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, ILevelInfo levelInfo,
             Collection<IPlayerController> playerControllers, IMapController mapController) {
-        this.kwdFile = kwdFile;
+
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
@@ -120,16 +119,13 @@ public final class HealthSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
+        super.processTick(tpf);
         // Update the registry of all entities with health
         if (healthEntities.applyChanges()) {
-
             processAddedEntities(healthEntities.getAddedEntities());
-
             processDeletedEntities(healthEntities.getRemovedEntities());
-
-            processChangedEntities(healthEntities.getChangedEntities(), gameTime);
+            processChangedEntities(healthEntities.getChangedEntities());
         }
 
         // Update other monitorable sets
@@ -150,8 +146,8 @@ public final class HealthSystem implements IGameLogicUpdatable {
 
             // From unconsciousness we start the countdown to death
             if (unconscious != null) {
-                if (gameTime - unconscious.startTime >= timeToDeath) {
-                    processDeath(entityId, gameTime);
+                if (timeElapsed - unconscious.startTime >= timeToDeath) {
+                    processDeath(entityId);
                 }
                 continue;
             }
@@ -162,21 +158,21 @@ public final class HealthSystem implements IGameLogicUpdatable {
                 continue;
             }
 
-            int healthChange = calculateHealthChange(entityId, health, gameTime);
+            int healthChange = calculateHealthChange(entityId, health, timeElapsed);
             if (healthChange == 0) {
                 continue;
             }
 
             // Set new health or death
             if (health.health + healthChange <= 0) {
-                processHealthDepleted(entityId, gameTime, health);
+                processHealthDepleted(entityId, health);
             } else {
                 entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
             }
         }
     }
 
-    private void processHealthDepleted(EntityId entityId, double gameTime, Health health) {
+    private void processHealthDepleted(EntityId entityId, Health health) {
 
         // Death or destruction!!!!
         // No body, just vanish from the world
@@ -187,7 +183,7 @@ public final class HealthSystem implements IGameLogicUpdatable {
 
         // Tortured entities just die outright
         if (torturedEntities.containsId(entityId)) {
-            processDeath(entityId, gameTime);
+            processDeath(entityId);
             return;
         }
 
@@ -199,12 +195,12 @@ public final class HealthSystem implements IGameLogicUpdatable {
                 creaturesController.turnCreatureIntoAnother(entityId, owner.controlId, creatureId);
                 return;
             }
-            processDeath(entityId, gameTime);
+            processDeath(entityId);
             return;
         }
 
         // Leave the entity incapacitaded and waiting for death... or rescue
-        processUnconscious(entityId, health, gameTime);
+        processUnconscious(entityId, health);
     }
 
     private Short getRoomCreatureId(EntityId entityId) {
@@ -238,13 +234,14 @@ public final class HealthSystem implements IGameLogicUpdatable {
 
         int capacity = mapController.getPlayerSkeletonCapacity(owner.controlId);
 
-        return capacity > playerControllersById.get(owner.controlId).getCreatureControl().getTypeCount(kwdFile.getCreature(creatureId));
+        return capacity > playerControllersById.get(owner.controlId).getCreatureControl()
+                .getTypeCount(levelInfo.getLevelData().getCreature(creatureId));
     }
 
-    private void processUnconscious(EntityId entityId, Health health, double gameTime) {
+    private void processUnconscious(EntityId entityId, Health health) {
         entityData.removeComponent(entityId, AttackTarget.class);
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
-        entityData.setComponent(entityId, new Unconscious(gameTime));
+        entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
         creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
         entityData.removeComponent(entityId, Navigation.class);
@@ -252,7 +249,9 @@ public final class HealthSystem implements IGameLogicUpdatable {
 
     private boolean isLeaveDeadBody(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent != null && kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY);
+        return creatureComponent != null && levelInfo.getLevelData()
+                .getCreature(creatureComponent.creatureId)
+                .getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY);
     }
 
     private int calculateHealthChange(EntityId entityId, Health health, double gameTime) {
@@ -330,7 +329,7 @@ public final class HealthSystem implements IGameLogicUpdatable {
         return delta;
     }
 
-    private void processDeath(EntityId entityId, double gameTime) {
+    private void processDeath(EntityId entityId) {
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, ChickenAi.class);
@@ -342,7 +341,7 @@ public final class HealthSystem implements IGameLogicUpdatable {
         entityData.removeComponent(entityId, CreatureImprisoned.class);
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
-        entityData.setComponent(entityId, new Death(gameTime));
+        entityData.setComponent(entityId, new Death(timeElapsed));
     }
 
     private void processAddedEntities(Set<Entity> entities) {
@@ -359,9 +358,8 @@ public final class HealthSystem implements IGameLogicUpdatable {
         }
     }
 
-    private void processChangedEntities(Set<Entity> entities, double gameTime) {
+    private void processChangedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-
             // If the health is changed (either by us or damage)...
             // Reset the health regen counter
             Regeneration regeneration = entityData.getComponent(entity.getId(), Regeneration.class);

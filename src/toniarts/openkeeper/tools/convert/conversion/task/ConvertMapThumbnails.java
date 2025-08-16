@@ -81,7 +81,7 @@ public final class ConvertMapThumbnails extends ConversionTask {
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(dungeonKeeperFolder, PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path path : paths) {
                 try {
-                    KwdFile kwd = new KwdFile(dungeonKeeperFolder, path, false);
+                    KwdFile kwd = new KwdFile(dungeonKeeperFolder, path.getFileName().toString(), false);
                     if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
                             || kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
                         maps.add(kwd);

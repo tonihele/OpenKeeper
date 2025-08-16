@@ -68,7 +68,7 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         // Add new & remove old
         if (looseObjectEntities.applyChanges()) {

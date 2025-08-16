@@ -56,7 +56,7 @@ public final class PlayerCreatureSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         if (creatureEntities.applyChanges()) {
 
             processAddedEntities(creatureEntities.getAddedEntities());

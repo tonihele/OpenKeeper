@@ -26,16 +26,16 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
- * The waste disposal class, removes entities after reasonable amount of time
- * has passed (i.e. death animations or corpse decays have passed). Also handles
- * passing other posessions related to the entity, maybe some other universal
- * remove listener would be better in the long run...
+ * The waste disposal class, removes entities after reasonable amount of time has passed (i.e. death
+ * animations or corpse decays have passed). Also handles passing other posessions related to the entity,
+ * maybe some other universal remove listener would be better in the long run...
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class DeathSystem implements IGameLogicUpdatable {
+public final class DeathSystem extends GameTimeCounter {
 
     private final IEntityPositionLookup entityPositionLookup;
     private final EntitySet deathEntities;
@@ -56,23 +56,22 @@ public final class DeathSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
+        super.processTick(tpf);
+
         if (deathEntities.applyChanges()) {
-
             processDeletedEntities(deathEntities.getRemovedEntities());
-
             processAddedEntities(deathEntities.getAddedEntities());
         }
 
         // Decay stuff
         for (EntityId entityId : entityIds.getArray()) {
             Death death = deathEntities.getEntity(entityId).get(Death.class);
-            if (gameTime - death.startTime >= timeToDecay) {
+            if (timeElapsed - death.startTime >= timeToDecay) {
                 entityData.removeEntity(entityId);
             }
         }
     }
-
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {

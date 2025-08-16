@@ -93,7 +93,7 @@ public final class MapLoaderAppState extends AbstractAppState {
             mainMenuEntityViewState = null;
         }
         if (gameController != null) {
-            gameController.close();
+            gameController.stop();
             gameController = null;
         }
         if (mapEntityData != null) {

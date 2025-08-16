@@ -18,10 +18,12 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityId;
 import java.util.Collection;
+import java.util.Map;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * Game controller. Controls the game
@@ -50,13 +52,13 @@ public interface IGameController {
 
     IPlayerController getPlayerController(short playerId);
 
-    Collection<IPlayerController> getPlayerControllers();
+    Map<Short, IPlayerController> getPlayerControllers();
 
     ITaskManager getTaskManager();
 
-    void pauseGame();
+    ILevelInfo getLevelInfo();
 
-    void resumeGame();
+    float getLevelVariable(Variable.MiscVariable.MiscType variable);
 
     /**
      * End the game (for one player)

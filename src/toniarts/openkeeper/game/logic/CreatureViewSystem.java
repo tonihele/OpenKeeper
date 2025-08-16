@@ -35,14 +35,15 @@ import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_A
 import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
- * Handles creature animation states. These are based on the creature states and
- * such. I'm not entirely sure is this the way this would work but hey...
+ * Handles creature animation states. These are based on the creature states and such. I'm not entirely sure
+ * is this the way this would work but hey...
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class CreatureViewSystem implements IGameLogicUpdatable {
+public final class CreatureViewSystem extends GameTimeCounter {
 
     private final EntityData entityData;
     private final EntitySet creatureViewEntities;
@@ -58,13 +59,11 @@ public final class CreatureViewSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
+        super.processTick(tpf);
         // Add new & remove old
         if (creatureViewEntities.applyChanges()) {
-
             processAddedEntities(creatureViewEntities.getAddedEntities());
-
             processDeletedEntities(creatureViewEntities.getRemovedEntities());
         }
 
@@ -95,7 +94,7 @@ public final class CreatureViewSystem implements IGameLogicUpdatable {
 
             // Change!
             if (currentState != targetState) {
-                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, gameTime, targetState));
+                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetState));
             }
         }
     }

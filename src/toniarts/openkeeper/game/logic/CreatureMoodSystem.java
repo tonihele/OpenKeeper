@@ -43,7 +43,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
     }
 

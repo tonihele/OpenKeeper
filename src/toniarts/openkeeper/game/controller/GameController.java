@@ -23,9 +23,7 @@ import com.simsilica.es.EntityId;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,33 +34,9 @@ import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
-import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.logic.ChickenAiSystem;
-import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
-import toniarts.openkeeper.game.logic.CreatureAiSystem;
-import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
-import toniarts.openkeeper.game.logic.CreatureFallSystem;
-import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
-import toniarts.openkeeper.game.logic.CreatureTorturingSystem;
-import toniarts.openkeeper.game.logic.CreatureViewSystem;
-import toniarts.openkeeper.game.logic.DeathSystem;
-import toniarts.openkeeper.game.logic.DecaySystem;
-import toniarts.openkeeper.game.logic.DoorViewSystem;
-import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
-import toniarts.openkeeper.game.logic.GameLogicManager;
-import toniarts.openkeeper.game.logic.HaulingSystem;
-import toniarts.openkeeper.game.logic.HealthSystem;
-import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
-import toniarts.openkeeper.game.logic.LooseObjectSystem;
-import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
-import toniarts.openkeeper.game.logic.MovementSystem;
-import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
-import toniarts.openkeeper.game.logic.PlayerSpellbookSystem;
-import toniarts.openkeeper.game.logic.PositionSystem;
-import toniarts.openkeeper.game.logic.SlapSystem;
+import toniarts.openkeeper.game.logic.*;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.NavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
@@ -80,72 +54,33 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.GameLoop;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * The game controller, runs the game simulation itself
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class GameController implements IGameLogicUpdatable, AutoCloseable, IGameTimer, ILevelInfo, IGameController {
+public final class GameController implements IGameLogicUpdatable, IGameController {
 
     private static final Logger logger = System.getLogger(GameController.class.getName());
-    
-    public static final int LEVEL_TIMER_MAX_COUNT = 16;
-    private static final int LEVEL_FLAG_MAX_COUNT = 128;
 
-    private final String level;
-    private KwdFile kwdFile;
+    private final LevelInfo levelInfo;
     private final toniarts.openkeeper.game.data.Level levelObject;
 
-    private final SortedMap<Short, Keeper> players = new TreeMap<>();
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final EntityData entityData;
     private final PlayerService playerService;
 
-    private GameLoop gameLogicLoop;
-    private GameLoop steeringCalculatorLoop;
-    private GameLoop gameAnimationLoop;
-    private GameLogicManager gameAnimationThread;
-    private GameLogicManager gameLogicThread;
     private TriggerControl triggerControl = null;
-    private CreatureTriggerLogicController creatureTriggerState;
-    private ObjectTriggerLogicController objectTriggerState;
-    private DoorTriggerLogicController doorTriggerState;
-    private PartyTriggerLogicController partyTriggerState;
-    private ActionPointTriggerLogicController actionPointController;
-    private PlayerTriggerLogicController playerTriggerLogicController;
-    private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
-    private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
-    private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
-    private final List<ActionPoint> actionPoints = new ArrayList<>();
-    private int levelScore = 0;
-    private boolean campaign;
+    private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
+
     private GameWorldController gameWorldController;
     private INavigationService navigationService;
     private PositionSystem positionSystem;
 
     private GameResult gameResult = null;
-    private Float timeLimit = null;
     private TaskManager taskManager;
-
-    /**
-     * Single use game states
-     *
-     * @param level the level to load
-     * @param entityData
-     * @param gameSettings
-     * @param playerService
-     */
-    public GameController(String level, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
-        this.level = level;
-        this.levelObject = null;
-        this.entityData = entityData;
-        this.gameSettings = gameSettings;
-        this.playerService = playerService;
-    }
 
     /**
      * Single use game states
@@ -156,161 +91,95 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
      * @param gameSettings
      * @param playerService
      */
-    public GameController(KwdFile level, List<Keeper> players, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
-        this.level = null;
-        this.kwdFile = level;
-        this.levelObject = null;
+    public GameController(KwdFile level, List<Keeper> players, EntityData entityData,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            PlayerService playerService) {
+
+        levelInfo = new LevelInfo();
+        levelInfo.kwdFile = level;
+        levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
         if (players != null) {
             for (Keeper keeper : players) {
-                this.players.put(keeper.getId(), keeper);
+                levelInfo.players.put(keeper.getId(), keeper);
             }
         }
-    }
-
-    /**
-     * Single use game states
-     *
-     * @param selectedLevel the level to load
-     * @param entityData
-     * @param gameSettings
-     * @param playerService
-     */
-    public GameController(GeneralLevel selectedLevel, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
-        this.level = null;
-        this.kwdFile = selectedLevel.getKwdFile();
-        this.entityData = entityData;
-        this.gameSettings = gameSettings;
-        this.playerService = playerService;
-        if (selectedLevel instanceof toniarts.openkeeper.game.data.Level level1) {
-            this.levelObject = level1;
-        } else {
-            this.levelObject = null;
-        }
+        createNewGame();
     }
 
     public void createNewGame() {
 
-        // Load the level data
-        try {
-            if (level != null) {
-
-                kwdFile = new KwdFile(Main.getDkIIFolder(),
-                        Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER + level + ".kwd")));
-
-            } else {
-                kwdFile.load();
-            }
-        } catch (IOException ex) {
-            logger.log(Level.ERROR, "Failed to load the map file!", ex);
-            throw new RuntimeException(level, ex);
-        }
-
+        levelInfo.load();
         // The players
         setupPlayers();
 
-        // Action points
-        loadActionPoints();
-
+        final GameTimeController gameTimer = new GameTimeController();
         // The world
-        gameWorldController = new GameWorldController(kwdFile, entityData, gameSettings, players, playerControllers, this);
-        gameWorldController.createNewGame(this, this);
+        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer);
 
-        positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData, gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(), gameWorldController.getObjectsController());
+        positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData,
+                gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
+                gameWorldController.getObjectsController());
         gameWorldController.setEntityPositionLookup(positionSystem);
 
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
         // Initialize tasks
-        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(), gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(), navigationService, playerControllers.values(), this, positionSystem, gameSettings);
+        taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(),
+                gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(),
+                navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings);
 
         // The triggers
-        partyTriggerState = new PartyTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController());
-        creatureTriggerState = new CreatureTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData);
-        objectTriggerState = new ObjectTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData, gameWorldController.getObjectsController());
-        doorTriggerState = new DoorTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService, entityData, gameWorldController.getDoorsController());
-        actionPointController = new ActionPointTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), positionSystem);
-        playerTriggerLogicController = new PlayerTriggerLogicController(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
+        controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
+        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
+                playerService, entityData));
+        controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
+                playerService, entityData, gameWorldController.getObjectsController()));
+        controllers.add(new DoorTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
+                playerService, entityData, gameWorldController.getDoorsController()));
+        controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
+                positionSystem));
+        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
+                playerService));
+        controllers.add(gameTimer);
+        controllers.add(positionSystem);
 
-        // Trigger data
-        for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
-            flags.add(i, 0);
-        }
-
-        for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
-            timers.add(i, new GameTimer());
-        }
-
-        int triggerId = kwdFile.getGameLevel().getTriggerId();
+        int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
-            triggerControl = new TriggerControl(this, this, this, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), triggerId);
+            triggerControl = new TriggerControl(this, levelInfo, gameTimer, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), triggerId);
         }
 
-        // Create the game loops ready to start
-        // Game logic
-        gameLogicThread = new GameLogicManager(positionSystem,
-                gameWorldController.getMapController(),
-                new DecaySystem(entityData),
-                new CreatureExperienceSystem(entityData, kwdFile, gameSettings, gameWorldController.getCreaturesController()),
-                new SlapSystem(entityData, kwdFile, playerControllers.values(), gameSettings),
-                new HealthSystem(entityData, kwdFile, positionSystem, gameSettings, gameWorldController.getCreaturesController(), this, playerControllers.values(), gameWorldController.getMapController()),
-                new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(), gameWorldController.getMapController()),
-                new DeathSystem(entityData, gameSettings, positionSystem),
-                new PlayerCreatureSystem(entityData, kwdFile, playerControllers.values()),
-                new PlayerSpellbookSystem(entityData, kwdFile, playerControllers.values()),
-                this,
-                new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
-                new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(), playerControllers.values(), gameSettings, this, gameWorldController.getMapController()),
-                new ManaCalculatorLogic(playerControllers.values(), entityData),
-                new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
-                new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
-                new CreatureViewSystem(entityData),
-                new DoorViewSystem(entityData, positionSystem),
-                new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
-                new HaulingSystem(entityData),
-                taskManager);
-        gameLogicLoop = new GameLoop(gameLogicThread, 1000000000 / kwdFile.getGameLevel().getTicksPerSec(), "GameLogic");
-
-        // Animation systems
-        gameAnimationThread = new GameLogicManager(new DungeonHeartConstruction(entityData, getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)), new CreatureFallSystem(entityData));
-        gameAnimationLoop = new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "GameAnimation");
-
-        // Steering
-        steeringCalculatorLoop = new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "SteeringCalculator");
-    }
-
-    public void startGame() {
-
-        // Game logic thread & movement
-        gameLogicLoop.start();
-        gameAnimationLoop.start();
-        steeringCalculatorLoop.start();
     }
 
     private void setupPlayers() {
-
         // Setup players
-        boolean addMissingPlayers = players.isEmpty(); // Add all if none is given (campaign...)
-        for (Map.Entry<Short, Player> entry : kwdFile.getPlayers().entrySet()) {
+        boolean addMissingPlayers = levelInfo.players.isEmpty(); // Add all if none is given (campaign...)
+        for (Map.Entry<Short, Player> entry : levelInfo.kwdFile.getPlayers().entrySet()) {
             Keeper keeper = null;
-            if (players.containsKey(entry.getKey())) {
-                keeper = players.get(entry.getKey());
+            if (levelInfo.players.containsKey(entry.getKey())) {
+                keeper = levelInfo.players.get(entry.getKey());
                 keeper.setPlayer(entry.getValue());
             } else if (addMissingPlayers || entry.getKey() < Player.KEEPER1_ID) {
                 keeper = new Keeper(entry.getValue());
-                players.put(entry.getKey(), keeper);
+                levelInfo.players.put(entry.getKey(), keeper);
             }
 
             // Init
             if (keeper != null) {
-                PlayerController playerController = new PlayerController(kwdFile, keeper, kwdFile.getImp(), entityData, gameSettings);
+                PlayerController playerController = new PlayerController(levelInfo.kwdFile, keeper, levelInfo.kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
                 // Spells are all available for research unless otherwise stated
-                for (KeeperSpell spell : kwdFile.getKeeperSpells()) {
+                for (KeeperSpell spell : levelInfo.kwdFile.getKeeperSpells()) {
                     if (spell.getBonusRTime() != 0) {
                         playerController.getSpellControl().setTypeAvailable(spell, true, false);
                     }
@@ -319,7 +188,7 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
         }
 
         // Set the alliances
-        for (Variable.PlayerAlliance playerAlliance : kwdFile.getPlayerAlliances()) {
+        for (Variable.PlayerAlliance playerAlliance : levelInfo.kwdFile.getPlayerAlliances()) {
             short player1 = (short) playerAlliance.getPlayerIdOne();
             short player2 = (short) playerAlliance.getPlayerIdTwo();
             createAlliance(player1, player2);
@@ -327,15 +196,15 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
 
         // Set player availabilities
         // TODO: the player customized game settings
-        for (Variable.Availability availability : kwdFile.getAvailabilities()) {
+        for (Variable.Availability availability : levelInfo.kwdFile.getAvailabilities()) {
             if (availability.getPlayerId() == 0) {
 
                 // All players
-                for (Keeper player : players.values()) {
+                for (Keeper player : levelInfo.players.values()) {
                     setAvailability(player, availability);
                 }
             } else {
-                Keeper player = players.get((short) availability.getPlayerId());
+                Keeper player = levelInfo.players.get((short) availability.getPlayerId());
 
                 // Not all the players are participating...
                 if (player != null) {
@@ -359,33 +228,25 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
         boolean discovered = availability.getValue() == Variable.Availability.AvailabilityValue.AVAILABLE;
         switch (availability.getType()) {
             case CREATURE: {
-                playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature((short) availability.getTypeId()), available);
+                playerController.getCreatureControl().setTypeAvailable(levelInfo.kwdFile.getCreature((short) availability.getTypeId()), available);
                 break;
             }
             case ROOM: {
-                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById((short) availability.getTypeId()), available, discovered);
+                playerController.getRoomControl().setTypeAvailable(levelInfo.kwdFile.getRoomById((short) availability.getTypeId()), available, discovered);
                 break;
             }
             case SPELL: {
-                playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(availability.getTypeId()), available, discovered);
+                playerController.getSpellControl().setTypeAvailable(levelInfo.kwdFile.getKeeperSpellById(availability.getTypeId()), available, discovered);
                 break;
             }
             case DOOR: {
-                playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById((short) availability.getTypeId()), available, discovered);
+                playerController.getDoorControl().setTypeAvailable(levelInfo.kwdFile.getDoorById((short) availability.getTypeId()), available, discovered);
                 break;
             }
             case TRAP: {
-                playerController.getTrapControl().setTypeAvailable(kwdFile.getTrapById((short) availability.getTypeId()), available, discovered);
+                playerController.getTrapControl().setTypeAvailable(levelInfo.kwdFile.getTrapById((short) availability.getTypeId()), available, discovered);
                 break;
             }
-        }
-    }
-
-    private void loadActionPoints() {
-        for (Thing.ActionPoint thing : getLevelData().getThings(Thing.ActionPoint.class)) {
-            ActionPoint ap = new ActionPoint(thing);
-            actionPointsById.put(ap.getId(), ap);
-            actionPoints.add(ap);
         }
     }
 
@@ -395,56 +256,28 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
     }
 
     @Override
-    public Collection<IPlayerController> getPlayerControllers() {
-        return playerControllers.values();
+    public Map<Short, IPlayerController> getPlayerControllers() {
+        return playerControllers;
     }
 
     @Override
-    public void pauseGame() {
-        if (steeringCalculatorLoop != null) {
-            steeringCalculatorLoop.pause();
-        }
-        if (gameAnimationLoop != null) {
-            gameAnimationLoop.pause();
-        }
-        if (gameLogicLoop != null) {
-            gameLogicLoop.pause();
-        }
-        playerService.setGamePaused(true);
-    }
-
-    @Override
-    public void resumeGame() {
-        if (gameLogicLoop != null) {
-            gameLogicLoop.resume();
-        }
-        if (gameAnimationLoop != null) {
-            gameAnimationLoop.resume();
-        }
-        if (steeringCalculatorLoop != null) {
-            steeringCalculatorLoop.resume();
-        }
-        playerService.setGamePaused(false);
-    }
-
-    @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         // Update time for AI
         GdxAI.getTimepiece().update(tpf);
 
         // Time limit is a special timer, it just ticks towards 0 if it is set
-        if (timeLimit != null) {
-            timeLimit -= tpf;
+        if (levelInfo.timeLimit != null) {
+            levelInfo.timeLimit -= tpf;
 
             // We rest on zero
-            if (timeLimit < 0) {
-                timeLimit = 0f;
+            if (levelInfo.timeLimit < 0) {
+                levelInfo.timeLimit = 0f;
             }
         }
 
         // Advance game timers
-        for (GameTimer timer : timers.getArray()) {
+        for (GameTimer timer : levelInfo.timers.getArray()) {
             timer.update(tpf);
         }
 
@@ -452,86 +285,17 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
             triggerControl.update(tpf);
         }
 
-        if (partyTriggerState != null) {
-            partyTriggerState.processTick(tpf, gameTime);
-        }
+        controllers.stream().forEach(controller -> controller.processTick(tpf));
 
-        if (creatureTriggerState != null) {
-            creatureTriggerState.processTick(tpf, gameTime);
-        }
-
-        if (objectTriggerState != null) {
-            objectTriggerState.processTick(tpf, gameTime);
-        }
-
-        if (doorTriggerState != null) {
-            doorTriggerState.processTick(tpf, gameTime);
-        }
-
-        if (actionPointController != null) {
-            actionPointController.processTick(tpf, gameTime);
-        }
-
-        if (playerTriggerLogicController != null) {
-            playerTriggerLogicController.processTick(tpf, gameTime);
-        }
-
-        if (timeLimit != null && timeLimit <= 0) {
+        if (levelInfo.timeLimit != null && levelInfo.timeLimit <= 0) {
             //TODO:
             throw new RuntimeException("Level time limit exceeded!");
         }
     }
 
-    /**
-     * Get the level raw data file
-     *
-     * @return the KWD
-     */
-    @Override
-    public KwdFile getLevelData() {
-        return kwdFile;
-    }
-
-    @Override
-    public int getFlag(int id) {
-        return flags.get(id);
-    }
-
-    @Override
-    public void setFlag(int id, int value) {
-        flags.set(id, value);
-    }
-
-    @Override
-    public GameTimer getTimer(int id) {
-        return timers.get(id);
-    }
-
-    /**
-     * @see GameLogicManager#getGameTime()
-     * @return the game time
-     */
-    @Override
-    public double getGameTime() {
-        if (gameLogicThread != null) {
-            return gameLogicThread.getGameTime();
-        }
-        return 0;
-    }
-
-    @Override
-    public Float getTimeLimit() {
-        return timeLimit;
-    }
-
-    @Override
-    public void setTimeLimit(float timeLimit) {
-        this.timeLimit = timeLimit;
-    }
-
     @Override
     public void endGame(short playerId, boolean win) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     public void setEnd(boolean win) {
@@ -539,7 +303,7 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
         // TODO: this is client stuff, we should only determine here what happens to the game & players
         gameResult = new GameResult();
         gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
-        gameResult.setData(GameResult.ResultType.TIME_TAKEN, gameLogicThread.getGameTime());
+        gameResult.setData(GameResult.ResultType.TIME_TAKEN, getContoller(IGameTimer.class).getGameTime());
 
         // Enable the end game state
 //        stateManager.getState(PlayerState.class).endGame(win);
@@ -562,56 +326,23 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
         return taskManager;
     }
 
-    @Override
-    public Keeper getPlayer(short playerId) {
-        return players.get(playerId);
-    }
-
-    @Override
-    public Collection<Keeper> getPlayers() {
-        return players.values();
-    }
-
     /**
      * Get level variable value
      *
      * @param variable the variable type
      * @return variable value
      */
+    @Override
     public float getLevelVariable(Variable.MiscVariable.MiscType variable) {
         // TODO: player is able to change these, so need a wrapper and store these to GameState
-        return kwdFile.getVariables().get(variable).getValue();
+        return levelInfo.kwdFile.getVariables().get(variable).getValue();
     }
 
-    /**
-     * Get level score, not really a player score... kinda
-     *
-     * @return the level score
-     */
-    @Override
-    public int getLevelScore() {
-        return levelScore;
-    }
-
-    @Override
-    public void setLevelScore(int levelScore) {
-        this.levelScore = levelScore;
-    }
-
-    public CreatureTriggerLogicController getCreatureTriggerState() {
-        return creatureTriggerState;
-    }
-
-    public ObjectTriggerLogicController getObjectTriggerState() {
-        return objectTriggerState;
-    }
-
-    public DoorTriggerLogicController getDoorTriggerState() {
-        return doorTriggerState;
-    }
-
-    public PartyTriggerLogicController getPartyTriggerState() {
-        return partyTriggerState;
+    public <T> T getContoller(Class<T> clazz) {
+        return (T) controllers.stream()
+                .filter(controller -> controller.getClass().isInstance(clazz))
+                .findFirst().orElseThrow(() -> new IndexOutOfBoundsException(
+                "Game contoller have not child of class " + clazz));
     }
 
     /**
@@ -622,11 +353,11 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
      */
     @Override
     public void createAlliance(short playerOneId, short playerTwoId) {
-        if (players.containsKey(playerOneId)) {
-            players.get(playerOneId).createAlliance(playerTwoId);
+        if (levelInfo.players.containsKey(playerOneId)) {
+            levelInfo.players.get(playerOneId).createAlliance(playerTwoId);
         }
-        if (players.containsKey(playerTwoId)) {
-            players.get(playerTwoId).createAlliance(playerOneId);
+        if (levelInfo.players.containsKey(playerTwoId)) {
+            levelInfo.players.get(playerTwoId).createAlliance(playerOneId);
         }
     }
 
@@ -638,11 +369,11 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
      */
     @Override
     public void breakAlliance(short playerOneId, short playerTwoId) {
-        if (players.containsKey(playerOneId)) {
-            players.get(playerOneId).breakAlliance(playerTwoId);
+        if (levelInfo.players.containsKey(playerOneId)) {
+            levelInfo.players.get(playerOneId).breakAlliance(playerTwoId);
         }
-        if (players.containsKey(playerTwoId)) {
-            players.get(playerTwoId).breakAlliance(playerOneId);
+        if (levelInfo.players.containsKey(playerTwoId)) {
+            levelInfo.players.get(playerTwoId).breakAlliance(playerOneId);
         }
     }
 
@@ -653,24 +384,8 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
 
     @Override
     public void setPossession(EntityId target, short playerId) {
-        players.get(playerId).setPossession(target != null);
+        levelInfo.players.get(playerId).setPossession(target != null);
         playerService.setPossession(target, playerId);
-    }
-
-    @Override
-    public void close() {
-        if (steeringCalculatorLoop != null) {
-            steeringCalculatorLoop.stop();
-            steeringCalculatorLoop = null;
-        }
-        if (gameAnimationLoop != null) {
-            gameAnimationLoop.stop();
-            gameAnimationLoop = null;
-        }
-        if (gameLogicLoop != null) {
-            gameLogicLoop.stop();
-            gameLogicLoop = null;
-        }
     }
 
     @Override
@@ -680,22 +395,13 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
 
     @Override
     public void start() {
-
+        controllers.stream().forEach(IGameLogicUpdatable::start);
     }
 
     @Override
     public void stop() {
-
-    }
-
-    @Override
-    public ActionPoint getActionPoint(int id) {
-        return actionPointsById.get(id);
-    }
-
-    @Override
-    public List<ActionPoint> getActionPoints() {
-        return actionPoints;
+        controllers.stream().forEach(IGameLogicUpdatable::stop);
+        controllers.clear();
     }
 
     @Override
@@ -706,6 +412,114 @@ public final class GameController implements IGameLogicUpdatable, AutoCloseable,
     @Override
     public IEntityPositionLookup getEntityLookupService() {
         return positionSystem;
+    }
+
+    @Override
+    public ILevelInfo getLevelInfo() {
+        return levelInfo;
+    }
+
+    private static class LevelInfo implements ILevelInfo {
+
+        private static final int LEVEL_TIMER_MAX_COUNT = 16;
+        private static final int LEVEL_FLAG_MAX_COUNT = 128;
+
+        private KwdFile kwdFile;
+        private int levelScore = 0;
+        private Float timeLimit = null;
+
+        private final SortedMap<Short, Keeper> players = new TreeMap<>();
+        private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
+        private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
+        private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
+        private final List<ActionPoint> actionPoints = new ArrayList<>();
+
+        public void load() {
+            kwdFile.load();
+            // Action points
+            loadActionPoints();
+            // Triggers data
+            for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
+                flags.add(i, 0);
+            }
+            // Timers data
+            for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
+                timers.add(i, new GameTimer());
+            }
+        }
+
+        private void loadActionPoints() {
+            for (Thing.ActionPoint thing : kwdFile.getThings(Thing.ActionPoint.class)) {
+                ActionPoint ap = new ActionPoint(thing);
+                actionPointsById.put(ap.getId(), ap);
+                actionPoints.add(ap);
+            }
+        }
+
+        @Override
+        public KwdFile getLevelData() {
+            return kwdFile;
+        }
+
+        @Override
+        public int getFlag(int id) {
+            return flags.get(id);
+        }
+
+        @Override
+        public void setFlag(int id, int value) {
+            flags.set(id, value);
+        }
+
+        @Override
+        public GameTimer getTimer(int id) {
+            return timers.get(id);
+        }
+
+        @Override
+        public Float getTimeLimit() {
+            return timeLimit;
+        }
+
+        @Override
+        public void setTimeLimit(float time) {
+            timeLimit = time;
+        }
+
+        /**
+         * Get level score, not really a player score... kinda
+         *
+         * @return the level score
+         */
+        @Override
+        public int getLevelScore() {
+            return levelScore;
+        }
+
+        @Override
+        public void setLevelScore(int score) {
+            levelScore = score;
+        }
+
+        @Override
+        public ActionPoint getActionPoint(int id) {
+            return actionPointsById.get(id);
+        }
+
+        @Override
+        public List<ActionPoint> getActionPoints() {
+            return actionPoints;
+        }
+
+        @Override
+        public Keeper getPlayer(short playerId) {
+            return players.get(playerId);
+        }
+
+        @Override
+        public Map<Short, Keeper> getPlayers() {
+            return players;
+        }
     }
 
 }

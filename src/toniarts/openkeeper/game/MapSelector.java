@@ -39,7 +39,7 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author ArchDemon
  */
 public final class MapSelector {
-    
+
     private static final Logger logger = System.getLogger(MapSelector.class.getName());
 
     private final List<GameMapContainer> skirmishMaps = new ArrayList<>();
@@ -56,7 +56,7 @@ public final class MapSelector {
             for (Path file : stream) {
 
                 // Read the map
-                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file.getFileName().toString(), false);
                 GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
                 if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
                     skirmishMaps.add(gameMapContainer);
