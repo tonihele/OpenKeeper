@@ -40,7 +40,7 @@ public final class HaulingSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         // Add new & remove old
         hauledEntities.applyChanges();

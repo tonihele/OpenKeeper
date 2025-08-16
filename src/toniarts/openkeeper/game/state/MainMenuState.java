@@ -35,7 +35,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Paths;
 import java.util.Collections;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
@@ -79,7 +78,7 @@ import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class MainMenuState extends AbstractAppState {
-    
+
     private static final Logger logger = System.getLogger(MainMenuState.class.getName());
 
     protected Main app;
@@ -102,16 +101,17 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     /**
-     * (c) Construct a MainMenuState, you should only have one of these. Disable
-     * when not in use.
+     * (c) Construct a MainMenuState, you should only have one of these. Disable when not in use.
      *
-     * @param enabled whether to load the menu scene now, or later when needed
-     * (has its own loading screen here)
+     * @param enabled whether to load the menu scene now, or later when needed (has its own loading screen
+     * here)
      * @param assetManager asset manager for loading the screen
      * @param app the main application
      * @throws java.io.IOException may fail to load the main menu map scene
      */
-    public MainMenuState(final boolean enabled, final AssetManager assetManager, final Main app) throws IOException {
+    public MainMenuState(final boolean enabled, final AssetManager assetManager, final Main app)
+            throws IOException {
+
         listener = new MainMenuInteraction(this);
         super.setEnabled(enabled);
 
@@ -132,7 +132,7 @@ public final class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) throws IOException {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
+        kwdFile = new KwdFile(Main.getDkIIFolder(), "FrontEnd3DLevel");
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -222,7 +222,7 @@ public final class MainMenuState extends AbstractAppState {
         shutdownMultiplayer();
 
         if (gameController != null) {
-            gameController.close();
+            gameController.stop();
             gameController = null;
         }
 
@@ -230,8 +230,7 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * Initialize the start menu, sets the menu scene in place & sets the
-     * controls and start screen
+     * Initialize the start menu, sets the menu scene in place & sets the controls and start screen
      */
     private void initializeMainMenu() {
 
@@ -426,8 +425,7 @@ public final class MainMenuState extends AbstractAppState {
     /**
      * Called by the GUI, start the selected level
      *
-     * @param type where level selected. @TODO change campaign like others or
-     * otherwise
+     * @param type where level selected. @TODO change campaign like others or otherwise
      */
     public void startLevel(String type) {
         if ("campaign".equals(type.toLowerCase())) {
@@ -468,8 +466,7 @@ public final class MainMenuState extends AbstractAppState {
      *
      * @param transition name of the transition (without file extension)
      * @param screen the screen name
-     * @param transitionStatic set start static location of camera after
-     * transition
+     * @param transitionStatic set start static location of camera after transition
      */
     protected void doTransitionAndGoToScreen(final String transition, final String screen, final String transitionStatic) {
 
@@ -539,8 +536,7 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * See if the map thumbnail exist, otherwise create one TODO maybe move to
-     * KwdFile class ???
+     * See if the map thumbnail exist, otherwise create one TODO maybe move to KwdFile class ???
      *
      * @param map
      * @return path to map thumbnail file

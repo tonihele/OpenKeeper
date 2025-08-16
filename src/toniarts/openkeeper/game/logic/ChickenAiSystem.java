@@ -60,18 +60,16 @@ public final class ChickenAiSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
         // Add new & remove old
         if (chickenEntities.applyChanges()) {
             processDeletedEntities(chickenEntities.getRemovedEntities());
-
             processAddedEntities(chickenEntities.getAddedEntities());
         }
 
         // Process ticks
         for (IChickenController creatureController : chickenControllers.getArray()) {
-            creatureController.processTick(tpf, gameTime);
+            creatureController.processTick(tpf);
         }
 
         // This is shorthand for managing also the view state.... Not sure if smart or not

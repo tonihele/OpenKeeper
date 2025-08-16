@@ -84,7 +84,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         if (experienceEntities.applyChanges()) {
 
             processAddedEntities(experienceEntities.getAddedEntities(), experienceEntityIds);

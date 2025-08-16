@@ -27,13 +27,14 @@ import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
  * Handles entity decaying
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class DecaySystem implements IGameLogicUpdatable {
+public final class DecaySystem extends GameTimeCounter {
 
     private final EntitySet decayEntities;
     private final EntityData entityData;
@@ -48,7 +49,9 @@ public final class DecaySystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
+        super.processTick(tpf);
+
         if (decayEntities.applyChanges()) {
             processDeletedEntities(decayEntities.getRemovedEntities());
 
@@ -58,8 +61,7 @@ public final class DecaySystem implements IGameLogicUpdatable {
         // Decay stuff
         for (Entity entity : decayEntities) {
             Decay decay = entity.get(Decay.class);
-            if (gameTime - decay.startTime >= decay.duration) {
-
+            if (timeElapsed - decay.startTime >= decay.duration) {
                 // Decay
                 entityData.removeComponent(entity.getId(), Decay.class);
                 decay(entity.getId());

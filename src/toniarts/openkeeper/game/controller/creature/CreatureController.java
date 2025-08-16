@@ -915,7 +915,7 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         /**
          * Hmm, I'm not sure how to do this, this is not ideal either, how to

@@ -60,7 +60,7 @@ public final class PlayerSpellbookSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         if (spellbookEntities.applyChanges()) {
 
             processDeletedEntities(spellbookEntities.getRemovedEntities());

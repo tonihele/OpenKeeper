@@ -64,7 +64,7 @@ public abstract class AbstractThingTriggerLogicController<T extends IEntityContr
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         // Process added entities
         // It is intentional that the old references stay and get replaced possibly by new ones

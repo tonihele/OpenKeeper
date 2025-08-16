@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -51,7 +52,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class ChickenSpawnSystem implements IGameLogicUpdatable {
+public final class ChickenSpawnSystem extends GameTimeCounter {
 
     private final EntityData entityData;
     private final IObjectsController objectsController;
@@ -70,6 +71,7 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
     public ChickenSpawnSystem(EntityData entityData, IObjectsController objectsController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
             IMapController mapController) {
+
         this.entityData = entityData;
         this.objectsController = objectsController;
         this.mapController = mapController;
@@ -118,37 +120,33 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
+        super.processTick(tpf);
         // Add new & remove old
         // Basically they don't move, so lets not worry about that now, also the owner goes with the room
         if (freerangeChickenGenerators.applyChanges()) {
             processDeletedEntities(freerangeChickenGenerators.getRemovedEntities());
-
             processAddedEntities(freerangeChickenGenerators.getAddedEntities());
         }
 
         if (freerangeChickens.applyChanges()) {
             processDeletedChickenEntities(freerangeChickens.getRemovedEntities());
-
             processAddedChickenEntities(freerangeChickens.getAddedEntities());
-
             processChangedChickenEntities(freerangeChickens.getChangedEntities());
         }
 
         for (IChickenGenerator entrance : entrances.getArray()) {
-            evaluateAndSpawnCreature(entrance, gameTime);
+            evaluateAndSpawnCreature(entrance);
         }
     }
 
-    private void evaluateAndSpawnCreature(IChickenGenerator entrance, double gameTime) {
-        double timeSinceLastSpawn = gameTime - entrance.getLastSpawnTime();
+    private void evaluateAndSpawnCreature(IChickenGenerator entrance) {
+        double timeSinceLastSpawn = timeElapsed - entrance.getLastSpawnTime();
         boolean spawned = false;
         EntityId entityId = null;
         if (timeSinceLastSpawn >= entranceCooldownTime) {
 
             if (!entrance.isFullCapacity()) {
-
                 // Spawn chicken
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
                 entityId = objectsController.spawnChicken(entrance.getOwnerId(), WorldUtils.pointToVector3f(entranceCoordinate));
@@ -156,22 +154,21 @@ public final class ChickenSpawnSystem implements IGameLogicUpdatable {
             } else if (freeRangeChickensByPlayer.get(entrance.getOwnerId()).size() < maximumFreerangeChickenCount && freerangeChickenGeneratorsByRoom.get(entrance) != null) {
                 Set<EntityId> generators = freerangeChickenGeneratorsByRoom.get(entrance);
                 Optional<EntityId> generator = Utils.getRandomItem(generators);
-                if (generator.isPresent()) {
 
+                if (generator.isPresent()) {
                     // Spawn a free range chicken
                     // Don't give the entity ID, it is not added to room inventory
                     // TODO: Need to have the generator IN USE component etc. This goes for all the objects, how we use them
                     Position position = entityData.getComponent(generator.get(), Position.class);
-                    objectsController.spawnFreerangeChicken(entrance.getOwnerId(), position.position.clone(), gameTime);
+                    objectsController.spawnFreerangeChicken(entrance.getOwnerId(), position.position.clone(), timeElapsed);
                     spawned = true;
                 }
             }
         }
 
         if (spawned) {
-
             // Reset spawn time
-            entrance.onSpawn(gameTime, entityId);
+            entrance.onSpawn(timeElapsed, entityId);
         }
     }
 

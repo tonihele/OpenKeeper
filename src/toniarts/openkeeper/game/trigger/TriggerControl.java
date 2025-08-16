@@ -44,7 +44,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author ArchDemon
  */
 public class TriggerControl extends Control {
-    
+
     private static final Logger logger = System.getLogger(TriggerControl.class.getName());
 
     private static final short LEVEL_SCORE_FLAG_ID = 128;
@@ -59,8 +59,10 @@ public class TriggerControl extends Control {
     protected final IMapController mapController;
     protected final ICreaturesController creaturesController;
 
-    public TriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+    public TriggerControl(final IGameController gameController, final ILevelInfo levelInfo,
+            final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId) {
+
         this.gameController = gameController;
         this.levelInfo = levelInfo;
         this.gameTimer = gameTimer;
@@ -83,7 +85,8 @@ public class TriggerControl extends Control {
             TriggerData value = trigger.getChild(i);
 
             switch (value) {
-                case null -> logger.log(Level.WARNING, "Trigger is null!");
+                case null ->
+                    logger.log(Level.WARNING, "Trigger is null!");
                 case TriggerGenericData triggerGenericData -> {
 
                     if (next == null && isActive(triggerGenericData)) {

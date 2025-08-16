@@ -55,7 +55,7 @@ public final class PartyTriggerLogicController implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         for (PartyTriggerControl partyTriggerControl : partyControllers.getArray()) {
             partyTriggerControl.update(tpf);
         }
