@@ -35,7 +35,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Paths;
 import java.util.Collections;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
@@ -59,13 +58,17 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.KwdFileLoader;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.ResourceProxyFactory;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.utils.handler.KwdFileHandler;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
@@ -92,7 +95,7 @@ public final class MainMenuState extends AbstractAppState {
     protected GeneralLevel selectedLevel;
     protected AudioNode levelBriefing;
 
-    private KwdFile kwdFile;
+    private IKwdFile kwdFile;
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
     protected MapSelector mapSelector;
@@ -130,11 +133,10 @@ public final class MainMenuState extends AbstractAppState {
      * @param loadingScreen optional loading screen
      * @param assetManager asset manager
      */
-    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) throws IOException {
-
+    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager,
+            final Main app) throws IOException {
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(PathUtils.getRealFileName(
-                Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
+        kwdFile = ResourceProxyFactory.createProxy(new KwdFileHandler(Main.getDkIIFolder(), new KwdFile("FrontEnd3DLevel")));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -538,12 +540,12 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * See if the map thumbnail exist, otherwise create one TODO maybe move to KwdFile class ???
+     * See if the map thumbnail exist, otherwise create one TODO maybe move to IKwdFile class ???
      *
      * @param map
      * @return path to map thumbnail file
      */
-    protected String getMapThumbnail(KwdFile map) {
+    protected String getMapThumbnail(IKwdFile map) {
 
         // See if the map thumbnail exist, otherwise create one
         String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + PathUtils.stripFileName(map.getGameLevel().getName()) + ".png";
@@ -576,7 +578,7 @@ public final class MainMenuState extends AbstractAppState {
      */
     private static final class MainMenuEntityViewState extends PlayerEntityViewState {
 
-        public MainMenuEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+        public MainMenuEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
 
             setId("MainMenu: " + playerId);

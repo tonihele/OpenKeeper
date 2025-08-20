@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.map.AbstractMapTileInformation;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -48,7 +48,7 @@ public abstract class MapTileContainer extends EntityContainer<IMapTileInformati
     private final Consumer<Point[]> tileUpdateCallback;
     private int tilesAdded = 0;
 
-    protected MapTileContainer(EntityData entityData, KwdFile kwdFile, Consumer<Point[]> tileUpdateCallback) {
+    protected MapTileContainer(EntityData entityData, IKwdFile kwdFile, Consumer<Point[]> tileUpdateCallback) {
         super(entityData, MapTile.class, Owner.class, Health.class, Gold.class, Mana.class);
 
         this.tileUpdateCallback = tileUpdateCallback;

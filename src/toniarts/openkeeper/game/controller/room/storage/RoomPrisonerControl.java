@@ -22,7 +22,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Holds out the prisoners populating a room
@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomPrisonerControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+    public RoomPrisonerControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.PRISONER);
     }
 

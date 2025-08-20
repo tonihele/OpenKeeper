@@ -25,7 +25,7 @@ import java.util.List;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Controls chickens in a room
@@ -34,7 +34,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId> {
 
-    protected RoomFoodControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+    protected RoomFoodControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.FOOD);
     }
 

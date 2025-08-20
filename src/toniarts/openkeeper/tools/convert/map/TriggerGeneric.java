@@ -177,7 +177,7 @@ public final class TriggerGeneric extends Trigger {
     private int targetValue; // Target value
     private TargetType target;
 
-    public TriggerGeneric(KwdFile kwdFile) {
+    public TriggerGeneric(IKwdFile kwdFile) {
         super(kwdFile);
     }
 

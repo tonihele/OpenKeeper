@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -146,7 +146,7 @@ public final class LobbyState extends AbstractAppState {
             }
         }
 
-        KwdFile kwdFile = mapSelector.getMap().map(); // This might get read twice on the hosting machine
+        IKwdFile kwdFile = mapSelector.getMap().map(); // This might get read twice on the hosting machine
         if (isOnline() && !fallback) {
             gameSessionService = stateManager.getState(ConnectionState.class).getGameSessionServerService();
             gameClientService = stateManager.getState(ConnectionState.class).getGameClientService();

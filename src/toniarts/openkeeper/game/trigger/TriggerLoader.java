@@ -17,7 +17,7 @@
 package toniarts.openkeeper.game.trigger;
 
 import java.util.Map;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trigger;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -32,7 +32,7 @@ public final class TriggerLoader {
 
     private final Map<Integer, Trigger> triggers;
 
-    public TriggerLoader(KwdFile kwdFile) {
+    public TriggerLoader(IKwdFile kwdFile) {
         this.triggers = kwdFile.getTriggers();
     }
 

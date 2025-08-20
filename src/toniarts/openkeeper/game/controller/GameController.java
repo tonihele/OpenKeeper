@@ -50,7 +50,7 @@ import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -91,7 +91,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
      * @param gameSettings
      * @param playerService
      */
-    public GameController(KwdFile level, List<Keeper> players, EntityData entityData,
+    public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
 
@@ -110,8 +110,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     public void createNewGame() {
-
-        levelInfo.load();
         // The players
         setupPlayers();
 

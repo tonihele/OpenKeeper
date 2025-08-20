@@ -20,7 +20,6 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import static java.awt.image.BufferedImage.TYPE_INT_RGB;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
@@ -38,17 +37,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
- * This class creates thumbnails from KWD map files. Static helper class. The
- * images can be acquired in variety of high quality sizes. Always super sampled
- * to fit your individual needs!<br>
+ * This class creates thumbnails from KWD map files. Static helper class. The images can be acquired in
+ * variety of high quality sizes. Always super sampled to fit your individual needs!<br>
  * Issue: https://github.com/tonihele/OpenKeeper/issues/70
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
@@ -56,8 +55,9 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 public final class MapThumbnailGenerator {
 
     private static final Logger logger = System.getLogger(MapThumbnailGenerator.class.getName());
-    
-    private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
+
+    private static final String PALETTE_IMAGE = String.join(File.separator,
+            List.of("Textures", "Thumbnails", "MapColours.png"));
     private static ColorModel cm;
     private static Map<Short, Color> playerColors;
 
@@ -74,9 +74,8 @@ public final class MapThumbnailGenerator {
     }
 
     /**
-     * Get the map thumbnail, the map thumbnail is the size of the map itself.
-     * Tries to create the image in manner that maximizes the space usage in
-     * your given dimensions.
+     * Get the map thumbnail, the map thumbnail is the size of the map itself. Tries to create the image in
+     * manner that maximizes the space usage in your given dimensions.
      *
      * @param kwd the map to thumbnail
      * @param width wanted image width, can be null
@@ -84,11 +83,8 @@ public final class MapThumbnailGenerator {
      * @param preserveAspectRatio whether to preserve the map aspect ratio
      * @return the map thumbnail image
      */
-    public static BufferedImage generateMap(final KwdFile kwd, final Integer width, final Integer height, final boolean preserveAspectRatio) {
-
-        // Ensure that the kwd is fully loaded
-        kwd.load();
-
+    public static BufferedImage generateMap(final IKwdFile kwd, final Integer width, final Integer height,
+            final boolean preserveAspectRatio) {
         // Determine wanted width/height
         int imageWidth = kwd.getMap().getWidth();
         int imageHeight = kwd.getMap().getHeight();
@@ -142,7 +138,7 @@ public final class MapThumbnailGenerator {
 
         // See if we should super sample
         if (drawWidth != imageWidth || drawHeight != imageHeight) {
-            BufferedImage newImage = new BufferedImage(imageWidth, imageHeight, TYPE_INT_RGB);
+            BufferedImage newImage = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = newImage.createGraphics();
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g.drawImage(bi, 0, 0, newImage.getWidth(), newImage.getHeight(), 0, 0, bi.getWidth(), bi.getHeight(), null);
@@ -190,7 +186,7 @@ public final class MapThumbnailGenerator {
         }
     }
 
-    private static void drawMap(final KwdFile kwd, byte[] data, int xScale, int yScale) {
+    private static void drawMap(final IKwdFile kwd, byte[] data, int xScale, int yScale) {
 
         // For now this is very much hard coded, I couldn't find much logic
         for (int y = 0; y < kwd.getMap().getHeight(); y++) {

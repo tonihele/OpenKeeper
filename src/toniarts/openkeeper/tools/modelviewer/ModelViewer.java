@@ -81,6 +81,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -88,6 +89,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.ResourceProxyFactory;
+import toniarts.openkeeper.utils.handler.KwdFileHandler;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -138,7 +141,7 @@ public final class ModelViewer extends SimpleApplication {
     private boolean showNormals = false;
     private List<String> models;
     private List<String> maps;
-    private KwdFile kwdFile;
+    private IKwdFile kwdFile;
     private Node floorGeom;
 
     //private SoundsLoader soundLoader;
@@ -448,7 +451,7 @@ public final class ModelViewer extends SimpleApplication {
             }
             case MAPS: {
                 // Load the selected map
-                KwdFile kwd = getKwdFile((String) selection);
+                IKwdFile kwd = getKwdFile((String) selection);
                 Node spat = mapLoaderAppState.loadMap(kwd);
 
                 GameLevel gameLevel = kwd.getGameLevel();
@@ -661,49 +664,49 @@ public final class ModelViewer extends SimpleApplication {
                 break;
             }
             case CREATURES: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Creature> creatures = kwfFile.getCreatureList();
                 screen.getItemsControl().addAllItems(creatures);
                 break;
             }
             case TERRAIN: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Terrain> terrains = kwfFile.getTerrainList();
                 screen.getItemsControl().addAllItems(terrains);
                 break;
             }
             case OBJECTS: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<GameObject> objects = kwfFile.getObjectList();
                 screen.getItemsControl().addAllItems(objects);
                 break;
             }
             case ROOMS: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Room> rooms = kwfFile.getRooms();
                 screen.getItemsControl().addAllItems(rooms);
                 break;
             }
             case DOORS: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Door> doors = kwfFile.getDoors();
                 screen.getItemsControl().addAllItems(doors);
                 break;
             }
             case TRAPS: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Trap> traps = kwfFile.getTraps();
                 screen.getItemsControl().addAllItems(traps);
                 break;
             }
             case SHOTS: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Shot> shots = kwfFile.getShots();
                 screen.getItemsControl().addAllItems(shots);
                 break;
             }
             case EFFECTS: {
-                KwdFile kwfFile = getKwdFile();
+                IKwdFile kwfFile = getKwdFile();
                 Collection<Effect> effects = kwfFile.getEffects().values();
                 screen.getItemsControl().addAllItems(effects);
                 break;
@@ -711,18 +714,23 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
-    private KwdFile getKwdFile() {
+    private IKwdFile getKwdFile() {
+        // Read Alcatraz.kwd by default
         // Read Alcatraz.kwd by default
         if (kwdFile == null) {
-            kwdFile = getKwdFile("Alcatraz.kwd");
+            kwdFile = getKwdFile("Alcatraz");
         }
 
         return kwdFile;
     }
 
-    private KwdFile getKwdFile(String name) {
-        return new KwdFile(dkIIFolder,
-                Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, name));
+    private IKwdFile getKwdFile(String name) {
+        try {
+            return ResourceProxyFactory.createProxy(new KwdFileHandler(dkIIFolder, new KwdFile(name)));
+        } catch (IOException ex) {
+            logger.log(Level.ERROR, ex.getMessage(), ex);
+            throw new RuntimeException(ex.getMessage());
+        }
     }
 
     public void onSoundChanged(SoundFile soundFile) {

@@ -21,7 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Loads up a hero gate, front end edition. Main menu. Most of the objects are
@@ -41,7 +41,7 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
 
-    public HeroGateFrontEndController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public HeroGateFrontEndController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }

@@ -154,7 +154,7 @@ public final class TriggerAction extends Trigger {
 
     private ActionType actionType;
 
-    public TriggerAction(KwdFile kwdFile) {
+    public TriggerAction(IKwdFile kwdFile) {
         super(kwdFile);
     }
 

@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 import java.lang.System.Logger.Level;
 import java.util.Collections;
@@ -58,7 +58,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
     private final EntitySet roomCatalogs;
 
-    public MapRoomContainer(EntityData entityData, KwdFile kwdFile) {
+    public MapRoomContainer(EntityData entityData, IKwdFile kwdFile) {
         super(entityData, RoomComponent.class, Owner.class, Health.class);
 
         roomCatalogs = entityData.getEntities(Storage.class);

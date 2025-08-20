@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
@@ -203,7 +203,7 @@ public class TriggerControl extends Control {
                         TriggerAction.MakeType.class);
                 boolean available = trigger.getUserData("available", short.class) != 0;
                 playerId = trigger.getUserData("playerId", short.class);
-                KwdFile kwdFile = levelInfo.getLevelData();
+                IKwdFile kwdFile = levelInfo.getLevelData();
                 short targetId = trigger.getUserData("targetId", short.class);
                 // TODO this
                 switch (flag) {

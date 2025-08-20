@@ -24,7 +24,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.WallSection;
@@ -39,7 +39,7 @@ public final class TempleController extends DoubleQuadController {
     public static final short OBJECT_TEMPLE_HAND_ID = 66;
     private static final int MIN_HAND_SIZE = 5;
 
-    public TempleController(EntityId entityId, EntityData entityData, KwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
+    public TempleController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }
 

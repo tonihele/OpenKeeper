@@ -23,7 +23,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Loads up object
@@ -34,9 +34,9 @@ public final class CreatureLoader implements ILoader<CreatureViewState> {
     
     private static final Logger logger = System.getLogger(CreatureLoader.class.getName());
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
-    public CreatureLoader(KwdFile kwdFile) {
+    public CreatureLoader(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

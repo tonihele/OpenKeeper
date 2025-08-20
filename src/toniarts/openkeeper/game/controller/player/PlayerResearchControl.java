@@ -22,7 +22,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Manages player research
@@ -32,10 +32,10 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public final class PlayerResearchControl {
 
     private final Keeper keeper;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     protected List<PlayerResearchableEntityListener> researchListeners;
 
-    public PlayerResearchControl(Keeper keeper, KwdFile kwdFile) {
+    public PlayerResearchControl(Keeper keeper, IKwdFile kwdFile) {
         this.keeper = keeper;
         this.kwdFile = kwdFile;
     }

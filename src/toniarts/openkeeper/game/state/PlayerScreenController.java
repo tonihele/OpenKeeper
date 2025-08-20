@@ -1154,7 +1154,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private static final class CreatureCardManager {
 
         private final IPlayerScreenController playerScreenController;
-        private final KwdFile kwdFile;
+        private final IKwdFile kwdFile;
         private final EntityData entityData;
         private final EntitySet playerCreatureEntities;
         private final Element creaturePanel;
@@ -1168,7 +1168,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private final Map<Short, CreatureCardControl> creatureCardControls = new HashMap<>();
         private final CreatureCardEventListener creatureCardEventListener = new EventListener();
 
-        public CreatureCardManager(IPlayerScreenController playerScreenController, KwdFile kwdFile, EntityData entityData, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
+        public CreatureCardManager(IPlayerScreenController playerScreenController, IKwdFile kwdFile, EntityData entityData, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
             this.playerScreenController = playerScreenController;
             this.kwdFile = kwdFile;
             this.entityData = entityData;

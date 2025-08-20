@@ -79,7 +79,7 @@ import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.DisplayMode;
@@ -609,7 +609,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             return;
         }
 
-        KwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).map();
+        IKwdFile map = state.mapSelector.getMaps().get(event.getSelectionIndices().get(0)).map();
         if (state.mapSelector.isMPD()) {
             // on mpd we show the briefing
             state.selectedLevel = new CustomMPDLevel(map);
@@ -820,7 +820,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         screen.findNiftyControl("invertMouse", CheckBox.class).setChecked((boolean) Settings.Setting.MOUSE_INVERT.getDefaultValue());
     }
 
-    private void populateSelectedMap(KwdFile map) {
+    private void populateSelectedMap(IKwdFile map) {
 
         // The map title
         Label label = screen.findNiftyControl("mapNameTitle", Label.class);
@@ -856,7 +856,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         for (MapSelector.GameMapContainer mapContainer : state.mapSelector.getMaps()) {
 
             String name = mapContainer.mapName();
-            KwdFile kwd = mapContainer.map();
+            IKwdFile kwd = mapContainer.map();
             if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MY_PET_DUNGEON_LEVEL)) {
                 // the resource tables in all the other levels are completely wrong, so we just use it for custom mpd maps
                 name = kwd.getGameLevel().getLevelName().isEmpty() ? kwd.getGameLevel().getName() : kwd.getGameLevel().getLevelName();

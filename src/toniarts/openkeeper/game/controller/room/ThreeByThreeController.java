@@ -22,7 +22,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureGenerator;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Portal is the only one I think
@@ -31,7 +31,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
-    public ThreeByThreeController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
         entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
