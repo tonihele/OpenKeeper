@@ -18,7 +18,6 @@ package toniarts.openkeeper.utils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 /**

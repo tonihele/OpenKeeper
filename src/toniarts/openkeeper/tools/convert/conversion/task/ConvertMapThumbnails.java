@@ -36,8 +36,6 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 /**
  * Dungeon Keeper II map thumbnail generation. The original has a few thumbnails in BMP format, but they don't
@@ -83,8 +81,7 @@ public final class ConvertMapThumbnails extends ConversionTask {
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(dungeonKeeperFolder, PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path path : paths) {
                 try {
-                    IKwdFile kwd = ResourceProxyFactory.createProxy(new KwdFileHandler(dungeonKeeperFolder,
-                            new KwdFile(path.getFileName().toString())));
+                    IKwdFile kwd = new KwdFile.KwdFileLoader(dungeonKeeperFolder).load(path.getFileName().toString(), false);
                     if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
                             || kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
                         maps.add(kwd);

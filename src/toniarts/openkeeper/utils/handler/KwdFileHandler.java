@@ -16,19 +16,11 @@
  */
 package toniarts.openkeeper.utils.handler;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.FileResourceReader;
-import toniarts.openkeeper.tools.convert.ISeekableResourceReader;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.MapDataTypeEnum;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  *
@@ -38,15 +30,15 @@ public final class KwdFileHandler implements InvocationHandler {
 
     private final IKwdFile target;
 
-    private final String basePath;
+    private final KwdFile.KwdFileLoader loader;
 
     private boolean loaded = false;
 
     private boolean initialized = false;
 
-    public KwdFileHandler(String basePath, IKwdFile target) {
+    public KwdFileHandler(KwdFile.KwdFileLoader loader, IKwdFile target) {
+        this.loader = loader;
         this.target = target;
-        this.basePath = PathUtils.fixFilePath(basePath);
     }
 
     public IKwdFile getTarget() {
@@ -57,43 +49,21 @@ public final class KwdFileHandler implements InvocationHandler {
     public Object invoke(Object o, Method method, Object[] os) throws Throwable {
         if (!initialized) {
             initialized = true;
-            Method loader = getLoader();
-
-            load(loader, PathUtils.DKII_MAPS_FOLDER + target.getName());
-
-            target.getGameLevel().getPaths().stream()
-                    .filter(item -> item.getId() == MapDataTypeEnum.MAP)
-                    .forEach(item -> load(loader, item.getPath()));
+            getLoader().invoke(loader, true);
         }
 
         if (!loaded && !List.of("getName", "getMap").contains(method.getName())) {
             loaded = true;
-            Method loader = getLoader();
-            target.getGameLevel().getPaths().stream()
-                    .filter(item -> item.getId() != MapDataTypeEnum.MAP)
-                    .forEach(item -> load(loader, item.getPath()));
+            getLoader().invoke(loader, false);
         }
 
         return method.invoke(target, os);
     }
 
-    private void load(Method loader, String path) {
-        try {
-            Path f = Paths.get(PathUtils.getRealFileName(this.basePath, path));
-            try (ISeekableResourceReader data = new FileResourceReader(f)) {
-                loader.invoke(target, data);
-            }
-        } catch (IOException | IllegalAccessException | InvocationTargetException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
     private Method getLoader() throws NoSuchMethodException {
-        Method method = KwdFile.class.getDeclaredMethod("readFileContents",
-                new Class<?>[]{ISeekableResourceReader.class});
+        Method method = KwdFile.KwdFileLoader.class.getDeclaredMethod("load", new Class<?>[]{boolean.class});
         method.setAccessible(true);
 
         return method;
     }
-
 }

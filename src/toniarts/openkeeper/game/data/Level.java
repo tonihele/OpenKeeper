@@ -22,8 +22,6 @@ import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 public final class Level extends GeneralLevel {
 
@@ -71,8 +69,7 @@ public final class Level extends GeneralLevel {
         if (kwdFile == null) {
             try {
                 // Load the actual level info
-                kwdFile = ResourceProxyFactory.createProxy(new KwdFileHandler(Main.getDkIIFolder(),
-                        new KwdFile(getFileName())));
+                kwdFile = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load(getFileName(), false);
             } catch (IOException ex) {
                 logger.log(Logger.Level.ERROR, "Failed to load the level file!", ex);
             }

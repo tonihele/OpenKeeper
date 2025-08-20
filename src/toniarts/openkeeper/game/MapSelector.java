@@ -33,8 +33,6 @@ import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 /**
  * Class isolate map selection
@@ -58,8 +56,7 @@ public final class MapSelector {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path file : stream) {
                 // Read the map
-                IKwdFile kwd = ResourceProxyFactory.createProxy(new KwdFileHandler(Main.getDkIIFolder(),
-                        new KwdFile(file.getFileName().toString())));
+                IKwdFile kwd = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load(file.getFileName().toString(), false);
 
                 GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
                 if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {

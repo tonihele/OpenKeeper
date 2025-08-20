@@ -89,8 +89,6 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -726,7 +724,7 @@ public final class ModelViewer extends SimpleApplication {
 
     private IKwdFile getKwdFile(String name) {
         try {
-            return ResourceProxyFactory.createProxy(new KwdFileHandler(dkIIFolder, new KwdFile(name)));
+            return new KwdFile.KwdFileLoader(dkIIFolder).load(name);
         } catch (IOException ex) {
             logger.log(Level.ERROR, ex.getMessage(), ex);
             throw new RuntimeException(ex.getMessage());

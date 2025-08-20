@@ -33,9 +33,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 /**
  * Local game session, a virtual server
@@ -80,8 +78,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app)
             throws IOException {
         // Try to load the file
-        IKwdFile kwdFile = ResourceProxyFactory.createProxy(new KwdFileHandler(Main.getDkIIFolder(),
-                new KwdFile(level)));
+        IKwdFile kwdFile = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load(level);
 
         createLocalGame(kwdFile, stateManager, campaign, app);
     }

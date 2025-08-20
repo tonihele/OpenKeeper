@@ -22,8 +22,6 @@ import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 /**
  * A simple class to load up a map file
@@ -47,7 +45,6 @@ public final class MapLoader {
         }
 
         // Load the map
-        IKwdFile kwd = ResourceProxyFactory.createProxy(new KwdFileHandler(dkIIFolder, new KwdFile(args[0])));
-        kwd.getGameLevel();
+        IKwdFile kwd = new KwdFile.KwdFileLoader(dkIIFolder).load(args[0]);
     }
 }

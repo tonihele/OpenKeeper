@@ -64,11 +64,8 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.utils.KwdFileLoader;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
@@ -136,7 +133,7 @@ public final class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager,
             final Main app) throws IOException {
         // Load the 3D Front end
-        kwdFile = ResourceProxyFactory.createProxy(new KwdFileHandler(Main.getDkIIFolder(), new KwdFile("FrontEnd3DLevel")));
+        kwdFile = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load("FrontEnd3DLevel");
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
