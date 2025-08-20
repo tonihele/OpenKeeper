@@ -56,7 +56,7 @@ public final class MapSelector {
             for (Path file : stream) {
 
                 // Read the map
-                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file.getFileName().toString(), false);
+                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
                 GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
                 if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
                     skirmishMaps.add(gameMapContainer);

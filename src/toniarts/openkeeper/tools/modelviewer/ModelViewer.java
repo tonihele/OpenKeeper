@@ -714,19 +714,15 @@ public final class ModelViewer extends SimpleApplication {
     private KwdFile getKwdFile() {
         // Read Alcatraz.kwd by default
         if (kwdFile == null) {
-            kwdFile = getKwdFile("Alcatraz");
+            kwdFile = getKwdFile("Alcatraz.kwd");
         }
 
         return kwdFile;
     }
 
     private KwdFile getKwdFile(String name) {
-        try {
-            return new KwdFile(dkIIFolder, name);
-        } catch (IOException ex) {
-            logger.log(Level.ERROR, ex.getMessage(), ex);
-            throw new RuntimeException(ex.getMessage());
-        }
+        return new KwdFile(dkIIFolder,
+                Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, name));
     }
 
     public void onSoundChanged(SoundFile soundFile) {

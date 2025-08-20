@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Paths;
 import java.util.Collections;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.getDkIIFolder;
@@ -132,7 +133,8 @@ public final class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) throws IOException {
 
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), "FrontEnd3DLevel");
+        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(PathUtils.getRealFileName(
+                Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }

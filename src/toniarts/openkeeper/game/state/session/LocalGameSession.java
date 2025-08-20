@@ -16,9 +16,13 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import toniarts.openkeeper.utils.Point;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -32,6 +36,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -40,7 +45,7 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class LocalGameSession implements GameSessionServerService, GameSessionClientService {
-
+    
     private static final Logger logger = System.getLogger(LocalGameSession.class.getName());
     private static final short PLAYER_ID = Player.KEEPER1_ID;
 
@@ -54,19 +59,20 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     /**
-     * Creates and starts a local game session with given level and default players
+     * Creates and starts a local game session with given level and default
+     * players
      *
      * @param kwdFile map as KWD file
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
-     * @param app
      */
     public static void createLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
         createLocalGame(kwdFile, stateManager, campaign, app);
     }
 
     /**
-     * Creates and starts a local game session with given level and default players
+     * Creates and starts a local game session with given level and default
+     * players
      *
      * @param level the level to load
      * @param campaign whether to start this level as a campaign level
@@ -74,10 +80,14 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
      * @param app the main app
      * @throws java.io.IOException Problem with the map file
      */
-    public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app)
-            throws IOException {
+    public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
+
         // Try to load the file
-        KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), level);
+        Path mapFile = Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, level + ".kwd"));
+        if (!Files.exists(mapFile)) {
+            throw new FileNotFoundException(mapFile.toString());
+        }
+        KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), mapFile);
 
         createLocalGame(kwdFile, stateManager, campaign, app);
     }

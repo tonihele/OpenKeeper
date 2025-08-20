@@ -16,12 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -33,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -70,10 +66,12 @@ import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
- * Reads a DK II map file, the KWD is the file name of the main map identifier, reads the KLDs actually<br>
+ * Reads a DK II map file, the KWD is the file name of the main map identifier,
+ * reads the KLDs actually<br>
  * The files are LITTLE ENDIAN I might say<br>
- * Some values are 3D coordinates or scale values presented in fixed point integers. They are automatically
- * converted to floats (divided by 2^12 = 4096 or 2^16 = 65536)<br>
+ * Some values are 3D coordinates or scale values presented in fixed point
+ * integers. They are automatically converted to floats (divided by 2^12 = 4096
+ * or 2^16 = 65536)<br>
  * Many parts adapted from C code by:
  * <li>George Gensure (werkt)</li>
  * And another C code implementation by:
@@ -82,7 +80,7 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class KwdFile {
-
+    
     private static final Logger logger = System.getLogger(KwdFile.class.getName());
 
     // These are needed in various places, I don't know how to else recognize these
@@ -144,50 +142,48 @@ public final class KwdFile {
 
     /**
      * Constructs a new KWD file reader<br>
-     * Reads the whole map and its catalogs (either standard ones or custom ones)
+     * Reads the whole map and its catalogs (either standard ones or custom
+     * ones)
      *
      * @param basePath path to DK II main path (or where ever is the "root")
-     * @param name the KWD file to read
-     * @throws java.io.IOException if file not exists
+     * @param file the KWD file to read
      */
-    public KwdFile(String basePath, String name) throws IOException {
-        this(basePath, name, true);
+    public KwdFile(String basePath, Path file) {
+        this(basePath, file, true);
     }
 
     /**
      * Constructs a new KWD file reader<br>
      *
      * @param basePath path to DK II main path (or where ever is the "root")
-     * @param name the KWD file to read
-     * @param load whether to actually load the map data, or just get the general info
-     * @throws java.io.IOException if file not exists
+     * @param file the KWD file to read
+     * @param load whether to actually load the map data, or just get the
+     * general info
      */
-    public KwdFile(String basePath, String name, boolean load) throws IOException {
+    public KwdFile(String basePath, Path file, boolean load) {
 
-        this.basePath = PathUtils.fixFilePath(basePath);
         // Load the actual main map info (paths to catalogs most importantly)
         // Read the file
-        if (!name.endsWith(".kwd")) {
-            name += ".kwd";
-        }
-        Path file = Paths.get(PathUtils.getRealFileName(this.basePath, PathUtils.DKII_MAPS_FOLDER + name));
-
         try {
             readFileContents(file);
-        } catch (IOException e) {
+        } catch (Exception e) {
+
             // Fug
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
+        this.basePath = PathUtils.fixFilePath(basePath);
 
         // See if we need to load the actual data
         if (load) {
             load();
         } else {
+
             // We need map width & height if not loaded fully, I couldn't figure out where, except the map data
             try (ISeekableResourceReader data = new FileResourceReader(PathUtils.getRealFileName(basePath, gameLevel.getFile(MAP)))) {
                 KwdHeader header = readKwdHeader(data);
                 map = new GameMap(header.getWidth(), header.getHeight());
             } catch (Exception e) {
+
                 //Fug
                 throw new RuntimeException("Failed to read the file " + gameLevel.getFile(MAP) + "!", e);
             }
@@ -674,7 +670,8 @@ public final class KwdFile {
     }
 
     /**
-     * Reads and parses an ArtResource object from the current file location (84 bytes)
+     * Reads and parses an ArtResource object from the current file location (84
+     * bytes)
      *
      * @param reader the resource reader
      * @return an ArtResource
@@ -1508,7 +1505,8 @@ public final class KwdFile {
      * Read job preferences for a creature
      *
      * @param count amount of job preference records
-     * @param creature creature instance, just for creating a job preference instance
+     * @param creature creature instance, just for creating a job preference
+     * instance
      * @param file the file to read the data from
      * @return job preferences
      */
@@ -1529,7 +1527,8 @@ public final class KwdFile {
     }
 
     /**
-     * Reads and parses an Light object from the current file location (24 bytes)
+     * Reads and parses an Light object from the current file location (24
+     * bytes)
      *
      * @param reader the file stream to parse from
      * @return a Light
@@ -2965,11 +2964,13 @@ public final class KwdFile {
     }
 
     /**
-     * Bridges are a bit special, identifies one and returns the terrain that should be under it
+     * Bridges are a bit special, identifies one and returns the terrain that
+     * should be under it
      *
      * @param type tile BridgeTerrainType
      * @param terrain the terrain tile
-     * @return returns null if this is not a bridge, otherwise returns pretty much either water or lava
+     * @return returns null if this is not a bridge, otherwise returns pretty
+     * much either water or lava
      */
     public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Terrain terrain) {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
@@ -3224,8 +3225,8 @@ public final class KwdFile {
     }
 
     /**
-     * Get the creature stats by level. There might not be a record for every level. Then should just default
-     * to 100% stat.
+     * Get the creature stats by level. There might not be a record for every
+     * level. Then should just default to 100% stat.
      *
      * @param level the creature level
      * @return the creature stats on given level
@@ -3235,7 +3236,8 @@ public final class KwdFile {
     }
 
     /**
-     * Not all the data types are of the length that suits us, do our best to ignore it<br>
+     * Not all the data types are of the length that suits us, do our best to
+     * ignore it<br>
      * Skips the file to the correct position after an item is read<br>
      * <b>Use this with the common types!</b>
      *
@@ -3249,7 +3251,8 @@ public final class KwdFile {
     }
 
     /**
-     * Not all the data types are of the length that suits us, do our best to ignore it<br>
+     * Not all the data types are of the length that suits us, do our best to
+     * ignore it<br>
      * Skips the file to the correct position after an item is read<br>
      * <b>Use this with the common types!</b>
      *

@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -31,12 +30,13 @@ public final class MapLoader {
 
     private static String dkIIFolder;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
         // Take Dungeon Keeper 2 root folder as parameter
         if (args.length != 2 || !Files.exists(Paths.get(args[1]))) {
             dkIIFolder = PathUtils.getDKIIFolder();
-            if (dkIIFolder == null || args.length == 0) {
+            if (dkIIFolder == null || args.length == 0)
+            {
                 throw new RuntimeException("Please provide actual map file as a first parameter! Second parameter is the Dungeon Keeper II main folder (optional)!");
             }
         } else {
@@ -44,7 +44,6 @@ public final class MapLoader {
         }
 
         // Load the map
-        KwdFile kwd = new KwdFile(dkIIFolder, args[0], false);
-        kwd.load();
+        KwdFile kwd = new KwdFile(dkIIFolder, Paths.get(args[0]));
     }
 }
