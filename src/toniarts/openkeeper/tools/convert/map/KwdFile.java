@@ -532,8 +532,6 @@ public final class KwdFile implements IKwdFile {
 
         private final String basePath;
 
-        private KwdFile kwdFile;
-
         public KwdFileLoader(String basePath) {
             this.basePath = basePath;
         }
@@ -550,11 +548,11 @@ public final class KwdFile implements IKwdFile {
                 name += ".kwd";
             }
 
-            kwdFile = new KwdFile(name);
+            KwdFile kwdFile = new KwdFile(name);
             if (fullLoad) {
-                readFileContents(getReader(kwdFile.name));
+                readFileContents(kwdFile, getReader(kwdFile.name));
                 for (FilePath item : kwdFile.gameLevel.paths.stream().sorted().toList()) {
-                    readFileContents(getReader(item.getPath()));
+                    readFileContents(kwdFile, getReader(item.getPath()));
                 }
             } else {
                 return ResourceProxyFactory.createProxy(new KwdFileHandler(this, kwdFile));
@@ -564,31 +562,32 @@ public final class KwdFile implements IKwdFile {
         }
 
         // Used in Proxy
-        private void load(boolean init) throws IOException {
+        private void load(final KwdFile kwdFile, boolean init) throws IOException {
             if (init) {
-                readFileContents(getReader(kwdFile.name));
+                readFileContents(kwdFile, getReader(kwdFile.name));
                 for (FilePath item : kwdFile.gameLevel.paths.stream()
                         .filter(item -> item.getId() == MapDataTypeEnum.MAP).toList()) {
-                    readFileContents(getReader(item.getPath()));
+                    readFileContents(kwdFile, getReader(item.getPath()));
                 }
             } else {
                 for (FilePath item : kwdFile.gameLevel.paths.stream()
                         .filter(item -> item.getId() != MapDataTypeEnum.MAP).toList()) {
-                    readFileContents(getReader(item.getPath()));
+                    readFileContents(kwdFile, getReader(item.getPath()));
                 }
             }
         }
 
         private ISeekableResourceReader getReader(String name) throws IOException {
+            logger.log(Level.INFO, "Reading file \"{0}\"", name);
             Path file = Paths.get(PathUtils.getRealFileName(this.basePath, name));
             return new FileResourceReader(file);
         }
 
-        private void readFileContents(ISeekableResourceReader data) throws IOException {
+        private void readFileContents(final KwdFile kwdFile, ISeekableResourceReader data) throws IOException {
             while (data.getFilePointer() < data.length()) {
                 // Read header (and put the file pointer to the data start)
                 KwdHeader header = readKwdHeader(data);
-                readFileContents(header, data);
+                readFileContents(kwdFile, header, data);
             }
 
             if (data.getFilePointer() != data.length()) {
@@ -671,96 +670,97 @@ public final class KwdFile implements IKwdFile {
             return header;
         }
 
-        private void readFileContents(KwdHeader header, IResourceReader data) throws IOException {
+        private void readFileContents(final KwdFile kwdFile, final KwdHeader header, IResourceReader data)
+                throws IOException {
 
             // Handle all the cases (we kinda skip the globals with this logic, so no need)
             // All readers must read the whole data they intend to read
             switch (header.getId()) {
                 case LEVEL:
                     // check header.getCheckOne() != 221 || header.getCheckTwo() != 223
-                    readMapInfo(header, data);
+                    readMapInfo(kwdFile, header, data);
                     break;
 
                 case CREATURES:
                     // check header.getCheckOne() != 171 || header.getCheckTwo() != 172
-                    readCreatures(header, data);
+                    readCreatures(kwdFile, header, data);
                     break;
 
                 case CREATURE_SPELLS:
                     if (header.getCheckOne() != 161 || header.getCheckTwo() != 162) {
                         throw new RuntimeException("Creature spells file is corrupted");
                     }
-                    readCreatureSpells(header, data);
+                    readCreatureSpells(kwdFile, header, data);
                     break;
 
                 case DOORS:
                     // check header.getCheckOne() != 141 || header.getCheckTwo() != 142
-                    readDoors(header, data);
+                    readDoors(kwdFile, header, data);
                     break;
 
                 case EFFECTS:
                     // check header.getCheckOne() != 271 || header.getCheckTwo() != 272
-                    readEffects(header, data);
+                    readEffects(kwdFile, header, data);
                     break;
 
                 case EFFECT_ELEMENTS:
                     // check header.getCheckOne() != 251 || header.getCheckTwo() != 252
-                    readEffectElements(header, data);
+                    readEffectElements(kwdFile, header, data);
                     break;
 
                 case KEEPER_SPELLS:
                     // check header.getCheckOne() != 151 || header.getCheckTwo() != 152
-                    readKeeperSpells(header, data);
+                    readKeeperSpells(kwdFile, header, data);
                     break;
 
                 case MAP:
                     // check header.getCheckOne() != 101 || header.getCheckTwo() != 102
-                    readMap(header, data);
+                    readMap(kwdFile, header, data);
                     break;
 
                 case OBJECTS:
                     // check header.getCheckOne() != 241 || header.getCheckTwo() != 242
-                    readObjects(header, data);
+                    readObjects(kwdFile, header, data);
                     break;
 
                 case PLAYERS:
                     // check header.getCheckOne() != 181 || header.getCheckTwo() != 182
-                    readPlayers(header, data);
+                    readPlayers(kwdFile, header, data);
                     break;
 
                 case ROOMS:
                     // check header.getCheckOne() != 121 || header.getCheckTwo() != 122
-                    readRooms(header, data);
+                    readRooms(kwdFile, header, data);
                     break;
 
                 case SHOTS:
                     // check header.getCheckOne() != 261 || header.getCheckTwo() != 262
-                    readShots(header, data);
+                    readShots(kwdFile, header, data);
                     break;
 
                 case TERRAIN:
                     // check header.getCheckOne() != 111 || header.getCheckTwo() != 112
-                    readTerrain(header, data);
+                    readTerrain(kwdFile, header, data);
                     break;
 
                 case THINGS:
                     // check header.getCheckOne() != 191 || header.getCheckTwo() != 192
-                    readThings(header, data);
+                    readThings(kwdFile, header, data);
                     break;
 
                 case TRAPS:
                     // check header.getCheckOne() != 131 || header.getCheckTwo() != 132
-                    readTraps(header, data);
+                    readTraps(kwdFile, header, data);
                     break;
 
                 case TRIGGERS:
                     // check header.getCheckOne() != 211 || header.getCheckTwo() != 212
-                    readTriggers(header, data);
+                    readTriggers(kwdFile, header, data);
                     break;
 
                 case VARIABLES:
                     // check header.getCheckOne() != 231 || header.getCheckTwo() != 232
-                    readVariables(header, data);
+                    readVariables(kwdFile, header, data);
                     break;
 
                 default:
@@ -776,7 +776,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readMap(KwdHeader header, IResourceReader file) throws IOException {
+        private void readMap(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the requested MAP file
             logger.log(Level.INFO, "Reading map!");
@@ -804,7 +805,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readPlayers(KwdHeader header, IResourceReader file) throws IOException {
+        private void readPlayers(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the requested PLAYER file
             if (kwdFile.players == null) {
@@ -933,7 +935,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readTerrain(KwdHeader header, IResourceReader file) throws RuntimeException, IOException {
+        private void readTerrain(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws RuntimeException, IOException {
 
             // Read the terrain catalog
             if (kwdFile.terrainTiles == null) {
@@ -1143,7 +1146,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readDoors(KwdHeader header, IResourceReader file) throws IOException {
+        private void readDoors(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the doors catalog
             if (kwdFile.doors == null) {
@@ -1209,7 +1213,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readTraps(KwdHeader header, IResourceReader file) throws IOException {
+        private void readTraps(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the traps catalog
             if (kwdFile.traps == null) {
@@ -1288,7 +1293,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readRooms(KwdHeader header, IResourceReader file) throws RuntimeException, IOException {
+        private void readRooms(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws RuntimeException, IOException {
 
             // Read the rooms catalog
             if (kwdFile.rooms == null) {
@@ -1370,7 +1376,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the original map KWD file
          * @throws RuntimeException reading may fail
          */
-        private void readMapInfo(KwdHeader header, IResourceReader data) throws IOException {
+        private void readMapInfo(final KwdFile kwdFile, final KwdHeader header, IResourceReader data)
+                throws IOException {
 
             // Additional header data
             if (kwdFile.gameLevel == null) {
@@ -1532,7 +1539,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readCreatures(KwdHeader header, IResourceReader file) throws IOException {
+        private void readCreatures(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the creatures catalog
             if (kwdFile.creatures == null) {
@@ -1901,7 +1909,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readObjects(KwdHeader header, IResourceReader file) throws IOException {
+        private void readObjects(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the objects catalog
             if (kwdFile.objects == null) {
@@ -1979,7 +1988,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readCreatureSpells(KwdHeader header, IResourceReader file) throws IOException {
+        private void readCreatureSpells(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the creature spells catalog
             if (kwdFile.creatureSpells == null) {
@@ -2035,7 +2045,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readEffectElements(KwdHeader header, IResourceReader file) throws IOException {
+        private void readEffectElements(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the effect elements catalog
             if (kwdFile.effectElements == null) {
@@ -2091,7 +2102,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readEffects(KwdHeader header, IResourceReader file) throws IOException {
+        private void readEffects(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the effects catalog
             if (kwdFile.effects == null) {
@@ -2168,7 +2180,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readKeeperSpells(KwdHeader header, IResourceReader file) throws IOException {
+        private void readKeeperSpells(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the keeper spells catalog
             if (kwdFile.keeperSpells == null) {
@@ -2232,7 +2245,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readThings(KwdHeader header, IResourceReader file) throws IOException {
+        private void readThings(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the requested Things file
             if (kwdFile.thingsByType == null) {
@@ -2244,7 +2258,6 @@ public final class KwdFile implements IKwdFile {
 
             IResourceChunkReader reader = file.readChunk(header.dataSize);
             for (int i = 0; i < header.getItemCount(); i++) {
-                Thing thing = null;
                 int[] thingTag = new int[2];
                 for (int x = 0; x < thingTag.length; x++) {
                     thingTag[x] = reader.readUnsignedInteger();
@@ -2254,152 +2267,142 @@ public final class KwdFile implements IKwdFile {
                 // Figure out the type
                 switch (thingTag[0]) {
                     case THING_OBJECT: {
+                        Thing.Object thing = new Thing.Object();
 
-                        // Object (door & trap crates, objects...)
-                        thing = new Thing.Object();
-                        ((Thing.Object) thing).setPosX(reader.readInteger());
-                        ((Thing.Object) thing).setPosY(reader.readInteger());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
                         short unknown1[] = new short[4];
                         for (int x = 0; x < unknown1.length; x++) {
                             unknown1[x] = reader.readUnsignedByte();
                         }
-                        ((Thing.Object) thing).setUnknown1(unknown1);
-                        ((Thing.Object) thing).setKeeperSpellId(reader.readInteger());
-                        ((Thing.Object) thing).setMoneyAmount(reader.readInteger());
-                        ((Thing.Object) thing).setTriggerId(reader.readUnsignedShort());
-                        ((Thing.Object) thing).setObjectId(reader.readUnsignedByte());
-                        ((Thing.Object) thing).setPlayerId(reader.readUnsignedByte());
+                        thing.setUnknown1(unknown1);
+                        thing.setKeeperSpellId(reader.readInteger());
+                        thing.setMoneyAmount(reader.readInteger());
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setObjectId(reader.readUnsignedByte());
+                        thing.setPlayerId(reader.readUnsignedByte());
 
-                        addThing((Thing.Object) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_TRAP: {
+                        Thing.Trap thing = new Thing.Trap();
 
-                        // Trap
-                        thing = new Thing.Trap();
-                        ((Thing.Trap) thing).setPosX(reader.readInteger());
-                        ((Thing.Trap) thing).setPosY(reader.readInteger());
-                        ((Thing.Trap) thing).setUnknown1(reader.readInteger());
-                        ((Thing.Trap) thing).setNumberOfShots(reader.readUnsignedByte());
-                        ((Thing.Trap) thing).setTrapId(reader.readUnsignedByte());
-                        ((Thing.Trap) thing).setPlayerId(reader.readUnsignedByte());
-                        ((Thing.Trap) thing).setUnknown2(reader.readUnsignedByte());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setUnknown1(reader.readInteger());
+                        thing.setNumberOfShots(reader.readUnsignedByte());
+                        thing.setTrapId(reader.readUnsignedByte());
+                        thing.setPlayerId(reader.readUnsignedByte());
+                        thing.setUnknown2(reader.readUnsignedByte());
 
-                        addThing((Thing.Trap) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_DOOR: {
+                        Thing.Door thing = new Thing.Door();
 
-                        // Door
-                        thing = new Thing.Door();
-                        ((Thing.Door) thing).setPosX(reader.readInteger());
-                        ((Thing.Door) thing).setPosY(reader.readInteger());
-                        ((Thing.Door) thing).setUnknown1(reader.readInteger());
-                        ((Thing.Door) thing).setTriggerId(reader.readUnsignedShort());
-                        ((Thing.Door) thing).setDoorId(reader.readUnsignedByte());
-                        ((Thing.Door) thing).setPlayerId(reader.readUnsignedByte());
-                        ((Thing.Door) thing).setFlag(reader.readByteAsEnum(Thing.Door.DoorFlag.class));
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setUnknown1(reader.readInteger());
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setDoorId(reader.readUnsignedByte());
+                        thing.setPlayerId(reader.readUnsignedByte());
+                        thing.setFlag(reader.readByteAsEnum(Thing.Door.DoorFlag.class));
                         short unknown2[] = new short[3];
                         for (int x = 0; x < unknown2.length; x++) {
                             unknown2[x] = reader.readUnsignedByte();
                         }
-                        ((Thing.Door) thing).setUnknown2(unknown2);
+                        thing.setUnknown2(unknown2);
 
-                        addThing((Thing.Door) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_ACTION_POINT: {
+                        ActionPoint thing = new ActionPoint();
 
-                        // ActionPoint
-                        thing = new ActionPoint();
-                        ((ActionPoint) thing).setStartX(reader.readInteger());
-                        ((ActionPoint) thing).setStartY(reader.readInteger());
-                        ((ActionPoint) thing).setEndX(reader.readInteger());
-                        ((ActionPoint) thing).setEndY(reader.readInteger());
-                        ((ActionPoint) thing).setWaitDelay(reader.readUnsignedShort());
-                        ((ActionPoint) thing).setFlags(reader.readShortAsFlag(ActionPointFlag.class));
-                        ((ActionPoint) thing).setTriggerId(reader.readUnsignedShort());
-                        ((ActionPoint) thing).setId(reader.readUnsignedByte());
-                        ((ActionPoint) thing).setNextWaypointId(reader.readUnsignedByte());
+                        thing.setStartX(reader.readInteger());
+                        thing.setStartY(reader.readInteger());
+                        thing.setEndX(reader.readInteger());
+                        thing.setEndY(reader.readInteger());
+                        thing.setWaitDelay(reader.readUnsignedShort());
+                        thing.setFlags(reader.readShortAsFlag(ActionPointFlag.class));
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setId(reader.readUnsignedByte());
+                        thing.setNextWaypointId(reader.readUnsignedByte());
+                        thing.setName(reader.readString(32).trim());
 
-                        ((ActionPoint) thing).setName(reader.readString(32).trim());
-
-                        addThing((Thing.ActionPoint) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_NEUTRAL_CREATURE: {
+                        Thing.NeutralCreature thing = new Thing.NeutralCreature();
 
-                        // Neutral creature
-                        thing = new Thing.NeutralCreature();
-                        ((NeutralCreature) thing).setPosX(reader.readInteger());
-                        ((NeutralCreature) thing).setPosY(reader.readInteger());
-                        ((NeutralCreature) thing).setPosZ(reader.readInteger());
-                        ((NeutralCreature) thing).setGoldHeld(reader.readUnsignedShort());
-                        ((NeutralCreature) thing).setLevel(reader.readUnsignedByte());
-                        ((NeutralCreature) thing).setFlags(reader.readByteAsFlag(Thing.Creature.CreatureFlag.class));
-                        ((NeutralCreature) thing).setInitialHealth(reader.readInteger());
-                        ((NeutralCreature) thing).setTriggerId(reader.readUnsignedShort());
-                        ((NeutralCreature) thing).setCreatureId(reader.readUnsignedByte());
-                        ((NeutralCreature) thing).setUnknown1(reader.readUnsignedByte());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setPosZ(reader.readInteger());
+                        thing.setGoldHeld(reader.readUnsignedShort());
+                        thing.setLevel(reader.readUnsignedByte());
+                        thing.setFlags(reader.readByteAsFlag(Thing.Creature.CreatureFlag.class));
+                        thing.setInitialHealth(reader.readInteger());
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setCreatureId(reader.readUnsignedByte());
+                        thing.setUnknown1(reader.readUnsignedByte());
 
-                        addThing((Thing.NeutralCreature) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_GOOD_CREATURE: {
+                        Thing.GoodCreature thing = new Thing.GoodCreature();
 
-                        // Good creature
-                        thing = new Thing.GoodCreature();
-                        ((GoodCreature) thing).setPosX(reader.readInteger());
-                        ((GoodCreature) thing).setPosY(reader.readInteger());
-                        ((GoodCreature) thing).setPosZ(reader.readInteger());
-                        ((GoodCreature) thing).setGoldHeld(reader.readUnsignedShort());
-                        ((GoodCreature) thing).setLevel(reader.readUnsignedByte());
-                        ((GoodCreature) thing).setFlags(reader.readByteAsFlag(Thing.Creature.CreatureFlag.class));
-                        ((GoodCreature) thing).setObjectiveTargetActionPointId(reader.readInteger());
-                        ((GoodCreature) thing).setInitialHealth(reader.readInteger());
-                        ((GoodCreature) thing).setTriggerId(reader.readUnsignedShort());
-                        ((GoodCreature) thing).setObjectiveTargetPlayerId(reader.readUnsignedByte());
-                        ((GoodCreature) thing).setObjective(reader.readByteAsEnum(Thing.HeroParty.Objective.class));
-                        ((GoodCreature) thing).setCreatureId(reader.readUnsignedByte());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setPosZ(reader.readInteger());
+                        thing.setGoldHeld(reader.readUnsignedShort());
+                        thing.setLevel(reader.readUnsignedByte());
+                        thing.setFlags(reader.readByteAsFlag(Thing.Creature.CreatureFlag.class));
+                        thing.setObjectiveTargetActionPointId(reader.readInteger());
+                        thing.setInitialHealth(reader.readInteger());
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setObjectiveTargetPlayerId(reader.readUnsignedByte());
+                        thing.setObjective(reader.readByteAsEnum(Thing.HeroParty.Objective.class));
+                        thing.setCreatureId(reader.readUnsignedByte());
                         short unknown1[] = new short[2];
                         for (int x = 0; x < unknown1.length; x++) {
                             unknown1[x] = reader.readUnsignedByte();
                         }
-                        ((GoodCreature) thing).setUnknown1(unknown1);
-                        ((GoodCreature) thing).setFlags2(reader.readByteAsFlag(Thing.Creature.CreatureFlag2.class));
+                        thing.setUnknown1(unknown1);
+                        thing.setFlags2(reader.readByteAsFlag(Thing.Creature.CreatureFlag2.class));
 
-                        addThing((Thing.GoodCreature) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_KEEPER_CREATURE: {
+                        Thing.KeeperCreature thing = new Thing.KeeperCreature();
 
-                        // Creature
-                        thing = new Thing.KeeperCreature();
-                        ((KeeperCreature) thing).setPosX(reader.readInteger());
-                        ((KeeperCreature) thing).setPosY(reader.readInteger());
-                        ((KeeperCreature) thing).setPosZ(reader.readInteger());
-                        ((KeeperCreature) thing).setGoldHeld(reader.readUnsignedShort());
-                        ((KeeperCreature) thing).setLevel(reader.readUnsignedByte());
-                        ((KeeperCreature) thing).setFlags(reader.readByteAsFlag(KeeperCreature.CreatureFlag.class));
-                        ((KeeperCreature) thing).setInitialHealth(reader.readInteger());
-                        ((KeeperCreature) thing).setObjectiveTargetActionPointId(reader.readInteger());
-                        ((KeeperCreature) thing).setTriggerId(reader.readUnsignedShort());
-                        ((KeeperCreature) thing).setCreatureId(reader.readUnsignedByte());
-                        ((KeeperCreature) thing).setPlayerId(reader.readUnsignedByte());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setPosZ(reader.readInteger());
+                        thing.setGoldHeld(reader.readUnsignedShort());
+                        thing.setLevel(reader.readUnsignedByte());
+                        thing.setFlags(reader.readByteAsFlag(KeeperCreature.CreatureFlag.class));
+                        thing.setInitialHealth(reader.readInteger());
+                        thing.setObjectiveTargetActionPointId(reader.readInteger());
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setCreatureId(reader.readUnsignedByte());
+                        thing.setPlayerId(reader.readUnsignedByte());
 
-                        addThing((Thing.KeeperCreature) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_HERO_PARTY: {
+                        HeroParty thing = new HeroParty();
 
-                        // HeroParty
-                        thing = new HeroParty();
-
-                        ((HeroParty) thing).setName(reader.readString(32).trim());
-                        ((HeroParty) thing).setTriggerId(reader.readUnsignedShort());
-                        ((HeroParty) thing).setId(reader.readUnsignedByte());
-                        ((HeroParty) thing).setX23(reader.readInteger());
-                        ((HeroParty) thing).setX27(reader.readInteger());
+                        thing.setName(reader.readString(32).trim());
+                        thing.setTriggerId(reader.readUnsignedShort());
+                        thing.setId(reader.readUnsignedByte());
+                        thing.setX23(reader.readInteger());
+                        thing.setX27(reader.readInteger());
                         List<GoodCreature> heroPartyMembers = new ArrayList<>(16);
                         for (int x = 0; x < 16; x++) {
                             GoodCreature creature = new GoodCreature();
@@ -2427,35 +2430,33 @@ public final class KwdFile implements IKwdFile {
                                 heroPartyMembers.add(creature);
                             }
                         }
-                        ((HeroParty) thing).setHeroPartyMembers(heroPartyMembers);
+                        thing.setHeroPartyMembers(heroPartyMembers);
 
-                        addThing((Thing.HeroParty) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_DEAD_BODY: {
+                        Thing.DeadBody thing = new Thing.DeadBody();
 
-                        // Dead body
-                        thing = new Thing.DeadBody();
-                        ((Thing.DeadBody) thing).setPosX(reader.readInteger());
-                        ((Thing.DeadBody) thing).setPosY(reader.readInteger());
-                        ((Thing.DeadBody) thing).setPosZ(reader.readInteger());
-                        ((Thing.DeadBody) thing).setGoldHeld(reader.readUnsignedShort());
-                        ((Thing.DeadBody) thing).setCreatureId(reader.readUnsignedByte());
-                        ((Thing.DeadBody) thing).setPlayerId(reader.readUnsignedByte());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setPosZ(reader.readInteger());
+                        thing.setGoldHeld(reader.readUnsignedShort());
+                        thing.setCreatureId(reader.readUnsignedByte());
+                        thing.setPlayerId(reader.readUnsignedByte());
 
-                        addThing((Thing.DeadBody) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_EFFECT_GENERATOR: {
+                        Thing.EffectGenerator thing = new Thing.EffectGenerator();
 
-                        // Effect generator
-                        thing = new Thing.EffectGenerator();
-                        ((Thing.EffectGenerator) thing).setPosX(reader.readInteger());
-                        ((Thing.EffectGenerator) thing).setPosY(reader.readInteger());
-                        ((Thing.EffectGenerator) thing).setX08(reader.readInteger());
-                        ((Thing.EffectGenerator) thing).setX0c(reader.readInteger());
-                        ((Thing.EffectGenerator) thing).setX10(reader.readUnsignedShort());
-                        ((Thing.EffectGenerator) thing).setX12(reader.readUnsignedShort());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setX08(reader.readInteger());
+                        thing.setX0c(reader.readInteger());
+                        thing.setX10(reader.readUnsignedShort());
+                        thing.setX12(reader.readUnsignedShort());
                         List<Integer> effectIds = new ArrayList<>(4);
                         for (int x = 0; x < 4; x++) {
                             int effectId = reader.readUnsignedShort();
@@ -2463,68 +2464,66 @@ public final class KwdFile implements IKwdFile {
                                 effectIds.add(effectId);
                             }
                         }
-                        ((Thing.EffectGenerator) thing).setEffectIds(effectIds);
-                        ((Thing.EffectGenerator) thing).setFrequency(reader.readUnsignedByte());
-                        ((Thing.EffectGenerator) thing).setId(reader.readUnsignedByte());
+                        thing.setEffectIds(effectIds);
+                        thing.setFrequency(reader.readUnsignedByte());
+                        thing.setId(reader.readUnsignedByte());
                         short[] pad = new short[6];
                         for (int x = 0; x < pad.length; x++) {
                             pad[x] = reader.readUnsignedByte();
                         }
-                        ((Thing.EffectGenerator) thing).setPad(pad);
+                        thing.setPad(pad);
 
-                        addThing((Thing.EffectGenerator) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_ROOM: {
+                        Thing.Room thing = new Thing.Room();
 
-                        // Room
-                        thing = new Thing.Room();
-                        ((Thing.Room) thing).setPosX(reader.readInteger());
-                        ((Thing.Room) thing).setPosY(reader.readInteger());
-                        ((Thing.Room) thing).setX08(reader.readInteger());
-                        ((Thing.Room) thing).setX0c(reader.readUnsignedShort());
-                        ((Thing.Room) thing).setDirection(reader.readByteAsEnum(Thing.Room.Direction.class));
-                        ((Thing.Room) thing).setX0f(reader.readUnsignedByte());
-                        ((Thing.Room) thing).setInitialHealth(reader.readUnsignedShort());
-                        ((Thing.Room) thing).setRoomType(reader.readByteAsEnum(Thing.Room.RoomType.class));
-                        ((Thing.Room) thing).setPlayerId(reader.readUnsignedByte());
+                        thing.setPosX(reader.readInteger());
+                        thing.setPosY(reader.readInteger());
+                        thing.setX08(reader.readInteger());
+                        thing.setX0c(reader.readUnsignedShort());
+                        thing.setDirection(reader.readByteAsEnum(Thing.Room.Direction.class));
+                        thing.setX0f(reader.readUnsignedByte());
+                        thing.setInitialHealth(reader.readUnsignedShort());
+                        thing.setRoomType(reader.readByteAsEnum(Thing.Room.RoomType.class));
+                        thing.setPlayerId(reader.readUnsignedByte());
 
-                        addThing((Thing.Room) thing);
+                        addThing(kwdFile, thing);
                         break;
                     }
                     case THING_CAMERA: {
-
                         // TODO: decode values
-                        thing = new Thing.Camera();
-                        ((Thing.Camera) thing).setPosition(reader.readIntegerAsFloat(),
-                                reader.readIntegerAsFloat(),
-                                reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setPositionMinClipExtent(reader.readIntegerAsFloat(),
-                                reader.readIntegerAsFloat(),
-                                reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setPositionMaxClipExtent(reader.readIntegerAsFloat(),
-                                reader.readIntegerAsFloat(),
-                                reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setViewDistanceValue(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setViewDistanceMin(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setViewDistanceMax(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setZoomValue(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setZoomValueMin(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setZoomValueMax(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setLensValue(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setLensValueMin(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setLensValueMax(reader.readIntegerAsFloat());
-                        ((Thing.Camera) thing).setFlags(reader.readIntegerAsFlag(Thing.Camera.CameraFlag.class));
-                        ((Thing.Camera) thing).setAngleYaw(reader.readUnsignedShort());
-                        ((Thing.Camera) thing).setAngleRoll(reader.readUnsignedShort());
-                        ((Thing.Camera) thing).setAnglePitch(reader.readUnsignedShort());
-                        ((Thing.Camera) thing).setId((short) reader.readUnsignedShort());
+                        Thing.Camera thing = new Thing.Camera();
 
-                        addThing(thing);
+                        thing.setPosition(reader.readIntegerAsFloat(),
+                                reader.readIntegerAsFloat(),
+                                reader.readIntegerAsFloat());
+                        thing.setPositionMinClipExtent(reader.readIntegerAsFloat(),
+                                reader.readIntegerAsFloat(),
+                                reader.readIntegerAsFloat());
+                        thing.setPositionMaxClipExtent(reader.readIntegerAsFloat(),
+                                reader.readIntegerAsFloat(),
+                                reader.readIntegerAsFloat());
+                        thing.setViewDistanceValue(reader.readIntegerAsFloat());
+                        thing.setViewDistanceMin(reader.readIntegerAsFloat());
+                        thing.setViewDistanceMax(reader.readIntegerAsFloat());
+                        thing.setZoomValue(reader.readIntegerAsFloat());
+                        thing.setZoomValueMin(reader.readIntegerAsFloat());
+                        thing.setZoomValueMax(reader.readIntegerAsFloat());
+                        thing.setLensValue(reader.readIntegerAsFloat());
+                        thing.setLensValueMin(reader.readIntegerAsFloat());
+                        thing.setLensValueMax(reader.readIntegerAsFloat());
+                        thing.setFlags(reader.readIntegerAsFlag(Thing.Camera.CameraFlag.class));
+                        thing.setAngleYaw(reader.readUnsignedShort());
+                        thing.setAngleRoll(reader.readUnsignedShort());
+                        thing.setAnglePitch(reader.readUnsignedShort());
+                        thing.setId((short) reader.readUnsignedShort());
+
+                        addThing(kwdFile, thing);
                         break;
                     }
                     default: {
-
                         // Just skip the bytes
                         reader.skipBytes(thingTag[1]);
                         logger.log(Level.WARNING, "Unsupported thing type {0}!", thingTag[0]);
@@ -2536,7 +2535,7 @@ public final class KwdFile implements IKwdFile {
             }
         }
 
-        private <T extends Thing> void addThing(T thing) {
+        private <T extends Thing> void addThing(final KwdFile kwdFile, T thing) {
             List<T> thingList = (List<T>) kwdFile.thingsByType.get(thing.getClass());
             if (thingList == null) {
                 thingList = new ArrayList<>();
@@ -2552,7 +2551,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readShots(KwdHeader header, IResourceReader file) throws IOException {
+        private void readShots(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the shots catalog
             if (kwdFile.shots == null) {
@@ -2621,7 +2621,8 @@ public final class KwdFile implements IKwdFile {
          * @throws IOException the reading may fail
          */
         @SuppressWarnings("deprecation")
-        private void readTriggers(KwdHeader header, IResourceReader file) throws IOException {
+        private void readTriggers(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the requested Triggers file
             if (kwdFile.triggers == null) {
@@ -3121,7 +3122,8 @@ public final class KwdFile implements IKwdFile {
          * @param file the file data, rewind to data position
          * @throws IOException the reading may fail
          */
-        private void readVariables(KwdHeader header, IResourceReader file) throws IOException {
+        private void readVariables(final KwdFile kwdFile, final KwdHeader header, IResourceReader file)
+                throws IOException {
 
             // Read the requested VARIABLES file
             // Should be the GlobalVariables first, then the level's own
@@ -3245,15 +3247,15 @@ public final class KwdFile implements IKwdFile {
                         break;
 
                     default:
-                        Variable.MiscVariable miscVariable = new Variable.MiscVariable();
-                        miscVariable.setVariableId(ConversionUtils.parseEnum(id,
+                        Variable.MiscVariable variable = new Variable.MiscVariable();
+                        variable.setVariableId(ConversionUtils.parseEnum(id,
                                 Variable.MiscVariable.MiscType.class));
-                        miscVariable.setValue(reader.readInteger());
-                        miscVariable.setUnknown1(reader.readInteger());
-                        miscVariable.setUnknown2(reader.readInteger());
+                        variable.setValue(reader.readInteger());
+                        variable.setUnknown1(reader.readInteger());
+                        variable.setUnknown2(reader.readInteger());
 
                         // Add
-                        kwdFile.variables.put(miscVariable.getVariableId(), miscVariable);
+                        kwdFile.variables.put(variable.getVariableId(), variable);
                         break;
                 }
             }

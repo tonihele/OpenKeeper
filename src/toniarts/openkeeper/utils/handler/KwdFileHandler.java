@@ -49,19 +49,19 @@ public final class KwdFileHandler implements InvocationHandler {
     public Object invoke(Object o, Method method, Object[] os) throws Throwable {
         if (!initialized) {
             initialized = true;
-            getLoader().invoke(loader, true);
+            getLoader().invoke(loader, target, true);
         }
 
         if (!loaded && !List.of("getName", "getMap").contains(method.getName())) {
             loaded = true;
-            getLoader().invoke(loader, false);
+            getLoader().invoke(loader, target, false);
         }
 
         return method.invoke(target, os);
     }
 
     private Method getLoader() throws NoSuchMethodException {
-        Method method = KwdFile.KwdFileLoader.class.getDeclaredMethod("load", new Class<?>[]{boolean.class});
+        Method method = KwdFile.KwdFileLoader.class.getDeclaredMethod("load", new Class<?>[]{KwdFile.class, boolean.class});
         method.setAccessible(true);
 
         return method;
