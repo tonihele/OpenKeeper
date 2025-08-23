@@ -48,7 +48,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class ChickenController extends EntityController implements IChickenController {
-    
+
     private static final Logger logger = System.getLogger(ChickenController.class.getName());
 
     private final INavigationService navigationService;
@@ -158,7 +158,7 @@ public final class ChickenController extends EntityController implements IChicke
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
 
         /**
          * Hmm, I'm not sure how to do this, this is not ideal either, how to

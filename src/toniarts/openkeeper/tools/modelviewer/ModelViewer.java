@@ -123,9 +123,9 @@ public final class ModelViewer extends SimpleApplication {
             return name;
         }
     }
-    
+
     private static final Logger logger = System.getLogger(ModelViewer.class.getName());
-    
+
     //private final static float SCALE = 2;
     private static String dkIIFolder;
     private final Vector3f lightDir = new Vector3f(-1, -1, .5f).normalizeLocal();
@@ -200,22 +200,21 @@ public final class ModelViewer extends SimpleApplication {
         super();
     }
 
-
     @Override
     public void simpleInitApp() {
 
-        ((GLRenderer)renderer).setDebugEnabled(true); // get debug names for GL objects
+        ((GLRenderer) renderer).setDebugEnabled(true); // get debug names for GL objects
 
         // Distribution locator
         assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
         assetManager.registerLoader(MP2Loader.class, "mp2");
 
-        //Effects manager
+        // Effects manager
         this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
         stateManager.attach(effectManagerState);
+
         // init sound loader
         //soundLoader = new SoundsLoader(assetManager);
-
         // Map loader
         mapLoaderAppState = new MapLoaderAppState();
         stateManager.attach(mapLoaderAppState);
@@ -268,7 +267,7 @@ public final class ModelViewer extends SimpleApplication {
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
-                 logger.log(Level.ERROR, "Failed to handle: " + kmfModel, e);
+                logger.log(Level.ERROR, "Failed to handle: " + kmfModel, e);
             }
         }
     }
@@ -285,9 +284,9 @@ public final class ModelViewer extends SimpleApplication {
     private NiftyJmeDisplay getNiftyDisplay() {
         if (niftyDisplay == null) {
             niftyDisplay = new NiftyJmeDisplay(assetManager,
-                inputManager,
-                audioRenderer,
-                guiViewPort);
+                    inputManager,
+                    audioRenderer,
+                    guiViewPort);
 
             guiViewPort.addProcessor(niftyDisplay);
         }
@@ -449,8 +448,7 @@ public final class ModelViewer extends SimpleApplication {
             }
             case MAPS: {
                 // Load the selected map
-                String file = (String) selection + ".kwd";
-                KwdFile kwd = new KwdFile(dkIIFolder, Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, file));
+                KwdFile kwd = getKwdFile((String) selection);
                 Node spat = mapLoaderAppState.loadMap(kwd);
 
                 GameLevel gameLevel = kwd.getGameLevel();
@@ -556,11 +554,9 @@ public final class ModelViewer extends SimpleApplication {
 //                subSpat.setLocalScale(1);
 //                subSpat.setLocalTranslation(0, 0, 0);
 //            }
-
             // Make it bigger and move
 //            spat.scale(10);
 //            spat.setLocalTranslation(10, 25, 30);
-
             // Make it rotate
             RotatorControl rotator = new RotatorControl();
             rotator.setEnabled(rotate);
@@ -716,14 +712,17 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     private KwdFile getKwdFile() {
+        // Read Alcatraz.kwd by default
         if (kwdFile == null) {
-
-            // Read Alcatraz.kwd by default
-            kwdFile = new KwdFile(dkIIFolder,
-                    Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, "Alcatraz.kwd"));
+            kwdFile = getKwdFile("Alcatraz.kwd");
         }
 
         return kwdFile;
+    }
+
+    private KwdFile getKwdFile(String name) {
+        return new KwdFile(dkIIFolder,
+                Paths.get(dkIIFolder, PathUtils.DKII_MAPS_FOLDER, name));
     }
 
     public void onSoundChanged(SoundFile soundFile) {

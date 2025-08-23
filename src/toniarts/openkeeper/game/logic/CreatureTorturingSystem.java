@@ -25,15 +25,15 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Handles creatures torturing. When enough... persuasion has been received...
- * join the player army
+ * Handles creatures torturing. When enough... persuasion has been received... join the player army
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class CreatureTorturingSystem implements IGameLogicUpdatable {
+public final class CreatureTorturingSystem extends GameTimeCounter {
 
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
@@ -50,15 +50,15 @@ public final class CreatureTorturingSystem implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-
+    public void processTick(float tpf) {
+        super.processTick(tpf);
         // Add new & remove old
         torturedEntities.applyChanges();
 
         // Process ticks
         for (Entity entity : torturedEntities) {
             CreatureTortured creatureTortured = entity.get(CreatureTortured.class);
-            if (creatureTortured.tortureCheckTime >= gameTime) {
+            if (creatureTortured.tortureCheckTime >= timeElapsed) {
                 continue;
             }
 
@@ -76,7 +76,7 @@ public final class CreatureTorturingSystem implements IGameLogicUpdatable {
                 }
             }
 
-            entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, gameTime, creatureTortured.healthCheckTime));
+            entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, timeElapsed, creatureTortured.healthCheckTime));
         }
     }
 

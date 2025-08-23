@@ -39,7 +39,7 @@ import toniarts.openkeeper.utils.PathUtils;
  * @author ArchDemon
  */
 public final class MapSelector {
-    
+
     private static final Logger logger = System.getLogger(MapSelector.class.getName());
 
     private final List<GameMapContainer> skirmishMaps = new ArrayList<>();

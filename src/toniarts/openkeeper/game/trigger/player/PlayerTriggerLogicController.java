@@ -40,7 +40,7 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
     public PlayerTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Short, Player> players = levelInfo.getLevelData().getPlayers();
-        for (Keeper keeper : levelInfo.getPlayers()) {
+        for (Keeper keeper : levelInfo.getPlayers().values()) {
             int triggerId = players.get(keeper.getId()).getTriggerId();
             if (triggerId != 0) {
                 playerTriggerControls.add(new PlayerTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, keeper.getId(), playerService));
@@ -61,7 +61,7 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         for (PlayerTriggerControl playerTriggerControl : playerTriggerControls.getArray()) {
             playerTriggerControl.update(tpf);
         }

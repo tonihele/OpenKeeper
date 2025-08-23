@@ -106,7 +106,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
-    
+
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
 
     private final IMapController mapController;
@@ -194,7 +194,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
+    public void processTick(float tpf) {
         if (taskEntities.applyChanges()) {
             processDeletedTasks(taskEntities.getRemovedEntities());
             processAddedTasks(taskEntities.getAddedEntities());

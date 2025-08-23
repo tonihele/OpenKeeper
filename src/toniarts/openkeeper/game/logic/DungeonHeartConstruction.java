@@ -28,13 +28,14 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
  * Constructs dungeon hearts (deals with the animation)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class DungeonHeartConstruction implements IGameLogicUpdatable {
+public final class DungeonHeartConstruction extends GameTimeCounter {
 
     private static final float GRAVITY = 9.81f;
     private final float velocity = 7f;
@@ -44,7 +45,6 @@ public final class DungeonHeartConstruction implements IGameLogicUpdatable {
     private final Map<EntityId, Set<EntityId>> dungeonHeartStairs;
     private final Map<EntityId, Set<EntityId>> dungeonHeartArches;
     private final float delay;
-    private float duration = 0.0f;
     private boolean done = false;
 
     public DungeonHeartConstruction(EntityData entityData, float delay) {
@@ -98,19 +98,23 @@ public final class DungeonHeartConstruction implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf, double gameTime) {
-        if (!done && gameTime >= delay) {
+    public void processTick(float tpf) {
+        super.processTick(tpf);
 
-            // Process ticks
-            for (EntityId entityId : dungeonHeartPlugs) {
-                if (duration > 11) {
-                    //plugDecay.removeFromParent();
-                    //spatial.removeControl(this);
-                    showStepsAndArches(entityId);
-                    done = true;
-                } else if (duration > 9) {
+        if (done || timeElapsed < delay) {
+            return;
+        }
 
-                    // This I think is effect rather than real objects, so purely on client then?
+        // Process ticks
+        for (EntityId entityId : dungeonHeartPlugs) {
+            if (timeElapsed > 11) {
+                //plugDecay.removeFromParent();
+                //spatial.removeControl(this);
+                showStepsAndArches(entityId);
+                done = true;
+            } else if (timeElapsed > 9) {
+
+                // This I think is effect rather than real objects, so purely on client then?
 //                    velocity -= GRAVITY * tpf;
 //                    for (Spatial piece : plugDecay.getChildren()) {
 //                        float rotate = (float) piece.getUserData("rotate") * 10 * tpf;
@@ -121,25 +125,22 @@ public final class DungeonHeartConstruction implements IGameLogicUpdatable {
 //                        //piece.move(tpf * FastMath.cos(step), velocity * tpf, tpf * FastMath.sin(step));
 //                        piece.rotate(rotate, rotate, rotate);
 //                    }
-                } else if (duration > 6) {
+            } else if (timeElapsed > 6) {
 
-                    // Remove the plug
-                    entityData.removeEntity(entityId);
+                // Remove the plug
+                entityData.removeEntity(entityId);
 
-                    // Show the pieces
-                    //plugDecay.setCullHint(Spatial.CullHint.Inherit);
-                }
+                // Show the pieces
+                //plugDecay.setCullHint(Spatial.CullHint.Inherit);
             }
+        }
 
-            duration += tpf;
-
-            // If done, cleanup
-            if (done) {
-                dungeonHeartPlugs.clear();
-                dungeonHeartPlugPieces.clear();
-                dungeonHeartStairs.clear();
-                dungeonHeartArches.clear();
-            }
+        // If done, cleanup
+        if (done) {
+            dungeonHeartPlugs.clear();
+            dungeonHeartPlugPieces.clear();
+            dungeonHeartStairs.clear();
+            dungeonHeartArches.clear();
         }
     }
 
