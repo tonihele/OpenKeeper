@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,17 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.data;
+package toniarts.openkeeper.utils;
 
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
+import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 /**
  *
- * @author ufdada
+ * @author ArchDemon
  */
-public abstract class GeneralLevel {
+public final class ResourceProxyFactory {
 
-    public abstract IKwdFile getKwdFile();
+    private ResourceProxyFactory() {
+        // nope
+    }
 
-    public abstract String getFileName();
+    public static <T> T createProxy(InvocationHandler handler) {
+        Object target = ((KwdFileHandler) handler).getTarget();
+
+        return (T) Proxy.newProxyInstance(
+                target.getClass().getClassLoader(),
+                target.getClass().getInterfaces(),
+                handler
+        );
+    }
+
 }

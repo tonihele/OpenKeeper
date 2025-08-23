@@ -22,7 +22,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * The lair
@@ -33,7 +33,7 @@ public final class LairController extends NormalRoomController {
 
     private final IGameTimer gameTimer;
 
-    public LairController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+    public LairController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.LAIR);
 

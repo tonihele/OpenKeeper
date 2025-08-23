@@ -59,7 +59,7 @@ import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
@@ -434,7 +434,7 @@ public final class AssetUtils {
      * @param assetManager the asset manager
      * @param app the app
      */
-    public static void prewarmAssets(KwdFile kwdFile, AssetManager assetManager, Main app) {
+    public static void prewarmAssets(IKwdFile kwdFile, AssetManager assetManager, Main app) {
         if (!preWarmedAssets) {
             synchronized (ASSET_LOCK) {
                 if (!preWarmedAssets) {

@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
@@ -45,7 +45,7 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     private final IGameTimer gameTimer;
     private final int maxGold;
 
-    public FiveByFiveRotatedController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public FiveByFiveRotatedController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GOLD);

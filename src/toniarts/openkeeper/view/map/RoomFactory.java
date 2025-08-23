@@ -18,7 +18,7 @@ package toniarts.openkeeper.view.map;
 
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.view.map.construction.*;
 import toniarts.openkeeper.view.map.construction.room.*;
 
@@ -38,7 +38,7 @@ public final class RoomFactory {
         // Nope
     }
 
-    public static RoomConstructor constructRoom(RoomInstance roomInstance, AssetManager assetManager, KwdFile kwdFile) {
+    public static RoomConstructor constructRoom(RoomInstance roomInstance, AssetManager assetManager, IKwdFile kwdFile) {
 
         String roomName = roomInstance.getRoom().getName();
 

@@ -23,7 +23,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -35,9 +35,9 @@ public final class TrapLoader implements ILoader<TrapViewState> {
     
     private static final Logger logger = System.getLogger(TrapLoader.class.getName());
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
-    public TrapLoader(KwdFile kwdFile) {
+    public TrapLoader(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

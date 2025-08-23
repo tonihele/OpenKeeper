@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.List;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -54,9 +55,9 @@ public final class MapSelector {
         // Get the maps
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(Main.getDkIIFolder(), PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path file : stream) {
-
                 // Read the map
-                KwdFile kwd = new KwdFile(Main.getDkIIFolder(), file, false);
+                IKwdFile kwd = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load(file.getFileName().toString(), false);
+
                 GameMapContainer gameMapContainer = new GameMapContainer(kwd, kwd.getGameLevel().getName());
                 if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)) {
                     skirmishMaps.add(gameMapContainer);
@@ -175,13 +176,13 @@ public final class MapSelector {
     }
 
     /**
-         * Small container class that holds the actual map data and the name
-         */
-        public record GameMapContainer(KwdFile map, String mapName) {
+     * Small container class that holds the actual map data and the name
+     */
+    public record GameMapContainer(IKwdFile map, String mapName) {
 
         @Override
-            public String toString() {
-                return mapName;
-            }
+        public String toString() {
+            return mapName;
         }
+    }
 }

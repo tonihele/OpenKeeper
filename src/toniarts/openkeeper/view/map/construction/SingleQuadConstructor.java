@@ -23,7 +23,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -33,7 +33,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class SingleQuadConstructor extends SingleTileConstructor {
 
-    public SingleQuadConstructor(KwdFile kwdFile) {
+    public SingleQuadConstructor(IKwdFile kwdFile) {
         super(kwdFile);
     }
 

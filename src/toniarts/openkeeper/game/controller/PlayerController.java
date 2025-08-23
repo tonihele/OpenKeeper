@@ -33,7 +33,7 @@ import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
 import toniarts.openkeeper.game.listener.PlayerSpellListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -56,7 +56,7 @@ public final class PlayerController implements IPlayerController {
     private final PlayerTrapControl trapControl;
     private final PlayerResearchControl researchControl;
 
-    public PlayerController(KwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    public PlayerController(IKwdFile kwdFile, Keeper keeper, Creature imp, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.keeper = keeper;
 
         // Create the actual controllers

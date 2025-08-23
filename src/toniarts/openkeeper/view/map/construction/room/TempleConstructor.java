@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.EntityInstance;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.map.Water;
@@ -39,9 +39,9 @@ import static toniarts.openkeeper.view.map.construction.DoubleQuadConstructor.co
  */
 public final class TempleConstructor extends DoubleQuadConstructor {
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
-    public TempleConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance, KwdFile kwdFile) {
+    public TempleConstructor(AssetManager assetManager, toniarts.openkeeper.common.RoomInstance roomInstance, IKwdFile kwdFile) {
         super(assetManager, roomInstance);
 
         this.kwdFile = kwdFile;

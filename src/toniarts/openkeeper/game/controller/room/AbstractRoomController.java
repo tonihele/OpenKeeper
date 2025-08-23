@@ -33,7 +33,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
@@ -73,7 +73,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     }
 
     protected final EntityData entityData;
-    protected final KwdFile kwdFile;
+    protected final IKwdFile kwdFile;
     protected final RoomInstance roomInstance;
     private final Map<ObjectType, IRoomObjectControl> objectControls = new HashMap<>();
     protected boolean[][] map;
@@ -83,7 +83,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
 
-    protected AbstractRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    protected AbstractRoomController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
         super(entityId);
 

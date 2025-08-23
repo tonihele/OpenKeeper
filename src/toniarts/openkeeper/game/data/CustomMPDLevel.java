@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.data;
 
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  *
@@ -24,9 +24,9 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class CustomMPDLevel extends GeneralLevel {
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
-    public CustomMPDLevel(final KwdFile kwdFile) {
+    public CustomMPDLevel(final IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 
@@ -36,7 +36,7 @@ public final class CustomMPDLevel extends GeneralLevel {
     }
 
     @Override
-    public KwdFile getKwdFile() {
+    public IKwdFile getKwdFile() {
         return kwdFile;
     }
 }

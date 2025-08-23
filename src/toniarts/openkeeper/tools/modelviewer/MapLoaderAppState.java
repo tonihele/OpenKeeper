@@ -29,7 +29,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.util.Collections;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.state.session.PlayerService;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerEntityViewState;
@@ -61,7 +61,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         inputManager = app.getInputManager();
     }
 
-    public Node loadMap(KwdFile kwdFile) {
+    public Node loadMap(IKwdFile kwdFile) {
         unloadMap();
 
         mapEntityData = new DefaultEntityData();
@@ -111,7 +111,7 @@ public final class MapLoaderAppState extends AbstractAppState {
 
     private static final class MapEntityViewState extends PlayerEntityViewState {
 
-        public MapEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+        public MapEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
 
             setId("Map: " + kwdFile.getGameLevel().getName());
