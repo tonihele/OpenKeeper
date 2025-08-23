@@ -95,8 +95,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
 
-        levelInfo = new LevelInfo();
-        levelInfo.kwdFile = level;
+        levelInfo = new LevelInfo(level);
         levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -110,6 +109,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     public void createNewGame() {
+        levelInfo.load();
         // The players
         setupPlayers();
 
@@ -422,7 +422,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         private static final int LEVEL_TIMER_MAX_COUNT = 16;
         private static final int LEVEL_FLAG_MAX_COUNT = 128;
 
-        private KwdFile kwdFile;
+        private final IKwdFile kwdFile;
         private int levelScore = 0;
         private Float timeLimit = null;
 
@@ -432,8 +432,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
         private final List<ActionPoint> actionPoints = new ArrayList<>();
 
+        public LevelInfo(IKwdFile kwdFile) {
+            this.kwdFile = kwdFile;
+        }
+
         public void load() {
-            kwdFile.load();
             // Action points
             loadActionPoints();
             // Triggers data
@@ -455,7 +458,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
 
         @Override
-        public KwdFile getLevelData() {
+        public IKwdFile getLevelData() {
             return kwdFile;
         }
 

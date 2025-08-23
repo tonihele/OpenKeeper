@@ -41,7 +41,7 @@ import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
@@ -171,8 +171,6 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void run() {
-
-
             // Create the central game controller
             game = new GameLoopManager(kwdFile, gameService, players);
 
