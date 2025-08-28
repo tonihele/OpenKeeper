@@ -13,7 +13,6 @@ import com.jme3.scene.debug.WireBox;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * Class that contains the SelectionLogic of the Selection-Helper-Box in the

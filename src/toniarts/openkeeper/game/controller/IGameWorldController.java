@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import java.util.Set;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 
@@ -95,6 +96,8 @@ public interface IGameWorldController {
      * @param roomId the room ID to be build
      */
     public void build(Vector2f start, Vector2f end, short playerId, short roomId);
+    
+    public void build(Set<Point> points, short playerId, short roomId);
 
     /**
      * Sell a building from wanted area
@@ -104,6 +107,8 @@ public interface IGameWorldController {
      * @param playerId the player who is selling the room
      */
     public void sell(Vector2f start, Vector2f end, short playerId);
+    
+    public void sell(Set<Point> points, short playerId);
 
     /**
      * Interact with given entity
