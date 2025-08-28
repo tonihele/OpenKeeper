@@ -1,10 +1,10 @@
 package toniarts.openkeeper.view.selection;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Consumer;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -12,7 +12,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * @author 7willuwe : Philip Willuweit
  */
-public final class SelectionArea implements Iterable<List<Point>> {
+public final class SelectionArea implements Iterable<Set<Point>> {
 
     private Vector2f start = new Vector2f();
     private Vector2f end = new Vector2f();
@@ -122,55 +122,71 @@ public final class SelectionArea implements Iterable<List<Point>> {
     }
 
     @Override
-    public Iterator<List<Point>> iterator() {
-        return new SelectionArea.AreaIterator();
+    public Iterator<Set<Point>> iterator() {
+        return new SelectionArea.AreaIterator(getRealStart(), getRealEnd());
+    }
+
+    public Iterator<Point> simpleIterator() {
+        return new SimpleIterator(getStart(), getEnd());
     }
 
     /**
      * An optimized version of AbstractList.Itr
      */
-    private final class AreaIterator implements Iterator<List<Point>> {
+    public final static class AreaIterator implements Iterator<Set<Point>> {
 
-        private Point cursor = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
-        private final Point start = WorldUtils.vectorToPoint(SelectionArea.this.getStart());
-        private final Point end = WorldUtils.vectorToPoint(SelectionArea.this.getEnd());
+        private final Point end;
+        private final Point start;
+        private final Point realStart;
+        private final Point realEnd;
+        private final Point delta;
 
-        @Override
-        public boolean hasNext() {
-            return cursor.x != (end.x + 1) && cursor.y != (end.y + 1);
+        private Set<Point> cursor = new HashSet<>();
+
+        public AreaIterator(final Vector2f start, final Vector2f end) {
+            this.realStart = WorldUtils.vectorToPoint(start);
+            this.realEnd = WorldUtils.vectorToPoint(end);
+            this.end = new Point(Math.max(realStart.x, realEnd.x), Math.max(realStart.y, realEnd.y));
+            this.start = new Point(Math.min(realStart.x, realEnd.x), Math.min(realStart.y, realEnd.y));
+            this.delta = new Point(FastMath.sign(realStart.x - realEnd.x),
+                    FastMath.sign(realStart.y - realEnd.y));
         }
 
         @Override
-        public List<Point> next() {
-            List result = new ArrayList<>();
+        public boolean hasNext() {
+            return !(cursor.size() == 1 && cursor.contains(realStart));
+        }
 
-            int x = cursor.x;
-            int y = cursor.y;
-            while (y >= start.y && x <= end.x) {
-                check();
-                result.add(new Point(x, y));
+        @Override
+        public Set<Point> next() {
+            Set result = new HashSet<>();
 
-                x++;
-                y--;
+            if (cursor.isEmpty()) {
+                result.add(realEnd);
             }
 
-            if (y < start.y) {
-                y = start.y + (x - start.x);
-                x = start.x;
+            for (Point p : cursor) {
+                if (delta.x != 0) {
+                    Point neighborhood = new Point(p.x + delta.x, p.y);
+                    if (check(neighborhood)) {
+                        result.add(neighborhood);
+                    }
+                }
+                if (delta.y != 0) {
+                    Point neighborhood = new Point(p.x, p.y + delta.y);
+                    if (check(neighborhood)) {
+                        result.add(neighborhood);
+                    }
+                }
             }
 
-            if (x > end.x) {
-                y += (x - start.x) + 1;
-                x = start.x;
-            }
+            cursor = result;
 
-            if (y > end.y) {
-                x = start.x + (y - end.y);
-                y = end.y;
-            }
-
-            cursor = new Point(x, y);
             return result;
+        }
+
+        private boolean check(Point p) {
+            return p.x <= end.x && p.x >= start.x && p.y <= end.y && p.y >= start.y;
         }
 
         @Override
@@ -179,15 +195,51 @@ public final class SelectionArea implements Iterable<List<Point>> {
         }
 
         @Override
-        public void forEachRemaining(Consumer<? super List<Point>> consumer) {
+        public void forEachRemaining(Consumer<? super Set<Point>> consumer) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    public static final class SimpleIterator implements Iterator<Point> {
+
+        private final Point start;
+        private final Point end;
+        private Point cursor;
+
+        public SimpleIterator(final Vector2f start, final Vector2f end) {
+            this.start = WorldUtils.vectorToPoint(start);
+            this.end = WorldUtils.vectorToPoint(end);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !end.equals(cursor);
+        }
+
+        @Override
+        public Point next() {
+            if (cursor == null) {
+                cursor = (Point) start.clone();
+                return cursor;
+            }
+
+            cursor.x++;
+            if (cursor.x > end.x) {
+                cursor.x = start.x;
+                cursor.y++;
+            }
+
+            return cursor;
+        }
+
+        @Override
+        public void remove() {
             throw new UnsupportedOperationException();
         }
 
-        private void check() {
-            if (cursor.x > end.x || cursor.x < start.x
-                    || cursor.y > end.y || cursor.y < start.y) {
-                throw new NoSuchElementException();
-            }
+        @Override
+        public void forEachRemaining(Consumer<? super Point> consumer) {
+            throw new UnsupportedOperationException();
         }
     }
 }

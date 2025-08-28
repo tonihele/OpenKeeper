@@ -41,6 +41,7 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import toniarts.openkeeper.utils.Point;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
@@ -70,8 +71,8 @@ import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
- * State for managing player interactions in the world. Heavily drawn from
- * Philip Willuweit's AgentKeeper code <p.willuweit@gmx.de>.
+ * State for managing player interactions in the world. Heavily drawn from Philip Willuweit's AgentKeeper code
+ * <p.willuweit@gmx.de>.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @author ArchDemon
@@ -206,18 +207,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     return false;
                 }
                 int buildablePlots = 0;
-                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
-                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-                        Point p = new Point(x, y);
+                for (Iterator<Point> it = selectionHandler.getSelectionArea().simpleIterator(); it.hasNext();) {
+                    Point p = it.next();
 
-                        if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
-                            buildablePlots++;
-                        }
+                    if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
+                        buildablePlots++;
+                    }
 
-                        // See the gold amount
-                        if (playerMoney < buildablePlots * room.getCost()) {
-                            return false;
-                        }
+                    // See the gold amount
+                    if (playerMoney < buildablePlots * room.getCost()) {
+                        return false;
                     }
                 }
                 return true;
@@ -338,8 +337,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     /**
-     * Set the state flags according to what user can do. Rather clumsy. Fix if
-     * you can.
+     * Set the state flags according to what user can do. Rather clumsy. Fix if you can.
      *
      * @return has the state being changed
      *
@@ -721,7 +719,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                 }
 
-                if (evt.isPressed() && evt.getKeyCode() == (int)Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
+                if (evt.isPressed() && evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
                     stateManager.getState(PlayerState.class).getScreen().toggleGui();
                 }
 
