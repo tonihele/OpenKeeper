@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.IValueEnum;
 
 /**
@@ -28,6 +29,7 @@ import toniarts.openkeeper.tools.convert.IValueEnum;
  */
 public class Tile {
 
+    @Transferable
     public enum BridgeTerrainType implements IValueEnum {
 
         WATER(1), LAVA(2);

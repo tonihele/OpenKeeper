@@ -4,6 +4,7 @@ plugins {
     id 'eclipse'
     id 'maven-publish'
     id 'idea'
+    id "io.freefair.lombok" version "8.10.2"
 }
 
 ext {
@@ -64,6 +65,8 @@ dependencies {
     implementation "com.simsilica:zay-es-net:1.6.0"
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
+    implementation "com.google.guava:guava:33.4.8-jre"
+    implementation "org.reflections:reflections:0.10.2"
 }
 
 sourceSets {
@@ -117,7 +120,7 @@ idea {
 
 compileJava {
     // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
-    options.compilerArgs += ["-proc:none"]
+    //options.compilerArgs += ["-proc:none"]
     options.compilerArgs += ["-Xlint:deprecation"]
     //options.compilerArgs += ["-Xlint:unchecked"]
 }

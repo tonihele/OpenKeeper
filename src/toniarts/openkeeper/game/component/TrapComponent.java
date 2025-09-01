@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * A base trap component
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class TrapComponent implements EntityComponent {
 
     public short trapId;

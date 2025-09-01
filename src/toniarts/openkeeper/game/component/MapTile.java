@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.HashMap;
 import java.util.Map;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
@@ -28,6 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class MapTile implements EntityComponent {
 
     // TODO: Get rid of these, not a correct place to store this information

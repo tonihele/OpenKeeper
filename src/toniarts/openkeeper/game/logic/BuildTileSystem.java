@@ -26,7 +26,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.TileBuildOrSell;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * @author ArchDemon

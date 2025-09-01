@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Tagging component for something that has been deaded by death. Allows to
@@ -24,6 +25,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Death implements EntityComponent {
 
     public double startTime;

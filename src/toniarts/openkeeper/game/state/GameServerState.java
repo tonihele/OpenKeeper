@@ -16,16 +16,20 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.google.common.eventbus.Subscribe;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventListener;
+import com.simsilica.event.EventType;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.common.GameEventBus;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -34,6 +38,8 @@ import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
@@ -180,7 +186,7 @@ public final class GameServerState extends AbstractAppState {
 
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
-            gameWorldController.addListener(playerActionListener);
+            GameEventBus.getInstance().addListener(playerActionListener);
 
             // Send the the initial game data
             gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
@@ -390,13 +396,15 @@ public final class GameServerState extends AbstractAppState {
     private final class PlayerActionListenerImpl implements PlayerActionListener {
 
         @Override
-        public void onBuild(short keeperId, List<Point> tiles) {
-            gameService.onBuild(keeperId, tiles);
+        @Subscribe
+        public void onBuild(BuildTilesEvent event) {
+            gameService.onBuild(event);
         }
 
         @Override
-        public void onSold(short keeperId, List<Point> tiles) {
-            gameService.onSold(keeperId, tiles);
+        @Subscribe
+        public void onSold(SoldTilesEvent event) {
+            gameService.onSold(event);
         }
 
     }

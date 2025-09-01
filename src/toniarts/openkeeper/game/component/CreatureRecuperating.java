@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Tags creature as recuperating from wounds
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureRecuperating implements EntityComponent {
 
     public double startTime;

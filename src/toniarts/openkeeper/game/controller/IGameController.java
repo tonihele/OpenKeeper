@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityId;
-import java.util.Collection;
 import java.util.Map;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;

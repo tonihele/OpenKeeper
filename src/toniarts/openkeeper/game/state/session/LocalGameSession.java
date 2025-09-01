@@ -29,6 +29,8 @@ import java.util.List;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
@@ -426,16 +428,16 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void onBuild(short keeperId, List<Point> tiles) {
+    public void onBuild(BuildTilesEvent event) {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onBuild(keeperId, tiles);
+            listener.onBuild(event);
         }
     }
 
     @Override
-    public void onSold(short keeperId, List<Point> tiles) {
+    public void onSold(SoldTilesEvent event) {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onSold(keeperId, tiles);
+            listener.onSold(event);
         }
     }
 

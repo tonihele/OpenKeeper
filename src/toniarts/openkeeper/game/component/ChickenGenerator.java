@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Just a tagging component for chicken generators
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class ChickenGenerator implements EntityComponent {
 
     /**

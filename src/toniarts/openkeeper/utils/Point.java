@@ -1,5 +1,8 @@
 package toniarts.openkeeper.utils;
 
+import toniarts.openkeeper.game.network.Transferable;
+
+@Transferable
 public final class Point implements Cloneable {
 
     public int x;

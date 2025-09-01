@@ -1,5 +1,6 @@
 package toniarts.openkeeper.view.selection;
 
+import toniarts.openkeeper.common.SelectionArea;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.math.ColorRGBA;

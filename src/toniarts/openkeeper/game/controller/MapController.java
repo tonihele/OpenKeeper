@@ -47,9 +47,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * This is controller for the map related functions
@@ -260,19 +262,17 @@ public final class MapController extends Container implements IMapController {
     @Override
     public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
         List<Point> updatableTiles = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-                IMapTileController tile = getMapData().getTile(x, y);
-                if (tile == null) {
-                    continue;
-                }
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
-                    continue;
-                }
-                tile.setSelected(select, playerId);
-                updatableTiles.add(tile.getLocation());
+        for (Iterator<Point> it = new SelectionArea.SimpleIterator(start, end); it.hasNext();) {
+            IMapTileController tile = getMapData().getTile(it.next());
+            if (tile == null) {
+                continue;
             }
+            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                continue;
+            }
+            tile.setSelected(select, playerId);
+            updatableTiles.add(tile.getLocation());
         }
         //Point[] tiles = updatableTiles.toArray(new Point[updatableTiles.size()]);
         //mapLoader.updateTiles(tiles);

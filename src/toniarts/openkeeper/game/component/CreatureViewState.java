@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 
 /**
@@ -25,6 +26,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureViewState implements EntityComponent {
 
     public short creatureId;

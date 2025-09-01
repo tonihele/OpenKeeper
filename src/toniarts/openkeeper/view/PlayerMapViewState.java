@@ -42,6 +42,8 @@ import toniarts.openkeeper.view.map.MapViewController;
 import java.lang.System.Logger;
 import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 
 /**
  * Handles the handling of game world for a player, visually
@@ -193,7 +195,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     @Override
-    public void onBuild(short keeperId, List<Point> tiles) {
+    public void onBuild(BuildTilesEvent event) {
 //        mapClientService.setTiles(tiles);
 //        Point[] updatableTiles = new Point[tiles.size()];
 //        for (int i = 0; i < tiles.size(); i++) {
@@ -207,7 +209,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     @Override
-    public void onSold(short keeperId, List<Point> tiles) {
+    public void onSold(SoldTilesEvent event) {
 
         // For now there is no difference between buying and selling
 //        onBuild(keeperId, tiles);

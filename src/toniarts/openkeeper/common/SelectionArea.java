@@ -1,4 +1,4 @@
-package toniarts.openkeeper.view.selection;
+package toniarts.openkeeper.common;
 
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;

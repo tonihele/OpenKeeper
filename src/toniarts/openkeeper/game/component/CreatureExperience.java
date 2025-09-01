@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Creature experience level stuff
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureExperience implements EntityComponent {
 
     public int level;

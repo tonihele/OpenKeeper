@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Simple spellbook object. Spellbook holds research, that could be many
@@ -25,6 +26,7 @@ import toniarts.openkeeper.game.data.ResearchableType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Spellbook implements EntityComponent {
 
     public ResearchableType type;

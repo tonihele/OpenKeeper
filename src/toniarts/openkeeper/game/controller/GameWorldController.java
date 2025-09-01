@@ -54,7 +54,6 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -83,7 +82,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.common.GameEventBus;
 import toniarts.openkeeper.game.component.TileBuildOrSell;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 
 /**
  * Game world controller, controls the game world related actions
@@ -114,7 +116,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
-    private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
 
     public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -423,8 +424,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
 
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
+        // Notify
+        GameEventBus.getInstance().publish(new BuildTilesEvent(playerId, buildTiles));
     }
 
     @Override
@@ -466,7 +467,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
 
                 // Money back
-                moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
+                moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(
+                        p,
+                        (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
             }
 
             // Get the instance
@@ -517,7 +520,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Notify
-        notifyOnSold(playerId, soldTiles);
+        GameEventBus.getInstance().publish(new SoldTilesEvent(playerId, soldTiles));
     }
 
     @Override
@@ -551,38 +554,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public IMapController getMapController() {
         return mapController;
-    }
-
-    /**
-     * If you want to get notified about player actions
-     *
-     * @param listener the listener
-     */
-    @Override
-    public void addListener(PlayerActionListener listener) {
-        listeners.add(listener);
-    }
-
-    /**
-     * Stop listening to player actions
-     *
-     * @param listener the listener
-     */
-    @Override
-    public void removeListener(PlayerActionListener listener) {
-        listeners.remove(listener);
-    }
-
-    private void notifyOnBuild(short playerId, List<Point> buildTiles) {
-        for (PlayerActionListener listener : listeners.getArray()) {
-            listener.onBuild(playerId, buildTiles);
-        }
-    }
-
-    private void notifyOnSold(short playerId, List<Point> soldTiles) {
-        for (PlayerActionListener listener : listeners.getArray()) {
-            listener.onSold(playerId, soldTiles);
-        }
     }
 
     @Override

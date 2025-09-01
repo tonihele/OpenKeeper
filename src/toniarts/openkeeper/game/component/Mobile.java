@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * This signifies that the given entity can roam through the map
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Mobile implements EntityComponent {
 
     public boolean canFly;

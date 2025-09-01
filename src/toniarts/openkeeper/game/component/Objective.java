@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
@@ -24,6 +25,7 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Objective implements EntityComponent {
 
     public Thing.HeroParty.Objective objective;

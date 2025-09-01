@@ -20,7 +20,6 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.util.Set;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.game.listener.PlayerActionListener;
 
 /**
  * Controls the game world, map and the entities
@@ -57,20 +56,6 @@ public interface IGameWorldController {
     //    public Collection<Keeper> getPlayers() {
     //        return players.values();
     //    }
-    /**
-     * If you want to get notified about player actiosns
-     *
-     * @param listener the listener
-     */
-    void addListener(PlayerActionListener listener);
-
-    /**
-     * Stop listening to player actions
-     *
-     * @param listener the listener
-     */
-    void removeListener(PlayerActionListener listener);
-
     /**
      * Substract gold from player
      *

@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 
@@ -46,6 +47,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     /**
      * The type of object the room houses
      */
+    @Transferable
     public enum ObjectType {
 
         GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE;
@@ -53,8 +55,8 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     };
 
     /**
-     * How the objects are laid out, there is always a 1 tile margin from the
-     * sides. I don't know where this information really is, so I hard coded it.
+     * How the objects are laid out, there is always a 1 tile margin from the sides. I don't know where this
+     * information really is, so I hard coded it.
      */
     public enum RoomObjectLayout {
 
@@ -132,8 +134,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     }
 
     /**
-     * Construct room pillars. Info in:
-     * https://github.com/tonihele/OpenKeeper/issues/116
+     * Construct room pillars. Info in: https://github.com/tonihele/OpenKeeper/issues/116
      *
      * @return the list of pillars constructed
      */

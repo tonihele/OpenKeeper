@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Marks entity to be hauled/dragged by another entity
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class HauledBy implements EntityComponent {
 
     public EntityId entityId;

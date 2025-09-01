@@ -17,8 +17,8 @@
 package toniarts.openkeeper.game.listener;
 
 import com.jme3.network.service.rmi.Asynchronous;
-import toniarts.openkeeper.utils.Point;
-import java.util.List;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 
 /**
  *
@@ -27,9 +27,9 @@ import java.util.List;
 public interface PlayerActionListener {
 
     @Asynchronous
-    public void onBuild(short keeperId, List<Point> tiles);
+    public void onBuild(BuildTilesEvent event);
 
     @Asynchronous
-    public void onSold(short keeperId, List<Point> tiles);
+    public void onSold(SoldTilesEvent event);
 
 }

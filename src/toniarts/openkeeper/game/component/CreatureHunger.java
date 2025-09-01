@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Creature hunger component. Marks the need for eating overall.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureHunger implements EntityComponent {
 
     public double lastEatTime;

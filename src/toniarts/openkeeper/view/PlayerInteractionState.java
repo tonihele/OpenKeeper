@@ -66,7 +66,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
-import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.common.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -190,7 +190,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                     return ColorIndicator.RED;
                 }
-                if (interactionState.getType() == Type.SELL) {
+                if (interactionState.getType() == Type.SELL
+                        && !gameClientState.getMapClientService().isSellable(p, player.getPlayerId())) {
                     return ColorIndicator.RED;
                 } else if (interactionState.getType() == Type.ROOM
                         && !(gameClientState.getMapClientService().isTaggable(p)
@@ -219,7 +220,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         return false;
                     }
                 }
-                return true;
+                return (buildablePlots != 0);
             }
         };
 
@@ -615,7 +616,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         } else if (interactionState.getType() == Type.ROOM
                                 && gameClientState.getMapClientService().isBuildable(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId(), (short) interactionState.getItemId())) {
                             gameClientState.getGameClientService().build(selectionArea.getStart(), selectionArea.getEnd(), (short) interactionState.getItemId());
-                        } else if (interactionState.getType() == Type.SELL) {
+                        } else if (interactionState.getType() == Type.SELL
+                                && gameClientState.getMapClientService().isSellable(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId())) {
                             gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
                         }
 

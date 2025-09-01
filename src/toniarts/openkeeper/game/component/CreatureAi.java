@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Simple creature AI component
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureAi implements EntityComponent {
 
     public double stateStartTime;

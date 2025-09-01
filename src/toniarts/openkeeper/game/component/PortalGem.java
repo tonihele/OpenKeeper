@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Basically a tagging component for owning a portal gem... Since nobody can't
@@ -24,6 +25,7 @@ import com.simsilica.es.EntityComponent;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class PortalGem implements EntityComponent {
 
     public PortalGem() {
