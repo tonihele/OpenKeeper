@@ -14,30 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.utils;
-
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
+package toniarts.openkeeper.tools.convert.map;
 
 /**
+ * Part of KwdFile
  *
  * @author ArchDemon
  */
-public final class ResourceProxyFactory {
+public interface IKwdMap extends Comparable<String> {
 
-    private ResourceProxyFactory() {
-        // nope
-    }
+    public GameMap getMap();
 
-    public static <T> T createProxy(InvocationHandler handler) {
-        Object target = ((KwdFileHandler) handler).getTarget();
+    public GameLevel getGameLevel();
 
-        return (T) Proxy.newProxyInstance(
-                target.getClass().getClassLoader(),
-                target.getClass().getInterfaces(),
-                handler
-        );
-    }
+    /**
+     * Get the terrain with the specified ID
+     *
+     * @param id the id of terrain
+     * @return the terrain
+     */
+    public Terrain getTerrain(short id);
 
 }

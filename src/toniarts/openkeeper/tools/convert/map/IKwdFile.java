@@ -38,9 +38,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IKwdFile {
-
-    public String getName();
+public interface IKwdFile extends IKwdMap {
 
     /**
      * Get list of different terrain tiles
@@ -91,14 +89,6 @@ public interface IKwdFile {
     public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Terrain terrain);
 
     public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Room room);
-
-    /**
-     * Get the terrain with the specified ID
-     *
-     * @param id the id of terrain
-     * @return the terrain
-     */
-    public Terrain getTerrain(short id);
 
     /**
      * Get the room with the specified terrain ID
@@ -197,16 +187,12 @@ public interface IKwdFile {
 
     public Shot getShotById(short shotId);
 
-    public GameMap getMap();
-
     /**
      * Get the list of all traps
      *
      * @return list of all traps
      */
     public List<Trap> getTraps();
-
-    public GameLevel getGameLevel();
 
     public CreatureSpell getCreatureSpellById(short spellId);
 

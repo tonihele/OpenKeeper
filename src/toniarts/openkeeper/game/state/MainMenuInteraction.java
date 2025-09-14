@@ -1,4 +1,3 @@
-
 package toniarts.openkeeper.game.state;
 
 import com.jme3.collision.CollisionResults;
@@ -20,6 +19,7 @@ import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
  * This is for the level pick up
  */
 public final class MainMenuInteraction implements RawInputListener {
+
     private final MainMenuState mainMenuState;
     private FrontEndLevelControl currentControl;
 
@@ -52,9 +52,8 @@ public final class MainMenuInteraction implements RawInputListener {
     public void onMouseButtonEvent(MouseButtonEvent evt) {
         if (currentControl != null && evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
             evt.setConsumed();
-
             // Select level
-            mainMenuState.selectCampaignLevel(currentControl);
+            mainMenuState.selectCampaignLevel(currentControl.getLevel());
         }
     }
 
@@ -69,9 +68,8 @@ public final class MainMenuInteraction implements RawInputListener {
         if (!evt.isScaleSpanInProgress()) {
             if (currentControl != null) {
                 evt.setConsumed();
-
                 // Select level
-                mainMenuState.selectCampaignLevel(currentControl);
+                mainMenuState.selectCampaignLevel(currentControl.getLevel());
             } else if (currentControl == null) {
                 evt.setConsumed();
 
@@ -80,53 +78,52 @@ public final class MainMenuInteraction implements RawInputListener {
             }
         }
     }
-    
+
     /**
-         * Sets the map at certain point as active (i.e. selected), IF there is
-         * one
-         *
-         * @param x x screen coordinate
-         * @param y y screen coordinate
-         */
-        private void setCampaignMapActive(int x, int y) {
+     * Sets the map at certain point as active (i.e. selected), IF there is one
+     *
+     * @param x x screen coordinate
+     * @param y y screen coordinate
+     */
+    private void setCampaignMapActive(int x, int y) {
 
-            // See if we hit a map
-            CollisionResults results = new CollisionResults();
+        // See if we hit a map
+        CollisionResults results = new CollisionResults();
 
-            // Convert screen click to 3D position
-            Vector3f click3d = mainMenuState.app.getCamera().getWorldCoordinates(
-                    new Vector2f(x, y), 0f);
-            Vector3f dir = mainMenuState.app.getCamera().getWorldCoordinates(
-                    new Vector2f(x, y), 1f).subtractLocal(click3d);
+        // Convert screen click to 3D position
+        Vector3f click3d = mainMenuState.app.getCamera().getWorldCoordinates(
+                new Vector2f(x, y), 0f);
+        Vector3f dir = mainMenuState.app.getCamera().getWorldCoordinates(
+                new Vector2f(x, y), 1f).subtractLocal(click3d);
 
-            // Aim the ray from the clicked spot forwards
-            Ray ray = new Ray(click3d, dir);
+        // Aim the ray from the clicked spot forwards
+        Ray ray = new Ray(click3d, dir);
 
-            // Collect intersections between ray and all nodes in results list
-            mainMenuState.menuNode.collideWith(ray, results);
+        // Collect intersections between ray and all nodes in results list
+        mainMenuState.menuNode.collideWith(ray, results);
 
-            // See the results so we see what is going on
-            for (int i = 0; i < results.size(); i++) {
+        // See the results so we see what is going on
+        for (int i = 0; i < results.size(); i++) {
 
-                FrontEndLevelControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(FrontEndLevelControl.class);
-                if (controller != null) {
+            FrontEndLevelControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(FrontEndLevelControl.class);
+            if (controller != null) {
 
-                    // Deactivate current controller
-                    if (currentControl != null && !currentControl.equals(controller)) {
-                        currentControl.setActive(false);
-                    }
-
-                    // Set and activate current controller
-                    currentControl = controller;
-                    currentControl.setActive(true);
-                    return;
+                // Deactivate current controller
+                if (currentControl != null && !currentControl.equals(controller)) {
+                    currentControl.setActive(false);
                 }
-            }
 
-            // Deactivate current controller, nothing is selected
-            if (currentControl != null) {
-                currentControl.setActive(false);
-                currentControl = null;
+                // Set and activate current controller
+                currentControl = controller;
+                currentControl.setActive(true);
+                return;
             }
         }
+
+        // Deactivate current controller, nothing is selected
+        if (currentControl != null) {
+            currentControl.setActive(false);
+            currentControl = null;
+        }
+    }
 }

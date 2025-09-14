@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.data;
 
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 
 /**
  *
@@ -24,7 +24,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public abstract class GeneralLevel {
 
-    public abstract IKwdFile getKwdFile();
+    protected IKwdMap kwdMap;
 
-    public abstract String getFileName();
+    public IKwdMap getKwdMap() {
+        return kwdMap;
+    }
 }

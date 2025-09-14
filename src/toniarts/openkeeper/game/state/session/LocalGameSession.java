@@ -78,7 +78,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app)
             throws IOException {
         // Try to load the file
-        IKwdFile kwdFile = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load(level);
+        IKwdFile kwdFile = new KwdFile.KwdFileLoader().load(level);
 
         createLocalGame(kwdFile, stateManager, campaign, app);
     }

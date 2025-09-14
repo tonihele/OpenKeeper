@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -61,8 +62,6 @@ import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
 import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.utils.ResourceProxyFactory;
-import toniarts.openkeeper.utils.handler.KwdFileHandler;
 
 public final class KwdFile implements IKwdFile {
 
@@ -121,21 +120,16 @@ public final class KwdFile implements IKwdFile {
     private Creature dwarf;
     private GameObject levelGem;
     //
-    private final String name;
+    private final Path path;
 
     /**
      * Constructs a new KWD file reader<br>
      *
-     * @param name the KWD file to read
+     * @param path the KWD file to read
      * @throws java.io.IOException if file not exists
      */
-    public KwdFile(String name) throws IOException {
-        this.name = name;
-    }
-
-    @Override
-    public String getName() {
-        return name;
+    public KwdFile(Path path) throws IOException {
+        this.path = path;
     }
 
     @Override
@@ -373,6 +367,16 @@ public final class KwdFile implements IKwdFile {
         return creatureStatistics.get(level);
     }
 
+    @Override
+    public int compareTo(String o) {
+        return gameLevel.name.compareToIgnoreCase(o);
+    }
+
+    @Override
+    public String toString() {
+        return path.getFileName().toString();
+    }
+
     /**
      * Kwd header, few different kinds, handles all
      */
@@ -530,17 +534,69 @@ public final class KwdFile implements IKwdFile {
 
     public static final class KwdFileLoader {
 
+        private static final List PRELOAD = List.of(MapDataTypeEnum.MAP, MapDataTypeEnum.TERRAIN);
+
         private final String basePath;
+
+        public KwdFileLoader() {
+            this.basePath = Main.getDkIIFolder();
+        }
 
         public KwdFileLoader(String basePath) {
             this.basePath = basePath;
         }
 
-        public IKwdFile load(String name) throws IOException {
-            return load(name, true);
+        /**
+         * @param filename map name
+         * @return Fully load KwdFile
+         * @throws IOException
+         */
+        public IKwdFile load(String filename) throws IOException {
+            KwdFile kwdFile = new KwdFile(getPath(filename));
+            
+            readFileContents(kwdFile, getReader(kwdFile.path));
+            for (FilePath item : kwdFile.gameLevel.paths.stream().sorted().toList()) {
+                readFileContents(kwdFile, getReader(item.getPath()));
+            }
+
+            return kwdFile;
+        }
+        
+        public IKwdFile load(IKwdMap kwdMap) throws IOException {
+            if (kwdMap instanceof KwdFile kwdFile) {
+                readFileContents(kwdFile, getReader(kwdFile.path));
+                for (FilePath item : kwdFile.gameLevel.paths.stream()
+                        .filter(item -> !PRELOAD.contains(item.getId())).sorted().toList()) {
+                    readFileContents(kwdFile, getReader(item.getPath()));
+                }
+
+                return kwdFile;
+            }
+
+            throw new IllegalArgumentException("Load Only KwdFile");
         }
 
-        public IKwdFile load(String name, boolean fullLoad) throws IOException {
+        public IKwdMap loadMapOnly(String filename) throws IOException {
+            return load(getPath(filename));
+        }
+
+        /**
+         * @param path map path
+         * @return Load only map and terrain info
+         * @throws IOException
+         */
+        public IKwdMap load(Path path) throws IOException {
+            KwdFile kwdFile = new KwdFile(path);
+            readFileContents(kwdFile, getReader(kwdFile.path));
+            for (FilePath item : kwdFile.gameLevel.paths.stream()
+                    .filter(item -> PRELOAD.contains(item.getId())).sorted().toList()) {
+                readFileContents(kwdFile, getReader(item.getPath()));
+            }
+
+            return kwdFile;
+        }
+
+        private Path getPath(String name) throws IOException {
             if (!name.startsWith(PathUtils.DKII_MAPS_FOLDER)) {
                 name = PathUtils.DKII_MAPS_FOLDER + name;
             }
@@ -548,39 +604,16 @@ public final class KwdFile implements IKwdFile {
                 name += ".kwd";
             }
 
-            KwdFile kwdFile = new KwdFile(name);
-            if (fullLoad) {
-                readFileContents(kwdFile, getReader(kwdFile.name));
-                for (FilePath item : kwdFile.gameLevel.paths.stream().sorted().toList()) {
-                    readFileContents(kwdFile, getReader(item.getPath()));
-                }
-            } else {
-                return ResourceProxyFactory.createProxy(new KwdFileHandler(this, kwdFile));
-            }
-
-            return kwdFile;
+            return Paths.get(PathUtils.getRealFileName(this.basePath, name));
         }
 
-        // Used in Proxy
-        private void load(final KwdFile kwdFile, boolean init) throws IOException {
-            if (init) {
-                readFileContents(kwdFile, getReader(kwdFile.name));
-                for (FilePath item : kwdFile.gameLevel.paths.stream()
-                        .filter(item -> item.getId() == MapDataTypeEnum.MAP).toList()) {
-                    readFileContents(kwdFile, getReader(item.getPath()));
-                }
-            } else {
-                for (FilePath item : kwdFile.gameLevel.paths.stream()
-                        .filter(item -> item.getId() != MapDataTypeEnum.MAP).toList()) {
-                    readFileContents(kwdFile, getReader(item.getPath()));
-                }
-            }
+        private ISeekableResourceReader getReader(Path path) throws IOException {
+            logger.log(Level.INFO, "Reading file \"{0}\"", path.getFileName().toString());
+            return new FileResourceReader(path);
         }
 
         private ISeekableResourceReader getReader(String name) throws IOException {
-            logger.log(Level.INFO, "Reading file \"{0}\"", name);
-            Path file = Paths.get(PathUtils.getRealFileName(this.basePath, name));
-            return new FileResourceReader(file);
+            return getReader(Paths.get(PathUtils.getRealFileName(this.basePath, name)));
         }
 
         private void readFileContents(final KwdFile kwdFile, ISeekableResourceReader data) throws IOException {

@@ -16,17 +16,11 @@
  */
 package toniarts.openkeeper.game.data;
 
-import java.io.IOException;
-import java.lang.System.Logger;
-import javax.annotation.Nullable;
-import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import lombok.SneakyThrows;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
 public final class Level extends GeneralLevel {
-
-    private IKwdFile kwdFile;
-    private static final Logger logger = System.getLogger(Level.class.getName());
 
     public enum LevelType {
 
@@ -34,14 +28,13 @@ public final class Level extends GeneralLevel {
     }
     private final LevelType type;
     private final int level;
-    private String variation = null;
+    private final String variation;
 
     public Level(LevelType type, int level) {
-        this.type = type;
-        this.level = level;
+        this(type, level, null);
     }
 
-    public Level(LevelType type, int level, @Nullable String variation) {
+    public Level(LevelType type, int level, String variation) {
         this.type = type;
         this.level = level;
         this.variation = variation;
@@ -55,30 +48,17 @@ public final class Level extends GeneralLevel {
         return type;
     }
 
-    public String getVariation() {
-        return variation != null ? variation : "";
-    }
-
     @Override
-    public String getFileName() {
-        return String.format("%s%s", getType(), this.toString());
-    }
-
-    @Override
-    public IKwdFile getKwdFile() {
-        if (kwdFile == null) {
-            try {
-                // Load the actual level info
-                kwdFile = new KwdFile.KwdFileLoader(Main.getDkIIFolder()).load(getFileName(), false);
-            } catch (IOException ex) {
-                logger.log(Logger.Level.ERROR, "Failed to load the level file!", ex);
-            }
+    @SneakyThrows
+    public IKwdMap getKwdMap() {
+        if (kwdMap == null) {
+            kwdMap = new KwdFile.KwdFileLoader().loadMapOnly(getFileName());
         }
-        return kwdFile;
+
+        return super.getKwdMap();
     }
 
-    @Override
-    public String toString() {
-        return String.format("%s%s", getLevel() > 0 ? getLevel() : "", getVariation());
+    private String getFileName() {
+        return String.format("%s%s%s", type, level > 0 ? level : "", variation != null ? variation : "");
     }
 }
