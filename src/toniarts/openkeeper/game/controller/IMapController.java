@@ -1,7 +1,18 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2014-2025 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
 package toniarts.openkeeper.game.controller;
 
@@ -19,7 +30,6 @@ import toniarts.openkeeper.utils.Point;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Map related actions available to all players
@@ -69,9 +79,8 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public void removeListener(short playerId, RoomListener listener);
 
     /**
-     * Get all the room controllers. FIXME: At least with the current design,
-     * the clients do not have this data, so either separate interface or design
-     * controllers so that they share data
+     * Get all the room controllers. FIXME: At least with the current design, the clients do not have this
+     * data, so either separate interface or design controllers so that they share data
      *
      * @return all the room controllers
      */
@@ -94,10 +103,9 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public IRoomController getRoomController(EntityId entityId);
 
     /**
-     * Get all the rooms that implement a certain function i.e. serves as a
-     * storage for the given type etc. FIXME: At least with the current design,
-     * the clients do not have this data, so either separate interface or design
-     * controllers so that they share data
+     * Get all the rooms that implement a certain function i.e. serves as a storage for the given type etc.
+     * FIXME: At least with the current design, the clients do not have this data, so either separate
+     * interface or design controllers so that they share data
      *
      * @param objectType the object type (or function if you may)
      * @param playerId the owner of the room
@@ -130,8 +138,7 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     int damageTile(Point point, short playerId, ICreatureController creature);
 
     /**
-     * Attempt to claim the tile or room, applies either damage or heal,
-     * depending on whose tile is it
+     * Attempt to claim the tile or room, applies either damage or heal, depending on whose tile is it
      *
      * @param point tile coordinate
      * @param playerId for the player
@@ -160,7 +167,7 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      *
      * @param points the points to flash
      * @param playerId the player whose flashing will be affected
-     * @param time   the time to flash
+     * @param time the time to flash
      */
     public void flashTiles(List<Point> points, short playerId, int time);
 
@@ -171,20 +178,6 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * @param playerId the player whose flashing will be affected
      */
     public void unFlashTiles(List<Point> points, short playerId);
-
-    /**
-     * Get the same terrain adjacent (not diagonally) to the stating point(s).
-     * Kinda flood fill. The starting points maybe different terrain types.
-     *
-     * @param startingPoints starting coordinates for the search
-     * @param x1 min x coordinate, inclusive
-     * @param x2 max x coordinate, exclusive
-     * @param y1 min y coordinate, inclusive
-     * @param y2 max y coordinate, exclusive
-     * @return all the terrain points within the given area that match the
-     * terrain in the starting coordinates
-     */
-    public Set<Point> getTerrainBatches(List<Point> startingPoints, int x1, int x2, int y1, int y2);
 
     /**
      * Shorthand for getting player skeleton capacity

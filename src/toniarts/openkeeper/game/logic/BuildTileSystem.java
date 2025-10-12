@@ -26,7 +26,6 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.TileBuildOrSell;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * @author ArchDemon
@@ -54,7 +53,7 @@ public final class BuildTileSystem implements IGameLogicUpdatable {
         synchronized (this.queue) {
             for (Entity entity : entities) {
                 TileBuildOrSell item = entity.get(TileBuildOrSell.class);
-                for (Iterator<Set<Point>> it = new SelectionArea.AreaIterator(item.start, item.end); it.hasNext();) {
+                for (Iterator<Set<Point>> it = item.area.iterator(); it.hasNext();) {
                     queue.add(new Line(it.next(), item.playerId, item.roomId));
                 }
             }

@@ -86,6 +86,7 @@ import toniarts.openkeeper.common.GameEventBus;
 import toniarts.openkeeper.game.component.TileBuildOrSell;
 import toniarts.openkeeper.game.event.BuildTilesEvent;
 import toniarts.openkeeper.game.event.SoldTilesEvent;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * Game world controller, controls the game world related actions
@@ -335,10 +336,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         Room room = kwdFile.getRoomById(roomId);
-        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))
-                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
-//            instancePlots = new ArrayList<>(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
-        }
 
         synchronized (GOLD_LOCK) {
             int cost = instancePlots.size() * room.getCost();
@@ -429,9 +426,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     @Override
-    public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
-        EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new TileBuildOrSell(start, end, playerId, roomId));
+    public void build(SelectionArea area, short playerId, short roomId) {
+        Room room = kwdFile.getRoomById(roomId);
+        int size = mapController.countBuildable(area, playerId, room);
+
+        if (size > 0 && size * room.getCost() <= players.get(playerId).getGold()) {
+            EntityId entity = entityData.createEntity();
+            entityData.setComponent(entity, new TileBuildOrSell(area, playerId, roomId));
+        }
     }
 
     @Override
@@ -467,8 +469,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
 
                 // Money back
-                moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(
-                        p,
+                moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p,
                         (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
             }
 
@@ -512,9 +513,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             for (Map.Entry<Point, Integer> moneyToReturn : moneyToReturnByPoint) {
                 int goldLeft = addGold(playerId, moneyToReturn.getValue());
                 if (goldLeft > 0) {
-
                     // Add loose gold to this tile
-                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x,
+                            moneyToReturn.getKey().y, goldLeft,
+                            (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
                 }
             }
         }
@@ -524,9 +526,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     @Override
-    public void sell(Vector2f start, Vector2f end, short playerId) {
-        EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new TileBuildOrSell(start, end, playerId));
+    public void sell(SelectionArea area, short playerId) {
+        int summa = 0;
+        for (Point p : mapController.getSellable(area, playerId)) {
+            IMapTileController tile = mapController.getMapData().getTile(p);
+            if (tile != null) {
+                Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+                summa += (int) (room.getCost()
+                        * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100));
+            }
+        }
+
+        if (summa > 0) {
+            EntityId entity = entityData.createEntity();
+            entityData.setComponent(entity, new TileBuildOrSell(area, playerId));
+        }
     }
 
     /**

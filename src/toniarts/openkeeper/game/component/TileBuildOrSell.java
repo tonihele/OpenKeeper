@@ -16,8 +16,8 @@
  */
 package toniarts.openkeeper.game.component;
 
-import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  *
@@ -25,9 +25,7 @@ import com.simsilica.es.EntityComponent;
  */
 public final class TileBuildOrSell implements EntityComponent {
 
-    public Vector2f start;
-
-    public Vector2f end;
+    public SelectionArea area;
 
     public short playerId;
 
@@ -37,13 +35,12 @@ public final class TileBuildOrSell implements EntityComponent {
         // For serialization
     }
 
-    public TileBuildOrSell(Vector2f start, Vector2f end, short playerId) {
-        this(start, end, playerId, (short) 0);
+    public TileBuildOrSell(SelectionArea area, short playerId) {
+        this(area, playerId, (short) 0);
     }
 
-    public TileBuildOrSell(Vector2f start, Vector2f end, short playerId, short roomId) {
-        this.start = start;
-        this.end = end;
+    public TileBuildOrSell(SelectionArea area, short playerId, short roomId) {
+        this.area = area;
         this.playerId = playerId;
         this.roomId = roomId;
     }
