@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.network.message;
 
 import com.jme3.network.AbstractMessage;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * The game loading progress data
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class GameLoadProgressData extends AbstractMessage {
 
     private short keeperId;

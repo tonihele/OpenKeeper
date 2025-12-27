@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Regenerates health (when on own grounds)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Regeneration implements EntityComponent {
 
     public int ownLandHealthIncrease;

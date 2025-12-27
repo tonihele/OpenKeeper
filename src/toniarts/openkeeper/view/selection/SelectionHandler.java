@@ -1,5 +1,6 @@
 package toniarts.openkeeper.view.selection;
 
+import toniarts.openkeeper.common.SelectionArea;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.math.ColorRGBA;
@@ -13,7 +14,6 @@ import com.jme3.scene.debug.WireBox;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * Class that contains the SelectionLogic of the Selection-Helper-Box in the

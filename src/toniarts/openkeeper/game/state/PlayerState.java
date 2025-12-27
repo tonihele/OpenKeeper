@@ -33,7 +33,6 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.tools.convert.map.*;
-import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.*;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.control.EntityViewControl;
@@ -41,6 +40,8 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -102,7 +103,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         possessionState = null;
         cameraState = null;
         possessionCameraState = null;
-
 
         // Disassemble Nifty
         screen.cleanup();
@@ -500,13 +500,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     @Override
-    public void onBuild(short keeperId, List<Point> tiles) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void onBuild(BuildTilesEvent event) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public void onSold(short keeperId, List<Point> tiles) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void onSold(SoldTilesEvent event) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override

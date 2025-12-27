@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.task.TaskType;
 
@@ -26,6 +27,7 @@ import toniarts.openkeeper.game.task.TaskType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class TaskComponent implements EntityComponent {
 
     public long taskId;

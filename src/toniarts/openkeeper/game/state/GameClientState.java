@@ -36,6 +36,8 @@ import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
@@ -60,7 +62,7 @@ import toniarts.openkeeper.view.text.TextParserService;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class GameClientState extends AbstractPauseAwareState {
-    
+
     private static final Logger logger = System.getLogger(GameClientState.class.getName());
 
     private final Main app;
@@ -149,9 +151,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     /**
-     * If you are getting rid of the game state, use this so that all the
-     * related states are detached on the same render loop. Otherwise the app
-     * might crash.
+     * If you are getting rid of the game state, use this so that all the related states are detached on the
+     * same render loop. Otherwise the app might crash.
      */
     public void detach() {
 
@@ -443,13 +444,13 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onBuild(short keeperId, List<Point> tiles) {
-            playerMapViewState.onBuild(keeperId, tiles);
+        public void onBuild(BuildTilesEvent event) {
+            playerMapViewState.onBuild(event);
         }
 
         @Override
-        public void onSold(short keeperId, List<Point> tiles) {
-            playerMapViewState.onSold(keeperId, tiles);
+        public void onSold(SoldTilesEvent event) {
+            playerMapViewState.onSold(event);
         }
 
         @Override
@@ -544,7 +545,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
             setResearchableEntity(keeperId, researchableEntity, () -> {
                 playerState.onEntityAdded(keeperId, researchableEntity);
-                });
+            });
         }
 
         private void setResearchableEntity(short keeperId, ResearchableEntity researchableEntity, Runnable notifier) {
@@ -561,14 +562,14 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
             setResearchableEntity(keeperId, researchableEntity, () -> {
                 playerState.onEntityRemoved(keeperId, researchableEntity);
-                });
+            });
         }
 
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             setResearchableEntity(keeperId, researchableEntity, () -> {
                 playerState.onResearchStatusChanged(keeperId, researchableEntity);
-                });
+            });
         }
 
         private List<ResearchableEntity> getResearchableEntitiesList(Keeper keeper, ResearchableEntity researchableEntity) {

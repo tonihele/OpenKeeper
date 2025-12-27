@@ -54,7 +54,6 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -81,10 +80,13 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.SequencedMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.common.GameEventBus;
+import toniarts.openkeeper.game.component.TileBuildOrSell;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * Game world controller, controls the game world related actions
@@ -115,7 +117,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
-    private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
 
     public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -319,21 +320,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     @Override
-    public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
+    public void build(Set<Point> points, short playerId, short roomId) {
         List<Point> instancePlots = new ArrayList<>();
-        int x1 = (int) Math.max(0, start.x);
-        int x2 = (int) Math.min(kwdFile.getMap().getWidth(), end.x + 1);
-        int y1 = (int) Math.max(0, start.y);
-        int y2 = (int) Math.min(kwdFile.getMap().getHeight(), end.y + 1);
-        for (int x = x1; x < x2; x++) {
-            for (int y = y1; y < y2; y++) {
-                Point p = new Point(x, y);
 
-                // See that is this valid
-                if (!mapController.isBuildable(p, playerId, roomId)) {
-                    continue;
-                }
-
+        for (Point p : points) {
+            // See that is this valid
+            if (mapController.isBuildable(p, playerId, roomId)) {
                 instancePlots.add(p);
             }
         }
@@ -343,14 +335,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // If this is a bridge, we only got the starting point(s) as valid so we need to determine valid bridge pieces by our ourselves
         Room room = kwdFile.getRoomById(roomId);
-        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))
-                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
-            instancePlots = new ArrayList<>(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
-        }
 
-        // See that can we afford the building
         synchronized (GOLD_LOCK) {
             int cost = instancePlots.size() * room.getCost();
             if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
@@ -435,53 +421,61 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
 
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
+        // Notify
+        GameEventBus.getInstance().publish(new BuildTilesEvent(playerId, buildTiles));
     }
 
     @Override
-    public void sell(Vector2f start, Vector2f end, short playerId) {
+    public void build(SelectionArea area, short playerId, short roomId) {
+        Room room = kwdFile.getRoomById(roomId);
+        int size = mapController.countBuildable(area, playerId, room);
+
+        if (size > 0 && size * room.getCost() <= players.get(playerId).getGold()) {
+            EntityId entity = entityData.createEntity();
+            entityData.setComponent(entity, new TileBuildOrSell(area, playerId, roomId));
+        }
+    }
+
+    @Override
+    public void sell(Set<Point> points, short playerId) {
         List<Point> soldTiles = new ArrayList<>();
         Set<Point> updatableTiles = new HashSet<>();
         Set<EntityId> soldInstances = new HashSet<>();
         List<Point> roomCoordinates = new ArrayList<>();
         List<Map.Entry<Point, Integer>> moneyToReturnByPoint = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-                Point p = new Point(x, y);
-
-                // See that is this valid
-                if (!mapController.isSellable(p, playerId)) {
-                    continue;
-                }
-
-                // Sell
-                IMapTileController tile = mapController.getMapData().getTile(p);
-                if (tile == null) {
-                    continue;
-                }
-                soldTiles.add(tile.getLocation());
-
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-                    if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-                        tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-                    } else // Water or lava
-                    if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-                    } else {
-                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-                    }
-
-                    // Money back
-                    moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
-                }
-
-                // Get the instance
-                soldInstances.add(tile.getRoomId());
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
+        for (Point p : points) {
+            // See that is this valid
+            if (!mapController.isSellable(p, playerId)) {
+                continue;
             }
+
+            // Sell
+            IMapTileController tile = mapController.getMapData().getTile(p);
+            if (tile == null) {
+                continue;
+            }
+            soldTiles.add(tile.getLocation());
+
+            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+                if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+                    tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+                } else // Water or lava
+                if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                    tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+                } else {
+                    tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+                }
+
+                // Money back
+                moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p,
+                        (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
+            }
+
+            // Get the instance
+            soldInstances.add(tile.getRoomId());
+            updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
         }
 
         // See if we did anything at all
@@ -519,15 +513,34 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             for (Map.Entry<Point, Integer> moneyToReturn : moneyToReturnByPoint) {
                 int goldLeft = addGold(playerId, moneyToReturn.getValue());
                 if (goldLeft > 0) {
-
                     // Add loose gold to this tile
-                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x,
+                            moneyToReturn.getKey().y, goldLeft,
+                            (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
                 }
             }
         }
 
         // Notify
-        notifyOnSold(playerId, soldTiles);
+        GameEventBus.getInstance().publish(new SoldTilesEvent(playerId, soldTiles));
+    }
+
+    @Override
+    public void sell(SelectionArea area, short playerId) {
+        int summa = 0;
+        for (Point p : mapController.getSellable(area, playerId)) {
+            IMapTileController tile = mapController.getMapData().getTile(p);
+            if (tile != null) {
+                Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+                summa += (int) (room.getCost()
+                        * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100));
+            }
+        }
+
+        if (summa > 0) {
+            EntityId entity = entityData.createEntity();
+            entityData.setComponent(entity, new TileBuildOrSell(area, playerId));
+        }
     }
 
     /**
@@ -555,38 +568,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public IMapController getMapController() {
         return mapController;
-    }
-
-    /**
-     * If you want to get notified about player actions
-     *
-     * @param listener the listener
-     */
-    @Override
-    public void addListener(PlayerActionListener listener) {
-        listeners.add(listener);
-    }
-
-    /**
-     * Stop listening to player actions
-     *
-     * @param listener the listener
-     */
-    @Override
-    public void removeListener(PlayerActionListener listener) {
-        listeners.remove(listener);
-    }
-
-    private void notifyOnBuild(short playerId, List<Point> buildTiles) {
-        for (PlayerActionListener listener : listeners.getArray()) {
-            listener.onBuild(playerId, buildTiles);
-        }
-    }
-
-    private void notifyOnSold(short playerId, List<Point> soldTiles) {
-        for (PlayerActionListener listener : listeners.getArray()) {
-            listener.onSold(playerId, soldTiles);
-        }
     }
 
     @Override

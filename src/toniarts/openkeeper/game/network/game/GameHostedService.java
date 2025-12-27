@@ -40,6 +40,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.state.CheatState;
@@ -79,8 +81,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     private ScheduledExecutorService entityUpdater;
 
     /**
-     * Creates a new lobby service that will use the default reliable channel
-     * for reliable communication.
+     * Creates a new lobby service that will use the default reliable channel for reliable communication.
      */
     public GameHostedService() {
         super(false);
@@ -117,8 +118,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     /**
-     * Starts hosting the chat services on the specified connection using a
-     * generated player name.
+     * Starts hosting the chat services on the specified connection using a generated player name.
      */
     public void startHostingOnConnection(HostedConnection conn, ClientInfo clientInfo) {
         logger.log(Level.DEBUG, "startHostingOnConnection({0})", conn);
@@ -295,7 +295,6 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
     }
 
-
     @Override
     public void setGamePaused(boolean paused) {
         for (GameSessionImpl gameSession : players.values()) {
@@ -342,16 +341,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void onBuild(short keeperId, List<Point> tiles) {
+    public void onBuild(BuildTilesEvent event) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onBuild(keeperId, tiles);
+            gameSession.onBuild(event);
         }
     }
 
     @Override
-    public void onSold(short keeperId, List<Point> tiles) {
+    public void onSold(SoldTilesEvent event) {
         for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onSold(keeperId, tiles);
+            gameSession.onSold(event);
         }
     }
 
@@ -407,10 +406,9 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     /**
-     * The connection-specific 'host' for the GameSession. For convenience this
-     * also implements the GameSessionListener. Since the methods don't collide
-     * at all it's convenient for our other code not to have to worry about the
-     * internal delegate.
+     * The connection-specific 'host' for the GameSession. For convenience this also implements the
+     * GameSessionListener. Since the methods don't collide at all it's convenient for our other code not to
+     * have to worry about the internal delegate.
      */
     private final class GameSessionImpl implements GameSession, GameSessionListener {
 
@@ -623,13 +621,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onBuild(short keeperId, List<Point> tiles) {
-            getCallback().onBuild(keeperId, tiles);
+        public void onBuild(BuildTilesEvent event) {
+            getCallback().onBuild(event);
         }
 
         @Override
-        public void onSold(short keeperId, List<Point> tiles) {
-            getCallback().onSold(keeperId, tiles);
+        public void onSold(SoldTilesEvent event) {
+            getCallback().onSold(event);
         }
 
         @Override

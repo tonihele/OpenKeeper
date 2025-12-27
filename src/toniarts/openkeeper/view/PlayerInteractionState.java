@@ -65,13 +65,13 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
-import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.common.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
- * State for managing player interactions in the world. Heavily drawn from
- * Philip Willuweit's AgentKeeper code <p.willuweit@gmx.de>.
+ * State for managing player interactions in the world. Heavily drawn from Philip Willuweit's AgentKeeper code
+ * <p.willuweit@gmx.de>.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  * @author ArchDemon
@@ -189,38 +189,34 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                     return ColorIndicator.RED;
                 }
-                if (interactionState.getType() == Type.SELL) {
+                if (interactionState.getType() == Type.SELL && !isPlayerAffordToSell()) {
+                    // @TODO: need to count sum
                     return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM
-                        && !(gameClientState.getMapClientService().isTaggable(p)
-                        || (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), (short) interactionState.getItemId())
-                        && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+                } else if (interactionState.getType() == Type.ROOM && !isPlayerAffordToBuild()) {
+                    // @TODO: need to count sum
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
             }
 
-            private boolean isPlayerAffordToBuild(Player player, Room room) {
+            private boolean isPlayerAffordToSell() {
+                return !gameClientState.getMapClientService().getSellable(
+                        selectionHandler.getSelectionArea(), player.getPlayerId()).isEmpty();
+            }
+
+            private boolean isPlayerAffordToBuild() {
+                Room room = gameClientState.getLevelData().getRoomById(interactionState.getItemId());
                 int playerMoney = gameClientState.getPlayer(player.getPlayerId()).getGold();
                 if (playerMoney == 0) {
                     return false;
                 }
-                int buildablePlots = 0;
-                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
-                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-                        Point p = new Point(x, y);
 
-                        if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
-                            buildablePlots++;
-                        }
+                int size = gameClientState.getMapClientService().countBuildable(
+                        selectionHandler.getSelectionArea(),
+                        player.getPlayerId(), room);
 
-                        // See the gold amount
-                        if (playerMoney < buildablePlots * room.getCost()) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+                // See the gold amount
+                return size > 0 && size * room.getCost() <= playerMoney;
             }
         };
 
@@ -338,8 +334,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     /**
-     * Set the state flags according to what user can do. Rather clumsy. Fix if
-     * you can.
+     * Set the state flags according to what user can do. Rather clumsy. Fix if you can.
      *
      * @return has the state being changed
      *
@@ -615,9 +610,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             boolean select = !gameClientState.getMapClientService().isSelected(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId());
                             gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
                         } else if (interactionState.getType() == Type.ROOM
-                                && gameClientState.getMapClientService().isBuildable(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId(), (short) interactionState.getItemId())) {
+                                && gameClientState.getMapClientService().countBuildable(selectionArea,
+                                        player.getPlayerId(),
+                                        gameClientState.getLevelData().getRoomById(interactionState.getItemId())) > 0) {
                             gameClientState.getGameClientService().build(selectionArea.getStart(), selectionArea.getEnd(), (short) interactionState.getItemId());
-                        } else if (interactionState.getType() == Type.SELL) {
+                        } else if (interactionState.getType() == Type.SELL
+                                && !gameClientState.getMapClientService().getSellable(selectionArea, player.getPlayerId()).isEmpty()) {
                             gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
                         }
 
@@ -721,7 +719,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                 }
 
-                if (evt.isPressed() && evt.getKeyCode() == (int)Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
+                if (evt.isPressed() && evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
                     stateManager.getState(PlayerState.class).getScreen().toggleGui();
                 }
 

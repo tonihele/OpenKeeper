@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.game.controller.chicken.ChickenState;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Simple chicken AI component
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class ChickenAi implements EntityComponent {
 
     public double stateStartTime;

@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.map.AI.AIType;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
@@ -36,6 +37,7 @@ import toniarts.openkeeper.utils.Point;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     private boolean ai;

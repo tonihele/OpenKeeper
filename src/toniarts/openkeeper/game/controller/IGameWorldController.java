@@ -18,8 +18,9 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import java.util.Set;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * Controls the game world, map and the entities
@@ -57,20 +58,6 @@ public interface IGameWorldController {
     //        return players.values();
     //    }
     /**
-     * If you want to get notified about player actiosns
-     *
-     * @param listener the listener
-     */
-    void addListener(PlayerActionListener listener);
-
-    /**
-     * Stop listening to player actions
-     *
-     * @param listener the listener
-     */
-    void removeListener(PlayerActionListener listener);
-
-    /**
      * Substract gold from player
      *
      * @param amount the amount to try to substract
@@ -89,21 +76,23 @@ public interface IGameWorldController {
     /**
      * Build a building to the wanted area
      *
-     * @param start start location
-     * @param end end location
+     * @param area area
      * @param playerId the player who is building the room
      * @param roomId the room ID to be build
      */
-    public void build(Vector2f start, Vector2f end, short playerId, short roomId);
+    public void build(SelectionArea area, short playerId, short roomId);
+    
+    public void build(Set<Point> points, short playerId, short roomId);
 
     /**
      * Sell a building from wanted area
      *
-     * @param start start location
-     * @param end end location
+     * @param area area
      * @param playerId the player who is selling the room
      */
-    public void sell(Vector2f start, Vector2f end, short playerId);
+    public void sell(SelectionArea area, short playerId);
+    
+    public void sell(Set<Point> points, short playerId);
 
     /**
      * Interact with given entity

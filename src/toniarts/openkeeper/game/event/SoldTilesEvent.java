@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,27 +14,21 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.event;
 
-import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.network.Transferable;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import toniarts.openkeeper.utils.Point;
 
 /**
- * An entity class marking trigger
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * @author ArchDemon
  */
-@Transferable
-public final class Trigger implements EntityComponent {
+@Getter
+@AllArgsConstructor
+public final class SoldTilesEvent {
 
-    public int triggerId;
-
-    public Trigger() {
-        // For serialization
-    }
-
-    public Trigger(int triggerId) {
-        this.triggerId = triggerId;
-    }
+    private final short playerId;
+    private final List<Point> points;
 
 }

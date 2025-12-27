@@ -17,12 +17,15 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.google.common.eventbus.Subscribe;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
+import com.simsilica.event.EventListener;
+import com.simsilica.event.EventType;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -41,6 +44,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.common.GameEventBus;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -64,12 +68,15 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
@@ -379,17 +386,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
 
         // Bridges! They open up new opportunities in new lands
-        this.gameWorldController.addListener(new PlayerActionListener() {
+        GameEventBus.getInstance().addListener(new PlayerActionListener() {
 
             @Override
-            public void onBuild(short keeperId, List<Point> tiles) {
-                scanBridgeSurroundings(tiles);
+            @Subscribe
+            public void onBuild(BuildTilesEvent event) {
+                scanBridgeSurroundings(event.getPoints());
             }
 
             @Override
-            public void onSold(short keeperId, List<Point> tiles) {
-                scanBridgeSurroundings(tiles);
-                for (Point tile : tiles) {
+            @Subscribe
+            public void onSold(SoldTilesEvent event) {
+                scanBridgeSurroundings(event.getPoints());
+                for (Point tile : event.getPoints()) {
                     scanFetchObjectTasks(tile);
                 }
             }
@@ -430,11 +439,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void scanInitialTasks() {
-        IMapDataInformation mapData = mapController.getMapData();
-        for (int y = 0; y < mapData.getHeight(); y++) {
-            for (int x = 0; x < mapData.getWidth(); x++) {
-                scanTerrainTasks(mapController.getMapData().getTile(x, y).getLocation(), false, false);
-            }
+        for (IMapTileController tile : mapController.getMapData()) {
+            scanTerrainTasks(mapController.getMapData().getTile(tile.getLocation()).getLocation(), false, false);
         }
     }
 
@@ -537,13 +543,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
-     * Assigns closest room task to a given creature of requested type or check
-     * for validity
+     * Assigns closest room task to a given creature of requested type or check for validity
      *
      * @param creature the creature to assign to
      * @param objectType the type of room service
-     * @param assign whether to actually assign the creature to the task or just
-     * test
+     * @param assign whether to actually assign the creature to the task or just test
      * @return true if the task was assigned
      */
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {

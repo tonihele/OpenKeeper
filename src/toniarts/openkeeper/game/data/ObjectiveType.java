@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.data;
 
+import toniarts.openkeeper.game.network.Transferable;
+
 /**
  * Player objective for a target
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public enum ObjectiveType {
 
     KILL, IMPRISON, CONVERT;

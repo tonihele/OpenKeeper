@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * Holds together all game related player actions
@@ -28,21 +29,19 @@ public interface IPlayerActions {
     /**
      * Build a building to the wanted area
      *
-     * @param start start coordinates
-     * @param end end coordinates
+     * @param area area
      * @param playerId the player, the new owner
      * @param roomId room to build
      */
-    public void build(Vector2f start, Vector2f end, short playerId, short roomId);
+    public void build(SelectionArea area, short playerId, short roomId);
 
     /**
      * Sell building(s) from the wanted area
      *
-     * @param start start coordinates
-     * @param end end coordinates
+     * @param area area
      * @param playerId the player, the seller
      */
-    public void sell(Vector2f start, Vector2f end, short playerId);
+    public void sell(SelectionArea area, short playerId);
 
     /**
      * Set some tiles selected/undelected

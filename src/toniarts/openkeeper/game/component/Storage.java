@@ -19,12 +19,14 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Acts as kind of summary for items stored in a room
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Storage implements EntityComponent {
 
     public EntityId room;

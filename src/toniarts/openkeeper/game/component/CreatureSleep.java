@@ -18,12 +18,14 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Creature sleeping component. Marks the need for sleep overall.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureSleep implements EntityComponent {
 
     public EntityId lairObjectId;

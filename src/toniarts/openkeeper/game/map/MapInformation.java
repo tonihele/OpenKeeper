@@ -18,8 +18,11 @@ package toniarts.openkeeper.game.map;
 
 import toniarts.openkeeper.utils.Point;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -27,6 +30,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * This is controller for the map related functions
@@ -35,7 +39,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @param <T> the map data container
  * @param <S> the tile type of the map data container
  */
-public final class MapInformation<T extends IMapDataInformation<S>, S extends IMapTileInformation> implements IMapInformation<S> {
+public final class MapInformation<T extends IMapDataInformation<S>, S extends IMapTileInformation>
+        implements IMapInformation<S> {
 
     private final T mapData;
     private final KwdFile kwdFile;
@@ -91,19 +96,54 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         }
 
         // See if we are dealing with bridges
-        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER) && terrain.getFlags().contains(Terrain.TerrainFlag.WATER))
-                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA) && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
-
-            // We need to have an adjacent owned tile
-            return hasAdjacentOwnedPath(tile.getLocation(), playerId);
+        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.WATER))
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+            return true;
         }
 
         return false;
     }
 
+    @Override
+    public int countBuildable(SelectionArea area, short playerId, Room room) {
+        int result = 0;
+
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+            for (Iterator<Point> it = area.simpleIterator(); it.hasNext();) {
+                Point p = it.next();
+                if (isBuildable(p, playerId, room.getId())) {
+                    result++;
+                }
+            }
+        }
+
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
+            boolean hasOwned = false;
+
+            for (Iterator<Point> it = area.simpleIterator(); it.hasNext();) {
+                Point p = it.next();
+
+                if (isBuildable(p, playerId, room.getId())) {
+                    result++;
+                    if (!hasOwned && hasAdjacentOwnedPath(p, playerId)) {
+                        hasOwned = true;
+                    }
+                }
+            }
+            // no owner = no result
+            if (!hasOwned) {
+                result = 0;
+            }
+        }
+
+        return result;
+    }
+
     /**
-     * Checks if you have an adjacent (not diagonally) owned tile. Flat tile
-     * that is. Or a piece of bridge.
+     * Checks if you have an adjacent (not diagonally) owned tile. Flat tile that is. Or a piece of bridge.
      *
      * @param point the origin point
      * @param playerId the player ID, the owner
@@ -169,6 +209,19 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
     }
 
     @Override
+    public Set<Point> getSellable(SelectionArea area, short playerId) {
+        Set<Point> points = new HashSet<>();
+        for (Iterator<Point> it = area.simpleIterator(); it.hasNext();) {
+            Point p = it.next();
+            if (isSellable(p, playerId)) {
+                points.add(p);
+            }
+        }
+
+        return points;
+    }
+
+    @Override
     public boolean isWater(Point p) {
         S tile = getMapData().getTile(p);
         if (tile == null) {
@@ -185,7 +238,7 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
             return false;
         }
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-            return terrain.getFlags().contains(Terrain.TerrainFlag.LAVA);
+        return terrain.getFlags().contains(Terrain.TerrainFlag.LAVA);
     }
 
     @Override

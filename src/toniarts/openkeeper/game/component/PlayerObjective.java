@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Kinda a tagging component. Marks that this entity is a target for players (it
@@ -25,6 +26,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class PlayerObjective implements EntityComponent {
 
     public ObjectiveType objective;

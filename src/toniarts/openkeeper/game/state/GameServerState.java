@@ -16,16 +16,20 @@
  */
 package toniarts.openkeeper.game.state;
 
+import com.google.common.eventbus.Subscribe;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventListener;
+import com.simsilica.event.EventType;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.common.GameEventBus;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -34,6 +38,8 @@ import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
@@ -45,6 +51,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * The game state that actually runs the game. Has no relation to visuals.
@@ -180,7 +187,7 @@ public final class GameServerState extends AbstractAppState {
 
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
-            gameWorldController.addListener(playerActionListener);
+            GameEventBus.getInstance().addListener(playerActionListener);
 
             // Send the the initial game data
             gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
@@ -236,12 +243,12 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameWorldController.build(start, end, playerId, roomId);
+            gameWorldController.build(new SelectionArea(start, end), playerId, roomId);
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameWorldController.sell(start, end, playerId);
+            gameWorldController.sell(new SelectionArea(start, end), playerId);
         }
 
         @Override
@@ -390,13 +397,15 @@ public final class GameServerState extends AbstractAppState {
     private final class PlayerActionListenerImpl implements PlayerActionListener {
 
         @Override
-        public void onBuild(short keeperId, List<Point> tiles) {
-            gameService.onBuild(keeperId, tiles);
+        @Subscribe
+        public void onBuild(BuildTilesEvent event) {
+            gameService.onBuild(event);
         }
 
         @Override
-        public void onSold(short keeperId, List<Point> tiles) {
-            gameService.onSold(keeperId, tiles);
+        @Subscribe
+        public void onSold(SoldTilesEvent event) {
+            gameService.onSold(event);
         }
 
     }

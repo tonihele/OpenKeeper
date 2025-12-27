@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.data.ActionPoint;

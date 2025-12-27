@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -25,6 +26,7 @@ import toniarts.openkeeper.utils.Point;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class RoomComponent implements EntityComponent {
 
     public short roomId;

@@ -35,6 +35,8 @@ import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.BuildTilesEvent;
+import toniarts.openkeeper.game.event.SoldTilesEvent;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.state.CheatState;
@@ -300,16 +302,16 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onBuild(short keeperId, List<Point> tiles) {
+        public void onBuild(BuildTilesEvent event) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onBuild(keeperId, tiles);
+                l.onBuild(event);
             }
         }
 
         @Override
-        public void onSold(short keeperId, List<Point> tiles) {
+        public void onSold(SoldTilesEvent event) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onSold(keeperId, tiles);
+                l.onSold(event);
             }
         }
 

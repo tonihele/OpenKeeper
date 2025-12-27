@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2017 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,24 +17,31 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.network.Transferable;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
- * An entity class marking trigger
  *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * @author ArchDemon
  */
-@Transferable
-public final class Trigger implements EntityComponent {
+public final class TileBuildOrSell implements EntityComponent {
 
-    public int triggerId;
+    public SelectionArea area;
 
-    public Trigger() {
+    public short playerId;
+
+    public short roomId;
+
+    public TileBuildOrSell() {
         // For serialization
     }
 
-    public Trigger(int triggerId) {
-        this.triggerId = triggerId;
+    public TileBuildOrSell(SelectionArea area, short playerId) {
+        this(area, playerId, (short) 0);
     }
 
+    public TileBuildOrSell(SelectionArea area, short playerId, short roomId) {
+        this.area = area;
+        this.playerId = playerId;
+        this.roomId = roomId;
+    }
 }

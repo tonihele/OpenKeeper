@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.task;
 
+import toniarts.openkeeper.game.network.Transferable;
+
 /**
  * Type of task
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public enum TaskType {
 
     CLAIM_LAIR,

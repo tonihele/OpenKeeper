@@ -46,10 +46,12 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.common.SelectionArea;
+import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * This is controller for the map related functions
@@ -260,19 +262,17 @@ public final class MapController extends Container implements IMapController {
     @Override
     public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
         List<Point> updatableTiles = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-                IMapTileController tile = getMapData().getTile(x, y);
-                if (tile == null) {
-                    continue;
-                }
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
-                    continue;
-                }
-                tile.setSelected(select, playerId);
-                updatableTiles.add(tile.getLocation());
+        for (Iterator<Point> it = new SelectionArea.SimpleIterator(start, end); it.hasNext();) {
+            IMapTileController tile = getMapData().getTile(it.next());
+            if (tile == null) {
+                continue;
             }
+            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                continue;
+            }
+            tile.setSelected(select, playerId);
+            updatableTiles.add(tile.getLocation());
         }
         //Point[] tiles = updatableTiles.toArray(new Point[updatableTiles.size()]);
         //mapLoader.updateTiles(tiles);
@@ -297,6 +297,11 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public int countBuildable(SelectionArea area, short playerId, Room room) {
+        return mapInformation.countBuildable(area, playerId, room);
+    }
+
+    @Override
     public boolean isClaimable(Point p, short playerId) {
         return mapInformation.isClaimable(p, playerId);
     }
@@ -304,6 +309,11 @@ public final class MapController extends Container implements IMapController {
     @Override
     public boolean isSellable(Point p, short playerId) {
         return mapInformation.isSellable(p, playerId);
+    }
+
+    @Override
+    public Set<Point> getSellable(SelectionArea area, short playerId) {
+        return mapInformation.getSellable(area, playerId);
     }
 
     @Override
@@ -759,48 +769,6 @@ public final class MapController extends Container implements IMapController {
     @Override
     public void processTick(float tpf) {
         this.update(tpf);
-    }
-
-    @Override
-    public Set<Point> getTerrainBatches(List<Point> startingPoints, int x1, int x2, int y1, int y2) {
-        Set<Point> batches = new HashSet<>();
-        for (Point start : startingPoints) {
-            findTerrainBatch(start, null, batches, x1, x2, y1, y2);
-        }
-        return batches;
-    }
-
-    private void findTerrainBatch(Point p, Short terrainId, Set<Point> batches, int x1, int x2, int y1, int y2) {
-
-        // See the constraints
-        if (p.x < x1 || p.x >= x2 || p.y < y1 || p.y >= y2) {
-            return;
-        }
-
-        IMapTileController tile = getMapData().getTile(p);
-        if (terrainId == null) {
-            terrainId = tile.getTerrainId();
-        }
-
-        if (!batches.contains(p)) {
-            if (tile.getTerrainId() == terrainId) {
-
-                // Add the coordinate
-                batches.add(p);
-
-                // Find north
-                findTerrainBatch(new Point(p.x, p.y - 1), terrainId, batches, x1, x2, y1, y2);
-
-                // Find east
-                findTerrainBatch(new Point(p.x + 1, p.y), terrainId, batches, x1, x2, y1, y2);
-
-                // Find south
-                findTerrainBatch(new Point(p.x, p.y + 1), terrainId, batches, x1, x2, y1, y2);
-
-                // Find west
-                findTerrainBatch(new Point(p.x - 1, p.y), terrainId, batches, x1, x2, y1, y2);
-            }
-        }
     }
 
     @Override

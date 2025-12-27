@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.component;
 
+import toniarts.openkeeper.game.network.Transferable;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -23,6 +24,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class CreatureMeleeAttack extends Attack {
 
     public int attackType;

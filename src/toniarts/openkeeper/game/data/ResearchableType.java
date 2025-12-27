@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.data;
 
+import toniarts.openkeeper.game.network.Transferable;
+
 /**
  * Type of researchable entity
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public enum ResearchableType {
 
     ROOM, SPELL, DOOR, TRAP;

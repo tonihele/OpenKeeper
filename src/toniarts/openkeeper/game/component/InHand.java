@@ -17,12 +17,14 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * Tags an entity to be on keeper's hand
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class InHand implements EntityComponent {
 
     public int index;

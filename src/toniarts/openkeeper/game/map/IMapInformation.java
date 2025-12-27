@@ -18,7 +18,10 @@ package toniarts.openkeeper.game.map;
 
 import toniarts.openkeeper.utils.Point;
 import java.util.List;
+import java.util.Set;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.common.SelectionArea;
 
 /**
  * A kind of a map container with no editing functionalities
@@ -51,6 +54,16 @@ public interface IMapInformation<T extends IMapTileInformation> {
      * @return is the tile buildable
      */
     boolean isBuildable(Point p, short playerId, short roomId);
+
+    /**
+     * Determine if current area is buildable by the player
+     *
+     * @param area area
+     * @param playerId the player
+     * @param room the room to be build
+     * @return is the area buildable
+     */
+    int countBuildable(SelectionArea area, short playerId, Room room);
 
     /**
      * Determine if a tile (maybe a room) at x & y is claimable by the player
@@ -88,8 +101,16 @@ public interface IMapInformation<T extends IMapTileInformation> {
     public boolean isSellable(Point p, short playerId);
 
     /**
-     * Get terrain in given tile. FIXME: I don't think we should use the KWD
-     * file stuff in here anymore.
+     * Is the area sellable by us
+     *
+     * @param area area
+     * @param playerId the player, the seller
+     * @return sum of all sellable tiles
+     */
+    public Set<Point> getSellable(SelectionArea area, short playerId);
+
+    /**
+     * Get terrain in given tile. FIXME: I don't think we should use the KWD file stuff in here anymore.
      *
      * @param tile the map tile
      * @return the terrain

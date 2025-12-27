@@ -20,12 +20,14 @@ import com.badlogic.gdx.math.Vector2;
 import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.utils.Point;
 import java.util.List;
+import toniarts.openkeeper.game.network.Transferable;
 
 /**
  * An entity class marking... well.. target of navigation with full path
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+@Transferable
 public final class Navigation implements EntityComponent {
 
     public Point target;
