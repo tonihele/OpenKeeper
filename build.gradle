@@ -4,6 +4,7 @@ plugins {
     id 'eclipse'
     id 'maven-publish'
     id 'idea'
+    id 'io.freefair.lombok' version '8.11'
 }
 
 ext {
@@ -29,7 +30,7 @@ application {
     }
     else {
         applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
-    }    
+    }
 }
 
 task sourcesJar(type: Jar, dependsOn: [classes, startScripts, distZip, distTar]) {
@@ -116,8 +117,7 @@ idea {
 }
 
 compileJava {
-    // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
-    options.compilerArgs += ["-proc:none"]
+    // disable the warnings
     options.compilerArgs += ["-Xlint:deprecation"]
     //options.compilerArgs += ["-Xlint:unchecked"]
 }

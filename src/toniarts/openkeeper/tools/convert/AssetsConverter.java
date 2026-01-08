@@ -39,7 +39,8 @@ import toniarts.openkeeper.tools.convert.conversion.task.ConvertTexts;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertTextures;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTaskUpdate;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -283,7 +284,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
      * @param destination the folder to save to
      * @throws IOException may fail
      */
-    public static void genererateMapThumbnail(KwdFile kwd, String destination) throws IOException {
+    public static void genererateMapThumbnail(IKwdMap kwd, String destination) throws IOException {
         ConvertMapThumbnails.genererateMapThumbnail(kwd, destination);
     }
 

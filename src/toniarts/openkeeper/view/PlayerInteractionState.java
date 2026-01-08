@@ -55,7 +55,7 @@ import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -89,7 +89,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private InputManager inputManager;
 
     private final Player player;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
     private final IMapInformation mapInformation;
     private final TextParser textParser;
@@ -112,7 +112,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private KeeperHandState keeperHandState;
     private PlayerEntityViewState playerEntityViewState;
 
-    public PlayerInteractionState(Player player, KwdFile kwdFile, EntityData entityData,
+    public PlayerInteractionState(Player player, IKwdFile kwdFile, EntityData entityData,
             IMapInformation mapInformation, TextParser textParser) {
         this.player = player;
         this.kwdFile = kwdFile;

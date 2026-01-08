@@ -20,7 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -30,9 +30,9 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 abstract class SingleTileConstructor {
 
-    protected final KwdFile kwdFile;
+    protected final IKwdFile kwdFile;
 
-    public SingleTileConstructor(KwdFile kwdFile) {
+    public SingleTileConstructor(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

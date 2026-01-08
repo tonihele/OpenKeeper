@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Not really a JME control currently. Manages how the gold places in the room.
@@ -43,7 +43,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
 
     private final IObjectsController objectsController;
 
-    public RoomGoldControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
+    public RoomGoldControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.GOLD);
 
         this.objectsController = objectsController;

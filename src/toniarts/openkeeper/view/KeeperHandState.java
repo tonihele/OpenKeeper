@@ -50,7 +50,7 @@ import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
@@ -84,7 +84,7 @@ public abstract class KeeperHandState extends AbstractAppState {
     private InputManager inputManager;
     private final List<KeeperHandItem> queue;
     private final int maxQueueSize;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
     private final short playerId;
     private IEntityViewControl currentItem;
@@ -93,7 +93,7 @@ public abstract class KeeperHandState extends AbstractAppState {
     private final Node rootNode;
     private final InHandLoaderCreatureModelContainer inHandLoader;
 
-    public KeeperHandState(int maxQueueSize, KwdFile kwdFile, EntityData entityData, short playerId) {
+    public KeeperHandState(int maxQueueSize, IKwdFile kwdFile, EntityData entityData, short playerId) {
         this.queue = new ArrayList<>(maxQueueSize);
         this.maxQueueSize = maxQueueSize;
         this.kwdFile = kwdFile;

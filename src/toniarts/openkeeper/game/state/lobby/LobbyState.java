@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import static java.util.stream.Collectors.toList;
+import lombok.SneakyThrows;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.state.ConnectionState;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.Utils;
 
@@ -68,7 +70,7 @@ public final class LobbyState extends AbstractAppState {
 
         // We as the host should set the initial map
         if (lobbyService != null) {
-            lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
+            lobbyService.setMap(mapSelector.getMap());
         }
     }
 
@@ -118,14 +120,15 @@ public final class LobbyState extends AbstractAppState {
 
     public void setRandomMap() {
         mapSelector.random();
-        lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
+        lobbyService.setMap(mapSelector.getMap());
     }
 
     public void setMap(int selectedMapIndex) {
         mapSelector.selectMap(selectedMapIndex);
-        lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
+        lobbyService.setMap(mapSelector.getMap());
     }
 
+    @SneakyThrows
     private void startGame(List<ClientInfo> players) {
         GameSessionServerService gameSessionService;
         GameSessionClientService gameClientService;
@@ -145,8 +148,8 @@ public final class LobbyState extends AbstractAppState {
                 }
             }
         }
-
-        KwdFile kwdFile = mapSelector.getMap().map(); // This might get read twice on the hosting machine
+        // This might get read twice on the hosting machine
+        IKwdFile kwdFile = new KwdFile.KwdFileLoader().load(mapSelector.getMap());
         if (isOnline() && !fallback) {
             gameSessionService = stateManager.getState(ConnectionState.class).getGameSessionServerService();
             gameClientService = stateManager.getState(ConnectionState.class).getGameClientService();

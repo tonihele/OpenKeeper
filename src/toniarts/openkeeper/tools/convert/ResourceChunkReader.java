@@ -25,16 +25,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-
+import java.util.Objects;
 
 /**
- * Offers our resource specific methods for translating binary data to our
- * native classes. Backed by a ByteBuffer.
+ * Offers our resource specific methods for translating binary data to our native classes. Backed by a
+ * ByteBuffer.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class ResourceChunkReader implements IResourceChunkReader {
-    
+
     private static final Logger logger = System.getLogger(ResourceChunkReader.class.getName());
 
     private final ByteBuffer buffer;
@@ -240,7 +240,7 @@ public final class ResourceChunkReader implements IResourceChunkReader {
 
             // A bit tricky, read until 0 byte
             List<Byte> bytes = new ArrayList();
-            byte b = 0;
+            byte b;
             do {
                 b = buffer.get();
                 if (b != 0) {
@@ -302,7 +302,17 @@ public final class ResourceChunkReader implements IResourceChunkReader {
 
     @Override
     public boolean equals(Object obj) {
-        return buffer.equals(obj);
+        if (this == obj) {
+            return true;
+        }
+        if (obj instanceof ByteBuffer) {
+            return Objects.equals(this.buffer, obj);
+        }
+        if (obj instanceof ResourceChunkReader resourceChunkReader) {
+            return Objects.equals(this.buffer, resourceChunkReader.buffer);
+        }
+
+        return false;
     }
 
     @Override

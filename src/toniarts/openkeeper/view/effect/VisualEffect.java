@@ -58,7 +58,7 @@ public class VisualEffect {
     private final Map<EffectElement, Spatial> effectElements;
     private final List<VisualEffect> effects;
     private final Node effectNode;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EffectManagerState effectManagerState;
     private boolean infinite;
