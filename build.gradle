@@ -42,6 +42,27 @@ configurations.configureEach {
     }
 }
 
+project(":assets") {
+    apply plugin: "java"
+
+    layout.buildDirectory.set(rootProject.layout.buildDirectory.dir("assets"))
+
+    sourceSets {
+        main {
+            resources {
+                srcDir(".")
+                exclude("Converted/**")
+            }
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+}
+
 dependencies {
     implementation fileTree(dir: 'lib', include: ['*.jar'])
     implementation "org.jmonkeyengine:jme3-core:$jmonkeyengine_version"
@@ -57,18 +78,9 @@ dependencies {
     implementation "com.simsilica:zay-es-net:1.6.0"
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
-}
 
-sourceSets {
-    main {
-        java {
-            srcDir 'src'
-        }
-        resources {
-            srcDirs 'assets'
-            exclude 'Converted/**'
-        }
-    }
+    // Assets sub-project
+    runtimeOnly project(':assets')
 }
 
 java {
