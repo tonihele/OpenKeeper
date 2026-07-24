@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.sound;
 
-import java.io.File;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.file.Paths;
@@ -24,9 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
-import toniarts.openkeeper.tools.convert.sound.sfx.SfxEEEntry;
-import toniarts.openkeeper.tools.convert.sound.sfx.SfxGroupEntry;
-import toniarts.openkeeper.tools.convert.sound.sfx.SfxSoundEntry;
+import toniarts.openkeeper.tools.convert.sound.sfx.*;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
@@ -82,11 +79,12 @@ public final class SoundGroup {
                         .relativize(sdt.getFile()).toString();
 
                 try {
-                    String soundFilename = relative.substring(0, relative.length() - 4) + "/"
-                            + SdtFile.fixFileExtension(sdt.getEntries()[soundId]);
+                    var sdtFileEntry = sdt.getEntries()[soundId];
+                    if (sdtFileEntry == null)
+                        continue; // some entries are just "Blank"
 
-                    SoundFile sf = new SoundFile(this, soundId, soundFilename);
-                    files.add(sf);
+                    String soundFilename = relative.substring(0, relative.length() - 4) + '/' + SdtFile.fixFileExtension(sdtFileEntry);
+                    files.add(new SoundFile(this, soundId, soundFilename));
                 } catch (Exception ex) {
                     logger.log(Level.ERROR, () -> {
                         return "Error in file " + sdt.getFile().toString() + " with id " + soundId;
