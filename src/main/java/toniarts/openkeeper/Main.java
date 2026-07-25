@@ -242,6 +242,16 @@ public final class Main extends SimpleApplication {
 
         // Init the user settings (which in JME are app settings)
         app.settings = Settings.getInstance().getAppSettings();
+        if (isAudioDisabled())
+            app.settings.setAudioRenderer(null);
+    }
+
+    // returns true when all three audio categories (Music, Voice, SFX) are disabled
+    public static boolean isAudioDisabled() {
+        var s = getUserSettings();
+        return !s.getBoolean(Settings.Setting.MUSIC_ENABLED)
+            && !s.getBoolean(Settings.Setting.VOICE_ENABLED)
+            && !s.getBoolean(Settings.Setting.SFX_ENABLED);
     }
 
     /**

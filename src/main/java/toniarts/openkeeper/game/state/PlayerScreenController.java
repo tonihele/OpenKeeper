@@ -1129,6 +1129,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void playSound(String category, String id) {
+        if (Main.isAudioDisabled())
+            return;
         SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.parseInt(id));
         if (soundHandler != null) {
             soundHandler.play();
