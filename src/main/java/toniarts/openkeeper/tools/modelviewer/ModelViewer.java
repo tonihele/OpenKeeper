@@ -68,9 +68,8 @@ import java.util.List;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.game.data.ISoundable;
-import toniarts.openkeeper.game.sound.SoundCategory;
-import toniarts.openkeeper.game.sound.SoundFile;
-import toniarts.openkeeper.game.sound.SoundGroup;
+import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.*;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -186,7 +185,10 @@ public final class ModelViewer extends SimpleApplication {
             dkIIFolder = PathUtils.fixFilePath(args[0]);
         }
 
-        ModelViewer app = new ModelViewer();
+        var app = new ModelViewer();
+        app.settings = Settings.getInstance().getAppSettings();
+        if (Main.isAudioDisabled())
+            app.settings.setAudioRenderer(null);
         app.start();
     }
 
