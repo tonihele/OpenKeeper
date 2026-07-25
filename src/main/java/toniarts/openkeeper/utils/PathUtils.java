@@ -29,18 +29,26 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class PathUtils {
-    
+
     private static final Logger logger = System.getLogger(PathUtils.class.getName());
 
-    private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
-    private static final PathTree PATH_CACHE = new PathTree();
-    private static final Object FILENAME_LOCK = new Object();
+    /**
+     * Cache for fully resolved file paths: lowercase key -> exact-case real path.
+     * ConcurrentHashMap eliminates the data race from the old double-checked
+     * locking on a plain HashMap.
+     */
+    private static final ConcurrentHashMap<String, String> FILENAME_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * Cache for known directory paths: lowercase dir path -> exact-case dir path
+     * (always ends with '/'). Replaces the old PathTree/PathNode custom trie.
+     */
+    private static final ConcurrentHashMap<String, String> PATH_CACHE = new ConcurrentHashMap<>();
+
     public static final String DKII_DATA_FOLDER         = "Data/";
     public static final String DKII_EDITOR_FOLDER       = "Data/Editor/";
     public static final String DKII_MAPS_FOLDER         = "Data/Editor/Maps/";
@@ -174,64 +182,166 @@ public final class PathUtils {
      */
     public static String getRealFileName(final String realPath, String uncertainPath) throws IOException {
 
-        // Make sure that the uncertain path's separators are system separators
+        // Make sure that the uncertain path's separators are forward slashes
         uncertainPath = convertFileSeparators(uncertainPath);
 
         String fileName = realPath.concat(uncertainPath);
         String fileKey = fileName.toLowerCase();
 
-        // See cache
+        // Fast path: ConcurrentHashMap is safe for unsynchronized reads
         String cachedName = FILENAME_CACHE.get(fileKey);
         if (cachedName != null) {
             return cachedName;
         }
-        
-        synchronized (FILENAME_LOCK) {
-            
-            cachedName = FILENAME_CACHE.get(fileKey);
-            if (cachedName != null) {
-                return cachedName;
-            }
 
-            // If it exists as such, that is super!
-            Path testFile = Paths.get(fileName);
-            if (Files.exists(testFile)) {
-                cachedName = testFile.toRealPath().toString();
-                FILENAME_CACHE.put(fileKey, cachedName);
+        // Compute the real path (two concurrent threads may both compute, but
+        // putIfAbsent ensures only the first result is stored, and the computation
+        // is idempotent filesystem work).
+        cachedName = resolveFileName(fileName, realPath);
+        if (cachedName == null)
+            throw new IOException("File not found " + Paths.get(fileName) + "!");
 
-                return cachedName;
-            }
+        // Store in caches, using the winner if another thread beat us
+        String existing = FILENAME_CACHE.putIfAbsent(fileKey, cachedName);
+        String resolved = (existing != null) ? existing : cachedName;
 
-            // Otherwise we need to do a recursive search
-            String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
-            final String[] path = fileName.substring(certainPath.length()).split("/");
+        // Cache all parent directories for future lookups
+        cacheDirectoryPaths(resolved);
 
-            // If the path length is 1, lets try, maybe it was just the file name
-            if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
-                Path p = Paths.get(certainPath, path[0]);
-                if (Files.exists(p)) {
-                    cachedName = p.toRealPath().toString();
-                    FILENAME_CACHE.put(fileKey, cachedName);
-                    
-                    return cachedName;
+        return resolved;
+    }
+
+    /**
+     * Resolve a file name case-insensitively. Returns null if not found.
+     */
+    private static String resolveFileName(String fileName, String realPath) throws IOException {
+        // Try exact match first
+        Path testFile = Paths.get(fileName);
+        if (Files.exists(testFile))
+            return testFile.toRealPath().toString();
+
+        // Find the longest known directory path from the cache
+        String dirPart = getDirectoryPart(fileName);
+        String certainPath = getCertainPath(dirPart, realPath);
+
+        // If only a single filename segment, try a direct lookup from certainPath
+        String uncertainSuffix = fileName.substring(certainPath.length());
+        if (!uncertainSuffix.startsWith("/"))
+            uncertainSuffix = '/' + uncertainSuffix;
+        String[] segments = uncertainSuffix.split("/");
+        List<String> nonEmpty = new ArrayList<>();
+        for (String s : segments)
+            if (!s.isEmpty())
+                nonEmpty.add(s);
+
+        if (nonEmpty.isEmpty())
+            return null;
+
+        // Try one-segment shortcut: look it up directly from certainPath
+        if (nonEmpty.size() == 1 && !certainPath.equalsIgnoreCase(realPath)) {
+            Path p = Paths.get(certainPath, nonEmpty.get(0));
+            if (Files.exists(p))
+                return p.toRealPath().toString();
+        }
+
+        // Walk the path segments, resolving each case-insensitively
+        return resolveCaseInsensitive(Paths.get(certainPath), nonEmpty.toArray(new String[0]));
+    }
+
+    /**
+     * Given a full file path, extract the directory part (everything before the
+     * last '/'). If the path ends with '/', it's already a directory path.
+     */
+    private static String getDirectoryPart(String fileName) {
+        if (fileName.endsWith("/"))
+            return fileName;
+
+        int lastSlash = fileName.lastIndexOf('/');
+        return lastSlash >= 0 ? fileName.substring(0, lastSlash + 1) : "";
+    }
+
+    /**
+     * Find the longest cached known directory path. If nothing cached, returns
+     * defaultPath. Walks up the directory tree checking PATH_CACHE at each level.
+     */
+    private static String getCertainPath(String dirPart, String defaultPath) {
+        String current = dirPart;
+        while (current.length() > defaultPath.length()) {
+            String cached = PATH_CACHE.get(current.toLowerCase());
+            if (cached != null)
+                return cached;
+
+            // Strip the last segment and trailing slash
+            int lastSlash = current.lastIndexOf('/');
+            if (lastSlash <= 0)
+                break;
+
+            current = current.substring(0, lastSlash); // e.g., "a/b/c/" -> "a/b"
+            lastSlash = current.lastIndexOf('/');
+            current = lastSlash >= 0 ? current.substring(0, lastSlash + 1) : current + '/';
+        }
+        return defaultPath;
+    }
+
+    /**
+     * Cache all parent directory paths from a resolved file/directory path.
+     * For "a/b/c/file.txt", caches "a/", "a/b/", "a/b/c/".
+     * For "a/b/c/", caches "a/", "a/b/", "a/b/c/".
+     */
+    private static void cacheDirectoryPaths(String resolvedPath) {
+        String[] parts = resolvedPath.split("/");
+        int end = resolvedPath.endsWith("/") ? parts.length : parts.length - 1;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < end; i++) {
+            if (parts[i].isEmpty())
+                continue; // skip leading empty segment from absolute paths
+
+            sb.append(parts[i]).append('/');
+            String dirPath = sb.toString();
+            PATH_CACHE.putIfAbsent(dirPath.toLowerCase(), dirPath);
+        }
+    }
+
+    /**
+     * Walk from basePath through each segment, resolving each case-insensitively
+     * via directory listing. Returns the toRealPath() result, or null if any
+     * segment cannot be found.
+     */
+    private static String resolveCaseInsensitive(Path basePath, String[] segments) throws IOException {
+        Path current = basePath;
+        for (int i = 0; i < segments.length; i++) {
+            String segment = segments[i];
+            boolean isLast = (i == segments.length - 1);
+
+            Path found = null;
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(current)) {
+                for (Path entry : stream) {
+                    if (!entry.getFileName().toString().equalsIgnoreCase(segment)) {
+                        continue;
+                    }
+                    if (isLast) {
+                        // Last segment: accept file or directory
+                        found = entry;
+                        break;
+                    } else if (Files.isDirectory(entry)) {
+                        // Intermediate segment: must be a directory
+                        found = entry;
+                        break;
+                    }
                 }
             }
 
-            // Find the file
-            final Path realPathAsPath = Paths.get(certainPath);
-            FileFinder fileFinder = new FileFinder(realPathAsPath, path);
-            Files.walkFileTree(realPathAsPath, fileFinder);
-            FILENAME_CACHE.put(fileKey, fileFinder.file);
-            cachedName = fileFinder.file;
-            if (fileFinder.file == null) {
-                throw new IOException("File not found " + testFile + "!");
-            }
-
-            // Cache the known path
-            PATH_CACHE.setPathToCache(fileFinder.file);
+            if (found == null)
+                return null;
+            current = found;
         }
 
-        return cachedName;
+        // Preserve trailing '/' for directory results (matches original FileFinder behavior)
+        String result = current.toRealPath().toString();
+        if (Files.isDirectory(current)) {
+            result = result + '/';
+        }
+        return result;
     }
 
     /**
@@ -272,209 +382,6 @@ public final class PathUtils {
             return false;
         }
         return true;
-    }
-
-    /**
-     * File finder, recursively tries to find a file ignoring case
-     */
-    private static final class FileFinder extends SimpleFileVisitor<Path> {
-
-        private int level = 0;
-        private String file;
-        private final Path startingPath;
-        private final String[] path;
-
-        private FileFinder(Path startingPath, String[] path) {
-            this.startingPath = startingPath;
-            this.path = path;
-        }
-
-        @Override
-        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-            if (startingPath.equals(dir)) {
-                return FileVisitResult.CONTINUE; // Just the root
-            } else if (startingPath.relativize(dir).getName(level).toString().equalsIgnoreCase(path[level])) {
-                if (level < path.length - 1) {
-                    level++;
-                    return FileVisitResult.CONTINUE; // Go to dir
-                } else {
-
-                    // We are looking for a directory and we found it
-                    this.file = dir.toRealPath().toString() + "/";
-                    return FileVisitResult.TERMINATE;
-                }
-            }
-            return FileVisitResult.SKIP_SUBTREE;
-        }
-
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-
-            // See if this is the file we are looking for
-            if (level == path.length - 1 && file.getName(file.getNameCount() - 1).toString().equalsIgnoreCase(path[level])) {
-                this.file = file.toRealPath().toString();
-                return FileVisitResult.TERMINATE;
-            }
-
-            return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-            return FileVisitResult.TERMINATE; // We already missed our window here
-        }
-    }
-
-    /**
-     * Represents a simple path tree cache, with unlimited number of roots.
-     * Offers some methods to manage the tree.
-     */
-    private static final class PathTree extends HashMap<String, PathNode> {
-
-        /**
-         * Add the path to cache from KNOWN file
-         *
-         * @param file the known and existing file
-         */
-        public void setPathToCache(String file) {
-            List<String> paths = new ArrayList<>(Arrays.asList(file.split("/")));
-            if (!paths.isEmpty()) {
-                if (!file.endsWith("/")) {
-                    paths.remove(paths.size() - 1);
-                }
-                PathNode node = null;
-                for (String folder : paths) {
-                    node = getPath(folder, node, true);
-                }
-            }
-        }
-
-        private PathNode getPath(String folder, PathNode node, boolean add) {
-            String key = folder.toLowerCase();
-            Map<String, PathNode> leaf;
-            if (node != null) {
-                leaf = node.children;
-            } else {
-                leaf = this;
-            }
-            PathNode result = leaf.get(key);
-            if (result == null && add) {
-                result = new PathNode(folder, (node != null ? node.level + 1 : 0), node);
-                leaf.put(key, result);
-            }
-            return result;
-        }
-
-        /**
-         * Get certain path from cache
-         *
-         * @param fileName the file name we aim to find, if folder, we expect
-         * path separator at the end
-         * @param defaultPath the default path we know that exists, we'll return
-         * it if no cached path found
-         * @return the cached known path, quaranteed to be exactly the default
-         * path or deeper
-         */
-        public String getCertainPath(String fileName, String defaultPath) {
-            List<String> paths = new ArrayList<>(Arrays.asList(fileName.split("/")));
-            if (!paths.isEmpty()) {
-                if (!fileName.endsWith("/")) {
-                    paths.remove(paths.size() - 1);
-                }
-                PathNode node = null;
-                for (String folder : paths) {
-                    PathNode nextNode = getPath(folder, node, false);
-                    if (nextNode != null) {
-                        node = nextNode;
-                    } else {
-                        break;
-                    }
-                }
-
-                // Return if we have longer path
-                if (node != null && node.path.length() > defaultPath.length()) {
-                    return node.path;
-                }
-            }
-            return defaultPath;
-        }
-
-    }
-
-    /**
-     * Path node that represents a single folder
-     */
-    private static final class PathNode {
-
-        private final String path;
-        private final String name;
-        private final int level;
-        private final PathNode parent;
-        private final Map<String, PathNode> children = new HashMap<>();
-
-        public PathNode(String name, int level, PathNode parent) {
-            this.name = name;
-            this.level = level;
-            this.parent = parent;
-
-            StringBuilder sb = new StringBuilder();
-            if (parent != null) {
-                sb.append(parent.path);
-            }
-            sb.append(name);
-            sb.append('/');
-            path = sb.toString();
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public int getLevel() {
-            return level;
-        }
-
-        public PathNode getParent() {
-            return parent;
-        }
-
-        public Map<String, PathNode> getChildren() {
-            return children;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 67 * hash + Objects.hashCode(this.name);
-            hash = 67 * hash + this.level;
-            return hash;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final PathNode other = (PathNode) obj;
-            if (this.level != other.level) {
-                return false;
-            }
-            if (!Objects.equals(this.name, other.name)) {
-                return false;
-            }
-            return true;
-        }
-
     }
 
 }
