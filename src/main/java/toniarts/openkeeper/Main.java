@@ -96,8 +96,8 @@ public final class Main extends SimpleApplication {
     private static boolean conversionOk = false;
     public static final String VERSION = "*ALPHA*";
     public static final String TITLE = "OpenKeeper";
-    private static final String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private static final String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
+    private static final String USER_HOME_FOLDER = System.getProperty("user.home") + "/." + TITLE + '/';
+    private static final String SCREENSHOTS_FOLDER = USER_HOME_FOLDER + "SCRSHOTS/";
     private static final Object LOCK = new Object();
     private static Map<String, String> params;
     private static boolean debug;

@@ -57,7 +57,7 @@ public final class MapThumbnailGenerator {
 
     private static final Logger logger = System.getLogger(MapThumbnailGenerator.class.getName());
     
-    private static final String PALETTE_IMAGE = "Textures".concat(File.separator).concat("Thumbnails").concat(File.separator).concat("MapColours.png");
+    private static final String PALETTE_IMAGE = "Textures/Thumbnails/MapColours.png";
     private static ColorModel cm;
     private static Map<Short, Color> playerColors;
 

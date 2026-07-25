@@ -82,7 +82,7 @@ public final class SoundGroup {
                         .relativize(sdt.getFile()).toString();
 
                 try {
-                    String soundFilename = relative.substring(0, relative.length() - 4) + File.separator
+                    String soundFilename = relative.substring(0, relative.length() - 4) + "/"
                             + SdtFile.fixFileExtension(sdt.getEntries()[soundId]);
 
                     SoundFile sf = new SoundFile(this, soundId, soundFilename);

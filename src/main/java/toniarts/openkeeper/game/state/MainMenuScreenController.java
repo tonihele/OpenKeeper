@@ -137,7 +137,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         SoundCategory sc = SoundsLoader.load(GlobalCategory.FRONT_END);
         String filename = sc.getGroup(GlobalType.FRONT_END_CKICK).getFiles().get(0).getFilename();
-        this.nifty.registerSound(SOUND_MENU_ID, AssetsConverter.SOUNDS_FOLDER + File.separator + filename);
+        this.nifty.registerSound(SOUND_MENU_ID, AssetsConverter.SOUNDS_FOLDER + filename);
         this.nifty.registerSound(SOUND_BUTTON_ID, "Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2");
     }
 

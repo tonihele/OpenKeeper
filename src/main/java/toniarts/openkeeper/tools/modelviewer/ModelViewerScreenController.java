@@ -416,14 +416,12 @@ public final class ModelViewerScreenController implements ScreenController {
     private String getResourceImageName(ArtResource resource) {
         String result = (resource != null && resource.getName() != null) ? resource.getName() + ".png" : "&mask&transparent.png";
 
-        String textureName = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                + File.separator + result);
+        String textureName = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + result);
 
         TextureKey textureKey = new TextureKey(textureName, false);
         AssetInfo assetInfo = app.getAssetManager().locateAsset(textureKey);
 
-        return (assetInfo != null ? textureName : AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                + File.separator + "&mask&transparent.png"));
+        return (assetInfo != null ? textureName : AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + "&mask&transparent.png"));
     }
 
     private String getResourceString(int id) {

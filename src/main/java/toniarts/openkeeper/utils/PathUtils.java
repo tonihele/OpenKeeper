@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.utils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
@@ -34,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 public final class PathUtils {
     
@@ -43,8 +41,6 @@ public final class PathUtils {
     private static final Map<String, String> FILENAME_CACHE = new HashMap<>();
     private static final PathTree PATH_CACHE = new PathTree();
     private static final Object FILENAME_LOCK = new Object();
-    protected static final String QUOTED_FILE_SEPARATOR = Matcher.quoteReplacement(File.separator);
-
     public static final String DKII_DATA_FOLDER         = "Data/";
     public static final String DKII_EDITOR_FOLDER       = "Data/Editor/";
     public static final String DKII_MAPS_FOLDER         = "Data/Editor/Maps/";
@@ -98,8 +94,8 @@ public final class PathUtils {
      * @return folder with file separator at the end
      */
     public static String fixFilePath(final String folderPath) {
-        if (!folderPath.endsWith(File.separator)) {
-            return folderPath.concat(File.separator);
+        if (!folderPath.endsWith("/")) {
+            return folderPath + '/';
         }
         return folderPath;
     }
@@ -128,13 +124,13 @@ public final class PathUtils {
     }
 
     /**
-     * Converts all the file separators to current system separators
+     * Converts all the file separators to forward slashes
      *
      * @param fileName the file name to convert
-     * @return the file name with native file separators
+     * @return the file name with forward slashes
      */
     public static String convertFileSeparators(String fileName) {
-        return fileName.replaceAll("[/\\\\]", QUOTED_FILE_SEPARATOR);
+        return fileName.replace('\\', '/');
     }
 
     /**
@@ -208,7 +204,7 @@ public final class PathUtils {
 
             // Otherwise we need to do a recursive search
             String certainPath = PATH_CACHE.getCertainPath(fileName, realPath);
-            final String[] path = fileName.substring(certainPath.length()).split(QUOTED_FILE_SEPARATOR);
+            final String[] path = fileName.substring(certainPath.length()).split("/");
 
             // If the path length is 1, lets try, maybe it was just the file name
             if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
@@ -304,7 +300,7 @@ public final class PathUtils {
                 } else {
 
                     // We are looking for a directory and we found it
-                    this.file = dir.toRealPath().toString().concat(File.separator);
+                    this.file = dir.toRealPath().toString() + "/";
                     return FileVisitResult.TERMINATE;
                 }
             }
@@ -341,9 +337,9 @@ public final class PathUtils {
          * @param file the known and existing file
          */
         public void setPathToCache(String file) {
-            List<String> paths = new ArrayList<>(Arrays.asList(file.split(QUOTED_FILE_SEPARATOR)));
+            List<String> paths = new ArrayList<>(Arrays.asList(file.split("/")));
             if (!paths.isEmpty()) {
-                if (!file.endsWith(File.separator)) {
+                if (!file.endsWith("/")) {
                     paths.remove(paths.size() - 1);
                 }
                 PathNode node = null;
@@ -380,9 +376,9 @@ public final class PathUtils {
          * path or deeper
          */
         public String getCertainPath(String fileName, String defaultPath) {
-            List<String> paths = new ArrayList<>(Arrays.asList(fileName.split(QUOTED_FILE_SEPARATOR)));
+            List<String> paths = new ArrayList<>(Arrays.asList(fileName.split("/")));
             if (!paths.isEmpty()) {
-                if (!fileName.endsWith(File.separator)) {
+                if (!fileName.endsWith("/")) {
                     paths.remove(paths.size() - 1);
                 }
                 PathNode node = null;
@@ -426,7 +422,7 @@ public final class PathUtils {
                 sb.append(parent.path);
             }
             sb.append(name);
-            sb.append(File.separator);
+            sb.append('/');
             path = sb.toString();
         }
 

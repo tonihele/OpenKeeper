@@ -652,8 +652,7 @@ public final class ModelViewer extends SimpleApplication {
         screen.getItemsControl().clear();
         switch (type) {
             case MODELS: {
-                fillWithFiles(models, AssetsConverter.getAssetsFolder()
-                        + AssetsConverter.MODELS_FOLDER + File.separator, ".j3o");
+                fillWithFiles(models, AssetsConverter.getAssetsFolder() + AssetsConverter.MODELS_FOLDER, ".j3o");
                 break;
             }
             case MAPS: {

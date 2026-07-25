@@ -163,8 +163,7 @@ public final class SoundState extends AbstractPauseAwareState {
                 throw new RuntimeException("Sound category " + soundCategory + " not found");
             }
 
-            String file = AssetsConverter.SOUNDS_FOLDER + File.separator
-                    + sc.getGroup(speechId).getFiles().get(0).getFilename();
+            String file = AssetsConverter.SOUNDS_FOLDER + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(new Speech(speechId, file, listener));
         } catch (RuntimeException e) {
             logger.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
@@ -203,7 +202,7 @@ public final class SoundState extends AbstractPauseAwareState {
             return;
         }
 
-        String file = AssetsConverter.SOUNDS_FOLDER + File.separator + backgroundState.getNext();
+        String file = AssetsConverter.SOUNDS_FOLDER + backgroundState.getNext();
 
         backgroundNode = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (backgroundNode == null) {

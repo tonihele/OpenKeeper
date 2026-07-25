@@ -162,7 +162,7 @@ public final class KmfModelLoader implements AssetLoader {
 
         //Go trough the models and add them
         for (Grop grop : kmfFile.getGrops()) {
-            String key = AssetsConverter.MODELS_FOLDER + File.separator + grop.getName() + ".j3o";
+            String key = AssetsConverter.MODELS_FOLDER + grop.getName() + ".j3o";
             AssetLinkNode modelLink = new AssetLinkNode(key, new ModelKey(key));
             modelLink.setLocalTranslation(new Vector3f(grop.getPos().x, -grop.getPos().z, grop.getPos().y));
             groupNode.attachChild(modelLink);
@@ -649,8 +649,8 @@ public final class KmfModelLoader implements AssetLoader {
                         fileName = fileName.concat(MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR).concat("0");
                     }
 
-                    materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(fileName).concat(".j3m");
-                    materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(fileName).concat(".j3m"));
+                    materialKey = AssetsConverter.MATERIALS_FOLDER + fileName + ".j3m";
+                    materialLocation = AssetsConverter.getAssetsFolder() + materialKey;
 
                     // See if it exists
                     Path file = Paths.get(materialLocation);
@@ -659,8 +659,8 @@ public final class KmfModelLoader implements AssetLoader {
                         if (!file.getFileName().toString().equals(fileName.concat(".j3m"))) {
 
                             // Case sensitivity issue
-                            materialKey = AssetsConverter.MATERIALS_FOLDER.concat("/").concat(file.getFileName().toString());
-                            materialLocation = AssetsConverter.getAssetsFolder().concat(AssetsConverter.MATERIALS_FOLDER.concat(File.separator).concat(file.getFileName().toString()));
+                            materialKey = AssetsConverter.MATERIALS_FOLDER + file.getFileName().toString();
+                            materialLocation = AssetsConverter.getAssetsFolder() + materialKey;
                         }
                         material = assetInfo.getManager().loadMaterial(materialKey);
                     }
@@ -752,7 +752,7 @@ public final class KmfModelLoader implements AssetLoader {
     private Texture loadTexture(String texture, AssetInfo assetInfo) {
 
         // Load the texture
-        TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
+        var textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + texture + ".png"), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
         return tex;
     }
