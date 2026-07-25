@@ -45,15 +45,13 @@ public final class PathUtils {
     private static final Object FILENAME_LOCK = new Object();
     protected static final String QUOTED_FILE_SEPARATOR = Matcher.quoteReplacement(File.separator);
 
-    public static final String DKII_DATA_FOLDER = getRealDKIIRelativeFolder("Data" + File.separator);
-    public static final String DKII_SFX_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Sound" + File.separator
-            + "sfx" + File.separator);
-    public static final String DKII_MOVIES_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Movies" + File.separator);
-    public static final String DKII_TEXT_DEFAULT_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "Text" + File.separator
-            + "Default" + File.separator);
-    public static final String DKII_EDITOR_FOLDER = getRealDKIIRelativeFolder(DKII_DATA_FOLDER + "editor" + File.separator);
-    public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps" + File.separator);
-    public static final String DKII_SFX_GLOBAL_FOLDER = getRealDKIIRelativeFolder(DKII_SFX_FOLDER + "Global" + File.separator);
+    public static final String DKII_DATA_FOLDER         = "Data/";
+    public static final String DKII_EDITOR_FOLDER       = "Data/Editor/";
+    public static final String DKII_MAPS_FOLDER         = "Data/Editor/Maps/";
+    public static final String DKII_MOVIES_FOLDER       = "Data/Movies/";
+    public static final String DKII_SFX_FOLDER          = "Data/Sound/Sfx/";
+    public static final String DKII_SFX_GLOBAL_FOLDER   = "Data/Sound/Sfx/Global/";
+    public static final String DKII_TEXT_DEFAULT_FOLDER = "Data/Text/Default/";
 
     private static final String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private static final String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
@@ -104,20 +102,6 @@ public final class PathUtils {
             return folderPath.concat(File.separator);
         }
         return folderPath;
-    }
-
-    /**
-     * Get the relative folder that has been fixed for case sensitivity
-     *
-     * @param folder the path to fix
-     * @return fixed path relative to the DKII folder
-     */
-    public static String getRealDKIIRelativeFolder(final String folder) {
-        String rootFolder = getDKIIFolder();
-        if (rootFolder != null && !rootFolder.isEmpty()) {
-            return fixFilePath(getCanonicalRelativePath(rootFolder, folder));
-        }
-        return fixFilePath(folder);
     }
 
     /**
