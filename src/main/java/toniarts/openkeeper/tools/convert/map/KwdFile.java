@@ -171,7 +171,7 @@ public final class KwdFile {
             // Fug
             throw new RuntimeException("Failed to read the file " + file + "!", e);
         }
-        this.basePath = PathUtils.fixFilePath(basePath);
+        this.basePath = basePath;
 
         // See if we need to load the actual data
         if (load) {
@@ -680,7 +680,7 @@ public final class KwdFile {
         ArtResource artResource = new ArtResource();
 
         // Read the data
-        artResource.setName(reader.readString(64).trim());
+        artResource.setName(reader.readString(64).trim().replace('\\', '/'));
         artResource.setFlags(reader.readIntegerAsFlag(ArtResource.ArtResourceFlag.class));
 
         reader.mark();
