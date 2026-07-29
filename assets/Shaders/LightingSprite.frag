@@ -15,5 +15,5 @@ void main()
           discard;
   #endif
 
-  gl_FragColor = vec4(diffuseColor.rgb, 1.0);
+  gl_FragColor = diffuseColor;
 }

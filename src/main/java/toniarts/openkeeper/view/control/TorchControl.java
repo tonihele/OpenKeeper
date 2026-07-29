@@ -152,7 +152,7 @@ public final class TorchControl extends BillboardControl {
         result.setTransparent(true);
         result.setFloat("AlphaDiscardThreshold", 0.1f);
 
-        result.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        result.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Off); // the texture gets wrongly uploaded with A=0 plus we only need alpha discard
         result.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
         //result.getAdditionalRenderState().setDepthTest(false);
 

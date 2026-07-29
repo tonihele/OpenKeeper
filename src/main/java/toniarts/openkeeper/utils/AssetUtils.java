@@ -299,7 +299,7 @@ public final class AssetUtils {
             List<String> textures = texturesSupplier.get();
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
             mat.setInt("NumberOfTiles", textures.size());
-            mat.setInt("Speed", fps != null ? fps : 30);
+            mat.setInt("Speed", fps != null ? fps : 10); // no fps defined for Water
             
             // Create the texture
             try {
@@ -392,11 +392,9 @@ public final class AssetUtils {
                 hasAlpha ? BufferedImage.TYPE_INT_ARGB : img.getType());
         Graphics2D g = text.createGraphics();
         
-        // If the source image doesn't have an alpha channel but the art resource wants one... Apply 75% opacity. See water
-        if (hasAlpha && !img.getColorModel().hasAlpha()) {
-            AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC, 0.75f);
-            g.setComposite(ac);
-        }
+        // If the source image doesn't have an alpha channel but the art resource wants one... Apply some opacity. See Water
+        if (hasAlpha && !img.getColorModel().hasAlpha())
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC, 0.4f));
         
         g.drawImage(img, null, 0, 0);
         for (int x = 1; x < textures.size(); x++) {
