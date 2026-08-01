@@ -21,6 +21,7 @@ import com.simsilica.es.EntityComponent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.utils.TextUtils;
@@ -37,20 +38,20 @@ public abstract class EntityTextParser<T> {
     }
 
     public String parseText(String text, Entity entity, T dataObject) {
-        return TextUtils.parseText(text, (index) -> {
-            return getReplacement(index, entity, dataObject);
+        return TextUtils.parseText(text, (parameter) -> {
+            return getReplacement(parameter, entity, dataObject);
         });
     }
     
-    protected String getReplacement(int index, Entity entity, T dataObject) {
-        switch (index) {
-            case 37:
+    protected String getReplacement(TextParameter parameter, Entity entity, T dataObject) {
+        switch (parameter) {
+            case HEALTH_PERCENTAGE:
                 Health health = entity.get(Health.class);
                 if (health != null) {
                     return Integer.toString((int) (health.health / health.maxHealth * 100f));
                 }
                 return "";
-            case 73:
+            case ENTITY_GOLD:
                 Gold gold = entity.get(Gold.class);
                 if (gold != null) {
                     return Integer.toString(gold.gold);
@@ -58,7 +59,7 @@ public abstract class EntityTextParser<T> {
                 return "";
         }
 
-        return "Parameter " + index + " not implemented!";
+        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
     public Collection<Class<? extends EntityComponent>> getWatchedComponents() {

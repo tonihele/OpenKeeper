@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import java.util.Collection;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -45,32 +46,32 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
     }
 
     @Override
-    protected String getReplacement(int index, Entity entity, Creature creature) {
-        switch (index) {
-            case 29:
+    protected String getReplacement(TextParameter parameter, Entity entity, Creature creature) {
+        switch (parameter) {
+            case CREATURE_INSTANCE_NAME:
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
                 if (creatureComponent != null) {
                     return creatureComponent.name;
                 }
                 return "";
-            case 30:
+            case CREATURE_NAME:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(creature.getNameStringId()));
-            case 31:
+            case CREATURE_ACTIVITY:
                 CreatureAi creatureAi = entity.get(CreatureAi.class);
                 if (creatureAi != null) {
                     return getStatusText(entity, creatureAi, mapInformation);
                 }
                 return "";
-            case 32:
+            case CREATURE_STATUS:
                 // FIXME
                 return "";
-            case 33:
+            case CREATURE_MOOD:
                 CreatureMood creatureMood = entity.get(CreatureMood.class);
                 if (creatureMood != null) {
                     return Integer.toString(creatureMood.moodValue);
                 }
                 return "";
-            case 74:
+            case CREATURE_EFFICIENCY:
                 CreatureEfficiency creatureEfficiency = entity.get(CreatureEfficiency.class);
                 if (creatureEfficiency != null) {
                     return Integer.toString(creatureEfficiency.efficiencyPercentage);
@@ -78,7 +79,7 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                 return "";
         }
 
-        return super.getReplacement(index, entity, creature);
+        return super.getReplacement(parameter, entity, creature);
     }
 
     private static String getStatusText(Entity entity, CreatureAi creatureAi,

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.TextUtils;
 
 /**
@@ -30,11 +31,11 @@ public abstract class SimpleIconTextParser<T> {
     }
 
     public String parseText(String text, T dataObject) {
-        return TextUtils.parseText(text, (index) -> {
-            return getReplacement(index, dataObject);
+        return TextUtils.parseText(text, (parameter) -> {
+            return getReplacement(parameter, dataObject);
         });
     }
 
-    protected abstract String getReplacement(int index, T dataObject);
+    protected abstract String getReplacement(TextParameter parameter, T dataObject);
 
 }

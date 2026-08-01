@@ -46,7 +46,7 @@ public final class TextUtils {
             if ("%".equals(param)) {
                 matcher.appendReplacement(sb, "%");
             } else {
-                matcher.appendReplacement(sb, replacer.getReplacement(Integer.parseInt(param)));
+                matcher.appendReplacement(sb, replacer.getReplacement(TextParameter.fromId(Integer.parseInt(param))));
             }
         }
         matcher.appendTail(sb);

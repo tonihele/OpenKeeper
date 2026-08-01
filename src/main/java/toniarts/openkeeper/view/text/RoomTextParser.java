@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.text;
 
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.utils.TextUtils;
@@ -35,50 +36,50 @@ public class RoomTextParser {
     }
 
     public String parseText(String text, EntityId room) {
-        return TextUtils.parseText(text, (index) -> {
-            return getReplacement(index, roomsInformation.getRoomInformation(room));
+        return TextUtils.parseText(text, (parameter) -> {
+            return getReplacement(parameter, roomsInformation.getRoomInformation(room));
         });
     }
 
-    protected String getReplacement(int index, IRoomInformation room) {
-        switch (index) {
-            case 37:
+    protected String getReplacement(TextParameter parameter, IRoomInformation room) {
+        switch (parameter) {
+            case HEALTH_PERCENTAGE:
                 return Integer.toString(room.getHealthPercent()); // Health
-            case 38:
+            case ROOM_USED_CAPACITY:
                 return Integer.toString(room.getUsedCapacity()); // Used capacity
-            case 39:
+            case ROOM_MAX_CAPACITY:
                 return Integer.toString(room.getMaxCapacity()); // Max capacity
-            case 44:
+            case PORTAL_COUNT:
                 return getRoomAmount(room, 3); // Portal
-            case 45:
+            case LAIR_COUNT:
                 return getRoomAmount(room, 2); // Lair
-            case 46:
+            case HATCHERY_COUNT:
                 return getRoomAmount(room, 4); // Hatchery
-            case 47:
+            case TREASURY_COUNT:
                 return getRoomAmount(room, 1); // Treasury
-            case 48:
+            case LIBRARY_COUNT:
                 return getRoomAmount(room, 6); // Library
-            case 49:
+            case TRAINING_ROOM_COUNT:
                 return getRoomAmount(room, 7); // Training Room
-            case 50:
+            case WORKSHOP_COUNT:
                 return getRoomAmount(room, 10); // Workshop
-            case 51:
+            case GUARD_ROOM_COUNT:
                 return getRoomAmount(room, 9); // Guard Room
-            case 53:
+            case COMBAT_PIT_COUNT:
                 return getRoomAmount(room, 16); // Combat Pit
-            case 54:
+            case TORTURE_CHAMBER_COUNT:
                 return getRoomAmount(room, 12); // Torture
-            case 58:
+            case PRISON_COUNT:
                 return getRoomAmount(room, 11); // Prison
-            case 61:
+            case GRAVEYARD_COUNT:
                 return getRoomAmount(room, 14); // Graveyard
-            case 62:
+            case TEMPLE_COUNT:
                 return getRoomAmount(room, 13); // Temple
-            case 63:
+            case CASINO_COUNT:
                 return getRoomAmount(room, 15); // Casino
         }
 
-        return "Parameter " + index + " not implemented!";
+        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {
