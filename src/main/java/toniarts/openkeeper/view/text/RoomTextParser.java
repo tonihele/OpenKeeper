@@ -77,9 +77,9 @@ public class RoomTextParser {
                 return getRoomAmount(room, 13); // Temple
             case CASINO_COUNT:
                 return getRoomAmount(room, 15); // Casino
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {

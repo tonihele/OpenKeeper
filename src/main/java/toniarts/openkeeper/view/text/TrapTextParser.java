@@ -43,9 +43,9 @@ public final class TrapTextParser extends EntityTextParser<Trap> {
                 return Integer.toString(trap.getManaCostToFire());
             case STATE:
                 return trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED) ? Utils.getMainTextResourceBundle().getString("2514") : Utils.getMainTextResourceBundle().getString("2513"); // This is not entirely true if you compare to original, see Fear trap
+            default:
+                return super.getReplacement(parameter, entity, trap);
         }
-
-        return super.getReplacement(parameter, entity, trap);
     }
 
 

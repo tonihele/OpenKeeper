@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.utils;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,6 +35,7 @@ import java.util.regex.Pattern;
  */
 public final class TextUtils {
 
+    private static final Logger logger = System.getLogger(TextUtils.class.getName());
     private final static Pattern PATTERN = Pattern.compile("%(\\d+|%)");
 
     private TextUtils() {
@@ -43,14 +47,29 @@ public final class TextUtils {
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String param = matcher.group(1);
+            String replacement;
             if ("%".equals(param)) {
-                matcher.appendReplacement(sb, "%");
+                replacement = "%";
             } else {
-                matcher.appendReplacement(sb, replacer.getReplacement(TextParameter.fromId(Integer.parseInt(param))));
+                int id = Integer.parseInt(param);
+                Optional<TextParameter> parameter = TextParameter.fromId(id);
+                if (parameter.isEmpty()) {
+                    logger.log(Level.WARNING, "Unknown text parameter ID {0}", id);
+                    replacement = matcher.group();
+                } else {
+                    replacement = replacer.getReplacement(parameter.get());
+                }
             }
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(sb);
 
         return sb.toString();
+    }
+
+    public static String getUnsupportedParameterMessage(TextParameter parameter, Class<?> parserType) {
+        logger.log(Level.WARNING, "Text parameter {0} is not supported by {1}",
+                new Object[]{parameter.getId(), parserType.getSimpleName()});
+        return "Parameter " + parameter.getId() + " not implemented!";
     }
 }

@@ -77,9 +77,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                     return Integer.toString(creatureEfficiency.efficiencyPercentage);
                 }
                 return "";
+            default:
+                return super.getReplacement(parameter, entity, creature);
         }
-
-        return super.getReplacement(parameter, entity, creature);
     }
 
     private static String getStatusText(Entity entity, CreatureAi creatureAi,

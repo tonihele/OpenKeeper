@@ -44,9 +44,9 @@ public final class MapTileTextParser {
                 return Integer.toString(mapTile.getManaGain());
             case GOLD:
                 return Integer.toString(mapTile.getGold());
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
 }

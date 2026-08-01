@@ -46,9 +46,9 @@ public final class DoorTextParser extends EntityTextParser<Door> {
                     return doorComponent.locked ? Utils.getMainTextResourceBundle().getString("2516") : Utils.getMainTextResourceBundle().getString("2515");
                 }
                 return "";
+            default:
+                return super.getReplacement(parameter, entity, door);
         }
-
-        return super.getReplacement(parameter, entity, door);
     }
 
     @Override

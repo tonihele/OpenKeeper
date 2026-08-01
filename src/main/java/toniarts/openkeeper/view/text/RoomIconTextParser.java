@@ -16,8 +16,9 @@
  */
 package toniarts.openkeeper.view.text;
 
-import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -51,9 +52,9 @@ public final class RoomIconTextParser extends SimpleIconTextParser<Room> {
 
 
                 return "No size hint for " + room.getRecommendedSizeX() + " x " + room.getRecommendedSizeY();
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
 }

@@ -11,6 +11,7 @@ package toniarts.openkeeper.utils;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Parameters embedded in Dungeon Keeper text resources.
@@ -134,11 +135,7 @@ public enum TextParameter {
         return id;
     }
 
-    public static TextParameter fromId(int id) {
-        TextParameter parameter = BY_ID.get(id);
-        if (parameter == null) {
-            throw new IllegalArgumentException("Unknown text parameter ID " + id);
-        }
-        return parameter;
+    public static Optional<TextParameter> fromId(int id) {
+        return Optional.ofNullable(BY_ID.get(id));
     }
 }

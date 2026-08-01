@@ -16,9 +16,10 @@
  */
 package toniarts.openkeeper.view.text;
 
-import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -37,9 +38,9 @@ public final class SpellIconTextParser extends IconTextParser<KeeperSpell, Resea
                 return Integer.toString(keeperSpell.getManaCost());
             case SPELL_LEVEL:
                 return spell.isUpgraded() ? "2" : "1";
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
 }

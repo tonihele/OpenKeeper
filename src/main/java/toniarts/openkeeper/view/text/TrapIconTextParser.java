@@ -16,8 +16,9 @@
  */
 package toniarts.openkeeper.view.text;
 
-import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -40,9 +41,9 @@ public final class TrapIconTextParser extends SimpleIconTextParser<Trap> {
                 return Integer.toString(trap.getManaUsage());
             case MANA_COST_TO_FIRE:
                 return Integer.toString(trap.getManaCostToFire());
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
 }

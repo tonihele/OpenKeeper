@@ -57,9 +57,9 @@ public abstract class EntityTextParser<T> {
                     return Integer.toString(gold.gold);
                 }
                 return "";
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + parameter.getId() + " not implemented!";
     }
 
     public Collection<Class<? extends EntityComponent>> getWatchedComponents() {
