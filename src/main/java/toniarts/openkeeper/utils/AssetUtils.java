@@ -19,6 +19,7 @@ package toniarts.openkeeper.utils;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.AssetNotFoundException;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
@@ -48,9 +49,9 @@ import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
@@ -75,7 +76,7 @@ public final class AssetUtils {
     private final static Object ASSET_LOCK = new Object();
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
     private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
-    private final static Map<String, Boolean> TEXTURE_MAP_CACHE = new HashMap<>();
+    private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
@@ -234,16 +235,10 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        // Try to locate the texture
-        Boolean found = TEXTURE_MAP_CACHE.get(textureName);
-        if (found == null) {
-            TextureKey textureKey = new TextureKey(textureName, false);
-
-            // See if it exists
-            AssetInfo assetInfo = assetManager.locateAsset(textureKey);
-            found = (assetInfo != null);
-            TEXTURE_MAP_CACHE.put(textureName, found);
-        }
+        // Companion maps are optional. Loading a missing asset throws without
+        // logging the warning produced by AssetManager.locateAsset().
+        boolean found = TEXTURE_MAP_CACHE.computeIfAbsent(textureName,
+                name -> isOptionalTextureAvailable(assetManager, name));
 
         // Set it
         if (found) {
@@ -251,6 +246,15 @@ public final class AssetUtils {
             material.setTexture(paramName, assetManager.loadTexture(textureKey));
         } else {
             material.clearParam(paramName);
+        }
+    }
+
+    private static boolean isOptionalTextureAvailable(AssetManager assetManager, String textureName) {
+        try {
+            assetManager.loadTexture(new TextureKey(textureName, false));
+            return true;
+        } catch (AssetNotFoundException e) {
+            return false;
         }
     }
 
