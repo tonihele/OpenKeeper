@@ -75,10 +75,10 @@ public final class HatcheryController extends NormalRoomController implements IC
     }
 
     @Override
-    public void onSpawn(double time, EntityId entityId) {
+    public void onSpawn(double time, EntityId spawnedEntityId) {
         entityData.setComponent(this.entityId, new ChickenGenerator(time));
-        if (entityId != null) {
-            this.roomFoodControl.addItem(entityId, start);
+        if (spawnedEntityId != null) {
+            this.roomFoodControl.addItem(spawnedEntityId, start);
         }
     }
 

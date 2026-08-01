@@ -44,8 +44,8 @@ public interface IEntityGenerator extends IRoomController {
      * Notifies that a entity was spawn from this room
      *
      * @param time the time the entity was spawn
-     * @param entityId spawned entity ID
+     * @param spawnedEntityId spawned entity ID
      */
-    public void onSpawn(double time, EntityId entityId);
+    public void onSpawn(double time, EntityId spawnedEntityId);
 
 }
