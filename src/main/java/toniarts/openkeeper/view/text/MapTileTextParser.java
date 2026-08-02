@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.TextUtils;
 
@@ -30,22 +31,22 @@ public final class MapTileTextParser {
     }
 
     public String parseText(String text, IMapTileInformation mapTile) {
-        return TextUtils.parseText(text, (index) -> {
-            return getReplacement(index, mapTile);
+        return TextUtils.parseText(text, (parameter) -> {
+            return getReplacement(parameter, mapTile);
         });
     }
     
-    protected String getReplacement(int index, IMapTileInformation mapTile) {
-        switch (index) {
-            case 37:
+    protected String getReplacement(TextParameter parameter, IMapTileInformation mapTile) {
+        switch (parameter) {
+            case HEALTH_PERCENTAGE:
                 return Integer.toString(mapTile.getHealthPercent());
-            case 66:
+            case MANA_GAIN:
                 return Integer.toString(mapTile.getManaGain());
-            case 67:
+            case GOLD:
                 return Integer.toString(mapTile.getGold());
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + index + " not implemented!";
     }
 
 }

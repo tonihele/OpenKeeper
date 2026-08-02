@@ -26,9 +26,9 @@ public interface TextReplacer {
     /**
      * Get replacement for a parameter
      *
-     * @param index parameter index
+     * @param parameter text parameter
      * @return the actual parameter replacement
      */
-    String getReplacement(int index);
+    String getReplacement(TextParameter parameter);
 
 }

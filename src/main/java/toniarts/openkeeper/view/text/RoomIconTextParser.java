@@ -17,6 +17,8 @@
 package toniarts.openkeeper.view.text;
 
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -27,15 +29,15 @@ import toniarts.openkeeper.utils.Utils;
 public final class RoomIconTextParser extends SimpleIconTextParser<Room> {
 
     @Override
-    protected String getReplacement(int index, Room room) {
-        switch (index) {
-            case 1:
+    protected String getReplacement(TextParameter parameter, Room room) {
+        switch (parameter) {
+            case NAME:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(room.getNameStringId()));
-            case 2:
+            case COST:
                 return Integer.toString(room.getCost());
-            case 21: // ?
+            case ROOM_COST: // ?
                 return Integer.toString(room.getCost());
-            case 22:
+            case ROOM_SIZE_HINT:
 
                 // Size hint
                 if (room.getRecommendedSizeX() == 1 && room.getRecommendedSizeY() == 1) {
@@ -50,9 +52,9 @@ public final class RoomIconTextParser extends SimpleIconTextParser<Room> {
 
 
                 return "No size hint for " + room.getRecommendedSizeX() + " x " + room.getRecommendedSizeY();
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + index + " not implemented!";
     }
 
 }

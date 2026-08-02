@@ -18,6 +18,8 @@ package toniarts.openkeeper.view.text;
 
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -28,19 +30,19 @@ import toniarts.openkeeper.utils.Utils;
 public final class DoorIconTextParser extends IconTextParser<Door, Trap> {
 
     @Override
-    protected String getReplacement(int index, Door door, Trap trap) {
-        switch (index) {
-            case 1:
+    protected String getReplacement(TextParameter parameter, Door door, Trap trap) {
+        switch (parameter) {
+            case NAME:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
-            case 2:
+            case COST:
                 return Integer.toString(door.getGoldCost());
-            case 25:
+            case MANA_USAGE:
                 return Integer.toString(trap.getManaUsage());
-            case 26:
+            case MANA_COST_TO_FIRE:
                 return Integer.toString(trap.getManaCostToFire());
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + index + " not implemented!";
     }
 
 }
