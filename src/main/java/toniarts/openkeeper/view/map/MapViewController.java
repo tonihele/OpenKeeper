@@ -397,7 +397,10 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
                     // The principle is bit wrong, the random texture is tied to the tile, and not material etc.
                     // But it is probably just the tops of few tiles, so...
-                    int tex = tile.getRandomTextureIndex();
+                    // ROCK TOP.kmf contains 2 texture alternatives while Rock declares 3 textureFrames
+                    // in Terrain.kwd. Wrap the third weighted slot to the default texture instead of
+                    // trying to load the nonexistent T_Rock_Top2T_Rock_top2_2.j3m material.
+                    int tex = Math.floorMod(tile.getRandomTextureIndex(), textures.size());
                     if (tex != 0) { // 0 is the default anyway
                         Geometry g = (Geometry) spatial;
                         Material m = g.getMaterial();
@@ -413,7 +416,6 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                                 g.setMaterial(newMaterial);
                             } catch (Exception e) {
 
-                                // FIXME: Rock top fails, we may have a problem in the material naming
                                 logger.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
                             }
                         }
