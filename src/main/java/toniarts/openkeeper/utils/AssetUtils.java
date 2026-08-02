@@ -235,26 +235,31 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        // Companion maps are optional. Loading a missing asset throws without
-        // logging the warning produced by AssetManager.locateAsset().
-        boolean found = TEXTURE_MAP_CACHE.computeIfAbsent(textureName,
-                name -> isOptionalTextureAvailable(assetManager, name));
+        Texture texture = null;
+        Boolean found = TEXTURE_MAP_CACHE.get(textureName);
+        if (found == null) {
+            // Companion maps are optional. Loading a missing asset throws without
+            // logging the warning produced by AssetManager.locateAsset().
+            try {
+                texture = assetManager.loadTexture(new TextureKey(textureName, false));
+                found = true;
+            } catch (AssetNotFoundException e) {
+                found = false;
+            }
+            Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
+            if (cached != null) {
+                found = cached;
+            }
+        }
 
         // Set it
         if (found) {
-            TextureKey textureKey = new TextureKey(textureName, false);
-            material.setTexture(paramName, assetManager.loadTexture(textureKey));
+            if (texture == null) {
+                texture = assetManager.loadTexture(new TextureKey(textureName, false));
+            }
+            material.setTexture(paramName, texture);
         } else {
             material.clearParam(paramName);
-        }
-    }
-
-    private static boolean isOptionalTextureAvailable(AssetManager assetManager, String textureName) {
-        try {
-            assetManager.loadTexture(new TextureKey(textureName, false));
-            return true;
-        } catch (AssetNotFoundException e) {
-            return false;
         }
     }
 
