@@ -138,8 +138,8 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     @Override
-    public void onSpawn(double time, EntityId entityId) {
-        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, time));
+    public void onSpawn(double time, EntityId spawnedEntityId) {
+        entityData.setComponent(this.entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, time));
     }
 
     @Override
