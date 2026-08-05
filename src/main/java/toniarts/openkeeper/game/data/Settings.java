@@ -275,7 +275,7 @@ public final class Settings {
                 logger.log(Logger.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
             }
         }
-        this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+        this.settings.setFrameRate(Math.min(MAX_FPS, settings.getFrequency()));
 
         // Assing some app level settings
         settings.setTitle(TITLE);
