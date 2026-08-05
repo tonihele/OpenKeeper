@@ -1,13 +1,15 @@
-uniform mat4 g_WorldViewProjectionMatrix;
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_explicit_uniform_location : enable
 
-uniform float g_Time;
-uniform int m_NumberOfTiles;
-uniform int m_Speed;
+layout(location = 0) uniform mat4 g_WorldViewProjectionMatrix;
+layout(location = 4) uniform float g_Time;
+layout(location = 5) uniform int m_NumberOfTiles;
+layout(location = 6) uniform int m_Speed;
 
-in vec3 inPosition;
-in vec2 inTexCoord;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
 
-out vec2 texCoord;
+layout(location = 0) out vec2 texCoord;
 
 void main() {
    vec4 modelSpacePos = vec4(inPosition, 1.0);

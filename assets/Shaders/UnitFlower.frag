@@ -1,30 +1,35 @@
-#import "Common/ShaderLib/GLSLCompat.glsllib"
+precision highp float;
+precision highp sampler2D;
 
-uniform float g_Time;
+#extension GL_ARB_separate_shader_objects   : enable
+#extension GL_ARB_explicit_uniform_location : enable
+
+layout(location = 4) uniform float g_Time;
 
 #ifdef OBJECTIVE_TEXTURE
-    uniform sampler2D m_ObjectiveTexture;
+    layout(location = 13) uniform sampler2D m_ObjectiveTexture;
 #endif
-
-    uniform sampler2D m_CenterTexture;
-    uniform sampler2D m_HealthTexture;
-
-varying vec4 color;
-varying vec2 texCoord;
+    layout(location = 14) uniform sampler2D m_CenterTexture;
+    layout(location = 15) uniform sampler2D m_HealthTexture;
 
 #ifdef EXPERIENCE
-    uniform float m_Experience;
+    layout(location = 16) uniform float m_Experience;
 #endif
+layout(location = 17) uniform bool m_FlashColors;
+layout(location = 18) uniform float m_FlashInterval;
 
-uniform bool m_FlashColors;
-uniform float m_FlashInterval;
-varying vec4 color1;
-varying vec4 color2;
-varying vec4 color3;
-varying vec4 color4;
-varying vec4 color5;
-varying vec4 color6;
-varying vec4 color7;
+layout(location = 0) in vec2 texCoord;
+
+layout(location = 1) in vec4 color;
+layout(location = 2) in vec4 color1;
+layout(location = 3) in vec4 color2;
+layout(location = 4) in vec4 color3;
+layout(location = 5) in vec4 color4;
+layout(location = 6) in vec4 color5;
+layout(location = 7) in vec4 color6;
+layout(location = 8) in vec4 color7;
+
+layout(location = 0) out vec4 fragColor;
 
 const float PI = 3.14159265358979323846264;
 const int numOfColors = 7;
@@ -40,17 +45,17 @@ void main() {
 
     // Draw the textures with Porter-Duff Source Over Destination rule
     if (uvCenter.x >= 0.0 && uvCenter.x <= 1.0 && uvCenter.y >= 0.0 && uvCenter.y <= 1.0) {
-        vec4 centerTextureColor = texture2D(m_CenterTexture, vec2(uvCenter.x, 1.0 - uvCenter.y));
+        vec4 centerTextureColor = texture(m_CenterTexture, vec2(uvCenter.x, 1.0 - uvCenter.y));
         finalColor = centerTextureColor + finalColor*(1.0-centerTextureColor[3]);
     }
 
     if (uvHealth.x >= 0.0 && uvHealth.x <= 1.0 && uvHealth.y >= 0.0 && uvHealth.y <= 1.0) {
-        vec4 healthTextureColor = texture2D(m_HealthTexture, vec2(uvHealth.x, 1.0 - uvHealth.y));
+        vec4 healthTextureColor = texture(m_HealthTexture, vec2(uvHealth.x, 1.0 - uvHealth.y));
         finalColor = healthTextureColor + finalColor*(1.0-healthTextureColor[3]);
     }
 
 #ifdef OBJECTIVE_TEXTURE
-    vec4 objectiveTextureColor = texture2D(m_ObjectiveTexture, vec2(texCoord.x, 1.0 - texCoord.y));
+    vec4 objectiveTextureColor = texture(m_ObjectiveTexture, vec2(texCoord.x, 1.0 - texCoord.y));
     
     // Some "dirt" on the objective texture, or I just can't pick a correct composition mode
     if(objectiveTextureColor[3] > 0.075) {
@@ -91,5 +96,5 @@ void main() {
     }
 #endif
 
-    gl_FragColor = finalColor;
+    fragColor = finalColor;
 }

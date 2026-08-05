@@ -1,21 +1,29 @@
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_explicit_uniform_location : enable
+
+precision highp float;
+precision highp sampler2D;
+
 #if defined(DISCARD_ALPHA)
-    uniform float m_AlphaDiscardThreshold;
+    layout(location = 7) uniform float m_AlphaDiscardThreshold;
 #endif
 
-uniform sampler2D m_TexLuma;
-uniform sampler2D m_TexCr;
-uniform sampler2D m_TexCb;
+layout(location = 4) uniform sampler2D m_TexLuma;
+layout(location = 5) uniform sampler2D m_TexCr;
+layout(location = 6) uniform sampler2D m_TexCb;
 
-uniform bool m_NoFrame;
+layout(location = 7) uniform bool m_NoFrame;
 
-varying vec2 texCoord;
-
-uniform vec2 m_AspectValues;
-uniform vec2 m_ValidRange;
+layout(location = 8) uniform vec2 m_AspectValues;
+layout(location = 9) uniform vec2 m_ValidRange;
 
 #ifdef LETTERBOX
-uniform vec4 m_LetterboxColor;
+layout(location = 10) uniform vec4 m_LetterboxColor;
 #endif
+
+layout(location = 0) in vec2 texCoord;
+
+layout(location = 0) out vec4 fragColor;
 
 mat3 convert = mat3(
 		1.164, 1.164, 1.164,
@@ -46,7 +54,7 @@ void main(){
 	{
 
         if(!m_NoFrame) {
-            color = vec4(convert * vec3(texture2D(m_TexLuma,uv).r-(16.0/256.0), texture2D(m_TexCb,uv).r-0.5, texture2D(m_TexCr,uv).r - 0.5),1.0);
+            color = vec4(convert * vec3(texture(m_TexLuma,uv).r-(16.0/256.0), texture(m_TexCb,uv).r-0.5, texture(m_TexCr,uv).r - 0.5),1.0);
 	}
 
         }
@@ -58,5 +66,5 @@ void main(){
     }
 #endif
 
-    gl_FragColor = color;
+    fragColor = color;
 }

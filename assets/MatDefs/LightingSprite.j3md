@@ -141,8 +141,8 @@ MaterialDef Phong Lighting {
     Technique {
         LightMode SinglePass
 
-        VertexShader   GLSL310 GLSL300 GLSL150: Shaders/LightingSprite.vert
-        FragmentShader GLSL310 GLSL300 GLSL150: Shaders/LightingSprite.frag
+        VertexShader   GLSL330 GLSL300: Shaders/LightingSprite.vert
+        FragmentShader GLSL330 GLSL300: Shaders/LightingSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -193,8 +193,8 @@ MaterialDef Phong Lighting {
 
         LightMode MultiPass
 
-        VertexShader   GLSL310 GLSL300 GLSL150: Shaders/LightingSprite.vert
-        FragmentShader GLSL310 GLSL300 GLSL150: Shaders/LightingSprite.frag
+        VertexShader   GLSL330 GLSL300: Shaders/LightingSprite.vert
+        FragmentShader GLSL330 GLSL300: Shaders/LightingSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -243,8 +243,8 @@ MaterialDef Phong Lighting {
 
     Technique PreShadow {
 
-        VertexShader   GLSL310 GLSL300 GLSL150: Shaders/LightingSprite.vert
-        FragmentShader GLSL310 GLSL300 GLSL150: Shaders/LightingSprite.frag
+        VertexShader   GLSL330 GLSL300: Shaders/LightingSprite.vert
+        FragmentShader GLSL330 GLSL300: Shaders/LightingSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -276,8 +276,8 @@ MaterialDef Phong Lighting {
     }
 
     Technique PostShadow {
-        VertexShader   GLSL310 GLSL300 GLSL150: Shaders/PostShadowSprite.vert
-        FragmentShader GLSL310 GLSL300 GLSL150: Shaders/PostShadowSprite.frag
+        VertexShader   GLSL330 GLSL300: Shaders/PostShadowSprite.vert
+        FragmentShader GLSL330 GLSL300: Shaders/PostShadowSprite.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -316,8 +316,8 @@ MaterialDef Phong Lighting {
 
   Technique PreNormalPass {
 
-        VertexShader   GLSL310 GLSL300 GLSL150: Common/MatDefs/SSAO/normal.vert
-        FragmentShader GLSL310 GLSL300 GLSL150: Common/MatDefs/SSAO/normal.frag
+        VertexShader   GLSL330 GLSL300: Common/MatDefs/SSAO/normal.vert
+        FragmentShader GLSL330 GLSL300: Common/MatDefs/SSAO/normal.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
@@ -340,8 +340,8 @@ MaterialDef Phong Lighting {
 
     Technique Glow {
 
-        VertexShader   GLSL310 GLSL300 GLSL150: Common/MatDefs/Misc/Unshaded.vert
-        FragmentShader GLSL310 GLSL300 GLSL150: Common/MatDefs/Light/Glow.frag
+        VertexShader   GLSL330 GLSL300: Common/MatDefs/Misc/Unshaded.vert
+        FragmentShader GLSL330 GLSL300: Common/MatDefs/Light/Glow.frag
 
         WorldParameters {
             WorldViewProjectionMatrix

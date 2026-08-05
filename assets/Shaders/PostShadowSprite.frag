@@ -1,26 +1,25 @@
-#import "Common/ShaderLib/GLSLCompat.glsllib"
-#import "Common/ShaderLib/Shadows.glsllib"
-#if defined(PSSM) || defined(FADE)
-in float shadowPosition;
-#endif
+#extension GL_ARB_separate_shader_objects   : enable
 
-in vec4 projCoord0;
-in vec4 projCoord1;
-in vec4 projCoord2;
-in vec4 projCoord3;
-#ifndef BACKFACE_SHADOWS
-    in float nDotL;
-#endif
+#import "Common/ShaderLib/Shadows.glsllib"
+
+layout(location = 0) out vec4 fragColor;
+layout(location = 0) in vec4 projCoord0;
+layout(location = 1) in vec4 projCoord1;
+layout(location = 2) in vec4 projCoord2;
+layout(location = 3) in vec4 projCoord3;
 
 #ifdef POINTLIGHT
-    in vec4 projCoord4;
-    in vec4 projCoord5;
-    uniform vec3 m_LightPos;
-    in vec4 worldPos;
+layout(location = 4) in vec4 projCoord4;
+layout(location = 5) in vec4 projCoord5;
+layout(location = 6) in vec4 worldPos;
+uniform vec3 m_LightPos;
 #else
-    #ifndef PSSM        
-        in float lightDot;
-    #endif
+#ifndef PSSM
+    layout(location = 7) in float lightDot;
+#endif
+#endif
+#if defined(PSSM) || defined(FADE)
+layout(location = 8) in float shadowPosition;
 #endif
 
 #ifdef DISCARD_ALPHA
@@ -30,7 +29,10 @@ in vec4 projCoord3;
         uniform sampler2D m_DiffuseMap;
     #endif
     uniform float m_AlphaDiscardThreshold;
-    in vec2 texCoord;
+    layout(location = 9) in vec2 texCoord;
+#endif
+#ifndef BACKFACE_SHADOWS
+layout(location = 10) in float nDotL;
 #endif
 
 #ifdef FADE
@@ -41,9 +43,9 @@ void main(){
  
     #ifdef DISCARD_ALPHA
         #ifdef COLOR_MAP
-            float alpha = texture2D(m_ColorMap,texCoord).a;
-        #else    
-            float alpha = texture2D(m_DiffuseMap,texCoord).a;
+            float alpha = texture(m_ColorMap,texCoord).a;
+        #else
+            float alpha = texture(m_DiffuseMap,texCoord).a;
         #endif
         if(alpha<=m_AlphaDiscardThreshold){
             discard;
@@ -71,7 +73,7 @@ void main(){
        #else 
             //spotlight
             if(lightDot < 0.0){
-                gl_FragColor = vec4(1.0);
+                fragColor = vec4(1.0);
                 return;
             }
             shadow = getSpotLightShadows(m_ShadowMap0,projCoord0);
@@ -83,7 +85,7 @@ void main(){
     #endif
 
     shadow = shadow * m_ShadowIntensity + (1.0 - m_ShadowIntensity);
-    gl_FragColor = vec4(shadow, shadow, shadow, 1.0);
+    fragColor = vec4(shadow, shadow, shadow, 1.0);
 
 }
 

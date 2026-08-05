@@ -8,8 +8,8 @@ MaterialDef ProgressIndicator {
     }
 
     Technique {
-        VertexShader GLSL150 GLSL100:   Shaders/Gui/ProgressIndicator.vert
-        FragmentShader GLSL150 GLSL100: Shaders/Gui/ProgressIndicator.frag
+        VertexShader   GLSL330 GLSL300: Shaders/Gui/ProgressIndicator.vert
+        FragmentShader GLSL330 GLSL300: Shaders/Gui/ProgressIndicator.frag
 
         WorldParameters {
             WorldViewProjectionMatrix

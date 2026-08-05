@@ -1,9 +1,12 @@
-uniform mat4 g_WorldViewProjectionMatrix;
+#extension GL_ARB_separate_shader_objects   : enable
+#extension GL_ARB_explicit_uniform_location : enable
 
-attribute vec3 inPosition;
-attribute vec2 inTexCoord;
+layout(location = 0) uniform mat4 g_WorldViewProjectionMatrix;
 
-varying vec2 texCoord;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+layout(location = 0) out vec2 texCoord;
 
 void main(){
     

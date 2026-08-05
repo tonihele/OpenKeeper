@@ -1,18 +1,20 @@
-#import "Common/ShaderLib/GLSLCompat.glsllib"
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_explicit_uniform_location : enable
 
-uniform mat4 g_WorldViewProjectionMatrix;
-uniform vec4 m_Color;
+precision highp float;
+precision highp sampler2D;
 
-attribute vec3 inPosition;
+layout(location = 0) uniform mat4 g_WorldViewProjectionMatrix;
+layout(location = 4) uniform vec4 m_Color;
 
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
 #ifdef VERTEX_COLOR
-    attribute vec4 inColor;
+layout(location = 2) in vec4 inColor;
 #endif
 
-attribute vec2 inTexCoord;
-varying vec2 texCoord;
-
-varying vec4 color;
+layout(location = 0) out vec2 texCoord;
+layout(location = 1) out vec4 color;
 
 void main() {
     gl_Position = g_WorldViewProjectionMatrix * vec4(inPosition, 1.0);

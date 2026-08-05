@@ -1,7 +1,6 @@
-#import "Common/ShaderLib/GLSLCompat.glsllib"
+#extension GL_ARB_separate_shader_objects   : enable
+
 #import "Common/ShaderLib/Instancing.glsllib"
-#import "Common/ShaderLib/Skinning.glsllib"
-#import "Common/ShaderLib/MorphAnim.glsllib"
 
 uniform mat4 m_LightViewProjectionMatrix0;
 uniform mat4 m_LightViewProjectionMatrix1;
@@ -13,41 +12,40 @@ uniform float g_Time;
 uniform int m_NumberOfTiles;
 uniform int m_Speed;
 
-out vec4 projCoord0;
-out vec4 projCoord1;
-out vec4 projCoord2;
-out vec4 projCoord3;
+layout(location = 0) out vec4 projCoord0;
+layout(location = 1) out vec4 projCoord1;
+layout(location = 2) out vec4 projCoord2;
+layout(location = 3) out vec4 projCoord3;
 
 #ifdef POINTLIGHT
-    uniform mat4 m_LightViewProjectionMatrix4;
-    uniform mat4 m_LightViewProjectionMatrix5;
-    uniform vec3 m_LightPos;
-    out vec4 projCoord4;
-    out vec4 projCoord5;
-    out vec4 worldPos;
+uniform mat4 m_LightViewProjectionMatrix4;
+uniform mat4 m_LightViewProjectionMatrix5;
+uniform vec3 m_LightPos;
+layout(location = 4) out vec4 projCoord4;
+layout(location = 5) out vec4 projCoord5;
+layout(location = 6) out vec4 worldPos;
 #else
-    uniform vec3 m_LightDir;
-    #ifndef PSSM
-        uniform vec3 m_LightPos;
-        out float lightDot;
-    #endif
+uniform vec3 m_LightDir;
+#ifndef PSSM
+uniform vec3 m_LightPos;
+layout(location = 7) out float lightDot;
+#endif
 #endif
 
 #if defined(PSSM) || defined(FADE)
-out float shadowPosition;
+layout(location = 8) out float shadowPosition;
 #endif
 
-out vec2 texCoord;
-
-in vec3 inPosition;
+layout(location = 0) in vec3 inPosition;
+layout(location = 9) out vec2 texCoord;
 
 #ifndef BACKFACE_SHADOWS
-    in vec3 inNormal;
-    out float nDotL;
+layout(location = 1) in vec3 inNormal;
+layout(location = 10) out float nDotL;
 #endif
 
 #ifdef DISCARD_ALPHA
-    in vec2 inTexCoord;
+layout(location = 2) in vec2 inTexCoord;
 #endif
 
 const mat4 biasMat = mat4(0.5, 0.0, 0.0, 0.0,

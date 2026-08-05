@@ -1,15 +1,21 @@
-#import "Common/ShaderLib/GLSLCompat.glsllib"
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_explicit_uniform_location : enable
+
+precision highp float;
+precision highp sampler2D;
 
 #ifdef TEXTURE
-    uniform sampler2D m_Texture;
+layout(location = 6) uniform sampler2D m_Texture;
 #endif
 
-varying vec4 color;
-varying vec2 texCoord;
+layout(location = 5) uniform float m_Progress;
 
-uniform float m_Progress;
+layout(location = 0) in vec2 texCoord;
+layout(location = 1) in vec4 color;
 
-float PI = 3.14159265358979323846264;
+layout(location = 0) out vec4 fragColor;
+
+const float PI = 3.14159265358979323846264;
 
 void main() {
     vec2 uv = texCoord.xy;
@@ -18,14 +24,14 @@ void main() {
 
     #ifdef TEXTURE
       if (sweep < m_Progress) {
-        vec4 texVal = texture2D(m_Texture, texCoord);
-        gl_FragColor = texVal * color;
+        vec4 texVal = texture(m_Texture, texCoord);
+        fragColor = texVal * color;
       } else
         discard;
 
     #else
       if (sweep < m_Progress)
-        gl_FragColor = color;
+        fragColor = color;
       else
         discard;
 
