@@ -19,7 +19,6 @@ package toniarts.openkeeper.utils;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.AssetNotFoundException;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
@@ -235,17 +234,10 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        Texture texture = null;
         Boolean found = TEXTURE_MAP_CACHE.get(textureName);
         if (found == null) {
-            // Companion maps are optional. Loading a missing asset throws without
-            // logging the warning produced by AssetManager.locateAsset().
-            try {
-                texture = assetManager.loadTexture(new TextureKey(textureName, false));
-                found = true;
-            } catch (AssetNotFoundException e) {
-                found = false;
-            }
+            AssetInfo assetInfo = assetManager.locateAsset(new TextureKey(textureName, false));
+            found = (assetInfo != null);
             Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
             if (cached != null) {
                 found = cached;
@@ -254,10 +246,7 @@ public final class AssetUtils {
 
         // Set it
         if (found) {
-            if (texture == null) {
-                texture = assetManager.loadTexture(new TextureKey(textureName, false));
-            }
-            material.setTexture(paramName, texture);
+            material.setTexture(paramName, assetManager.loadTexture(new TextureKey(textureName, false)));
         } else {
             material.clearParam(paramName);
         }
