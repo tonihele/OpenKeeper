@@ -125,6 +125,7 @@ public final class Main extends SimpleApplication {
 
         // set a better logging format
         System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
+        suppressMissingAssetWarnings();
 
         // Finally start it if everything went ok
         if (checkSetup(app)) {
@@ -132,6 +133,13 @@ public final class Main extends SimpleApplication {
         } else {
             logger.log(Level.WARNING, "Application setup not complete!!");
         }
+    }
+
+    private static void suppressMissingAssetWarnings() {
+        java.util.logging.Logger assetManagerLogger = java.util.logging.Logger.getLogger(AssetManager.class.getName());
+        java.util.logging.Filter existingFilter = assetManagerLogger.getFilter();
+        assetManagerLogger.setFilter(record -> !"Cannot locate resource: {0}".equals(record.getMessage())
+                && (existingFilter == null || existingFilter.isLoggable(record)));
     }
 
     /**
