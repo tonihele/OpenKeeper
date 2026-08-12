@@ -35,8 +35,10 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import toniarts.openkeeper.utils.Point;
@@ -44,7 +46,12 @@ import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
+import toniarts.openkeeper.game.controller.RoomPlacementValidator;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -91,6 +98,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final Player player;
     private final KwdFile kwdFile;
     private final EntityData entityData;
+    private final EntitySet constructionBlockingObjects;
+    private final EntitySet constructionBlockingDoors;
+    private final EntitySet constructionBlockingTraps;
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
@@ -117,6 +127,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.player = player;
         this.kwdFile = kwdFile;
         this.entityData = entityData;
+        constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
+        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
+        constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class);
         this.mapInformation = mapInformation;
         this.textParser = textParser;
 
@@ -193,34 +206,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     return ColorIndicator.RED;
                 } else if (interactionState.getType() == Type.ROOM
                         && !(gameClientState.getMapClientService().isTaggable(p)
-                        || (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), (short) interactionState.getItemId())
-                        && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+                        || isRoomSelectionValid())) {
                     return ColorIndicator.RED;
                 }
                 return ColorIndicator.BLUE;
             }
 
-            private boolean isPlayerAffordToBuild(Player player, Room room) {
-                int playerMoney = gameClientState.getPlayer(player.getPlayerId()).getGold();
-                if (playerMoney == 0) {
-                    return false;
-                }
-                int buildablePlots = 0;
-                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
-                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-                        Point p = new Point(x, y);
-
-                        if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
-                            buildablePlots++;
-                        }
-
-                        // See the gold amount
-                        if (playerMoney < buildablePlots * room.getCost()) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+            private boolean isRoomSelectionValid() {
+                SelectionArea area = selectionHandler.getSelectionArea();
+                return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                        area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
+                        (short) interactionState.getItemId(),
+                        gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();
             }
         };
 
@@ -263,6 +260,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         app.getInputManager().removeRawInputListener(inputListener);
         keys.clear();
         selectionHandler.cleanup();
+        constructionBlockingObjects.release();
+        constructionBlockingDoors.release();
+        constructionBlockingTraps.release();
         CheatState cheatState = this.stateManager.getState(CheatState.class);
         if (cheatState != null) {
             this.stateManager.detach(cheatState);
@@ -615,8 +615,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             boolean select = !gameClientState.getMapClientService().isSelected(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId());
                             gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
                         } else if (interactionState.getType() == Type.ROOM
-                                && gameClientState.getMapClientService().isBuildable(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId(), (short) interactionState.getItemId())) {
-                            gameClientState.getGameClientService().build(selectionArea.getStart(), selectionArea.getEnd(), (short) interactionState.getItemId());
+                                && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                                        selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
+                                        (short) interactionState.getItemId(),
+                                        gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
+                            gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
                         } else if (interactionState.getType() == Type.SELL) {
                             gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
                         }
@@ -754,6 +757,27 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
         return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), entityData, object != null ? object.getEntityId() : null);
+    }
+
+    private Set<Point> getConstructionBlockingTiles() {
+        constructionBlockingObjects.applyChanges();
+        constructionBlockingDoors.applyChanges();
+        constructionBlockingTraps.applyChanges();
+
+        Set<Point> blockedTiles = new HashSet<>();
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps);
+        return blockedTiles;
+    }
+
+    private static void addConstructionBlockingTiles(Set<Point> blockedTiles, EntitySet entities) {
+        for (Entity entity : entities) {
+            Position position = entity.get(Position.class);
+            if (position != null) {
+                blockedTiles.add(WorldUtils.vectorToPoint(position.position));
+            }
+        }
     }
 
     /**

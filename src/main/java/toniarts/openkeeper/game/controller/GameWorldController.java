@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
@@ -75,6 +76,7 @@ import java.lang.System.Logger.Level;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -100,6 +102,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      * actions are prosessed in real time by possibly other threads. We must not lose any gold from the world.
      */
     public static final Object GOLD_LOCK = new Object();
+    private static final short WOODEN_BRIDGE_ROOM_ID = 8;
 
     private final KwdFile kwdFile;
     private final EntityData entityData;
@@ -320,35 +323,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void build(Vector2f start, Vector2f end, short playerId, short roomId) {
-        List<Point> instancePlots = new ArrayList<>();
-        int x1 = (int) Math.max(0, start.x);
-        int x2 = (int) Math.min(kwdFile.getMap().getWidth(), end.x + 1);
-        int y1 = (int) Math.max(0, start.y);
-        int y2 = (int) Math.min(kwdFile.getMap().getHeight(), end.y + 1);
-        for (int x = x1; x < x2; x++) {
-            for (int y = y1; y < y2; y++) {
-                Point p = new Point(x, y);
-
-                // See that is this valid
-                if (!mapController.isBuildable(p, playerId, roomId)) {
-                    continue;
-                }
-
-                instancePlots.add(p);
-            }
-        }
-
-        // If no plots, no building
-        if (instancePlots.isEmpty()) {
+        Keeper player = players.get(playerId);
+        if (player == null) {
             return;
         }
 
-        // If this is a bridge, we only got the starting point(s) as valid so we need to determine valid bridge pieces by our ourselves
-        Room room = kwdFile.getRoomById(roomId);
-        if ((room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER))
-                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
-            instancePlots = new ArrayList<>(mapController.getTerrainBatches(instancePlots, x1, x2, y1, y2));
+        RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
+                kwdFile, mapController, entityData, start, end, playerId, roomId, player.getGold());
+        if (!placement.isValid()) {
+            return;
         }
+
+        List<Point> instancePlots = new ArrayList<>(placement.plots());
+        Room room = kwdFile.getRoomById(roomId);
 
         // See that can we afford the building
         synchronized (GOLD_LOCK) {
@@ -371,6 +358,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             IMapTileController tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
+            if (room.getRoomId() == WOODEN_BRIDGE_ROOM_ID
+                    && tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                double lifetime = gameSettings.get(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS).getValue();
+                entityData.setComponent(tile.getEntityId(), new WoodenBridgeDecay(gameTimer.getGameTime() + lifetime));
+            }
             buildTiles.add(tile.getLocation());
         }
 
@@ -460,6 +452,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 if (tile == null) {
                     continue;
                 }
+                entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
                 soldTiles.add(tile.getLocation());
 
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
@@ -528,6 +521,75 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Notify
         notifyOnSold(playerId, soldTiles);
+    }
+
+    @Override
+    public void destroyRoomTiles(Collection<Point> points) {
+        Set<Point> destroyedTiles = new HashSet<>();
+        Set<Point> updatableTiles = new HashSet<>();
+        Set<EntityId> destroyedInstances = new HashSet<>();
+        List<Point> roomCoordinates = new ArrayList<>();
+        Map<Short, List<Point>> destroyedTilesByOwner = new java.util.HashMap<>();
+
+        for (Point point : points) {
+            IMapTileController tile = mapController.getMapData().getTile(point);
+            if (tile == null) {
+                continue;
+            }
+            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                continue;
+            }
+
+            Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+            if (room == null) {
+                continue;
+            }
+            short ownerId = tile.getOwnerId();
+            destroyedTiles.add(tile.getLocation());
+            destroyedTilesByOwner.computeIfAbsent(ownerId, ignored -> new ArrayList<>()).add(tile.getLocation());
+            destroyedInstances.add(tile.getRoomId());
+            entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
+
+            if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+                tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+            } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+                tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+            } else {
+                tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+            }
+            updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+        }
+
+        if (destroyedTiles.isEmpty()) {
+            return;
+        }
+
+        for (EntityId roomInstance : destroyedInstances) {
+            IRoomController roomController = mapController.getRoomController(roomInstance);
+            if (roomController == null) {
+                continue;
+            }
+            for (Point point : roomController.getRoomInstance().getCoordinates()) {
+                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+            }
+            roomCoordinates.addAll(roomController.getRoomInstance().getCoordinates());
+            removeRoomInstance(roomInstance);
+        }
+        mapController.removeRoomInstances(destroyedInstances.toArray(EntityId[]::new));
+        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
+
+        Set<EntityId> newInstances = new HashSet<>();
+        for (Point point : roomCoordinates) {
+            EntityId instance = mapController.getMapData().getTile(point).getRoomId();
+            if (instance != null && newInstances.add(instance)) {
+                addGoldCapacityToPlayer(instance);
+            }
+        }
+
+        for (Map.Entry<Short, List<Point>> entry : destroyedTilesByOwner.entrySet()) {
+            notifyOnSold(entry.getKey(), entry.getValue());
+        }
     }
 
     /**

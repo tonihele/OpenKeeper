@@ -76,6 +76,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
+    private GameTimeController gameTimer;
     private INavigationService navigationService;
     private PositionSystem positionSystem;
 
@@ -115,7 +116,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // The players
         setupPlayers();
 
-        final GameTimeController gameTimer = new GameTimeController();
+        gameTimer = new GameTimeController();
         // The world
         gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer);
 
@@ -417,6 +418,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     @Override
     public ILevelInfo getLevelInfo() {
         return levelInfo;
+    }
+
+    @Override
+    public IGameTimer getGameTimer() {
+        return gameTimer;
     }
 
     private static class LevelInfo implements ILevelInfo {
