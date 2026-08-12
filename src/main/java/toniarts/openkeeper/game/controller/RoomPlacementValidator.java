@@ -68,7 +68,7 @@ public final class RoomPlacementValidator {
             Set<Point> blockedTiles, Vector2f start, Vector2f end, short playerId,
             short roomId, int availableGold) {
         Room room = kwdFile.getRoomById(roomId);
-        if (room == null || !room.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
+        if (!isBuildableRoom(room)) {
             return invalid(Failure.INVALID_ROOM);
         }
 
@@ -76,35 +76,18 @@ public final class RoomPlacementValidator {
         int x2 = (int) Math.max(start.x, end.x);
         int y1 = (int) Math.min(start.y, end.y);
         int y2 = (int) Math.max(start.y, end.y);
-        if (x1 < 0 || y1 < 0 || x2 >= mapInformation.getMapData().getWidth()
-                || y2 >= mapInformation.getMapData().getHeight()) {
+        if (isOutsideMap(mapInformation, x1, x2, y1, y2)) {
             return invalid(Failure.OUT_OF_BOUNDS);
         }
 
-        List<Point> plots = new ArrayList<>((x2 - x1 + 1) * (y2 - y1 + 1));
-        for (int x = x1; x <= x2; x++) {
-            for (int y = y1; y <= y2; y++) {
-                plots.add(new Point(x, y));
-            }
-        }
+        List<Point> plots = createPlots(x1, x2, y1, y2);
 
-        boolean bridge = room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
-                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA);
-        if (bridge) {
-            Result bridgeResult = validateBridge(kwdFile, mapInformation, blockedTiles,
-                    plots, WorldUtils.vectorToPoint(start), playerId, room);
-            if (!bridgeResult.isValid()) {
-                return bridgeResult;
-            }
-        } else {
-            for (Point plot : plots) {
-                if (!mapInformation.isBuildable(plot, playerId, roomId)) {
-                    return invalid(Failure.INVALID_TERRAIN);
-                }
-                if (blockedTiles.contains(plot)) {
-                    return invalid(Failure.BLOCKED_BY_ENTITY);
-                }
-            }
+        Result terrainResult = isBridge(room)
+                ? validateBridge(kwdFile, mapInformation, blockedTiles, plots,
+                        WorldUtils.vectorToPoint(start), playerId, room)
+                : validateLand(mapInformation, blockedTiles, plots, playerId, roomId);
+        if (!terrainResult.isValid()) {
+            return terrainResult;
         }
 
         long cost = (long) plots.size() * room.getCost();
@@ -112,6 +95,44 @@ public final class RoomPlacementValidator {
             return invalid(Failure.NOT_ENOUGH_GOLD);
         }
 
+        return new Result(Failure.NONE, Collections.unmodifiableList(plots));
+    }
+
+    private static boolean isBuildableRoom(Room room) {
+        return room != null && room.getFlags().contains(Room.RoomFlag.BUILDABLE);
+    }
+
+    private static boolean isOutsideMap(IMapInformation<?> mapInformation,
+            int x1, int x2, int y1, int y2) {
+        return x1 < 0 || y1 < 0 || x2 >= mapInformation.getMapData().getWidth()
+                || y2 >= mapInformation.getMapData().getHeight();
+    }
+
+    private static List<Point> createPlots(int x1, int x2, int y1, int y2) {
+        List<Point> plots = new ArrayList<>((x2 - x1 + 1) * (y2 - y1 + 1));
+        for (int x = x1; x <= x2; x++) {
+            for (int y = y1; y <= y2; y++) {
+                plots.add(new Point(x, y));
+            }
+        }
+        return plots;
+    }
+
+    private static boolean isBridge(Room room) {
+        return room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_WATER)
+                || room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAVA);
+    }
+
+    private static Result validateLand(IMapInformation<?> mapInformation,
+            Set<Point> blockedTiles, List<Point> plots, short playerId, short roomId) {
+        for (Point plot : plots) {
+            if (!mapInformation.isBuildable(plot, playerId, roomId)) {
+                return invalid(Failure.INVALID_TERRAIN);
+            }
+            if (blockedTiles.contains(plot)) {
+                return invalid(Failure.BLOCKED_BY_ENTITY);
+            }
+        }
         return new Result(Failure.NONE, Collections.unmodifiableList(plots));
     }
 

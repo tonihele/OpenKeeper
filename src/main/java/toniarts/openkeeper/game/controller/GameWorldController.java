@@ -337,21 +337,48 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         List<Point> instancePlots = new ArrayList<>(placement.plots());
         Room room = kwdFile.getRoomById(roomId);
 
-        // See that can we afford the building
-        synchronized (GOLD_LOCK) {
-            int cost = instancePlots.size() * room.getCost();
-            if (instancePlots.size() * room.getCost() > players.get(playerId).getGold()) {
-                return;
-            }
-            substractGold(cost, playerId);
+        if (!payForRoom(instancePlots.size(), room, playerId)) {
+            return;
         }
 
         // Build & mark
         List<Point> buildTiles = new ArrayList<>(instancePlots.size());
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
-        for (Point p : instancePlots) {
+        buildRoomTiles(instancePlots, room, playerId, buildTiles, buildPlots, updatableTiles);
 
+        // See if we hit any of the adjacent rooms
+        Set<EntityId> adjacentInstances = findAdjacentRoomInstances(buildPlots, room, playerId);
+        mergeRoomInstances(adjacentInstances, instancePlots, updatableTiles);
+
+        // Update
+        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
+
+        // New room, calculate gold capacity
+        IRoomController instance = mapController.getRoomControllerByCoordinates(instancePlots.getFirst());
+        if (adjacentInstances.isEmpty()) {
+            addGoldCapacityToPlayer(instance.getEntityId());
+            //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
+        }
+
+        // Notify the build
+        notifyOnBuild(playerId, buildTiles);
+    }
+
+    private boolean payForRoom(int plotCount, Room room, short playerId) {
+        synchronized (GOLD_LOCK) {
+            int cost = plotCount * room.getCost();
+            if (cost > players.get(playerId).getGold()) {
+                return false;
+            }
+            substractGold(cost, playerId);
+            return true;
+        }
+    }
+
+    private void buildRoomTiles(List<Point> instancePlots, Room room, short playerId,
+            List<Point> buildTiles, Set<Point> buildPlots, Set<Point> updatableTiles) {
+        for (Point p : instancePlots) {
             buildPlots.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, false)));
             updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
 
@@ -365,8 +392,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             buildTiles.add(tile.getLocation());
         }
+    }
 
-        // See if we hit any of the adjacent rooms
+    private Set<EntityId> findAdjacentRoomInstances(Set<Point> buildPlots, Room room, short playerId) {
         Set<EntityId> adjacentInstances = new LinkedHashSet<>();
         for (Point p : buildPlots) {
             IRoomController adjacentInstance = mapController.getRoomControllerByCoordinates(p);
@@ -382,14 +410,15 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 adjacentInstances.add(adjacentInstance.getEntityId());
             }
         }
+        return adjacentInstances;
+    }
 
-        // If any hits, merge to the first one, and update whole room
+    private void mergeRoomInstances(Set<EntityId> adjacentInstances, List<Point> instancePlots,
+            Set<Point> updatableTiles) {
         if (!adjacentInstances.isEmpty()) {
-
             // Add the mergeable rooms to updatable tiles as well
             EntityId firstInstance = null;
             for (EntityId instance : adjacentInstances) {
-
                 // Merge to the first found room instance
                 if (firstInstance == null) {
                     firstInstance = instance;
@@ -416,19 +445,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             mapController.getRoomController(firstInstance).construct();
             addGoldCapacityToPlayer(firstInstance);
         }
-
-        // Update
-        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
-
-        // New room, calculate gold capacity
-        IRoomController instance = mapController.getRoomControllerByCoordinates(instancePlots.getFirst());
-        if (adjacentInstances.isEmpty()) {
-            addGoldCapacityToPlayer(instance.getEntityId());
-            //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
-        }
-
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
     }
 
     @Override
@@ -525,46 +541,59 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void destroyRoomTiles(Collection<Point> points) {
-        Set<Point> destroyedTiles = new HashSet<>();
         Set<Point> updatableTiles = new HashSet<>();
         Set<EntityId> destroyedInstances = new HashSet<>();
-        List<Point> roomCoordinates = new ArrayList<>();
         Map<Short, List<Point>> destroyedTilesByOwner = new java.util.HashMap<>();
 
         for (Point point : points) {
-            IMapTileController tile = mapController.getMapData().getTile(point);
-            if (tile == null) {
-                continue;
-            }
-            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-            if (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                continue;
-            }
-
-            Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-            if (room == null) {
-                continue;
-            }
-            short ownerId = tile.getOwnerId();
-            destroyedTiles.add(tile.getLocation());
-            destroyedTilesByOwner.computeIfAbsent(ownerId, ignored -> new ArrayList<>()).add(tile.getLocation());
-            destroyedInstances.add(tile.getRoomId());
-            entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
-
-            if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-                tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-            } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-                tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-            } else {
-                tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-            }
-            updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+            destroyRoomTile(point, destroyedInstances, updatableTiles, destroyedTilesByOwner);
         }
 
-        if (destroyedTiles.isEmpty()) {
+        if (destroyedTilesByOwner.isEmpty()) {
             return;
         }
 
+        List<Point> roomCoordinates = removeDestroyedRoomInstances(destroyedInstances, updatableTiles);
+        mapController.removeRoomInstances(destroyedInstances.toArray(EntityId[]::new));
+        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
+
+        restoreGoldCapacity(roomCoordinates);
+        notifyDestroyedTiles(destroyedTilesByOwner);
+    }
+
+    private void destroyRoomTile(Point point, Set<EntityId> destroyedInstances,
+            Set<Point> updatableTiles, Map<Short, List<Point>> destroyedTilesByOwner) {
+        IMapTileController tile = mapController.getMapData().getTile(point);
+        if (tile == null) {
+            return;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return;
+        }
+
+        Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+        if (room == null) {
+            return;
+        }
+        destroyedTilesByOwner.computeIfAbsent(tile.getOwnerId(), ignored -> new ArrayList<>()).add(tile.getLocation());
+        destroyedInstances.add(tile.getRoomId());
+        entityData.removeComponent(tile.getEntityId(), WoodenBridgeDecay.class);
+
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+            tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+        } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+        } else {
+            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+        }
+        updatableTiles.addAll(Arrays.asList(
+                WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+    }
+
+    private List<Point> removeDestroyedRoomInstances(Set<EntityId> destroyedInstances,
+            Set<Point> updatableTiles) {
+        List<Point> roomCoordinates = new ArrayList<>();
         for (EntityId roomInstance : destroyedInstances) {
             IRoomController roomController = mapController.getRoomController(roomInstance);
             if (roomController == null) {
@@ -576,9 +605,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             roomCoordinates.addAll(roomController.getRoomInstance().getCoordinates());
             removeRoomInstance(roomInstance);
         }
-        mapController.removeRoomInstances(destroyedInstances.toArray(EntityId[]::new));
-        mapController.updateRooms(updatableTiles.toArray(Point[]::new));
+        return roomCoordinates;
+    }
 
+    private void restoreGoldCapacity(List<Point> roomCoordinates) {
         Set<EntityId> newInstances = new HashSet<>();
         for (Point point : roomCoordinates) {
             EntityId instance = mapController.getMapData().getTile(point).getRoomId();
@@ -586,7 +616,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 addGoldCapacityToPlayer(instance);
             }
         }
+    }
 
+    private void notifyDestroyedTiles(Map<Short, List<Point>> destroyedTilesByOwner) {
         for (Map.Entry<Short, List<Point>> entry : destroyedTilesByOwner.entrySet()) {
             notifyOnSold(entry.getKey(), entry.getValue());
         }

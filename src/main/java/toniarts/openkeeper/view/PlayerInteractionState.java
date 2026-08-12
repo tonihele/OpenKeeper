@@ -151,85 +151,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.tooltip = psc.getTooltip();
 
         // Init the keeper hand
-        keeperHandState = new KeeperHandState((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND), kwdFile, entityData, player.getPlayerId()) {
-
-            @Override
-            protected void updateCursor() {
-                PlayerInteractionState.this.updateCursor();
-            }
-
-        };
+        keeperHandState = new InteractionKeeperHandState();
         this.stateManager.attach(keeperHandState);
 
         // Init handler
-        selectionHandler = new SelectionHandler(this.app) {
-            @Override
-            public boolean isVisible() {
-                if (isTaggable || selectionHandler.isActive()) {
-                    return true;
-                }
-
-                if (!isOnMap) {
-                    return false;
-                }
-
-                switch (interactionState.getType()) {
-                    case NONE:
-                        return (keeperHandState.getItem() != null);
-                    case SELL:
-                    case ROOM:
-                    case DOOR:
-                    case TRAP:
-                        return true;
-                }
-
-                return false;
-            }
-
-            @Override
-            protected SelectionHandler.ColorIndicator getColorIndicator() {
-                Point p;
-                if (selectionHandler.isActive()) {
-                    p = WorldUtils.vectorToPoint(selectionHandler.getSelectionArea().getRealStart());
-                } else {
-                    p = WorldUtils.vectorToPoint(selectionHandler.getPointedTilePosition());
-                }
-                if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
-                    IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (tile != null) {
-                        IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
-                        return (status != IEntityViewControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
-                    }
-                    return ColorIndicator.RED;
-                }
-                if (interactionState.getType() == Type.SELL) {
-                    return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM
-                        && !(gameClientState.getMapClientService().isTaggable(p)
-                        || isRoomSelectionValid())) {
-                    return ColorIndicator.RED;
-                }
-                return ColorIndicator.BLUE;
-            }
-
-            private boolean isRoomSelectionValid() {
-                SelectionArea area = selectionHandler.getSelectionArea();
-                return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
-                        area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
-                        (short) interactionState.getItemId(),
-                        gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();
-            }
-        };
+        selectionHandler = new InteractionSelectionHandler();
 
         if (!gameClientState.isMultiplayer()) {
-            CheatState cheatState = new CheatState(app) {
-
-                @Override
-                public void onSuccess(CheatState.CheatType cheat) {
-                    gameClientState.getGameClientService().triggerCheat(cheat);
-                }
-            };
-            this.stateManager.attach(cheatState);
+            this.stateManager.attach(new InteractionCheatState());
         }
 
         // Add listener
@@ -814,6 +743,93 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
     protected abstract void onPossession(EntityId creature);
+
+    private final class InteractionKeeperHandState extends KeeperHandState {
+
+        private InteractionKeeperHandState() {
+            super((int) gameClientState.getLevelVariable(MiscType.MAX_NUMBER_OF_THINGS_IN_HAND),
+                    kwdFile, entityData, player.getPlayerId());
+        }
+
+        @Override
+        protected void updateCursor() {
+            PlayerInteractionState.this.updateCursor();
+        }
+    }
+
+    private final class InteractionSelectionHandler extends SelectionHandler {
+
+        private InteractionSelectionHandler() {
+            super(app);
+        }
+
+        @Override
+        public boolean isVisible() {
+            if (isTaggable || isActive()) {
+                return true;
+            }
+            if (!isOnMap) {
+                return false;
+            }
+
+            return switch (interactionState.getType()) {
+                case NONE -> keeperHandState.getItem() != null;
+                case SELL, ROOM, DOOR, TRAP -> true;
+                default -> false;
+            };
+        }
+
+        @Override
+        protected ColorIndicator getColorIndicator() {
+            Point point = isActive()
+                    ? WorldUtils.vectorToPoint(getSelectionArea().getRealStart())
+                    : WorldUtils.vectorToPoint(getPointedTilePosition());
+            if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
+                return getDropColor(point);
+            }
+            if (interactionState.getType() == Type.SELL || isInvalidRoomSelection(point)) {
+                return ColorIndicator.RED;
+            }
+            return ColorIndicator.BLUE;
+        }
+
+        private ColorIndicator getDropColor(Point point) {
+            IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
+            if (tile == null) {
+                return ColorIndicator.RED;
+            }
+            IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(
+                    tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
+            return status == IEntityViewControl.DroppableStatus.NOT_DROPPABLE
+                    ? ColorIndicator.RED : ColorIndicator.BLUE;
+        }
+
+        private boolean isInvalidRoomSelection(Point point) {
+            return interactionState.getType() == Type.ROOM
+                    && !gameClientState.getMapClientService().isTaggable(point)
+                    && !isRoomSelectionValid();
+        }
+
+        private boolean isRoomSelectionValid() {
+            SelectionArea area = getSelectionArea();
+            return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
+                    (short) interactionState.getItemId(),
+                    gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();
+        }
+    }
+
+    private final class InteractionCheatState extends CheatState {
+
+        private InteractionCheatState() {
+            super(app);
+        }
+
+        @Override
+        public void onSuccess(CheatType cheat) {
+            gameClientState.getGameClientService().triggerCheat(cheat);
+        }
+    }
 
     public static final class InteractionState {
 
