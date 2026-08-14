@@ -137,8 +137,8 @@ public final class TorchControl extends BillboardControl {
         }
 
         var atlasTexture = atlas.getAtlasTexture("DiffuseMap");
-        atlasTexture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
-        atlasTexture.setMagFilter(Texture.MagFilter.Nearest);
+        atlasTexture.setMinFilter(Texture.MinFilter.BilinearNoMipMaps);
+        atlasTexture.setMagFilter(Texture.MagFilter.Bilinear);
         atlasTexture.setWrap(Texture.WrapMode.EdgeClamp);
         return atlasTexture;
     }
@@ -150,9 +150,10 @@ public final class TorchControl extends BillboardControl {
         result.setInt("Speed", FRAMES); // FIXME: correct value
 
         result.setTransparent(true);
-        result.setFloat("AlphaDiscardThreshold", 0.1f);
 
-        result.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        // The flame frames encode transparency as black instead of using an alpha channel.
+        result.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Additive);
+        result.getAdditionalRenderState().setDepthWrite(false);
         result.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
         //result.getAdditionalRenderState().setDepthTest(false);
 
