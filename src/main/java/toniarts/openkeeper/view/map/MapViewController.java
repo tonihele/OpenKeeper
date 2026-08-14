@@ -67,6 +67,11 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private final static String MAP_NODE = "Map";
     private final static String TERRAIN_NODE = "Terrain";
     private final static String ROOM_NODE = "Rooms";
+    private static final List<WallDirection> NO_TORCH_DIRECTIONS = List.of();
+    private static final List<WallDirection> HORIZONTAL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.SOUTH);
+    private static final List<WallDirection> VERTICAL_TORCH_DIRECTIONS = List.of(WallDirection.WEST, WallDirection.EAST);
+    private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
+            WallDirection.SOUTH, WallDirection.EAST);
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
@@ -446,7 +451,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && (tile.getX() % 2 == 0 || tile.getY() % 2 == 0)) {
+                && (tile.getX() % 2 != 0 || tile.getY() % 2 != 0)) {
             handleTorch(tile, pageNode);
         }
 
@@ -474,51 +479,74 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // The rooms actually contain the torch model resource, but it is always the same,
         // and sometimes even null and there is still a torch. So I don't think they are used
-        // Take the first direction where we can put a torch
-        String name = null;
-        float angleY = 0;
-        Vector3f position = Vector3f.ZERO;
+        // Take the first available wall allowed by the repeating 2x2 torch pattern
+        for (WallDirection direction : getTorchDirections(tile.getX(), tile.getY())) {
+            Point neighbor = switch (direction) {
+                case NORTH -> new Point(tile.getX(), tile.getY() - 1);
+                case WEST -> new Point(tile.getX() - 1, tile.getY());
+                case SOUTH -> new Point(tile.getX(), tile.getY() + 1);
+                case EAST -> new Point(tile.getX() + 1, tile.getY());
+            };
+            if (canPlaceTorch(neighbor.x, neighbor.y)) {
+                addTorch(tile, pageNode, direction);
+                return;
+            }
+        }
+    }
 
-        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
-            name = "Torch1";
-            angleY = -FastMath.HALF_PI;
-            position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, -WorldUtils.TILE_WIDTH / 2);
+    static List<WallDirection> getTorchDirections(int x, int y) {
+        boolean horizontal = x % 2 != 0;
+        boolean vertical = y % 2 != 0;
 
-        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // West
-            name = "Torch1";
-            position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
+        if (horizontal) {
+            return vertical ? ALL_TORCH_DIRECTIONS : HORIZONTAL_TORCH_DIRECTIONS;
+        }
+        return vertical ? VERTICAL_TORCH_DIRECTIONS : NO_TORCH_DIRECTIONS;
+    }
 
-        } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // South
-            name = "Torch1";
-            angleY = FastMath.HALF_PI;
-            position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, WorldUtils.TILE_WIDTH / 2);
+    private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction) {
+        String name = "Torch1";
+        float angleY;
+        Vector3f position;
 
-        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // East
-            name = "Torch1";
-            angleY = FastMath.PI;
-            position = new Vector3f(WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
+        switch (direction) {
+            case NORTH -> {
+                angleY = -FastMath.HALF_PI;
+                position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, -WorldUtils.TILE_WIDTH / 2);
+            }
+            case WEST -> {
+                angleY = 0;
+                position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
+            }
+            case SOUTH -> {
+                angleY = FastMath.HALF_PI;
+                position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, WorldUtils.TILE_WIDTH / 2);
+            }
+            case EAST -> {
+                angleY = FastMath.PI;
+                position = new Vector3f(WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
+            }
+            default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
 
         // Move to tile and right height
-        if (name != null) {
-            // if room get room torch
-            if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                RoomInstance roomInstance = null;//roomCoordinates.get(tile.getLocation());
-                if (roomInstance != null) {
-                    ArtResource torch = roomInstance.getRoom().getTorch();
-                    if (torch == null) {
-                        return;
-                    }
-                    name = torch.getName();
+        // if room get room torch
+        if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            RoomInstance roomInstance = null;//roomCoordinates.get(tile.getLocation());
+            if (roomInstance != null) {
+                ArtResource torch = roomInstance.getRoom().getTorch();
+                if (torch == null) {
+                    return;
                 }
+                name = torch.getName();
             }
-            Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
-            spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
-            spatial.rotate(0, angleY, 0);
-            spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
-
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
         }
+        Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
+        spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
+        spatial.rotate(0, angleY, 0);
+        spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
+
+        ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
     }
 
     private boolean canPlaceTorch(int x, int y) {
