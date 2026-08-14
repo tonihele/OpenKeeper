@@ -18,25 +18,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class MapViewControllerTest {
 
     @Test
-    void evenCoordinatesDoNotAllowATorch() {
-        assertEquals(List.of(), MapViewController.getTorchDirections(2, 4));
+    void evenXAndOddYDoNotAllowATorch() {
+        assertEquals(List.of(), MapViewController.getTorchDirections(2, 3));
     }
 
     @Test
-    void oddXAllowsNorthAndSouthWalls() {
+    void oddXAndOddYAllowNorthAndSouthWalls() {
         assertEquals(List.of(WallDirection.NORTH, WallDirection.SOUTH),
-                MapViewController.getTorchDirections(3, 4));
+                MapViewController.getTorchDirections(3, 3));
     }
 
     @Test
-    void oddYAllowsWestAndEastWalls() {
+    void evenXAndEvenYAllowWestAndEastWalls() {
         assertEquals(List.of(WallDirection.WEST, WallDirection.EAST),
-                MapViewController.getTorchDirections(2, 3));
+                MapViewController.getTorchDirections(2, 4));
     }
 
     @Test
-    void oddCoordinatesAllowAllWallsInPriorityOrder() {
+    void oddXAndEvenYAllowAllWallsInPriorityOrder() {
         assertEquals(List.of(WallDirection.NORTH, WallDirection.WEST, WallDirection.SOUTH, WallDirection.EAST),
-                MapViewController.getTorchDirections(3, 5));
+                MapViewController.getTorchDirections(3, 4));
     }
 }

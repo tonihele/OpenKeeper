@@ -72,6 +72,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private static final List<WallDirection> VERTICAL_TORCH_DIRECTIONS = List.of(WallDirection.WEST, WallDirection.EAST);
     private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
             WallDirection.SOUTH, WallDirection.EAST);
+    private final boolean torchesEnabled;
     private List<Node> pages;
     private final KwdFile kwdFile;
     private Node map;
@@ -89,10 +90,16 @@ public abstract class MapViewController implements ILoader<KwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
 
     public MapViewController(AssetManager assetManager, KwdFile kwdFile, IMapInformation mapClientService, short playerId) {
+        this(assetManager, kwdFile, mapClientService, playerId, true);
+    }
+
+    protected MapViewController(AssetManager assetManager, KwdFile kwdFile, IMapInformation mapClientService,
+            short playerId, boolean torchesEnabled) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
         this.playerId = playerId;
+        this.torchesEnabled = torchesEnabled;
     }
 
     @Override
@@ -450,8 +457,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         Node pageNode = getPageNode(p, root);
 
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && (tile.getX() % 2 != 0 || tile.getY() % 2 != 0)) {
+        if (torchesEnabled && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleTorch(tile, pageNode);
         }
 
@@ -479,7 +485,8 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
         // The rooms actually contain the torch model resource, but it is always the same,
         // and sometimes even null and there is still a torch. So I don't think they are used
-        // Take the first available wall allowed by the repeating 2x2 torch pattern
+        // DKII places at most one torch per tile. At corners, the direction order makes the
+        // perpendicular wall skip this tile and resume on the next eligible tile in its run.
         for (WallDirection direction : getTorchDirections(tile.getX(), tile.getY())) {
             Point neighbor = switch (direction) {
                 case NORTH -> new Point(tile.getX(), tile.getY() - 1);
@@ -496,7 +503,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
 
     static List<WallDirection> getTorchDirections(int x, int y) {
         boolean horizontal = x % 2 != 0;
-        boolean vertical = y % 2 != 0;
+        boolean vertical = y % 2 == 0;
 
         if (horizontal) {
             return vertical ? ALL_TORCH_DIRECTIONS : HORIZONTAL_TORCH_DIRECTIONS;
