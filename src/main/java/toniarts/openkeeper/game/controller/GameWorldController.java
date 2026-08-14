@@ -21,12 +21,14 @@ import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -52,6 +54,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
+import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
@@ -75,6 +78,7 @@ import java.lang.System.Logger.Level;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -414,6 +418,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
                 // Remove the merged room
                 if (!firstInstance.equals(instance)) {
+                    transferLairs(mapController.getRoomController(instance), mapController.getRoomController(firstInstance));
                     removeRoomInstance(instance);
                     mapController.removeRoomInstances(instance);
                 }
@@ -490,18 +495,34 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Remove the sold instances (will be regenerated) and add them to updatable
+        List<EntityId> detachedLairs = new ArrayList<>();
         for (EntityId roomInstance : soldInstances) {
             IRoomController roomController = mapController.getRoomController(roomInstance);
             for (Point p : roomController.getRoomInstance().getCoordinates()) {
                 updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
             roomCoordinates.addAll(roomController.getRoomInstance().getCoordinates());
+            detachedLairs.addAll(detachLairs(roomController));
             removeRoomInstance(roomInstance);
         }
         mapController.removeRoomInstances(soldInstances.toArray(new EntityId[0]));
 
         // Update
         mapController.updateRooms(updatableTiles.toArray(new Point[0]));
+
+        // Reattach beds on surviving lair tiles. Beds on sold tiles are
+        // deleted; their creatures will observe the missing entity and wake.
+        for (EntityId lair : detachedLairs) {
+            Position position = entityData.getComponent(lair, Position.class);
+            IRoomController roomController = position != null
+                    ? mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position)) : null;
+            if (roomController != null && roomController.hasObjectControl(ObjectType.LAIR)) {
+                RoomLairControl roomLairControl = roomController.getObjectControl(ObjectType.LAIR);
+                roomLairControl.addExistingItem(lair, WorldUtils.vectorToPoint(position.position));
+            } else {
+                removeLair(lair);
+            }
+        }
 
         // See if any of the rooms survived
         Set<EntityId> newInstances = new HashSet<>();
@@ -545,6 +566,40 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             PlayerGoldControl playerGoldControl = playerControllers.get(roomController.getOwnerId()).getGoldControl();
             playerGoldControl.subGold(roomGoldControl.getCurrentCapacity());
         }
+    }
+
+    private static Collection<EntityId> detachLairs(IRoomController roomController) {
+        if (!roomController.hasObjectControl(ObjectType.LAIR)) {
+            return Collections.emptyList();
+        }
+        RoomLairControl roomLairControl = roomController.getObjectControl(ObjectType.LAIR);
+        return roomLairControl.detachAllItems();
+    }
+
+    private void transferLairs(IRoomController source, IRoomController destination) {
+        if (!source.hasObjectControl(ObjectType.LAIR) || !destination.hasObjectControl(ObjectType.LAIR)) {
+            return;
+        }
+        RoomLairControl destinationControl = destination.getObjectControl(ObjectType.LAIR);
+        for (EntityId lair : detachLairs(source)) {
+            Position position = entityData.getComponent(lair, Position.class);
+            if (position != null) {
+                destinationControl.addExistingItem(lair, WorldUtils.vectorToPoint(position.position));
+            } else {
+                removeLair(lair);
+            }
+        }
+    }
+
+    private void removeLair(EntityId lair) {
+        for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
+            CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
+            if (lair.equals(sleep.lairObjectId)) {
+                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                break;
+            }
+        }
+        entityData.removeEntity(lair);
     }
 
     @Override
