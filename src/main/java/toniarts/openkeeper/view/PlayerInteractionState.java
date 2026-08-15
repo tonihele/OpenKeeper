@@ -190,7 +190,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     return ColorIndicator.RED;
                 }
                 if (interactionState.getType() == Type.SELL) {
-                    return ColorIndicator.RED;
+                    return gameClientState.getMapClientService().isSellable(p, player.getPlayerId())
+                            ? ColorIndicator.BLUE : ColorIndicator.RED;
                 } else if (interactionState.getType() == Type.ROOM
                         && !(gameClientState.getMapClientService().isTaggable(p)
                         || (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), (short) interactionState.getItemId())
