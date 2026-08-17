@@ -431,7 +431,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
         String bundleKey = kwdFile.getDungeonHeart() == room ? "2579" : Integer.toString(room.getTooltipStringId());
 
-        return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey), tile.getRoomId());
+        return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey),
+                tile.getRoomId(), gameClientState.getPlayer(tile.getOwnerId()));
     }
 
     private void updateInteractiveObjectOnCursor() {
