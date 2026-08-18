@@ -163,8 +163,7 @@ public final class SoundState extends AbstractPauseAwareState {
                 throw new RuntimeException("Sound category " + soundCategory + " not found");
             }
 
-            String file = AssetsConverter.SOUNDS_FOLDER + File.separator
-                    + sc.getGroup(speechId).getFiles().get(0).getFilename();
+            String file = AssetsConverter.SOUNDS_FOLDER + sc.getGroup(speechId).getFiles().get(0).getFilename();
             speechQueue.add(new Speech(speechId, file, listener));
         } catch (RuntimeException e) {
             logger.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
@@ -203,7 +202,10 @@ public final class SoundState extends AbstractPauseAwareState {
             return;
         }
 
-        String file = AssetsConverter.SOUNDS_FOLDER + File.separator + backgroundState.getNext();
+        String file = backgroundState.getNext();
+        if (file == null)
+            return;
+        file = AssetsConverter.SOUNDS_FOLDER + file;
 
         backgroundNode = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
         if (backgroundNode == null) {
@@ -273,25 +275,21 @@ public final class SoundState extends AbstractPauseAwareState {
         }
 
         public synchronized String getNext() {
-            if (itGroup == null) {
+            if (itGroup == null)
                 itGroup = sc.getGroups().values().iterator();
-            }
 
-            if (itFile == null) {
+            while (itFile == null || !itFile.hasNext()) {
                 if (itGroup.hasNext()) {
                     itFile = itGroup.next().getFiles().iterator();
                 } else {
-                    itGroup = null;
-                    return this.getNext();
+                    // Exhausted all groups, start over if there are files
+                    itGroup = sc.getGroups().values().iterator();
+                    if (!itGroup.hasNext())
+                        return null;
                 }
             }
 
-            if (itFile.hasNext()) {
-                return itFile.next().getFilename();
-            } else {
-                itFile = null;
-                return this.getNext();
-            }
+            return itFile.next().getFilename();
         }
     }
 

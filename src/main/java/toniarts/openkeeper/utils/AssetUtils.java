@@ -101,7 +101,7 @@ public final class AssetUtils {
     public static Spatial loadModel(final AssetManager assetManager, String modelName,
             ArtResource artResource, final boolean useCache, final boolean useWeakCache) {
 
-        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
+        String filename = AssetsConverter.MODELS_FOLDER + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
         Spatial result;
@@ -168,7 +168,7 @@ public final class AssetUtils {
      */
     public static Spatial loadAsset(final AssetManager assetManager, String modelName, ArtResource artResource) {
 
-        String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
+        String filename = AssetsConverter.MODELS_FOLDER + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
         Spatial result = loadModel(assetManager, assetKey, artResource);
@@ -187,8 +187,7 @@ public final class AssetUtils {
     }
 
     public static CameraSweepData loadCameraSweep(final AssetManager assetManager, String resourceName) {
-        String filename = AssetsConverter.PATHS_FOLDER + File.separator + resourceName + "."
-                + CameraSweepDataLoader.FILE_EXTENSION;
+        String filename = AssetsConverter.PATHS_FOLDER + resourceName + '.' + CameraSweepDataLoader.FILE_EXTENSION;
         String assetKey = getCanonicalAssetKey(filename);
 
         Object asset = assetManager.loadAsset(assetKey);
@@ -350,7 +349,7 @@ public final class AssetUtils {
     }
 
     private static Texture createArtResourceTexture(ArtResource resource, AssetManager assetManager) throws IOException {
-        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER;
 
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
@@ -360,7 +359,7 @@ public final class AssetUtils {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
                 // only the unused sprites have a size of bigger than one
-                assetFolder = AssetsConverter.SPRITES_FOLDER + File.separator;
+                assetFolder = AssetsConverter.SPRITES_FOLDER;
             }
 
             // A regular texture
@@ -371,7 +370,7 @@ public final class AssetUtils {
     
     private static List<String> getTextureFrames(ArtResource resource) {
         int frames = resource.getData(ArtResource.KEY_FRAMES);
-        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER;
         List<String> framesList = new ArrayList<>(frames);
         for (int x = 0; x < frames; x++) {
             framesList.add(assetFolder + resource.getName() + x + ".png");
@@ -695,7 +694,7 @@ public final class AssetUtils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
+        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replace('\\', '/');
     }
 
 }

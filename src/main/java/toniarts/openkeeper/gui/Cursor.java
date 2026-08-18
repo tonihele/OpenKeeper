@@ -58,7 +58,7 @@ public final class Cursor extends JmeCursor {
             throw new IllegalArgumentException("The cursor needs at least a framecount of 1.");
         }
 
-        Texture tex = assetManager.loadTexture(PathUtils.convertFileSeparators(AssetsConverter.MOUSE_CURSORS_FOLDER.concat(File.separator).concat(Filename)));
+        Texture tex = assetManager.loadTexture(PathUtils.convertFileSeparators(AssetsConverter.MOUSE_CURSORS_FOLDER + Filename));
         Image img = tex.getImage();
         // width must be a multiple of 16, otherwise the cursor gets distorted
         int width = img.getWidth() % 16 == 0 ? img.getWidth() : (img.getWidth() - img.getWidth() % 16) + 16;

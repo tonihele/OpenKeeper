@@ -109,7 +109,7 @@ public final class Water {
             // Lava
             mat = new Material(assetManager,
                     "Common/MatDefs/Light/Lighting.j3md");
-            TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
+            TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
             Texture tex = assetManager.loadTexture(textureKey);
             mat.setTexture("DiffuseMap", tex);
             MapViewController.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());

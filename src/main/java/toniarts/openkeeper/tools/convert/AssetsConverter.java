@@ -18,7 +18,6 @@ package toniarts.openkeeper.tools.convert;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.system.AppSettings;
-import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -28,17 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.conversion.ConversionTaskManager;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertFonts;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertHiScores;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertMapThumbnails;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertModels;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertMouseCursors;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertPaths;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertSounds;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertTexts;
-import toniarts.openkeeper.tools.convert.conversion.task.ConvertTextures;
-import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
-import toniarts.openkeeper.tools.convert.conversion.task.IConversionTaskUpdate;
+import toniarts.openkeeper.tools.convert.conversion.task.*;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
 
@@ -103,21 +92,20 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     private static final Logger logger = System.getLogger(AssetsConverter.class.getName());
     
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
-    private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";
-    private static final String ABSOLUTE_ASSETS_FOLDER = getCurrentFolder() + ASSETS_FOLDER + File.separator;
+    private static final String ASSETS_FOLDER = "assets/Converted/";
+    private static final String ABSOLUTE_ASSETS_FOLDER = getCurrentFolder() + ASSETS_FOLDER;
 
-    public static final String SOUNDS_FOLDER = "Sounds";
-    public static final String MATERIALS_FOLDER = "Materials";
-    public static final String MODELS_FOLDER = "Models";
-    public static final String TEXTURES_FOLDER = "Textures";
-    public static final String SPRITES_FOLDER = "Sprites";
-    public static final String MAP_THUMBNAILS_FOLDER = "Thumbnails";
-    private static final String INTERFACE_FOLDER = "Interface" + File.separator;
-    public static final String MOUSE_CURSORS_FOLDER = INTERFACE_FOLDER + "Cursors";
-    public static final String FONTS_FOLDER = INTERFACE_FOLDER + "Fonts";
-    public static final String TEXTS_FOLDER = INTERFACE_FOLDER + "Texts";
-    public static final String PATHS_FOLDER = INTERFACE_FOLDER + "Paths";
-    
+    public static final String MATERIALS_FOLDER  = "Materials/";
+    public static final String MODELS_FOLDER     = "Models/";
+    public static final String SOUNDS_FOLDER     = "Sounds/";
+    public static final String SPRITES_FOLDER    = "Sprites/";
+    public static final String TEXTURES_FOLDER   = "Textures/";
+    public static final String THUMBNAILS_FOLDER = "Thumbnails/";
+    public static final String MOUSE_CURSORS_FOLDER  = "Interface/Cursors/";
+    public static final String PATHS_FOLDER  = "Interface/Paths/";
+    private static final String FONTS_FOLDER = "Interface/Fonts/";
+    private static final String TEXTS_FOLDER = "Interface/Texts/";
+
     private final String dungeonKeeperFolder;
     private final AssetManager assetManager;
 
@@ -188,7 +176,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
         logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
 
         // Create an assets folder
-        String assetFolder = currentFolder.concat(ASSETS_FOLDER).concat(File.separator);
+        String assetFolder = getAssetsFolder();
 
         // Create task manager for taking care of the conversion workflow
         ConversionTaskManager conversionTaskManager = new ConversionTaskManager();
@@ -235,23 +223,23 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     private IConversionTask createTask(ConvertProcess conversion, String currentFolder) {
         switch (conversion) {
             case TEXTURES:
-                return new ConvertTextures(dungeonKeeperFolder, currentFolder.concat(TEXTURES_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertTextures(dungeonKeeperFolder, currentFolder + TEXTURES_FOLDER, OVERWRITE_DATA);
             case MODELS:
-                return new ConvertModels(dungeonKeeperFolder, currentFolder.concat(MODELS_FOLDER).concat(File.separator), OVERWRITE_DATA, assetManager);
+                return new ConvertModels(dungeonKeeperFolder, currentFolder + MODELS_FOLDER, OVERWRITE_DATA, assetManager);
             case MOUSE_CURSORS:
-                return new ConvertMouseCursors(dungeonKeeperFolder, currentFolder.concat(MOUSE_CURSORS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertMouseCursors(dungeonKeeperFolder, currentFolder + MOUSE_CURSORS_FOLDER, OVERWRITE_DATA);
             case MUSIC_AND_SOUNDS:
-                return new ConvertSounds(dungeonKeeperFolder, currentFolder.concat(SOUNDS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertSounds(dungeonKeeperFolder, currentFolder + SOUNDS_FOLDER, OVERWRITE_DATA);
             case INTERFACE_TEXTS:
-                return new ConvertTexts(dungeonKeeperFolder, currentFolder.concat(TEXTS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertTexts(dungeonKeeperFolder, currentFolder + TEXTS_FOLDER, OVERWRITE_DATA);
             case PATHS:
-                return new ConvertPaths(dungeonKeeperFolder, currentFolder.concat(PATHS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertPaths(dungeonKeeperFolder, currentFolder + PATHS_FOLDER, OVERWRITE_DATA);
             case HI_SCORES:
                 return new ConvertHiScores(dungeonKeeperFolder, OVERWRITE_DATA);
             case FONTS:
-                return new ConvertFonts(dungeonKeeperFolder, currentFolder.concat(FONTS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertFonts(dungeonKeeperFolder, currentFolder + FONTS_FOLDER, OVERWRITE_DATA);
             case MAP_THUMBNAILS:
-                return new ConvertMapThumbnails(dungeonKeeperFolder, currentFolder.concat(MAP_THUMBNAILS_FOLDER).concat(File.separator), OVERWRITE_DATA);
+                return new ConvertMapThumbnails(dungeonKeeperFolder, currentFolder + THUMBNAILS_FOLDER, OVERWRITE_DATA);
         }
 
         throw new IllegalArgumentException("Conversion " + conversion + " not implemented!");

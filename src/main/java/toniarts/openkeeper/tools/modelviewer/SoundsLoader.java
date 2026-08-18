@@ -110,7 +110,7 @@ public final class SoundsLoader {
         }
 
         return new AudioNode(assetManager,
-                AssetsConverter.SOUNDS_FOLDER + File.separator + file.getFilename(),
+                AssetsConverter.SOUNDS_FOLDER + file.getFilename(),
                 AudioData.DataType.Buffer);
     }
 
