@@ -93,7 +93,7 @@ public final class MainMenuState extends AbstractAppState {
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
     protected AudioNode levelBriefing;
-    protected AudioNode levelDebriefing;
+    private AudioNode levelDebriefing;
 
     private KwdFile kwdFile;
     protected final MainMenuInteraction listener;
