@@ -1290,13 +1290,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 // Play some tunes!!
                 String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2",
                         ((CampaignLevel) state.selectedLevel).getLevel());
-                state.levelBriefing = new AudioNode(state.assetManager,
+                AudioNode audioNode = new AudioNode(state.assetManager,
                         AssetUtils.getCanonicalAssetKey(speech),
                         AudioData.DataType.Buffer);
-                state.levelBriefing.setLooping(false);
-                state.levelBriefing.setDirectional(false);
-                state.levelBriefing.setPositional(false);
-                state.levelBriefing.play();
+                audioNode.setLooping(false);
+                audioNode.setDirectional(false);
+                audioNode.setPositional(false);
+                audioNode.play();
+                state.setLevelBriefing(audioNode);
             }
         }
     }
@@ -1353,13 +1354,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         if (state.selectedLevel instanceof CampaignLevel) {
             CampaignLevel level = (CampaignLevel) state.selectedLevel;
             String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2", level.getLevel());
-            state.levelDebriefing = new AudioNode(state.assetManager,
+            AudioNode audioNode = new AudioNode(state.assetManager,
                     AssetUtils.getCanonicalAssetKey(speech),
                     AudioData.DataType.Buffer);
-            state.levelDebriefing.setLooping(false);
-            state.levelDebriefing.setDirectional(false);
-            state.levelDebriefing.setPositional(false);
-            state.levelDebriefing.play();
+            audioNode.setLooping(false);
+            audioNode.setDirectional(false);
+            audioNode.setPositional(false);
+            audioNode.play();
+            state.setLevelDebriefing(audioNode);
         }
 
         goToScreen(SCREEN_DEBRIEFING_ID);

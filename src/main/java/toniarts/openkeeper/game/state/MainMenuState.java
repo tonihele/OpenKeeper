@@ -92,8 +92,8 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
-    protected AudioNode levelBriefing;
-    protected AudioNode levelDebriefing;
+    private AudioNode levelBriefing;
+    private AudioNode levelDebriefing;
 
     private KwdFile kwdFile;
     protected final MainMenuInteraction listener;
@@ -561,6 +561,10 @@ public final class MainMenuState extends AbstractAppState {
         }
     }
 
+    protected void setLevelBriefing(AudioNode levelBriefing) {
+        this.levelBriefing = levelBriefing;
+    }
+
     /**
      * Stops the level briefing sound
      */
@@ -571,6 +575,10 @@ public final class MainMenuState extends AbstractAppState {
             levelBriefing.stop();
         }
         levelBriefing = null;
+    }
+
+    protected void setLevelDebriefing(AudioNode levelDebriefing) {
+        this.levelDebriefing = levelDebriefing;
     }
 
     /**
