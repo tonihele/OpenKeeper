@@ -534,6 +534,34 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
+     * Shows the blinking arrows for the current playable level on the 3D
+     * campaign map. Called when entering the selectCampaignLevel screen.
+     */
+    protected void showArrows() {
+        if (menuNode != null) {
+            menuNode.depthFirstTraversal(spatial -> {
+                if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
+                    HeroGateFrontEndConstructor.setArrowsVisible(mapNode, true);
+                }
+            });
+        }
+    }
+
+    /**
+     * Hides all arrows on the 3D campaign map. Called when leaving the
+     * selectCampaignLevel screen.
+     */
+    protected void hideArrows() {
+        if (menuNode != null) {
+            menuNode.depthFirstTraversal(spatial -> {
+                if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
+                    HeroGateFrontEndConstructor.setArrowsVisible(mapNode, false);
+                }
+            });
+        }
+    }
+
+    /**
      * Stops the level briefing sound
      */
     protected void clearLevelBriefingNarration() {

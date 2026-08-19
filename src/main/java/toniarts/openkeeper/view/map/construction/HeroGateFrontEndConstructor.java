@@ -252,12 +252,12 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             if (name != null && name.contains("_arrows")) {
                 child.setBatchHint(Spatial.BatchHint.Never);
                 int arrowLevel = extractArrowLevelNumber(name);
-                boolean visible = arrowLevel == nextLevel;
-                child.setCullHint(visible
-                        ? Spatial.CullHint.Inherit
-                        : Spatial.CullHint.Always);
+                boolean isCurrentLevel = arrowLevel == nextLevel;
 
-                if (visible) {
+                // Always hide arrows here; show them only on selectCampaignLevel screen
+                child.setCullHint(Spatial.CullHint.Always);
+
+                if (isCurrentLevel) {
                     ArrowBlinkControl control = new ArrowBlinkControl(child);
                     child.addControl(control);
                     String variation = extractArrowVariation(name);
@@ -282,6 +282,29 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 ArrowBlinkControl arrowControl = arrowControls.get(key);
                 if (arrowControl != null) {
                     control.setArrowBlinkControl(arrowControl);
+                }
+            }
+        }
+    }
+
+    /**
+     * Shows or hides the arrows for the current playable level on the 3D
+     * campaign map. Call with {@code true} when entering the
+     * {@code selectCampaignLevel} screen, and with {@code false} when leaving.
+     *
+     * @param mapNode the map node containing level and arrow children
+     * @param visible true to show current-level arrows, false to hide them
+     */
+    public static void setArrowsVisible(Node mapNode, boolean visible) {
+        int nextLevel = Settings.getInstance().getNextPlayableLevel();
+        for (Spatial child : mapNode.getChildren()) {
+            String name = child.getName();
+            if (name != null && name.contains("_arrows")) {
+                int arrowLevel = extractArrowLevelNumber(name);
+                if (arrowLevel == nextLevel) {
+                    child.setCullHint(visible
+                            ? Spatial.CullHint.Inherit
+                            : Spatial.CullHint.Always);
                 }
             }
         }

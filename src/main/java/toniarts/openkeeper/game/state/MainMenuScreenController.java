@@ -355,6 +355,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         switch (screen.getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.addRawInputListener(state.listener);
+                state.showArrows();
                 break;
 
             case "briefing":
@@ -519,6 +520,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
+                state.hideArrows();
                 break;
 
             case "briefing":
