@@ -125,6 +125,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                         String name = child.getName();
 
                         if (name != null && name.contains("_arrows")) {
+                            child.setBatchHint(Spatial.BatchHint.Never);
                             int arrowLevel = extractArrowLevelNumber(name);
                             if (arrowLevel != nextLevel) {
                                 child.setCullHint(Spatial.CullHint.Always);
