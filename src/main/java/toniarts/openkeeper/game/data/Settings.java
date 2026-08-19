@@ -532,4 +532,46 @@ public final class Settings {
         CampaignLevel level = new CampaignLevel(CampaignLevel.LevelType.Level, levelNumber, variation);
         return LevelStatus.COMPLETED.equals(getLevelStatus(level));
     }
+
+    /**
+     * Resets all campaign progress: level statuses, level number, attempts,
+     * and secret/MPD level statuses.
+     */
+    public void resetCampaignProgress() {
+        // Reset the current level number back to the start
+        setSetting(Setting.LEVEL_NUMBER, Setting.LEVEL_NUMBER.getDefaultValue());
+
+        // Reset all campaign levels (1-20)
+        for (int i = 1; i <= 20; i++) {
+            // Handle branching levels
+            switch (i) {
+                case 6:
+                    resetCampaignLevel(new CampaignLevel(Level, i, "a"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "b"));
+                    break;
+                case 11:
+                    resetCampaignLevel(new CampaignLevel(Level, i, "a"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "b"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "c"));
+                    break;
+                case 15:
+                    resetCampaignLevel(new CampaignLevel(Level, i, "a"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "b"));
+                    break;
+                default:
+                    resetCampaignLevel(new CampaignLevel(Level, i));
+            }
+        }
+
+        // Reset secret levels
+        for (int i = 1; i <= 20; i++) {
+            CampaignLevel secretLevel = new CampaignLevel(Secret, i);
+            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel, SecretLevelStatus.NOT_DISCOVED);
+        }
+    }
+
+    private void resetCampaignLevel(CampaignLevel level) {
+        setLevelStatus(level, LevelStatus.NOT_COMPLETED);
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, Setting.LEVEL_ATTEMPTS.getDefaultValue());
+    }
 }

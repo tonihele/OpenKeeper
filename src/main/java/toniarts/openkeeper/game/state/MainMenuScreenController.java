@@ -982,6 +982,30 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         cancelMultiplayer();
     }
 
+    @Override
+    public void newCampaign() {
+        closePopup();
+        popupElement = nifty.createPopup("confirmNewCampaign");
+        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+    }
+
+    @Override
+    public void confirmNewCampaign() {
+        closePopup();
+        Settings.getInstance().resetCampaignProgress();
+        try {
+            Settings.getInstance().save();
+        } catch (IOException ex) {
+            logger.log(Logger.Level.ERROR, ex);
+        }
+        doTransition("251", "selectCampaignLevel", null);
+    }
+
+    @Override
+    public void cancelNewCampaign() {
+        closePopup();
+    }
+
     public ChatSessionListener getChatSessionListener() {
         if (chatSessionListener == null) {
             chatSessionListener = new ChatSessionListener() {

@@ -106,7 +106,9 @@
 
             <panel childLayout="center" height="*" align="center" valign="center">
                 <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
-                    <text id="newCampaign" style="menuText" text="${menu.140}" align="center" />
+                    <text id="newCampaign" style="menuText" text="${menu.140}" align="center">
+                        <interact onClick="newCampaign()" />
+                    </text>
                     <text style="menuText" text="${menu.2059}" align="center">
                         <interact onClick="doTransition(251,selectCampaignLevel,null)" />
                     </text>
@@ -752,6 +754,21 @@
                 <control name="label" style="menuTitleText" id="title" text="" />
                 <control name="label" id="message" style="menuTextSmall" />
                 <control name="okButton" align="right" click="closeErrorMessage()" />
+            </panel>
+        </panel>
+    </popup>
+
+    <!-- Confirmation dialog for new campaign -->
+    <popup id="confirmNewCampaign" childLayout="center" backgroundColor="#000a">
+        <panel childLayout="center" height="*" align="center" valign="center">
+            <panel childLayout="vertical" align="center" valign="center" visibleToMouse="true">
+                <text style="menuTitleText" text="${menu.140}" align="center" />
+                <text style="menuTextSmall" text="${menu.2847}" align="center" />
+                <text style="menuTextSmall" text="${menu.15}" align="center" />
+                <panel childLayout="horizontal" align="center" valign="center" marginTop="20px">
+                    <control name="okButton" align="right" click="confirmNewCampaign()" />
+                    <control name="cancelButton" align="left" click="cancelNewCampaign()" />
+                </panel>
             </panel>
         </panel>
     </popup>
