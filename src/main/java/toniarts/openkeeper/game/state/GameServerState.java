@@ -25,6 +25,7 @@ import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -84,10 +85,11 @@ public final class GameServerState extends AbstractAppState {
      * @param players players participating in this game
      * @param campaign whether this is a campaign level or not
      * @param gameService the game service
+     * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
-    public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService) {
+    public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService, @Nullable toniarts.openkeeper.game.data.CampaignLevel campaignLevel) {
         this.kwdFile = level;
-        this.levelObject = null;
+        this.levelObject = campaignLevel;
         this.campaign = campaign;
         this.gameService = gameService;
 

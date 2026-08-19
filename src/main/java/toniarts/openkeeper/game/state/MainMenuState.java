@@ -45,6 +45,7 @@ import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
@@ -434,7 +435,7 @@ public final class MainMenuState extends AbstractAppState {
         if ("campaign".equals(type.toLowerCase())) {
 
             // Create the level state
-            LocalGameSession.createLocalGame(selectedLevel.getKwdFile(), true, stateManager, app);
+            LocalGameSession.createLocalGame(selectedLevel.getKwdFile(), true, stateManager, app, (CampaignLevel) selectedLevel);
         } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;

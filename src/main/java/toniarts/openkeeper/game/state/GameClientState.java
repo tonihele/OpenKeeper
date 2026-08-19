@@ -30,9 +30,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -81,6 +83,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
     private IMapInformation mapInformation;
     private PlayerState playerState;
+    @Nullable
+    private final CampaignLevel campaignLevel;
 
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
@@ -94,12 +98,14 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param players players participating in this game
      * @param gameClientService client services
      * @param app the main application
+     * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
-    public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app) {
+    public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app, @Nullable CampaignLevel campaignLevel) {
         this.kwdFile = level;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
         this.app = (Main) app;
+        this.campaignLevel = campaignLevel;
 
         // Set multiplayer
         int humanPlayers = 0;
@@ -319,7 +325,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 }
 
                 // Create player state
-                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app);
+                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
                         () -> {
