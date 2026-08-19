@@ -64,7 +64,7 @@ public final class GameServerState extends AbstractAppState {
     private volatile boolean gameLoaded = false;
 
     private final KwdFile kwdFile;
-    private final toniarts.openkeeper.game.data.Level levelObject;
+    private final toniarts.openkeeper.game.data.CampaignLevel levelObject;
 
     private final boolean campaign;
     private final boolean multiplayer;

@@ -91,6 +91,7 @@ public final class MainMenuState extends AbstractAppState {
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
     protected AudioNode levelBriefing;
+    protected AudioNode levelDebriefing;
 
     private KwdFile kwdFile;
     protected final MainMenuInteraction listener;
@@ -526,6 +527,18 @@ public final class MainMenuState extends AbstractAppState {
             levelBriefing.stop();
         }
         levelBriefing = null;
+    }
+
+    /**
+     * Stops the level debriefing sound
+     */
+    protected void clearLevelDebriefingNarration() {
+
+        // Quit playing the sound
+        if (levelDebriefing != null && levelDebriefing.getStatus() == AudioSource.Status.Playing) {
+            levelDebriefing.stop();
+        }
+        levelDebriefing = null;
     }
 
     public void doDebriefing(GameResult result) {

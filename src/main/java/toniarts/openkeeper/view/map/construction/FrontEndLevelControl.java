@@ -24,7 +24,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
-import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.game.data.CampaignLevel;
 
 /**
  * Controls level graphics
@@ -33,10 +33,11 @@ import toniarts.openkeeper.game.data.Level;
  */
 public class FrontEndLevelControl extends AbstractControl {
 
-    private final Level level;
+    private final CampaignLevel level;
     private final AssetManager assetManager;
     private volatile boolean active = false;
     private volatile boolean moved = true;
+    private volatile boolean playable = false;
     private Vector3f baseLocation;
     private float baseProgress;
     private Long lastTime;
@@ -44,7 +45,7 @@ public class FrontEndLevelControl extends AbstractControl {
     private static final int ACTIVATE_ANIMATION_LENGTH = 250;
     private static final int DEACTIVATE_ANIMATION_LENGTH = 1500;
 
-    public FrontEndLevelControl(Level level, AssetManager assetManager) {
+    public FrontEndLevelControl(CampaignLevel level, AssetManager assetManager) {
         this.level = level;
         this.assetManager = assetManager;
     }
@@ -112,8 +113,26 @@ public class FrontEndLevelControl extends AbstractControl {
      *
      * @return Level
      */
-    public Level getLevel() {
+    public CampaignLevel getLevel() {
         return level;
+    }
+
+    /**
+     * Sets whether this level is selectable by the player
+     *
+     * @param playable true if the level can be selected
+     */
+    public void setPlayable(boolean playable) {
+        this.playable = playable;
+    }
+
+    /**
+     * Returns whether this level is selectable by the player
+     *
+     * @return true if the level can be selected
+     */
+    public boolean isPlayable() {
+        return playable;
     }
 
     private void playAnimation(int animationLength, Vector3f base, Vector3f target, long elapsedTime) {
