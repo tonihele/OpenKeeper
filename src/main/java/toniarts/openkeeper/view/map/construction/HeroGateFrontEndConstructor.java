@@ -22,9 +22,12 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -80,42 +83,50 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                     for (int x = 1; x < 21; x++) {
                         switch (x) {
                             case 6:
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "a", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "b", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
                                 break;
                             case 11:
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "a", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "b", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "c", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "c", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p));
                                 break;
                             case 15:
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "a", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, "b", assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
                                 break;
                             default:
-                                attachAndCreateLevel(map, Level.LevelType.Level, x, null, assetManager, start, p);
+                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, null, assetManager, start, p);
                                 map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p));
                         }
                     }
 
-                    // Secret levels
+                    // Secret levels (only show if discovered, except moon level)
                     for (int x = 1; x < 6; x++) {
                         if (x == 5 && !FullMoon.isFullMoon()) {
-                            // don't show full moon level
                             continue;
                         }
-                        attachAndCreateLevel(map, Level.LevelType.Secret, x, null, assetManager, start, p);
+                        CampaignLevel secretLevel = new CampaignLevel(CampaignLevel.LevelType.Secret, x);
+                        Settings.SecretLevelStatus status = Settings.getInstance().getSecredLevelStatus(secretLevel);
+                        if (x == 5 || status == Settings.SecretLevelStatus.DISCOVERED
+                                || status == Settings.SecretLevelStatus.IN_PROGRESS) {
+                            attachAndCreateLevel(map, CampaignLevel.LevelType.Secret, x, null, assetManager, start, p);
+                        }
                     }
 
                     // The map base
                     map.attachChild(loadObject("3dmap_level21", assetManager, start, p));
+
+                    // Apply campaign progression: show arrows only for current level,
+                    // mark completed/current levels as playable, lock future levels
+                    applyCampaignProgression(map);
 
                     // Add the map node
                     root.attachChild(map);
@@ -149,17 +160,17 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      * @param start starting point for the room
      * @param p this tile coordinate
      */
-    private void attachAndCreateLevel(Node map, Level.LevelType type, int levelNumber, String variation,
+    private void attachAndCreateLevel(Node map, CampaignLevel.LevelType type, int levelNumber, String variation,
                                       AssetManager assetManager, Point start, Point p) {
 
         String objName = "3dmap_level";
-        if (Level.LevelType.Secret.equals(type)) {
+        if (CampaignLevel.LevelType.Secret.equals(type)) {
             objName = "Secret_Level";
         }
 
         Spatial lvl = loadObject(objName + levelNumber + (variation == null ? "" : variation),
                 assetManager, start, p);
-        lvl.addControl(new FrontEndLevelControl(new Level(type, levelNumber, variation), assetManager));
+        lvl.addControl(new FrontEndLevelControl(new CampaignLevel(type, levelNumber, variation), assetManager));
         lvl.setBatchHint(Spatial.BatchHint.Never);
         map.attachChild(lvl);
     }
@@ -176,6 +187,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      */
     private Spatial loadObject(String model, AssetManager assetManager, Point start, Point p) {
         Node object = (Node) AssetUtils.loadModel(assetManager, model, null, false, true);
+        object.setName(model);
 
         // Reset
         moveSpatial(object, start, p);
@@ -202,6 +214,125 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 		        object.setBatchHint(Spatial.BatchHint.Never);
 		    }
 		});
+    }
+
+    /**
+     * Extracts the level number from an arrow model name. E.g.
+     * "3dmaplevel6a_arrows" returns 6, "3dmaplevel11c_arrows" returns 11.
+     *
+     * @param name the arrow model name
+     * @return the level number
+     */
+    private static int extractArrowLevelNumber(String name) {
+        String stripped = name.replace("3dmaplevel", "").replace("_arrows", "");
+        StringBuilder num = new StringBuilder();
+        for (int i = 0; i < stripped.length(); i++) {
+            char c = stripped.charAt(i);
+            if (Character.isDigit(c)) {
+                num.append(c);
+            } else {
+                break;
+            }
+        }
+        return Integer.parseInt(num.toString());
+    }
+
+    /**
+     * Refreshes arrow visibility and level playability on the 3D campaign map
+     * based on the current campaign progression stored in Settings. Call this
+     * after resetting campaign progress to update the visual state.
+     *
+     * @param mapNode the map node containing level and arrow children
+     */
+    public static void applyCampaignProgression(Node mapNode) {
+        int nextLevel = Settings.getInstance().getNextPlayableLevel();
+
+        // Key: "{levelNumber}_{variation}" e.g. "6_a", or "7" for non-branching
+        Map<String, ArrowBlinkControl> arrowControls = new HashMap<>();
+
+        for (Spatial child : mapNode.getChildren()) {
+            String name = child.getName();
+
+            if (name != null && name.contains("_arrows")) {
+                child.setBatchHint(Spatial.BatchHint.Never);
+                int arrowLevel = extractArrowLevelNumber(name);
+                boolean isCurrentLevel = arrowLevel == nextLevel;
+
+                // Always hide arrows here; show them only on selectCampaignLevel screen
+                child.setCullHint(Spatial.CullHint.Always);
+
+                if (isCurrentLevel) {
+                    ArrowBlinkControl control = new ArrowBlinkControl(child);
+                    child.addControl(control);
+                    String variation = extractArrowVariation(name);
+                    String key = variation.isEmpty()
+                            ? String.valueOf(arrowLevel)
+                            : arrowLevel + "_" + variation;
+                    arrowControls.put(key, control);
+                }
+            }
+        }
+
+        for (Spatial child : mapNode.getChildren()) {
+            FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
+            if (control != null) {
+                int levelNum = control.getLevel().getLevel();
+                control.setPlayable(levelNum <= nextLevel);
+
+                String variation = control.getLevel().getVariation();
+                String key = (variation == null || variation.isEmpty())
+                        ? String.valueOf(levelNum)
+                        : levelNum + "_" + variation;
+                ArrowBlinkControl arrowControl = arrowControls.get(key);
+                if (arrowControl != null) {
+                    control.setArrowBlinkControl(arrowControl);
+                }
+            }
+        }
+    }
+
+    /**
+     * Shows or hides the arrows for the current playable level on the 3D
+     * campaign map. Call with {@code true} when entering the
+     * {@code selectCampaignLevel} screen, and with {@code false} when leaving.
+     *
+     * @param mapNode the map node containing level and arrow children
+     * @param visible true to show current-level arrows, false to hide them
+     */
+    public static void setArrowsVisible(Node mapNode, boolean visible) {
+        int nextLevel = Settings.getInstance().getNextPlayableLevel();
+        for (Spatial child : mapNode.getChildren()) {
+            String name = child.getName();
+            if (name != null && name.contains("_arrows")) {
+                int arrowLevel = extractArrowLevelNumber(name);
+                if (arrowLevel == nextLevel) {
+                    child.setCullHint(visible
+                            ? Spatial.CullHint.Inherit
+                            : Spatial.CullHint.Always);
+                }
+            }
+        }
+    }
+
+    /**
+     * Extracts the variation suffix from an arrow model name. E.g.
+     * "3dmaplevel6a_arrows" returns "a", "3dmaplevel7_arrows" returns "".
+     *
+     * @param name the arrow model name
+     * @return the variation string, or empty if none
+     */
+    private static String extractArrowVariation(String name) {
+        String stripped = name.replace("3dmaplevel", "").replace("_arrows", "");
+        StringBuilder letters = new StringBuilder();
+        for (int i = 0; i < stripped.length(); i++) {
+            char c = stripped.charAt(i);
+            if (Character.isLetter(c)) {
+                letters.append(c);
+            } else {
+                break;
+            }
+        }
+        return letters.toString();
     }
 
 }

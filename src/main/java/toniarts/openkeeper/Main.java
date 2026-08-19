@@ -628,7 +628,7 @@ public final class Main extends SimpleApplication {
     private void startGame() {
         if (params.containsKey("level")) {
             try {
-                LocalGameSession.createLocalGame(params.get("level"), false, stateManager, this);
+                LocalGameSession.createLocalGame(params.get("level"), false, stateManager, this, null);
             } catch (IOException ex) {
                 throw new RuntimeException("Failed to start the game!", ex);
             }

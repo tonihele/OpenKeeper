@@ -24,10 +24,10 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
 
-public final class Level extends GeneralLevel {
+public final class CampaignLevel extends GeneralLevel {
 
     private KwdFile kwdFile;
-    private static final Logger logger = System.getLogger(Level.class.getName());
+    private static final Logger logger = System.getLogger(CampaignLevel.class.getName());
 
     public enum LevelType {
 
@@ -37,12 +37,12 @@ public final class Level extends GeneralLevel {
     private final int level;
     private String variation = null;
 
-    public Level(LevelType type, int level) {
+    public CampaignLevel(LevelType type, int level) {
         this.type = type;
         this.level = level;
     }
 
-    public Level(LevelType type, int level, @Nullable String variation) {
+    public CampaignLevel(LevelType type, int level, @Nullable String variation) {
         this.type = type;
         this.level = level;
         this.variation = variation;

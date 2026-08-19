@@ -65,7 +65,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private static final Logger logger = System.getLogger(GameController.class.getName());
 
     private final LevelInfo levelInfo;
-    private final toniarts.openkeeper.game.data.Level levelObject;
+    private final toniarts.openkeeper.game.data.CampaignLevel levelObject;
 
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
