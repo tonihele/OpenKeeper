@@ -108,13 +108,17 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                         }
                     }
 
-                    // Secret levels
+                    // Secret levels (only show if discovered, except moon level)
                     for (int x = 1; x < 6; x++) {
                         if (x == 5 && !FullMoon.isFullMoon()) {
-                            // don't show full moon level
                             continue;
                         }
-                        attachAndCreateLevel(map, CampaignLevel.LevelType.Secret, x, null, assetManager, start, p);
+                        CampaignLevel secretLevel = new CampaignLevel(CampaignLevel.LevelType.Secret, x);
+                        Settings.SecretLevelStatus status = Settings.getInstance().getSecredLevelStatus(secretLevel);
+                        if (x == 5 || status == Settings.SecretLevelStatus.DISCOVERED
+                                || status == Settings.SecretLevelStatus.IN_PROGRESS) {
+                            attachAndCreateLevel(map, CampaignLevel.LevelType.Secret, x, null, assetManager, start, p);
+                        }
                     }
 
                     // The map base

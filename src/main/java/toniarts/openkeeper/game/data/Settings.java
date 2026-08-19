@@ -564,7 +564,7 @@ public final class Settings {
         }
 
         // Reset secret levels
-        for (int i = 1; i <= 20; i++) {
+        for (int i = 1; i < 6; i++) {
             CampaignLevel secretLevel = new CampaignLevel(Secret, i);
             setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel, SecretLevelStatus.NOT_DISCOVED);
         }
