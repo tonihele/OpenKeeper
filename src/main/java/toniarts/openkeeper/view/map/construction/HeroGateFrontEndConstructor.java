@@ -22,6 +22,8 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -240,23 +242,70 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      */
     public static void applyCampaignProgression(Node mapNode) {
         int nextLevel = Settings.getInstance().getNextPlayableLevel();
+
+        // Key: "{levelNumber}_{variation}" e.g. "6_a", or "7" for non-branching
+        Map<String, ArrowBlinkControl> arrowControls = new HashMap<>();
+
         for (Spatial child : mapNode.getChildren()) {
             String name = child.getName();
 
             if (name != null && name.contains("_arrows")) {
                 child.setBatchHint(Spatial.BatchHint.Never);
                 int arrowLevel = extractArrowLevelNumber(name);
-                child.setCullHint(arrowLevel == nextLevel
+                boolean visible = arrowLevel == nextLevel;
+                child.setCullHint(visible
                         ? Spatial.CullHint.Inherit
                         : Spatial.CullHint.Always);
-            }
 
+                if (visible) {
+                    ArrowBlinkControl control = new ArrowBlinkControl(child);
+                    child.addControl(control);
+                    String variation = extractArrowVariation(name);
+                    String key = variation.isEmpty()
+                            ? String.valueOf(arrowLevel)
+                            : arrowLevel + "_" + variation;
+                    arrowControls.put(key, control);
+                }
+            }
+        }
+
+        for (Spatial child : mapNode.getChildren()) {
             FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
             if (control != null) {
                 int levelNum = control.getLevel().getLevel();
                 control.setPlayable(levelNum <= nextLevel);
+
+                String variation = control.getLevel().getVariation();
+                String key = (variation == null || variation.isEmpty())
+                        ? String.valueOf(levelNum)
+                        : levelNum + "_" + variation;
+                ArrowBlinkControl arrowControl = arrowControls.get(key);
+                if (arrowControl != null) {
+                    control.setArrowBlinkControl(arrowControl);
+                }
             }
         }
+    }
+
+    /**
+     * Extracts the variation suffix from an arrow model name. E.g.
+     * "3dmaplevel6a_arrows" returns "a", "3dmaplevel7_arrows" returns "".
+     *
+     * @param name the arrow model name
+     * @return the variation string, or empty if none
+     */
+    private static String extractArrowVariation(String name) {
+        String stripped = name.replace("3dmaplevel", "").replace("_arrows", "");
+        StringBuilder letters = new StringBuilder();
+        for (int i = 0; i < stripped.length(); i++) {
+            char c = stripped.charAt(i);
+            if (Character.isLetter(c)) {
+                letters.append(c);
+            } else {
+                break;
+            }
+        }
+        return letters.toString();
     }
 
 }
