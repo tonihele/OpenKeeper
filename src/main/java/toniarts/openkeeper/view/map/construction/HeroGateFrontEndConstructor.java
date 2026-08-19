@@ -120,24 +120,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
                     // Apply campaign progression: show arrows only for current level,
                     // mark completed/current levels as playable, lock future levels
-                    int nextLevel = Settings.getInstance().getNextPlayableLevel();
-                    for (Spatial child : map.getChildren()) {
-                        String name = child.getName();
-
-                        if (name != null && name.contains("_arrows")) {
-                            child.setBatchHint(Spatial.BatchHint.Never);
-                            int arrowLevel = extractArrowLevelNumber(name);
-                            if (arrowLevel != nextLevel) {
-                                child.setCullHint(Spatial.CullHint.Always);
-                            }
-                        }
-
-                        FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
-                        if (control != null) {
-                            int levelNum = control.getLevel().getLevel();
-                            control.setPlayable(levelNum <= nextLevel);
-                        }
-                    }
+                    applyCampaignProgression(map);
 
                     // Add the map node
                     root.attachChild(map);
@@ -246,6 +229,34 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             }
         }
         return Integer.parseInt(num.toString());
+    }
+
+    /**
+     * Refreshes arrow visibility and level playability on the 3D campaign map
+     * based on the current campaign progression stored in Settings. Call this
+     * after resetting campaign progress to update the visual state.
+     *
+     * @param mapNode the map node containing level and arrow children
+     */
+    public static void applyCampaignProgression(Node mapNode) {
+        int nextLevel = Settings.getInstance().getNextPlayableLevel();
+        for (Spatial child : mapNode.getChildren()) {
+            String name = child.getName();
+
+            if (name != null && name.contains("_arrows")) {
+                child.setBatchHint(Spatial.BatchHint.Never);
+                int arrowLevel = extractArrowLevelNumber(name);
+                child.setCullHint(arrowLevel == nextLevel
+                        ? Spatial.CullHint.Inherit
+                        : Spatial.CullHint.Always);
+            }
+
+            FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
+            if (control != null) {
+                int levelNum = control.getLevel().getLevel();
+                control.setPlayable(levelNum <= nextLevel);
+            }
+        }
     }
 
 }

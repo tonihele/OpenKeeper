@@ -1002,6 +1002,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         } catch (IOException ex) {
             logger.log(Logger.Level.ERROR, ex);
         }
+        state.refreshCampaignMap();
         doTransition("251", "selectCampaignLevel", null);
     }
 

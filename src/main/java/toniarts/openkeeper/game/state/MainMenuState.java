@@ -73,6 +73,7 @@ import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
+import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 
 /**
  * The main menu state
@@ -516,6 +517,20 @@ public final class MainMenuState extends AbstractAppState {
     protected void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
         this.selectedLevel = selectedLevel.getLevel();
         screen.doTransition("253", "briefing", null);
+    }
+
+    /**
+     * Refreshes arrow visibility and level playability on the 3D campaign map
+     * based on the current campaign progression stored in Settings.
+     */
+    protected void refreshCampaignMap() {
+        if (menuNode != null) {
+            menuNode.depthFirstTraversal(spatial -> {
+                if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
+                    HeroGateFrontEndConstructor.applyCampaignProgression(mapNode);
+                }
+            });
+        }
     }
 
     /**
