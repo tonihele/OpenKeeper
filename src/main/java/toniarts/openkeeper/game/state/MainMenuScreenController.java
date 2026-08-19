@@ -984,9 +984,13 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
     @Override
     public void newCampaign() {
-        closePopup();
-        popupElement = nifty.createPopup("confirmNewCampaign");
-        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+        if (Settings.getInstance().getNextPlayableLevel() > 1) {
+            closePopup();
+            popupElement = nifty.createPopup("confirmNewCampaign");
+            nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+        } else {
+            doTransition("251", "selectCampaignLevel", null);
+        }
     }
 
     @Override
