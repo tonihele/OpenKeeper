@@ -536,18 +536,17 @@ public abstract class MapViewController implements ILoader<KwdFile> {
             default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
 
-        // Move to tile and right height
-        // if room get room torch
+        // Room wall torches are defined by the room type. Resolve the room directly from
+        // terrain because ordinary RoomInstances are registered after torches are handled.
         if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-            RoomInstance roomInstance = null;//roomCoordinates.get(tile.getLocation());
-            if (roomInstance != null) {
-                ArtResource torch = roomInstance.getRoom().getTorch();
-                if (torch == null) {
-                    return;
-                }
-                name = torch.getName();
+            Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+            ArtResource torch = room.getTorch();
+            if (torch == null) {
+                return;
             }
+            name = torch.getName();
         }
+
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
         spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
         spatial.rotate(0, angleY, 0);
