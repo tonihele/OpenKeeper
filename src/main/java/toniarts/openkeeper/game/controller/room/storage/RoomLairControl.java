@@ -21,6 +21,8 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -64,6 +66,41 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         addCurrentCapacity(1);
 
         return object;
+    }
+
+    /**
+     * Adds a lair object that already exists. Used when room topology changes
+     * so creatures can retain the same lair entity.
+     *
+     * @param object the existing lair object
+     * @param p its tile
+     */
+    public void addExistingItem(EntityId object, Point p) {
+        Collection<EntityId> objects = objectsByCoordinate.computeIfAbsent(p, key -> new ArrayList<>(1));
+        if (!objects.contains(object)) {
+            objects.add(object);
+            setRoomStorageToItem(object, false);
+            addCurrentCapacity(1);
+        }
+    }
+
+    /**
+     * Detaches all lairs without deleting them. The caller must either attach
+     * them to a resulting room or delete them after rebuilding room topology.
+     *
+     * @return detached lair entities
+     */
+    public Collection<EntityId> detachAllItems() {
+        List<EntityId> objects = new ArrayList<>();
+        for (Collection<EntityId> coordinateObjects : objectsByCoordinate.values()) {
+            objects.addAll(coordinateObjects);
+        }
+        objectsByCoordinate.clear();
+        for (EntityId object : objects) {
+            entityData.removeComponent(object, Stored.class);
+        }
+        addCurrentCapacity(-objects.size());
+        return objects;
     }
 
     @Override

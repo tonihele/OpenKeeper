@@ -43,6 +43,16 @@ import toniarts.openkeeper.tools.convert.map.Room;
  */
 public abstract class AbstractRoomController extends AbstractRoomInformation implements IRoomController {
 
+    @Override
+    public final int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
     /**
      * The type of object the room houses
      */
@@ -236,8 +246,18 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         return isTileAccessible(from != null ? from.x : null, (from != null ? from.y : null), to.x, to.y);
     }
 
-    protected final void addObjectControl(IRoomObjectControl control) {
-        objectControls.put(control.getObjectType(), control);
+    protected final <T extends IRoomObjectControl> T addObjectControl(T control) {
+        IRoomObjectControl existingControl = objectControls.putIfAbsent(control.getObjectType(), control);
+        if (existingControl == null) {
+            return control;
+        }
+
+        // construct() is also used when rooms are expanded. Keep the existing
+        // control so that it retains its stored-object index; otherwise those
+        // objects can no longer be removed when the room is later sold.
+        control.destroy();
+        existingControl.updateMaxCapacity();
+        return (T) existingControl;
     }
 
     @Override

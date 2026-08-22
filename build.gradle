@@ -79,8 +79,15 @@ dependencies {
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
 
+    testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.14.4"
+
     // Assets sub-project
     runtimeOnly project(':assets')
+}
+
+test {
+    useJUnitPlatform()
 }
 
 java {

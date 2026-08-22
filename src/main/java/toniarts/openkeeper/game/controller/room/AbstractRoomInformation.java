@@ -126,9 +126,6 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
             return false;
         }
         final AbstractRoomInformation other = (AbstractRoomInformation) obj;
-        if (!Objects.equals(this.entityId, other.entityId)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.entityId, other.entityId);
     }
 }

@@ -149,80 +149,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.stateManager.attach(keeperHandState);
 
         // Init handler
-        selectionHandler = new SelectionHandler(this.app) {
-            @Override
-            public boolean isVisible() {
-                if (isTaggable || selectionHandler.isActive()) {
-                    return true;
-                }
-
-                if (!isOnMap) {
-                    return false;
-                }
-
-                switch (interactionState.getType()) {
-                    case NONE:
-                        return (keeperHandState.getItem() != null);
-                    case SELL:
-                    case ROOM:
-                    case DOOR:
-                    case TRAP:
-                        return true;
-                }
-
-                return false;
-            }
-
-            @Override
-            protected SelectionHandler.ColorIndicator getColorIndicator() {
-                Point p;
-                if (selectionHandler.isActive()) {
-                    p = WorldUtils.vectorToPoint(selectionHandler.getSelectionArea().getRealStart());
-                } else {
-                    p = WorldUtils.vectorToPoint(selectionHandler.getPointedTilePosition());
-                }
-                if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
-                    IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (tile != null) {
-                        IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
-                        return (status != IEntityViewControl.DroppableStatus.NOT_DROPPABLE ? ColorIndicator.BLUE : ColorIndicator.RED);
-                    }
-                    return ColorIndicator.RED;
-                }
-                if (interactionState.getType() == Type.SELL) {
-                    return ColorIndicator.RED;
-                } else if (interactionState.getType() == Type.ROOM
-                        && !(gameClientState.getMapClientService().isTaggable(p)
-                        || (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), (short) interactionState.getItemId())
-                        && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
-                    return ColorIndicator.RED;
-                }
-                return ColorIndicator.BLUE;
-            }
-
-            private boolean isPlayerAffordToBuild(Player player, Room room) {
-                int playerMoney = gameClientState.getPlayer(player.getPlayerId()).getGold();
-                if (playerMoney == 0) {
-                    return false;
-                }
-                int buildablePlots = 0;
-                for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
-                    for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
-                        Point p = new Point(x, y);
-
-                        if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
-                            buildablePlots++;
-                        }
-
-                        // See the gold amount
-                        if (playerMoney < buildablePlots * room.getCost()) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
-            }
-        };
+        selectionHandler = createSelectionHandler();
 
         if (!gameClientState.isMultiplayer()) {
             CheatState cheatState = new CheatState(app) {
@@ -239,6 +166,96 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (isEnabled()) {
             setEnabled(true);
         }
+    }
+
+    private SelectionHandler createSelectionHandler() {
+        return new SelectionHandler(this.app) {
+
+            @Override
+            public boolean isVisible() {
+                return PlayerInteractionState.this.isSelectionVisible();
+            }
+
+            @Override
+            protected SelectionHandler.ColorIndicator getColorIndicator() {
+                return PlayerInteractionState.this.getSelectionColorIndicator();
+            }
+        };
+    }
+
+    private boolean isSelectionVisible() {
+        if (isTaggable || selectionHandler.isActive()) {
+            return true;
+        }
+
+        if (!isOnMap) {
+            return false;
+        }
+
+        switch (interactionState.getType()) {
+            case NONE:
+                return keeperHandState.getItem() != null;
+            case SELL:
+            case ROOM:
+            case DOOR:
+            case TRAP:
+                return true;
+        }
+
+        return false;
+    }
+
+    private SelectionHandler.ColorIndicator getSelectionColorIndicator() {
+        Point p;
+        if (selectionHandler.isActive()) {
+            p = WorldUtils.vectorToPoint(selectionHandler.getSelectionArea().getRealStart());
+        } else {
+            p = WorldUtils.vectorToPoint(selectionHandler.getPointedTilePosition());
+        }
+
+        if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
+            IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
+            if (tile != null) {
+                IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(tile,
+                        gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
+                return status != IEntityViewControl.DroppableStatus.NOT_DROPPABLE
+                        ? SelectionHandler.ColorIndicator.BLUE : SelectionHandler.ColorIndicator.RED;
+            }
+            return SelectionHandler.ColorIndicator.RED;
+        }
+        if (interactionState.getType() == Type.SELL) {
+            return gameClientState.getMapClientService().isSellable(p, player.getPlayerId())
+                    ? SelectionHandler.ColorIndicator.BLUE : SelectionHandler.ColorIndicator.RED;
+        } else if (interactionState.getType() == Type.ROOM
+                && !(gameClientState.getMapClientService().isTaggable(p)
+                || (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), (short) interactionState.getItemId())
+                && isPlayerAffordToBuild(player, gameClientState.getLevelData().getRoomById(interactionState.getItemId()))))) {
+            return SelectionHandler.ColorIndicator.RED;
+        }
+        return SelectionHandler.ColorIndicator.BLUE;
+    }
+
+    private boolean isPlayerAffordToBuild(Player player, Room room) {
+        int playerMoney = gameClientState.getPlayer(player.getPlayerId()).getGold();
+        if (playerMoney == 0) {
+            return false;
+        }
+        int buildablePlots = 0;
+        for (int x = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().x); x < Math.min(gameClientState.getMapClientService().getMapData().getWidth(), selectionHandler.getSelectionArea().getEnd().x + 1); x++) {
+            for (int y = (int) Math.max(0, selectionHandler.getSelectionArea().getStart().y); y < Math.min(gameClientState.getMapClientService().getMapData().getHeight(), selectionHandler.getSelectionArea().getEnd().y + 1); y++) {
+                Point p = new Point(x, y);
+
+                if (gameClientState.getMapClientService().isBuildable(p, player.getPlayerId(), room.getId())) {
+                    buildablePlots++;
+                }
+
+                // See the gold amount
+                if (playerMoney < buildablePlots * room.getCost()) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override

@@ -155,7 +155,7 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
     @Override
     public boolean isSellable(Point p, short playerId) {
         S tile = getMapData().getTile(p);
-        if (tile.getOwnerId() == playerId) {
+        if (tile != null && tile.getOwnerId() == playerId) {
 
             // We own it, see if sellable
             Terrain terrain = getTerrain(tile);

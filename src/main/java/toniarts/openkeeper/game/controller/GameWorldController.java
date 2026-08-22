@@ -21,12 +21,14 @@ import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
@@ -52,6 +54,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
+import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
@@ -75,6 +78,7 @@ import java.lang.System.Logger.Level;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -414,6 +418,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
                 // Remove the merged room
                 if (!firstInstance.equals(instance)) {
+                    transferLairs(mapController.getRoomController(instance), mapController.getRoomController(firstInstance));
                     removeRoomInstance(instance);
                     mapController.removeRoomInstances(instance);
                 }
@@ -441,69 +446,89 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
-        List<Point> soldTiles = new ArrayList<>();
-        Set<Point> updatableTiles = new HashSet<>();
-        Set<EntityId> soldInstances = new HashSet<>();
-        List<Point> roomCoordinates = new ArrayList<>();
-        List<Map.Entry<Point, Integer>> moneyToReturnByPoint = new ArrayList<>();
-        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
-            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
-                Point p = new Point(x, y);
-
-                // See that is this valid
-                if (!mapController.isSellable(p, playerId)) {
-                    continue;
-                }
-
-                // Sell
-                IMapTileController tile = mapController.getMapData().getTile(p);
-                if (tile == null) {
-                    continue;
-                }
-                soldTiles.add(tile.getLocation());
-
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-                    if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-                        tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-                    } else // Water or lava
-                    if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-                        tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
-                    } else {
-                        tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
-                    }
-
-                    // Money back
-                    moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p, (int) (room.getCost() * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100))));
-                }
-
-                // Get the instance
-                soldInstances.add(tile.getRoomId());
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
-            }
-        }
-
-        // See if we did anything at all
-        if (soldTiles.isEmpty()) {
+        Sale sale = sellTiles(start, end, playerId);
+        if (sale.soldTiles.isEmpty()) {
             return;
         }
 
-        // Remove the sold instances (will be regenerated) and add them to updatable
-        for (EntityId roomInstance : soldInstances) {
+        List<EntityId> detachedLairs = removeSoldRoomInstances(sale);
+        mapController.updateRooms(sale.updatableTiles.toArray(Point[]::new));
+        reattachLairs(detachedLairs);
+        restoreGoldCapacity(sale.roomCoordinates);
+        returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
+        notifyOnSold(playerId, sale.soldTiles);
+    }
+
+    private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
+        Sale sale = new Sale();
+        for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
+            for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
+                Point p = new Point(x, y);
+                if (!mapController.isSellable(p, playerId)) {
+                    continue;
+                }
+                sellTile(p, sale);
+            }
+        }
+        return sale;
+    }
+
+    private void sellTile(Point p, Sale sale) {
+        IMapTileController tile = mapController.getMapData().getTile(p);
+        if (tile == null) {
+            return;
+        }
+        sale.soldTiles.add(tile.getLocation());
+
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+        if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+            tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
+        } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
+            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
+        } else {
+            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+        }
+
+        int saleValue = (int) (room.getCost()
+                * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100));
+        sale.moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p, saleValue));
+        sale.soldInstances.add(tile.getRoomId());
+        sale.updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
+    }
+
+    private List<EntityId> removeSoldRoomInstances(Sale sale) {
+        List<EntityId> detachedLairs = new ArrayList<>();
+        for (EntityId roomInstance : sale.soldInstances) {
             IRoomController roomController = mapController.getRoomController(roomInstance);
             for (Point p : roomController.getRoomInstance().getCoordinates()) {
-                updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
+                sale.updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
             }
-            roomCoordinates.addAll(roomController.getRoomInstance().getCoordinates());
+            sale.roomCoordinates.addAll(roomController.getRoomInstance().getCoordinates());
+            detachedLairs.addAll(detachLairs(roomController));
             removeRoomInstance(roomInstance);
         }
-        mapController.removeRoomInstances(soldInstances.toArray(new EntityId[0]));
+        mapController.removeRoomInstances(sale.soldInstances.toArray(EntityId[]::new));
+        return detachedLairs;
+    }
 
-        // Update
-        mapController.updateRooms(updatableTiles.toArray(new Point[0]));
+    private void reattachLairs(List<EntityId> detachedLairs) {
+        // Reattach beds on surviving lair tiles. Beds on sold tiles are
+        // deleted; their creatures will observe the missing entity and wake.
+        for (EntityId lair : detachedLairs) {
+            Position position = entityData.getComponent(lair, Position.class);
+            IRoomController roomController = position != null
+                    ? mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position)) : null;
+            if (roomController != null && roomController.hasObjectControl(ObjectType.LAIR)) {
+                RoomLairControl roomLairControl = roomController.getObjectControl(ObjectType.LAIR);
+                roomLairControl.addExistingItem(lair, WorldUtils.vectorToPoint(position.position));
+            } else {
+                removeLair(lair);
+            }
+        }
+    }
 
-        // See if any of the rooms survived
+    private void restoreGoldCapacity(List<Point> roomCoordinates) {
         Set<EntityId> newInstances = new HashSet<>();
         for (Point p : roomCoordinates) {
             EntityId instance = mapController.getMapData().getTile(p).getRoomId();
@@ -512,7 +537,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 addGoldCapacityToPlayer(instance);
             }
         }
+    }
 
+    private void returnSaleRevenue(short playerId, List<Map.Entry<Point, Integer>> moneyToReturnByPoint) {
         // Finally we have all the rooms and such, return the revenue to the player
         // Do it this point to avoid placing the profit to the actual room we were selling
         synchronized (GOLD_LOCK) {
@@ -525,9 +552,15 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
         }
+    }
 
-        // Notify
-        notifyOnSold(playerId, soldTiles);
+    private static final class Sale {
+
+        private final List<Point> soldTiles = new ArrayList<>();
+        private final Set<Point> updatableTiles = new HashSet<>();
+        private final Set<EntityId> soldInstances = new HashSet<>();
+        private final List<Point> roomCoordinates = new ArrayList<>();
+        private final List<Map.Entry<Point, Integer>> moneyToReturnByPoint = new ArrayList<>();
     }
 
     /**
@@ -545,6 +578,40 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             PlayerGoldControl playerGoldControl = playerControllers.get(roomController.getOwnerId()).getGoldControl();
             playerGoldControl.subGold(roomGoldControl.getCurrentCapacity());
         }
+    }
+
+    private static Collection<EntityId> detachLairs(IRoomController roomController) {
+        if (!roomController.hasObjectControl(ObjectType.LAIR)) {
+            return Collections.emptyList();
+        }
+        RoomLairControl roomLairControl = roomController.getObjectControl(ObjectType.LAIR);
+        return roomLairControl.detachAllItems();
+    }
+
+    private void transferLairs(IRoomController source, IRoomController destination) {
+        if (!source.hasObjectControl(ObjectType.LAIR) || !destination.hasObjectControl(ObjectType.LAIR)) {
+            return;
+        }
+        RoomLairControl destinationControl = destination.getObjectControl(ObjectType.LAIR);
+        for (EntityId lair : detachLairs(source)) {
+            Position position = entityData.getComponent(lair, Position.class);
+            if (position != null) {
+                destinationControl.addExistingItem(lair, WorldUtils.vectorToPoint(position.position));
+            } else {
+                removeLair(lair);
+            }
+        }
+    }
+
+    private void removeLair(EntityId lair) {
+        for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
+            CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
+            if (lair.equals(sleep.lairObjectId)) {
+                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                break;
+            }
+        }
+        entityData.removeEntity(lair);
     }
 
     @Override
