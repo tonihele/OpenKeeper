@@ -208,6 +208,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return;
         }
 
+        constructionBlockingObjects.applyChanges();
+        constructionBlockingDoors.applyChanges();
+        constructionBlockingTraps.applyChanges();
+
         selectionHandler.update(mousePosition);
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
@@ -616,8 +620,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             keys.add(KeyInput.KEY_LCONTROL);
                             keys.add(KeyInput.KEY_RCONTROL);
                         } else {
-                            keys.remove(KeyInput.KEY_LCONTROL);
-                            keys.remove(KeyInput.KEY_RCONTROL);
+                            keys.remove(Integer.valueOf(KeyInput.KEY_LCONTROL));
+                            keys.remove(Integer.valueOf(KeyInput.KEY_RCONTROL));
                         }
                         break;
 
@@ -627,8 +631,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             keys.add(KeyInput.KEY_LMENU);
                             keys.add(KeyInput.KEY_RMENU);
                         } else {
-                            keys.remove(KeyInput.KEY_LMENU);
-                            keys.remove(KeyInput.KEY_RMENU);
+                            keys.remove(Integer.valueOf(KeyInput.KEY_LMENU));
+                            keys.remove(Integer.valueOf(KeyInput.KEY_RMENU));
                         }
                         break;
                 }
@@ -689,10 +693,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private Set<Point> getConstructionBlockingTiles() {
-        constructionBlockingObjects.applyChanges();
-        constructionBlockingDoors.applyChanges();
-        constructionBlockingTraps.applyChanges();
-
         Set<Point> blockedTiles = new HashSet<>();
         addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects);
         addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors);

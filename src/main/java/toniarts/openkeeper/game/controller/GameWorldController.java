@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -43,6 +44,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -329,7 +331,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
-                kwdFile, mapController, entityData, start, end, playerId, roomId, player.getGold());
+                kwdFile, mapController, getConstructionBlockingTiles(), start, end,
+                playerId, roomId, player.getGold());
         if (!placement.isValid()) {
             return;
         }
@@ -365,7 +368,27 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         notifyOnBuild(playerId, buildTiles);
     }
 
+    private Set<Point> getConstructionBlockingTiles() {
+        Set<Point> blockedTiles = new HashSet<>();
+        addConstructionBlockingPositions(blockedTiles, ObjectComponent.class);
+        addConstructionBlockingPositions(blockedTiles, DoorComponent.class);
+        addConstructionBlockingPositions(blockedTiles, TrapComponent.class);
+        return blockedTiles;
+    }
+
+    private void addConstructionBlockingPositions(Set<Point> blockedTiles,
+            Class<? extends EntityComponent> componentType) {
+        for (EntityId entityId : entityData.findEntities(null, componentType, Position.class)) {
+            Position position = entityData.getComponent(entityId, Position.class);
+            if (position != null) {
+                blockedTiles.add(WorldUtils.vectorToPoint(position.position));
+            }
+        }
+    }
+
     private boolean payForRoom(int plotCount, Room room, short playerId) {
+        // Keep shared gold operations atomic until player actions are processed by the game loop.
+        // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = plotCount * room.getCost();
             if (cost > players.get(playerId).getGold()) {

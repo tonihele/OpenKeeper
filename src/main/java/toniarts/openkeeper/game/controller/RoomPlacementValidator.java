@@ -9,18 +9,12 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import toniarts.openkeeper.game.component.DoorComponent;
-import toniarts.openkeeper.game.component.ObjectComponent;
-import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -55,13 +49,6 @@ public final class RoomPlacementValidator {
     }
 
     private RoomPlacementValidator() {
-    }
-
-    public static Result validate(KwdFile kwdFile, IMapInformation<?> mapInformation,
-            EntityData entityData, Vector2f start, Vector2f end, short playerId,
-            short roomId, int availableGold) {
-        return validate(kwdFile, mapInformation, getConstructionBlockingTiles(entityData),
-                start, end, playerId, roomId, availableGold);
     }
 
     public static Result validate(KwdFile kwdFile, IMapInformation<?> mapInformation,
@@ -194,24 +181,6 @@ public final class RoomPlacementValidator {
             }
         }
         return false;
-    }
-
-    private static Set<Point> getConstructionBlockingTiles(EntityData entityData) {
-        Set<Point> blockedTiles = new HashSet<>();
-        addPositions(blockedTiles, entityData, ObjectComponent.class);
-        addPositions(blockedTiles, entityData, DoorComponent.class);
-        addPositions(blockedTiles, entityData, TrapComponent.class);
-        return blockedTiles;
-    }
-
-    private static void addPositions(Set<Point> blockedTiles, EntityData entityData,
-            Class<? extends com.simsilica.es.EntityComponent> componentType) {
-        for (EntityId entityId : entityData.findEntities(null, componentType, Position.class)) {
-            Position position = entityData.getComponent(entityId, Position.class);
-            if (position != null) {
-                blockedTiles.add(WorldUtils.vectorToPoint(position.position));
-            }
-        }
     }
 
     private static Result invalid(Failure failure) {
