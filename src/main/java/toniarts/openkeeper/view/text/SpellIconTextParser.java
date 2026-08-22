@@ -18,6 +18,8 @@ package toniarts.openkeeper.view.text;
 
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.utils.TextUtils;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -28,17 +30,17 @@ import toniarts.openkeeper.utils.Utils;
 public final class SpellIconTextParser extends IconTextParser<KeeperSpell, ResearchableEntity> {
 
     @Override
-    protected String getReplacement(int index, KeeperSpell keeperSpell, ResearchableEntity spell) {
-        switch (index) {
-            case 1:
+    protected String getReplacement(TextParameter parameter, KeeperSpell keeperSpell, ResearchableEntity spell) {
+        switch (parameter) {
+            case NAME:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
-            case 2:
+            case COST:
                 return Integer.toString(keeperSpell.getManaCost());
-            case 3:
+            case SPELL_LEVEL:
                 return spell.isUpgraded() ? "2" : "1";
+            default:
+                return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-
-        return "Parameter " + index + " not implemented!";
     }
 
 }

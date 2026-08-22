@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.text;
 
 import com.simsilica.es.Entity;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 
 /**
@@ -31,8 +32,8 @@ public final class ObjectTextParser extends EntityTextParser<GameObject> {
     }
 
     @Override
-    protected String getReplacement(int index, Entity entity, GameObject gameObject) {
-        return super.getReplacement(index, entity, gameObject);
+    protected String getReplacement(TextParameter parameter, Entity entity, GameObject gameObject) {
+        return super.getReplacement(parameter, entity, gameObject);
     }
 
 

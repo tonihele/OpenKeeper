@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import java.util.Collection;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.utils.Utils;
@@ -35,19 +36,19 @@ public final class DoorTextParser extends EntityTextParser<Door> {
     }
 
     @Override
-    protected String getReplacement(int index, Entity entity, Door door) {
-        switch (index) {
-            case 68:
+    protected String getReplacement(TextParameter parameter, Entity entity, Door door) {
+        switch (parameter) {
+            case ENTITY_NAME:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(door.getNameStringId()));
-            case 72:
+            case STATE:
                 DoorComponent doorComponent = entity.get(DoorComponent.class);
                 if (doorComponent != null) {
                     return doorComponent.locked ? Utils.getMainTextResourceBundle().getString("2516") : Utils.getMainTextResourceBundle().getString("2515");
                 }
                 return "";
+            default:
+                return super.getReplacement(parameter, entity, door);
         }
-
-        return super.getReplacement(index, entity, door);
     }
 
     @Override
