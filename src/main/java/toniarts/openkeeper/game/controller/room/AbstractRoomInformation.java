@@ -108,14 +108,14 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     }
 
     @Override
-    public final int hashCode() {
+    public int hashCode() {
         int hash = 7;
         hash = 41 * hash + Objects.hashCode(this.entityId);
         return hash;
     }
 
     @Override
-    public final boolean equals(Object obj) {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
