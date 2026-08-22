@@ -18,10 +18,17 @@ package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.Collection;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.EntityPickupValidator;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -37,10 +44,36 @@ import toniarts.openkeeper.view.text.EntityTextParser;
 public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
     private boolean initialized = false;
+    private final IMapDataInformation<? extends IMapTileInformation> mapData;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
+        this(entityId, entityData, data, state, assetManager, textParser, null);
+    }
+
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
+            AssetManager assetManager, EntityTextParser<GameObject> textParser,
+            IMapDataInformation<? extends IMapTileInformation> mapData) {
         super(entityId, entityData, data, state, assetManager, textParser);
+        this.mapData = mapData;
+    }
+
+    @Override
+    protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
+        Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
+        components.add(ObjectComponent.class);
+        components.add(Position.class);
+        return components;
+    }
+
+    @Override
+    public boolean isPickable(short playerId) {
+        return super.isPickable(playerId)
+                && (mapData == null || EntityPickupValidator.isValidLocation(
+                        getEntity().get(ObjectComponent.class),
+                        getEntity().get(Position.class),
+                        playerId,
+                        mapData));
     }
 
     @Override
