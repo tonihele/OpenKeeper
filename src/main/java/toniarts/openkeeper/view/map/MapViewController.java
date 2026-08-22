@@ -494,8 +494,9 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 case SOUTH -> new Point(tile.getX(), tile.getY() + 1);
                 case EAST -> new Point(tile.getX() + 1, tile.getY());
             };
-            if (canPlaceTorch(neighbor.x, neighbor.y)) {
-                addTorch(tile, pageNode, direction);
+            Terrain wallTerrain = getTorchTerrain(neighbor.x, neighbor.y);
+            if (wallTerrain != null) {
+                addTorch(tile, pageNode, direction, wallTerrain);
                 return;
             }
         }
@@ -511,27 +512,28 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         return vertical ? VERTICAL_TORCH_DIRECTIONS : NO_TORCH_DIRECTIONS;
     }
 
-    private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction) {
+    private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction, Terrain wallTerrain) {
         String name = "Torch1";
+        float height = wallTerrain.getLightHeight();
         float angleY;
         Vector3f position;
 
         switch (direction) {
             case NORTH -> {
                 angleY = -FastMath.HALF_PI;
-                position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, -WorldUtils.TILE_WIDTH / 2);
+                position = new Vector3f(0, height, -WorldUtils.TILE_WIDTH / 2);
             }
             case WEST -> {
                 angleY = 0;
-                position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
+                position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, height, 0);
             }
             case SOUTH -> {
                 angleY = FastMath.HALF_PI;
-                position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, WorldUtils.TILE_WIDTH / 2);
+                position = new Vector3f(0, height, WorldUtils.TILE_WIDTH / 2);
             }
             case EAST -> {
                 angleY = FastMath.PI;
-                position = new Vector3f(WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
+                position = new Vector3f(WorldUtils.TILE_WIDTH / 2, height, 0);
             }
             default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
@@ -545,6 +547,7 @@ public abstract class MapViewController implements ILoader<KwdFile> {
                 return;
             }
             name = torch.getName();
+            position.y = room.getTorchHeight();
         }
 
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
@@ -555,9 +558,13 @@ public abstract class MapViewController implements ILoader<KwdFile> {
         ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
     }
 
-    private boolean canPlaceTorch(int x, int y) {
+    private Terrain getTorchTerrain(int x, int y) {
         IMapTileInformation tile = getMapData().getTile(x, y);
-        return (tile != null && getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.TORCH));
+        if (tile == null) {
+            return null;
+        }
+        Terrain terrain = getTerrain(tile);
+        return terrain.getFlags().contains(Terrain.TerrainFlag.TORCH) ? terrain : null;
 
     }
 
