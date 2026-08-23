@@ -78,12 +78,21 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     @Override
     public int hashCode() {
-        return super.hashCode();
+        int hash = 7;
+        hash = 41 * hash + Objects.hashCode(getEntityId());
+        return hash;
     }
 
     @Override
     public boolean equals(Object obj) {
-        return super.equals(obj);
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ObjectViewControl other = (ObjectViewControl) obj;
+        return Objects.equals(getEntityId(), other.getEntityId());
     }
 
     @Override
