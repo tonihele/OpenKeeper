@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 plugins {
     id 'java'
     id 'application'
@@ -8,7 +10,7 @@ plugins {
 }
 
 ext {
-    jmonkeyengine_version = '3.8.0-stable'
+    jmonkeyengine_version = '3.9.0-stable'
     license = file("$rootDir/license.txt")
 }
 
@@ -33,20 +35,32 @@ application {
     }
 }
 
-task sourcesJar(type: Jar, dependsOn: [classes, startScripts, distZip, distTar]) {
-    from sourceSets.main.allSource
-}
-
-artifacts {
-    archives sourcesJar
-    //	archives javadocJar
-}
-
-configurations.all {
+configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
         substitute module('com.github.nifty-gui:nifty-default-controls') using module('com.github.tonihele.nifty-gui:nifty-default-controls:1.4-SNAPSHOT')
         substitute module('com.github.nifty-gui:nifty-style-black') using module('com.github.tonihele.nifty-gui:nifty-style-black:1.4-SNAPSHOT')
+    }
+}
+
+project(":assets") {
+    apply plugin: "java"
+
+    layout.buildDirectory.set(rootProject.layout.buildDirectory.dir("assets"))
+
+    sourceSets {
+        main {
+            resources {
+                srcDir(".")
+                exclude("Converted/**")
+            }
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
     }
 }
 
@@ -65,23 +79,14 @@ dependencies {
     implementation "com.simsilica:zay-es-net:1.6.0"
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
-}
 
-sourceSets {
-    main {
-        java {
-            srcDir 'src'
-        }
-        resources {
-            srcDirs 'assets'
-            exclude 'Converted/**'
-        }
-    }
+    // Assets sub-project
+    runtimeOnly project(':assets')
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -92,7 +97,7 @@ jar {
             'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
             'Main-Class': application.mainClass,
             'Built-By': System.properties['user.name'],
-            'Build-Timestamp': new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+            'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
             'Created-By': "Gradle ${gradle.gradleVersion}",
             'Build-JDK': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
             'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
@@ -123,5 +128,5 @@ compileJava {
 }
 
 wrapper {
-    gradleVersion = '8.14'
+    gradleVersion = '9.6.1'
 }
