@@ -46,6 +46,7 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Quad;
 import com.jme3.shadow.DirectionalLightShadowRenderer;
 import com.jme3.shadow.EdgeFilteringMode;
+import com.jme3.system.AppSettings;
 import com.jme3.util.TangentBinormalGenerator;
 import com.jme3.util.mikktspace.MikktspaceTangentGenerator;
 import de.lessvoid.nifty.Nifty;
@@ -187,6 +188,14 @@ public final class ModelViewer extends SimpleApplication {
         }
 
         ModelViewer app = new ModelViewer();
+
+        AppSettings settings = new AppSettings(true);
+        settings.setResizable(true);
+        settings.setWidth(1280);
+        settings.setHeight(720);
+
+        app.setSettings(settings);
+
         app.start();
     }
 
