@@ -25,6 +25,9 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.game.data.Level.LevelType;
+import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -71,6 +74,10 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                     obj.rotate(0, yAngle, 0).move(0, 0.4f, 0.1f);
                     root.attachChild(obj);
                     animate(obj, false);
+
+                    break;
+                case 7:
+                    showMpdProgress(root, start, p);
 
                     break;
                 case 11:
@@ -209,6 +216,60 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 		        object.setBatchHint(Spatial.BatchHint.Never);
 		    }
 		});
+    }
+
+    private void showMpdProgress(BatchNode root, Point start, Point p) {
+        String modelName = "";
+
+        for (int i = 6; i > 0; i--) {
+            Level mpdLevel = new Level(LevelType.MPD, i);
+            // the level before it must be completed
+            if (!Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
+                continue;
+            }
+
+            // anims for cycling
+            // idle1
+            // idle2
+            // drink
+            // happy
+            // angry
+            // Drunkidle
+
+            switch (i) {
+                case 1:
+                    modelName = "Dwarf-Idle2";
+                    break;
+                case 2:
+                    modelName = "Guard-Idle2";
+                    break;
+                case 3:
+                    modelName = "Knight-Idle2";
+                    break;
+                case 4:
+                    modelName = "LOL-Idle2";
+                    break;
+                case 5:
+                    modelName = "PR3-Idle2";
+                    break;
+                case 6:
+                    modelName = "King-Idle2";
+                    break;
+            }
+            // if we already found a completed level, exit the loop
+            break;
+        }
+
+        if (modelName == "") {
+            return;
+        }
+
+        final Spatial mpdObj = loadObject(modelName, assetManager, start, p);
+        mpdObj.rotate(0, FastMath.PI / 2, 0);
+        mpdObj.scale(0.7f);
+        mpdObj.move(-0.3f, 0f, 0f);
+        root.attachChild(mpdObj);
+        animate(mpdObj, false);
     }
 
 }
