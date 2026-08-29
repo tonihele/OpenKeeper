@@ -58,7 +58,7 @@ public final class NiftyUtils {
 
         SoundHandle soundHandler = nifty.getSoundSystem().getSound(file.toString());
         if (soundHandler == null) {
-            String filename = AssetsConverter.SOUNDS_FOLDER + File.separator + file.getFilename();
+            String filename = AssetsConverter.SOUNDS_FOLDER + file.getFilename();
             if (nifty.getSoundSystem().addSound(file.toString(), filename)) {
                 soundHandler = nifty.getSoundSystem().getSound(file.toString());
             }

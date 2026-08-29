@@ -122,7 +122,7 @@ public final class WadFile {
 
                 // The path
                 name = PathUtils.convertFileSeparators(name);
-                int index = name.lastIndexOf(File.separator);
+                int index = name.lastIndexOf('/');
                 if (index > -1) {
                     path = name.substring(0, index + 1);
                 } else if (!path.isEmpty()) {

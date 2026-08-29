@@ -546,12 +546,12 @@ public final class MainMenuState extends AbstractAppState {
     protected String getMapThumbnail(KwdFile map) {
 
         // See if the map thumbnail exist, otherwise create one
-        String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + PathUtils.stripFileName(map.getGameLevel().getName()) + ".png";
+        String asset = AssetsConverter.THUMBNAILS_FOLDER + PathUtils.stripFileName(map.getGameLevel().getName()) + ".png";
         if (assetManager.locateAsset(new TextureKey(asset)) == null) {
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
+                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.THUMBNAILS_FOLDER);
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";

@@ -805,7 +805,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
                     {
                         parameter("color", spell.isDiscovered() ? "" : Integer.toString(RESEARCH_COLOR.getRGB()));
-                        parameter("image", spell.isDiscovered() ? AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
+                        parameter("image", spell.isDiscovered() ? AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + "GUI/Icons/Gold_Frame.png") : "");
                     }
                 }.build(element).getControl(ResearchEffectControl.class);
                 researchControl.initJme(state.app);
@@ -999,13 +999,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 marginRight("6px");
                 focusable(true);
                 id("creature-ability_" + index);
-                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                        + File.separator + name + ".png"));
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + name + ".png"));
                 valignCenter();
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                                + File.separator + "GUI/Icons/selected-creature.png"));
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + "GUI/Icons/selected-creature.png"));
                         post(true);
                     }
                 });
@@ -1016,8 +1014,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureIcon(final String name) {
         return new ImageBuilder() {
             {
-                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                        + File.separator + name + ".png"));
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + name + ".png"));
                 valignCenter();
             }
         };
@@ -1026,16 +1023,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureMeleeIcon(final String name) {
         return new ImageBuilder() {
             {
-                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                        + File.separator + name + ".png"));
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + name + ".png"));
                 valignCenter();
                 marginLeft("6px");
                 focusable(true);
                 id("creature-melee");
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                                + File.separator + "GUI/Icons/selected-creature.png"));
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + "GUI/Icons/selected-creature.png"));
                         post(true);
                     }
                 });
@@ -1046,16 +1041,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private ImageBuilder createCreatureSpellIcon(final CreatureSpell cs, final int index) {
         return new ImageBuilder() {
             {
-                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                        + File.separator + cs.getGuiIcon().getName() + ".png"));
+                filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + cs.getGuiIcon().getName() + ".png"));
                 valignCenter();
                 marginLeft("6px");
                 focusable(true);
                 id("creature-spell_" + index);
                 onFocusEffect(new EffectBuilder("imageOverlay") {
                     {
-                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                                + File.separator + "GUI/Icons/selected-spell.png"));
+                        effectParameter("filename", AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + "GUI/Icons/selected-spell.png"));
                         post(true);
                     }
                 });
@@ -1074,7 +1067,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         return createIcon(room.getId(),
-                "room", "gui\\rooms\\tba", null, null, false, false);
+                "room", "GUI/Rooms/tba", null, null, false, false);
     }
 
     private ControlBuilder createSpellIcon(final ResearchableEntity spell) {
@@ -1086,7 +1079,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             return createIcon(keeperSpell.getKeeperSpellId(), "spell", spell.isUpgraded() ? keeperSpell.getGuiIcon().getName() + "-2" : keeperSpell.getGuiIcon().getName(), tip, hint, true, spell.isUpgraded());
         }
         return createIcon(keeperSpell.getKeeperSpellId(),
-                "spell", "gui\\spells\\s-tba", null, null, false, false);
+                "spell", "GUI/Spells/s-tba", null, null, false, false);
     }
 
     private ControlBuilder createDoorIcon(final ResearchableEntity doorInfo) {
@@ -1100,7 +1093,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         return createIcon(door.getId(),
-                "door", "gui\\traps\\w-tba", null, null, false, false);
+                "door", "GUI/Traps/w-tba", null, null, false, false);
     }
 
     private ControlBuilder createTrapIcon(final ResearchableEntity trapInfo) {
@@ -1113,7 +1106,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         return createIcon(trap.getId(),
-                "trap", "gui\\traps\\w-tba", null, null, false, false);
+                "trap", "GUI/Traps/w-tba", null, null, false, false);
     }
 
     public ControlBuilder createIcon(final int id, final String type, final ArtResource guiIcon, final String tooltip, final String hint, final boolean allowSelect, final boolean hilightGold) {
@@ -1122,9 +1115,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     public ControlBuilder createIcon(final int id, final String type, final String guiIcon, final String tooltip, final String hint, final boolean allowSelect, final boolean hilightGold) {
         ControlBuilder cb = new GuiIconBuilder(type + "_" + id,
-                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + guiIcon + ".png"),
-                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
-                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-" + type + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + guiIcon + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + (hilightGold ? "GUI/Icons/Hilight-2.png" : "GUI/Icons/hilight.png")),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + "GUI/Icons/selected-" + type + ".png"),
                 hint != null ? hint : "",
                 tooltip != null ? tooltip : "",
                 "select(" + type + ", " + id + ")");
@@ -1136,6 +1129,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void playSound(String category, String id) {
+        if (Main.isAudioDisabled())
+            return;
         SoundHandle soundHandler = NiftyUtils.getSoundHandler(nifty, category, Integer.parseInt(id));
         if (soundHandler != null) {
             soundHandler.play();
@@ -1331,8 +1326,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
             ControlBuilder cb = new ControlBuilder("creature") {
                 {
-                    filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                            + File.separator + creature.getPortraitResource().getName() + ".png"));
+            filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + creature.getPortraitResource().getName() + ".png"));
                     parameter("creatureId", Integer.toString(creature.getCreatureId()));
                     id("creature_" + creature.getCreatureId());
                 }

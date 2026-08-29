@@ -96,8 +96,8 @@ public final class Main extends SimpleApplication {
     private static boolean conversionOk = false;
     public static final String VERSION = "*ALPHA*";
     public static final String TITLE = "OpenKeeper";
-    private static final String USER_HOME_FOLDER = System.getProperty("user.home").concat(File.separator).concat(".").concat(TITLE).concat(File.separator);
-    private static final String SCREENSHOTS_FOLDER = USER_HOME_FOLDER.concat("SCRSHOTS").concat(File.separator);
+    private static final String USER_HOME_FOLDER = System.getProperty("user.home") + "/." + TITLE + '/';
+    private static final String SCREENSHOTS_FOLDER = USER_HOME_FOLDER + "SCRSHOTS/";
     private static final Object LOCK = new Object();
     private static Map<String, String> params;
     private static boolean debug;
@@ -250,6 +250,16 @@ public final class Main extends SimpleApplication {
 
         // Init the user settings (which in JME are app settings)
         app.settings = Settings.getInstance().getAppSettings();
+        if (isAudioDisabled())
+            app.settings.setAudioRenderer(null);
+    }
+
+    // returns true when all three audio categories (Music, Voice, SFX) are disabled
+    public static boolean isAudioDisabled() {
+        var s = getUserSettings();
+        return !s.getBoolean(Settings.Setting.MUSIC_ENABLED)
+            && !s.getBoolean(Settings.Setting.VOICE_ENABLED)
+            && !s.getBoolean(Settings.Setting.SFX_ENABLED);
     }
 
     /**
@@ -350,7 +360,12 @@ public final class Main extends SimpleApplication {
             ((GLRenderer)renderer).setDebugEnabled(true); // get debug names for GL objects
             if (GL.getCapabilities().OpenGL43) {
                 GLUtil.setupDebugMessageCallback();
-                GL43C.glDebugMessageControl(GL43.GL_DEBUG_SOURCE_APPLICATION, GL43.GL_DONT_CARE, GL43.GL_DONT_CARE, (int[]) null, false);
+                GL43C.glDebugMessageControl(GL43C.GL_DONT_CARE, GL43C.GL_DEBUG_TYPE_PUSH_GROUP, GL43C.GL_DONT_CARE, (int[]) null, false);
+                GL43C.glDebugMessageControl(GL43C.GL_DONT_CARE, GL43C.GL_DEBUG_TYPE_POP_GROUP,  GL43C.GL_DONT_CARE, (int[]) null, false);
+                final int[] noisyIds = {
+                    0x20071, // Nvidia: BO resides in VIDEO memory
+                };
+                GL43C.glDebugMessageControl(GL43C.GL_DEBUG_SOURCE_API, GL43C.GL_DEBUG_TYPE_OTHER, GL43C.GL_DONT_CARE, noisyIds, false);
             }
         }
 

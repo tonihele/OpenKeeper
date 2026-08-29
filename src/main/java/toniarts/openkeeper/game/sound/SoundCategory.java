@@ -56,11 +56,10 @@ public final class SoundCategory {
             throw new RuntimeException("Sound category is empty");
         }
 
-        if (useGlobal) {
+        if (useGlobal)
             this.folder = PathUtils.DKII_SFX_GLOBAL_FOLDER;
-        } else {
-            this.folder = PathUtils.DKII_SFX_FOLDER + name.toLowerCase() + File.separator;
-        }
+        else
+            this.folder = PathUtils.DKII_SFX_FOLDER + name.toLowerCase() + '/';
 
         this.name = name;
         parseGroups();

@@ -47,8 +47,7 @@ public final class TrapFlowerControl extends UnitFlowerControl<Trap> {
         String result = null;
 
         if (getDataObject().getFlowerIcon() != null) {
-            result = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                    + File.separator + getDataObject().getFlowerIcon().getName() + ".png");
+            result = AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + getDataObject().getFlowerIcon().getName() + ".png");
         }
 
         return result;

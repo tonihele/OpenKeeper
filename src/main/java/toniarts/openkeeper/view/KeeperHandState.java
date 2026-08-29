@@ -257,7 +257,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     private Picture getIcon(String filename) {
         //FIXME if filename is null what todo ?
-        final String name = AssetUtils.getCanonicalAssetKey(TEXTURES_FOLDER + File.separator + filename + ".png");
+        final String name = AssetUtils.getCanonicalAssetKey(TEXTURES_FOLDER + filename + ".png");
 
         Texture tex = assetManager.loadTexture(name);
 
