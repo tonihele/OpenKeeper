@@ -68,6 +68,9 @@ public final class GameLoopManager {
         final GameLogicManager gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
+                new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
+                        level, gameWorldController.getMapController(),
+                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
