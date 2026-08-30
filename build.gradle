@@ -34,10 +34,10 @@ application {
     }
 }
 
-task modelViewer(type: JavaExec) {
-    group = "application"
-    mainClass = "toniarts.openkeeper.tools.modelviewer.ModelViewer"
+tasks.register("modelViewer", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
     classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
 configurations.configureEach {
