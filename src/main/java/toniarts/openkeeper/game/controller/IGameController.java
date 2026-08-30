@@ -58,6 +58,8 @@ public interface IGameController {
 
     ILevelInfo getLevelInfo();
 
+    IGameTimer getGameTimer();
+
     float getLevelVariable(Variable.MiscVariable.MiscType variable);
 
     /**

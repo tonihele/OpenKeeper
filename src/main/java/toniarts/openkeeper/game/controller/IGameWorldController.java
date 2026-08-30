@@ -18,8 +18,9 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.utils.Point;
+import java.util.Collection;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Controls the game world, map and the entities
@@ -104,6 +105,13 @@ public interface IGameWorldController {
      * @param playerId the player who is selling the room
      */
     public void sell(Vector2f start, Vector2f end, short playerId);
+
+    /**
+     * Removes room tiles without treating the removal as a player sale.
+     *
+     * @param points room tiles destroyed by game logic
+     */
+    void destroyRoomTiles(Collection<Point> points);
 
     /**
      * Interact with given entity
