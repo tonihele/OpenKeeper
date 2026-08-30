@@ -459,7 +459,7 @@ public final class ModelViewer extends SimpleApplication {
             }
             case MAPS: {
                 // Load the selected map
-                IKwdFile kwd = getKwdFile((String) selection + ".kwd");
+                IKwdFile kwd = getKwdFile((String) selection);
                 Node spat = mapLoaderAppState.loadMap(kwd);
 
                 GameLevel gameLevel = kwd.getGameLevel();
