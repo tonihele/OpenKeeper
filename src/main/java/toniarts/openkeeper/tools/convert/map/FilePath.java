@@ -23,14 +23,15 @@ import java.util.Objects;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class FilePath {
+public final class FilePath implements Comparable<FilePath> {
 
     private MapDataTypeEnum id; // unsigned int
     private int unknown2;
     private String path; // 64
-    
-    public FilePath() { }
-    
+
+    public FilePath() {
+    }
+
     public FilePath(MapDataTypeEnum id, String path) {
         this.id = id;
         this.path = path;
@@ -86,5 +87,10 @@ public final class FilePath {
     @Override
     public String toString() {
         return getId() + ", " + getPath();
+    }
+
+    @Override
+    public int compareTo(FilePath o) {
+        return this.id == MapDataTypeEnum.MAP ? -1 : o.id == MapDataTypeEnum.MAP ? 1 : 0;
     }
 }

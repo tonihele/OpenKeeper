@@ -11,18 +11,19 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
-import java.util.ArrayList;
-import java.util.List;
 import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.utils.Point;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** Removes wooden bridge tiles after their lava lifetime expires. */
 public final class WoodenBridgeDecaySystem implements IGameLogicUpdatable {
@@ -35,7 +36,7 @@ public final class WoodenBridgeDecaySystem implements IGameLogicUpdatable {
     private final IGameWorldController gameWorldController;
 
     public WoodenBridgeDecaySystem(EntityData entityData, IGameTimer gameTimer,
-            IGameWorldController gameWorldController, KwdFile kwdFile,
+            IGameWorldController gameWorldController, IKwdFile kwdFile,
             IMapController mapController, double lifetime) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
@@ -44,7 +45,7 @@ public final class WoodenBridgeDecaySystem implements IGameLogicUpdatable {
         decayingTiles = entityData.getEntities(WoodenBridgeDecay.class, MapTile.class);
     }
 
-    private void initializeExistingBridges(KwdFile kwdFile, IMapController mapController,
+    private void initializeExistingBridges(IKwdFile kwdFile, IMapController mapController,
             double lifetime) {
         for (int x = 0; x < mapController.getMapData().getWidth(); x++) {
             for (int y = 0; y < mapController.getMapData().getHeight(); y++) {

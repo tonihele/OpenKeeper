@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.state.lobby;
 
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 
 /**
  * This is server's perspective of lobby things. The services we offer our
@@ -33,6 +34,8 @@ public interface LobbyService {
      * @param maxPlayers the maximum amount of players on this map
      */
     public void setMap(String mapName, int maxPlayers);
+
+    public void setMap(IKwdMap kwdMap);
 
     /**
      * Add a computer player to the game

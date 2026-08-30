@@ -18,14 +18,6 @@ package toniarts.openkeeper.tools.convert;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.system.AppSettings;
-import java.io.File;
-import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.conversion.ConversionTaskManager;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertFonts;
@@ -39,8 +31,17 @@ import toniarts.openkeeper.tools.convert.conversion.task.ConvertTexts;
 import toniarts.openkeeper.tools.convert.conversion.task.ConvertTextures;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTask;
 import toniarts.openkeeper.tools.convert.conversion.task.IConversionTaskUpdate;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.PathUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -283,8 +284,8 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
      * @param destination the folder to save to
      * @throws IOException may fail
      */
-    public static void genererateMapThumbnail(KwdFile kwd, String destination) throws IOException {
-        ConvertMapThumbnails.genererateMapThumbnail(kwd, destination);
+    public static void generateMapThumbnail(IKwdFile kwd, String destination) throws IOException {
+        ConvertMapThumbnails.generateMapThumbnail(kwd, destination);
     }
 
 }

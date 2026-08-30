@@ -41,7 +41,7 @@ import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
@@ -63,7 +63,7 @@ public final class GameServerState extends AbstractAppState {
     private final Object loadingObject = new Object();
     private volatile boolean gameLoaded = false;
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final toniarts.openkeeper.game.data.Level levelObject;
 
     private final boolean campaign;
@@ -84,7 +84,7 @@ public final class GameServerState extends AbstractAppState {
      * @param campaign whether this is a campaign level or not
      * @param gameService the game service
      */
-    public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService) {
+    public GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService) {
         this.kwdFile = level;
         this.levelObject = null;
         this.campaign = campaign;
@@ -171,10 +171,6 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void run() {
-
-            // Make sure the KWD file is fully loaded
-            kwdFile.load();
-
             // Create the central game controller
             game = new GameLoopManager(kwdFile, gameService, players);
 

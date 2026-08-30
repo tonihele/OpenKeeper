@@ -35,7 +35,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -48,7 +48,7 @@ public final class SlapSystem extends GameTimeCounter {
 
     private final static int EFFICIENCY_BONUS = 10;
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntitySet creatureEntities;
     private final EntitySet objectEntities;
     private final EntityData entityData;
@@ -56,7 +56,7 @@ public final class SlapSystem extends GameTimeCounter {
     private final Map<Short, PlayerStatsControl> statControls;
     private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
 
-    public SlapSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers,
+    public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;

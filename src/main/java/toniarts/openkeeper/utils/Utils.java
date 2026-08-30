@@ -43,7 +43,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 public final class Utils {
 
     private static final Logger logger = System.getLogger(Utils.class.getName());
-    
+
     private static final Random RANDOM = new Random();
     private static final String[] BLOOD_TYPES = {"IkI", "BO", "PoE", "BA", "MoO", "O", "ARh"};
     private static final String[] CREATURE_NAMES = {
@@ -167,8 +167,7 @@ public final class Utils {
      *
      * @param <T> item type
      * @param collection list
-     * @return random item from the collection or {@code null} if the list is
-     * empty
+     * @return random item from the collection or {@code null} if the list is empty
      */
     public static <T> Optional<T> getRandomItem(Collection<T> collection) {
         return collection.stream().skip(RANDOM.nextInt(collection.size())).findFirst();
@@ -262,4 +261,26 @@ public final class Utils {
         return PLAYER_IDS;
     }
 
+    public static String timeToString(int time) {
+        String result = "";
+        int days = time / 86400;
+        if (days != 0) {
+            time -= days * 86400;
+            result += days;
+        }
+        int hours = time / 3600;
+        if (days != 0 || hours != 0) {
+            time -= hours * 3600;
+            result += String.format(" %02d", hours);
+        }
+        int minutes = time / 60;
+        if (days != 0 || hours != 0 || minutes != 0) {
+            time -= minutes * 60;
+            result += String.format(":%02d", minutes);
+        }
+        int seconds = time;
+        result += String.format(":%02d", seconds);
+
+        return result.trim();
+    }
 }

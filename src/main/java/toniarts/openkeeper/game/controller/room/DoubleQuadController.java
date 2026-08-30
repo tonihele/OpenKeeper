@@ -24,7 +24,7 @@ import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import static toniarts.openkeeper.game.controller.room.AbstractRoomController.hasSameTile;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  *
@@ -34,12 +34,12 @@ public class DoubleQuadController extends NormalRoomController {
 
     protected Set<Point> insideCoordinates;
 
-    public DoubleQuadController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public DoubleQuadController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController) {
         this(entityId, entityData, kwdFile, roomInstance, objectsController, null);
     }
 
-    public DoubleQuadController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public DoubleQuadController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, defaultStorageType);
     }

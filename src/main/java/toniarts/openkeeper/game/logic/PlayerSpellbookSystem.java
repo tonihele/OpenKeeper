@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.AbstractResearchablePlayerControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.IIndexable;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Basically just reacts to stored spellbooks
@@ -41,12 +41,12 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class PlayerSpellbookSystem implements IGameLogicUpdatable {
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntitySet spellbookEntities;
     private final Map<Short, IPlayerController> playerControllersByPlayerId;
     private final Map<EntityId, Short> ownersByEntityId = new HashMap<>();
 
-    public PlayerSpellbookSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers) {
+    public PlayerSpellbookSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers) {
         this.kwdFile = kwdFile;
         playerControllersByPlayerId = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
@@ -145,7 +145,7 @@ public final class PlayerSpellbookSystem implements IGameLogicUpdatable {
         return null;
     }
 
-    private static IIndexable getResearchableType(KwdFile kwdFile, Spellbook spellbook) {
+    private static IIndexable getResearchableType(IKwdFile kwdFile, Spellbook spellbook) {
         switch (spellbook.type) {
             case DOOR: {
                 return kwdFile.getDoorById(spellbook.typeId);

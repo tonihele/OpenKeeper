@@ -24,7 +24,7 @@ import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -36,9 +36,9 @@ public final class DoorLoader implements ILoader<DoorViewState> {
 
     private static final Logger logger = System.getLogger(DoorLoader.class.getName());
     
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
-    public DoorLoader(KwdFile kwdFile) {
+    public DoorLoader(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

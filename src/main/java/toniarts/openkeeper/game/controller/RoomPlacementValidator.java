@@ -9,19 +9,20 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Shared client/server validation for an entire room-building selection.
@@ -51,9 +52,9 @@ public final class RoomPlacementValidator {
     private RoomPlacementValidator() {
     }
 
-    public static Result validate(KwdFile kwdFile, IMapInformation<?> mapInformation,
-            Set<Point> blockedTiles, Vector2f start, Vector2f end, short playerId,
-            short roomId, int availableGold) {
+    public static Result validate(IKwdFile kwdFile, IMapInformation<?> mapInformation,
+                                  Set<Point> blockedTiles, Vector2f start, Vector2f end, short playerId,
+                                  short roomId, int availableGold) {
         Room room = kwdFile.getRoomById(roomId);
         if (!isBuildableRoom(room)) {
             return invalid(Failure.INVALID_ROOM);
@@ -123,7 +124,7 @@ public final class RoomPlacementValidator {
         return new Result(Failure.NONE, Collections.unmodifiableList(plots));
     }
 
-    private static Result validateBridge(KwdFile kwdFile, IMapInformation<?> mapInformation,
+    private static Result validateBridge(IKwdFile kwdFile, IMapInformation<?> mapInformation,
             Set<Point> blockedTiles, List<Point> plots, Point start, short playerId, Room room) {
         Set<Point> selected = new HashSet<>(plots);
         ArrayDeque<Point> open = new ArrayDeque<>();
@@ -167,7 +168,7 @@ public final class RoomPlacementValidator {
                 : invalid(Failure.BRIDGE_NOT_CONNECTED);
     }
 
-    private static boolean hasAdjacentOwnedTile(KwdFile kwdFile, IMapInformation<?> mapInformation,
+    private static boolean hasAdjacentOwnedTile(IKwdFile kwdFile, IMapInformation<?> mapInformation,
             Point point, short playerId) {
         for (Point neighbour : WorldUtils.getSurroundingTiles(mapInformation.getMapData(), point, false)) {
             IMapTileInformation tile = mapInformation.getMapData().getTile(neighbour);
