@@ -83,7 +83,7 @@ import static toniarts.openkeeper.tools.convert.map.MapDataTypeEnum.MAP;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class KwdFile implements IKwdFile {
+public final class KwdFile implements IKwdFile, IKwdMap {
 
     private static final Logger logger = System.getLogger(KwdFile.class.getName());
 
@@ -3260,7 +3260,7 @@ public final class KwdFile implements IKwdFile {
     }
 
     @Override
-    public int compareTo(IKwdMap other) {
+    public int compareTo(IKwdInfo other) {
         return Collator.getInstance().compare(getGameLevel().getName(), other.getGameLevel().getName());
     }
 

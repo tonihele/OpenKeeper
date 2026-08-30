@@ -21,11 +21,7 @@ package toniarts.openkeeper.tools.convert.map;
  *
  * @author ArchDemon
  */
-public interface IKwdMap extends Comparable<IKwdMap> {
-
-    GameMap getMap();
-
-    GameLevel getGameLevel();
+public interface IKwdMap extends IKwdInfo {
 
     /**
      * Loads the complete KWD file

@@ -39,7 +39,7 @@ import java.util.Set;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface IKwdFile extends IKwdMap {
+public interface IKwdFile extends IKwdInfo {
 
     /**
      * Get the terrain with the specified ID
