@@ -21,11 +21,11 @@ package toniarts.openkeeper.tools.convert.map;
  *
  * @author ArchDemon
  */
-public interface IKwdMap extends Comparable<String> {
+public interface IKwdMap extends Comparable<IKwdMap> {
 
-    public GameMap getMap();
+    GameMap getMap();
 
-    public GameLevel getGameLevel();
+    GameLevel getGameLevel();
 
     /**
      * Get the terrain with the specified ID
@@ -33,6 +33,8 @@ public interface IKwdMap extends Comparable<String> {
      * @param id the id of terrain
      * @return the terrain
      */
-    public Terrain getTerrain(short id);
+    Terrain getTerrain(short id);
+
+    IKwdFile load();
 
 }

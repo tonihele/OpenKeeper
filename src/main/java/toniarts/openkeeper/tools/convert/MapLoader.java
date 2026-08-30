@@ -16,12 +16,13 @@
  */
 package toniarts.openkeeper.tools.convert;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.PathUtils;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * A simple class to load up a map file
@@ -45,6 +46,6 @@ public final class MapLoader {
         }
 
         // Load the map
-        IKwdFile kwd = new KwdFile.KwdFileLoader(dkIIFolder).load(args[0]);
+        IKwdFile kwd = KwdFile.load(dkIIFolder, Paths.get(args[0]));
     }
 }

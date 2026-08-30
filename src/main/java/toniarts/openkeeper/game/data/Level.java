@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.data;
 
-import lombok.SneakyThrows;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
@@ -49,10 +48,9 @@ public final class Level extends GeneralLevel {
     }
 
     @Override
-    @SneakyThrows
     public IKwdMap getKwdMap() {
         if (kwdMap == null) {
-            kwdMap = new KwdFile.KwdFileLoader().loadMapOnly(getFileName());
+            kwdMap = KwdFile.loadInfo(getFileName());
         }
 
         return super.getKwdMap();

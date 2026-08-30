@@ -14,14 +14,6 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import toniarts.openkeeper.utils.Point;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
@@ -33,7 +25,16 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Local game session, a virtual server
@@ -78,7 +79,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app)
             throws IOException {
         // Try to load the file
-        IKwdFile kwdFile = new KwdFile.KwdFileLoader().load(level);
+        IKwdFile kwdFile = KwdFile.load(level);
 
         createLocalGame(kwdFile, stateManager, campaign, app);
     }

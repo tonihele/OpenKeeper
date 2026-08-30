@@ -17,6 +17,12 @@
 package toniarts.openkeeper.game;
 
 import com.jme3.math.FastMath;
+import toniarts.openkeeper.Main;
+import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.PathUtils;
+
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -24,15 +30,11 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import toniarts.openkeeper.Main;
-import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
-import toniarts.openkeeper.tools.convert.map.IKwdMap;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Class isolate map selection
@@ -56,7 +58,7 @@ public final class MapSelector {
                 PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path file : stream) {
                 // Read the map
-                IKwdMap kwd = new KwdFile.KwdFileLoader().load(file);
+                IKwdMap kwd = KwdFile.loadInfo(file);
 
                 if (kwd.getGameLevel().getLvlFlags().contains(LevFlag.IS_SKIRMISH_LEVEL)) {
                     skirmishMaps.add(kwd);
@@ -73,10 +75,9 @@ public final class MapSelector {
         }
 
         // Sort them
-        Comparator c = new MapComparator();
-        Collections.sort(skirmishMaps, c);
-        Collections.sort(multiplayerMaps, c);
-        Collections.sort(mpdMaps, c);
+        Collections.sort(skirmishMaps);
+        Collections.sort(multiplayerMaps);
+        Collections.sort(mpdMaps);
     }
 
     public void random() {
@@ -154,24 +155,27 @@ public final class MapSelector {
      * @return the map, or {@code null} if not found
      */
     public IKwdMap getMap(String name) {
-        int index = Collections.binarySearch(getMaps(), name);
+        int index = Collections.binarySearch(getMaps(), name, new MapComparator());
         if (index >= 0) {
             map = getMaps().get(index);
             return map;
         }
+
         return null;
     }
 
     /**
      * Compares the maps by their name
      */
-    private static final class MapComparator implements Comparator<IKwdMap> {
+    private static final class MapComparator implements Comparator<Comparable<?>> {
 
         @Override
-        public int compare(IKwdMap o1, IKwdMap o2) {
-            return o1.getGameLevel().getName().compareToIgnoreCase(o2.getGameLevel().getName());
-        }
+        public int compare(Comparable<?> o1, Comparable<?> o2) {
+            String mapName1 = o1 instanceof IKwdMap kwdMap ? kwdMap.getGameLevel().getName() : o1.toString();
+            String mapName2 = o2 instanceof IKwdMap kwdMap ? kwdMap.getGameLevel().getName() : o2.toString();
 
+            return Collator.getInstance().compare(mapName1, mapName2);
+        }
     }
 
 }

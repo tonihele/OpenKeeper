@@ -16,6 +16,14 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.PathUtils;
+
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -29,13 +37,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.GameLevel;
-import toniarts.openkeeper.tools.convert.map.IKwdMap;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.MapThumbnailGenerator;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Dungeon Keeper II map thumbnail generation. The original has a few thumbnails in BMP format, but they don't
@@ -81,7 +82,7 @@ public final class ConvertMapThumbnails extends ConversionTask {
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(dungeonKeeperFolder, PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path path : paths) {
                 try {
-                    IKwdMap kwdMap = new KwdFile.KwdFileLoader(dungeonKeeperFolder).load(path);
+                    IKwdMap kwdMap = KwdFile.loadInfo(dungeonKeeperFolder, path);
                     if (kwdMap.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
                             || kwdMap.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
                         maps.add(kwdMap);

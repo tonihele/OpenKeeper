@@ -31,20 +31,12 @@ import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import java.io.File;
-import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.Collections;
-import lombok.SneakyThrows;
 import toniarts.openkeeper.Main;
-import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.controller.GameController;
-import toniarts.openkeeper.game.data.CustomMPDLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
@@ -74,6 +66,14 @@ import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Collections;
+
+import static toniarts.openkeeper.Main.getDkIIFolder;
 
 /**
  * The main menu state
@@ -135,7 +135,7 @@ public final class MainMenuState extends AbstractAppState {
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager,
             final Main app) throws IOException {
         // Load the 3D Front end
-        frontEndKwd = new KwdFile.KwdFileLoader().load("FrontEnd3DLevel");
+        frontEndKwd = KwdFile.load("FrontEnd3DLevel");
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
@@ -430,11 +430,10 @@ public final class MainMenuState extends AbstractAppState {
      *
      * @param type where level selected. @TODO change campaign like others or otherwise
      */
-    @SneakyThrows
     public void startLevel(String type) {
-        if ("campaign".equals(type.toLowerCase())) {
+        if ("campaign".equalsIgnoreCase(type)) {
             // Create the level state
-            IKwdFile kwdFile = new KwdFile.KwdFileLoader().load(selectedLevel.getKwdMap());
+            IKwdFile kwdFile =selectedLevel.getKwdMap().load();
             LocalGameSession.createLocalGame(kwdFile, true, stateManager, app);
         } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
