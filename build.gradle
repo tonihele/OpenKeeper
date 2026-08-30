@@ -26,13 +26,18 @@ allprojects {
 application {
     applicationName = 'OpenKeeper'
     mainClass = 'toniarts.openkeeper.Main'
-    //mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
     if (System.getProperty("os.name").toLowerCase().contains("mac")) {
         applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper", "-XstartOnFirstThread"]
     }
     else {
         applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
     }
+}
+
+task modelViewer(type: JavaExec) {
+    group = "application"
+    mainClass = "toniarts.openkeeper.tools.modelviewer.ModelViewer"
+    classpath = sourceSets.main.runtimeClasspath
 }
 
 configurations.configureEach {
