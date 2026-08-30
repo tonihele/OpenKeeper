@@ -28,14 +28,14 @@ import java.util.Map;
  */
 public abstract class Trigger {
 
-    protected KwdFile kwdFile; // For toStrings()
+    protected IKwdFile kwdFile; // For toStrings()
     private int id;
     private int idNext; // SiblingID
     private int idChild; // ChildID
     private short repeatTimes; // Repeat x times, 255 = always
     protected Map<String, Number> data = null;
 
-    public Trigger(KwdFile kwdFile) {
+    public Trigger(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

@@ -350,6 +350,7 @@ public final class GameLevel implements ISoundable, ITriggerable {
 
     /**
      * Associated trigger
+     *
      * @return
      */
     @Override
@@ -606,13 +607,8 @@ public final class GameLevel implements ISoundable, ITriggerable {
         this.unknown = unknown;
     }
 
-    public String getFile(MapDataTypeEnum type) {
-        for (FilePath file : paths) {
-            if (file.getId() == type) {
-                return file.getPath();
-            }
-        }
-        return null;
+    public FilePath getFilePath(MapDataTypeEnum type) {
+        return paths.stream().filter(file -> file.getId() == type).findFirst().orElse(null);
     }
 
     /**

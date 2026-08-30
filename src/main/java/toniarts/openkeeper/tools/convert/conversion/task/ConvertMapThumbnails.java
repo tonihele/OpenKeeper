@@ -16,6 +16,15 @@
  */
 package toniarts.openkeeper.tools.convert.conversion.task;
 
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.PathUtils;
+
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -29,17 +38,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.GameLevel;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
-import toniarts.openkeeper.utils.MapThumbnailGenerator;
-import toniarts.openkeeper.utils.PathUtils;
 
 /**
- * Dungeon Keeper II map thumbnail generation. The original has a few thumbnails
- * in BMP format, but they don't just cut it. Bake our own and also from custom
- * maps.
+ * Dungeon Keeper II map thumbnail generation. The original has a few thumbnails in BMP format, but they don't
+ * just cut it. Bake our own and also from custom maps.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -77,14 +79,14 @@ public final class ConvertMapThumbnails extends ConversionTask {
         }
 
         // Get the skirmish/mp maps
-        List<KwdFile> maps = new ArrayList<>();
+        List<IKwdFile> maps = new ArrayList<>();
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(dungeonKeeperFolder, PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path path : paths) {
                 try {
-                    KwdFile kwd = new KwdFile(dungeonKeeperFolder, path, false);
-                    if (kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
-                            || kwd.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
-                        maps.add(kwd);
+                    IKwdMap kwdMap = KwdFile.loadInfo(dungeonKeeperFolder, path);
+                    if (kwdMap.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
+                            || kwdMap.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
+                        maps.add(kwdMap.load());
                     }
                 } catch (Exception ex) {
                     logger.log(Level.WARNING, "Failed to open map file: " + path + "!", ex); // Not fatal
@@ -98,12 +100,12 @@ public final class ConvertMapThumbnails extends ConversionTask {
         int i = 0;
         int total = maps.size();
         ImageIO.setUseCache(false);
-        for (KwdFile kwd : maps) {
+        for (IKwdFile map : maps) {
             updateStatus(i, total);
             try {
-                genererateMapThumbnail(kwd, destination);
+                generateMapThumbnail(map, destination);
             } catch (Exception ex) {
-                logger.log(Level.WARNING, "Failed to create a thumbnail from map: " + kwd.getGameLevel().getName() + "!", ex); // Not fatal
+                logger.log(Level.WARNING, "Failed to create a thumbnail from map: " + map + "!", ex); // Not fatal
             }
             i++;
         }
@@ -112,19 +114,18 @@ public final class ConvertMapThumbnails extends ConversionTask {
     /**
      * Generates a map thumbnail out of the given map file
      *
-     * @param kwd map file
+     * @param kwdMap map file
      * @param destination the folder to save to
      * @throws IOException may fail
      */
-    public static void genererateMapThumbnail(KwdFile kwd, String destination) throws IOException {
+    public static void generateMapThumbnail(IKwdFile kwdMap, String destination) throws IOException {
 
         // Create the thumbnail & save it
         // TODO maybe image size in Settings ???
-        BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwd, 144, 144, false);
+        BufferedImage thumbnail = MapThumbnailGenerator.generateMap(kwdMap, 144, 144, false);
 
-        Path destinationPath = Paths.get(destination, PathUtils.stripFileName(kwd.getGameLevel().getName()) + ".png");
-        try (OutputStream os = Files.newOutputStream(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                BufferedOutputStream bos = new BufferedOutputStream(os)) {
+        Path destinationPath = Paths.get(destination, PathUtils.stripFileName(kwdMap.getGameLevel().getName()) + ".png");
+        try (OutputStream os = Files.newOutputStream(destinationPath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING); BufferedOutputStream bos = new BufferedOutputStream(os)) {
             ImageIO.write(thumbnail, "png", bos);
         }
     }

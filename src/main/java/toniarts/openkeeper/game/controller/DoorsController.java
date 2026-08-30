@@ -36,12 +36,11 @@ import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 
 /**
  * This is a controller that controls all the doors in the world TODO:
@@ -51,10 +50,10 @@ import toniarts.openkeeper.view.map.MapViewController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class DoorsController implements IDoorsController {
-    
+
     private static final Logger logger = System.getLogger(DoorsController.class.getName());
 
-    private KwdFile kwdFile;
+    private IKwdFile kwdFile;
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IMapController mapController;
@@ -75,7 +74,7 @@ public final class DoorsController implements IDoorsController {
      * @param gameController
      * @param levelInfo
      */
-    public DoorsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+    public DoorsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IMapController mapController, IGameController gameController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;

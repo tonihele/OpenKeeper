@@ -121,6 +121,13 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                     root.attachChild(map);
 
                     break;
+                case 13:
+                case 15:
+                    // fix for widescreen, copy the current tile und move it 1 tile behind
+                    final Spatial fixtile = tile.clone();
+                    fixtile.move(0, 0,  1);
+                    root.attachChild(fixtile);
+                    break;
             }
 
             root.attachChild(tile);

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 
@@ -58,6 +59,11 @@ public final class LocalLobby implements LobbyService, LobbyClientService {
         clientInfo.setReady(keeper.isAi());
         idCounter++;
         return clientInfo;
+    }
+    
+    @Override
+    public void setMap(IKwdMap kwdMap) {
+        setMap(kwdMap.getGameLevel().getName(), kwdMap.getGameLevel().getPlayerCount());
     }
 
     @Override

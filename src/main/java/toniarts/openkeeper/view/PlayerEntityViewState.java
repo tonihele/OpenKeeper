@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
@@ -66,7 +66,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
 
     private AppStateManager stateManager;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
     private final short playerId;
@@ -91,7 +91,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
 
-    public PlayerEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+    public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         super(Short.toString(playerId));
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;

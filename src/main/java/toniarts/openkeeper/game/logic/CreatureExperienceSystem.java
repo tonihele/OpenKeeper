@@ -36,7 +36,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
 
@@ -56,7 +56,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         TRAINING
     }
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntitySet experienceEntities;
     private final EntitySet trainingEntities;
     private final EntityData entityData;
@@ -66,7 +66,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private final ICreaturesController creaturesController;
     private final Map<EntityId, Double> timeWorkingByEntityId = new HashMap<>();
 
-    public CreatureExperienceSystem(EntityData entityData, KwdFile kwdFile,
+    public CreatureExperienceSystem(EntityData entityData, IKwdFile kwdFile,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController) {
         this.kwdFile = kwdFile;

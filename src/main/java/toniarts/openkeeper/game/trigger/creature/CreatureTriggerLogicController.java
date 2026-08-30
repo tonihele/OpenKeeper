@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerLogicController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
@@ -49,7 +49,7 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
                 creaturesController);
     }
 
-    private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(KwdFile kwdFile, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+    private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(IKwdFile kwdFile, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Integer, AbstractThingTriggerControl<ICreatureController>> creatureTriggers = new HashMap<>();
         for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {

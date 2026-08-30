@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -38,10 +38,10 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class MapInformation<T extends IMapDataInformation<S>, S extends IMapTileInformation> implements IMapInformation<S> {
 
     private final T mapData;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final Map<Short, Keeper> playersById;
 
-    public MapInformation(T mapData, KwdFile kwdFile, Collection<Keeper> players) {
+    public MapInformation(T mapData, IKwdFile kwdFile, Collection<Keeper> players) {
         this.mapData = mapData;
         this.kwdFile = kwdFile;
         playersById = players.stream().collect(Collectors.toMap(Keeper::getId, keeper -> keeper));

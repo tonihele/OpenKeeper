@@ -23,7 +23,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomResearcherControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomSpellBookControl;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * The library
@@ -34,7 +34,7 @@ public final class LibraryController extends NormalRoomController {
 
     private final IGameTimer gameTimer;
 
-    public LibraryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+    public LibraryController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
             IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.RESEARCHER);
 
