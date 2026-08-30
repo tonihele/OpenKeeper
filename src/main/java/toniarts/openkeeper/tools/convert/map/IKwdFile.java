@@ -16,15 +16,16 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.tools.convert.map.Variable.Availability;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Reads a DK II map file, the KWD is the file name of the main map identifier, reads the KLDs actually<br>
@@ -41,25 +42,33 @@ import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
 public interface IKwdFile extends IKwdMap {
 
     /**
+     * Get the terrain with the specified ID
+     *
+     * @param id the id of terrain
+     * @return the terrain
+     */
+    Terrain getTerrain(short id);
+
+    /**
      * Get list of different terrain tiles
      *
      * @return list of terrain tiles
      */
-    public Collection<Terrain> getTerrainList();
+    Collection<Terrain> getTerrainList();
 
     /**
      * Get list of different objects
      *
      * @return list of objects
      */
-    public Collection<GameObject> getObjectList();
+    Collection<GameObject> getObjectList();
 
     /**
      * Get list of different creatures
      *
      * @return list of creatures
      */
-    public Collection<Creature> getCreatureList();
+    Collection<Creature> getCreatureList();
 
     /**
      * Get the player with the specified ID
@@ -67,9 +76,9 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of player
      * @return the player
      */
-    public Player getPlayer(short id);
+    Player getPlayer(short id);
 
-    public Map<Short, Player> getPlayers();
+    Map<Short, Player> getPlayers();
 
     /**
      * Get the creature with the specified ID
@@ -77,7 +86,7 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of creature
      * @return the creature
      */
-    public Creature getCreature(short id);
+    Creature getCreature(short id);
 
     /**
      * Bridges are a bit special, identifies one and returns the terrain that should be under it
@@ -86,9 +95,9 @@ public interface IKwdFile extends IKwdMap {
      * @param terrain the terrain tile
      * @return returns null if this is not a bridge, otherwise returns pretty much either water or lava
      */
-    public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Terrain terrain);
+    Terrain getTerrainBridge(Tile.BridgeTerrainType type, Terrain terrain);
 
-    public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Room room);
+    Terrain getTerrainBridge(Tile.BridgeTerrainType type, Room room);
 
     /**
      * Get the room with the specified terrain ID
@@ -96,7 +105,7 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of terrain
      * @return the room associated with the terrain ID
      */
-    public Room getRoomByTerrain(short id);
+    Room getRoomByTerrain(short id);
 
     /**
      * Get list of things by certain type
@@ -105,7 +114,7 @@ public interface IKwdFile extends IKwdMap {
      * @param thingClass the class of things you want
      * @return things list of things you want
      */
-    public <T extends Thing> List<T> getThings(Class<T> thingClass);
+    <T extends Thing> List<T> getThings(Class<T> thingClass);
 
     /**
      * Get the trigger/action with the specified ID
@@ -113,9 +122,9 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of trigger/action
      * @return the trigger/action
      */
-    public Trigger getTrigger(int id);
+    Trigger getTrigger(int id);
 
-    public Map<Integer, Trigger> getTriggers();
+    Map<Integer, Trigger> getTriggers();
 
     /**
      * Get the object with the specified ID
@@ -123,7 +132,7 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of object
      * @return the object
      */
-    public GameObject getObject(int id);
+    GameObject getObject(int id);
 
     /**
      * Get the room with the specified ID
@@ -131,7 +140,7 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of room
      * @return the room
      */
-    public Room getRoomById(int id);
+    Room getRoomById(int id);
 
     /**
      * Get the keeper spell with the specified ID
@@ -139,7 +148,7 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of keeper spell
      * @return the keeper spell
      */
-    public KeeperSpell getKeeperSpellById(int id);
+    KeeperSpell getKeeperSpellById(int id);
 
     /**
      * Get the trap with the specified ID
@@ -147,7 +156,7 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of trap
      * @return the trap
      */
-    public Trap getTrapById(int id);
+    Trap getTrapById(int id);
 
     /**
      * Get the door with the specified ID
@@ -155,60 +164,60 @@ public interface IKwdFile extends IKwdMap {
      * @param id the id of door
      * @return the door
      */
-    public Door getDoorById(int id);
+    Door getDoorById(int id);
 
     /**
      * Get the list of all rooms
      *
      * @return list of all rooms
      */
-    public List<Room> getRooms();
+    List<Room> getRooms();
 
     /**
      * Get the list of all keeper spells
      *
      * @return list of all keeper spells
      */
-    public List<KeeperSpell> getKeeperSpells();
+    List<KeeperSpell> getKeeperSpells();
 
     /**
      * Get the list of all doors
      *
      * @return list of all doors
      */
-    public List<Door> getDoors();
+    List<Door> getDoors();
 
     /**
      * Get the list of all shots
      *
      * @return list of all shots
      */
-    public List<Shot> getShots();
+    List<Shot> getShots();
 
-    public Shot getShotById(short shotId);
+    Shot getShotById(short shotId);
 
     /**
      * Get the list of all traps
      *
      * @return list of all traps
      */
-    public List<Trap> getTraps();
+    List<Trap> getTraps();
 
-    public CreatureSpell getCreatureSpellById(short spellId);
+    CreatureSpell getCreatureSpellById(short spellId);
 
-    public Effect getEffect(int effectId);
+    Effect getEffect(int effectId);
 
-    public Map<Integer, Effect> getEffects();
+    Map<Integer, Effect> getEffects();
 
-    public EffectElement getEffectElement(int effectElementId);
+    EffectElement getEffectElement(int effectElementId);
 
-    public Map<Integer, EffectElement> getEffectElements();
+    Map<Integer, EffectElement> getEffectElements();
 
-    public Map<MiscVariable.MiscType, MiscVariable> getVariables();
+    Map<MiscVariable.MiscType, MiscVariable> getVariables();
 
-    public List<Availability> getAvailabilities();
+    List<Availability> getAvailabilities();
 
-    public Set<PlayerAlliance> getPlayerAlliances();
+    Set<PlayerAlliance> getPlayerAlliances();
 
     /**
      * Get player specific creature pool
@@ -216,17 +225,17 @@ public interface IKwdFile extends IKwdMap {
      * @param playerId the player id
      * @return the creature pool
      */
-    public Map<Integer, CreaturePool> getCreaturePool(short playerId);
+    Map<Integer, CreaturePool> getCreaturePool(short playerId);
 
-    public Creature getImp();
+    Creature getImp();
 
-    public Creature getDwarf();
+    Creature getDwarf();
 
-    public Room getPortal();
+    Room getPortal();
 
-    public Room getDungeonHeart();
+    Room getDungeonHeart();
 
-    public GameObject getLevelGem();
+    GameObject getLevelGem();
 
     /**
      * Get the creature stats by level. There might not be a record for every level. Then should just default
@@ -235,6 +244,6 @@ public interface IKwdFile extends IKwdMap {
      * @param level the creature level
      * @return the creature stats on given level
      */
-    public Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level);
+    Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level);
 
 }

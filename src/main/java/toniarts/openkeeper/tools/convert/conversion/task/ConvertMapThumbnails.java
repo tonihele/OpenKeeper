@@ -18,6 +18,7 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
@@ -78,14 +79,14 @@ public final class ConvertMapThumbnails extends ConversionTask {
         }
 
         // Get the skirmish/mp maps
-        List<IKwdMap> maps = new ArrayList<>();
+        List<IKwdFile> maps = new ArrayList<>();
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(Paths.get(dungeonKeeperFolder, PathUtils.DKII_MAPS_FOLDER), PathUtils.getFilterForFilesEndingWith(".kwd"))) {
             for (Path path : paths) {
                 try {
                     IKwdMap kwdMap = KwdFile.loadInfo(dungeonKeeperFolder, path);
                     if (kwdMap.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL)
                             || kwdMap.getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)) {
-                        maps.add(kwdMap);
+                        maps.add(kwdMap.load());
                     }
                 } catch (Exception ex) {
                     logger.log(Level.WARNING, "Failed to open map file: " + path + "!", ex); // Not fatal
@@ -99,10 +100,10 @@ public final class ConvertMapThumbnails extends ConversionTask {
         int i = 0;
         int total = maps.size();
         ImageIO.setUseCache(false);
-        for (IKwdMap map : maps) {
+        for (IKwdFile map : maps) {
             updateStatus(i, total);
             try {
-                genererateMapThumbnail(map, destination);
+                generateMapThumbnail(map, destination);
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Failed to create a thumbnail from map: " + map + "!", ex); // Not fatal
             }
@@ -117,7 +118,7 @@ public final class ConvertMapThumbnails extends ConversionTask {
      * @param destination the folder to save to
      * @throws IOException may fail
      */
-    public static void genererateMapThumbnail(IKwdMap kwdMap, String destination) throws IOException {
+    public static void generateMapThumbnail(IKwdFile kwdMap, String destination) throws IOException {
 
         // Create the thumbnail & save it
         // TODO maybe image size in Settings ???

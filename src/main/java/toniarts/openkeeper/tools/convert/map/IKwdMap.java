@@ -17,7 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 /**
- * Part of KwdFile
+ * Part of KwdFile. Holds limited level information. Use {@link #load()} to load the whole level file.
  *
  * @author ArchDemon
  */
@@ -28,13 +28,10 @@ public interface IKwdMap extends Comparable<IKwdMap> {
     GameLevel getGameLevel();
 
     /**
-     * Get the terrain with the specified ID
+     * Loads the complete KWD file
      *
-     * @param id the id of terrain
-     * @return the terrain
+     * @return complete KWD file
      */
-    Terrain getTerrain(short id);
-
     IKwdFile load();
 
 }

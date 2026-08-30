@@ -207,26 +207,66 @@ public final class KwdFile implements IKwdFile {
         return getKwdFile(Main.getDkIIFolder(), file);
     }
 
+    /**
+     * Load a KWD level file
+     *
+     * @param file file name without the extension or path
+     * @return complete level file
+     */
     public static IKwdFile load(String file) {
         return load(Main.getDkIIFolder(), getKwdFile(file));
     }
 
+    /**
+     * Load a KWD level file
+     *
+     * @param basePath base Dungeon Keeper 2 path
+     * @param file file name without the extension or path
+     * @return complete level file
+     */
     public static IKwdFile load(String basePath, String file) {
         return load(basePath, getKwdFile(file));
     }
 
+    /**
+     * Load a KWD level file
+     *
+     * @param basePath base Dungeon Keeper 2 path
+     * @param file full path to level file
+     * @return complete level file
+     */
     public static IKwdFile load(String basePath, Path file) {
         return new KwdFile(basePath, file);
     }
 
+    /**
+     * Load a KWD level file
+     *
+     * @param file file name without the extension or path
+     * @return partial level file
+     */
     public static IKwdMap loadInfo(String file) {
         return loadInfo(getKwdFile(file));
     }
 
+    /**
+     * Load a KWD level file
+     *
+     * @param file full path to level file
+     * @return partial level file
+     */
     public static IKwdMap loadInfo(Path file) {
         return loadInfo(Main.getDkIIFolder(), file);
     }
 
+    /**
+     * Load a KWD level file
+     *
+     * complete level file
+     * @param basePath base Dungeon Keeper 2 path
+     * @param file full path to level file
+     * @return partial level file
+     */
     public static IKwdMap loadInfo(String basePath, Path file) {
         return new KwdFile(basePath, file, false);
     }
@@ -246,11 +286,6 @@ public final class KwdFile implements IKwdFile {
         }
     }
 
-    /**
-     * Loads the map data
-     *
-     * @throws RuntimeException level file fails to parse
-     */
     public IKwdFile load() throws RuntimeException {
         if (!loaded) {
             synchronized (loadingLock) {
@@ -2955,39 +2990,22 @@ public final class KwdFile implements IKwdFile {
         }
     }
 
-    /**
-     * Get list of different terrain tiles
-     *
-     * @return list of terrain tiles
-     */
+    @Override
     public Collection<Terrain> getTerrainList() {
         return terrainTiles.values();
     }
 
-    /**
-     * Get list of different objects
-     *
-     * @return list of objects
-     */
+    @Override
     public Collection<GameObject> getObjectList() {
         return objects.values();
     }
 
-    /**
-     * Get list of different creatures
-     *
-     * @return list of creatures
-     */
+    @Override
     public Collection<Creature> getCreatureList() {
         return creatures.values();
     }
 
-    /**
-     * Get the player with the specified ID
-     *
-     * @param id the id of player
-     * @return the player
-     */
+    @Override
     public Player getPlayer(short id) {
         return players.get(id);
     }
@@ -2996,25 +3014,12 @@ public final class KwdFile implements IKwdFile {
         return players;
     }
 
-    /**
-     * Get the creature with the specified ID
-     *
-     * @param id the id of creature
-     * @return the creature
-     */
+    @Override
     public Creature getCreature(short id) {
         return creatures.get(id);
     }
 
-    /**
-     * Bridges are a bit special, identifies one and returns the terrain that
-     * should be under it
-     *
-     * @param type tile BridgeTerrainType
-     * @param terrain the terrain tile
-     * @return returns null if this is not a bridge, otherwise returns pretty
-     * much either water or lava
-     */
+    @Override
     public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Terrain terrain) {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             Room room = getRoomByTerrain(terrain.getTerrainId());
@@ -3024,6 +3029,7 @@ public final class KwdFile implements IKwdFile {
         return null;
     }
 
+    @Override
     public Terrain getTerrainBridge(Tile.BridgeTerrainType type, Room room) {
         // Swap the terrain if this is a bridge
         if (room != null && !room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
@@ -3039,33 +3045,17 @@ public final class KwdFile implements IKwdFile {
         return null;
     }
 
-    /**
-     * Get the terrain with the specified ID
-     *
-     * @param id the id of terrain
-     * @return the terrain
-     */
+    @Override
     public Terrain getTerrain(short id) {
         return terrainTiles.get(id);
     }
 
-    /**
-     * Get the room with the specified terrain ID
-     *
-     * @param id the id of terrain
-     * @return the room associated with the terrain ID
-     */
+    @Override
     public Room getRoomByTerrain(short id) {
         return roomsByTerrainId.get(id);
     }
 
-    /**
-     * Get list of things by certain type
-     *
-     * @param <T> the instance type of the things you want
-     * @param thingClass the class of things you want
-     * @return things list of things you want
-     */
+    @Override
     public <T extends Thing> List<T> getThings(Class<T> thingClass) {
         List<T> result = (List<T>) thingsByType.get(thingClass);
         if (result == null) {
@@ -3074,206 +3064,162 @@ public final class KwdFile implements IKwdFile {
         return result;
     }
 
-    /**
-     * Get the trigger/action with the specified ID
-     *
-     * @param id the id of trigger/action
-     * @return the trigger/action
-     */
+    @Override
     public Trigger getTrigger(int id) {
         return triggers.get(id);
     }
 
+    @Override
     public Map<Integer, Trigger> getTriggers() {
         return triggers;
     }
 
-    /**
-     * Get the object with the specified ID
-     *
-     * @param id the id of object
-     * @return the object
-     */
+    @Override
     public GameObject getObject(int id) {
         return objects.get((short) id);
     }
 
-    /**
-     * Get the room with the specified ID
-     *
-     * @param id the id of room
-     * @return the room
-     */
+    @Override
     public Room getRoomById(int id) {
         return rooms.get((short) id);
     }
 
-    /**
-     * Get the keeper spell with the specified ID
-     *
-     * @param id the id of keeper spell
-     * @return the keeper spell
-     */
+    @Override
     public KeeperSpell getKeeperSpellById(int id) {
         return keeperSpells.get((short) id);
     }
 
-    /**
-     * Get the trap with the specified ID
-     *
-     * @param id the id of trap
-     * @return the trap
-     */
+    @Override
     public Trap getTrapById(int id) {
         return traps.get((short) id);
     }
 
-    /**
-     * Get the door with the specified ID
-     *
-     * @param id the id of door
-     * @return the door
-     */
+    @Override
     public Door getDoorById(int id) {
         return doors.get((short) id);
     }
 
-    /**
-     * Get the list of all rooms
-     *
-     * @return list of all rooms
-     */
+    @Override
     public List<Room> getRooms() {
         List<Room> c = new ArrayList(rooms.values());
         Collections.sort(c);
         return c;
     }
 
-    /**
-     * Get the list of all keeper spells
-     *
-     * @return list of all keeper spells
-     */
+    @Override
     public List<KeeperSpell> getKeeperSpells() {
         List<KeeperSpell> c = new ArrayList(keeperSpells.values());
         Collections.sort(c);
         return c;
     }
 
-    /**
-     * Get the list of all doors
-     *
-     * @return list of all doors
-     */
+    @Override
     public List<Door> getDoors() {
         List<Door> c = new ArrayList(doors.values());
         Collections.sort(c);
         return c;
     }
 
-    /**
-     * Get the list of all shots
-     *
-     * @return list of all shots
-     */
+    @Override
     public List<Shot> getShots() {
         List<Shot> c = new ArrayList(shots.values());
         Collections.sort(c);
         return c;
     }
 
+    @Override
     public Shot getShotById(short shotId) {
         return shots.get(shotId);
     }
 
+    @Override
     public GameMap getMap() {
         return map;
     }
 
-    /**
-     * Get the list of all traps
-     *
-     * @return list of all traps
-     */
+    @Override
     public List<Trap> getTraps() {
         List<Trap> c = new ArrayList(traps.values());
         Collections.sort(c);
         return c;
     }
 
+    @Override
     public GameLevel getGameLevel() {
         return gameLevel;
     }
 
+    @Override
     public CreatureSpell getCreatureSpellById(short spellId) {
         return creatureSpells.get(spellId);
     }
 
+    @Override
     public Effect getEffect(int effectId) {
         return effects.get(effectId);
     }
 
+    @Override
     public Map<Integer, Effect> getEffects() {
         return effects;
     }
 
+    @Override
     public EffectElement getEffectElement(int effectElementId) {
         return effectElements.get(effectElementId);
     }
 
+    @Override
     public Map<Integer, EffectElement> getEffectElements() {
         return effectElements;
     }
 
+    @Override
     public Map<MiscVariable.MiscType, MiscVariable> getVariables() {
         return variables;
     }
 
+    @Override
     public List<Availability> getAvailabilities() {
         return availabilities;
     }
 
+    @Override
     public Set<PlayerAlliance> getPlayerAlliances() {
         return playerAlliances;
     }
 
-    /**
-     * Get player specific creature pool
-     *
-     * @param playerId the player id
-     * @return the creature pool
-     */
+    @Override
     public Map<Integer, CreaturePool> getCreaturePool(short playerId) {
         return creaturePools.get(Short.valueOf(playerId).intValue());
     }
 
+    @Override
     public Creature getImp() {
         return imp;
     }
 
+    @Override
     public Creature getDwarf() {
         return dwarf;
     }
 
+    @Override
     public Room getPortal() {
         return getRoomById(ROOM_PORTAL_ID);
     }
 
+    @Override
     public Room getDungeonHeart() {
         return getRoomById(ROOM_DUNGEON_HEART_ID);
     }
 
+    @Override
     public GameObject getLevelGem() {
         return levelGem;
     }
 
-    /**
-     * Get the creature stats by level. There might not be a record for every
-     * level. Then should just default to 100% stat.
-     *
-     * @param level the creature level
-     * @return the creature stats on given level
-     */
+    @Override
     public Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
         return creatureStatistics.get(level);
     }

@@ -16,9 +16,14 @@
  */
 package toniarts.openkeeper.utils;
 
+import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Tile;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
@@ -39,11 +44,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.imageio.ImageIO;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.IKwdMap;
-import toniarts.openkeeper.tools.convert.map.Terrain;
-import toniarts.openkeeper.tools.convert.map.Tile;
 
 /**
  * This class creates thumbnails from KWD map files. Static helper class. The images can be acquired in
@@ -83,8 +83,8 @@ public final class MapThumbnailGenerator {
      * @param preserveAspectRatio whether to preserve the map aspect ratio
      * @return the map thumbnail image
      */
-    public static BufferedImage generateMap(final IKwdMap kwd, final Integer width, final Integer height,
-            final boolean preserveAspectRatio) {
+    public static BufferedImage generateMap(final IKwdFile kwd, final Integer width, final Integer height,
+                                            final boolean preserveAspectRatio) {
         // Determine wanted width/height
         int imageWidth = kwd.getMap().getWidth();
         int imageHeight = kwd.getMap().getHeight();
@@ -186,7 +186,7 @@ public final class MapThumbnailGenerator {
         }
     }
 
-    private static void drawMap(final IKwdMap kwd, byte[] data, int xScale, int yScale) {
+    private static void drawMap(final IKwdFile kwd, byte[] data, int xScale, int yScale) {
 
         // For now this is very much hard coded, I couldn't find much logic
         for (int y = 0; y < kwd.getMap().getHeight(); y++) {
