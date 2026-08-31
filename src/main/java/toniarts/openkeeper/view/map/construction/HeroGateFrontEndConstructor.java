@@ -265,7 +265,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
         mpdObj.rotate(0, FastMath.PI / 2, 0);
         mpdObj.scale(0.7f);
-        mpdObj.move(-0.3f, 1f, 2f);
+        mpdObj.move(-0.3f, WorldUtils.FLOOR_HEIGHT, p.y - start.y);
         root.attachChild(mpdObj);
     }
 
