@@ -254,7 +254,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
         final Node mpdObj = new Node(creature.getName());
 
         // The idle animations to rotate between
-        CreatureIdleAnimationControl animationControl = new CreatureIdleAnimationControl(creature, assetManager,
+        CreatureRandomAnimationControl animationControl = new CreatureRandomAnimationControl(creature, assetManager,
                 List.of(Creature.AnimationType.IDLE_1, Creature.AnimationType.IDLE_2,
                         Creature.AnimationType.DRINKING, Creature.AnimationType.HAPPY,
                         Creature.AnimationType.ANGRY, Creature.AnimationType.DRUNKED_IDLE));

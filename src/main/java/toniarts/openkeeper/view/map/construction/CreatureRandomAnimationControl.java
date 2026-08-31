@@ -32,14 +32,11 @@ import toniarts.openkeeper.view.animation.AnimationLoader;
  * animations every 4 seconds. It is separate from the default idling behavior
  * and is intended for decorative creature displays (e.g. the hero gate front
  * end).
- *
- * @author OpenKeeper
  */
-public final class CreatureIdleAnimationControl extends AbstractControl implements AnimationControl {
+public final class CreatureRandomAnimationControl extends AbstractControl implements AnimationControl {
     private final Creature creature;
     private final AssetManager assetManager;
     private final List<Creature.AnimationType> availableAnimations;
-    private boolean isAnimationPlaying = false;
 
     /**
      * Creates a new idle animation cycling control.
@@ -49,8 +46,8 @@ public final class CreatureIdleAnimationControl extends AbstractControl implemen
      * @param animationTypes the animation types to cycle through; types that
      *                       the creature does not have are silently filtered out
      */
-    public CreatureIdleAnimationControl(Creature creature, AssetManager assetManager,
-                                        List<Creature.AnimationType> animationTypes) {
+    public CreatureRandomAnimationControl(Creature creature, AssetManager assetManager,
+                                          List<Creature.AnimationType> animationTypes) {
         this.creature = creature;
         this.assetManager = assetManager;
 
@@ -88,15 +85,12 @@ public final class CreatureIdleAnimationControl extends AbstractControl implemen
         Creature.AnimationType type = availableAnimations.get(index);
         ArtResource resource = creature.getAnimation(type);
         AnimationLoader.playAnimation(spatial, resource, assetManager);
-        isAnimationPlaying = true;
     }
 
     // AnimationControl interface
 
     @Override
-    public void onAnimationStop() {
-        isAnimationPlaying = false;
-    }
+    public void onAnimationStop() {}
 
     @Override
     public void onAnimationCycleDone() {
