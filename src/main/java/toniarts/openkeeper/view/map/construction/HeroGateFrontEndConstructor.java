@@ -22,6 +22,7 @@ import com.jme3.math.FastMath;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.List;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.Level;
@@ -30,6 +31,8 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -44,8 +47,11 @@ import toniarts.openkeeper.view.map.WallSection;
  */
 public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
-    public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance) {
+    private final IKwdFile kwdFile;
+
+    public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance, IKwdFile kwdFile) {
         super(assetManager, roomInstance);
+        this.kwdFile = kwdFile;
     }
 
     @Override
@@ -219,7 +225,9 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
     }
 
     private void showMpdProgress(BatchNode root, Point start, Point p) {
-        String modelName = "";
+        String creatureName = "";
+
+        String[] creatureNames = new String[]{"Dwarf", "Guard", "Knight", "Lord Of The Land", "Prince Tristran", "King Reginald"};
 
         for (int i = 6; i > 0; i--) {
             Level mpdLevel = new Level(LevelType.MPD, i);
@@ -228,48 +236,52 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 continue;
             }
 
-            // anims for cycling
-            // idle1
-            // idle2
-            // drink
-            // happy
-            // angry
-            // Drunkidle
-
-            switch (i) {
-                case 1:
-                    modelName = "Dwarf-Idle2";
-                    break;
-                case 2:
-                    modelName = "Guard-Idle2";
-                    break;
-                case 3:
-                    modelName = "Knight-Idle2";
-                    break;
-                case 4:
-                    modelName = "LOL-Idle2";
-                    break;
-                case 5:
-                    modelName = "PR3-Idle2";
-                    break;
-                case 6:
-                    modelName = "King-Idle2";
-                    break;
-            }
+            // Hero creature shown depending on the MPD level progression
+            creatureName = creatureNames[i - 1];
             // if we already found a completed level, exit the loop
             break;
         }
 
-        if (modelName == "") {
+        if (creatureName.isEmpty()) {
             return;
         }
 
-        final Spatial mpdObj = loadObject(modelName, assetManager, start, p);
+        Creature creature = getCreature(creatureName);
+        if (creature == null) {
+            return;
+        }
+
+        final Node mpdObj = new Node(creature.getName());
+
+        // The idle animations to rotate between
+        CreatureIdleAnimationControl animationControl = new CreatureIdleAnimationControl(creature, assetManager,
+                List.of(Creature.AnimationType.IDLE_1, Creature.AnimationType.IDLE_2,
+                        Creature.AnimationType.DRINKING, Creature.AnimationType.HAPPY,
+                        Creature.AnimationType.ANGRY, Creature.AnimationType.DRUNKED_IDLE));
+        mpdObj.addControl(animationControl);
+
+        // Don't batch animated objects, seems not to work
+        mpdObj.setBatchHint(Spatial.BatchHint.Never);
+
         mpdObj.rotate(0, FastMath.PI / 2, 0);
         mpdObj.scale(0.7f);
-        mpdObj.move(-0.3f, 0f, 0f);
+        mpdObj.move(-0.3f, 1f, 2f);
         root.attachChild(mpdObj);
-        animate(mpdObj, false);
+    }
+
+    /**
+     * Find a creature by its name.
+     *
+     * @param name the creature name to look for
+     * @return the creature or {@code null} if not found
+     */
+    private Creature getCreature(String name) {
+        for (Creature creature : kwdFile.getCreatureList()) {
+            if (creature.getName().equalsIgnoreCase(name)) {
+                return creature;
+            }
+        }
+        return null;
     }
 
 }

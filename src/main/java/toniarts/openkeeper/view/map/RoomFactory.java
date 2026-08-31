@@ -50,7 +50,7 @@ public final class RoomFactory {
                 return new HeroGateConstructor(assetManager, roomInstance);
 
             case HERO_GATE_FRONT_END:
-                return new HeroGateFrontEndConstructor(assetManager, roomInstance);
+                return new HeroGateFrontEndConstructor(assetManager, roomInstance, kwdFile);
 
             case HERO_GATE_2_BY_2:
                 return new HeroGateTwoByTwoConstructor(assetManager, roomInstance);
