@@ -22,8 +22,7 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
 public final class CampaignLevel extends GeneralLevel {
 
     public enum LevelType {
-
-        Level, MPD, Secret;
+        Level, MPD, Secret
     }
     private final LevelType type;
     private final int level;
