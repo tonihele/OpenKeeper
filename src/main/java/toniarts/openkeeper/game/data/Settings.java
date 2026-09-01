@@ -417,7 +417,7 @@ public final class Settings {
      * @return number of attempts to a level
      */
     public int getLevelAttempts(CampaignLevel level) {
-        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level, Setting.LEVEL_ATTEMPTS.getDefaultValue());
+        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 
     /**
@@ -429,9 +429,9 @@ public final class Settings {
     public LevelStatus getLevelStatus(CampaignLevel level) {
         switch (level.getType()) {
             case Level:
-                return LevelStatus.valueOf((String) getSetting(Setting.LEVEL_STATUS.toString() + level, Setting.LEVEL_STATUS.getDefaultValue()));
+                return LevelStatus.valueOf((String) getSetting(Setting.LEVEL_STATUS.toString() + level.getLevel(), Setting.LEVEL_STATUS.getDefaultValue()));
             case MPD:
-                return LevelStatus.valueOf((String) getSetting(Setting.MPD_LEVEL_STATUS.toString() + level, Setting.MPD_LEVEL_STATUS.getDefaultValue()));
+                return LevelStatus.valueOf((String) getSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel(), Setting.MPD_LEVEL_STATUS.getDefaultValue()));
         }
         return null;
     }
@@ -445,7 +445,7 @@ public final class Settings {
     public SecretLevelStatus getSecredLevelStatus(CampaignLevel level) {
         switch (level.getType()) {
             case Secret:
-                return SecretLevelStatus.valueOf((String) getSetting(Setting.SECRET_LEVEL_STATUS.toString() + level, Setting.SECRET_LEVEL_STATUS.getDefaultValue()));
+                return SecretLevelStatus.valueOf((String) getSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), Setting.SECRET_LEVEL_STATUS.getDefaultValue()));
         }
         return null;
     }
@@ -456,7 +456,7 @@ public final class Settings {
      * @param level the level
      */
     public void increaseLevelAttempts(CampaignLevel level) {
-        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, getLevelAttempts(level) + 1);
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), getLevelAttempts(level) + 1);
     }
 
     /**
@@ -468,10 +468,10 @@ public final class Settings {
     public void setLevelStatus(CampaignLevel level, LevelStatus status) {
         switch (level.getType()) {
             case Level:
-                setSetting(Setting.LEVEL_STATUS.toString() + level, status);
+                setSetting(Setting.LEVEL_STATUS.toString() + level.getLevel(), status);
                 break;
             case MPD:
-                setSetting(Setting.MPD_LEVEL_STATUS.toString() + level, status);
+                setSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel(), status);
                 break;
         }
     }
@@ -485,7 +485,7 @@ public final class Settings {
     public void setSecredLevelStatus(CampaignLevel level, SecretLevelStatus status) {
         switch (level.getType()) {
             case Secret:
-                setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level, status);
+                setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), status);
         }
     }
 
