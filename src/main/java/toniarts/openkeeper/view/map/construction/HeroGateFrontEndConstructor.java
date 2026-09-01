@@ -24,6 +24,7 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -44,8 +45,11 @@ import toniarts.openkeeper.view.map.WallSection;
  */
 public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
-    public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance) {
+    private final IKwdFile kwdFile;
+
+    public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance, IKwdFile kwdFile) {
         super(assetManager, roomInstance);
+        this.kwdFile = kwdFile;
     }
 
     @Override
@@ -74,6 +78,10 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                     obj.rotate(0, yAngle, 0).move(0, 0.4f, 0.1f);
                     root.attachChild(obj);
                     animate(obj, false);
+
+                    break;
+                case 7:
+                    showMpdProgress(root, start, p);
 
                     break;
                 case 11:
@@ -111,6 +119,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                     // Secret levels (only show if discovered, except moon level)
                     for (int x = 1; x < 6; x++) {
                         if (x == 5 && !FullMoon.isFullMoon()) {
+                            // don't show full moon level
                             continue;
                         }
                         CampaignLevel secretLevel = new CampaignLevel(CampaignLevel.LevelType.Secret, x);
@@ -131,6 +140,13 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                     // Add the map node
                     root.attachChild(map);
 
+                    break;
+                case 13:
+                case 15:
+                    // fix for widescreen, copy the current tile und move it 1 tile behind
+                    final Spatial fixtile = tile.clone();
+                    fixtile.move(0, 0,  1);
+                    root.attachChild(fixtile);
                     break;
             }
 
@@ -214,6 +230,66 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 		        object.setBatchHint(Spatial.BatchHint.Never);
 		    }
 		});
+    }
+
+    private void showMpdProgress(BatchNode root, Point start, Point p) {
+        String creatureName = "";
+
+        String[] creatureNames = new String[]{"Dwarf", "Guard", "Knight", "Lord Of The Land", "Prince Tristran", "King Reginald"};
+
+        for (int i = 6; i > 0; i--) {
+            Level mpdLevel = new Level(LevelType.MPD, i);
+            // the level before it must be completed
+            if (!Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
+                continue;
+            }
+
+            // Hero creature shown depending on the MPD level progression
+            creatureName = creatureNames[i - 1];
+            // if we already found a completed level, exit the loop
+            break;
+        }
+
+        if (creatureName.isEmpty()) {
+            return;
+        }
+
+        Creature creature = getCreature(creatureName);
+        if (creature == null) {
+            return;
+        }
+
+        final Node mpdObj = new Node(creature.getName());
+
+        // The idle animations to rotate between
+        CreatureRandomAnimationControl animationControl = new CreatureRandomAnimationControl(creature, assetManager,
+                List.of(Creature.AnimationType.IDLE_1, Creature.AnimationType.IDLE_2,
+                        Creature.AnimationType.DRINKING, Creature.AnimationType.HAPPY,
+                        Creature.AnimationType.ANGRY, Creature.AnimationType.DRUNKED_IDLE));
+        mpdObj.addControl(animationControl);
+
+        // Don't batch animated objects, seems not to work
+        mpdObj.setBatchHint(Spatial.BatchHint.Never);
+
+        mpdObj.rotate(0, FastMath.PI / 2, 0);
+        mpdObj.scale(0.7f);
+        mpdObj.move(-0.3f, WorldUtils.FLOOR_HEIGHT, p.y - start.y);
+        root.attachChild(mpdObj);
+    }
+
+    /**
+     * Find a creature by its name.
+     *
+     * @param name the creature name to look for
+     * @return the creature or {@code null} if not found
+     */
+    private Creature getCreature(String name) {
+        for (Creature creature : kwdFile.getCreatureList()) {
+            if (creature.getName().equalsIgnoreCase(name)) {
+                return creature;
+            }
+        }
+        return null;
     }
 
     /**

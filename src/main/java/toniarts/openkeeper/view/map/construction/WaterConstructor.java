@@ -20,7 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.map.IMapDataInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  */
 public final class WaterConstructor extends SingleTileConstructor {
 
-    public WaterConstructor(KwdFile kwdFile) {
+    public WaterConstructor(IKwdFile kwdFile) {
         super(kwdFile);
     }
 

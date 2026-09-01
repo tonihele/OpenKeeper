@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Controls creature lairs in a room
@@ -38,7 +38,7 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
 
     private final IObjectsController objectsController;
 
-    public RoomLairControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
+    public RoomLairControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer, IObjectsController objectsController) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.LAIR);
 
         this.objectsController = objectsController;

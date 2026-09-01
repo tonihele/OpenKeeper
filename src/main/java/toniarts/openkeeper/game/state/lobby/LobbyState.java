@@ -19,10 +19,6 @@ package toniarts.openkeeper.game.state.lobby;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import static java.util.stream.Collectors.toList;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.state.ConnectionState;
@@ -32,8 +28,14 @@ import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Utils;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * A lobby state, abstracts game lobby related actions, acts a lifetime lobby
@@ -68,7 +70,7 @@ public final class LobbyState extends AbstractAppState {
 
         // We as the host should set the initial map
         if (lobbyService != null) {
-            lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
+            lobbyService.setMap(mapSelector.getMap());
         }
     }
 
@@ -118,12 +120,12 @@ public final class LobbyState extends AbstractAppState {
 
     public void setRandomMap() {
         mapSelector.random();
-        lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
+        lobbyService.setMap(mapSelector.getMap());
     }
 
     public void setMap(int selectedMapIndex) {
         mapSelector.selectMap(selectedMapIndex);
-        lobbyService.setMap(mapSelector.getMap().mapName(), mapSelector.getMap().map().getGameLevel().getPlayerCount());
+        lobbyService.setMap(mapSelector.getMap());
     }
 
     private void startGame(List<ClientInfo> players) {
@@ -145,8 +147,8 @@ public final class LobbyState extends AbstractAppState {
                 }
             }
         }
-
-        KwdFile kwdFile = mapSelector.getMap().map(); // This might get read twice on the hosting machine
+        // This might get read twice on the hosting machine
+        IKwdFile kwdFile = mapSelector.getMap().load();
         if (isOnline() && !fallback) {
             gameSessionService = stateManager.getState(ConnectionState.class).getGameSessionServerService();
             gameClientService = stateManager.getState(ConnectionState.class).getGameClientService();

@@ -31,7 +31,13 @@ application {
     }
     else {
         applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
-    }    
+    }
+}
+
+tasks.register("modelViewer", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
 configurations.configureEach {
@@ -121,8 +127,7 @@ idea {
 }
 
 compileJava {
-    // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
-    options.compilerArgs += ["-proc:none"]
+    // disable the warnings
     options.compilerArgs += ["-Xlint:deprecation"]
     //options.compilerArgs += ["-Xlint:unchecked"]
 }

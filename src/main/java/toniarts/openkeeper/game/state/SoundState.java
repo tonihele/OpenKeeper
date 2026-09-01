@@ -34,7 +34,7 @@ import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.game.sound.SoundGroup;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
@@ -67,7 +67,7 @@ public final class SoundState extends AbstractPauseAwareState {
     private AppStateManager stateManager;
     private AudioNode speechNode = null;
     private AudioNode backgroundNode = null;
-    private KwdFile kwdFile;
+    private IKwdFile kwdFile;
 
     /**
      * AMBIENCE(341) | OPTIONS_MUSIC(838) | MUSIC(343, 345) | maybe ONE_SHOT_ATMOS(746)
@@ -117,7 +117,7 @@ public final class SoundState extends AbstractPauseAwareState {
         }
     }
 
-    public void setKwdFile(KwdFile kwdFile) {
+    public void setKwdFile(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

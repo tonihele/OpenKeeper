@@ -59,7 +59,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     protected AppStateManager stateManager;
 
     private final short playerId;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
     @Nullable
     private final CampaignLevel campaignLevel;
@@ -75,7 +75,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private boolean transitionEnd = true;
     private PlayerScreenController screen;
 
-    public PlayerState(int playerId, KwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel) {
+    public PlayerState(int playerId, IKwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel) {
         this.playerId = (short) playerId;
         this.kwdFile = kwdFile;
         this.entityData = entityData;
@@ -225,7 +225,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         screen.update(tpf);
     }
 
-    public KwdFile getKwdFile() {
+    public IKwdFile getKwdFile() {
         return kwdFile;
     }
 

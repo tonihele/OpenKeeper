@@ -21,7 +21,7 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Manages combat pit
@@ -32,7 +32,7 @@ public final class CombatPitController extends DoubleQuadController {
 
     private Point door;
 
-    public CombatPitController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public CombatPitController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController);
     }
