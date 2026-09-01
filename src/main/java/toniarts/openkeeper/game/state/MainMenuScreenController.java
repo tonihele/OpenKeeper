@@ -1366,27 +1366,4 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         goToScreen(SCREEN_DEBRIEFING_ID);
     }
-
-    private String timeToString(int time) {
-        String result = "";
-        int days = time / 86400;
-        if (days != 0) {
-            time -= days * 86400;
-            result += days;
-        }
-        int hours = time / 3600;
-        if (days != 0 || hours != 0) {
-            time -= hours * 3600;
-            result += String.format(" %02d", hours);
-        }
-        int minutes = time / 60;
-        if (days != 0 || hours != 0 || minutes != 0) {
-            time -= minutes * 60;
-            result += String.format(":%02d", minutes);
-        }
-        int seconds = time;
-        result += String.format(":%02d", seconds);
-
-        return result.trim();
-    }
 }
