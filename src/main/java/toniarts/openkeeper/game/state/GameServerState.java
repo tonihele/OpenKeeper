@@ -21,6 +21,7 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -65,8 +66,8 @@ public final class GameServerState extends AbstractAppState {
     private final Object loadingObject = new Object();
     private volatile boolean gameLoaded = false;
 
-    private final KwdFile kwdFile;
-    private final toniarts.openkeeper.game.data.Level levelObject;
+    private final IKwdFile kwdFile;
+    private final CampaignLevel levelObject;
 
     private final boolean campaign;
     private final boolean multiplayer;

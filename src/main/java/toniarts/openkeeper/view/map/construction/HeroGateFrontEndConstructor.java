@@ -25,6 +25,8 @@ import com.jme3.scene.Spatial;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -238,9 +240,9 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
         String[] creatureNames = new String[]{"Dwarf", "Guard", "Knight", "Lord Of The Land", "Prince Tristran", "King Reginald"};
 
         for (int i = 6; i > 0; i--) {
-            Level mpdLevel = new Level(LevelType.MPD, i);
+            CampaignLevel mpdLevel = new CampaignLevel(CampaignLevel.LevelType.MPD, i);
             // the level before it must be completed
-            if (!Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
+            if (!Settings.getInstance().getLevelStatus(mpdLevel).equals(Settings.LevelStatus.COMPLETED)) {
                 continue;
             }
 

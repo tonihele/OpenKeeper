@@ -47,6 +47,10 @@ public final class CampaignLevel extends GeneralLevel {
         return type;
     }
 
+    public String getVariation() {
+        return variation != null ? variation : "";
+    }
+
     @Override
     public IKwdMap getKwdMap() {
         if (kwdMap == null) {

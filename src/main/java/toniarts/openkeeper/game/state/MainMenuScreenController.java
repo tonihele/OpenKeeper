@@ -1291,13 +1291,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 }
 
                 // Play some tunes!!
-                state.levelBriefing = new AudioNode(state.assetManager,
+                AudioNode audioNode = new AudioNode(state.assetManager,
                         AssetUtils.getCanonicalAssetKey(String.format(BRIEFING_SPEECH_URL, lvl.getLevel())),
                         AudioData.DataType.Buffer);
-                state.levelBriefing.setLooping(false);
-                state.levelBriefing.setDirectional(false);
-                state.levelBriefing.setPositional(false);
-                state.levelBriefing.play();
+                audioNode.setLooping(false);
+                audioNode.setDirectional(false);
+                audioNode.setPositional(false);
+                audioNode.play();
+                state.setLevelBriefing(audioNode);
             }
         }
     }
