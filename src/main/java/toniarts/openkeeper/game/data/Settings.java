@@ -483,10 +483,8 @@ public final class Settings {
      * @param status the secret level status
      */
     public void setSecredLevelStatus(CampaignLevel level, SecretLevelStatus status) {
-        switch (level.getType()) {
-            case Secret:
-                setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), status);
-                break;
+        if (level.getType().equals(Secret)) {
+            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), status);
         }
     }
 
