@@ -486,6 +486,7 @@ public final class Settings {
         switch (level.getType()) {
             case Secret:
                 setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), status);
+                break;
         }
     }
 
