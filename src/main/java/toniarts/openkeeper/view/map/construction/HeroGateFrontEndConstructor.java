@@ -91,7 +91,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 case 11:
 
                     // Map
-                    Node map = constructCampainTable(p, start);
+                    Node map = constructCampaignTable(p, start);
 
                     // Add the map node
                     root.attachChild(map);
@@ -117,7 +117,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
     }
 
     @Nonnull
-    private Node constructCampainTable(Point p, Point start) {
+    private Node constructCampaignTable(Point p, Point start) {
         Node map = new Node("Map");
         for (int x = 1; x < 21; x++) {
             switch (x) {
