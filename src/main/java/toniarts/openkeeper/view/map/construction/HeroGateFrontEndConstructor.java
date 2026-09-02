@@ -38,6 +38,8 @@ import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.WallSection;
 
+import javax.annotation.Nonnull;
+
 /**
  * Loads up a hero gate, front end edition. Main menu. Most of the objects are
  * listed in the objects, but I don't see how they help<br>
@@ -89,55 +91,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 case 11:
 
                     // Map
-                    Node map = new Node("Map");
-                    for (int x = 1; x < 21; x++) {
-                        switch (x) {
-                            case 6:
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
-                                break;
-                            case 11:
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "c", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p));
-                                break;
-                            case 15:
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
-                                break;
-                            default:
-                                attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, null, assetManager, start, p);
-                                map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p));
-                        }
-                    }
-
-                    // Secret levels (only show if discovered, except moon level)
-                    for (int x = 1; x < 6; x++) {
-                        if (x == 5 && !FullMoon.isFullMoon()) {
-                            // don't show full moon level
-                            continue;
-                        }
-                        CampaignLevel secretLevel = new CampaignLevel(CampaignLevel.LevelType.Secret, x);
-                        Settings.SecretLevelStatus status = Settings.getInstance().getSecredLevelStatus(secretLevel);
-                        if (x == 5 || status == Settings.SecretLevelStatus.DISCOVERED
-                                || status == Settings.SecretLevelStatus.IN_PROGRESS) {
-                            attachAndCreateLevel(map, CampaignLevel.LevelType.Secret, x, null, assetManager, start, p);
-                        }
-                    }
-
-                    // The map base
-                    map.attachChild(loadObject("3dmap_level21", assetManager, start, p));
-
-                    // Apply campaign progression: show arrows only for current level,
-                    // mark completed/current levels as playable, lock future levels
-                    applyCampaignProgression(map);
+                    Node map = constructCampainTable(p, start);
 
                     // Add the map node
                     root.attachChild(map);
@@ -160,6 +114,60 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
         AssetUtils.translateToTile(root, start);
 
         return root;
+    }
+
+    @Nonnull
+    private Node constructCampainTable(Point p, Point start) {
+        Node map = new Node("Map");
+        for (int x = 1; x < 21; x++) {
+            switch (x) {
+                case 6:
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
+                    break;
+                case 11:
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "c", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "c" + "_arrows", assetManager, start, p));
+                    break;
+                case 15:
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "a", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "a" + "_arrows", assetManager, start, p));
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, "b", assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "b" + "_arrows", assetManager, start, p));
+                    break;
+                default:
+                    attachAndCreateLevel(map, CampaignLevel.LevelType.Level, x, null, assetManager, start, p);
+                    map.attachChild(loadObject("3dmaplevel" + x + "_arrows", assetManager, start, p));
+            }
+        }
+
+        // Secret levels (only show if discovered, except moon level)
+        for (int x = 1; x < 6; x++) {
+            if (x == 5 && !FullMoon.isFullMoon()) {
+                // don't show full moon level
+                continue;
+            }
+            CampaignLevel secretLevel = new CampaignLevel(CampaignLevel.LevelType.Secret, x);
+            Settings.SecretLevelStatus status = Settings.getInstance().getSecredLevelStatus(secretLevel);
+            if (x == 5 || status == Settings.SecretLevelStatus.DISCOVERED
+                    || status == Settings.SecretLevelStatus.IN_PROGRESS) {
+                attachAndCreateLevel(map, CampaignLevel.LevelType.Secret, x, null, assetManager, start, p);
+            }
+        }
+
+        // The map base
+        map.attachChild(loadObject("3dmap_level21", assetManager, start, p));
+
+        // Apply campaign progression: show arrows only for current level,
+        // mark completed/current levels as playable, lock future levels
+        applyCampaignProgression(map);
+        return map;
     }
 
     @Override
