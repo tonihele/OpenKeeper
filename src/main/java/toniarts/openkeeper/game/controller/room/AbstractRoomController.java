@@ -43,16 +43,6 @@ import toniarts.openkeeper.tools.convert.map.Room;
  */
 public abstract class AbstractRoomController extends AbstractRoomInformation implements IRoomController {
 
-    @Override
-    public final int hashCode() {
-        return super.hashCode();
-    }
-
-    @Override
-    public final boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
     /**
      * The type of object the room houses
      */

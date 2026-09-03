@@ -190,16 +190,6 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         }
 
         @Override
-        public final int hashCode() {
-            return super.hashCode();
-        }
-
-        @Override
-        public final boolean equals(Object obj) {
-            return super.equals(obj);
-        }
-
-        @Override
         protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
             return entity.get(type);
         }
