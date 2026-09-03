@@ -37,7 +37,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.map.MapTileController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -59,7 +59,7 @@ import java.util.Set;
 public final class MapController extends Container implements IMapController {
 
     private final IMapData mapData;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final IObjectsController objectsController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -81,7 +81,7 @@ public final class MapController extends Container implements IMapController {
      * @param entityData
      * @param levelInfo
      */
-    public MapController(KwdFile kwdFile, IObjectsController objectsController,
+    public MapController(IKwdFile kwdFile, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo) {
 

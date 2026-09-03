@@ -17,17 +17,35 @@
 package toniarts.openkeeper.view.text;
 
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.utils.TextParameter;
+import java.util.Map;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.TextUtils;
 
 /**
- * Parses text and fills the replacements from room data
+ * Parses room tooltip text using room and owning player data.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class RoomTextParser {
+
+    private static final Map<TextParameter, Integer> ROOM_IDS = Map.ofEntries(
+            Map.entry(TextParameter.PORTAL_COUNT, 3),
+            Map.entry(TextParameter.LAIR_COUNT, 2),
+            Map.entry(TextParameter.HATCHERY_COUNT, 4),
+            Map.entry(TextParameter.TREASURY_COUNT, 1),
+            Map.entry(TextParameter.LIBRARY_COUNT, 6),
+            Map.entry(TextParameter.TRAINING_ROOM_COUNT, 7),
+            Map.entry(TextParameter.WORKSHOP_COUNT, 10),
+            Map.entry(TextParameter.GUARD_ROOM_COUNT, 9),
+            Map.entry(TextParameter.COMBAT_PIT_COUNT, 16),
+            Map.entry(TextParameter.TORTURE_CHAMBER_COUNT, 12),
+            Map.entry(TextParameter.PRISON_COUNT, 11),
+            Map.entry(TextParameter.GRAVEYARD_COUNT, 14),
+            Map.entry(TextParameter.TEMPLE_COUNT, 13),
+            Map.entry(TextParameter.CASINO_COUNT, 15));
 
     private final IRoomsInformation roomsInformation;
 
@@ -35,13 +53,18 @@ public class RoomTextParser {
         this.roomsInformation = roomsInformation;
     }
 
-    public String parseText(String text, EntityId room) {
+    public String parseText(String text, EntityId room, Keeper roomOwner) {
         return TextUtils.parseText(text, (parameter) -> {
-            return getReplacement(parameter, roomsInformation.getRoomInformation(room));
+            return getReplacement(parameter, roomsInformation.getRoomInformation(room), roomOwner);
         });
     }
 
-    protected String getReplacement(TextParameter parameter, IRoomInformation room) {
+    protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {
+        Integer roomId = ROOM_IDS.get(parameter);
+        if (roomId != null) {
+            return getRoomAmount(room, roomId);
+        }
+
         switch (parameter) {
             case HEALTH_PERCENTAGE:
                 return Integer.toString(room.getHealthPercent()); // Health
@@ -49,34 +72,10 @@ public class RoomTextParser {
                 return Integer.toString(room.getUsedCapacity()); // Used capacity
             case ROOM_MAX_CAPACITY:
                 return Integer.toString(room.getMaxCapacity()); // Max capacity
-            case PORTAL_COUNT:
-                return getRoomAmount(room, 3); // Portal
-            case LAIR_COUNT:
-                return getRoomAmount(room, 2); // Lair
-            case HATCHERY_COUNT:
-                return getRoomAmount(room, 4); // Hatchery
-            case TREASURY_COUNT:
-                return getRoomAmount(room, 1); // Treasury
-            case LIBRARY_COUNT:
-                return getRoomAmount(room, 6); // Library
-            case TRAINING_ROOM_COUNT:
-                return getRoomAmount(room, 7); // Training Room
-            case WORKSHOP_COUNT:
-                return getRoomAmount(room, 10); // Workshop
-            case GUARD_ROOM_COUNT:
-                return getRoomAmount(room, 9); // Guard Room
-            case COMBAT_PIT_COUNT:
-                return getRoomAmount(room, 16); // Combat Pit
-            case TORTURE_CHAMBER_COUNT:
-                return getRoomAmount(room, 12); // Torture
-            case PRISON_COUNT:
-                return getRoomAmount(room, 11); // Prison
-            case GRAVEYARD_COUNT:
-                return getRoomAmount(room, 14); // Graveyard
-            case TEMPLE_COUNT:
-                return getRoomAmount(room, 13); // Temple
-            case CASINO_COUNT:
-                return getRoomAmount(room, 15); // Casino
+            case DUNGEON_HEART_MANA:
+                return Integer.toString(roomOwner.getMana());
+            case DUNGEON_HEART_MAX_MANA:
+                return Integer.toString(roomOwner.getMaxMana());
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }

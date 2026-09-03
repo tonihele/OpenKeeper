@@ -72,7 +72,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -80,17 +80,16 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * This is a controller that controls all the game objects in the world TODO:
- * Hmm, should this be more a factory/loader maybe, or if this offers the
- * ability to load / save, then it is fine
+ * This is a controller that controls all the game objects in the world TODO: Hmm, should this be more a
+ * factory/loader maybe, or if this offers the ability to load / save, then it is fine
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class CreaturesController implements ICreaturesController {
-    
+
     private static final Logger logger = System.getLogger(CreaturesController.class.getName());
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final Map<Short, IPartyController> creaturePartiesByPartyId = new HashMap<>();
@@ -103,10 +102,9 @@ public final class CreaturesController implements ICreaturesController {
      */
     private final Map<Short, Thing.HeroParty> heroParties = new HashMap<>();
     /**
-     * I don't know how to design this perfectly in the entity world, we have
-     * the state machine running inside an CreatureController. That is probably
-     * wrong (should be inside a system instead). But while it is in there, we
-     * should share the instances for it to function properly.<br>
+     * I don't know how to design this perfectly in the entity world, we have the state machine running inside
+     * an CreatureController. That is probably wrong (should be inside a system instead). But while it is in
+     * there, we should share the instances for it to function properly.<br>
      * The value needs to be weak reference also since it references the key
      */
     private final Map<EntityId, WeakReference<ICreatureController>> creatureControllersByEntityId = new WeakHashMap<>();
@@ -128,7 +126,7 @@ public final class CreaturesController implements ICreaturesController {
      * @param mapController
      * @param levelInfo
      */
-    public CreaturesController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
+    public CreaturesController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
@@ -503,9 +501,8 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public void spawnHeroParty(short partyId, PartyType partyType, Vector2f position) {
         /**
-         * In the game manual it is said that it is entirely possible to have
-         * multiple parties with the same party ID, the old party just isn't
-         * controlled anymore
+         * In the game manual it is said that it is entirely possible to have multiple parties with the same
+         * party ID, the old party just isn't controlled anymore
          */
         IPartyController partyController = creaturePartiesByPartyId.get(partyId);
         if (partyController.isCreated()) {
@@ -564,7 +561,11 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     private ICreatureController createCreatureController(EntityId id, CreatureComponent creatureComponent) {
-        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId), gameController.getNavigationService(), gameController.getTaskManager(), gameTimer, gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo, gameController.getGameWorldController().getObjectsController(), gameController.getGameWorldController().getShotsController());
+        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId),
+                gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
+                gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
+                gameController.getGameWorldController().getObjectsController(),
+                gameController.getGameWorldController().getShotsController());
     }
 
     @Override

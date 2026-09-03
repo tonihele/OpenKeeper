@@ -31,6 +31,7 @@ import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.control.LavaWaveControl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -80,6 +81,11 @@ public final class Water {
 
         // Create the geometry
         Geometry geo = new Geometry((water ? "Water" : "Lava"), mesh);
+
+        // Lava gets animated sine waves
+        if (!water) {
+            geo.addControl(new LavaWaveControl());
+        }
 
         // The material
         Material mat = null;

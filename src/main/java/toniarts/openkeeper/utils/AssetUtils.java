@@ -48,9 +48,9 @@ import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
@@ -59,7 +59,7 @@ import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
@@ -75,7 +75,7 @@ public final class AssetUtils {
     private final static Object ASSET_LOCK = new Object();
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
     private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
-    private final static Map<String, Boolean> TEXTURE_MAP_CACHE = new HashMap<>();
+    private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
@@ -234,21 +234,19 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        // Try to locate the texture
         Boolean found = TEXTURE_MAP_CACHE.get(textureName);
         if (found == null) {
-            TextureKey textureKey = new TextureKey(textureName, false);
-
-            // See if it exists
-            AssetInfo assetInfo = assetManager.locateAsset(textureKey);
+            AssetInfo assetInfo = assetManager.locateAsset(new TextureKey(textureName, false));
             found = (assetInfo != null);
-            TEXTURE_MAP_CACHE.put(textureName, found);
+            Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
+            if (cached != null) {
+                found = cached;
+            }
         }
 
         // Set it
         if (found) {
-            TextureKey textureKey = new TextureKey(textureName, false);
-            material.setTexture(paramName, assetManager.loadTexture(textureKey));
+            material.setTexture(paramName, assetManager.loadTexture(new TextureKey(textureName, false)));
         } else {
             material.clearParam(paramName);
         }
@@ -434,7 +432,7 @@ public final class AssetUtils {
      * @param assetManager the asset manager
      * @param app the app
      */
-    public static void prewarmAssets(KwdFile kwdFile, AssetManager assetManager, Main app) {
+    public static void prewarmAssets(IKwdFile kwdFile, AssetManager assetManager, Main app) {
         if (!preWarmedAssets) {
             synchronized (ASSET_LOCK) {
                 if (!preWarmedAssets) {

@@ -50,7 +50,7 @@ import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -76,6 +76,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
+    private GameTimeController gameTimer;
     private INavigationService navigationService;
     private PositionSystem positionSystem;
 
@@ -91,12 +92,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
      * @param gameSettings
      * @param playerService
      */
-    public GameController(KwdFile level, List<Keeper> players, EntityData entityData,
+    public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
 
-        levelInfo = new LevelInfo();
-        levelInfo.kwdFile = level;
+        levelInfo = new LevelInfo(level);
         levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -110,12 +110,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     public void createNewGame() {
-
         levelInfo.load();
         // The players
         setupPlayers();
 
-        final GameTimeController gameTimer = new GameTimeController();
+        gameTimer = new GameTimeController();
         // The world
         gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer);
 
@@ -419,12 +418,17 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         return levelInfo;
     }
 
+    @Override
+    public IGameTimer getGameTimer() {
+        return gameTimer;
+    }
+
     private static class LevelInfo implements ILevelInfo {
 
         private static final int LEVEL_TIMER_MAX_COUNT = 16;
         private static final int LEVEL_FLAG_MAX_COUNT = 128;
 
-        private KwdFile kwdFile;
+        private final IKwdFile kwdFile;
         private int levelScore = 0;
         private Float timeLimit = null;
 
@@ -434,8 +438,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
         private final List<ActionPoint> actionPoints = new ArrayList<>();
 
+        public LevelInfo(IKwdFile kwdFile) {
+            this.kwdFile = kwdFile;
+        }
+
         public void load() {
-            kwdFile.load();
             // Action points
             loadActionPoints();
             // Triggers data
@@ -457,7 +464,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
 
         @Override
-        public KwdFile getLevelData() {
+        public IKwdFile getLevelData() {
             return kwdFile;
         }
 

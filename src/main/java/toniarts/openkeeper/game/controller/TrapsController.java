@@ -32,7 +32,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
 import toniarts.openkeeper.game.controller.trap.TrapController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -49,7 +49,7 @@ public final class TrapsController implements ITrapsController {
     
     private static final Logger logger = System.getLogger(TrapsController.class.getName());
 
-    private KwdFile kwdFile;
+    private IKwdFile kwdFile;
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IGameController gameController;
@@ -68,7 +68,7 @@ public final class TrapsController implements ITrapsController {
      * @param gameController
      * @param levelInfo
      */
-    public TrapsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+    public TrapsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameController gameController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;

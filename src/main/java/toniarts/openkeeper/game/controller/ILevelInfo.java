@@ -22,7 +22,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * General level related info
@@ -36,7 +36,7 @@ public interface ILevelInfo {
      *
      * @return the KWD
      */
-    KwdFile getLevelData();
+    IKwdFile getLevelData();
 
     Keeper getPlayer(short playerId);
 

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 
 /**
@@ -38,12 +38,12 @@ import toniarts.openkeeper.view.map.WallSection.WallDirection;
  */
 public class NormalRoomController extends AbstractRoomController {
 
-    public NormalRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public NormalRoomController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController) {
         this(entityId, entityData, kwdFile, roomInstance, objectsController, null);
     }
 
-    public NormalRoomController(EntityId entityId, EntityData entityData, KwdFile kwdFile,
+    public NormalRoomController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, defaultStorageType);
     }

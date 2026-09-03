@@ -31,14 +31,7 @@ import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import java.io.File;
-import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.nio.file.Paths;
-import java.util.Collections;
 import toniarts.openkeeper.Main;
-import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
@@ -59,6 +52,8 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -71,7 +66,14 @@ import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
-import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Collections;
+
+import static toniarts.openkeeper.Main.getDkIIFolder;
 
 /**
  * The main menu state
@@ -92,7 +94,7 @@ public final class MainMenuState extends AbstractAppState {
     protected GeneralLevel selectedLevel;
     protected AudioNode levelBriefing;
 
-    private KwdFile kwdFile;
+    private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
     protected MapSelector mapSelector;
@@ -130,27 +132,26 @@ public final class MainMenuState extends AbstractAppState {
      * @param loadingScreen optional loading screen
      * @param assetManager asset manager
      */
-    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager, final Main app) throws IOException {
-
+    private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager,
+            final Main app) throws IOException {
         // Load the 3D Front end
-        kwdFile = new KwdFile(Main.getDkIIFolder(), Paths.get(PathUtils.getRealFileName(
-                Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, "FrontEnd3DLevel.kwd")));
+        frontEndKwd = KwdFile.load("FrontEnd3DLevel");
         if (loadingScreen != null) {
             loadingScreen.setProgress(0.25f);
         }
-        AssetUtils.prewarmAssets(kwdFile, assetManager, app);
+        AssetUtils.prewarmAssets(frontEndKwd, assetManager, app);
 
         // Load 3D Front end sound
-        SoundsLoader.load(kwdFile.getGameLevel().getSoundCategory(), false);
+        SoundsLoader.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         mainMenuEntityData = new DefaultEntityData();
         menuNode = new Node("Main menu");
-        gameController = new GameController(kwdFile, Collections.emptyList(), mainMenuEntityData, kwdFile.getVariables(), new MainMenuPlayerService());
+        gameController = new GameController(frontEndKwd, Collections.emptyList(), mainMenuEntityData, frontEndKwd.getVariables(), new MainMenuPlayerService());
         gameController.createNewGame();
 
         // Create the actual map
-        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
+        MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -160,11 +161,11 @@ public final class MainMenuState extends AbstractAppState {
             }
 
         };
-        menuNode.attachChild(mapLoader.load(assetManager, kwdFile));
+        menuNode.attachChild(mapLoader.load(assetManager, frontEndKwd));
         if (loadingScreen != null) {
             loadingScreen.setProgress(1.0f);
         }
-        mainMenuEntityViewState = new MainMenuEntityViewState(kwdFile, assetManager, mainMenuEntityData, Player.KEEPER1_ID, new TextParserService(gameController.getGameWorldController().getMapController(), null), menuNode);
+        mainMenuEntityViewState = new MainMenuEntityViewState(frontEndKwd, assetManager, mainMenuEntityData, Player.KEEPER1_ID, new TextParserService(gameController.getGameWorldController().getMapController(), null), menuNode);
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
 
@@ -186,7 +187,7 @@ public final class MainMenuState extends AbstractAppState {
      * Load the initial main menu camera position
      */
     private void loadCameraStartLocation() {
-        Player player = kwdFile.getPlayer(Player.KEEPER1_ID);
+        Player player = frontEndKwd.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
         startLocation.addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
 
@@ -430,10 +431,10 @@ public final class MainMenuState extends AbstractAppState {
      * @param type where level selected. @TODO change campaign like others or otherwise
      */
     public void startLevel(String type) {
-        if ("campaign".equals(type.toLowerCase())) {
-
+        if ("campaign".equalsIgnoreCase(type)) {
             // Create the level state
-            LocalGameSession.createLocalGame(selectedLevel.getKwdFile(), true, stateManager, app);
+            IKwdFile kwdFile =selectedLevel.getKwdMap().load();
+            LocalGameSession.createLocalGame(kwdFile, true, stateManager, app);
         } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
@@ -509,10 +510,10 @@ public final class MainMenuState extends AbstractAppState {
     /**
      * Campaign level selected, transition the screen and display the briefing
      *
-     * @param selectedLevel the selected level
+     * @param level the selected level
      */
-    protected void selectCampaignLevel(FrontEndLevelControl selectedLevel) {
-        this.selectedLevel = selectedLevel.getLevel();
+    protected void selectCampaignLevel(GeneralLevel level) {
+        selectedLevel = level;
         screen.doTransition("253", "briefing", null);
     }
 
@@ -538,12 +539,12 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
-     * See if the map thumbnail exist, otherwise create one TODO maybe move to KwdFile class ???
+     * See if the map thumbnail exist, otherwise create one TODO maybe move to IKwdFile class ???
      *
      * @param map
      * @return path to map thumbnail file
      */
-    protected String getMapThumbnail(KwdFile map) {
+    protected String getMapThumbnail(IKwdMap map) {
 
         // See if the map thumbnail exist, otherwise create one
         String asset = AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator + PathUtils.stripFileName(map.getGameLevel().getName()) + ".png";
@@ -551,7 +552,7 @@ public final class MainMenuState extends AbstractAppState {
 
             // Generate
             try {
-                AssetsConverter.genererateMapThumbnail(map, AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
+                AssetsConverter.generateMapThumbnail(map.load(), AssetsConverter.getAssetsFolder() + AssetsConverter.MAP_THUMBNAILS_FOLDER + File.separator);
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Failed to generate map file out of {0}!", map);
                 asset = "Textures/Unique_NoTextureName.png";
@@ -576,7 +577,7 @@ public final class MainMenuState extends AbstractAppState {
      */
     private static final class MainMenuEntityViewState extends PlayerEntityViewState {
 
-        public MainMenuEntityViewState(KwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+        public MainMenuEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
 
             setId("MainMenu: " + playerId);

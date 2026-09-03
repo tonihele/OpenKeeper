@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,19 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.data;
-
-import toniarts.openkeeper.tools.convert.map.IKwdMap;
+package toniarts.openkeeper.tools.convert.map;
 
 /**
+ * Part of KwdFile. Holds limited level information. Use {@link #load()} to load the whole level file.
  *
- * @author ufdada
+ * @author ArchDemon
  */
-public abstract class GeneralLevel {
+public interface IKwdMap extends IKwdInfo {
 
-    protected IKwdMap kwdMap;
+    /**
+     * Loads the complete KWD file
+     *
+     * @return complete KWD file
+     */
+    IKwdFile load();
 
-    public IKwdMap getKwdMap() {
-        return kwdMap;
-    }
 }

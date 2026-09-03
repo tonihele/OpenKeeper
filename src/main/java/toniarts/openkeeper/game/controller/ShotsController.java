@@ -22,7 +22,7 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
@@ -39,7 +39,7 @@ public final class ShotsController implements IShotsController {
 
     private static final Logger logger = System.getLogger(ShotsController.class.getName());
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final IGameTimer gameTimer;
@@ -49,7 +49,7 @@ public final class ShotsController implements IShotsController {
     private final IObjectsController objectsController;
     private final ICreaturesController creaturesController;
 
-    public ShotsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
+    public ShotsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo, IObjectsController objectsController, ICreaturesController creaturesController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
