@@ -227,7 +227,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
     private void showMpdProgress(BatchNode root, Point start, Point p) {
         String creatureName = "";
 
-        String[] creatureNames = new String[]{"Dwarf", "Guard", "Knight", "Lord Of The Land", "Prince Tristran", "King Reginald"};
+        String[] creatureNames = new String[]{"Dwarf", "Guard", "Knight", "Lord Of The Land", "Prince Balder", "King Reginald"};
 
         for (int i = 6; i > 0; i--) {
             Level mpdLevel = new Level(LevelType.MPD, i);
@@ -257,14 +257,15 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
         CreatureRandomAnimationControl animationControl = new CreatureRandomAnimationControl(creature, assetManager,
                 List.of(Creature.AnimationType.IDLE_1, Creature.AnimationType.IDLE_2,
                         Creature.AnimationType.DRINKING, Creature.AnimationType.HAPPY,
-                        Creature.AnimationType.ANGRY, Creature.AnimationType.DRUNKED_IDLE));
+                        Creature.AnimationType.ANGRY, Creature.AnimationType.DRUNKED_IDLE,
+                        Creature.AnimationType.DANCE, Creature.AnimationType.MELEE_ATTACK));
         mpdObj.addControl(animationControl);
 
         // Don't batch animated objects, seems not to work
         mpdObj.setBatchHint(Spatial.BatchHint.Never);
 
         mpdObj.rotate(0, FastMath.PI / 2, 0);
-        mpdObj.scale(0.7f);
+        mpdObj.scale(0.8f);
         mpdObj.move(-0.3f, WorldUtils.FLOOR_HEIGHT, p.y - start.y);
         root.attachChild(mpdObj);
     }
