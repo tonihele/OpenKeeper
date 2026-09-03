@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomFoodControl;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -37,7 +37,7 @@ public final class HatcheryController extends NormalRoomController implements IC
     private final IGameTimer gameTimer;
     private RoomFoodControl roomFoodControl;
 
-    public HatcheryController(EntityId entityId, EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
+    public HatcheryController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.FOOD);
 
         this.gameTimer = gameTimer;

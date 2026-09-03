@@ -39,7 +39,7 @@ import toniarts.openkeeper.game.controller.room.TortureChamberController;
 import toniarts.openkeeper.game.controller.room.TrainingRoomController;
 import toniarts.openkeeper.game.controller.room.TreasuryController;
 import toniarts.openkeeper.game.controller.room.WorkshopController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -57,7 +57,7 @@ public final class RoomControllerFactory {
         // Nope
     }
 
-    public static IRoomController constructRoom(EntityData entityData, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, IGameTimer gameTimer) {
+    public static IRoomController constructRoom(EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, IGameTimer gameTimer) {
         String roomName = roomInstance.getRoom().getName();
         EntityId entity = entityData.createEntity();
 
@@ -89,7 +89,7 @@ public final class RoomControllerFactory {
         }
     }
 
-    private static IRoomController constructDoubleQuad(EntityId entity, EntityData entityData, String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
+    private static IRoomController constructDoubleQuad(EntityId entity, EntityData entityData, String roomName, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         if (roomName.equalsIgnoreCase("Prison")) {
             return new PrisonController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Combat Pit")) {
@@ -101,7 +101,7 @@ public final class RoomControllerFactory {
         return new DoubleQuadController(entity, entityData, kwdFile, roomInstance, objectsController);
     }
 
-    private static IRoomController constructNormal(EntityId entity, EntityData entityData, String roomName, KwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+    private static IRoomController constructNormal(EntityId entity, EntityData entityData, String roomName, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         if (roomName.equalsIgnoreCase("Lair")) {
             return new LairController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Library")) {

@@ -26,7 +26,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -36,7 +36,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public abstract class RoomTraineeControl extends AbstractRoomObjectControl<EntityId> {
 
-    protected RoomTraineeControl(KwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+    protected RoomTraineeControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.TRAINEE);
     }
 

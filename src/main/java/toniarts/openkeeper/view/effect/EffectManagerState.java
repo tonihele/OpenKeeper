@@ -22,7 +22,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.view.PlayerMapViewState;
 
 import java.lang.System.Logger;
@@ -42,12 +42,12 @@ public class EffectManagerState extends AbstractAppState {
     
     public static int ROOM_CLAIM_ID = 2;
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final List<VisualEffect> activeEffects = new ArrayList<>();
     private AppStateManager stateManager;
 
-    public EffectManagerState(KwdFile kwdFile, AssetManager assetManager) {
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
     }
@@ -124,7 +124,7 @@ public class EffectManagerState extends AbstractAppState {
         return assetManager;
     }
 
-    public KwdFile getKwdFile() {
+    public IKwdFile getKwdFile() {
         return kwdFile;
     }
 }

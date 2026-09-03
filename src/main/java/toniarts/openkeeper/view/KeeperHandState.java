@@ -27,6 +27,8 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.Spatial.CullHint;
@@ -50,7 +52,7 @@ import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
@@ -77,6 +79,8 @@ public abstract class KeeperHandState extends AbstractAppState {
     private static final int CURSOR_ITEMS_INLINE = 4;
     private static final int CURSOR_ITEMS_LINES = 2;
     private static final int CURSOR_ITEM_SIZE = 32;
+    private static final float HAND_CAMERA_DISTANCE = 10_000f;
+    private static final float HAND_CAMERA_FAR_PLANE = HAND_CAMERA_DISTANCE * 2f;
 
     private Main app;
     private AssetManager assetManager;
@@ -84,16 +88,19 @@ public abstract class KeeperHandState extends AbstractAppState {
     private InputManager inputManager;
     private final List<KeeperHandItem> queue;
     private final int maxQueueSize;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
     private final short playerId;
     private IEntityViewControl currentItem;
     private final Node queueNode;
     private final Node cursor;
     private final Node rootNode;
+    private final Node handRootNode;
     private final InHandLoaderCreatureModelContainer inHandLoader;
+    private Camera handCamera;
+    private ViewPort handViewPort;
 
-    public KeeperHandState(int maxQueueSize, KwdFile kwdFile, EntityData entityData, short playerId) {
+    public KeeperHandState(int maxQueueSize, IKwdFile kwdFile, EntityData entityData, short playerId) {
         this.queue = new ArrayList<>(maxQueueSize);
         this.maxQueueSize = maxQueueSize;
         this.kwdFile = kwdFile;
@@ -101,6 +108,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         this.playerId = playerId;
 
         rootNode = new Node("Keeper hand");
+        handRootNode = new Node("Keeper hand models");
 
         queueNode = new Node("Queue");
         queueNode.setLocalScale(500);
@@ -112,7 +120,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         cursor = new Node("Cursor");
         cursor.setLocalTranslation(75, 0, 0);
 
-        rootNode.attachChild(queueNode);
+        handRootNode.attachChild(queueNode);
         rootNode.attachChild(cursor);
 
         // Create the model "listener"
@@ -129,6 +137,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         this.inputManager = this.app.getInputManager();
 
         this.app.getGuiNode().attachChild(rootNode);
+        initializeHandViewPort();
 
         // Start loading stuff (maybe we should do this earlier...)
         inHandLoader.start();
@@ -140,6 +149,10 @@ public abstract class KeeperHandState extends AbstractAppState {
             updateHand();
             updateCursor();
         }
+
+        updateHandCamera();
+        handRootNode.updateLogicalState(tpf);
+        handRootNode.updateGeometricState();
     }
 
     @Override
@@ -147,6 +160,12 @@ public abstract class KeeperHandState extends AbstractAppState {
         inHandLoader.stop();
         queue.clear();
         app.getGuiNode().detachChild(rootNode);
+        if (handViewPort != null) {
+            handViewPort.detachScene(handRootNode);
+            app.getRenderManager().removeMainView(handViewPort);
+            handViewPort = null;
+            handCamera = null;
+        }
 
         super.cleanup();
     }
@@ -183,10 +202,47 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     public void setVisible(boolean visible) {
         rootNode.setCullHint(visible ? CullHint.Never : CullHint.Always);
+        handRootNode.setCullHint(visible ? CullHint.Never : CullHint.Always);
+        if (handViewPort != null) {
+            handViewPort.setEnabled(visible);
+        }
     }
 
     public void setPosition(float x, float y) {
         rootNode.setLocalTranslation(x, y, 0);
+        handRootNode.setLocalTranslation(x, y, 0);
+    }
+
+    private void initializeHandViewPort() {
+        Camera guiCamera = app.getGuiViewPort().getCamera();
+        handCamera = new Camera(guiCamera.getWidth(), guiCamera.getHeight());
+        handCamera.setParallelProjection(true);
+        handCamera.setLocation(new Vector3f(0, 0, HAND_CAMERA_DISTANCE));
+        handCamera.lookAtDirection(Vector3f.UNIT_Z.negate(), Vector3f.UNIT_Y);
+        resizeHandCamera(guiCamera.getWidth(), guiCamera.getHeight());
+
+        // JME collapses the Gui bucket's depth range to zero, which makes the
+        // submeshes of held 3-D models overwrite one another in submission
+        // order. Render after the dungeon but before the GUI instead. Clearing
+        // only depth gives the hand its own depth buffer without erasing color.
+        handViewPort = app.getRenderManager().createMainView("Keeper hand 3D", handCamera);
+        handViewPort.setClearFlags(false, true, false);
+        handViewPort.attachScene(handRootNode);
+        handViewPort.setEnabled(false);
+    }
+
+    private void updateHandCamera() {
+        Camera guiCamera = app.getGuiViewPort().getCamera();
+        int width = guiCamera.getWidth();
+        int height = guiCamera.getHeight();
+        if (handCamera.getWidth() != width || handCamera.getHeight() != height) {
+            resizeHandCamera(width, height);
+        }
+    }
+
+    private void resizeHandCamera(int width, int height) {
+        handCamera.resize(width, height, true);
+        handCamera.setFrustum(1f, HAND_CAMERA_FAR_PLANE, 0, width, height, 0);
     }
 
     private Picture getIcon(final ArtResource image) {

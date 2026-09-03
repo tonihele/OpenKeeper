@@ -23,7 +23,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -35,9 +35,9 @@ public final class ObjectLoader implements ILoader<ObjectViewState> {
 
     private static final Logger logger = System.getLogger(ObjectLoader.class.getName());
     
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
-    public ObjectLoader(KwdFile kwdFile) {
+    public ObjectLoader(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
     }
 

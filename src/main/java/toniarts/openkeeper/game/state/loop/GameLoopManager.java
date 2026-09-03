@@ -29,7 +29,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.*;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.task.ITaskManager;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameLoop;
 
@@ -52,7 +52,7 @@ public final class GameLoopManager {
      * @param gameService
      * @param players player participating in this game, can be {@code null}
      */
-    public GameLoopManager(KwdFile level, GameSessionServerService gameService, List<Keeper> players) {
+    public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
         this.gameService = gameService;
         final EntityData entityData = gameService.getEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
@@ -68,6 +68,9 @@ public final class GameLoopManager {
         final GameLogicManager gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
+                new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
+                        level, gameWorldController.getMapController(),
+                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
