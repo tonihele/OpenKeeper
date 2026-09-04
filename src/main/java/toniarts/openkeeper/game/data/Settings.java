@@ -34,9 +34,10 @@ import java.util.List;
 import toniarts.openkeeper.Main;
 import static toniarts.openkeeper.Main.TITLE;
 import static toniarts.openkeeper.Main.getApplicationIcons;
-import static toniarts.openkeeper.game.data.Level.LevelType.Level;
-import static toniarts.openkeeper.game.data.Level.LevelType.MPD;
-import static toniarts.openkeeper.game.data.Level.LevelType.Secret;
+import toniarts.openkeeper.game.data.CampaignLevel;
+import static toniarts.openkeeper.game.data.CampaignLevel.LevelType.Level;
+import static toniarts.openkeeper.game.data.CampaignLevel.LevelType.MPD;
+import static toniarts.openkeeper.game.data.CampaignLevel.LevelType.Secret;
 
 /**
  * Holds all kinds of game settings. These are per user, stored in user folder.
@@ -415,8 +416,8 @@ public final class Settings {
      * @param level the level
      * @return number of attempts to a level
      */
-    public int getLevelAttempts(Level level) {
-        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level, Setting.LEVEL_ATTEMPTS.getDefaultValue());
+    public int getLevelAttempts(CampaignLevel level) {
+        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 
     /**
@@ -425,12 +426,12 @@ public final class Settings {
      * @param level the level
      * @return the level status
      */
-    public LevelStatus getLevelStatus(Level level) {
+    public LevelStatus getLevelStatus(CampaignLevel level) {
         switch (level.getType()) {
             case Level:
-                return LevelStatus.valueOf((String) getSetting(Setting.LEVEL_STATUS.toString() + level, Setting.LEVEL_STATUS.getDefaultValue()));
+                return LevelStatus.valueOf((String) getSetting(Setting.LEVEL_STATUS.toString() + level.getLevel(), Setting.LEVEL_STATUS.getDefaultValue()));
             case MPD:
-                return LevelStatus.valueOf((String) getSetting(Setting.MPD_LEVEL_STATUS.toString() + level, Setting.MPD_LEVEL_STATUS.getDefaultValue()));
+                return LevelStatus.valueOf((String) getSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel(), Setting.MPD_LEVEL_STATUS.getDefaultValue()));
         }
         return null;
     }
@@ -441,10 +442,10 @@ public final class Settings {
      * @param level the secret level
      * @return the secret level status
      */
-    public SecretLevelStatus getSecredLevelStatus(Level level) {
+    public SecretLevelStatus getSecredLevelStatus(CampaignLevel level) {
         switch (level.getType()) {
             case Secret:
-                return SecretLevelStatus.valueOf((String) getSetting(Setting.SECRET_LEVEL_STATUS.toString() + level, Setting.SECRET_LEVEL_STATUS.getDefaultValue()));
+                return SecretLevelStatus.valueOf((String) getSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), Setting.SECRET_LEVEL_STATUS.getDefaultValue()));
         }
         return null;
     }
@@ -454,8 +455,8 @@ public final class Settings {
      *
      * @param level the level
      */
-    public void increaseLevelAttempts(Level level) {
-        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, getLevelAttempts(level) + 1);
+    public void increaseLevelAttempts(CampaignLevel level) {
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), getLevelAttempts(level) + 1);
     }
 
     /**
@@ -464,13 +465,13 @@ public final class Settings {
      * @param level the level
      * @param status the level status
      */
-    public void setLevelStatus(Level level, LevelStatus status) {
+    public void setLevelStatus(CampaignLevel level, LevelStatus status) {
         switch (level.getType()) {
             case Level:
-                setSetting(Setting.LEVEL_STATUS.toString() + level, status);
+                setSetting(Setting.LEVEL_STATUS.toString() + level.getLevel(), status);
                 break;
             case MPD:
-                setSetting(Setting.MPD_LEVEL_STATUS.toString() + level, status);
+                setSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel(), status);
                 break;
         }
     }
@@ -481,10 +482,95 @@ public final class Settings {
      * @param level the secret level
      * @param status the secret level status
      */
-    public void setSecredLevelStatus(Level level, SecretLevelStatus status) {
-        switch (level.getType()) {
-            case Secret:
-                setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level, status);
+    public void setSecredLevelStatus(CampaignLevel level, SecretLevelStatus status) {
+        if (level.getType().equals(Secret)) {
+            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + level.getLevel(), status);
         }
+    }
+
+    /**
+     * Returns the next playable campaign level number (1-20). A level is
+     * considered completed if any of its variations is COMPLETED.
+     *
+     * @return the next level number to play, or 21 if all levels are completed
+     */
+    public int getNextPlayableLevel() {
+        for (int i = 1; i <= 20; i++) {
+            if (!isCampaignLevelCompleted(i)) {
+                return i;
+            }
+        }
+        return 21;
+    }
+
+    /**
+     * Checks whether a campaign level (by number) is completed. For branching
+     * levels (6, 11, 15) any variation being completed counts.
+     *
+     * @param levelNumber the level number (1-20)
+     * @return true if the level is completed
+     */
+    public boolean isCampaignLevelCompleted(int levelNumber) {
+        switch (levelNumber) {
+            case 6:
+                return isCampaignVariationCompleted(6, "a")
+                        || isCampaignVariationCompleted(6, "b");
+            case 11:
+                return isCampaignVariationCompleted(11, "a")
+                        || isCampaignVariationCompleted(11, "b")
+                        || isCampaignVariationCompleted(11, "c");
+            case 15:
+                return isCampaignVariationCompleted(15, "a")
+                        || isCampaignVariationCompleted(15, "b");
+            default:
+                return isCampaignVariationCompleted(levelNumber, null);
+        }
+    }
+
+    private boolean isCampaignVariationCompleted(int levelNumber, String variation) {
+        CampaignLevel level = new CampaignLevel(CampaignLevel.LevelType.Level, levelNumber, variation);
+        return LevelStatus.COMPLETED.equals(getLevelStatus(level));
+    }
+
+    /**
+     * Resets all campaign progress: level statuses, level number, attempts,
+     * and secret/MPD level statuses.
+     */
+    public void resetCampaignProgress() {
+        // Reset the current level number back to the start
+        setSetting(Setting.LEVEL_NUMBER, Setting.LEVEL_NUMBER.getDefaultValue());
+
+        // Reset all campaign levels (1-20)
+        for (int i = 1; i <= 20; i++) {
+            // Handle branching levels
+            switch (i) {
+                case 6:
+                    resetCampaignLevel(new CampaignLevel(Level, i, "a"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "b"));
+                    break;
+                case 11:
+                    resetCampaignLevel(new CampaignLevel(Level, i, "a"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "b"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "c"));
+                    break;
+                case 15:
+                    resetCampaignLevel(new CampaignLevel(Level, i, "a"));
+                    resetCampaignLevel(new CampaignLevel(Level, i, "b"));
+                    break;
+                default:
+                    resetCampaignLevel(new CampaignLevel(Level, i));
+            }
+        }
+
+        // Reset secret levels
+        for (int i = 1; i < 6; i++) {
+            CampaignLevel secretLevel = new CampaignLevel(Secret, i);
+            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel, SecretLevelStatus.NOT_DISCOVED);
+        }
+    }
+
+    private void resetCampaignLevel(CampaignLevel level) {
+        setLevelStatus(level, LevelStatus.NOT_COMPLETED);
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 }

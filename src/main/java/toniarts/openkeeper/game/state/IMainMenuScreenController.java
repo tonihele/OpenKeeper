@@ -123,4 +123,22 @@ public interface IMainMenuScreenController extends ScreenController {
      * Cancel multiplayer lobby
      */
     public void cancelMultiplayer();
+
+    //// screen id="singlePlayer" ////
+    /**
+     * Show a confirmation dialog to start a new campaign, which will reset
+     * current campaign progress.
+     */
+    public void newCampaign();
+
+    /**
+     * Called when the user confirms they want to reset campaign progress and
+     * start a new campaign.
+     */
+    public void confirmNewCampaign();
+
+    /**
+     * Called when the user cancels the new campaign confirmation dialog.
+     */
+    public void cancelNewCampaign();
 }

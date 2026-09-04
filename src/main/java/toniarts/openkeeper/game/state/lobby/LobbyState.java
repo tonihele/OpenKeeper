@@ -164,12 +164,12 @@ public final class LobbyState extends AbstractAppState {
         }
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, players.stream().filter(c -> c.getId() == lobbyClientService.getPlayerId()).findFirst().get().getKeeper().getId(), players, gameClientService, app);
+        GameClientState gameClientState = new GameClientState(kwdFile, players.stream().filter(c -> c.getId() == lobbyClientService.getPlayerId()).findFirst().get().getKeeper().getId(), players, gameClientService, app, null);
         stateManager.attach(gameClientState);
 
         // The game server
         if (isHosting()) {
-            GameServerState gameServerState = new GameServerState(kwdFile, players.stream().map(ClientInfo::getKeeper).collect(toList()), false, gameSessionService);
+            GameServerState gameServerState = new GameServerState(kwdFile, players.stream().map(ClientInfo::getKeeper).collect(toList()), false, gameSessionService, null);
             stateManager.attach(gameServerState);
         }
 

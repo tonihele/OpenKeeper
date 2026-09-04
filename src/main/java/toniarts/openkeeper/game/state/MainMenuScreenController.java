@@ -46,8 +46,8 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.HiScores;
-import toniarts.openkeeper.game.data.Level;
-import toniarts.openkeeper.game.data.Level.LevelType;
+import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.CampaignLevel.LevelType;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
@@ -151,7 +151,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
     @Override
     public void selectMPDLevel(String number) {
-        state.selectedLevel = new Level(LevelType.MPD, Integer.parseInt(number));
+        state.selectedLevel = new CampaignLevel(CampaignLevel.LevelType.MPD, Integer.parseInt(number));
         goToScreen("briefing");
     }
 
@@ -306,7 +306,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         if (state.selectedLevel instanceof CustomMPDLevel) {
             // go to the custom selection, needs to be checked before because of mpd7
             goToScreen("myPetDungeonMapSelect");
-        } else if (state.selectedLevel instanceof Level lvl && lvl.getType().equals(LevelType.MPD)) {
+        } else if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.MPD)) {
             goToScreen("myPetDungeon");
         } else {
             doTransition("254", "selectCampaignLevel", null);
@@ -358,6 +358,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         switch (screen.getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.addRawInputListener(state.listener);
+                state.showArrows();
                 break;
 
             case "briefing":
@@ -495,7 +496,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
             if (button.getStyle().equals("menuTextDisabled")) {
                 // the level before it must be completed
-                Level mpdLevel = new Level(LevelType.MPD, i - 1);
+                CampaignLevel mpdLevel = new CampaignLevel(LevelType.MPD, i - 1);
                 if (Settings.getInstance().getLevelStatus(mpdLevel).equals(LevelStatus.COMPLETED)) {
                     TextBuilder unlockedLevel = new TextBuilder();
                     unlockedLevel.style("menuText");
@@ -522,10 +523,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
+                state.hideArrows();
                 break;
 
             case "briefing":
                 state.clearLevelBriefingNarration();
+                break;
+
+            case "debriefing":
+                state.clearLevelDebriefingNarration();
                 break;
 
             case "skirmishLobby":
@@ -979,6 +985,35 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         cancelMultiplayer();
     }
 
+    @Override
+    public void newCampaign() {
+        if (Settings.getInstance().getNextPlayableLevel() > 1) {
+            closePopup();
+            popupElement = nifty.createPopup("confirmNewCampaign");
+            nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+        } else {
+            doTransition("251", "selectCampaignLevel", null);
+        }
+    }
+
+    @Override
+    public void confirmNewCampaign() {
+        closePopup();
+        Settings.getInstance().resetCampaignProgress();
+        try {
+            Settings.getInstance().save();
+        } catch (IOException ex) {
+            logger.log(Logger.Level.ERROR, ex);
+        }
+        state.refreshCampaignMap();
+        doTransition("251", "selectCampaignLevel", null);
+    }
+
+    @Override
+    public void cancelNewCampaign() {
+        closePopup();
+    }
+
     public ChatSessionListener getChatSessionListener() {
         if (chatSessionListener == null) {
             chatSessionListener = new ChatSessionListener() {
@@ -1157,27 +1192,27 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             if (this.click.startsWith("CutSceneLevel")) {
                 final int number = Integer.parseInt(this.image) + 1;
 
-                Level levela;
-                Level levelb;
+                CampaignLevel levela;
+                CampaignLevel levelb;
 
                 switch (number) {
                     case 11:
-                        levela = new Level(LevelType.Level, number, "a");
-                        levelb = new Level(LevelType.Level, number, "b");
-                        Level levelc = new Level(LevelType.Level, number, "c");
+                        levela = new CampaignLevel(LevelType.Level, number, "a");
+                        levelb = new CampaignLevel(LevelType.Level, number, "b");
+                        CampaignLevel levelc = new CampaignLevel(LevelType.Level, number, "c");
                         status = isLevelCompleted(levela) || isLevelCompleted(levelb) || isLevelCompleted(levelc);
                         break;
                     case 6:
                     case 15:
-                        levela = new Level(LevelType.Level, number, "a");
-                        levelb = new Level(LevelType.Level, number, "b");
+                        levela = new CampaignLevel(LevelType.Level, number, "a");
+                        levelb = new CampaignLevel(LevelType.Level, number, "b");
                         status = isLevelCompleted(levela) || isLevelCompleted(levelb);
                         break;
                     default:
-                        status = isLevelCompleted(new Level(LevelType.Level, number));
+                        status = isLevelCompleted(new CampaignLevel(LevelType.Level, number));
                 }
             } else if (this.image.equals("Outro")) {
-                status = isLevelCompleted(new Level(LevelType.Level, 20));
+                status = isLevelCompleted(new CampaignLevel(LevelType.Level, 20));
             } else if (this.image.equals("Intro")) {
                 // Intro is always visible
                 status = true;
@@ -1186,7 +1221,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             return status;
         }
 
-        private boolean isLevelCompleted(Level level) {
+        private boolean isLevelCompleted(CampaignLevel level) {
             return Settings.getInstance().getLevelStatus(level).equals(LevelStatus.COMPLETED);
         }
     }
@@ -1242,7 +1277,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             Element subObjectiveImage = screen.findElementById("subObjectiveImage");
             subObjectiveImage.hide();
 
-            if (state.selectedLevel instanceof Level lvl && lvl.getType().equals(LevelType.Level)) {
+            if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
                 objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
                 try {
                     img = nifty.createImage(objectiveImage, false);
@@ -1256,13 +1291,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 }
 
                 // Play some tunes!!
-                state.levelBriefing = new AudioNode(state.assetManager,
+                AudioNode audioNode = new AudioNode(state.assetManager,
                         AssetUtils.getCanonicalAssetKey(String.format(BRIEFING_SPEECH_URL, lvl.getLevel())),
                         AudioData.DataType.Buffer);
-                state.levelBriefing.setLooping(false);
-                state.levelBriefing.setDirectional(false);
-                state.levelBriefing.setPositional(false);
-                state.levelBriefing.play();
+                audioNode.setLooping(false);
+                audioNode.setDirectional(false);
+                audioNode.setPositional(false);
+                audioNode.play();
+                state.setLevelBriefing(audioNode);
             }
         }
     }
@@ -1295,7 +1331,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
-        if (state.selectedLevel instanceof Level lvl && lvl.getType().equals(LevelType.Level)) {
+        if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
             objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
             try {
                 img = nifty.createImage(objectiveImage, false);
@@ -1314,7 +1350,20 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         int timeTaken = Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
+        // Play debriefing narration
+        if (state.selectedLevel instanceof CampaignLevel) {
+            CampaignLevel level = (CampaignLevel) state.selectedLevel;
+            String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2", level.getLevel());
+            AudioNode audioNode = new AudioNode(state.assetManager,
+                    AssetUtils.getCanonicalAssetKey(speech),
+                    AudioData.DataType.Buffer);
+            audioNode.setLooping(false);
+            audioNode.setDirectional(false);
+            audioNode.setPositional(false);
+            audioNode.play();
+            state.setLevelDebriefing(audioNode);
+        }
+
         goToScreen(SCREEN_DEBRIEFING_ID);
     }
-
 }

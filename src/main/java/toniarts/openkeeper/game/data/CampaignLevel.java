@@ -19,21 +19,20 @@ package toniarts.openkeeper.game.data;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 
-public final class Level extends GeneralLevel {
+public final class CampaignLevel extends GeneralLevel {
 
     public enum LevelType {
-
-        Level, MPD, Secret;
+        Level, MPD, Secret
     }
     private final LevelType type;
     private final int level;
     private final String variation;
 
-    public Level(LevelType type, int level) {
+    public CampaignLevel(LevelType type, int level) {
         this(type, level, null);
     }
 
-    public Level(LevelType type, int level, String variation) {
+    public CampaignLevel(LevelType type, int level, String variation) {
         this.type = type;
         this.level = level;
         this.variation = variation;
@@ -45,6 +44,10 @@ public final class Level extends GeneralLevel {
 
     public LevelType getType() {
         return type;
+    }
+
+    public String getVariation() {
+        return variation != null ? variation : "";
     }
 
     @Override

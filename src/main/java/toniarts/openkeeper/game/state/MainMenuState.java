@@ -38,6 +38,7 @@ import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
@@ -74,6 +75,8 @@ import java.lang.System.Logger.Level;
 import java.util.Collections;
 
 import static toniarts.openkeeper.Main.getDkIIFolder;
+import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
+import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 
 /**
  * The main menu state
@@ -92,7 +95,8 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
-    protected AudioNode levelBriefing;
+    private AudioNode levelBriefing;
+    private AudioNode levelDebriefing;
 
     private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
@@ -434,7 +438,7 @@ public final class MainMenuState extends AbstractAppState {
         if ("campaign".equalsIgnoreCase(type)) {
             // Create the level state
             IKwdFile kwdFile =selectedLevel.getKwdMap().load();
-            LocalGameSession.createLocalGame(kwdFile, true, stateManager, app);
+            LocalGameSession.createLocalGame(kwdFile, true, stateManager, app, (CampaignLevel) selectedLevel);
         } else {
             logger.log(Level.WARNING, "Unknown type of Level {0}", type);
             return;
@@ -518,6 +522,52 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
+     * Refreshes arrow visibility and level playability on the 3D campaign map
+     * based on the current campaign progression stored in Settings.
+     */
+    protected void refreshCampaignMap() {
+        if (menuNode != null) {
+            menuNode.depthFirstTraversal(spatial -> {
+                if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
+                    HeroGateFrontEndConstructor.applyCampaignProgression(mapNode);
+                }
+            });
+        }
+    }
+
+    /**
+     * Shows the blinking arrows for the current playable level on the 3D
+     * campaign map. Called when entering the selectCampaignLevel screen.
+     */
+    protected void showArrows() {
+        if (menuNode != null) {
+            menuNode.depthFirstTraversal(spatial -> {
+                if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
+                    HeroGateFrontEndConstructor.setArrowsVisible(mapNode, true);
+                }
+            });
+        }
+    }
+
+    /**
+     * Hides all arrows on the 3D campaign map. Called when leaving the
+     * selectCampaignLevel screen.
+     */
+    protected void hideArrows() {
+        if (menuNode != null) {
+            menuNode.depthFirstTraversal(spatial -> {
+                if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
+                    HeroGateFrontEndConstructor.setArrowsVisible(mapNode, false);
+                }
+            });
+        }
+    }
+
+    protected void setLevelBriefing(AudioNode levelBriefing) {
+        this.levelBriefing = levelBriefing;
+    }
+
+    /**
      * Stops the level briefing sound
      */
     protected void clearLevelBriefingNarration() {
@@ -527,6 +577,22 @@ public final class MainMenuState extends AbstractAppState {
             levelBriefing.stop();
         }
         levelBriefing = null;
+    }
+
+    protected void setLevelDebriefing(AudioNode levelDebriefing) {
+        this.levelDebriefing = levelDebriefing;
+    }
+
+    /**
+     * Stops the level debriefing sound
+     */
+    protected void clearLevelDebriefingNarration() {
+
+        // Quit playing the sound
+        if (levelDebriefing != null && levelDebriefing.getStatus() == AudioSource.Status.Playing) {
+            levelDebriefing.stop();
+        }
+        levelDebriefing = null;
     }
 
     public void doDebriefing(GameResult result) {

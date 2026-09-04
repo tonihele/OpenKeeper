@@ -1,3 +1,4 @@
+
 package toniarts.openkeeper.game.state;
 
 import com.jme3.collision.CollisionResults;
@@ -19,7 +20,6 @@ import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
  * This is for the level pick up
  */
 public final class MainMenuInteraction implements RawInputListener {
-
     private final MainMenuState mainMenuState;
     private FrontEndLevelControl currentControl;
 
@@ -106,7 +106,7 @@ public final class MainMenuInteraction implements RawInputListener {
         for (int i = 0; i < results.size(); i++) {
 
             FrontEndLevelControl controller = results.getCollision(i).getGeometry().getParent().getParent().getControl(FrontEndLevelControl.class);
-            if (controller != null) {
+            if (controller != null && controller.isPlayable()) {
 
                 // Deactivate current controller
                 if (currentControl != null && !currentControl.equals(controller)) {
