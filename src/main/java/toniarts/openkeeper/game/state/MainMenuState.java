@@ -544,6 +544,8 @@ public final class MainMenuState extends AbstractAppState {
             menuNode.depthFirstTraversal(spatial -> {
                 if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
                     HeroGateFrontEndConstructor.setArrowsVisible(mapNode, true);
+                    HeroGateFrontEndConstructor.applyLevelTextures(mapNode);
+                    HeroGateFrontEndConstructor.startHighlightBlink(mapNode);
                 }
             });
         }
@@ -558,6 +560,7 @@ public final class MainMenuState extends AbstractAppState {
             menuNode.depthFirstTraversal(spatial -> {
                 if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
                     HeroGateFrontEndConstructor.setArrowsVisible(mapNode, false);
+                    HeroGateFrontEndConstructor.stopHighlightBlink(mapNode);
                 }
             });
         }

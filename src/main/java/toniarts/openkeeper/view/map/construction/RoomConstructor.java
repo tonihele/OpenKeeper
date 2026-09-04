@@ -28,7 +28,7 @@ import toniarts.openkeeper.view.map.WallSection;
  */
 public abstract class RoomConstructor {
 
-    protected final AssetManager assetManager;
+    protected static AssetManager assetManager = null;
     protected final RoomInstance roomInstance;
     protected final boolean[][] map;
     protected final Point start;

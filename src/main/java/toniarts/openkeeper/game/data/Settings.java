@@ -429,9 +429,9 @@ public final class Settings {
     public LevelStatus getLevelStatus(CampaignLevel level) {
         switch (level.getType()) {
             case Level:
-                return LevelStatus.valueOf((String) getSetting(Setting.LEVEL_STATUS.toString() + level.getLevel(), Setting.LEVEL_STATUS.getDefaultValue()));
+                return LevelStatus.valueOf((String) getSetting(Setting.LEVEL_STATUS.toString() + level.getLevel() + level.getVariation(), Setting.LEVEL_STATUS.getDefaultValue()));
             case MPD:
-                return LevelStatus.valueOf((String) getSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel(), Setting.MPD_LEVEL_STATUS.getDefaultValue()));
+                return LevelStatus.valueOf((String) getSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel() + level.getVariation(), Setting.MPD_LEVEL_STATUS.getDefaultValue()));
         }
         return null;
     }
