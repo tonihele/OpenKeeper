@@ -48,14 +48,13 @@ public final class HatcheryController extends NormalRoomController implements IC
     public void construct() {
         super.construct();
 
-        roomFoodControl = new RoomFoodControl(kwdFile, this, entityData, gameTimer) {
+        roomFoodControl = addObjectControl(new RoomFoodControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
                 return roomInstance.getCoordinates().size();
             }
-        };
-        addObjectControl(roomFoodControl);
+        });
     }
 
     @Override

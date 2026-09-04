@@ -788,7 +788,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
                 return getDropColor(point);
             }
-            if (interactionState.getType() == Type.SELL || isInvalidRoomSelection(point)) {
+            if (interactionState.getType() == Type.SELL) {
+                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId())
+                        ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
+            if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;
             }
             return ColorIndicator.BLUE;

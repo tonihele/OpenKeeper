@@ -98,6 +98,13 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         return getObjectsPerTile() * getNumberOfAccessibleTiles();
     }
 
+    @Override
+    public final void updateMaxCapacity() {
+        Storage currentStorage = entityData.getComponent(entityId, Storage.class);
+        entityData.setComponent(entityId, new Storage(currentStorage.room, currentStorage.objectType,
+                currentStorage.currentCapacity, calculateMaxCapacity()));
+    }
+
     /**
      * Is the room at full capacity
      *

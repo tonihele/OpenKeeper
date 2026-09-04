@@ -488,7 +488,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            if (entity.isAttacked() || entity.isEnoughSleep()) {
+            if (!entity.hasLair() || entity.isAttacked() || entity.isEnoughSleep()) {
                 entity.getStateMachine().changeState(IDLE);
             }
         }
@@ -511,7 +511,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            if (entity.isFullHealth()) {
+            if (!entity.hasLair() || entity.isFullHealth()) {
                 entity.getStateMachine().changeState(IDLE);
             }
         }

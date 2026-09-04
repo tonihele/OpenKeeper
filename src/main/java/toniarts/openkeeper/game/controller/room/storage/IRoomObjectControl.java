@@ -66,6 +66,11 @@ public interface IRoomObjectControl<V> {
     int getMaxCapacity();
 
     /**
+     * Recalculate capacity after the shape of the room changes.
+     */
+    void updateMaxCapacity();
+
+    /**
      * Get the type of object that can be stored in here
      *
      * @return the object type
