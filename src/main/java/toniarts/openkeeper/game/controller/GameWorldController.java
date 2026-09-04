@@ -809,7 +809,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
-    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData) {
+    private boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         // Check if picked up already
@@ -829,8 +829,15 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        // TODO: Was it so that it can be only picked up from own land?
-        return interaction.pickUppable && !isEntityIncapacitated(entityId, entityData);
+        if (!interaction.pickUppable || isEntityIncapacitated(entityId, entityData)) {
+            return false;
+        }
+
+        return EntityPickupValidator.isValidLocation(
+                entityData.getComponent(entityId, ObjectComponent.class),
+                entityData.getComponent(entityId, Position.class),
+                playerId,
+                mapController.getMapData());
     }
 
     @Override

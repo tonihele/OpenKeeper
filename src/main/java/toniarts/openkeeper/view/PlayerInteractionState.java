@@ -352,7 +352,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             tooltip.setText(sb.toString());
         }
 
-        return (interactiveControl != null);
+        return interactiveControl != null
+                && (interactiveControl.isPickable(player.getPlayerId())
+                || interactiveControl.isInteractable(player.getPlayerId()));
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
