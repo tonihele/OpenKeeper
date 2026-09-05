@@ -93,6 +93,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     @Override
     public Spatial load(AssetManager assetManager, IKwdFile object) {
 
+        long startTime = System.nanoTime();
+        
         //Create a root
         map = new Node(MAP_NODE);
         Node terrain = new Node(TERRAIN_NODE);
@@ -140,6 +142,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (!lavaBatches.isEmpty()) {
             map.attachChild(Water.construct(assetManager, lavaBatches));
         }
+
+        long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000L;
+        logger.log(Level.INFO, "Map {0} loaded in {1} ms", new Object[]{object.getGameLevel().getName(), loadTimeMs});
 
         return map;
     }
