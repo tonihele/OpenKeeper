@@ -31,7 +31,13 @@ application {
     }
     else {
         applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
-    }    
+    }
+}
+
+tasks.register("modelViewer", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
 configurations.configureEach {
@@ -79,9 +85,8 @@ dependencies {
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
 
-    testImplementation platform("org.junit:junit-bom:6.0.3")
-    testImplementation "org.junit.jupiter:junit-jupiter"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.14.4"
 
     // Assets sub-project
     runtimeOnly project(':assets')
@@ -129,8 +134,7 @@ idea {
 }
 
 compileJava {
-    // We have annotation processors in log4j, only needed for writing plugins, disable the warnings
-    options.compilerArgs += ["-proc:none"]
+    // disable the warnings
     options.compilerArgs += ["-Xlint:deprecation"]
     //options.compilerArgs += ["-Xlint:unchecked"]
 }

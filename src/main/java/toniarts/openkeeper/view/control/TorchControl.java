@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import jme3tools.optimize.TextureAtlas;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  *
@@ -48,11 +48,11 @@ public final class TorchControl extends BillboardControl {
     private static final float FLAME_WALL_OFFSET = 0.17f;
     private Material material;
     private Node torch;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private static final AssetKey<Spatial> ASSET_KEY = new AssetKey<>("TorchFlame");
 
-    public TorchControl(KwdFile kwdFile, AssetManager assetManager, float angle) {
+    public TorchControl(IKwdFile kwdFile, AssetManager assetManager, float angle) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         setAlignment(Alignment.AxialY);

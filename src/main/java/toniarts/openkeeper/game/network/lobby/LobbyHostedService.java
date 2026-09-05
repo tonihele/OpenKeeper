@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyUtils;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.IKwdMap;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -152,6 +153,11 @@ public final class LobbyHostedService extends AbstractHostedConnectionService im
             // Notify players
             notifyPlayersChange();
         }
+    }
+
+    @Override
+    public void setMap(IKwdMap kwdMap) {
+        setMap(kwdMap.getGameLevel().getName(), kwdMap.getGameLevel().getPlayerCount());
     }
 
     @Override

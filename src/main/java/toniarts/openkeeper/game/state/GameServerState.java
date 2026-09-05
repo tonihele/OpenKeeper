@@ -21,10 +21,12 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -41,7 +43,7 @@ import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Utils;
@@ -63,8 +65,8 @@ public final class GameServerState extends AbstractAppState {
     private final Object loadingObject = new Object();
     private volatile boolean gameLoaded = false;
 
-    private final KwdFile kwdFile;
-    private final toniarts.openkeeper.game.data.Level levelObject;
+    private final IKwdFile kwdFile;
+    private final CampaignLevel levelObject;
 
     private final boolean campaign;
     private final boolean multiplayer;
@@ -83,10 +85,11 @@ public final class GameServerState extends AbstractAppState {
      * @param players players participating in this game
      * @param campaign whether this is a campaign level or not
      * @param gameService the game service
+     * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
-    public GameServerState(KwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService) {
+    public GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService, @Nullable toniarts.openkeeper.game.data.CampaignLevel campaignLevel) {
         this.kwdFile = level;
-        this.levelObject = null;
+        this.levelObject = campaignLevel;
         this.campaign = campaign;
         this.gameService = gameService;
 
@@ -171,10 +174,6 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void run() {
-
-            // Make sure the KWD file is fully loaded
-            kwdFile.load();
-
             // Create the central game controller
             game = new GameLoopManager(kwdFile, gameService, players);
 

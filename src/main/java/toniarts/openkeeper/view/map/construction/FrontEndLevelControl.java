@@ -24,7 +24,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
-import toniarts.openkeeper.game.data.Level;
+import toniarts.openkeeper.game.data.CampaignLevel;
 
 /**
  * Controls level graphics
@@ -33,18 +33,20 @@ import toniarts.openkeeper.game.data.Level;
  */
 public class FrontEndLevelControl extends AbstractControl {
 
-    private final Level level;
+    private final CampaignLevel level;
     private final AssetManager assetManager;
     private volatile boolean active = false;
     private volatile boolean moved = true;
+    private volatile boolean playable = false;
     private Vector3f baseLocation;
     private float baseProgress;
     private Long lastTime;
+    private ArrowBlinkControl arrowBlinkControl;
     private static final Vector3f MOVE_VECTOR = new Vector3f(0, 0.025f, 0);
     private static final int ACTIVATE_ANIMATION_LENGTH = 250;
     private static final int DEACTIVATE_ANIMATION_LENGTH = 1500;
 
-    public FrontEndLevelControl(Level level, AssetManager assetManager) {
+    public FrontEndLevelControl(CampaignLevel level, AssetManager assetManager) {
         this.level = level;
         this.assetManager = assetManager;
     }
@@ -95,7 +97,9 @@ public class FrontEndLevelControl extends AbstractControl {
     }
 
     /**
-     * Sets this controller active (not enabled/disabled)
+     * Sets this controller active (not enabled/disabled). When active, the
+     * associated arrow (if any) stays solid red. When inactive, the arrow
+     * resumes blinking.
      *
      * @param active active status
      */
@@ -105,6 +109,10 @@ public class FrontEndLevelControl extends AbstractControl {
             this.lastTime = null;
         }
         this.active = active;
+
+        if (arrowBlinkControl != null) {
+            arrowBlinkControl.setSolidRed(active);
+        }
     }
 
     /**
@@ -112,8 +120,36 @@ public class FrontEndLevelControl extends AbstractControl {
      *
      * @return Level
      */
-    public Level getLevel() {
+    public CampaignLevel getLevel() {
         return level;
+    }
+
+    /**
+     * Sets whether this level is selectable by the player
+     *
+     * @param playable true if the level can be selected
+     */
+    public void setPlayable(boolean playable) {
+        this.playable = playable;
+    }
+
+    /**
+     * Returns whether this level is selectable by the player
+     *
+     * @return true if the level can be selected
+     */
+    public boolean isPlayable() {
+        return playable;
+    }
+
+    /**
+     * Sets the arrow blink control associated with this level. The control
+     * manages the blinking red animation on the level's arrow indicator.
+     *
+     * @param control the blink control, or null to disassociate
+     */
+    public void setArrowBlinkControl(ArrowBlinkControl control) {
+        this.arrowBlinkControl = control;
     }
 
     private void playAnimation(int animationLength, Vector3f base, Vector3f target, long elapsedTime) {

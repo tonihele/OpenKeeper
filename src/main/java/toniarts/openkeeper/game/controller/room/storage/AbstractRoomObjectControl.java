@@ -35,7 +35,7 @@ import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Room object controller. FIXME: Cache the coordinates and listen to changes in
@@ -46,14 +46,14 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl<V> {
 
-    protected final KwdFile kwdFile;
+    protected final IKwdFile kwdFile;
     protected final IRoomController parent;
     protected final EntityData entityData;
     private final IGameTimer gameTimer;
     protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
     private final EntityId entityId;
 
-    public AbstractRoomObjectControl(KwdFile kwdFile, IRoomController parent, EntityData entityData,
+    public AbstractRoomObjectControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData,
             IGameTimer gameTimer, AbstractRoomController.ObjectType objectType) {
         this.kwdFile = kwdFile;
         this.parent = parent;
@@ -96,6 +96,13 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
 
     protected int calculateMaxCapacity() {
         return getObjectsPerTile() * getNumberOfAccessibleTiles();
+    }
+
+    @Override
+    public final void updateMaxCapacity() {
+        Storage currentStorage = entityData.getComponent(entityId, Storage.class);
+        entityData.setComponent(entityId, new Storage(currentStorage.room, currentStorage.objectType,
+                currentStorage.currentCapacity, calculateMaxCapacity()));
     }
 
     /**

@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapInformation;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -56,7 +56,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private AppStateManager stateManager;
     private final IMapInformation mapInformation;
     private final MapViewController mapLoader;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final MapTileContainer mapTileContainer;
     private Node worldNode;
@@ -64,7 +64,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final FlashTileViewState flashTileControl;
     private final MapRoomContainer mapRoomContainer;
 
-    public PlayerMapViewState(Main app, final KwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
+    public PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;

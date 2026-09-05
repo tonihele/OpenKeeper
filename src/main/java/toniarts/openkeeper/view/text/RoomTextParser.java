@@ -18,13 +18,14 @@ package toniarts.openkeeper.view.text;
 
 import com.simsilica.es.EntityId;
 import java.util.Map;
-import toniarts.openkeeper.utils.TextParameter;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.TextUtils;
 
 /**
- * Parses text and fills the replacements from room data
+ * Parses room tooltip text using room and owning player data.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -52,13 +53,13 @@ public class RoomTextParser {
         this.roomsInformation = roomsInformation;
     }
 
-    public String parseText(String text, EntityId room) {
+    public String parseText(String text, EntityId room, Keeper roomOwner) {
         return TextUtils.parseText(text, (parameter) -> {
-            return getReplacement(parameter, roomsInformation.getRoomInformation(room));
+            return getReplacement(parameter, roomsInformation.getRoomInformation(room), roomOwner);
         });
     }
 
-    protected String getReplacement(TextParameter parameter, IRoomInformation room) {
+    protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {
         Integer roomId = ROOM_IDS.get(parameter);
         if (roomId != null) {
             return getRoomAmount(room, roomId);
@@ -71,6 +72,10 @@ public class RoomTextParser {
                 return Integer.toString(room.getUsedCapacity()); // Used capacity
             case ROOM_MAX_CAPACITY:
                 return Integer.toString(room.getMaxCapacity()); // Max capacity
+            case DUNGEON_HEART_MANA:
+                return Integer.toString(roomOwner.getMana());
+            case DUNGEON_HEART_MAX_MANA:
+                return Integer.toString(roomOwner.getMaxMana());
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }

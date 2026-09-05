@@ -22,6 +22,7 @@ import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -30,9 +31,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -43,7 +46,7 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -54,20 +57,22 @@ import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
+import javax.annotation.Nullable;
+
 /**
  * The game client state
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class GameClientState extends AbstractPauseAwareState {
-    
+
     private static final Logger logger = System.getLogger(GameClientState.class.getName());
 
     private final Main app;
 
     private AppStateManager stateManager;
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
 
     private final Map<Short, Keeper> players = new TreeMap<>();
     private final Map<Short, IPlayerController> playerControllers = new TreeMap<>();
@@ -81,6 +86,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
     private IMapInformation mapInformation;
     private PlayerState playerState;
+    @Nullable
+    private final CampaignLevel campaignLevel;
 
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
@@ -94,12 +101,14 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param players players participating in this game
      * @param gameClientService client services
      * @param app the main application
+     * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
-    public GameClientState(KwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app) {
+    public GameClientState(IKwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app, @Nullable CampaignLevel campaignLevel) {
         this.kwdFile = level;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
         this.app = (Main) app;
+        this.campaignLevel = campaignLevel;
 
         // Set multiplayer
         int humanPlayers = 0;
@@ -258,7 +267,7 @@ public final class GameClientState extends AbstractPauseAwareState {
      *
      * @return the KWD
      */
-    public KwdFile getLevelData() {
+    public IKwdFile getLevelData() {
         return kwdFile;
     }
 
@@ -308,9 +317,6 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // This might take awhile, don't block
             Thread loadingThread = new Thread(() -> {
-
-                // Now we have the game data, start loading the map
-                kwdFile.load();
                 AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
                 for (Keeper keeper : players) {
                     keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
@@ -319,7 +325,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 }
 
                 // Create player state
-                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app);
+                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
                         () -> {
@@ -345,7 +351,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 };
                 mapInformation = playerMapViewState.getMapInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode());
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData());
 
                 // Attach the states
                 stateManager.attach(playerState);
@@ -606,7 +612,7 @@ public final class GameClientState extends AbstractPauseAwareState {
             }
         }
 
-        private Comparable getResearchableEntityType(KwdFile kwdFile, ResearchableType researchableType, short typeId) {
+        private Comparable getResearchableEntityType(IKwdFile kwdFile, ResearchableType researchableType, short typeId) {
             switch (researchableType) {
                 case DOOR: {
                     return kwdFile.getDoorById(typeId);

@@ -75,6 +75,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     private static final float ZOOM_SPEED = 10f;
     private static final float MOVE_SPEED = 10f;
     private static final float ROTATION_SPEED = 4f;
+    private static final float EDGE_SCROLL_MARGIN = 5f;
     private static final String CAMERA_MOUSE_ZOOM_IN = "CAMERA_MOUSE_ZOOM_IN";
     private static final String CAMERA_MOUSE_ZOOM_OUT = "CAMERA_MOUSE_ZOOM_OUT";
     private static final String SPECIAL_KEY_CONTROL = "SPECIAL_KEY_CONTROL";
@@ -278,9 +279,46 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         // Update the container
         container.update(tpf);
 
+        updateEdgeScroll(tpf);
+
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+    }
+
+    private void updateEdgeScroll(float tpf) {
+        if (!inputManager.isCursorVisible()) {
+            return;
+        }
+
+        Vector2f cursorPosition = inputManager.getCursorPosition();
+        Camera applicationCamera = app.getCamera();
+        int width = applicationCamera.getWidth();
+        int height = applicationCamera.getHeight();
+
+        // Ignore cursor coordinates outside the game window. This also prevents
+        // scrolling when the pointer leaves a windowed game.
+        if (cursorPosition.x < 0 || cursorPosition.x >= width
+                || cursorPosition.y < 0 || cursorPosition.y >= height) {
+            return;
+        }
+
+        float distance = tpf * getMoveSpeed();
+        if (cursorPosition.x < EDGE_SCROLL_MARGIN) {
+            camera.move(distance, 0);
+        } else if (cursorPosition.x >= width - EDGE_SCROLL_MARGIN) {
+            camera.move(-distance, 0);
+        }
+
+        if (cursorPosition.y < EDGE_SCROLL_MARGIN) {
+            camera.move(0, -distance);
+        } else if (cursorPosition.y >= height - EDGE_SCROLL_MARGIN) {
+            camera.move(0, distance);
+        }
+    }
+
+    private static float getMoveSpeed() {
+        return MOVE_SPEED * Main.getUserSettings().getFloat(Setting.SCROLL_SPEED);
     }
 
     private void addKeyMapping(Setting s) {
@@ -405,13 +443,13 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
             camera.zoom(-value * ZOOM_SPEED);
 
         } else if (isCombinationPressed(name, Setting.CAMERA_UP)) {
-            camera.move(0, value * MOVE_SPEED);
+            camera.move(0, value * getMoveSpeed());
         } else if (isCombinationPressed(name, Setting.CAMERA_DOWN)) {
-            camera.move(0, -value * MOVE_SPEED);
+            camera.move(0, -value * getMoveSpeed());
         } else if (isCombinationPressed(name, Setting.CAMERA_LEFT)) {
-            camera.move(value * MOVE_SPEED, 0);
+            camera.move(value * getMoveSpeed(), 0);
         } else if (isCombinationPressed(name, Setting.CAMERA_RIGHT)) {
-            camera.move(-value * MOVE_SPEED, 0);
+            camera.move(-value * getMoveSpeed(), 0);
         } else if (isCombinationPressed(name, Setting.CAMERA_ROTATE_LEFT)) {
             camera.rotateAround(-value * ROTATION_SPEED);
         } else if (isCombinationPressed(name, Setting.CAMERA_ROTATE_RIGHT)) {

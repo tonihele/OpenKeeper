@@ -53,7 +53,7 @@ import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
@@ -83,7 +83,7 @@ public final class ObjectsController implements IObjectsController {
      */
     public static final double OBJECT_TIME_TO_LIVE = 60;
 
-    private KwdFile kwdFile;
+    private IKwdFile kwdFile;
     private EntityData entityData;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IGameTimer gameTimer;
@@ -113,7 +113,7 @@ public final class ObjectsController implements IObjectsController {
      * @param gameController
      * @param levelInfo
      */
-    public ObjectsController(KwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+    public ObjectsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, IGameController gameController, ILevelInfo levelInfo) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;

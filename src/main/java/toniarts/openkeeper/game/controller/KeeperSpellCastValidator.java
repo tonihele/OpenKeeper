@@ -37,7 +37,7 @@ import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.LAND;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.NONE;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.OWN_CREATURES;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.POSESSION;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
@@ -53,7 +53,7 @@ public final class KeeperSpellCastValidator {
 
     public static boolean isValidCast(
             KeeperSpell keeperSpell,
-            KwdFile kwdFile,
+            IKwdFile kwdFile,
             IMapInformation mapInformation,
             IMapTileInformation mapTile,
             Keeper player,
@@ -68,7 +68,7 @@ public final class KeeperSpellCastValidator {
         return keeperSpell.getManaCost() <= player.getMana() - player.getManaLoose();
     }
 
-    private static boolean checkTargetRule(EntityId target, EntityData entityData, KwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {
+    private static boolean checkTargetRule(EntityId target, EntityData entityData, IKwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {
         short playerId = player.getId();
         Creature creature = null;
         Short owner = null;

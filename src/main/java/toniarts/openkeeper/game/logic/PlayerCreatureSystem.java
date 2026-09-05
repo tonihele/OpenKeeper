@@ -29,7 +29,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Basically just calculates the amount of creatures
@@ -38,13 +38,13 @@ import toniarts.openkeeper.tools.convert.map.KwdFile;
  */
 public final class PlayerCreatureSystem implements IGameLogicUpdatable {
 
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntitySet creatureEntities;
     private final Map<Short, PlayerCreatureControl> creatureControls;
     private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
     private final Map<EntityId, Short> creatureIdsByEntityId = new HashMap<>();
 
-    public PlayerCreatureSystem(EntityData entityData, KwdFile kwdFile, Collection<IPlayerController> playerControllers) {
+    public PlayerCreatureSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers) {
         this.kwdFile = kwdFile;
         creatureControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {

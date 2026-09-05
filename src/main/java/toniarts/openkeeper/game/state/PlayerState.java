@@ -39,8 +39,12 @@ import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.control.EntityViewControl;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
+import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.Settings;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -55,8 +59,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     protected AppStateManager stateManager;
 
     private final short playerId;
-    private final KwdFile kwdFile;
+    private final IKwdFile kwdFile;
     private final EntityData entityData;
+    @Nullable
+    private final CampaignLevel campaignLevel;
 
     private boolean paused = false;
 
@@ -69,11 +75,12 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private boolean transitionEnd = true;
     private PlayerScreenController screen;
 
-    public PlayerState(int playerId, KwdFile kwdFile, EntityData entityData, boolean enabled, Main app) {
+    public PlayerState(int playerId, IKwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel) {
         this.playerId = (short) playerId;
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.app = app;
+        this.campaignLevel = campaignLevel;
 
         screen = new PlayerScreenController(this, app.getNifty());
         app.getNifty().registerScreenController(screen);
@@ -218,7 +225,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         screen.update(tpf);
     }
 
-    public KwdFile getKwdFile() {
+    public IKwdFile getKwdFile() {
         return kwdFile;
     }
 
@@ -475,6 +482,19 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @param win did we win or not
      */
     protected void endGame(boolean win) {
+
+        // Save campaign progress on win
+        if (win && campaignLevel != null) {
+            Settings settings = Main.getUserSettings();
+            settings.increaseLevelAttempts(campaignLevel);
+            settings.setLevelStatus(campaignLevel, Settings.LevelStatus.COMPLETED);
+            settings.setSetting(Settings.Setting.LEVEL_NUMBER, campaignLevel.getLevel() + 1);
+            try {
+                settings.save();
+            } catch (IOException ex) {
+                java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.ERROR, "Failed to save level progress!", ex);
+            }
+        }
 
         // Disable us to get rid of all interaction
         setEnabled(false);

@@ -27,7 +27,7 @@ import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.data.Keeper;
 import static toniarts.openkeeper.game.map.MapTileController.setAttributesFromTerrain;
-import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
@@ -43,7 +43,7 @@ public final class MapData implements IMapData {
     private final int height;
     private final IMapTileController[][] tiles;
 
-    public MapData(KwdFile kwdFile, EntityData entityData, Collection<Keeper> players) {
+    public MapData(IKwdFile kwdFile, EntityData entityData, Collection<Keeper> players) {
         width = kwdFile.getMap().getWidth();
         height = kwdFile.getMap().getHeight();
 
@@ -58,7 +58,7 @@ public final class MapData implements IMapData {
         }
     }
 
-    private static MapTileController createMapTile(EntityData entityData, Tile tile, KwdFile kwdFile, int x, int y, int index,
+    private static MapTileController createMapTile(EntityData entityData, Tile tile, IKwdFile kwdFile, int x, int y, int index,
             Map<Short, Keeper> playersById) {
         EntityId entityId = entityData.createEntity();
 
@@ -85,7 +85,7 @@ public final class MapData implements IMapData {
         return new MapTileController(entityId, entityData);
     }
 
-    private static short setupTerrainOwner(KwdFile kwdFile, Tile tile, EntityData entityData, EntityId entityId,
+    private static short setupTerrainOwner(IKwdFile kwdFile, Tile tile, EntityData entityData, EntityId entityId,
             Map<Short, Keeper> playersById) {
         short terrainId = tile.getTerrainId();
         short ownerId = tile.getPlayerId();

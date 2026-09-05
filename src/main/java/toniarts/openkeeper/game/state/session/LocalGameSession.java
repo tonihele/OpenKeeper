@@ -26,18 +26,29 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
-import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Local game session, a virtual server
@@ -45,7 +56,7 @@ import toniarts.openkeeper.utils.Utils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class LocalGameSession implements GameSessionServerService, GameSessionClientService {
-    
+
     private static final Logger logger = System.getLogger(LocalGameSession.class.getName());
     private static final short PLAYER_ID = Player.KEEPER1_ID;
 
@@ -59,40 +70,37 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     /**
-     * Creates and starts a local game session with given level and default
-     * players
+     * Creates and starts a local game session with given level and default players
      *
      * @param kwdFile map as KWD file
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
+     * @param app
+     * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
-    public static void createLocalGame(KwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app) {
-        createLocalGame(kwdFile, stateManager, campaign, app);
+    public static void createLocalGame(IKwdFile kwdFile, boolean campaign, AppStateManager stateManager, Main app, @Nullable CampaignLevel campaignLevel) {
+        createLocalGame(kwdFile, stateManager, campaign, app, campaignLevel);
     }
 
     /**
-     * Creates and starts a local game session with given level and default
-     * players
+     * Creates and starts a local game session with given level and default players
      *
      * @param level the level to load
      * @param campaign whether to start this level as a campaign level
      * @param stateManager state manager instance for setting up the game
      * @param app the main app
+     * @param campaignLevel the campaign level, or {@code null} for non-campaign
      * @throws java.io.IOException Problem with the map file
      */
-    public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app) throws IOException {
+    public static void createLocalGame(String level, boolean campaign, AppStateManager stateManager, Main app, @Nullable CampaignLevel campaignLevel) throws IOException {
 
         // Try to load the file
-        Path mapFile = Paths.get(PathUtils.getRealFileName(Main.getDkIIFolder() + PathUtils.DKII_MAPS_FOLDER, level + ".kwd"));
-        if (!Files.exists(mapFile)) {
-            throw new FileNotFoundException(mapFile.toString());
-        }
-        KwdFile kwdFile = new KwdFile(Main.getDkIIFolder(), mapFile);
+        IKwdFile kwdFile = KwdFile.load(level);
 
-        createLocalGame(kwdFile, stateManager, campaign, app);
+        createLocalGame(kwdFile, stateManager, campaign, app, campaignLevel);
     }
 
-    private static void createLocalGame(KwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app) {
+    private static void createLocalGame(IKwdFile kwdFile, AppStateManager stateManager, boolean campaign, Main app, @Nullable CampaignLevel campaignLevel) {
 
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
@@ -103,11 +111,11 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         clientInfo.setReady(true);
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, List.of(clientInfo), gameSession, app);
+        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, List.of(clientInfo), gameSession, app, campaignLevel);
         stateManager.attach(gameClientState);
 
         // The game server
-        GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : List.of(keeper), campaign, gameSession);
+        GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : List.of(keeper), campaign, gameSession, campaignLevel);
         stateManager.attach(gameServerState);
     }
 
