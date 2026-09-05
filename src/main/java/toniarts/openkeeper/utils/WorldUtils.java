@@ -35,7 +35,6 @@ public final class WorldUtils {
     public static final float TILE_HEIGHT = 1;
     public static final float TILE_WIDTH = 1;
     public static final float UNDERFLOOR_HEIGHT = 0 * TILE_HEIGHT;
-    public static final float TORCH_HEIGHT = 3 * TILE_HEIGHT / 2; // FIXME use Terrain Torch Height
     public static final float FLOOR_HEIGHT = 1 * TILE_HEIGHT;
     public static final float WATER_LEVEL = FLOOR_HEIGHT - 0.07F;
     public static final float TOP_HEIGHT = 2 * TILE_HEIGHT;

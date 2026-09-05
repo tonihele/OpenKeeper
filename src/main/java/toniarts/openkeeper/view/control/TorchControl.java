@@ -44,6 +44,8 @@ public final class TorchControl extends BillboardControl {
     private static final Logger logger = System.getLogger(TorchControl.class.getName());
 
     private static final int FRAMES = 20;
+    private static final float FLAME_SIZE = 0.3f;
+    private static final float FLAME_WALL_OFFSET = 0.17f;
     private Material material;
     private Node torch;
     private final IKwdFile kwdFile;
@@ -76,11 +78,12 @@ public final class TorchControl extends BillboardControl {
                 material = createMaterial();
                 material.setTexture("DiffuseMap", createTexture());
 
-                result = new Geometry("torch flame", createMesh(0.5f, 0.5f));
+                result = new Geometry("torch flame", createMesh(FLAME_SIZE, FLAME_SIZE));
                 result.setMaterial(material);
                 result.setQueueBucket(RenderQueue.Bucket.Translucent);
                 result.setBatchHint(BatchHint.Never); // prevent constant updates of the wall batches
-                result.move(0.14f, 0.2f, 0);
+                // Keep the camera-facing quad fully in front of the wall at every angle.
+                result.move(FLAME_WALL_OFFSET, 0.2f, 0);
                 result.setShadowMode(RenderQueue.ShadowMode.Off);
 
             } catch (Exception e) {
@@ -137,8 +140,8 @@ public final class TorchControl extends BillboardControl {
         }
 
         var atlasTexture = atlas.getAtlasTexture("DiffuseMap");
-        atlasTexture.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
-        atlasTexture.setMagFilter(Texture.MagFilter.Nearest);
+        atlasTexture.setMinFilter(Texture.MinFilter.BilinearNoMipMaps);
+        atlasTexture.setMagFilter(Texture.MagFilter.Bilinear);
         atlasTexture.setWrap(Texture.WrapMode.EdgeClamp);
         return atlasTexture;
     }
@@ -150,9 +153,10 @@ public final class TorchControl extends BillboardControl {
         result.setInt("Speed", FRAMES); // FIXME: correct value
 
         result.setTransparent(true);
-        result.setFloat("AlphaDiscardThreshold", 0.1f);
 
-        result.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        // The flame frames encode transparency as black instead of using an alpha channel.
+        result.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Additive);
+        result.getAdditionalRenderState().setDepthWrite(false);
         result.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Off);
         //result.getAdditionalRenderState().setDepthTest(false);
 

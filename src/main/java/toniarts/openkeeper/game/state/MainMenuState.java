@@ -155,7 +155,10 @@ public final class MainMenuState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
+        // DKII applies different decoration rules to the front end than to playable level maps.
+        // Front-end effects are handled separately, so do not generate automatic wall torches here.
+        MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false) {
 
             @Override
             protected void updateProgress(float progress) {

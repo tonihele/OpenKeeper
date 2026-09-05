@@ -67,6 +67,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final static String MAP_NODE = "Map";
     private final static String TERRAIN_NODE = "Terrain";
     private final static String ROOM_NODE = "Rooms";
+    private static final List<WallDirection> NO_TORCH_DIRECTIONS = List.of();
+    private static final List<WallDirection> HORIZONTAL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.SOUTH);
+    private static final List<WallDirection> VERTICAL_TORCH_DIRECTIONS = List.of(WallDirection.WEST, WallDirection.EAST);
+    private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
+            WallDirection.SOUTH, WallDirection.EAST);
+    private final boolean torchesEnabled;
     private List<Node> pages;
     private final IKwdFile kwdFile;
     private Node map;
@@ -84,10 +90,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
 
     public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
+        this(assetManager, kwdFile, mapClientService, playerId, true);
+    }
+
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            short playerId, boolean torchesEnabled) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
         this.playerId = playerId;
+        this.torchesEnabled = torchesEnabled;
     }
 
     @Override
@@ -445,8 +457,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Node pageNode = getPageNode(p, root);
 
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && (tile.getX() % 2 == 0 || tile.getY() % 2 == 0)) {
+        if (torchesEnabled && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleTorch(tile, pageNode);
         }
 
@@ -474,56 +485,86 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // The rooms actually contain the torch model resource, but it is always the same,
         // and sometimes even null and there is still a torch. So I don't think they are used
-        // Take the first direction where we can put a torch
-        String name = null;
-        float angleY = 0;
-        Vector3f position = Vector3f.ZERO;
-
-        if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() - 1)) { // North
-            name = "Torch1";
-            angleY = -FastMath.HALF_PI;
-            position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, -WorldUtils.TILE_WIDTH / 2);
-
-        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() - 1, tile.getY())) { // West
-            name = "Torch1";
-            position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
-
-        } else if (tile.getY() % 2 == 0 && tile.getX() % 2 != 0 && canPlaceTorch(tile.getX(), tile.getY() + 1)) { // South
-            name = "Torch1";
-            angleY = FastMath.HALF_PI;
-            position = new Vector3f(0, WorldUtils.TORCH_HEIGHT, WorldUtils.TILE_WIDTH / 2);
-
-        } else if (tile.getX() % 2 == 0 && tile.getY() % 2 == 0 && canPlaceTorch(tile.getX() + 1, tile.getY())) { // East
-            name = "Torch1";
-            angleY = FastMath.PI;
-            position = new Vector3f(WorldUtils.TILE_WIDTH / 2, WorldUtils.TORCH_HEIGHT, 0);
-        }
-
-        // Move to tile and right height
-        if (name != null) {
-            // if room get room torch
-            if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                RoomInstance roomInstance = null;//roomCoordinates.get(tile.getLocation());
-                if (roomInstance != null) {
-                    ArtResource torch = roomInstance.getRoom().getTorch();
-                    if (torch == null) {
-                        return;
-                    }
-                    name = torch.getName();
-                }
+        // DKII places at most one torch per tile. At corners, the direction order makes the
+        // perpendicular wall skip this tile and resume on the next eligible tile in its run.
+        for (WallDirection direction : getTorchDirections(tile.getX(), tile.getY())) {
+            Point neighbor = switch (direction) {
+                case NORTH -> new Point(tile.getX(), tile.getY() - 1);
+                case WEST -> new Point(tile.getX() - 1, tile.getY());
+                case SOUTH -> new Point(tile.getX(), tile.getY() + 1);
+                case EAST -> new Point(tile.getX() + 1, tile.getY());
+            };
+            Terrain wallTerrain = getTorchTerrain(neighbor.x, neighbor.y);
+            if (wallTerrain != null) {
+                addTorch(tile, pageNode, direction, wallTerrain);
+                return;
             }
-            Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
-            spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
-            spatial.rotate(0, angleY, 0);
-            spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
-
-            ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
         }
     }
 
-    private boolean canPlaceTorch(int x, int y) {
+    static List<WallDirection> getTorchDirections(int x, int y) {
+        boolean horizontal = x % 2 != 0;
+        boolean vertical = y % 2 == 0;
+
+        if (horizontal) {
+            return vertical ? ALL_TORCH_DIRECTIONS : HORIZONTAL_TORCH_DIRECTIONS;
+        }
+        return vertical ? VERTICAL_TORCH_DIRECTIONS : NO_TORCH_DIRECTIONS;
+    }
+
+    private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction, Terrain wallTerrain) {
+        String name = "Torch1";
+        float height = wallTerrain.getLightHeight();
+        float angleY;
+        Vector3f position;
+
+        switch (direction) {
+            case NORTH -> {
+                angleY = -FastMath.HALF_PI;
+                position = new Vector3f(0, height, -WorldUtils.TILE_WIDTH / 2);
+            }
+            case WEST -> {
+                angleY = 0;
+                position = new Vector3f(-WorldUtils.TILE_WIDTH / 2, height, 0);
+            }
+            case SOUTH -> {
+                angleY = FastMath.HALF_PI;
+                position = new Vector3f(0, height, WorldUtils.TILE_WIDTH / 2);
+            }
+            case EAST -> {
+                angleY = FastMath.PI;
+                position = new Vector3f(WorldUtils.TILE_WIDTH / 2, height, 0);
+            }
+            default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
+        }
+
+        // Room wall torches are defined by the room type. Resolve the room directly from
+        // terrain because ordinary RoomInstances are registered after torches are handled.
+        if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+            ArtResource torch = room.getTorch();
+            if (torch == null) {
+                return;
+            }
+            name = torch.getName();
+            position.y = room.getTorchHeight();
+        }
+
+        Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
+        spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
+        spatial.rotate(0, angleY, 0);
+        spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
+
+        ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+    }
+
+    private Terrain getTorchTerrain(int x, int y) {
         IMapTileInformation tile = getMapData().getTile(x, y);
-        return (tile != null && getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.TORCH));
+        if (tile == null) {
+            return null;
+        }
+        Terrain terrain = getTerrain(tile);
+        return terrain.getFlags().contains(Terrain.TerrainFlag.TORCH) ? terrain : null;
 
     }
 
