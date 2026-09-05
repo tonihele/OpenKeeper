@@ -287,6 +287,11 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public boolean isSelected(IMapTileController tile, short playerId) {
+        return mapInformation.isSelected(tile, playerId);
+    }
+
+    @Override
     public boolean isTaggable(Point p) {
         return mapInformation.isTaggable(p);
     }
@@ -414,8 +419,18 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public boolean isRepairableWall(IMapTileController tile, Terrain terrain, short playerId) {
+        return mapInformation.isRepairableWall(tile, terrain, playerId);
+    }
+
+    @Override
     public boolean isClaimableWall(Point p, short playerId) {
         return mapInformation.isClaimableWall(p, playerId);
+    }
+
+    @Override
+    public boolean isClaimableWall(IMapTileController tile, Terrain terrain, short playerId) {
+        return mapInformation.isClaimableWall(tile, terrain, playerId);
     }
 
     @Override
@@ -424,8 +439,18 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public boolean isClaimableTile(IMapTileController tile, Terrain terrain, short playerId) {
+        return mapInformation.isClaimableTile(tile, terrain, playerId);
+    }
+
+    @Override
     public boolean isClaimableRoom(Point p, short playerId) {
         return mapInformation.isClaimableRoom(p, playerId);
+    }
+
+    @Override
+    public boolean isClaimableRoom(IMapTileController tile, Terrain terrain, short playerId) {
+        return mapInformation.isClaimableRoom(tile, terrain, playerId);
     }
 
     @Override
