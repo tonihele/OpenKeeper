@@ -19,11 +19,14 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.utils.Point;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** Removes wooden bridge tiles after their lava lifetime expires. */
 public final class WoodenBridgeDecaySystem implements IGameLogicUpdatable {
@@ -47,11 +50,18 @@ public final class WoodenBridgeDecaySystem implements IGameLogicUpdatable {
 
     private void initializeExistingBridges(IKwdFile kwdFile, IMapController mapController,
             double lifetime) {
+        Set<Short> woodenBridgeTerrainIds = new HashSet<>();
+        for (Terrain terrain : kwdFile.getTerrainList()) {
+            Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+            if (room != null && room.getRoomId() == WOODEN_BRIDGE_ROOM_ID) {
+                woodenBridgeTerrainIds.add(terrain.getTerrainId());
+            }
+        }
+
         for (int x = 0; x < mapController.getMapData().getWidth(); x++) {
             for (int y = 0; y < mapController.getMapData().getHeight(); y++) {
                 IMapTileInformation tile = mapController.getMapData().getTile(x, y);
-                Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-                if (room != null && room.getRoomId() == WOODEN_BRIDGE_ROOM_ID
+                if (woodenBridgeTerrainIds.contains(tile.getTerrainId())
                         && tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA
                         && entityData.getComponent(tile.getEntityId(), WoodenBridgeDecay.class) == null) {
                     entityData.setComponent(tile.getEntityId(),

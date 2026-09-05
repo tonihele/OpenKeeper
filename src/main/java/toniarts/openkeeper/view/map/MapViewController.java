@@ -82,6 +82,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
+    private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
 
     public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this.kwdFile = kwdFile;
@@ -93,6 +94,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     @Override
     public Spatial load(AssetManager assetManager, IKwdFile object) {
 
+        long startTime = System.nanoTime();
+        
         //Create a root
         map = new Node(MAP_NODE);
         Node terrain = new Node(TERRAIN_NODE);
@@ -140,6 +143,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (!lavaBatches.isEmpty()) {
             map.attachChild(Water.construct(assetManager, lavaBatches));
         }
+
+        long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000L;
+        logger.log(Level.INFO, "Map {0} loaded in {1} ms", new Object[]{object.getGameLevel().getName(), loadTimeMs});
 
         return map;
     }
@@ -406,18 +412,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                         Material m = g.getMaterial();
                         String asset = m.getAssetName();
 
-                        // Load new material
-                        AssetInfo newMaterialInfo = assetManager.locateAsset(new AssetKey<>(asset.substring(0,
-                                asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m")));
-                        if (newMaterialInfo != null) {
-                            try {
-                                Material newMaterial = assetManager.loadMaterial(newMaterialInfo.getKey().getName());
-                                AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
-                                g.setMaterial(newMaterial);
-                            } catch (Exception e) {
+                        // Load new material, but only configure each alternative material once and reuse it
+                        String alternativeAsset = asset.substring(0,
+                                asset.lastIndexOf(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURE_SUFFIX_SEPARATOR) + 1).concat(tex + ".j3m");
+                        Material newMaterial = randomTextureMaterials.get(alternativeAsset);
+                        if (newMaterial == null) {
+                            AssetInfo newMaterialInfo = assetManager.locateAsset(new AssetKey<>(alternativeAsset));
+                            if (newMaterialInfo != null) {
+                                try {
+                                    newMaterial = assetManager.loadMaterial(newMaterialInfo.getKey().getName());
+                                    AssetUtils.assignMapsToMaterial(assetManager, newMaterial);
+                                    randomTextureMaterials.put(alternativeAsset, newMaterial);
+                                } catch (Exception e) {
 
-                                logger.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
+                                    logger.log(Level.WARNING, "Failed to load a random texture to terrain id " + tile.getTerrainId() + ", texture index " + tex + "!", e);
+                                }
                             }
+                        }
+                        if (newMaterial != null) {
+                            g.setMaterial(newMaterial);
                         }
                     }
                 }

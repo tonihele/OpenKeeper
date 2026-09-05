@@ -71,6 +71,15 @@ public interface IMapInformation<T extends IMapTileInformation> {
     boolean isSelected(Point p, short playerId);
 
     /**
+     * Determine if a tile is selected or not, with the tile already resolved
+     *
+     * @param tile the map tile
+     * @param playerId selected by the player
+     * @return is the tile selected
+     */
+    boolean isSelected(T tile, short playerId);
+
+    /**
      * Determine if a tile at x & y is selectable or not
      *
      * @param p coordinate
@@ -106,6 +115,17 @@ public interface IMapInformation<T extends IMapTileInformation> {
     public boolean isClaimableWall(Point p, short playerId);
 
     /**
+     * Is claimable wall at the tile, with the tile and its terrain already
+     * resolved
+     *
+     * @param tile the map tile
+     * @param terrain the terrain of the tile
+     * @param playerId for the player
+     * @return is the wall claimable
+     */
+    public boolean isClaimableWall(T tile, Terrain terrain, short playerId);
+
+    /**
      * Is claimable floor at tile point (not a room)
      *
      * @param p coordinate
@@ -113,6 +133,17 @@ public interface IMapInformation<T extends IMapTileInformation> {
      * @return is the floor claimable
      */
     public boolean isClaimableTile(Point p, short playerId);
+
+    /**
+     * Is claimable floor at the tile (not a room), with the tile and its
+     * terrain already resolved
+     *
+     * @param tile the map tile
+     * @param terrain the terrain of the tile
+     * @param playerId for the player
+     * @return is the floor claimable
+     */
+    public boolean isClaimableTile(T tile, Terrain terrain, short playerId);
 
     /**
      * Is repairable wall at tile point
@@ -124,6 +155,17 @@ public interface IMapInformation<T extends IMapTileInformation> {
     public boolean isRepairableWall(Point p, short playerId);
 
     /**
+     * Is repairable wall at the tile, with the tile and its terrain already
+     * resolved
+     *
+     * @param tile the map tile
+     * @param terrain the terrain of the tile
+     * @param playerId for the player
+     * @return is the wall repairable
+     */
+    public boolean isRepairableWall(T tile, Terrain terrain, short playerId);
+
+    /**
      * Is claimable room tile at tile point
      *
      * @param p coordinate
@@ -131,6 +173,17 @@ public interface IMapInformation<T extends IMapTileInformation> {
      * @return is the room claimable
      */
     public boolean isClaimableRoom(Point p, short playerId);
+
+    /**
+     * Is claimable room tile at the tile, with the tile and its terrain already
+     * resolved
+     *
+     * @param tile the map tile
+     * @param terrain the terrain of the tile
+     * @param playerId for the player
+     * @return is the room claimable
+     */
+    public boolean isClaimableRoom(T tile, Terrain terrain, short playerId);
 
     /**
      * Is water tile at the coordinates
