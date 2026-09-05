@@ -452,7 +452,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      *
      * @param mapNode the map node containing the level children
      */
-    public static void applyLevelTextures(Node mapNode) {
+    public static void applyLevelTextures(Node mapNode, AssetManager assetManager) {
         Set<Integer> highlights = getHighlightedLevels();
         for (Spatial child : mapNode.getChildren()) {
             FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
@@ -460,11 +460,11 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 continue;
             }
             if (highlights.contains(control.getLevel().getLevel())) {
-                applyAlternativeTexture(child, "_E");
+                applyAlternativeTexture(child, "_E", assetManager);
             } else if (Settings.getInstance().getLevelStatus(control.getLevel()) == Settings.LevelStatus.COMPLETED) {
-                applyAlternativeTexture(child, "_D");
+                applyAlternativeTexture(child, "_D", assetManager);
             } else {
-                applyAlternativeTexture(child, null);
+                applyAlternativeTexture(child, null, assetManager);
             }
         }
     }
@@ -477,7 +477,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      *
      * @param mapNode the map node containing the level children
      */
-    public static void startHighlightBlink(Node mapNode) {
+    public static void startHighlightBlink(Node mapNode, AssetManager assetManager) {
         Set<Integer> highlights = getHighlightedLevels();
         for (Spatial child : mapNode.getChildren()) {
             FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
@@ -486,8 +486,8 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             }
             child.removeControl(HighlightBlinkControl.class);
             if (highlights.contains(control.getLevel().getLevel())) {
-                String baseTexture = findAlternativeTexture(child, null);
-                String highlightTexture = findAlternativeTexture(child, "_E");
+                String baseTexture = findAlternativeTexture(child, null, assetManager);
+                String highlightTexture = findAlternativeTexture(child, "_E", assetManager);
                 if (baseTexture != null && highlightTexture != null) {
                     child.addControl(new HighlightBlinkControl(child, assetManager, baseTexture, highlightTexture));
                 }
@@ -503,7 +503,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      *
      * @param mapNode the map node containing the level children
      */
-    public static void stopHighlightBlink(Node mapNode) {
+    public static void stopHighlightBlink(Node mapNode, AssetManager assetManager) {
         for (Spatial child : mapNode.getChildren()) {
             FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
             if (control == null) {
@@ -511,7 +511,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             }
             child.removeControl(HighlightBlinkControl.class);
         }
-        resetLevelTextures(mapNode);
+        resetLevelTextures(mapNode, assetManager);
     }
 
     /**
@@ -520,11 +520,11 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      *
      * @param mapNode the map node containing the level children
      */
-    private static void resetLevelTextures(Node mapNode) {
+    private static void resetLevelTextures(Node mapNode, AssetManager assetManager) {
         for (Spatial child : mapNode.getChildren()) {
             FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
             if (control != null) {
-                applyAlternativeTexture(child, null);
+                applyAlternativeTexture(child, null, assetManager);
             }
         }
     }
@@ -549,7 +549,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      * @param suffix the texture suffix, e.g. {@code "_D"}, {@code "_E"}, or
      * {@code null} for the base
      */
-    private static void applyAlternativeTexture(final Spatial spatial, final String suffix) {
+    private static void applyAlternativeTexture(final Spatial spatial, final String suffix, AssetManager assetManager) {
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial s) {
@@ -610,10 +610,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      * @param suffix the suffix to match, or {@code null} for the base texture
      * @return the canonical texture key, or {@code null} if not found
      */
-    private static String findAlternativeTexture(Spatial spatial, String suffix) {
-        if (assetManager == null) {
-            return null;
-        }
+    private static String findAlternativeTexture(Spatial spatial, String suffix, AssetManager assetManager) {
         final String[] found = new String[1];
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
