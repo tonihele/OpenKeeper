@@ -97,6 +97,7 @@ public final class MainMenuState extends AbstractAppState {
     protected GeneralLevel selectedLevel;
     private AudioNode levelBriefing;
     private AudioNode levelDebriefing;
+    private boolean pendingDebriefing;
 
     private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
@@ -252,7 +253,12 @@ public final class MainMenuState extends AbstractAppState {
         app.enqueue(() -> {
 
             // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
-            MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            if (pendingDebriefing) {
+                pendingDebriefing = false;
+                MainMenuState.this.screen.showDebriefing();
+            } else {
+                MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            }
             return null;
         });
 
@@ -602,10 +608,12 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     public void doDebriefing(GameResult result) {
+        pendingDebriefing = selectedLevel != null && result != null;
         setEnabled(true);
-        if (selectedLevel != null && result != null) {
-            screen.showDebriefing();
-        } else {
+
+        // The debriefing screen is shown (instead of the start screen) once the
+        // menu has been initialized, see initializeMainMenu()
+        if (!pendingDebriefing) {
             screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
         }
     }

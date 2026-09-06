@@ -391,7 +391,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         // TODO copy results of game from GameState
         GameResult result = new GameResult();
         stateManager.getState(GameClientState.class).detach();
-        setEnabled(false);
+        stateManager.detach(this);
         stateManager.getState(MainMenuState.class).doDebriefing(result);
     }
 
