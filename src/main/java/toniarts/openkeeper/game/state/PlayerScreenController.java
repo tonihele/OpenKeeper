@@ -153,6 +153,16 @@ public final class PlayerScreenController implements IPlayerScreenController {
         screen = null;
     }
 
+    /**
+     * Re-establish the player state reference after it has been cleaned up, e.g. when the game is
+     * resumed from the end game screen
+     *
+     * @param state the player state
+     */
+    void setState(PlayerState state) {
+        this.state = state;
+    }
+
     @Override
     public void select(String iState, String id) {
         Type type = Type.valueOf(iState.toUpperCase());
@@ -263,7 +273,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             case MAIN:
                 optionsMenuTitle.setText("${menu.94}");
 
-                items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
+                     items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
                 items.add(new GameMenu("i-game", "${menu.97}", "pauseMenu()", optionsColumnOne));
                 items.add(new GameMenu("i-load", "${menu.143}", "pauseMenu()", optionsColumnOne));
                 items.add(new GameMenu("i-save", "${menu.201}", "pauseMenu()", optionsColumnOne));

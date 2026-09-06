@@ -137,6 +137,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
             // Get the game state
             final GameClientState gameState = stateManager.getState(GameClientState.class);
+            screen.setState(this);
             screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile(), entityData);
 
             // Cursor
