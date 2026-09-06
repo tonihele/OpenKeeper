@@ -70,6 +70,7 @@ import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -308,8 +309,11 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             goToScreen("myPetDungeonMapSelect");
         } else if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.MPD)) {
             goToScreen("myPetDungeon");
-        } else {
+        } else if (state.selectedLevel != null) {
             doTransition("254", "selectCampaignLevel", null);
+        } else {
+            // Skirmish / multiplayer debriefing, return to the single player screen
+            doTransition("272", "singlePlayer", "274");
         }
         state.selectedLevel = null;
     }
@@ -536,6 +540,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
             case "debriefing":
                 state.clearLevelDebriefingNarration();
+                state.clearDebriefing();
                 break;
 
             case "skirmishLobby":
@@ -1315,12 +1320,13 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
         Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
 
-        NiftyImage img = null;
-        GameLevel gameLevel = state.selectedLevel.getKwdMap().getGameLevel();
+        IKwdFile level = state.getDebriefingLevel();
+        GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
+        boolean campaign = state.isDebriefingCampaign();
         String objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0);
         try {
-            img = nifty.createImage(objectiveImage, false);
+            NiftyImage img = nifty.createImage(objectiveImage, false);
             mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
             mainObjectiveImage.setWidth(img.getWidth());
             mainObjectiveImage.setHeight(img.getHeight());
@@ -1335,10 +1341,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
-        if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
+        if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
             objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
             try {
-                img = nifty.createImage(objectiveImage, false);
+                NiftyImage img = nifty.createImage(objectiveImage, false);
                 subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
                 subObjectiveImage.setWidth(img.getWidth());
                 subObjectiveImage.setHeight(img.getHeight());
@@ -1356,9 +1362,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
         // Play debriefing narration
-        if (state.selectedLevel instanceof CampaignLevel) {
-            CampaignLevel level = (CampaignLevel) state.selectedLevel;
-            String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2", level.getLevel());
+        if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
+            String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2", lvl.getLevel());
             AudioNode audioNode = new AudioNode(state.assetManager,
                     AssetUtils.getCanonicalAssetKey(speech),
                     AudioData.DataType.Buffer);

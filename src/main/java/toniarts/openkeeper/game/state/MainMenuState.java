@@ -101,6 +101,14 @@ public final class MainMenuState extends AbstractAppState {
     private boolean pendingDebriefing;
     private Camera storedCamera;
 
+    /**
+     * The level that was just played and for which we show the debriefing. Unlike {@link #selectedLevel}
+     * (which is only set for campaign/MPD selection) this is set for every game mode, including skirmish and
+     * multiplayer.
+     */
+    private IKwdFile debriefingLevel;
+    private boolean debriefingIsCampaign;
+
     private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
@@ -626,8 +634,19 @@ public final class MainMenuState extends AbstractAppState {
         levelDebriefing = null;
     }
 
-    public void doDebriefing(GameResult result) {
-        pendingDebriefing = selectedLevel != null && result != null;
+    /**
+     * Show the debriefing screen after a game has ended. The level that was played must be supplied for
+     * non-campaign games, while campaign games can fall back to the selected campaign level.
+     *
+     * @param result the game result
+     * @param level the level that was just played; may be {@code null} to fall back to
+     * {@link #selectedLevel}
+     * @param campaign whether the played level was a campaign level
+     */
+    public void doDebriefing(GameResult result, IKwdFile level, boolean campaign) {
+        debriefingLevel = level != null ? level : (selectedLevel != null ? selectedLevel.getKwdMap().load() : null);
+        debriefingIsCampaign = campaign || selectedLevel instanceof CampaignLevel;
+        pendingDebriefing = result != null;
         setEnabled(true);
 
         // The debriefing screen is shown (instead of the start screen) once the
@@ -635,6 +654,32 @@ public final class MainMenuState extends AbstractAppState {
         if (!pendingDebriefing) {
             screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
         }
+    }
+
+    /**
+     * Get the level that was just played and for which the debriefing is shown
+     *
+     * @return the played level, or {@code null}
+     */
+    public IKwdFile getDebriefingLevel() {
+        return debriefingLevel;
+    }
+
+    /**
+     * See if the debriefing being shown is for a campaign level
+     *
+     * @return {@code true} if it is a campaign level debriefing
+     */
+    public boolean isDebriefingCampaign() {
+        return debriefingIsCampaign;
+    }
+
+    /**
+     * Clear the level used for the debriefing screen, called when leaving the debriefing
+     */
+    void clearDebriefing() {
+        debriefingLevel = null;
+        debriefingIsCampaign = false;
     }
 
     /**
