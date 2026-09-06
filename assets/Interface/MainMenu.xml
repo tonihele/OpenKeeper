@@ -234,7 +234,8 @@
             <!--Main objectives-->
             <panel id="main_objective" childLayout="horizontal" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="dMainObjectiveImage" width="144px" />
+                    <image align="center" valign="top" id="dMainObjectiveImage" width="144px" height="112px" />
+                    <panel height="*" />
                 </panel>
                 <panel childLayout="vertical" width="*" align="left" valign="top">
                     <panel childLayout="vertical" backgroundColor="#f508" width="100%" paddingLeft="10px" >
@@ -262,7 +263,8 @@
             <!--Subobjectives-->
             <panel id="sub_objective" childLayout="horizontal" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="dSubObjectiveImage" width="144px"/>
+                    <image align="center" valign="top" id="dSubObjectiveImage" width="144px" height="112px"/>
+                    <panel height="*" />
                 </panel>
                 <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508">
                     <control name="scrollPanel" horizontal="false" stepSizeY="30">
