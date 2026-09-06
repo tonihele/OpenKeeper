@@ -98,11 +98,14 @@ public final class EndGameState extends AbstractAppState implements RawInputList
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
         if (evt.isPressed()) {
-            if (evt.getKeyCode() == KeyInput.KEY_SPACE || evt.getKeyCode() == KeyInput.KEY_ESCAPE) {
-
-                // FIXME: Space to debriefing & ESC to continue
+            if (evt.getKeyCode() == KeyInput.KEY_SPACE) {
                 stateManager.detach(this);
                 playerState.quitToDebriefing();
+                // also use left control, since escape quits the whole game currently
+            } else if (evt.getKeyCode() == KeyInput.KEY_ESCAPE || evt.getKeyCode() == KeyInput.KEY_LCONTROL) {
+                playerState.setWideScreen(false);
+                playerState.setGeneralText(2901);
+                cleanup();
             }
         }
     }
