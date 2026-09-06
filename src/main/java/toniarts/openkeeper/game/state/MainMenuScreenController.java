@@ -362,6 +362,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         switch (screen.getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.addRawInputListener(state.listener);
+                state.refreshCampaignMap();
                 state.showArrows();
                 break;
 
