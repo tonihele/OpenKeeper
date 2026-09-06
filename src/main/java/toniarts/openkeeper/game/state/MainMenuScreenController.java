@@ -1259,7 +1259,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         levelTitle.setText(gameLevel.getTitle());
         mainObjective.setText(gameLevel.getMainObjective());
 
-        String objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0);
+        String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
             img = nifty.createImage(objectiveImage, false);
             mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
@@ -1288,7 +1288,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             subObjectiveImage.hide();
 
             if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
-                objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
+                objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
                 try {
                     img = nifty.createImage(objectiveImage, false);
                     subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
@@ -1325,7 +1325,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
         boolean campaign = state.isDebriefingCampaign();
-        String objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0);
+        String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
             NiftyImage img = nifty.createImage(objectiveImage, false);
             mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
@@ -1343,7 +1343,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         subObjectiveImage.hide();
         if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
-            objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
+            objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
             try {
                 NiftyImage img = nifty.createImage(objectiveImage, false);
                 subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
