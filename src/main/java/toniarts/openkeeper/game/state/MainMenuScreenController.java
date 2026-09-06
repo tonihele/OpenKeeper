@@ -1345,9 +1345,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             }
         }
 
-        boolean levelWon = result.getData(GameResult.ResultType.LEVEL_WON);
+        // FIXME: GameResult has no data yet
+        boolean levelWon = true; // result.getData(GameResult.ResultType.LEVEL_WON);
         deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
-        int timeTaken = Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
+        int timeTaken = 0; //Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
         // Play debriefing narration

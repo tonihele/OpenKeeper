@@ -135,4 +135,12 @@ public interface PlayerService {
      */
     public void setPossession(EntityId target, short playerId);
 
+    /**
+     * End the game for a player
+     *
+     * @param win if true, the player won the game, if not, lost
+     * @param playerId the player whose game ends
+     */
+    public void endGame(boolean win, short playerId);
+
 }

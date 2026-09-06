@@ -294,18 +294,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void endGame(short playerId, boolean win) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
 
-    public void setEnd(boolean win) {
-
-        // TODO: this is client stuff, we should only determine here what happens to the game & players
+        // Determine what happens to the game & players
         gameResult = new GameResult();
         gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
-        gameResult.setData(GameResult.ResultType.TIME_TAKEN, getContoller(IGameTimer.class).getGameTime());
+        gameResult.setData(GameResult.ResultType.TIME_TAKEN, gameTimer.getGameTime());
 
-        // Enable the end game state
-//        stateManager.getState(PlayerState.class).endGame(win);
         // Mark the achievement if campaign level
         if (levelObject != null) {
             Main.getUserSettings().increaseLevelAttempts(levelObject);
@@ -318,6 +312,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 logger.log(Level.ERROR, "Failed to save the level progress!", ex);
             }
         }
+
+        // Enable the end game state on the player (client)
+        playerService.endGame(win, playerId);
     }
 
     @Override

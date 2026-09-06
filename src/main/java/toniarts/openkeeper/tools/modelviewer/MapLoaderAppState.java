@@ -182,6 +182,11 @@ public final class MapLoaderAppState extends AbstractAppState {
         public void setPossession(EntityId target, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
+
+        @Override
+        public void endGame(boolean win, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
     }
 
 }

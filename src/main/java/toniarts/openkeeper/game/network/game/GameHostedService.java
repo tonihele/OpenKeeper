@@ -386,6 +386,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
     }
 
+    @Override
+    public void endGame(boolean win, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onGameEnded(win);
+                break;
+            }
+        }
+    }
+
     private final class ServerMessageListener implements MessageListener<HostedConnection> {
 
         public ServerMessageListener() {
@@ -711,6 +721,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void setPossession(EntityId target) {
             getCallback().setPossession(target);
+        }
+
+        @Override
+        public void onGameEnded(boolean win) {
+            getCallback().onGameEnded(win);
         }
 
     }
