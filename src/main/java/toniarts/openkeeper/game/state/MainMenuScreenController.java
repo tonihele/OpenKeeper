@@ -98,6 +98,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
     private static final String OBJECTIVE_IMAGE_URL = "Textures/Obj_Shots/%s-%d.png";
     private static final String BRIEFING_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2";
+    private static final String DEBRIEFING_WIN_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2";
+    private static final String DEBRIEFING_DEFEAT_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d003.mp2";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -1364,7 +1366,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         // Play debriefing narration
         if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
-            String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2", lvl.getLevel());
+            String speech = AssetUtils.getCanonicalAssetKey(String.format(levelWon ? DEBRIEFING_WIN_SPEECH_URL : DEBRIEFING_DEFEAT_SPEECH_URL, lvl.getLevel()));
             AudioNode audioNode = new AudioNode(state.assetManager,
                     AssetUtils.getCanonicalAssetKey(speech),
                     AudioData.DataType.Buffer);
