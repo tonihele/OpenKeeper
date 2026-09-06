@@ -232,7 +232,7 @@
 
             <panel height="26px" />
             <!--Main objectives-->
-            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+            <panel id="main_objective" childLayout="horizontal" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="160px" align="center" valign="center">
                     <image align="center" valign="top" id="dMainObjectiveImage" width="144px" />
                 </panel>
@@ -242,9 +242,9 @@
                     </panel>
                     <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px">
                         <panel childLayout="vertical" width="70%" paddingLeft="10px">
-                            <text text="${menu.1641}" align="left" style="menuTextSmall" />
-                            <text text="${menu.1637}" align="left" style="menuTextSmall" />
-                            <text text="${menu.1638}" align="left" style="menuTextSmall" />
+                            <text text="${menu.1641}" id="label_totalEvilRating" align="left" style="menuTextSmall" />
+                            <text text="${menu.1637}" id="label_overallTotalEvilRating" align="left" style="menuTextSmall" />
+                            <text text="${menu.1638}" id="label_specialsFound" align="left" style="menuTextSmall" />
                         </panel>
                         <panel childLayout="vertical" width="*">
                             <control name="label" id="totalEvilRating" text="?" style="menuTextSmall"
@@ -260,7 +260,7 @@
 
             <panel height="10px" />
             <!--Subobjectives-->
-            <panel childLayout="horizontal" width="100%" align="center" valign="center">
+            <panel id="sub_objective" childLayout="horizontal" width="100%" align="center" valign="center">
                 <panel childLayout="center" width="160px" align="center" valign="center">
                     <image align="center" valign="top" id="dSubObjectiveImage" width="144px"/>
                 </panel>
@@ -269,19 +269,19 @@
                         <!-- TODO maybe use Table ? -->
                         <panel childLayout="horizontal" width="100%">
                             <panel childLayout="vertical" width="70%" paddingLeft="10px">
-                                <text text="${menu.1516}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1410}" align="left" style="menuTextSmall" /> <!-- or 987 -->
-                                <text text="${menu.1413}" align="left" style="menuTextSmall" /> <!-- or 988 -->
-                                <text text="${menu.1509}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1510}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1511}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1411}" align="left" style="menuTextSmall" /> <!-- or 994 -->
-                                <text text="${menu.1512}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1513}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1514}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1429}" align="left" style="menuTextSmall" /> <!-- or 1002 -->
-                                <text text="${menu.1515}" align="left" style="menuTextSmall" />
-                                <text text="${menu.1636}" align="left" style="menuTextSmall" />
+                                <text text="${menu.1516}" id="label_levelWon" align="left" style="menuTextSmall" />
+                                <text text="${menu.1410}" id="label_timeTaken" align="left" style="menuTextSmall" /> <!-- or 987 -->
+                                <text text="${menu.1413}" id="label_enemyCreaturesKilled" align="left" style="menuTextSmall" /> <!-- or 988 -->
+                                <text text="${menu.1509}" id="label_heroesDestroyed" align="left" style="menuTextSmall" />
+                                <text text="${menu.1510}" id="label_roomsCaptured" align="left" style="menuTextSmall" />
+                                <text text="${menu.1511}" id="label_landOwned" align="left" style="menuTextSmall" />
+                                <text text="${menu.1411}" id="label_goldMined" align="left" style="menuTextSmall" /> <!-- or 994 -->
+                                <text text="${menu.1512}" id="label_manaStored" align="left" style="menuTextSmall" />
+                                <text text="${menu.1513}" id="label_itemsManufactured" align="left" style="menuTextSmall" />
+                                <text text="${menu.1514}" id="label_creaturesCommanded" align="left" style="menuTextSmall" />
+                                <text text="${menu.1429}" id="label_creaturesConverted" align="left" style="menuTextSmall" /> <!-- or 1002 -->
+                                <text text="${menu.1515}" id="label_creatureTraining" align="left" style="menuTextSmall" />
+                                <text text="${menu.1636}" id="label_attemptsAtLevel" align="left" style="menuTextSmall" />
                             </panel>
                             <panel childLayout="vertical" width="*" paddingRight="30px">
                                 <control name="label" id="levelWon" text="?" style="menuSubTitleText"
@@ -296,9 +296,9 @@
                                          textHAlign="right" textVAlign="center" width="100%" />
                                 <control name="label" id="landOwned" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="GoldMined" text="?" style="menuSubTitleText"
+                                <control name="label" id="goldMined" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="ManaStored" text="?" style="menuSubTitleText"
+                                <control name="label" id="manaStored" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
                                 <control name="label" id="itemsManufactured" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
@@ -306,9 +306,9 @@
                                          textHAlign="right" textVAlign="center" width="100%" />
                                 <control name="label" id="creaturesConverted" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creatureTraning" text="?" style="menuSubTitleText"
+                                <control name="label" id="creatureTraining" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="AttemptsAtLevel" text="?" style="menuSubTitleText"
+                                <control name="label" id="attemptsAtLevel" text="?" style="menuSubTitleText"
                                          textHAlign="right" textVAlign="center" width="100%" />
                             </panel>
                         </panel>
