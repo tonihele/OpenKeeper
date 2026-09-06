@@ -27,6 +27,7 @@ import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -98,6 +99,7 @@ public final class MainMenuState extends AbstractAppState {
     private AudioNode levelBriefing;
     private AudioNode levelDebriefing;
     private boolean pendingDebriefing;
+    private Camera storedCamera;
 
     private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
@@ -193,8 +195,20 @@ public final class MainMenuState extends AbstractAppState {
 
     /**
      * Load the initial main menu camera position
+     *
+     * @param restoreCamera if true, restore the camera position saved when the menu was disabled, otherwise reset to the default start location
      */
-    private void loadCameraStartLocation() {
+    private void loadCameraStartLocation(boolean restoreCamera) {
+        if (restoreCamera && storedCamera != null) {
+            Camera cam = app.getCamera();
+            cam.setFrame(storedCamera.getLocation(), storedCamera.getRotation());
+            cam.setFrustum(storedCamera.getFrustumNear(), storedCamera.getFrustumFar(), storedCamera.getFrustumLeft(),
+                    storedCamera.getFrustumRight(), storedCamera.getFrustumTop(), storedCamera.getFrustumBottom());
+            storedCamera = null;
+            return;
+        }
+        storedCamera = null;
+
         Player player = frontEndKwd.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
         startLocation.addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
@@ -250,10 +264,12 @@ public final class MainMenuState extends AbstractAppState {
         MainMenuState.this.app.setViewProcessors();
         rootNode.attachChild(menuNode);
 
+        boolean debriefing = pendingDebriefing;
+
         app.enqueue(() -> {
 
             // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
-            if (pendingDebriefing) {
+            if (debriefing) {
                 pendingDebriefing = false;
                 MainMenuState.this.screen.showDebriefing();
             } else {
@@ -269,7 +285,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         // Set the camera position
-        loadCameraStartLocation();
+        loadCameraStartLocation(debriefing);
     }
 
     @Override
@@ -310,6 +326,9 @@ public final class MainMenuState extends AbstractAppState {
                 initializeMainMenu();
             }
         } else {
+
+            // Save the camera position so that we can restore it (e.g. for the debriefing screen) when re-enabling the menu
+            storedCamera = app.getCamera().clone();
 
             stateManager.getState(MainMenuEntityViewState.class).setEnabled(false);
             if (menuNode != null && rootNode != null) {
