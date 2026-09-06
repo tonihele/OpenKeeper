@@ -520,6 +520,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // Close any possible popups, otherwise they stay on the screen they were opened on...
         closePopup();
 
+        if (nifty.getCurrentScreen() == null) {
+            return;
+        }
+
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
@@ -1303,7 +1307,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         }
     }
 
-    public void showDebriefing(GameResult result) {
+    public void showDebriefing() {
         Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
 
         Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
@@ -1345,7 +1349,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             }
         }
 
-        // FIXME: GameResult has no data yet
+        // FIXME: GameResult has no data yet and also get it from the client state directly
         boolean levelWon = true; // result.getData(GameResult.ResultType.LEVEL_WON);
         deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
         int timeTaken = 0; //Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));

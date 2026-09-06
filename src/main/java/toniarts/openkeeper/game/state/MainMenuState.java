@@ -604,7 +604,7 @@ public final class MainMenuState extends AbstractAppState {
     public void doDebriefing(GameResult result) {
         setEnabled(true);
         if (selectedLevel != null && result != null) {
-            screen.showDebriefing(result);
+            screen.showDebriefing();
         } else {
             screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
         }
