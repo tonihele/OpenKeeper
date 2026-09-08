@@ -477,4 +477,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         }
     }
 
+    @Override
+    public void endGame(boolean win, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onGameEnded(win);
+            }
+        }
+    }
+
 }

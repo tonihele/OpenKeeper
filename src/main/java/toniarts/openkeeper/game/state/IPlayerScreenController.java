@@ -67,6 +67,8 @@ public interface IPlayerScreenController extends ScreenController {
 
     public void quitToMainMenu();
 
+    public void quitToDebriefing();
+
     public void quitToOS();
 
     /**

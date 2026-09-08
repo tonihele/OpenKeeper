@@ -153,6 +153,16 @@ public final class PlayerScreenController implements IPlayerScreenController {
         screen = null;
     }
 
+    /**
+     * Re-establish the player state reference after it has been cleaned up, e.g. when the game is
+     * resumed from the end game screen
+     *
+     * @param state the player state
+     */
+    void setState(PlayerState state) {
+        this.state = state;
+    }
+
     @Override
     public void select(String iState, String id) {
         Type type = Type.valueOf(iState.toUpperCase());
@@ -263,7 +273,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             case MAIN:
                 optionsMenuTitle.setText("${menu.94}");
 
-                items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
+                     items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
                 items.add(new GameMenu("i-game", "${menu.97}", "pauseMenu()", optionsColumnOne));
                 items.add(new GameMenu("i-load", "${menu.143}", "pauseMenu()", optionsColumnOne));
                 items.add(new GameMenu("i-save", "${menu.201}", "pauseMenu()", optionsColumnOne));
@@ -277,8 +287,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
             case QUIT:
                 optionsMenuTitle.setText("${menu.1266}");
 
-                items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
-                        PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
+                if (state.stateManager.getState(EndGameState.class) != null) {
+                    items.add(new GameMenu("i-quit", "${menu.2913}", String.format("pauseMenuNavigate(%s,%s,${menu.2913},quitToDebriefing())",
+                            PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
+                } else {
+                    items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
+                            PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
+                }
                 items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
                         String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
                                 PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
@@ -371,6 +386,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void quitToMainMenu() {
         state.quitToMainMenu();
+    }
+
+    @Override
+    public void quitToDebriefing() {
+        state.quitToDebriefing();
     }
 
     @Override

@@ -70,6 +70,7 @@ import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -97,6 +98,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
     private static final String OBJECTIVE_IMAGE_URL = "Textures/Obj_Shots/%s-%d.png";
     private static final String BRIEFING_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2";
+    private static final String DEBRIEFING_WIN_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2";
+    private static final String DEBRIEFING_DEFEAT_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d003.mp2";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -308,8 +311,11 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             goToScreen("myPetDungeonMapSelect");
         } else if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.MPD)) {
             goToScreen("myPetDungeon");
-        } else {
+        } else if (state.selectedLevel != null) {
             doTransition("254", "selectCampaignLevel", null);
+        } else {
+            // Skirmish / multiplayer debriefing, return to the single player screen
+            doTransition("272", "singlePlayer", "274");
         }
         state.selectedLevel = null;
     }
@@ -358,6 +364,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         switch (screen.getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.addRawInputListener(state.listener);
+                state.refreshCampaignMap();
                 state.showArrows();
                 break;
 
@@ -520,6 +527,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // Close any possible popups, otherwise they stay on the screen they were opened on...
         closePopup();
 
+        if (nifty.getCurrentScreen() == null) {
+            return;
+        }
+
         switch (nifty.getCurrentScreen().getScreenId()) {
             case "selectCampaignLevel":
                 state.inputManager.removeRawInputListener(state.listener);
@@ -532,6 +543,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
             case "debriefing":
                 state.clearLevelDebriefingNarration();
+                state.clearDebriefing();
                 break;
 
             case "skirmishLobby":
@@ -1249,7 +1261,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         levelTitle.setText(gameLevel.getTitle());
         mainObjective.setText(gameLevel.getMainObjective());
 
-        String objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0);
+        String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
             img = nifty.createImage(objectiveImage, false);
             mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
@@ -1278,7 +1290,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             subObjectiveImage.hide();
 
             if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
-                objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
+                objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
                 try {
                     img = nifty.createImage(objectiveImage, false);
                     subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
@@ -1303,7 +1315,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         }
     }
 
-    public void showDebriefing(GameResult result) {
+    public void showDebriefing() {
         Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
 
         Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
@@ -1311,12 +1323,13 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
         Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
 
-        NiftyImage img = null;
-        GameLevel gameLevel = state.selectedLevel.getKwdMap().getGameLevel();
+        IKwdFile level = state.getDebriefingLevel();
+        GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
-        String objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0);
+        boolean campaign = state.isDebriefingCampaign();
+        String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
-            img = nifty.createImage(objectiveImage, false);
+            NiftyImage img = nifty.createImage(objectiveImage, false);
             mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
             mainObjectiveImage.setWidth(img.getWidth());
             mainObjectiveImage.setHeight(img.getHeight());
@@ -1331,10 +1344,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
-        if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
-            objectiveImage = String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1);
+        if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
+            objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
             try {
-                img = nifty.createImage(objectiveImage, false);
+                NiftyImage img = nifty.createImage(objectiveImage, false);
                 subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
                 subObjectiveImage.setWidth(img.getWidth());
                 subObjectiveImage.setHeight(img.getHeight());
@@ -1345,15 +1358,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             }
         }
 
-        boolean levelWon = result.getData(GameResult.ResultType.LEVEL_WON);
+        // FIXME: GameResult has no data yet and also get it from the client state directly
+        boolean levelWon = true; // result.getData(GameResult.ResultType.LEVEL_WON);
         deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
-        int timeTaken = Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
+        int timeTaken = 0; //Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
         // Play debriefing narration
-        if (state.selectedLevel instanceof CampaignLevel) {
-            CampaignLevel level = (CampaignLevel) state.selectedLevel;
-            String speech = String.format("Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2", level.getLevel());
+        if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
+            String speech = AssetUtils.getCanonicalAssetKey(String.format(levelWon ? DEBRIEFING_WIN_SPEECH_URL : DEBRIEFING_DEFEAT_SPEECH_URL, lvl.getLevel()));
             AudioNode audioNode = new AudioNode(state.assetManager,
                     AssetUtils.getCanonicalAssetKey(speech),
                     AudioData.DataType.Buffer);

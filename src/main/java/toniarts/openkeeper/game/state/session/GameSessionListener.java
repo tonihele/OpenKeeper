@@ -84,6 +84,14 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     public void onSetWidescreen(boolean enable);
 
     /**
+     * The game has ended for the client
+     *
+     * @param win if true, the client won the game, if not, lost
+     */
+    @Asynchronous
+    public void onGameEnded(boolean win);
+
+    /**
      * The client should play a speech
      *
      * @param speechId     speech ID

@@ -456,7 +456,7 @@ public final class Settings {
      * @param level the level
      */
     public void increaseLevelAttempts(CampaignLevel level) {
-        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), getLevelAttempts(level) + 1);
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel() + level.getVariation(), getLevelAttempts(level) + 1);
     }
 
     /**
@@ -468,7 +468,7 @@ public final class Settings {
     public void setLevelStatus(CampaignLevel level, LevelStatus status) {
         switch (level.getType()) {
             case Level:
-                setSetting(Setting.LEVEL_STATUS.toString() + level.getLevel(), status);
+                setSetting(Setting.LEVEL_STATUS.toString() + level.getLevel() + level.getVariation(), status);
                 break;
             case MPD:
                 setSetting(Setting.MPD_LEVEL_STATUS.toString() + level.getLevel(), status);

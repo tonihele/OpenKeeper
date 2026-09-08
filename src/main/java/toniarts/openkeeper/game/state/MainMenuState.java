@@ -27,6 +27,7 @@ import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -97,6 +98,16 @@ public final class MainMenuState extends AbstractAppState {
     protected GeneralLevel selectedLevel;
     private AudioNode levelBriefing;
     private AudioNode levelDebriefing;
+    private boolean pendingDebriefing;
+    private Camera storedCamera;
+
+    /**
+     * The level that was just played and for which we show the debriefing. Unlike {@link #selectedLevel}
+     * (which is only set for campaign/MPD selection) this is set for every game mode, including skirmish and
+     * multiplayer.
+     */
+    private IKwdFile debriefingLevel;
+    private boolean debriefingIsCampaign;
 
     private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
@@ -192,8 +203,20 @@ public final class MainMenuState extends AbstractAppState {
 
     /**
      * Load the initial main menu camera position
+     *
+     * @param restoreCamera if true, restore the camera position saved when the menu was disabled, otherwise reset to the default start location
      */
-    private void loadCameraStartLocation() {
+    private void loadCameraStartLocation(boolean restoreCamera) {
+        if (restoreCamera && storedCamera != null) {
+            Camera cam = app.getCamera();
+            cam.setFrame(storedCamera.getLocation(), storedCamera.getRotation());
+            cam.setFrustum(storedCamera.getFrustumNear(), storedCamera.getFrustumFar(), storedCamera.getFrustumLeft(),
+                    storedCamera.getFrustumRight(), storedCamera.getFrustumTop(), storedCamera.getFrustumBottom());
+            storedCamera = null;
+            return;
+        }
+        storedCamera = null;
+
         Player player = frontEndKwd.getPlayer(Player.KEEPER1_ID);
         startLocation = WorldUtils.pointToVector3f(player.getStartingCameraX(), player.getStartingCameraY());
         startLocation.addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
@@ -249,10 +272,17 @@ public final class MainMenuState extends AbstractAppState {
         MainMenuState.this.app.setViewProcessors();
         rootNode.attachChild(menuNode);
 
+        boolean debriefing = pendingDebriefing;
+
         app.enqueue(() -> {
 
             // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
-            MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            if (debriefing) {
+                pendingDebriefing = false;
+                MainMenuState.this.screen.showDebriefing();
+            } else {
+                MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            }
             return null;
         });
 
@@ -263,7 +293,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         // Set the camera position
-        loadCameraStartLocation();
+        loadCameraStartLocation(debriefing);
     }
 
     @Override
@@ -304,6 +334,9 @@ public final class MainMenuState extends AbstractAppState {
                 initializeMainMenu();
             }
         } else {
+
+            // Save the camera position so that we can restore it (e.g. for the debriefing screen) when re-enabling the menu
+            storedCamera = app.getCamera().clone();
 
             stateManager.getState(MainMenuEntityViewState.class).setEnabled(false);
             if (menuNode != null && rootNode != null) {
@@ -601,13 +634,52 @@ public final class MainMenuState extends AbstractAppState {
         levelDebriefing = null;
     }
 
-    public void doDebriefing(GameResult result) {
+    /**
+     * Show the debriefing screen after a game has ended. The level that was played must be supplied for
+     * non-campaign games, while campaign games can fall back to the selected campaign level.
+     *
+     * @param result the game result
+     * @param level the level that was just played; may be {@code null} to fall back to
+     * {@link #selectedLevel}
+     * @param campaign whether the played level was a campaign level
+     */
+    public void doDebriefing(GameResult result, IKwdFile level, boolean campaign) {
+        debriefingLevel = level != null ? level : (selectedLevel != null ? selectedLevel.getKwdMap().load() : null);
+        debriefingIsCampaign = campaign || selectedLevel instanceof CampaignLevel;
+        pendingDebriefing = result != null;
         setEnabled(true);
-        if (selectedLevel != null && result != null) {
-            screen.showDebriefing(result);
-        } else {
+
+        // The debriefing screen is shown (instead of the start screen) once the
+        // menu has been initialized, see initializeMainMenu()
+        if (!pendingDebriefing) {
             screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
         }
+    }
+
+    /**
+     * Get the level that was just played and for which the debriefing is shown
+     *
+     * @return the played level, or {@code null}
+     */
+    public IKwdFile getDebriefingLevel() {
+        return debriefingLevel;
+    }
+
+    /**
+     * See if the debriefing being shown is for a campaign level
+     *
+     * @return {@code true} if it is a campaign level debriefing
+     */
+    public boolean isDebriefingCampaign() {
+        return debriefingIsCampaign;
+    }
+
+    /**
+     * Clear the level used for the debriefing screen, called when leaving the debriefing
+     */
+    void clearDebriefing() {
+        debriefingLevel = null;
+        debriefingIsCampaign = false;
     }
 
     /**
@@ -716,6 +788,11 @@ public final class MainMenuState extends AbstractAppState {
 
         @Override
         public void setPossession(EntityId target, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void endGame(boolean win, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

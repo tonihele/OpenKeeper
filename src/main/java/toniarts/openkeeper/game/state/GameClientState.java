@@ -478,6 +478,11 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onGameEnded(boolean win) {
+            app.enqueue(() -> playerState.endGame(win));
+        }
+
+        @Override
         public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals

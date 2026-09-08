@@ -42,7 +42,7 @@ public final class GameResult {
         ITEMS_MANUFACTURED,
         CREATURES_COMMANDED,
         CREATURES_CONVERTED,
-        CREATURE_TRANING,
+        CREATURE_TRAINING,
         ATTEMPTS_AT_LEVEL,
     };
 

@@ -269,17 +269,14 @@ public final class Utils {
             result += days;
         }
         int hours = time / 3600;
-        if (days != 0 || hours != 0) {
+        if (hours != 0) {
             time -= hours * 3600;
-            result += String.format(" %02d", hours);
+            result += String.format(" %02d:", hours);
         }
         int minutes = time / 60;
-        if (days != 0 || hours != 0 || minutes != 0) {
-            time -= minutes * 60;
-            result += String.format(":%02d", minutes);
-        }
+        time -= minutes * 60;
         int seconds = time;
-        result += String.format(":%02d", seconds);
+        result += String.format("%02d:%02d", minutes, seconds);
 
         return result.trim();
     }

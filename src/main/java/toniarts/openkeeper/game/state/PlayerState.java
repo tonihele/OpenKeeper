@@ -137,6 +137,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
             // Get the game state
             final GameClientState gameState = stateManager.getState(GameClientState.class);
+            screen.setState(this);
             screen.initHud(gameState.getLevelData().getGameLevel().getTextTableId().getLevelDictFile(), entityData);
 
             // Cursor
@@ -390,8 +391,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     public void quitToDebriefing() {
         // TODO copy results of game from GameState
         GameResult result = new GameResult();
-        setEnabled(false);
-        stateManager.getState(MainMenuState.class).doDebriefing(result);
+        stateManager.getState(GameClientState.class).detach();
+        stateManager.detach(this);
+        stateManager.getState(MainMenuState.class).doDebriefing(result, kwdFile, campaignLevel != null);
     }
 
     public void quitToOS() {
