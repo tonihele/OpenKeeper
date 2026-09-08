@@ -58,6 +58,11 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
+        return isSelected(tile, playerId);
+    }
+
+    @Override
+    public boolean isSelected(S tile, short playerId) {
         return tile.isSelected(playerId);
     }
 
@@ -128,9 +133,12 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
+        return isClaimable(tile, getTerrain(tile), playerId);
+    }
+
+    private boolean isClaimable(S tile, Terrain terrain, short playerId) {
 
         // See if the terrain is claimable at all
-        Terrain terrain = getTerrain(tile);
         boolean claimable = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
@@ -199,7 +207,11 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return isRepairableWall(tile, getTerrain(tile), playerId);
+    }
+
+    @Override
+    public boolean isRepairableWall(S tile, Terrain terrain, short playerId) {
         return (!tile.isSelected(playerId) && tile.getOwnerId() == playerId && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && !tile.isAtFullHealth());
     }
 
@@ -209,8 +221,12 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(p, playerId));
+        return isClaimableWall(tile, getTerrain(tile), playerId);
+    }
+
+    @Override
+    public boolean isClaimableWall(S tile, Terrain terrain, short playerId) {
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(tile, terrain, playerId));
     }
 
     @Override
@@ -219,8 +235,12 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(p, playerId));
+        return isClaimableTile(tile, getTerrain(tile), playerId);
+    }
+
+    @Override
+    public boolean isClaimableTile(S tile, Terrain terrain, short playerId) {
+        return (!terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(tile, terrain, playerId));
     }
 
     @Override
@@ -229,8 +249,12 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         if (tile == null) {
             return false;
         }
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        return (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(p, playerId));
+        return isClaimableRoom(tile, getTerrain(tile), playerId);
+    }
+
+    @Override
+    public boolean isClaimableRoom(S tile, Terrain terrain, short playerId) {
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && isClaimable(tile, terrain, playerId));
     }
 
     @Override

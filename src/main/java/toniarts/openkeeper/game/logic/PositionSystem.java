@@ -70,25 +70,22 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         entityWrappers.put(ICreatureController.class, creaturesController);
         entityWrappers.put(IDoorController.class, doorsController);
 
-        // Initialize data structures
+        // Initialize data structures in a single pass
         int width = mapController.getMapData().getWidth();
         int height = mapController.getMapData().getHeight();
-        entitiesByMapTile = initializeMatrix(width, height);
-        obstaclesByMapTile = initializeMatrix(width, height);
+        Set<EntityId>[][] entities = new Set[width][height];
+        Set<EntityId>[][] obstacles = new Set[width][height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                entities[x][y] = new HashSet<>();
+                obstacles[x][y] = new HashSet<>();
+            }
+        }
+        entitiesByMapTile = entities;
+        obstaclesByMapTile = obstacles;
 
         positionedEntities = entityData.getEntities(Position.class);
         processAddedEntities(positionedEntities);
-    }
-
-    private static Set<EntityId>[][] initializeMatrix(int width, int height) {
-        Set<EntityId>[][] matrix = new Set[width][height];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                matrix[x][y] = new HashSet<>();
-            }
-        }
-
-        return matrix;
     }
 
     @Override

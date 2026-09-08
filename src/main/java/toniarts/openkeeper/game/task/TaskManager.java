@@ -70,6 +70,7 @@ import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
@@ -430,55 +431,41 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void scanInitialTasks() {
-        IMapDataInformation mapData = mapController.getMapData();
+        IMapDataInformation<IMapTileController> mapData = mapController.getMapData();
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                scanTerrainTasks(mapController.getMapData().getTile(x, y).getLocation(), false, false);
+                scanTerrainTasks(mapData.getTile(x, y), false, false);
             }
         }
     }
 
     private void scanTerrainTasks(final Point tile, final boolean checkNeighbours, final boolean deleteObsolete) {
+        scanTerrainTasks(mapController.getMapData().getTile(tile), tile, checkNeighbours, deleteObsolete);
+    }
+
+    private void scanTerrainTasks(final IMapTileController mapTile, final boolean checkNeighbours, final boolean deleteObsolete) {
+        scanTerrainTasks(mapTile, mapTile.getLocation(), checkNeighbours, deleteObsolete);
+    }
+
+    private void scanTerrainTasks(final IMapTileController mapTile, final Point tile, final boolean checkNeighbours, final boolean deleteObsolete) {
+        Terrain terrain = null;
+        if (mapTile != null) {
+            terrain = mapController.getTerrain(mapTile);
+        }
+
         for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
             // Scan existing tasks that are they valid, should be only one tile task per tile?
             if (deleteObsolete) {
-                Iterator<Task> iter = entry.getValue().iterator();
-                while (iter.hasNext()) {
-                    Task task = iter.next();
-                    if (task instanceof AbstractTileTask tileTask) {
-                        if (tileTask.isRemovable()) {
-                            iter.remove();
-                            if (tileTask.getAssigneeCount() == 0) {
-                                //tasksByIds.remove(task.getId());
-                            }
-                        }
-                    }
-                }
+                removeObsoleteTileTasks(entry.getValue());
+            }
+
+            if (mapTile == null) {
+                continue;
             }
 
             // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
-            // Dig
-            if (mapController.isSelected(tile, entry.getKey())) {
-                Task task = new DigTileTask(navigationService, mapController, tile, entry.getKey());
-                addTask(entry.getKey(), task);
-            } // Claim wall
-            else if (mapController.isClaimableWall(tile, entry.getKey())) {
-                Task task = new ClaimWallTileTask(navigationService, mapController, tile, entry.getKey());
-                addTask(entry.getKey(), task);
-            } // Claim
-            else if (mapController.isClaimableTile(tile, entry.getKey())) {
-                Task task = new ClaimTileTask(navigationService, mapController, tile, entry.getKey());
-                addTask(entry.getKey(), task);
-            } // Repair wall
-            else if (mapController.isRepairableWall(tile, entry.getKey())) {
-                Task task = new RepairWallTileTask(navigationService, mapController, tile, entry.getKey());
-                addTask(entry.getKey(), task);
-            } // Claim room
-            else if (mapController.isClaimableRoom(tile, entry.getKey())) {
-                Task task = new ClaimRoomTask(navigationService, mapController, tile, entry.getKey());
-                addTask(entry.getKey(), task);
-            }
+            createTerrainTask(entry.getKey(), terrain, mapTile, tile);
         }
 
         // See the neighbours
@@ -486,6 +473,39 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), tile, false)) {
                 scanTerrainTasks(p, false, false);
             }
+        }
+    }
+
+    private void removeObsoleteTileTasks(Set<Task> tasks) {
+        Iterator<Task> iter = tasks.iterator();
+        while (iter.hasNext()) {
+            Task task = iter.next();
+            if (task instanceof AbstractTileTask tileTask && tileTask.isRemovable()) {
+                iter.remove();
+                if (tileTask.getAssigneeCount() == 0) {
+                    //tasksByIds.remove(task.getId());
+                }
+            }
+        }
+    }
+
+    private void createTerrainTask(short playerId, Terrain terrain, IMapTileController mapTile, Point tile) {
+
+        // Dig
+        if (mapController.isSelected(mapTile, playerId)) {
+            addTask(playerId, new DigTileTask(navigationService, mapController, tile, playerId));
+        } // Claim wall
+        else if (mapController.isClaimableWall(mapTile, terrain, playerId)) {
+            addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
+        } // Claim
+        else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
+            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
+        } // Repair wall
+        else if (mapController.isRepairableWall(mapTile, terrain, playerId)) {
+            addTask(playerId, new RepairWallTileTask(navigationService, mapController, tile, playerId));
+        } // Claim room
+        else if (mapController.isClaimableRoom(mapTile, terrain, playerId)) {
+            addTask(playerId, new ClaimRoomTask(navigationService, mapController, tile, playerId));
         }
     }
 
