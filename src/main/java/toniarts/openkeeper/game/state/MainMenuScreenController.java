@@ -1263,10 +1263,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
-            img = nifty.createImage(objectiveImage, false);
+            img = nifty.createImage(objectiveImage, true);
             mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-            mainObjectiveImage.setWidth(img.getWidth());
-            mainObjectiveImage.setHeight(img.getHeight());
             mainObjectiveImage.show();
         } catch (Exception e) {
             logger.log(Logger.Level.WARNING, "Can''t find image {0}", objectiveImage);
@@ -1292,10 +1290,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             if (state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
                 objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
                 try {
-                    img = nifty.createImage(objectiveImage, false);
+                    img = nifty.createImage(objectiveImage, true);
                     subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-                    subObjectiveImage.setWidth(img.getWidth());
-                    subObjectiveImage.setHeight(img.getHeight());
                     subObjectiveImage.show();
                 } catch (Exception e) {
                     logger.log(Logger.Level.WARNING, "Can''t find image {0}", objectiveImage);
@@ -1329,11 +1325,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         boolean campaign = state.isDebriefingCampaign();
         String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
-            NiftyImage img = nifty.createImage(objectiveImage, false);
-            mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-            mainObjectiveImage.setWidth(img.getWidth());
-            mainObjectiveImage.setHeight(img.getHeight());
+            NiftyImage img = nifty.createImage(objectiveImage, true);
             mainObjectiveImage.show();
+            mainObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
+
         } catch (Exception e) {
             logger.log(Logger.Level.WARNING, "Can''t find image {0}", objectiveImage);
             mainObjectiveImage.hide();
@@ -1347,10 +1342,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
             objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
             try {
-                NiftyImage img = nifty.createImage(objectiveImage, false);
+                NiftyImage img = nifty.createImage(objectiveImage, true);
                 subObjectiveImage.getRenderer(ImageRenderer.class).setImage(img);
-                subObjectiveImage.setWidth(img.getWidth());
-                subObjectiveImage.setHeight(img.getHeight());
                 subObjectiveImage.show();
             } catch (Exception e) {
                 logger.log(Logger.Level.WARNING, "Can''t find image {0}", objectiveImage);

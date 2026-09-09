@@ -170,34 +170,34 @@
                 <control name="label" id="levelTitle" style="menuSubTitleText" align="center" />
             </panel>
 
-            <panel height="26px" />
+            <panel height="30px" />
             <!--Main objectives-->
             <panel childLayout="horizontal" id="mainObjectivePanel" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
+                <panel childLayout="center" width="25%" align="center" valign="center" >
+                    <image align="center" valign="top" id="mainObjectiveImage" filter="true" width="90%" />
                 </panel>
-                <panel childLayout="vertical" width="*" align="left" valign="top">
+                <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" backgroundColor="#f508" width="100%" >
                         <text align="left" margin="0,8px" id="mainObjectivesTitle" style="menuSubTitleText" text="${menu.1408}" />
                     </panel>
-                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px" height="100%">
                         <control name="label" style="menuTextSmall" margin="0,8px" id="mainObjective"
                                  textHAlign="left" textVAlign="top" wrap="true" />
                     </panel>
                 </panel>
             </panel>
 
-            <panel height="10px" />
+            <panel height="30px" />
             <!--Subobjectives-->
             <panel childLayout="horizontal" id="subObjectivePanel" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="subObjectiveImage" width="144px"/>
+                <panel childLayout="center" width="25%" align="center" valign="center">
+                    <image align="center" valign="top" id="subObjectiveImage" filter="true" width="90%" />
                 </panel>
-                <panel childLayout="vertical" width="*" align="left" valign="top">
+                <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" width="100%" backgroundColor="#f508" >
                         <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuSubTitleText" text="${menu.1409}" />
                     </panel>
-                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px" height="100%">
                         <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px"
                                  textHAlign="left" wrap="true" />
                         <control name="label" style="menuTextSmall" id="subObjective2"  margin="0,8px"
@@ -230,18 +230,18 @@
                 <control name="label" id="dLevelTitle" style="menuSubTitleText" align="center" />
             </panel>
 
-            <panel height="26px" />
+            <panel height="30px" />
             <!--Main objectives-->
             <panel id="main_objective" childLayout="horizontal" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="dMainObjectiveImage" width="144px" height="112px" />
+                <panel childLayout="center" width="25%" align="center" valign="center">
+                    <image align="center" valign="top" id="dMainObjectiveImage" width="90%" />
                     <panel height="*" />
                 </panel>
-                <panel childLayout="vertical" width="*" align="left" valign="top">
+                <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" backgroundColor="#f508" width="100%" paddingLeft="10px" >
                         <text text="${menu.2898}" style="menuSubTitleText" align="left" />
                     </panel>
-                    <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px">
+                    <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px" height="100%">
                         <panel childLayout="vertical" width="70%" paddingLeft="10px">
                             <text text="${menu.1641}" id="label_totalEvilRating" align="left" style="menuTextSmall" />
                             <text text="${menu.1637}" id="label_overallTotalEvilRating" align="left" style="menuTextSmall" />
@@ -259,14 +259,14 @@
                 </panel>
             </panel>
 
-            <panel height="10px" />
+            <panel height="30px" />
             <!--Subobjectives-->
             <panel id="sub_objective" childLayout="horizontal" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="dSubObjectiveImage" width="144px" height="112px"/>
+                <panel childLayout="center" width="25%" align="center" valign="center">
+                    <image align="center" valign="top" id="dSubObjectiveImage" width="90%"/>
                     <panel height="*" />
                 </panel>
-                <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508">
+                <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508" height="100%">
                     <control name="scrollPanel" horizontal="false" stepSizeY="30">
                         <!-- TODO maybe use Table ? -->
                         <panel childLayout="horizontal" width="100%">
