@@ -31,22 +31,51 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Renders a subtle glow around the element's text. The glow is drawn, with the
- * configured color and alpha, as concentric rings around the text so that it
- * appears as a soft halo behind the actual text. Use in conjunction with
- * {@code onActive}, {@code timeType="infinite"} and {@code neverStopRendering="true"}
- * to render the effect on every frame while the element's screen is active.
+ * Renders a subtle glow around the element's text. The glow approximates a
+ * Gaussian blur by drawing the text multiple times at all offsets within a
+ * small radius, with the alpha falling off like a normal distribution as the
+ * offset grows. This produces a soft, blurred halo behind the actual text. Use
+ * in conjunction with {@code onActive}, {@code timeType="infinite"} and
+ * {@code neverStopRendering="true"} to render the effect on every frame while
+ * the element's screen is active.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class TextGlowEffect implements EffectImpl {
 
     /**
-     * The eight unit directions (including diagonals) around a text position that the glow is drawn towards.
+     * The maximum blur radius supported by the precomputed offset rings.
      */
-    private static final int[][] DIRECTION_OFFSETS = {
-        { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 }
-    };
+    private static final int MAX_DISTANCE = 8;
+
+    /**
+     * For every ring radius {@code r}, all integer offsets whose Chebyshev
+     * distance to the origin is exactly {@code r}. Together the rings cover
+     * every point around the text exactly once.
+     */
+    private static final int[][][] RING_OFFSETS = buildRingOffsets();
+
+    /**
+     * Precomputes the ring offsets for all radii up to {@link #MAX_DISTANCE}.
+     *
+     * @return the ring offsets
+     */
+    private static int[][][] buildRingOffsets() {
+        int[][][] rings = new int[MAX_DISTANCE + 1][][];
+        for (int radius = 1; radius <= MAX_DISTANCE; radius++) {
+            int[][] offsets = new int[8 * radius][];
+            int index = 0;
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dy = -radius; dy <= radius; dy++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) == radius) {
+                        offsets[index++] = new int[] { dx, dy };
+                    }
+                }
+            }
+            rings[radius] = offsets;
+        }
+        return rings;
+    }
 
     /**
      * The glow color. When {@code null}, the element's own text color is used.
@@ -116,6 +145,11 @@ public final class TextGlowEffect implements EffectImpl {
             return;
         }
 
+        int glowDistance = Math.min(Math.max(distance, 1), MAX_DISTANCE);
+        // a Gaussian with sigma = half the radius so that the glow reaches zero
+        // towards the outermost ring
+        float sigmaSquared = 2.0f * (glowDistance / 2.0f) * (glowDistance / 2.0f);
+
         r.saveStates();
         r.setFont(font);
 
@@ -126,13 +160,16 @@ public final class TextGlowEffect implements EffectImpl {
             int lineX = element.getX()
                     + horizontalTextOffset(font.getWidth(line), element.getWidth(), textRenderer.getTextHAlign());
             int lineY = element.getY() + startY + i * font.getHeight();
-            for (int ring = 1; ring <= distance; ring++) {
-                // the glow fades out towards the outer rings
-                float factor = 1.0f - (float) (ring - 1) / distance;
-                Color ringColor = new Color(baseColor, alpha * factor);
+            // draw the outer rings first so that the inner, brighter rings overlay them
+            for (int ring = glowDistance; ring >= 1; ring--) {
+                float weight = (float) Math.exp(-(ring * ring) / sigmaSquared);
+                if (weight < 0.01f) {
+                    continue;
+                }
+                Color ringColor = new Color(baseColor, alpha * weight);
                 r.setColor(ringColor);
-                for (int[] offset : DIRECTION_OFFSETS) {
-                    r.renderText(line, lineX + offset[0] * ring, lineY + offset[1] * ring, -1, -1, ringColor);
+                for (int[] offset : RING_OFFSETS[ring]) {
+                    r.renderText(line, lineX + offset[0], lineY + offset[1], -1, -1, ringColor);
                 }
             }
         }

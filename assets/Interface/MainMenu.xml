@@ -32,21 +32,21 @@
         <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
     </style>
     <style id="menuTitleText">
-        <attributes font="Interface/Fonts/Frontend36.fnt" color="#ccbb11" alpha="0.5" />
+        <attributes font="Interface/Fonts/Frontend36.fnt" color="#ccbb11" />
         <effect>
-            <onActive name="textGlow" color="#ff5f00" alpha="0.2" distance="5" timeType="infinite" neverStopRendering="true" />
+            <onActive name="textGlow" color="#ff5f00" alpha="0.05" distance="7" timeType="infinite" neverStopRendering="true" />
         </effect>
     </style>
 
     <style id="menuSubTitleText">
-        <attributes font="Interface/Fonts/Frontend28.fnt" color="#eeeeee" alpha="0.5" />
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#eeeeee" />
         <effect>
-            <onActive name="textGlow" color="#ffdd33" alpha="0.2" distance="5" timeType="infinite" neverStopRendering="true" />
+            <onActive name="textGlow" color="#ffdd33" alpha="0.05" distance="7" timeType="infinite" neverStopRendering="true" />
         </effect>
     </style>
 
     <style id="menuHeaderText">
-        <attributes font="Interface/Fonts/Frontend28.fnt" color="#ccbb11" alpha="0.5" />
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#ccbb11" />
     </style>
 
     <style id="nifty-hiscore-head#text">
