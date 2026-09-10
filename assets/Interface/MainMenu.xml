@@ -12,6 +12,9 @@
     <useControls filename="Interface/MyControls.xml" />
     <useControls filename="Interface/CreditsControl.xml" />
 
+    <!-- custom effects -->
+    <registerEffect name="textGlow" class="toniarts.openkeeper.gui.nifty.effect.TextGlowEffect" />
+
     <style id="text">
         <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />
     </style>
@@ -29,11 +32,21 @@
         <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
     </style>
     <style id="menuTitleText">
-        <attributes font="Interface/Fonts/Frontend36.fnt" color="#ff5f00" />
+        <attributes font="Interface/Fonts/Frontend36.fnt" color="#ccbb11" />
+        <effect>
+            <onActive name="textGlow" color="#ff5f00" alpha="0.05" distance="7" timeType="infinite" neverStopRendering="true" />
+        </effect>
     </style>
 
     <style id="menuSubTitleText">
-        <attributes font="Interface/Fonts/Frontend20.fnt" color="#ffdd33" />
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#eeeeee" />
+        <effect>
+            <onActive name="textGlow" color="#ffdd33" alpha="0.05" distance="7" timeType="infinite" neverStopRendering="true" />
+        </effect>
+    </style>
+
+    <style id="menuHeaderText">
+        <attributes font="Interface/Fonts/Frontend28.fnt" color="#ccbb11" />
     </style>
 
     <style id="nifty-hiscore-head#text">
@@ -170,34 +183,34 @@
                 <control name="label" id="levelTitle" style="menuSubTitleText" align="center" />
             </panel>
 
-            <panel height="26px" />
+            <panel height="30px" />
             <!--Main objectives-->
             <panel childLayout="horizontal" id="mainObjectivePanel" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="mainObjectiveImage" width="144px" />
+                <panel childLayout="center" width="25%" align="center" valign="center" >
+                    <image align="center" valign="top" id="mainObjectiveImage" filter="true" width="90%" />
                 </panel>
-                <panel childLayout="vertical" width="*" align="left" valign="top">
+                <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" backgroundColor="#f508" width="100%" >
-                        <text align="left" margin="0,8px" id="mainObjectivesTitle" style="menuSubTitleText" text="${menu.1408}" />
+                        <text align="left" margin="0,8px" id="mainObjectivesTitle" style="menuHeaderText" text="${menu.1408}" />
                     </panel>
-                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px" height="100%">
                         <control name="label" style="menuTextSmall" margin="0,8px" id="mainObjective"
                                  textHAlign="left" textVAlign="top" wrap="true" />
                     </panel>
                 </panel>
             </panel>
 
-            <panel height="10px" />
+            <panel height="30px" />
             <!--Subobjectives-->
             <panel childLayout="horizontal" id="subObjectivePanel" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="subObjectiveImage" width="144px"/>
+                <panel childLayout="center" width="25%" align="center" valign="center">
+                    <image align="center" valign="top" id="subObjectiveImage" filter="true" width="90%" />
                 </panel>
-                <panel childLayout="vertical" width="*" align="left" valign="top">
+                <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" width="100%" backgroundColor="#f508" >
-                        <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuSubTitleText" text="${menu.1409}" />
+                        <text align="left" margin="0,8px" id="subObjectivesTitle" style="menuHeaderText" text="${menu.1409}" />
                     </panel>
-                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px">
+                    <panel childLayout="vertical" backgroundColor="#0008" marginTop="4px" height="100%">
                         <control name="label" style="menuTextSmall" id="subObjective1"  margin="0,8px"
                                  textHAlign="left" wrap="true" />
                         <control name="label" style="menuTextSmall" id="subObjective2"  margin="0,8px"
@@ -230,18 +243,18 @@
                 <control name="label" id="dLevelTitle" style="menuSubTitleText" align="center" />
             </panel>
 
-            <panel height="26px" />
+            <panel height="30px" />
             <!--Main objectives-->
             <panel id="main_objective" childLayout="horizontal" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="dMainObjectiveImage" width="144px" height="112px" />
+                <panel childLayout="center" width="25%" align="center" valign="center">
+                    <image align="center" valign="top" id="dMainObjectiveImage" width="90%" />
                     <panel height="*" />
                 </panel>
-                <panel childLayout="vertical" width="*" align="left" valign="top">
+                <panel childLayout="vertical" width="*" align="left" valign="top" height="90%">
                     <panel childLayout="vertical" backgroundColor="#f508" width="100%" paddingLeft="10px" >
-                        <text text="${menu.2898}" style="menuSubTitleText" align="left" />
+                        <text text="${menu.2898}" style="menuHeaderText" align="left" />
                     </panel>
-                    <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px">
+                    <panel childLayout="horizontal" backgroundColor="#0008" marginTop="4px" height="100%">
                         <panel childLayout="vertical" width="70%" paddingLeft="10px">
                             <text text="${menu.1641}" id="label_totalEvilRating" align="left" style="menuTextSmall" />
                             <text text="${menu.1637}" id="label_overallTotalEvilRating" align="left" style="menuTextSmall" />
@@ -259,14 +272,14 @@
                 </panel>
             </panel>
 
-            <panel height="10px" />
+            <panel height="30px" />
             <!--Subobjectives-->
             <panel id="sub_objective" childLayout="horizontal" width="100%" align="center" valign="center">
-                <panel childLayout="center" width="160px" align="center" valign="center">
-                    <image align="center" valign="top" id="dSubObjectiveImage" width="144px" height="112px"/>
+                <panel childLayout="center" width="25%" align="center" valign="center">
+                    <image align="center" valign="top" id="dSubObjectiveImage" width="90%"/>
                     <panel height="*" />
                 </panel>
-                <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508">
+                <panel childLayout="overlay" width="*" align="left" valign="top" backgroundColor="#f508" height="100%">
                     <control name="scrollPanel" horizontal="false" stepSizeY="30">
                         <!-- TODO maybe use Table ? -->
                         <panel childLayout="horizontal" width="100%">
@@ -286,31 +299,31 @@
                                 <text text="${menu.1636}" id="label_attemptsAtLevel" align="left" style="menuTextSmall" />
                             </panel>
                             <panel childLayout="vertical" width="*" paddingRight="30px">
-                                <control name="label" id="levelWon" text="?" style="menuSubTitleText"
+                                <control name="label" id="levelWon" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="timeTaken" text="?" style="menuSubTitleText"
+                                <control name="label" id="timeTaken" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuSubTitleText"
+                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="heroesDestroyed" text="?" style="menuSubTitleText"
+                                <control name="label" id="heroesDestroyed" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="roomsCaptured" text="?" style="menuSubTitleText"
+                                <control name="label" id="roomsCaptured" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="landOwned" text="?" style="menuSubTitleText"
+                                <control name="label" id="landOwned" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="goldMined" text="?" style="menuSubTitleText"
+                                <control name="label" id="goldMined" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="manaStored" text="?" style="menuSubTitleText"
+                                <control name="label" id="manaStored" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="itemsManufactured" text="?" style="menuSubTitleText"
+                                <control name="label" id="itemsManufactured" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creaturesCommanded" text="?" style="menuSubTitleText"
+                                <control name="label" id="creaturesCommanded" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creaturesConverted" text="?" style="menuSubTitleText"
+                                <control name="label" id="creaturesConverted" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creatureTraining" text="?" style="menuSubTitleText"
+                                <control name="label" id="creatureTraining" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="attemptsAtLevel" text="?" style="menuSubTitleText"
+                                <control name="label" id="attemptsAtLevel" text="?" style="menuHeaderText"
                                          textHAlign="right" textVAlign="center" width="100%" />
                             </panel>
                         </panel>
