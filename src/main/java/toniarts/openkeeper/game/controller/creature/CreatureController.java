@@ -337,7 +337,17 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isNeedForSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        return creatureSleep != null && needsLair() && creatureSleep.sleepNeed != 0;
+        float healthThreshold = gameSettings.get(
+                Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue();
+        return needsLair() && isNeedForSleep(creatureSleep,
+                creature.getAttributes().getTimeSleep(), getHealthPercentage(),
+                healthThreshold);
+    }
+
+    static boolean isNeedForSleep(CreatureSleep sleep, int timeSleep,
+            int healthPercentage, float sleepHealthThreshold) {
+        return sleep != null && timeSleep != 0
+                && (sleep.sleepNeed != 0 || healthPercentage < sleepHealthThreshold);
     }
 
     @Override
