@@ -355,15 +355,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     return;
                 }
 
-                // BatchNode merges geometries purely by material content-equality,
-                // not by which tile they belong to - every tile using the same base
-                // terrain (e.g. the generic unexplored-rock placeholder) starts out
-                // content-equal. Once this tile's material is individually tinted
-                // below, it must opt out of batching entirely, or the merge/rebatch
-                // process can bleed the tint onto (or pull in) other tiles that
-                // still share - or briefly shared - the same batch group.
-                spatial.setBatchHint(Spatial.BatchHint.Never);
-
                 Geometry geometry = (Geometry) spatial;
 
                 // For RANDOM_TEXTURE terrain (rock/gold/gems), setRandomTexture() has
