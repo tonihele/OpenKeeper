@@ -26,13 +26,16 @@ import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * Updates the independent native DKII creature anger reasons.
@@ -49,13 +52,19 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final Room lair;
+    private final IGameTimer gameTimer;
+    private final int angerRecoveryInLairPerSecond;
     private final Map<Short, IPlayerController> playerControllersById;
     private final EntitySet entities;
 
     public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
-            Collection<IPlayerController> playerControllers) {
+            Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameTimer = gameTimer;
+        angerRecoveryInLairPerSecond = (int) gameSettings.get(
+                Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
         lair = kwdFile.getRoomById(LAIR_ROOM_ID);
         playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
@@ -93,7 +102,9 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                                 stateName(mood.getState(unhappyThreshold)),
                                 stateName(updatedMood.getState(unhappyThreshold)),
                                 counters(mood), counters(updatedMood)});
+                    mood = updatedMood;
                 }
+                applyLairMoodRecovery(entity, mood);
                 continue;
             }
 
@@ -120,6 +131,23 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                                 stateName(oldState), stateName(newState), counters(updatedMood)});
                 }
             }
+        }
+    }
+
+    private void applyLairMoodRecovery(Entity entity, CreatureMood mood) {
+        CreatureRecuperating recuperating = entityData.getComponent(
+                entity.getId(), CreatureRecuperating.class);
+        if (recuperating == null
+                || gameTimer.getGameTime() - recuperating.moodCheckTime < 1) {
+            return;
+        }
+
+        entityData.setComponent(entity.getId(), new CreatureRecuperating(
+                recuperating.startTime, recuperating.healthCheckTime,
+                recuperating.moodCheckTime + 1));
+        if (angerRecoveryInLairPerSecond != 0) {
+            entityData.setComponent(entity.getId(), mood.add(
+                    CreatureMood.REASON_OTHER, angerRecoveryInLairPerSecond));
         }
     }
 

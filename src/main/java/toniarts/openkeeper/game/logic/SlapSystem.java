@@ -27,12 +27,15 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -155,6 +158,18 @@ public final class SlapSystem extends GameTimeCounter {
                 entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_OTHER,
                         CreatureMood.toRuntimeValue(moodChange)));
             }
+        }
+
+        // Native state 0x53 removes one authored sleep unit from the runtime
+        // debt when slapped. A fresh debt contains four such units.
+        CreatureAi creatureAi = entityData.getComponent(entity.getId(), CreatureAi.class);
+        CreatureSleep creatureSleep = entityData.getComponent(entity.getId(), CreatureSleep.class);
+        if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.SLEEPING
+                && creatureSleep != null && creatureSleep.sleepNeed != 0) {
+            int sleepNeed = Math.max(0,
+                    creatureSleep.sleepNeed - creature.getAttributes().getTimeSleep());
+            entityData.setComponent(entity.getId(), new CreatureSleep(creatureSleep.lairObjectId,
+                    creatureSleep.lastSleepTime, creatureSleep.sleepStartTime, sleepNeed));
         }
 
         // TODO: Apply the force

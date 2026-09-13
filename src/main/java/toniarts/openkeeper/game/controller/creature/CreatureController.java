@@ -337,12 +337,7 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isNeedForSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        return creatureSleep != null && needsLair() && (gameTimer.getGameTime() - creatureSleep.lastSleepTime >= creature.getAttributes().getTimeAwake()
-                || isNeedForRecuperating());
-    }
-
-    private boolean isNeedForRecuperating() {
-        return gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue() >= getHealthPercentage();
+        return creatureSleep != null && needsLair() && creatureSleep.sleepNeed != 0;
     }
 
     @Override
@@ -822,15 +817,8 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean isEnoughSleep() {
-        double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
-        if (timeSpent >= creature.getAttributes().getTimeSleep()) {
-
-            // Hmm, I don't know if this is the right place to do this, but works for now
-            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, gameTimer.getGameTime(), creatureSleep.sleepStartTime));
-            return true;
-        }
-        return false;
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        return creatureSleep.sleepNeed == 0 && isFullHealth();
     }
 
     @Override
@@ -1162,21 +1150,18 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void setCreatureLair(EntityId lairId) {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        entityData.setComponent(entityId, new CreatureSleep(lairId, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+        entityData.setComponent(entityId, new CreatureSleep(lairId, creatureSleep.lastSleepTime,
+                creatureSleep.sleepStartTime, creatureSleep.sleepNeed));
     }
 
     @Override
     public void sleep() {
-        entityData.setComponent(entityId, new CreatureRecuperating(gameTimer.getGameTime(), gameTimer.getGameTime()));
-        if (isNeedForRecuperating()) {
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.RECUPERATING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.RECUPERATING);
-        } else {
-            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, creatureSleep.lastSleepTime, gameTimer.getGameTime()));
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.SLEEPING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.SLEEPING);
-        }
+        double gameTime = gameTimer.getGameTime();
+        entityData.setComponent(entityId, new CreatureRecuperating(gameTime, gameTime, gameTime));
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId,
+                creatureSleep.lastSleepTime, gameTime, creatureSleep.sleepNeed));
+        stateMachine.changeState(CreatureState.SLEEPING);
     }
 
     private boolean isAlly(EntityId entity) {
