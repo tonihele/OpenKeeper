@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -85,6 +86,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
     private IMapInformation mapInformation;
+    private IFogOfWarInformation fogOfWarInformation;
     private PlayerState playerState;
     @Nullable
     private final CampaignLevel campaignLevel;
@@ -333,6 +335,13 @@ public final class GameClientState extends AbstractPauseAwareState {
                                 mapDataLoaded = true;
                                 mapDataLoadingObject.notifyAll();
                             }
+                        }, (entityId) -> {
+                            app.enqueue(() -> {
+                                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                                if (systemMessageState != null) {
+                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
+                                }
+                            });
                         }) {
 
                     private float lastProgress = 0;
@@ -350,8 +359,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                     }
                 };
                 mapInformation = playerMapViewState.getMapInformation();
+                fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData());
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
 
                 // Attach the states
                 stateManager.attach(playerState);
@@ -417,8 +427,22 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTilesChange(List<Point> updatedTiles) {
-            //mapInformation.setTiles(updatedTiles);
-            //playerMapViewState.onTilesChange(updatedTiles);
+            playerMapViewState.onTilesChange(updatedTiles);
+        }
+
+        @Override
+        public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+            playerMapViewState.onTilesReveal(points, explore, keeperId);
+        }
+
+        @Override
+        public void onFogOfWarDisabled(short keeperId) {
+            playerMapViewState.onFogOfWarDisabled(keeperId);
+        }
+
+        @Override
+        public void onFogOfWarReset(short keeperId) {
+            playerMapViewState.onFogOfWarReset(keeperId);
         }
 
         @Override
@@ -639,11 +663,29 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void setPossession(EntityId target) {
             playerState.setPossession(target);
+            setPossessedCreature(target);
         }
     }
 
     public IMapInformation getMapClientService() {
         return mapInformation;
+    }
+
+    public IFogOfWarInformation getFogOfWarInformation() {
+        return fogOfWarInformation;
+    }
+
+    /**
+     * Tells the local fog-of-war module which creature (if any) the viewer is
+     * currently possessing, so it can bypass fog for the first-person view
+     * and keep exploring the possessed creature's tile (§2/§6.9).
+     *
+     * @param entityId the possessed creature, or {@code null} if possession has ended
+     */
+    public void setPossessedCreature(EntityId entityId) {
+        if (playerMapViewState != null) {
+            playerMapViewState.setPossessedCreature(entityId);
+        }
     }
 
     public GameSessionClientService getGameClientService() {

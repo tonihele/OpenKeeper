@@ -41,6 +41,8 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.DoorFlowerControl;
@@ -56,6 +58,7 @@ import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
@@ -64,8 +67,33 @@ import toniarts.openkeeper.view.text.TextParser;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerEntityViewState extends AbstractAppState {
-    
+
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
+
+    /**
+     * Used where no fog of war applies: everything is simply always visible.
+     */
+    private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
+        @Override
+        public boolean isVisible(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isExplored(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPerceived(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isHighlightable(Point p) {
+            return true;
+        }
+    };
 
     private AppStateManager stateManager;
     private final IKwdFile kwdFile;
@@ -74,6 +102,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final short playerId;
     private final Node rootNode;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
+    private final IFogOfWarInformation fogOfWarInformation;
 
     private final TextParser textParser;
     private final Node root;
@@ -95,11 +124,17 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
-        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null);
+        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
     }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
             TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData) {
+        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, mapData, ALWAYS_VISIBLE);
+    }
+
+    public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
+            TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData,
+            IFogOfWarInformation fogOfWarInformation) {
         super(Short.toString(playerId));
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -108,6 +143,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.textParser = textParser;
         this.rootNode = rootNode;
         this.mapData = mapData;
+        this.fogOfWarInformation = fogOfWarInformation;
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
@@ -311,11 +347,13 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
         object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
+        applyFogCullHint(object, e, true);
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
         DoorViewState viewState = e.get(DoorViewState.class);
         object.getControl(DoorViewControl.class).setTargetState(viewState);
+        applyFogCullHint(object, e, true);
     }
 
     private void updateObjectModelState(Spatial object, Entity e) {
@@ -331,7 +369,22 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
-        object.setCullHint(viewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        applyFogCullHint(object, e, viewState.visible);
+    }
+
+    /**
+     * Hides things standing on non-visible tiles (fog-of-war design §8.2).
+     * There is no "visible through fog" per-thing flag anywhere in this
+     * codebase's creature/object/door/trap data, so this applies uniformly,
+     * with no exceptions.
+     */
+    private void applyFogCullHint(Spatial object, Entity e, boolean baseVisible) {
+        boolean visible = baseVisible;
+        if (visible) {
+            Point tile = WorldUtils.vectorToPoint(e.get(Position.class).position);
+            visible = fogOfWarInformation.isVisible(tile);
+        }
+        object.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -476,6 +529,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
+            applyFogCullHint(object, e, true);
         }
 
         @Override

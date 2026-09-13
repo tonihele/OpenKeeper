@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -34,14 +35,20 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.fogofwar.FogOfWarController;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapViewController;
 
 import java.lang.System.Logger;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 /**
  * Handles the handling of game world for a player, visually
@@ -63,8 +70,20 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final EffectManagerState effectManager;
     private final FlashTileViewState flashTileControl;
     private final MapRoomContainer mapRoomContainer;
+    private final FogOfWarController fogOfWarController;
+
+    // Creature vision (and the initial fog seeding) can produce tile updates
+    // before MapViewController.load() has built its scene graph - queue those
+    // and flush them once the map actually exists, instead of crashing
+    private volatile boolean mapLoaded = false;
+    private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
 
     public PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
+        this(app, kwdFile, assetManager, players, entityData, playerId, loadCompleteNotifier, (entityId) -> {
+        });
+    }
+
+    public PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -84,10 +103,28 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             @Override
             protected void onLoadComplete() {
 
+                // Fog must be seeded before the initial geometry is built, since
+                // the renderer consults it while assembling the map
+                fogOfWarController.seedLevelStart();
+
                 // Don't block the caller, might be called from the render thread...
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
+                    mapLoaded = true;
+
+                    // Apply any tile updates (fog reveals from the seeding above,
+                    // or from creatures already ticking) that arrived too early to
+                    // be applied directly, while the map wasn't attached yet
+                    if (!pendingTileUpdates.isEmpty()) {
+                        List<Point> pending = new ArrayList<>(pendingTileUpdates.size());
+                        Point p;
+                        while ((p = pendingTileUpdates.poll()) != null) {
+                            pending.add(p);
+                        }
+                        mapLoader.updateTiles(pending.toArray(new Point[0]));
+                    }
+
                     app.enqueue(() -> {
                         worldNode.attachChild(map);
 
@@ -101,11 +138,14 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         mapInformation = new MapInformation(mapTileContainer, kwdFile, players);
 
+        fogOfWarController = new FogOfWarController(entityData, kwdFile, mapTileContainer, playerId,
+                this::updateTiles, enemySightedNotifier);
+
         // Effect manager
         effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // Create the actual map
-        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, playerId) {
+        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -119,6 +159,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Start collecting the map entities
         mapRoomContainer.start();
         mapTileContainer.start();
+        fogOfWarController.start();
     }
 
     @Override
@@ -155,6 +196,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // The actual map data
         mapRoomContainer.stop();
         mapTileContainer.stop();
+        fogOfWarController.stop();
 
         super.cleanup();
     }
@@ -165,6 +207,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Always process rooms before the map tiles
         mapRoomContainer.update();
         mapTileContainer.update();
+        fogOfWarController.update(tpf);
     }
 
     public AssetManager getAssetManager() {
@@ -180,37 +223,20 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onTilesChange(List<Point> updatedTiles) {
-//        Point[] points = new Point[updatedTiles.size()];
-//        for (int i = 0; i < updatedTiles.size(); i++) {
-//            IMapTileInformation mapTile = updatedTiles.get(i);
-//            points[i] = new Point(mapTile.getX(), mapTile.getY());
-//        }
-//
-//        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
-//        app.enqueue(() -> {
-//            mapLoader.updateTiles(points);
-//        });
+        fogOfWarController.onTileOwnerChanged(updatedTiles);
     }
 
     @Override
     public void onBuild(short keeperId, List<Point> tiles) {
-//        mapClientService.setTiles(tiles);
-//        Point[] updatableTiles = new Point[tiles.size()];
-//        for (int i = 0; i < tiles.size(); i++) {
-//            updatableTiles[i] = tiles.get(i).getLocation();
-//        }
-//
-//        // FIXME: See in what thread we are, perhaps even do everything ready, just the attaching in render thread
-//        app.enqueue(() -> {
-//            mapLoader.updateTiles(updatableTiles);
-//        });
+        fogOfWarController.onRoomBuilt(keeperId, tiles);
     }
 
     @Override
     public void onSold(short keeperId, List<Point> tiles) {
 
-        // For now there is no difference between buying and selling
-//        onBuild(keeperId, tiles);
+        // Not wired: by the time this fires the terrain has typically already
+        // reverted to non-room, so the room's TileConstruction (needed to decide
+        // whether a whole-room unexplore applies, §6.1) can no longer be resolved here
     }
 
     @Override
@@ -218,11 +244,38 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         flashTileControl.attach(points, enabled);
     }
 
+    @Override
+    public void onFogOfWarDisabled(short keeperId) {
+        fogOfWarController.disableFogOfWar();
+    }
+
+    @Override
+    public void onFogOfWarReset(short keeperId) {
+        fogOfWarController.resetToLevelStart();
+    }
+
+    @Override
+    public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+        fogOfWarController.revealActionPointTiles(points, explore);
+    }
+
     public IMapInformation getMapInformation() {
         return mapInformation;
     }
 
+    public IFogOfWarInformation getFogOfWarInformation() {
+        return fogOfWarController;
+    }
+
+    public void setPossessedCreature(EntityId entityId) {
+        fogOfWarController.setPossessedCreature(entityId);
+    }
+
     private void updateTiles(Point[] points) {
+        if (!mapLoaded) {
+            pendingTileUpdates.addAll(Arrays.asList(points));
+            return;
+        }
         mapLoader.updateTiles(points);
     }
 

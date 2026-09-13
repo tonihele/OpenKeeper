@@ -318,6 +318,36 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void revealTiles(List<Point> points, boolean explore, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onTilesReveal(points, explore, playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void disableFogOfWar(short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onFogOfWarDisabled(playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void resetFogOfWar(short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onFogOfWarReset(playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
     public boolean isInTransition() {
         for (boolean inTransition : playersInTransition.values()) {
             if (inTransition) {
@@ -691,6 +721,21 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
             getCallback().onTileFlash(points, enabled, keeperId);
+        }
+
+        @Override
+        public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+            getCallback().onTilesReveal(points, explore, keeperId);
+        }
+
+        @Override
+        public void onFogOfWarDisabled(short keeperId) {
+            getCallback().onFogOfWarDisabled(keeperId);
+        }
+
+        @Override
+        public void onFogOfWarReset(short keeperId) {
+            getCallback().onFogOfWarReset(keeperId);
         }
 
         @Override

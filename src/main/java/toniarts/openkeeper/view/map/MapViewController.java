@@ -39,6 +39,7 @@ import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
@@ -55,8 +56,34 @@ import java.util.*;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MapViewController implements ILoader<IKwdFile> {
-    
+
     private static final Logger logger = System.getLogger(MapViewController.class.getName());
+
+    /**
+     * Used where no fog of war applies (main menu map preview, model viewer):
+     * everything is simply always visible.
+     */
+    private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
+        @Override
+        public boolean isVisible(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isExplored(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPerceived(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isHighlightable(Point p) {
+            return true;
+        }
+    };
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.6f, 0.6f, 1, 1);
@@ -78,6 +105,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Node map;
     private final AssetManager assetManager;
     private final IMapInformation mapClientService;
+    private final IFogOfWarInformation fogOfWarInformation;
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
@@ -91,14 +119,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
 
     public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
-        this(assetManager, kwdFile, mapClientService, playerId, true);
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
+    }
+
+    public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, true);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled) {
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled);
+    }
+
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
+        this.fogOfWarInformation = fogOfWarInformation;
         this.playerId = playerId;
         this.torchesEnabled = torchesEnabled;
     }
@@ -371,8 +410,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 getMapData().getTile(p.x - 1, p.y); // WEST
         };
 
-        // Check for out of bounds
-        if (neigbourTile == null) {
+        // Check for out of bounds, and treat a non-visible neighbour the same way:
+        // its side is not built, which is what makes the frontier of the explored
+        // area read as solid faces (fog-of-war design §8.2)
+        if (neigbourTile == null || !fogOfWarInformation.isVisible(neigbourTile.getLocation())) {
             return loadModel(modelName, artResource);
         }
 
@@ -463,6 +504,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * @param root the root node
      */
     private void handleTile(IMapTileInformation tile, Node root) {
+
+        // Unexplored areas are void, not "rock" - no geometry at all (fog-of-war design §8.2)
+        if (!fogOfWarInformation.isVisible(tile.getLocation())) {
+            return;
+        }
 
         // Get the terrain
         Terrain terrain = getTerrain(tile);

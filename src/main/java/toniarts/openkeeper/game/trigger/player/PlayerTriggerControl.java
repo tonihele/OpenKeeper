@@ -338,12 +338,13 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case REVEAL_ACTION_POINT: // AP part
-//                if (playerId == playerState.getPlayerId()) {
-//                    // TODO this
-//                    // remove fog of war from tiles in action point
-//                    // or
-//                    // add fog of war to tiles in action point
-//                }
+                ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+                available = trigger.getUserData("available", short.class) != 0;
+                if (available) {
+                    mapController.revealTiles(ap.getPoints(), playerId);
+                } else {
+                    mapController.concealTiles(ap.getPoints(), playerId);
+                }
                 break;
 
             case ZOOM_TO_ACTION_POINT: // AP part

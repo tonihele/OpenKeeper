@@ -45,4 +45,31 @@ public interface MapListener {
     @Asynchronous
     public void onTileFlash(List<Point> points, boolean enabled, short keeperId);
 
+    /**
+     * Scripted reveal/conceal of an action point's tiles (fog of war)
+     *
+     * @param points   the map coordinates to reveal/conceal
+     * @param explore  {@code true} to explore the tiles, {@code false} to unexplore them
+     * @param keeperId the keeper ID whose fog of war is affected
+     */
+    @Asynchronous
+    public void onTilesReveal(List<Point> points, boolean explore, short keeperId);
+
+    /**
+     * The {@code REMOVE_FOW} cheat: fog of war should be disabled (everything revealed)
+     *
+     * @param keeperId the keeper ID whose fog of war is affected
+     */
+    @Asynchronous
+    public void onFogOfWarDisabled(short keeperId);
+
+    /**
+     * The {@code RESET_FOW} console command: fog of war should be reset, as if the
+     * level had just started
+     *
+     * @param keeperId the keeper ID whose fog of war is affected
+     */
+    @Asynchronous
+    public void onFogOfWarReset(short keeperId);
+
 }
