@@ -429,7 +429,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                && isOnMap && gameClientState.getMapClientService().isTaggable(p);
+                  && isOnMap && gameClientState.getFogOfWarInformation().isHighlightable(p);
     }
 
     private boolean isOnMap() {
@@ -545,7 +545,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         SelectionArea selectionArea = selectionHandler.getSelectionArea();
                         if (interactionState.getType() == Type.NONE
                                 || (interactionState.getType() == Type.ROOM
-                                && gameClientState.getMapClientService().isTaggable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
+                                && gameClientState.getFogOfWarInformation().isHighlightable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
 
                             // Determine if this is a select/deselect by the starting tile's status
                             boolean select = !gameClientState.getMapClientService().isSelected(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId());
@@ -813,7 +813,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private boolean isInvalidRoomSelection(Point point) {
             return interactionState.getType() == Type.ROOM
-                    && !gameClientState.getMapClientService().isTaggable(point)
+                    && !gameClientState.getFogOfWarInformation().isHighlightable(point)
                     && !isRoomSelectionValid();
         }
 

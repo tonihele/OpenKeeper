@@ -233,6 +233,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     /**
      * Finds the plain, undug rock terrain (solid, not ownable, not
      * impenetrable, not a room, no gold) to stand in for anything unexplored.
+     * Explicitly avoids any special/neighbour-aware construction type (quad,
+     * water) - the placeholder must always resolve to the simple, static
+     * "just load this one model" path in {@link #handleTop}, never the
+     * auto-tiling machinery meant for claimed surfaces.
      */
     private Terrain findUnexploredPlaceholderTerrain() {
         Terrain fallback = null;
@@ -243,6 +247,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     || candidate.getFlags().contains(Terrain.TerrainFlag.ROOM)
                     || candidate.getFlags().contains(Terrain.TerrainFlag.WATER)
                     || candidate.getFlags().contains(Terrain.TerrainFlag.LAVA)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)
                     || candidate.getGoldValue() > 0) {
                 continue;
             }
@@ -349,7 +355,26 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     return;
                 }
 
-                Material material = ((Geometry) spatial).getMaterial();
+                // BatchNode merges geometries purely by material content-equality,
+                // not by which tile they belong to - every tile using the same base
+                // terrain (e.g. the generic unexplored-rock placeholder) starts out
+                // content-equal. Once this tile's material is individually tinted
+                // below, it must opt out of batching entirely, or the merge/rebatch
+                // process can bleed the tint onto (or pull in) other tiles that
+                // still share - or briefly shared - the same batch group.
+                spatial.setBatchHint(Spatial.BatchHint.Never);
+
+                Geometry geometry = (Geometry) spatial;
+
+                // For RANDOM_TEXTURE terrain (rock/gold/gems), setRandomTexture() has
+                // already replaced this geometry's material with one from
+                // randomTextureMaterials - a cache explicitly shared and reused across
+                // every tile with the same texture variant. Mutating that material in
+                // place (as below) would tint every other tile sharing the cached
+                // instance, not just this one. Clone it into a tile-private material
+                // before making any per-tile change.
+                Material material = geometry.getMaterial().clone();
+                geometry.setMaterial(material);
 
                 // Decay
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
