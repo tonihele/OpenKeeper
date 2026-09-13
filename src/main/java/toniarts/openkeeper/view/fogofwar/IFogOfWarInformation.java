@@ -52,4 +52,16 @@ public interface IFogOfWarInformation {
      */
     boolean isHighlightable(Point p);
 
+    /**
+     * Local-only, optimistic "looks tagged" state for a still-unexplored
+     * tile the viewer has dragged over. Fog never reaches the server, so the
+     * server's own selected state on an unexplored tile only ever reflects
+     * whether its real, hidden terrain happens to be taggable - it says
+     * nothing about what the player, seeing generic rock, intended. This
+     * flag lets the tile render as tagged anyway while it's still unexplored;
+     * once revealed, the real selected state takes over (showing the tag if
+     * the terrain really is taggable, or dropping it if not).
+     */
+    boolean isPendingTagged(Point p);
+
 }

@@ -83,6 +83,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         public boolean isHighlightable(Point p) {
             return true;
         }
+
+        @Override
+        public boolean isPendingTagged(Point p) {
+            return false;
+        }
     };
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
@@ -343,7 +348,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Change the material on geometries
         Terrain terrain = getTerrain(tile);
-        if (!isFlashing(tile) && !tile.isSelected(playerId)
+        final boolean tagged = tile.isSelected(playerId) || fogOfWarInformation.isPendingTagged(tile.getLocation());
+        if (!isFlashing(tile) && !tagged
                 && !terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
             return;
         }
@@ -395,7 +401,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     material.setColor("Ambient", COLOR_FLASH);
                     material.setBoolean("UseMaterialColors", true);
                 }
-                if (tile.isSelected(playerId)) {
+                if (tagged) {
                     material.setColor("Ambient", COLOR_TAG);
                     material.setBoolean("UseMaterialColors", true);
                 }

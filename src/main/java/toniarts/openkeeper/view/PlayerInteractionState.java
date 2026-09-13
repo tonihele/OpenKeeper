@@ -42,7 +42,9 @@ import com.simsilica.es.EntitySet;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import toniarts.openkeeper.utils.Point;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
@@ -432,6 +434,22 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                   && isOnMap && gameClientState.getFogOfWarInformation().isHighlightable(p);
     }
 
+    /**
+     * All tile coordinates covered by a selection area's rectangle
+     * (inclusive of both corners).
+     */
+    private static List<Point> getRectPoints(SelectionArea selectionArea) {
+        Point start = WorldUtils.vectorToPoint(selectionArea.getStart());
+        Point end = WorldUtils.vectorToPoint(selectionArea.getEnd());
+        List<Point> points = new ArrayList<>();
+        for (int x = start.x; x <= end.x; x++) {
+            for (int y = start.y; y <= end.y; y++) {
+                points.add(new Point(x, y));
+            }
+        }
+        return points;
+    }
+
     private boolean isOnMap() {
         if (isOnGui) {
             return false;
@@ -547,9 +565,20 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                                 || (interactionState.getType() == Type.ROOM
                                 && gameClientState.getFogOfWarInformation().isHighlightable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
 
-                            // Determine if this is a select/deselect by the starting tile's status
-                            boolean select = !gameClientState.getMapClientService().isSelected(WorldUtils.vectorToPoint(selectionArea.getRealStart()), player.getPlayerId());
+                            // Determine if this is a select/deselect by the starting tile's status.
+                            // An unexplored start tile has no real server-side selected state to
+                            // speak of yet, so also fold in whether it currently *looks* tagged.
+                            Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
+                            boolean currentlyTagged = gameClientState.getMapClientService().isSelected(realStart, player.getPlayerId())
+                                    || gameClientState.getFogOfWarInformation().isPendingTagged(realStart);
+                            boolean select = !currentlyTagged;
                             gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
+
+                            // The server only marks a tile selected if its real, hidden terrain is
+                            // actually taggable - fog can't reach it to know any better. Locally,
+                            // still-unexplored tiles in this drag should look tagged regardless,
+                            // until exploration reveals whether that's really true (§8.5).
+                            gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
                         } else if (interactionState.getType() == Type.ROOM
                                 && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                                         selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),

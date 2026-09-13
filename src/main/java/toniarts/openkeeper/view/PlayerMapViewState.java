@@ -267,6 +267,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         return fogOfWarController;
     }
 
+    public void markPendingTaggedTiles(List<Point> points, boolean tagged) {
+        fogOfWarController.markPendingTagged(points, tagged);
+    }
+
     public void setPossessedCreature(EntityId entityId) {
         fogOfWarController.setPossessedCreature(entityId);
     }

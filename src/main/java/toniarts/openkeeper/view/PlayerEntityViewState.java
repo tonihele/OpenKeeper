@@ -93,6 +93,11 @@ public class PlayerEntityViewState extends AbstractAppState {
         public boolean isHighlightable(Point p) {
             return true;
         }
+
+        @Override
+        public boolean isPendingTagged(Point p) {
+            return false;
+        }
     };
 
     private AppStateManager stateManager;

@@ -676,6 +676,17 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     /**
+     * Marks (or unmarks) still-unexplored tiles as locally "looking tagged"
+     * while the viewer drags a tag/dig selection over them - see
+     * {@link IFogOfWarInformation#isPendingTagged(Point)}.
+     */
+    public void markPendingTaggedTiles(List<Point> points, boolean tagged) {
+        if (playerMapViewState != null) {
+            playerMapViewState.markPendingTaggedTiles(points, tagged);
+        }
+    }
+
+    /**
      * Tells the local fog-of-war module which creature (if any) the viewer is
      * currently possessing, so it can bypass fog for the first-person view
      * and keep exploring the possessed creature's tile (§2/§6.9).

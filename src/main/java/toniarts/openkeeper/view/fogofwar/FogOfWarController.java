@@ -99,6 +99,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private final Set<Point> closedDoorTiles = new HashSet<>();
     private final Set<EntityId> seenEnemies = new HashSet<>();
     private final List<PendingHeartReveal> pendingHeartReveals = new ArrayList<>();
+    private final Set<Point> pendingTaggedTiles = new HashSet<>();
 
     private EntityId possessedCreature;
     private float visionUpdateAccumulator;
@@ -151,7 +152,44 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
         Set<Point> dirty = state.drainDirtyTiles();
         if (!dirty.isEmpty()) {
+            if (!pendingTaggedTiles.isEmpty()) {
+                // A tile that just became visible is no longer "pending" -
+                // its real selected state (server-authoritative) takes over
+                for (Point p : dirty) {
+                    if (isVisible(p)) {
+                        pendingTaggedTiles.remove(p);
+                    }
+                }
+            }
             onTilesDirty.accept(dirty.toArray(new Point[0]));
+        }
+    }
+
+    /**
+     * Local-only "looks tagged" overlay for still-unexplored tiles (§8.5,
+     * see {@link IFogOfWarInformation#isPendingTagged(Point)}). Called when
+     * the viewer drags a tag/dig selection over an area that may include
+     * unexplored tiles - already-visible tiles are left alone since their
+     * real selected state (from the server) already governs their look.
+     */
+    public void markPendingTagged(List<Point> points, boolean tagged) {
+        List<Point> changed = new ArrayList<>();
+        for (Point p : points) {
+            if (isVisible(p)) {
+                continue;
+            }
+            boolean wasPending = pendingTaggedTiles.contains(p);
+            if (tagged) {
+                pendingTaggedTiles.add(p);
+            } else {
+                pendingTaggedTiles.remove(p);
+            }
+            if (wasPending != tagged) {
+                changed.add(p);
+            }
+        }
+        if (!changed.isEmpty()) {
+            onTilesDirty.accept(changed.toArray(new Point[0]));
         }
     }
 
@@ -285,6 +323,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
      */
     public void seedLevelStart() {
         state.clearAll();
+        pendingTaggedTiles.clear();
         seedOwnedAndAlwaysExploredTiles();
         clearBorder();
         seedActionPoints();
@@ -453,6 +492,11 @@ public final class FogOfWarController implements IFogOfWarInformation {
             return true;
         }
         return kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
+    }
+
+    @Override
+    public boolean isPendingTagged(Point p) {
+        return !isVisible(p) && pendingTaggedTiles.contains(p);
     }
 
     private static final class PendingHeartReveal {
