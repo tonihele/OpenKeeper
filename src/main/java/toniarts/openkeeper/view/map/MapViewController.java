@@ -370,6 +370,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 // place (as below) would tint every other tile sharing the cached
                 // instance, not just this one. Clone it into a tile-private material
                 // before making any per-tile change.
+                // A geometry still associated with its page's BatchNode (already
+                // merged into a batch mesh) throws on setMaterial() - it must be
+                // ungrouped first. This can happen here even on a supposedly-fresh
+                // rebuild, so check unconditionally rather than assuming it never is.
+                if (geometry.isGrouped()) {
+                    geometry.unassociateFromGroupNode();
+                }
                 Material material = geometry.getMaterial().clone();
                 geometry.setMaterial(material);
 
