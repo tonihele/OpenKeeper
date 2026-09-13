@@ -340,7 +340,7 @@ public class PlayerTriggerControl extends TriggerControl {
             case REVEAL_ACTION_POINT: // AP part
                 ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
                 available = trigger.getUserData("available", short.class) != 0;
-                if (available) {
+                if (!available) {
                     mapController.revealTiles(ap.getPoints(), playerId);
                 } else {
                     mapController.concealTiles(ap.getPoints(), playerId);
