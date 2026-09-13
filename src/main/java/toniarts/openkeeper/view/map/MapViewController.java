@@ -106,6 +106,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final AssetManager assetManager;
     private final IMapInformation mapClientService;
     private final IFogOfWarInformation fogOfWarInformation;
+    private Terrain unexploredPlaceholderTerrain;
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
@@ -205,8 +206,54 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         return mapClientService.getMapData();
     }
 
+    /**
+     * Resolves the terrain to render for a tile. An unexplored tile always
+     * renders as generic, undifferentiated solid rock - regardless of what
+     * it actually is - matching the classic Dungeon Keeper look: what you
+     * haven't dug into yet reads as plain rock, diggable like any other,
+     * until you actually reveal it.
+     */
     private Terrain getTerrain(IMapTileInformation tile) {
+        if (!fogOfWarInformation.isVisible(tile.getLocation())) {
+            Terrain placeholder = getUnexploredPlaceholderTerrain();
+            if (placeholder != null) {
+                return placeholder;
+            }
+        }
         return kwdFile.getTerrain(tile.getTerrainId());
+    }
+
+    private Terrain getUnexploredPlaceholderTerrain() {
+        if (unexploredPlaceholderTerrain == null) {
+            unexploredPlaceholderTerrain = findUnexploredPlaceholderTerrain();
+        }
+        return unexploredPlaceholderTerrain;
+    }
+
+    /**
+     * Finds the plain, undug rock terrain (solid, not ownable, not
+     * impenetrable, not a room, no gold) to stand in for anything unexplored.
+     */
+    private Terrain findUnexploredPlaceholderTerrain() {
+        Terrain fallback = null;
+        for (Terrain candidate : kwdFile.getTerrainList()) {
+            if (!candidate.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.WATER)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.LAVA)
+                    || candidate.getGoldValue() > 0) {
+                continue;
+            }
+            if (fallback == null) {
+                fallback = candidate;
+            }
+            if ("rock".equalsIgnoreCase(candidate.getName())) {
+                return candidate;
+            }
+        }
+        return fallback;
     }
 
     /**
@@ -410,13 +457,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 getMapData().getTile(p.x - 1, p.y); // WEST
         };
 
-        // Check for out of bounds, and treat a non-visible neighbour the same way:
-        // its side is not built, which is what makes the frontier of the explored
-        // area read as solid faces (fog-of-war design §8.2)
-        if (neigbourTile == null || !fogOfWarInformation.isVisible(neigbourTile.getLocation())) {
+        // Check for out of bounds
+        if (neigbourTile == null) {
             return loadModel(modelName, artResource);
         }
 
+        // getTerrain() already substitutes the generic rock placeholder for an
+        // unexplored neighbour, so it reads as SOLID here exactly like real rock would
         if (getTerrain(neigbourTile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             return null;
         }
@@ -505,12 +552,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void handleTile(IMapTileInformation tile, Node root) {
 
-        // Unexplored areas are void, not "rock" - no geometry at all (fog-of-war design §8.2)
-        if (!fogOfWarInformation.isVisible(tile.getLocation())) {
-            return;
-        }
-
-        // Get the terrain
+        // Get the terrain (an unexplored tile substitutes plain rock here, see getTerrain())
         Terrain terrain = getTerrain(tile);
         Point p = tile.getLocation();
         Node pageNode = getPageNode(p, root);
