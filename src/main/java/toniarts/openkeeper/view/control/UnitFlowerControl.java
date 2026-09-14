@@ -295,7 +295,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         entity.applyChanges();
 
         if (!isEnabled() && unitSpatial != null && isPersistentVisibilityRequired()) {
-            show();
+            show(DISPLAY_SECONDS);
         }
 
         super.update(tpf);
