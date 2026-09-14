@@ -295,7 +295,9 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         entity.applyChanges();
 
         if (!isEnabled() && unitSpatial != null && isPersistentVisibilityRequired()) {
-            show(DISPLAY_SECONDS);
+            // This is the jMonkeyEngine scene-control update, not an AWT component call.
+            // skipcq: JAVA-W1062
+            show();
         }
 
         super.update(tpf);
