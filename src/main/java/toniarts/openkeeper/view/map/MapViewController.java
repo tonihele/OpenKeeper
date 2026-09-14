@@ -112,6 +112,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final IMapInformation mapClientService;
     private final IFogOfWarInformation fogOfWarInformation;
     private Terrain unexploredPlaceholderTerrain;
+    private Terrain impenetrableRockTerrain;
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
@@ -211,11 +212,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * renders as generic, undifferentiated solid rock - regardless of what
      * it actually is - matching the classic Dungeon Keeper look: what you
      * haven't dug into yet reads as plain rock, diggable like any other,
-     * until you actually reveal it.
+     * until you actually reveal it. The outermost row/column of the map is
+     * the exception: it's always the unbreakable map edge, so it renders as
+     * genuine impenetrable rock rather than the diggable placeholder, even
+     * while unexplored.
      */
     private Terrain getTerrain(IMapTileInformation tile) {
         if (!fogOfWarInformation.isVisible(tile.getLocation())) {
-            Terrain placeholder = getUnexploredPlaceholderTerrain();
+            Terrain placeholder = isMapBorder(tile.getLocation())
+                    ? getImpenetrableRockTerrain()
+                    : getUnexploredPlaceholderTerrain();
             if (placeholder != null) {
                 return placeholder;
             }
@@ -223,11 +229,43 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         return kwdFile.getTerrain(tile.getTerrainId());
     }
 
+    private boolean isMapBorder(Point p) {
+        return p.x == 0 || p.y == 0
+                || p.x == getMapData().getWidth() - 1 || p.y == getMapData().getHeight() - 1;
+    }
+
     private Terrain getUnexploredPlaceholderTerrain() {
         if (unexploredPlaceholderTerrain == null) {
             unexploredPlaceholderTerrain = findUnexploredPlaceholderTerrain();
         }
         return unexploredPlaceholderTerrain;
+    }
+
+    private Terrain getImpenetrableRockTerrain() {
+        if (impenetrableRockTerrain == null) {
+            impenetrableRockTerrain = findImpenetrableRockTerrain();
+        }
+        return impenetrableRockTerrain;
+    }
+
+    /**
+     * Finds the impenetrable rock terrain, used unconditionally for the
+     * unexplored map border (see {@link #getTerrain}).
+     */
+    private Terrain findImpenetrableRockTerrain() {
+        Terrain fallback = null;
+        for (Terrain candidate : kwdFile.getTerrainList()) {
+            if (!candidate.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                continue;
+            }
+            if (fallback == null) {
+                fallback = candidate;
+            }
+            if ("impenetrable rock".equalsIgnoreCase(candidate.getName())) {
+                return candidate;
+            }
+        }
+        return fallback;
     }
 
     /**
