@@ -1002,7 +1002,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
         if (roomConstructor != null) {
-            return roomConstructor.construct();
+            return roomConstructor.construct(fogOfWarInformation);
         }
         return null;
     }
