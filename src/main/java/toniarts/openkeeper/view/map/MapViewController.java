@@ -117,6 +117,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Set<Point> flashedTiles = new HashSet<>();
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
+    private Spatial waterSurface; // Currently attached merged water mesh, if any
+    private Spatial lavaSurface; // Currently attached merged lava mesh, if any
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
@@ -191,15 +193,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         map.attachChild(terrain);
 
-        // Create the water
-        if (!waterBatches.isEmpty()) {
-            map.attachChild(Water.construct(assetManager, waterBatches));
-        }
-
-        // And the lava
-        if (!lavaBatches.isEmpty()) {
-            map.attachChild(Water.construct(assetManager, lavaBatches));
-        }
+        // Create the water and lava surfaces
+        refreshWaterAndLavaSurfaces(true, true);
 
         long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000L;
         logger.log(Level.INFO, "Map {0} loaded in {1} ms", new Object[]{object.getGameLevel().getName(), loadTimeMs});
@@ -268,6 +263,35 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
+     * (Re)builds the merged water and/or lava surface mesh from the current
+     * {@link #waterBatches}/{@link #lavaBatches} and attaches it, replacing
+     * whatever was attached before. {@code Water.construct(...)} merges an
+     * entire batch list into one mesh, so this must re-run in full whenever
+     * fog reveals a new batch (see {@link #findTerrainBatch}) - there's no
+     * incremental variant to append to.
+     */
+    private void refreshWaterAndLavaSurfaces(boolean waterChanged, boolean lavaChanged) {
+        if (waterChanged) {
+            waterSurface = replaceSurface(waterSurface, waterBatches);
+        }
+        if (lavaChanged) {
+            lavaSurface = replaceSurface(lavaSurface, lavaBatches);
+        }
+    }
+
+    private Spatial replaceSurface(Spatial oldSurface, List<EntityInstance<Terrain>> batches) {
+        if (oldSurface != null) {
+            oldSurface.removeFromParent();
+        }
+        if (batches.isEmpty()) {
+            return null;
+        }
+        Spatial surface = Water.construct(assetManager, batches);
+        map.attachChild(surface);
+        return surface;
+    }
+
+    /**
      * Update the selected tiles (and neighbouring tiles if needed)
      *
      * @param points tile coordinates to update
@@ -302,6 +326,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         // Reconstruct all tiles in the area
+        int waterBatchesBefore = waterBatches.size();
+        int lavaBatchesBefore = lavaBatches.size();
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : pointsToUpdate) {
@@ -337,6 +363,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         for (BatchNode batchNode : nodesNeedBatching) {
             batchNode.batch();
         }
+
+        // A newly fog-revealed water/lava batch needs its merged surface rebuilt
+        refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
+                lavaBatches.size() != lavaBatchesBefore);
     }
 
     /**
