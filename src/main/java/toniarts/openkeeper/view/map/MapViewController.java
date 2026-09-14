@@ -683,9 +683,23 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
         spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
         spatial.rotate(0, angleY, 0);
-        spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
+        Vector3f intendedLocalPos = WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position);
+        spatial.setLocalTranslation(intendedLocalPos);
 
-        ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        Node parent = (Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX));
+        // This tile node can still carry a translation left over from when this
+        // exact tile was rendered as SOLID (either genuinely solid terrain, or -
+        // just as often - the unexplored fog-rock placeholder while this tile
+        // hadn't been explored yet): handleSide() positions a solid tile's wall
+        // geometry by translating the WHOLE tile node via
+        // AssetUtils.translateToTile(), not by offsetting the geometry itself.
+        // A torch is only ever placed once this host tile is confirmed non-solid
+        // (real floor terrain), and fog exploration is sticky - it will never
+        // become solid again - so it's safe, and necessary, to zero that out
+        // before attaching anything positioned in absolute (tile.getLocation())
+        // terms here, or the tile's own offset ends up applied twice.
+        parent.setLocalTranslation(Vector3f.ZERO);
+        parent.attachChild(spatial);
     }
 
     private Terrain getTorchTerrain(int x, int y) {
@@ -695,7 +709,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         Terrain terrain = getTerrain(tile);
         return terrain.getFlags().contains(Terrain.TerrainFlag.TORCH) ? terrain : null;
-
     }
 
     private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
