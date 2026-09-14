@@ -74,6 +74,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
@@ -327,7 +328,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             // Tile tooltip then
             p = selectionHandler.getPointedTileIndex();
             IMapTileInformation tile = mapInformation.getMapData().getTile(p);
-            if (tile != null) {
+            IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
+            if (tile != null && fogOfWarInformation != null && !fogOfWarInformation.isExplored(p)) {
+                tooltip.setText(Utils.getMainTextResourceBundle().getString("348"));
+            } else if (tile != null) {
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                     tooltip.setText(getRoomTooltip(tile, terrain));
