@@ -37,7 +37,6 @@ public final class FlashTileControl extends Control {
     private float time;
     private List<Point> points;
     private short playerId;
-    private IMapController mapController;
 
     public FlashTileControl() {
     }
@@ -51,7 +50,7 @@ public final class FlashTileControl extends Control {
     @Override
     protected void updateControl(float tpf) {
         if (time < 0) {
-            mapController.unFlashTiles(points, playerId);
+            ((IMapController) parent).unFlashTiles(points, playerId);
             parent.removeControl(this);
 
             return;
