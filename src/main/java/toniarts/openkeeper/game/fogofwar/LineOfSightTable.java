@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.fogofwar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -51,18 +53,18 @@ public final class LineOfSightTable {
         }
     }
 
-    private final Offset[] offsets;
+    private final List<Offset> offsets;
     private final int maxRadius;
 
     private LineOfSightTable(Offset[] offsets, int maxRadius) {
-        this.offsets = offsets;
+        this.offsets = Collections.unmodifiableList(Arrays.asList(offsets));
         this.maxRadius = maxRadius;
     }
 
     /**
      * @return the offsets, sorted by ascending distance from the centre
      */
-    public Offset[] getOffsets() {
+    public List<Offset> getOffsets() {
         return offsets;
     }
 

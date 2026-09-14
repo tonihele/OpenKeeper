@@ -124,11 +124,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
 
-    public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
     }
 
-    public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId) {
         this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, true);
     }

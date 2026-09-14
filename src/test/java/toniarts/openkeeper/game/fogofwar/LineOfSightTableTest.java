@@ -63,12 +63,12 @@ class LineOfSightTableTest {
     void generationIsDeterministic() {
         LineOfSightTable a = LineOfSightTable.generate(5);
         LineOfSightTable b = LineOfSightTable.generate(5);
-        assertEquals(a.getOffsets().length, b.getOffsets().length);
-        for (int i = 0; i < a.getOffsets().length; i++) {
-            assertEquals(a.getOffsets()[i].dx, b.getOffsets()[i].dx);
-            assertEquals(a.getOffsets()[i].dy, b.getOffsets()[i].dy);
-            assertEquals(a.getOffsets()[i].angleStart, b.getOffsets()[i].angleStart);
-            assertEquals(a.getOffsets()[i].angleEnd, b.getOffsets()[i].angleEnd);
+        assertEquals(a.getOffsets().size(), b.getOffsets().size());
+        for (int i = 0; i < a.getOffsets().size(); i++) {
+            assertEquals(a.getOffsets().get(i).dx, b.getOffsets().get(i).dx);
+            assertEquals(a.getOffsets().get(i).dy, b.getOffsets().get(i).dy);
+            assertEquals(a.getOffsets().get(i).angleStart, b.getOffsets().get(i).angleStart);
+            assertEquals(a.getOffsets().get(i).angleEnd, b.getOffsets().get(i).angleEnd);
         }
     }
 }
