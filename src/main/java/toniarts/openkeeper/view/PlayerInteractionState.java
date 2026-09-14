@@ -324,43 +324,40 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
             interactiveControl.onHover(player.getPlayerId());
         } else if (isOnMap) {
-
-            // Tile tooltip then
             p = selectionHandler.getPointedTileIndex();
-            IMapTileInformation tile = mapInformation.getMapData().getTile(p);
-            IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
-            if (tile != null && fogOfWarInformation != null && !fogOfWarInformation.isExplored(p)) {
-                tooltip.setText(Utils.getMainTextResourceBundle().getString("348"));
-            } else if (tile != null) {
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    tooltip.setText(getRoomTooltip(tile, terrain));
-                } else {
-                    tooltip.setText(textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
-                }
-            } else {
-                tooltip.setText("");
-            }
+            tooltip.setText(getTileTooltip(p));
         }
 
         // If debug, show tile coordinate
         if (Main.isDebug() && (interactiveControl != null || isOnMap)) {
-            StringBuilder sb = new StringBuilder();
             if (interactiveControl != null) {
                 p = WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             }
-            sb.append("(");
-            sb.append(p.x + 1);  // 1-based coordinates
-            sb.append(", ");
-            sb.append(p.y + 1);  // 1-based coordinates
-            sb.append("): ");
-            sb.append(tooltip.getText());
-            tooltip.setText(sb.toString());
+            tooltip.setText(getDebugTooltip(p, tooltip.getText()));
         }
 
         return interactiveControl != null
                 && (interactiveControl.isPickable(player.getPlayerId())
                 || interactiveControl.isInteractable(player.getPlayerId()));
+    }
+
+    private String getTileTooltip(Point p) {
+        IMapTileInformation tile = mapInformation.getMapData().getTile(p);
+        if (tile == null) {
+            return "";
+        }
+
+        IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
+        if (fogOfWarInformation != null && !fogOfWarInformation.isExplored(p)) {
+            return Utils.getMainTextResourceBundle().getString("348");
+        }
+
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return getRoomTooltip(tile, terrain);
+        }
+
+        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
@@ -374,6 +371,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey),
                 tile.getRoomId(), gameClientState.getPlayer(tile.getOwnerId()));
+    }
+
+    private static String getDebugTooltip(Point p, String tooltipText) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        sb.append(p.x + 1);  // 1-based coordinates
+        sb.append(", ");
+        sb.append(p.y + 1);  // 1-based coordinates
+        sb.append("): ");
+        sb.append(tooltipText);
+        return sb.toString();
     }
 
     private void updateInteractiveObjectOnCursor() {
