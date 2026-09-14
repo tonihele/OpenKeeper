@@ -28,8 +28,11 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -352,13 +355,13 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
         object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
-        applyFogCullHint(object, e, true);
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
         DoorViewState viewState = e.get(DoorViewState.class);
         object.getControl(DoorViewControl.class).setTargetState(viewState);
-        applyFogCullHint(object, e, true);
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
     private void updateObjectModelState(Spatial object, Entity e) {
@@ -374,7 +377,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
-        applyFogCullHint(object, e, viewState.visible);
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
     }
 
     /**
@@ -383,13 +386,44 @@ public class PlayerEntityViewState extends AbstractAppState {
      * codebase's creature/object/door/trap data, so this applies uniformly,
      * with no exceptions.
      */
-    private void applyFogCullHint(Spatial object, Entity e, boolean baseVisible) {
+    private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
         boolean visible = baseVisible;
         if (visible) {
-            Point tile = WorldUtils.vectorToPoint(e.get(Position.class).position);
             visible = fogOfWarInformation.isVisible(tile);
         }
         object.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+    }
+
+    /**
+     * Fog-of-war state isn't an entity component, so a tile transitioning
+     * between explored/unexplored produces no {@link Position}/view-state
+     * component change on the (typically stationary) entities standing on
+     * it - the normal {@code updateObject*} paths above, which only run on
+     * such a change, would otherwise never re-run for them. This is called
+     * whenever fog notifies of newly-dirty tiles (mirroring how
+     * {@code MapViewController} re-derives terrain for the same tiles) to
+     * directly re-evaluate cull hint for every currently-tracked entity
+     * sitting on one of them.
+     */
+    public void onTilesDirty(Point[] points) {
+        if (points.length == 0 || entityViewControls.isEmpty()) {
+            return;
+        }
+        Set<Point> dirty = new HashSet<>(Arrays.asList(points));
+        for (Map.Entry<EntityId, IEntityViewControl> entry : entityViewControls.entrySet()) {
+            EntityId id = entry.getKey();
+            Position position = entityData.getComponent(id, Position.class);
+            if (position == null) {
+                continue;
+            }
+            Point tile = WorldUtils.vectorToPoint(position.position);
+            if (!dirty.contains(tile)) {
+                continue;
+            }
+            ObjectViewState objectViewState = entityData.getComponent(id, ObjectViewState.class);
+            boolean baseVisible = objectViewState == null || objectViewState.visible;
+            applyFogCullHint(entry.getValue().getSpatial(), tile, baseVisible);
+        }
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -534,7 +568,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
-            applyFogCullHint(object, e, true);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
         }
 
         @Override

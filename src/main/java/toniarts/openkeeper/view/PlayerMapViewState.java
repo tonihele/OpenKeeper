@@ -275,6 +275,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         fogOfWarController.setPossessedCreature(entityId);
     }
 
+    public void addFogOfWarTilesDirtyListener(Consumer<Point[]> listener) {
+        fogOfWarController.addTilesDirtyListener(listener);
+    }
+
     private void updateTiles(Point[] points) {
         if (!mapLoaded) {
             pendingTileUpdates.addAll(Arrays.asList(points));

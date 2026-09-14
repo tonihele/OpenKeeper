@@ -101,6 +101,8 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private final List<PendingHeartReveal> pendingHeartReveals = new ArrayList<>();
     private final Set<Point> pendingTaggedTiles = new HashSet<>();
 
+    private final List<Consumer<Point[]>> additionalTilesDirtyListeners = new ArrayList<>();
+
     private EntityId possessedCreature;
     private float visionUpdateAccumulator;
 
@@ -116,6 +118,24 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
         this.state = new FogState(viewerId, mapData.getWidth(), mapData.getHeight());
         this.losTable = LineOfSightTable.generate(7);
+    }
+
+    /**
+     * Registers an additional listener for tile-visibility changes, alongside
+     * the one passed to the constructor. Used to keep things other than the
+     * terrain (e.g. the entities standing on a tile) in sync with fog state,
+     * without those things having to poll {@link #isVisible(Point)}
+     * themselves.
+     */
+    public void addTilesDirtyListener(Consumer<Point[]> listener) {
+        additionalTilesDirtyListeners.add(listener);
+    }
+
+    private void fireTilesDirty(Point[] points) {
+        onTilesDirty.accept(points);
+        for (Consumer<Point[]> listener : additionalTilesDirtyListeners) {
+            listener.accept(points);
+        }
     }
 
     public void start() {
@@ -161,7 +181,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
                     }
                 }
             }
-            onTilesDirty.accept(dirty.toArray(new Point[0]));
+            fireTilesDirty(dirty.toArray(new Point[0]));
         }
     }
 
@@ -189,7 +209,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
             }
         }
         if (!changed.isEmpty()) {
-            onTilesDirty.accept(changed.toArray(new Point[0]));
+            fireTilesDirty(changed.toArray(new Point[0]));
         }
     }
 
@@ -330,7 +350,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
         Set<Point> dirty = state.drainDirtyTiles();
         if (!dirty.isEmpty()) {
-            onTilesDirty.accept(dirty.toArray(new Point[0]));
+            fireTilesDirty(dirty.toArray(new Point[0]));
         }
     }
 
@@ -400,7 +420,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
         Set<Point> dirty = state.drainDirtyTiles();
         if (!dirty.isEmpty()) {
-            onTilesDirty.accept(dirty.toArray(new Point[0]));
+            fireTilesDirty(dirty.toArray(new Point[0]));
         }
     }
 
