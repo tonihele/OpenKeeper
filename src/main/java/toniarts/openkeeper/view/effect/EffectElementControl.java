@@ -64,7 +64,7 @@ public abstract class EffectElementControl extends AbstractControl {
         effect = null;
     }
 
-    public EffectElementControl(EffectElement effect, int spinRateRange) {
+    protected EffectElementControl(EffectElement effect, int spinRateRange) {
         this.effect = effect;
         initiazize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
                 EffectControl.randomSpinRate(spinRateRange));
@@ -77,7 +77,7 @@ public abstract class EffectElementControl extends AbstractControl {
      * element's own spin rates over to its replacement instead of rerolling
      * them.
      */
-    public EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ) {
+    protected EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ) {
         this.effect = effect;
         initiazize(spinX, spinY, spinZ);
     }
