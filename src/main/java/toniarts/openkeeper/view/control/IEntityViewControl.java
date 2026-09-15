@@ -102,6 +102,16 @@ public interface IEntityViewControl<T, S> extends Control {
     public void slap(short playerId);
 
     /**
+     * Get the effect ID to play when the control is slapped
+     *
+     * @param playerId the player who wants to slap
+     * @return the effect ID, or 0 if none
+     */
+    public default int getSlapEffectId(short playerId) {
+        return 0;
+    }
+
+    /**
      * Get the in hand cursor
      *
      * @return cursor type when the control is held by the keeper

@@ -72,6 +72,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
@@ -583,8 +584,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                                keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
 //                                updateCursor();
 //                            }
-                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
+                        } else if (interactiveControl != null && interactiveControl.isSlappable(player.getPlayerId())) {
 //                            getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
+                            gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
+                            interactiveControl.slap(player.getPlayerId());
+                            stateManager.getState(EffectManagerState.class).load(
+                                    (Node) interactiveControl.getSpatial().getParent(),
+                                    interactiveControl.getSpatial().getWorldTranslation(),
+                                    interactiveControl.getSlapEffectId(player.getPlayerId()), false);
+                        } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                             gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                             interactiveControl.interact(player.getPlayerId());
                         } else if (Main.isDebug()) {

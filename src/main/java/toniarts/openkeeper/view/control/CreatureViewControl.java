@@ -96,6 +96,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     @Override
+    public int getSlapEffectId(short playerId) {
+        return getDataObject().getSlapEffectId();
+    }
+
+    @Override
     public ArtResource getInHandIcon() {
         return getDataObject().getIcon1Resource();
     }

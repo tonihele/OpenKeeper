@@ -27,6 +27,7 @@ import toniarts.openkeeper.tools.convert.map.EffectElement;
 import java.lang.System.Logger;
 
 import static toniarts.openkeeper.view.effect.EffectControl.calculateVelocity;
+import static toniarts.openkeeper.view.effect.EffectControl.getGravity;
 
 /**
  *
@@ -58,7 +59,7 @@ public abstract class EffectElementControl extends AbstractControl {
     }
 
     private void initiazize() {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMaxHp(), effect.getMaxHp());
+        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 10f;
 
         velocity = calculateVelocity(effect);
         //height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
@@ -114,7 +115,7 @@ public abstract class EffectElementControl extends AbstractControl {
         }
 
         if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * tpf;
+            velocity.y -= effect.getMass() * getGravity() * tpf;
         }
 
         if (isHit()) {

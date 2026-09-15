@@ -31,9 +31,14 @@ import java.lang.System.Logger;
  * @author ArchDemon
  */
 public abstract class EffectControl extends AbstractControl {
-    
+
     private static final Logger log = System.getLogger(EffectControl.class.getName());
-    
+
+    /**
+     * Earth gravity in m/s^2, applied to effects in proportion to their mass.
+     */
+    private static float gravity = 9.81f;
+
     private Effect effect;
 
     private float hpCurrent;
@@ -56,7 +61,7 @@ public abstract class EffectControl extends AbstractControl {
     }
 
     private void initiazize() {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMaxHp(), effect.getMaxHp());
+        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 10f;
 
         velocity = calculateVelocity(effect);
         height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
@@ -74,6 +79,14 @@ public abstract class EffectControl extends AbstractControl {
             scale = new FloatLimit(effect.getMinScale() + FastMath.nextRandomFloat() * (effect.getMaxScale() - effect.getMinScale()));
             scaleRatio = 0;
         }
+    }
+
+    public static float getGravity() {
+        return gravity;
+    }
+
+    public static void setGravity(float gravity) {
+        EffectControl.gravity = gravity;
     }
 
     public static Vector3f calculateVelocity(IEffect speed) {
@@ -150,7 +163,7 @@ public abstract class EffectControl extends AbstractControl {
         }
 
         if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * tpf;
+            velocity.y -= effect.getMass() * gravity * tpf;
         }
 
         if (isHit()) {
@@ -160,8 +173,7 @@ public abstract class EffectControl extends AbstractControl {
             spatial.removeControl(this);
         }
 
-        //hpCurrent -= 1.0f / 4; // FIXME
-        hpCurrent -= tpf * 4; // FIXME
+        hpCurrent -= tpf;
         if (hpCurrent <= 0) {
             onDie(spatial.getLocalTranslation());
             spatial.removeFromParent();
