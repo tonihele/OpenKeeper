@@ -1800,8 +1800,8 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             effectElement.setMaxHp(reader.readUnsignedShort());
             effectElement.setDeathElementId(reader.readUnsignedShort());
             effectElement.setHitSolidElementId(reader.readUnsignedShort());
-            effectElement.setHitWaterElementId(reader.readUnsignedShort());
             effectElement.setHitLavaElementId(reader.readUnsignedShort());
+            effectElement.setHitWaterElementId(reader.readUnsignedShort());
             effectElement.setColor(readColor(reader));
             effectElement.setRandomColorIndex(reader.readUnsignedByte());
             effectElement.setTableColorIndex(reader.readUnsignedByte());
@@ -1859,8 +1859,8 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             effect.setNextEffectId(reader.readUnsignedShort());
             effect.setDeathEffectId(reader.readUnsignedShort());
             effect.setHitSolidEffectId(reader.readUnsignedShort());
-            effect.setHitWaterEffectId(reader.readUnsignedShort());
             effect.setHitLavaEffectId(reader.readUnsignedShort());
+            effect.setHitWaterEffectId(reader.readUnsignedShort());
             List<Integer> generateIds = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 int id = reader.readUnsignedShort();

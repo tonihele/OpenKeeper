@@ -244,6 +244,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                     effectManager.load(worldNode,
                             WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
                             oldTerrain.getMaxHealthEffectId(), false);
+                } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                            oldTerrain.getDestroyedEffectId(), false);
                 }
                 lastTerrainIds[point.x][point.y] = newTerrainId;
             }

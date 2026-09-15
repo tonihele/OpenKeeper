@@ -59,7 +59,7 @@ public abstract class EffectElementControl extends AbstractControl {
     }
 
     private void initiazize() {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 10f;
+        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
         //height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
@@ -92,15 +92,15 @@ public abstract class EffectElementControl extends AbstractControl {
         }
 
         if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-            scale.sub(scaleRatio);
+            scale.sub(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         } else if (effect.getFlags().contains(EffectElement.EffectElementFlag.EXPAND)) {
-            scale.add(scaleRatio);
+            scale.add(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         }
 
         if (velocity != Vector3f.ZERO) {
-            Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity);
+            Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
             if (location.y > height) {
                 location.y = height;
             }

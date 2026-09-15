@@ -281,8 +281,8 @@ public class VisualEffect {
                 emitter.setFacingVelocity(element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
                 //
                 emitter.setGravity(0, element.getMass() * element.getAirFriction(), 0);
-                emitter.setLowLife(element.getMinHp() / 10f);
-                emitter.setHighLife(element.getMaxHp() / 10f);
+                emitter.setLowLife(element.getMinHp() / 20f);
+                emitter.setHighLife(element.getMaxHp() / 20f);
                 //
                 float delta = Math.max((element.getMaxSpeedXy() - element.getMinSpeedXy()) / (element.getMaxSpeedXy() + 1),
                         (element.getMaxSpeedYz() - element.getMinSpeedYz()) / (element.getMaxSpeedYz() + 1));

@@ -61,7 +61,7 @@ public abstract class EffectControl extends AbstractControl {
     }
 
     private void initiazize() {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 10f;
+        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
         height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
