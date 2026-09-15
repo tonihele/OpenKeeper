@@ -83,7 +83,7 @@ public class VisualEffect {
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
             effects = new ArrayList<>();
-            effectElements = HashMap.newHashMap(effect.getGenerateIds().size() * Math.max(1, effect.getElementsPerTurn()));
+            effectElements = HashMap.newHashMap(effect.getGenerateIds().size());
         } else {
             effects = new ArrayList<>(effect.getGenerateIds().size());
             effectElements = Collections.emptyMap();
@@ -193,10 +193,12 @@ public class VisualEffect {
 
         // Elements/effects
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
-            for (int i = 0; i < effect.getElementsPerTurn(); i++) {
-                for (Integer id : effect.getGenerateIds()) {
-                    addEffectElement(id, randomGenerationOffset());
-                }
+            // One call per id: loadElement() already builds an emitter sized
+            // for elementsPerTurn instances (ParticleEmitter's particle pool,
+            // or EffectEmitter.emitAllParticles()'s own internal loop) -
+            // looping elementsPerTurn times here too would square the count.
+            for (Integer id : effect.getGenerateIds()) {
+                addEffectElement(id, randomGenerationOffset());
             }
         } else if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
             for (int i = 0; i < effect.getElementsPerTurn(); i++) {
