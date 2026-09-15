@@ -50,14 +50,12 @@ public abstract class EffectElementControl extends AbstractControl {
 
     private float hpCurrent;
     private float hp;
-    private float height;
     private FloatLimit scale;
     private float scaleRatio;
     private Vector3f velocity;
     private float spinX;
     private float spinY;
     private float spinZ;
-    private float floorHeightLocal;
 
     /**
      * For serialization only. Do not use.
@@ -114,8 +112,6 @@ public abstract class EffectElementControl extends AbstractControl {
 
         if (spatial != null) {
             this.spatial.setLocalScale(scale.getValue());
-            floorHeightLocal = WorldUtils.FLOOR_HEIGHT
-                    - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
         }
     }
 
@@ -138,9 +134,20 @@ public abstract class EffectElementControl extends AbstractControl {
         }
 
         if (velocity != Vector3f.ZERO) {
+            // The parent chain's world Y offset, read before this frame's own
+            // translation change so it reflects the last fully-updated scene
+            // graph state (valid from the frame after the spatial is attached).
+            float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
+                    - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
             Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
-            if (location.y > height) {
-                location.y = height;
+
+            if (location.y < floorHeightLocal) {
+                float e = effect.getElasticity();
+                location.y = floorHeightLocal + (floorHeightLocal - location.y) * e;
+                velocity.x *= e;
+                velocity.z *= e;
+                velocity.y = -velocity.y * e;
+                spinX = spinY = spinZ = 0f;
             }
 
             spatial.setLocalTranslation(location);
