@@ -59,6 +59,19 @@ public final class CursorFactory {
         return cursors.get(cursor);
     }
 
+    /**
+     * The length of one full play-through of an animated cursor, for callers
+     * that want to show it once as a reaction (e.g. the slap cursor) and then
+     * revert rather than leaving it looping.
+     *
+     * @param cursor the cursor type
+     * @param assetManager the asset manager
+     * @return the animation duration in seconds
+     */
+    public static float getAnimationDuration(CursorType cursor, AssetManager assetManager) {
+        return getCursor(cursor, assetManager).getNumImages() * Cursor.DELAY / 1000f;
+    }
+
     private static void populateCursors(AssetManager assetManager) {
 
         Map<CursorType, JmeCursor> cursorsLocal = new HashMap<>(CursorType.values().length);
