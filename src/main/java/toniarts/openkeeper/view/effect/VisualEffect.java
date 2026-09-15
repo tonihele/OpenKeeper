@@ -201,10 +201,8 @@ public class VisualEffect {
                 addEffectElement(id, randomGenerationOffset());
             }
         } else if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
-            for (int i = 0; i < effect.getElementsPerTurn(); i++) {
-                for (Integer id : effect.getGenerateIds()) {
-                    addEffect(id, randomGenerationOffset());
-                }
+            for (Integer id : effect.getGenerateIds()) {
+                addEffect(id, randomGenerationOffset());
             }
         }
 
