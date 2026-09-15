@@ -132,6 +132,16 @@ public abstract class EffectEmitter extends Node {
         }
     }
 
+    /**
+     * Spawns exactly one instance at this emitter's own local origin,
+     * ignoring {@code elementsPerTurn} and CUBE_GEN placement - for
+     * MESH_COLLECTION debris, where the instance count is dictated by the
+     * group's part list rather than the effect's own generation parameters.
+     */
+    public void emitOne() {
+        spawnOne(false);
+    }
+
     private void spawnOne(boolean cubeGen) {
         Spatial s = spatial.clone();
         if (effect.getFlags().contains(Effect.EffectFlag.RANDOM_DISTRIBUTION)) {

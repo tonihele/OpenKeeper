@@ -28,6 +28,7 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -68,6 +69,13 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private boolean infinite;
     private PointLight light;
+    // Populated only for a MESH_COLLECTION effect (mesh_collection_effect.md):
+    // one entry per part in the .kmf group, read once at load() and spawned
+    // as debris regardless of the effect's own generation flags.
+    private List<MeshCollectionPart> meshCollectionParts;
+
+    private record MeshCollectionPart(String name, Vector3f offset) {
+    }
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Effect effect) {
         this(effectManagerState, node, null, effect, false);
@@ -108,6 +116,10 @@ public class VisualEffect {
             model = createEffectModel(resource);
             model.addControl(createEffectControl());
             effectNode.attachChild(model);
+
+            if (resource.getType() == ArtResourceType.MESH_COLLECTION) {
+                meshCollectionParts = loadMeshCollectionParts(resource);
+            }
         }
 
         // Light
@@ -118,6 +130,14 @@ public class VisualEffect {
 
         // Elements/effects
         generateChildren();
+
+        // A MESH_COLLECTION's parts break off regardless of the effect's own
+        // generation flags (mesh_collection_effect.md §4) - the group's own
+        // art is never rendered (see the MESH_COLLECTION case in
+        // createEffectModel), only the listed parts are.
+        if (meshCollectionParts != null) {
+            generateMeshCollectionParts();
+        }
 
         // The next effect is chaining the effects, they'll start immediately
         // TODO: probably start this after the effect is through!
@@ -136,6 +156,12 @@ public class VisualEffect {
 
             case PROCEDURAL_MESH:
                 model = AssetUtils.createProceduralMesh(resource);
+                break;
+
+            case MESH_COLLECTION:
+                // The group's own art is never rendered - only the parts
+                // spawned by generateMeshCollectionParts() are
+                // (mesh_collection_effect.md §4).
                 break;
 
             case ALPHA:
@@ -386,7 +412,22 @@ public class VisualEffect {
     }
 
     private EffectEmitter createMeshElement(EffectElement element, ArtResource resource) {
-        EffectEmitter emitter = new EffectEmitter(element, effect) {
+        EffectEmitter emitter = newEffectEmitter(element);
+
+        Node model;
+        if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
+            model = (Node) AssetUtils.createProceduralMesh(resource);
+        } else {
+            model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
+        }
+
+        applyMeshScaleOrAnimation(model, resource);
+        emitter.setSpatial(model);
+        return emitter;
+    }
+
+    private EffectEmitter newEffectEmitter(EffectElement element) {
+        return new EffectEmitter(element, effect) {
 
             @Override
             public void onDeath(Vector3f location) {
@@ -400,15 +441,62 @@ public class VisualEffect {
                 handleElementHit(element, location);
             }
         };
+    }
 
-        Node model;
-        if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
-            model = (Node) AssetUtils.createProceduralMesh(resource);
-        } else {
-            model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
+    /**
+     * Reads the {@code .kmf} group's part list - name and baked offset per
+     * part - from the pre-converted group asset (mesh_collection_effect.md
+     * §2-3). The group's own art is never rendered; only these parts are.
+     */
+    private List<MeshCollectionPart> loadMeshCollectionParts(ArtResource resource) {
+        Spatial group = AssetUtils.loadModel(assetManager, resource.getName(), resource);
+        if (!(group instanceof Node groupNode)) {
+            return Collections.emptyList();
         }
 
-        applyMeshScaleOrAnimation(model, resource);
+        List<MeshCollectionPart> parts = new ArrayList<>(groupNode.getQuantity());
+        for (Spatial child : groupNode.getChildren()) {
+            String partName = child.getUserData(KmfModelLoader.GROUP_PART_NAME);
+            if (partName != null) {
+                parts.add(new MeshCollectionPart(partName, child.getLocalTranslation()));
+            }
+        }
+        return parts;
+    }
+
+    /**
+     * Spawns one debris element per part in the group, all sharing the
+     * effect's first generation id (mesh_collection_effect.md §4: "the same
+     * element id, generateIds[0], for every part"). Unlike
+     * generateChildren(), this doesn't scatter parts randomly - each spawns
+     * at exactly the offset baked into the group - and runs regardless of
+     * the effect's own generation flags/elementsPerTurn.
+     */
+    private void generateMeshCollectionParts() {
+        List<Integer> generateIds = effect.getGenerateIds();
+        if (generateIds.isEmpty()) {
+            logger.log(Level.WARNING, "Mesh collection effect {0} has no generation id for its parts", effect.getName());
+            return;
+        }
+
+        EffectElement effectElement = kwdFile.getEffectElement(generateIds.get(0));
+        for (MeshCollectionPart part : meshCollectionParts) {
+            EffectEmitter emitter = createMeshCollectionPartElement(effectElement, part);
+            emitter.setLocalTranslation(part.offset());
+            effectElements.put(emitter, effectElement);
+            effectNode.attachChild(emitter);
+            emitter.emitOne();
+        }
+    }
+
+    private EffectEmitter createMeshCollectionPartElement(EffectElement element, MeshCollectionPart part) {
+        EffectEmitter emitter = newEffectEmitter(element);
+
+        // The part's mesh replaces whatever art the (typically art-less)
+        // debris element would otherwise have, forced to its exported scale
+        // rather than the element's own min/max scale roll.
+        Spatial model = AssetUtils.loadModel(assetManager, part.name(), null);
+        model.setLocalScale(1f);
         emitter.setSpatial(model);
         return emitter;
     }

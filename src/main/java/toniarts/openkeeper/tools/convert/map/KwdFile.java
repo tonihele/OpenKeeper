@@ -811,7 +811,8 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                 artResource.setData("unknown_2", reader.readUnsignedInteger());
                 break;
 
-            case MESH_COLLECTION: // FIXME nothing todo ?! has just the name, reference to GROP meshes probably
+            case MESH_COLLECTION: // The name refers to a GROP group; the group's own part list is
+                                   // read from that pre-converted asset, not from these fields
             case UNKNOWN:
                 artResource.setData("unknown_1", reader.readUnsignedInteger());
                 artResource.setData("unknown_2", reader.readUnsignedInteger());
