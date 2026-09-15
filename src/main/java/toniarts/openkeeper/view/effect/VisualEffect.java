@@ -56,7 +56,11 @@ public class VisualEffect {
     private static final Logger logger = System.getLogger(VisualEffect.class.getName());
 
     private final Effect effect;
-    private final Map<EffectElement, Spatial> effectElements;
+    // Keyed by the spawned spatial (unique per instance), not the shared
+    // EffectElement definition -- a burst spawns elementsPerTurn separate
+    // instances of the same element id, which would otherwise collide as
+    // map keys and orphan all but the last one (never cleaned up).
+    private final Map<Spatial, EffectElement> effectElements;
     private final List<VisualEffect> effects;
     private final Node effectNode;
     private final IKwdFile kwdFile;
@@ -79,7 +83,7 @@ public class VisualEffect {
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
             effects = new ArrayList<>();
-            effectElements = HashMap.newHashMap(effect.getGenerateIds().size());
+            effectElements = HashMap.newHashMap(effect.getGenerateIds().size() * Math.max(1, effect.getElementsPerTurn()));
         } else {
             effects = new ArrayList<>(effect.getGenerateIds().size());
             effectElements = Collections.emptyMap();
@@ -239,7 +243,7 @@ public class VisualEffect {
             if (location != null) {
                 emitter.setLocalTranslation(location);
             }
-            effectElements.put(effectElement, emitter);
+            effectElements.put(emitter, effectElement);
             effectNode.attachChild(emitter);
             if (emitter instanceof ParticleEmitter particleEmitter) {
                 particleEmitter.emitAllParticles();
@@ -416,11 +420,11 @@ public class VisualEffect {
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
 
         // Check the elements
-        Iterator<Entry<EffectElement, Spatial>> iter = effectElements.entrySet().iterator();
+        Iterator<Entry<Spatial, EffectElement>> iter = effectElements.entrySet().iterator();
         List<Integer> deathEffectElements = null;
         while (iter.hasNext()) {
-            Entry<EffectElement, Spatial> entry = iter.next();
-            Spatial value = entry.getValue();
+            Entry<Spatial, EffectElement> entry = iter.next();
+            Spatial value = entry.getKey();
             boolean depleted = (value instanceof ParticleEmitter particleEmitter && particleEmitter.getNumVisibleParticles() == 0)
                     || (value instanceof EffectEmitter effectEmitter && effectEmitter.getQuantity() == 0);
             if (depleted) {
@@ -430,11 +434,11 @@ public class VisualEffect {
                 iter.remove();
 
                 // Attach on death element
-                if (entry.getKey().getDeathElementId() != 0) {
+                if (entry.getValue().getDeathElementId() != 0) {
                     if (deathEffectElements == null) {
                         deathEffectElements = new ArrayList<>();
                     }
-                    deathEffectElements.add(entry.getKey().getDeathElementId());
+                    deathEffectElements.add(entry.getValue().getDeathElementId());
                 }
             }
         }
