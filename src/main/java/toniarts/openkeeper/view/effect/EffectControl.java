@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.effect;
 
 import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -108,6 +109,62 @@ public abstract class EffectControl extends AbstractControl {
 //
 //        return result;
 //    }
+
+    /**
+     * A random offset within the effect's spawn annulus/height band
+     * ({@code innerOriginRange}/{@code outerOriginRange},
+     * {@code lowerHeightLimit}/{@code upperHeightLimit}), used to scatter
+     * individually generated elements around the emission point instead of
+     * stacking them all at the same spot (a {@code CUBE_GEN} burst - see
+     * frontend_gems_effect.md §1.1).
+     */
+    public static Vector3f randomOriginOffset(Effect effect) {
+        float rMin = effect.getInnerOriginRange() * 23f / 4096f;
+        float rMax = effect.getOuterOriginRange() * 23f / 4096f;
+        float r = rMin + FastMath.nextRandomFloat() * (rMax - rMin);
+        float h = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+        float zMin = effect.getLowerHeightLimit() * 16f / 4096f;
+        float zMax = effect.getUpperHeightLimit() * 16f / 4096f;
+        float z = zMin + FastMath.nextRandomFloat() * (zMax - zMin);
+        return new Vector3f(-(float) Math.sin(h) * r, z, (float) Math.cos(h) * r);
+    }
+
+    /**
+     * A random value in the file's tick/turn unit, {@code range*4}
+     * peak-to-peak about zero (matches {@code spriteSpinRateRange} 32 ->
+     * ±128 and {@code orientationRange} 255 -> ±1020 in
+     * frontend_gems_effect.md), before conversion to radians (or radians/s
+     * for a per-tick rate).
+     */
+    public static float randomSpread(int range) {
+        float r = range * 8f;
+        return r == 0 ? 0f : FastMath.nextRandomFloat() * r - r / 2f;
+    }
+
+    /**
+     * A random per-axis spin rate in rad/s, converted from the file's
+     * 2048-per-turn, per-tick {@code spriteSpinRateRange} via the 20 Hz
+     * effect clock.
+     */
+    public static float randomSpinRate(int spinRateRange) {
+        return randomSpread(spinRateRange) * FastMath.TWO_PI / 2048f * 20f;
+    }
+
+    /**
+     * A random one-shot facing from the effect's {@code orientationRange}
+     * (2048-per-turn unit), rolled independently on all three axes and
+     * applied once at spawn.
+     */
+    public static Quaternion randomOrientation(int orientationRange) {
+        if (orientationRange == 0) {
+            return Quaternion.IDENTITY;
+        }
+        float toRad = FastMath.TWO_PI / 2048f;
+        return new Quaternion().fromAngles(
+                randomSpread(orientationRange) * toRad,
+                randomSpread(orientationRange) * toRad,
+                randomSpread(orientationRange) * toRad);
+    }
 
     @Override
     public void setSpatial(Spatial spatial) {

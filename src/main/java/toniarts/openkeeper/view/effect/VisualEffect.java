@@ -197,8 +197,14 @@ public class VisualEffect {
             // for elementsPerTurn instances (ParticleEmitter's particle pool,
             // or EffectEmitter.emitAllParticles()'s own internal loop) -
             // looping elementsPerTurn times here too would square the count.
+            // For CUBE_GEN, each of those instances rolls its own spot in the
+            // annulus/height band (EffectEmitter.spawnOne() /
+            // EmitterCubeGenShape), so the container itself stays at the
+            // effect's own origin instead of every instance in the burst
+            // stacking on one shared random point.
+            boolean cubeGen = effect.getGenerationType() == Effect.GenerationType.CUBE_GEN;
             for (Integer id : effect.getGenerateIds()) {
-                addEffectElement(id, randomGenerationOffset());
+                addEffectElement(id, cubeGen ? null : randomGenerationOffset());
             }
         } else if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
             for (Integer id : effect.getGenerateIds()) {
@@ -207,6 +213,7 @@ public class VisualEffect {
         }
 
         // The next effect is chaining the effects, they'll start immediately
+        // TODO: probably start this after the effect is through!
         if (effect.getNextEffectId() != 0) {
             addEffect(effect.getNextEffectId(), null);
         }
@@ -220,14 +227,7 @@ public class VisualEffect {
      * stacking them all at the same spot.
      */
     private Vector3f randomGenerationOffset() {
-        float rMin = effect.getInnerOriginRange() * 23f / 4096f;
-        float rMax = effect.getOuterOriginRange() * 23f / 4096f;
-        float r = rMin + FastMath.nextRandomFloat() * (rMax - rMin);
-        float h = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-        float zMin = effect.getLowerHeightLimit() * 16f / 4096f;
-        float zMax = effect.getUpperHeightLimit() * 16f / 4096f;
-        float z = zMin + FastMath.nextRandomFloat() * (zMax - zMin);
-        return new Vector3f(-(float) Math.sin(h) * r, z, (float) Math.cos(h) * r);
+        return EffectControl.randomOriginOffset(effect);
     }
 
     private void addEffect(Integer id, Vector3f location) {
@@ -261,9 +261,7 @@ public class VisualEffect {
     private Spatial loadElement(EffectElement element) {
         ArtResource resource = element.getArtResource();
 
-        if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
-            //emitter.setShape(new EmitterSphereShape(new Vector3f(), 1));
-        } else if (effect.getGenerationType() == Effect.GenerationType.NONE) {
+        if (effect.getGenerationType() == Effect.GenerationType.NONE) {
             return null;
         }
 
@@ -278,7 +276,22 @@ public class VisualEffect {
                 ParticleEmitter emitter = new ParticleEmitter(element.getName(),
                         ParticleMesh.Type.Triangle,
                         effect.getElementsPerTurn());
-                emitter.setParticlesPerSec(0);
+                if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
+                    // Scatter each particle's spawn point across the annulus/
+                    // height band instead of jME3's default emission point
+                    // (frontend_gems_effect.md §1.1).
+                    emitter.setShape(new EmitterCubeGenShape(effect));
+                }
+                if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
+                    // Self-perpetuating pool (frontend_gems_effect.md §3,
+                    // e.g. the front-end gems' sparkles): keep the pool
+                    // topped up forever via jME3's own continuous emission
+                    // instead of a single burst that fades away for good.
+                    float avgLifeSeconds = (element.getMinHp() + element.getMaxHp()) / 2f / 20f;
+                    emitter.setParticlesPerSec(effect.getElementsPerTurn() / avgLifeSeconds);
+                } else {
+                    emitter.setParticlesPerSec(0);
+                }
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 emitter.setMaterial(material);
                 emitter.setImagesX(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
@@ -415,6 +428,16 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if the effect has died
      */
     public boolean update(float tpf) {
+
+        if (effect.getCircularPathRate() != 0) {
+            // All the generated elements swirl together as one rigid group
+            // around the effect's own origin (frontend_gems_effect.md §3.1):
+            // since none of them carry independent velocity, rotating the
+            // whole effect node each tick is equivalent to rotating every
+            // element's position vector individually, and far simpler.
+            float rate = effect.getCircularPathRate() * FastMath.TWO_PI / 2048f * 20f;
+            effectNode.rotate(0, rate * tpf, 0);
+        }
 
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));

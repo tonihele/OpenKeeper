@@ -58,13 +58,17 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
@@ -74,6 +78,7 @@ import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Collections;
+import java.util.List;
 
 import static toniarts.openkeeper.Main.getDkIIFolder;
 import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
@@ -87,6 +92,13 @@ import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 public final class MainMenuState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(MainMenuState.class.getName());
+
+    /**
+     * {@code 3dfe Gems effect} - the swirl of tumbling gem shards + sparkles
+     * hovering in the front-end hero gate's gem holder. See
+     * frontend_gems_effect.md.
+     */
+    private static final int EFFECT_3DFE_GEMS = 350;
 
     protected Main app;
     protected Node rootNode;
@@ -115,6 +127,7 @@ public final class MainMenuState extends AbstractAppState {
     protected MapSelector mapSelector;
     private EntityData mainMenuEntityData;
     private MainMenuEntityViewState mainMenuEntityViewState;
+    private EffectManagerState effectManagerState;
     private GameController gameController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
@@ -187,8 +200,42 @@ public final class MainMenuState extends AbstractAppState {
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
 
+        // Effects (currently just the hero gate's gem holder swirl)
+        effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        app.getStateManager().attach(effectManagerState);
+        spawnGemHolderEffect();
+
         // Init the skirmish and multiplayer maps selector
         mapSelector = new MapSelector();
+    }
+
+    /**
+     * Spawns the front-end hero gate's gem holder effect (350
+     * {@code 3dfe Gems effect}, frontend_gems_effect.md) at the room's gem
+     * holder tile - the room's 2nd coordinate, matching both
+     * {@code HeroGateFrontEndController}'s object placement and
+     * {@code HeroGateFrontEndConstructor}'s static {@code 3dfe_beams} model,
+     * which both key off the same tile index. Hardcoded like the original
+     * {@code HeroGateFrontEnd_cpp_tick}, which spawns these two specific
+     * effect ids directly rather than through a generic per-room effect
+     * list.
+     */
+    private void spawnGemHolderEffect() {
+        for (IRoomController room : gameController.getGameWorldController().getMapController().getRoomControllers()) {
+            if (room.getRoomInstance().getRoom().getTileConstruction() != Room.TileConstruction.HERO_GATE_FRONT_END) {
+                continue;
+            }
+
+            List<Point> coordinates = room.getRoomInstance().getCoordinates();
+            if (coordinates.size() > 1) {
+                // Effect 350 sits half a tile further than the gem holder's
+                // own tile centre (frontend_gems_effect.md §2.3).
+                Vector3f location = WorldUtils.pointToVector3f(coordinates.get(1))
+                        .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f);
+                effectManagerState.load(menuNode, location, EFFECT_3DFE_GEMS, true);
+            }
+            return;
+        }
     }
 
     @Override
@@ -241,6 +288,11 @@ public final class MainMenuState extends AbstractAppState {
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
+        }
+
+        if (effectManagerState != null) {
+            stateManager.detach(effectManagerState);
+            effectManagerState = null;
         }
 
         // Clear sound

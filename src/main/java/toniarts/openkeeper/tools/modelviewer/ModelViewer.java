@@ -540,7 +540,7 @@ public final class ModelViewer extends SimpleApplication {
                 effectManagerState.setEnabled(true);
                 // Load the selected effect
                 effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0),
-                        effect.getEffectId(), true);
+                        effect.getEffectId(), false);
                 setupModel(spat, false);
 
                 screen.setupItem(effect, null);

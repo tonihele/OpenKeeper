@@ -46,7 +46,6 @@ public abstract class EffectElementControl extends AbstractControl {
     private static final float GRAVITY_FACTOR = 25f;
 
     private final EffectElement effect;
-    private final int spinRateRange;
 
     private float hpCurrent;
     private float hp;
@@ -63,24 +62,34 @@ public abstract class EffectElementControl extends AbstractControl {
     public EffectElementControl() {
         super();
         effect = null;
-        spinRateRange = 0;
     }
 
     public EffectElementControl(EffectElement effect, int spinRateRange) {
         this.effect = effect;
-        this.spinRateRange = spinRateRange;
-        initiazize();
+        initiazize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
+                EffectControl.randomSpinRate(spinRateRange));
     }
 
-    private void initiazize() {
+    /**
+     * Re-initializes a single burst element with a spin already rolled
+     * elsewhere - used for an in-place {@code deathElementId == self}
+     * respawn (frontend_gems_effect.md §3), which carries the dying
+     * element's own spin rates over to its replacement instead of rerolling
+     * them.
+     */
+    public EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ) {
+        this.effect = effect;
+        initiazize(spinX, spinY, spinZ);
+    }
+
+    private void initiazize(float spinX, float spinY, float spinZ) {
         hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
 
-        float r = spinRateRange * 8f;
-        spinX = randSpin(r);
-        spinY = randSpin(r);
-        spinZ = randSpin(r);
+        this.spinX = spinX;
+        this.spinY = spinY;
+        this.spinZ = spinZ;
 
         if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
             scale = new FloatLimit(effect.getMaxScale());
@@ -94,16 +103,16 @@ public abstract class EffectElementControl extends AbstractControl {
         }
     }
 
-    /**
-     * A random per-axis spin rate in rad/s, converted from the file's
-     * 2048-per-turn, per-tick unit ({@code rand(r) - r/2}) via the 20 Hz
-     * effect clock.
-     */
-    private static float randSpin(float r) {
-        if (r == 0) {
-            return 0;
-        }
-        return (FastMath.nextRandomFloat() * r - r / 2f) * FastMath.TWO_PI / 2048f * 20f;
+    public float getSpinX() {
+        return spinX;
+    }
+
+    public float getSpinY() {
+        return spinY;
+    }
+
+    public float getSpinZ() {
+        return spinZ;
     }
 
     @Override

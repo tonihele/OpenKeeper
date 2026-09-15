@@ -126,28 +126,79 @@ public abstract class EffectEmitter extends Node {
     }
 
     public void emitAllParticles() {
+        boolean cubeGen = effect.getGenerationType() == Effect.GenerationType.CUBE_GEN;
         for (int i = 0; i < effect.getElementsPerTurn(); i++) {
-            Spatial s = spatial.clone();
-            if (effect.getFlags().contains(Effect.EffectFlag.RANDOM_DISTRIBUTION)) {
+            spawnOne(cubeGen);
+        }
+    }
 
-            } else if (effect.getFlags().contains(Effect.EffectFlag.UNIFORM_DISTRIBUTION)) {
-                // TODO add to all s uniform parameters
-            }
-            s.addControl(new EffectElementControl(effectElement, effect.getSpriteSpinRateRange()) {
+    private void spawnOne(boolean cubeGen) {
+        Spatial s = spatial.clone();
+        if (effect.getFlags().contains(Effect.EffectFlag.RANDOM_DISTRIBUTION)) {
 
-                @Override
-                public void onDie(Vector3f location) {
+        } else if (effect.getFlags().contains(Effect.EffectFlag.UNIFORM_DISTRIBUTION)) {
+            // TODO add to all s uniform parameters
+        }
+        if (cubeGen) {
+            // Each burst element gets its own random spot in the annulus/
+            // height band and its own initial facing, instead of the whole
+            // burst stacking on one shared point (frontend_gems_effect.md
+            // §1.1).
+            s.setLocalTranslation(EffectControl.randomOriginOffset(effect));
+            s.setLocalRotation(EffectControl.randomOrientation(effect.getOrientationRange()));
+        }
+        s.addControl(new EffectElementControl(effectElement, effect.getSpriteSpinRateRange()) {
+
+            @Override
+            public void onDie(Vector3f location) {
+                if (effectElement.getDeathElementId() == effectElement.getEffectElementId()) {
+                    EffectEmitter.this.respawnSelf(this, location);
+                } else {
                     EffectEmitter.this.onDeath(location);
                 }
+            }
 
-                @Override
-                public void onHit(Vector3f location) {
-                    EffectEmitter.this.onHit(location);
+            @Override
+            public void onHit(Vector3f location) {
+                EffectEmitter.this.onHit(location);
+            }
+        });
+
+        this.attachChild(s);
+    }
+
+    /**
+     * Replaces exactly one dying element with a fresh one of its own kind,
+     * in place, carrying over its position and spin rate
+     * (frontend_gems_effect.md §3: {@code deathElementId == self}). Going
+     * through {@link toniarts.openkeeper.view.effect.VisualEffect#addEffect}
+     * here would spawn a whole new {@code elementsPerTurn}-sized burst per
+     * dying element instead of a 1-for-1 replacement - since every element in
+     * a burst shares the same min/max hp, they all expire on the same tick,
+     * which would square the element count every cycle.
+     */
+    private void respawnSelf(EffectElementControl dying, Vector3f location) {
+        Spatial replacement = spatial.clone();
+        replacement.setLocalTranslation(location);
+        replacement.setLocalRotation(dying.getSpatial().getLocalRotation());
+        replacement.addControl(new EffectElementControl(effectElement, dying.getSpinX(), dying.getSpinY(), dying.getSpinZ()) {
+
+            @Override
+            public void onDie(Vector3f loc) {
+                if (effectElement.getDeathElementId() == effectElement.getEffectElementId()) {
+                    EffectEmitter.this.respawnSelf(this, loc);
+                } else {
+                    EffectEmitter.this.onDeath(loc);
                 }
-            });
+            }
 
-            this.attachChild(s);
-        }
+            @Override
+            public void onHit(Vector3f loc) {
+                EffectEmitter.this.onHit(loc);
+            }
+        });
+
+        this.attachChild(replacement);
     }
 
     public void killAllParticles() {
