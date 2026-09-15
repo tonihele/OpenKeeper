@@ -35,15 +35,17 @@ public abstract class EffectControl extends AbstractControl {
     private static final Logger log = System.getLogger(EffectControl.class.getName());
 
     /**
-     * Earth gravity in m/s^2, applied to effects in proportion to their mass.
+     * Conversion from the file's mass unit (float32, 4096 = 1.0) to
+     * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
+     * velocity fixed-point precision difference (16x). See
+     * dig_rubble_effect.md §4.
      */
-    private static float gravity = 9.81f;
+    private static final float GRAVITY_FACTOR = 25f;
 
     private Effect effect;
 
     private float hpCurrent;
     private float hp;
-    private float height;
     private FloatLimit scale;
     private float scaleRatio;
     private Vector3f velocity;
@@ -64,7 +66,6 @@ public abstract class EffectControl extends AbstractControl {
         hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
-        height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
 
         if (effect.getFlags().contains(Effect.EffectFlag.SHRINK)) {
             scale = new FloatLimit(effect.getMaxScale(), effect.getMaxScale(), effect.getMinScale());
@@ -79,14 +80,6 @@ public abstract class EffectControl extends AbstractControl {
             scale = new FloatLimit(effect.getMinScale() + FastMath.nextRandomFloat() * (effect.getMaxScale() - effect.getMinScale()));
             scaleRatio = 0;
         }
-    }
-
-    public static float getGravity() {
-        return gravity;
-    }
-
-    public static void setGravity(float gravity) {
-        EffectControl.gravity = gravity;
     }
 
     public static Vector3f calculateVelocity(IEffect speed) {
@@ -149,21 +142,16 @@ public abstract class EffectControl extends AbstractControl {
 
         if (velocity != Vector3f.ZERO) {
             Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
-            if (location.y > height) {
-                location.y = height;
-            }
             spatial.setLocalTranslation(location);
             //System.out.println(location);
         }
 
         if (effect.getAirFriction() != 0) {
-            velocity.x -= effect.getAirFriction() * tpf;
-            velocity.y -= effect.getAirFriction() * tpf;
-            velocity.z -= effect.getAirFriction() * tpf;
+            velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
         }
 
         if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * gravity * tpf;
+            velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
         }
 
         if (isHit()) {

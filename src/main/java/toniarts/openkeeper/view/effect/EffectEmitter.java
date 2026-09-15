@@ -133,7 +133,7 @@ public abstract class EffectEmitter extends Node {
             } else if (effect.getFlags().contains(Effect.EffectFlag.UNIFORM_DISTRIBUTION)) {
                 // TODO add to all s uniform parameters
             }
-            s.addControl(new EffectElementControl(effectElement) {
+            s.addControl(new EffectElementControl(effectElement, effect.getSpriteSpinRateRange()) {
 
                 @Override
                 public void onDie(Vector3f location) {

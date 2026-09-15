@@ -23,21 +23,30 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 
 import static toniarts.openkeeper.view.effect.EffectControl.calculateVelocity;
-import static toniarts.openkeeper.view.effect.EffectControl.getGravity;
 
 /**
  *
  * @author ArchDemon
  */
 public abstract class EffectElementControl extends AbstractControl {
-    
+
     private static final Logger log = System.getLogger(EffectElementControl.class.getName());
-    
-    private EffectElement effect;
+
+    /**
+     * Conversion from the file's mass unit (float32, 4096 = 1.0) to
+     * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
+     * velocity fixed-point precision difference (16x). See
+     * dig_rubble_effect.md §4.
+     */
+    private static final float GRAVITY_FACTOR = 25f;
+
+    private final EffectElement effect;
+    private final int spinRateRange;
 
     private float hpCurrent;
     private float hp;
@@ -45,16 +54,23 @@ public abstract class EffectElementControl extends AbstractControl {
     private FloatLimit scale;
     private float scaleRatio;
     private Vector3f velocity;
+    private float spinX;
+    private float spinY;
+    private float spinZ;
+    private float floorHeightLocal;
 
     /**
      * For serialization only. Do not use.
      */
     public EffectElementControl() {
         super();
+        effect = null;
+        spinRateRange = 0;
     }
 
-    public EffectElementControl(EffectElement effect) {
+    public EffectElementControl(EffectElement effect, int spinRateRange) {
         this.effect = effect;
+        this.spinRateRange = spinRateRange;
         initiazize();
     }
 
@@ -62,7 +78,11 @@ public abstract class EffectElementControl extends AbstractControl {
         hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
-        //height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
+
+        float r = spinRateRange * 8f;
+        spinX = randSpin(r);
+        spinY = randSpin(r);
+        spinZ = randSpin(r);
 
         if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
             scale = new FloatLimit(effect.getMaxScale());
@@ -76,12 +96,26 @@ public abstract class EffectElementControl extends AbstractControl {
         }
     }
 
+    /**
+     * A random per-axis spin rate in rad/s, converted from the file's
+     * 2048-per-turn, per-tick unit ({@code rand(r) - r/2}) via the 20 Hz
+     * effect clock.
+     */
+    private static float randSpin(float r) {
+        if (r == 0) {
+            return 0;
+        }
+        return (FastMath.nextRandomFloat() * r - r / 2f) * FastMath.TWO_PI / 2048f * 20f;
+    }
+
     @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
 
         if (spatial != null) {
             this.spatial.setLocalScale(scale.getValue());
+            floorHeightLocal = WorldUtils.FLOOR_HEIGHT
+                    - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
         }
     }
 
@@ -99,23 +133,25 @@ public abstract class EffectElementControl extends AbstractControl {
             spatial.setLocalScale(scale.getValue());
         }
 
+        if (spinX != 0 || spinY != 0 || spinZ != 0) {
+            spatial.rotate(spinX * tpf, spinY * tpf, spinZ * tpf);
+        }
+
         if (velocity != Vector3f.ZERO) {
             Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
             if (location.y > height) {
                 location.y = height;
             }
+
             spatial.setLocalTranslation(location);
-            //System.out.println(location);
         }
 
         if (effect.getAirFriction() != 0) {
-            velocity.x -= effect.getAirFriction() * tpf;
-            velocity.y -= effect.getAirFriction() * tpf;
-            velocity.z -= effect.getAirFriction() * tpf;
+            velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
         }
 
         if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * getGravity() * tpf;
+            velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
         }
 
         if (isHit()) {

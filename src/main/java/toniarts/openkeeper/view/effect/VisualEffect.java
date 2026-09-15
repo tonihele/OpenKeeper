@@ -23,6 +23,7 @@ import com.jme3.effect.ParticleMesh;
 import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -188,12 +189,16 @@ public class VisualEffect {
 
         // Elements/effects
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
-            for (Integer id : effect.getGenerateIds()) {
-                addEffectElement(id, null);
+            for (int i = 0; i < effect.getElementsPerTurn(); i++) {
+                for (Integer id : effect.getGenerateIds()) {
+                    addEffectElement(id, randomGenerationOffset());
+                }
             }
         } else if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
-            for (Integer id : effect.getGenerateIds()) {
-                addEffect(id, null);
+            for (int i = 0; i < effect.getElementsPerTurn(); i++) {
+                for (Integer id : effect.getGenerateIds()) {
+                    addEffect(id, randomGenerationOffset());
+                }
             }
         }
 
@@ -201,6 +206,24 @@ public class VisualEffect {
         if (effect.getNextEffectId() != 0) {
             addEffect(effect.getNextEffectId(), null);
         }
+    }
+
+    /**
+     * A random offset within the effect's spawn annulus/height band
+     * ({@code innerOriginRange}/{@code outerOriginRange},
+     * {@code lowerHeightLimit}/{@code upperHeightLimit}), used to spread
+     * generated elements/effects around the emission point instead of
+     * stacking them all at the same spot.
+     */
+    private Vector3f randomGenerationOffset() {
+        float rMin = effect.getInnerOriginRange() * 23f / 4096f;
+        float rMax = effect.getOuterOriginRange() * 23f / 4096f;
+        float r = rMin + FastMath.nextRandomFloat() * (rMax - rMin);
+        float h = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+        float zMin = effect.getLowerHeightLimit() * 16f / 4096f;
+        float zMax = effect.getUpperHeightLimit() * 16f / 4096f;
+        float z = zMin + FastMath.nextRandomFloat() * (zMax - zMin);
+        return new Vector3f(-(float) Math.sin(h) * r, z, (float) Math.cos(h) * r);
     }
 
     private void addEffect(Integer id, Vector3f location) {
@@ -218,8 +241,10 @@ public class VisualEffect {
             }
             effectElements.put(effectElement, emitter);
             effectNode.attachChild(emitter);
-            if (emitter instanceof ParticleEmitter) {
-                ((ParticleEmitter) emitter).emitAllParticles();
+            if (emitter instanceof ParticleEmitter particleEmitter) {
+                particleEmitter.emitAllParticles();
+            } else if (emitter instanceof EffectEmitter effectEmitter) {
+                effectEmitter.emitAllParticles();
             }
         }
 
@@ -395,20 +420,21 @@ public class VisualEffect {
         List<Integer> deathEffectElements = null;
         while (iter.hasNext()) {
             Entry<EffectElement, Spatial> entry = iter.next();
-            if (entry.getValue() instanceof ParticleEmitter) {
-                if (((ParticleEmitter) entry.getValue()).getNumVisibleParticles() == 0) {
+            Spatial value = entry.getValue();
+            boolean depleted = (value instanceof ParticleEmitter particleEmitter && particleEmitter.getNumVisibleParticles() == 0)
+                    || (value instanceof EffectEmitter effectEmitter && effectEmitter.getQuantity() == 0);
+            if (depleted) {
 
-                    // Kill
-                    entry.getValue().removeFromParent();
-                    iter.remove();
+                // Kill
+                value.removeFromParent();
+                iter.remove();
 
-                    // Attach on death element
-                    if (entry.getKey().getDeathElementId() != 0) {
-                        if (deathEffectElements == null) {
-                            deathEffectElements = new ArrayList<>();
-                        }
-                        deathEffectElements.add(entry.getKey().getDeathElementId());
+                // Attach on death element
+                if (entry.getKey().getDeathElementId() != 0) {
+                    if (deathEffectElements == null) {
+                        deathEffectElements = new ArrayList<>();
                     }
+                    deathEffectElements.add(entry.getKey().getDeathElementId());
                 }
             }
         }
