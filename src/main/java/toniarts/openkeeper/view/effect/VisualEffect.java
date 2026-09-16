@@ -73,6 +73,7 @@ public class VisualEffect {
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.
     private List<MeshCollectionPart> meshCollectionParts;
+    private boolean deathEffectSpawned;
 
     private record MeshCollectionPart(String name, Vector3f offset) {
     }
@@ -286,12 +287,20 @@ public class VisualEffect {
     }
 
     private void addEffect(Integer id, Vector3f location) {
+        if (id.equals(0)) {
+            return;
+        }
+
         VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, kwdFile.getEffect(id), false);
         effects.add(visualEffect);
         effectNode.attachChild(visualEffect.effectNode);
     }
 
     private void addEffectElement(Integer id, Vector3f location) {
+        if (id.equals(0)) {
+            return;
+        }
+
         EffectElement effectElement = kwdFile.getEffectElement(id);
         Spatial emitter = loadElement(effectElement);
         if (emitter != null) {
@@ -345,7 +354,6 @@ public class VisualEffect {
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
             // Scatter each particle's spawn point across the annulus/
             // height band instead of jME3's default emission point
-            // (frontend_gems_effect.md §1.1).
             emitter.setShape(new EmitterCubeGenShape(effect));
         }
         configureParticleEmissionRate(emitter, element);
@@ -379,8 +387,7 @@ public class VisualEffect {
 
     private void configureParticleEmissionRate(ParticleEmitter emitter, EffectElement element) {
         if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
-            // Self-perpetuating pool (frontend_gems_effect.md §3, e.g. the
-            // front-end gems' sparkles): keep the pool topped up forever via
+            // keep the pool topped up forever via
             // jME3's own continuous emission instead of a single burst that
             // fades away for good.
             float avgLifeSeconds = (element.getMinHp() + element.getMaxHp()) / 2f / 20f;
@@ -525,6 +532,7 @@ public class VisualEffect {
                 addEffectElement(element.getHitSolidElementId(), location);
             }
         }
+        removeEffect();
     }
 
     private PointLight getLight(Light effectLight) {
@@ -560,7 +568,8 @@ public class VisualEffect {
 
         // If the whole effect has died, create the death effect
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS) && effectElements.isEmpty()
-                && effect.getDeathEffectId() != 0) {
+                && effect.getDeathEffectId() != 0 && !deathEffectSpawned) {
+            deathEffectSpawned = true;
             addEffect(effect.getDeathEffectId(), null);
         }
 
@@ -625,7 +634,6 @@ public class VisualEffect {
      */
     private boolean handleEffectCompletion() {
         if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
-
             // If infitine, just restart
             if (infinite) {
                 if (light != null) {
