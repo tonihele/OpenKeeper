@@ -66,7 +66,7 @@ public abstract class EffectElementControl extends AbstractControl {
 
     protected EffectElementControl(EffectElement effect, int spinRateRange) {
         this.effect = effect;
-        initiazize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
+        initialize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
                 EffectControl.randomSpinRate(spinRateRange));
     }
 
@@ -79,10 +79,10 @@ public abstract class EffectElementControl extends AbstractControl {
      */
     protected EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ) {
         this.effect = effect;
-        initiazize(spinX, spinY, spinZ);
+        initialize(spinX, spinY, spinZ);
     }
 
-    private void initiazize(float spinX, float spinY, float spinZ) {
+    private void initialize(float spinX, float spinY, float spinZ) {
         hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
