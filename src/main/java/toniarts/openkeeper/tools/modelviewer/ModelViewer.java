@@ -76,6 +76,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -538,8 +539,11 @@ public final class ModelViewer extends SimpleApplication {
                 Node spat = new Node();
                 Effect effect = (Effect) selection;
                 effectManagerState.setEnabled(true);
-                // Load the selected effect
-                effectManagerState.loadSingleEffect(spat, new Vector3f(0, 0, 0),
+                // Load the selected effect a tile above the floor, so it can
+                // actually fall and land instead of spawning at/under floor
+                // level (WorldUtils.FLOOR_HEIGHT).
+                effectManagerState.loadSingleEffect(spat,
+                        new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0),
                         effect.getEffectId(), false);
                 setupModel(spat, false);
 
