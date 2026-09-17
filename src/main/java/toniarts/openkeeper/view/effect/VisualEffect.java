@@ -56,6 +56,14 @@ public class VisualEffect {
     
     private static final Logger logger = System.getLogger(VisualEffect.class.getName());
 
+    /**
+     * Conversion from the file's mass unit (float32, 4096 = 1.0) to
+     * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
+     * velocity fixed-point precision difference (16x). See
+     * dig_rubble_effect.md §4.
+     */
+    private static final float GRAVITY_FACTOR = 25f;
+
     private final Effect effect;
     // Keyed by the spawned spatial (unique per instance), not the shared
     // EffectElement definition -- a burst spawns elementsPerTurn separate
@@ -196,7 +204,7 @@ public class VisualEffect {
 
         } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
-            AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+                              AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
             if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
@@ -348,9 +356,12 @@ public class VisualEffect {
     }
 
     private ParticleEmitter createParticleElement(EffectElement element, ArtResource resource) {
-        ParticleEmitter emitter = new ParticleEmitter(element.getName(),
+        ParticleEmitter emitter = new EffectParticleEmitter(element.getName(),
                 ParticleMesh.Type.Triangle,
-                effect.getElementsPerTurn());
+                effect.getElementsPerTurn(),
+                element.getAirFriction(),
+                element.getElasticity(),
+                element.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION));
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
             // Scatter each particle's spawn point across the annulus/
             // height band instead of jME3's default emission point
@@ -367,20 +378,21 @@ public class VisualEffect {
 
         applyParticleColor(emitter, element);
         //
-        Vector3f velocity = EffectControl.calculateVelocity(element);
-        emitter.getParticleInfluencer().setInitialVelocity(velocity);
+        // Every particle draws its own independent velocity sample from the
+        // full minSpeedXy/maxSpeedXy/minSpeedYz/maxSpeedYz range, instead of
+        // jME3's default of sharing one vector across the whole burst and
+        // only lightly varying it (see EffectParticleInfluencer).
+        emitter.setParticleInfluencer(new EffectParticleInfluencer(element));
         //
         applyParticleScale(emitter, element);
         //
         emitter.setFacingVelocity(element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
         //
-        emitter.setGravity(0, element.getMass() * element.getAirFriction(), 0);
+        emitter.setRandomAngle(true);
+        emitter.setRotateSpeed(Math.abs(EffectControl.randomSpinRate(effect.getSpriteSpinRateRange())));
+        emitter.setGravity(0, element.getMass() * GRAVITY_FACTOR, 0);
         emitter.setLowLife(element.getMinHp() / 20f);
         emitter.setHighLife(element.getMaxHp() / 20f);
-        //
-        float delta = Math.max((element.getMaxSpeedXy() - element.getMinSpeedXy()) / (element.getMaxSpeedXy() + 1),
-                (element.getMaxSpeedYz() - element.getMinSpeedYz()) / (element.getMaxSpeedYz() + 1));
-        emitter.getParticleInfluencer().setVelocityVariation(delta);
 
         return emitter;
     }
@@ -409,12 +421,17 @@ public class VisualEffect {
     }
 
     private void applyParticleScale(ParticleEmitter emitter, EffectElement element) {
+        // jME3's particle "size" is a half-extent - ParticleTriMesh builds
+        // each quad from position +/- size, i.e. a full width/height of
+        // 2*size - so the element's scale (a full-size multiplier, same as
+        // the mesh path's Spatial.setLocalScale) has to be halved here or
+        // every particle renders twice as big as authored.
         if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-            emitter.setEndSize(element.getMaxScale());
-            emitter.setStartSize(element.getMinScale());
+            emitter.setEndSize(element.getMaxScale() / 2f);
+            emitter.setStartSize(element.getMinScale() / 2f);
         } else {
-            emitter.setStartSize(element.getMaxScale());
-            emitter.setEndSize(element.getMinScale());
+            emitter.setStartSize(element.getMaxScale() / 2f);
+            emitter.setEndSize(element.getMinScale() / 2f);
         }
     }
 

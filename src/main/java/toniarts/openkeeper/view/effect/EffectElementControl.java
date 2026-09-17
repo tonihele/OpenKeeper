@@ -55,6 +55,7 @@ public abstract class EffectElementControl extends AbstractControl {
     private float spinX;
     private float spinY;
     private float spinZ;
+    private boolean landed;
 
     /**
      * For serialization only. Do not use.
@@ -142,7 +143,7 @@ public abstract class EffectElementControl extends AbstractControl {
             spatial.rotate(spinX * tpf, spinY * tpf, spinZ * tpf);
         }
 
-        if (velocity != Vector3f.ZERO) {
+        if (!landed && velocity != Vector3f.ZERO) {
             // The parent chain's world Y offset, read before this frame's own
             // translation change so it reflects the last fully-updated scene
             // graph state (valid from the frame after the spatial is attached).
@@ -150,24 +151,36 @@ public abstract class EffectElementControl extends AbstractControl {
                     - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
             Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
 
+            boolean directionalFriction = effect.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION);
+
             if (location.y < floorHeightLocal) {
-                float e = effect.getElasticity();
-                location.y = floorHeightLocal + (floorHeightLocal - location.y) * e;
-                velocity.x *= e;
-                velocity.z *= e;
-                velocity.y = -velocity.y * e;
-                spinX = spinY = spinZ = 0f;
+                if (directionalFriction) {
+                    // Sticks where it lands instead of bouncing - elasticity
+                    // is ignored here, and unlike the bounce below the spin
+                    // rates are left untouched so it keeps tumbling in place
+                    // until hp runs out.
+                    location.y = floorHeightLocal;
+                    velocity.set(Vector3f.ZERO);
+                    landed = true;
+                } else {
+                    float e = effect.getElasticity();
+                    location.y = floorHeightLocal + (floorHeightLocal - location.y) * e;
+                    velocity.x *= e;
+                    velocity.z *= e;
+                    velocity.y = -velocity.y * e;
+                    spinX = spinY = spinZ = 0f;
+                }
             }
 
             spatial.setLocalTranslation(location);
-        }
 
-        if (effect.getAirFriction() != 0) {
-            velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
-        }
+            if (effect.getAirFriction() != 0) {
+                velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
+            }
 
-        if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
+            if (effect.getMass() != 0) {
+                velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
+            }
         }
 
         if (isHit()) {
