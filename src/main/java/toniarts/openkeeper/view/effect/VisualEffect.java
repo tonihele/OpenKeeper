@@ -416,8 +416,18 @@ public class VisualEffect {
             alpha -= element.getFadePercentage() / 100;
         }
 
-        emitter.setStartColor(new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, 1f));
-        emitter.setEndColor(new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, alpha));
+        int maxComponent = Math.max(color.getRed(), Math.max(color.getGreen(), color.getBlue()));
+        float red, green, blue;
+        if (maxComponent == 0) {
+            red = green = blue = 1f;
+        } else {
+            red = color.getRed() / (float) maxComponent;
+            green = color.getGreen() / (float) maxComponent;
+            blue = color.getBlue() / (float) maxComponent;
+        }
+
+        emitter.setStartColor(new ColorRGBA(red, green, blue, 1f));
+        emitter.setEndColor(new ColorRGBA(red, green, blue, alpha));
     }
 
     private void applyParticleScale(ParticleEmitter emitter, EffectElement element) {
