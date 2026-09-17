@@ -204,7 +204,7 @@ public class VisualEffect {
 
         } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
-                              AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+             AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
             if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
@@ -437,11 +437,11 @@ public class VisualEffect {
         // the mesh path's Spatial.setLocalScale) has to be halved here or
         // every particle renders twice as big as authored.
         if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-            emitter.setEndSize(element.getMaxScale() / 2f);
-            emitter.setStartSize(element.getMinScale() / 2f);
+            emitter.setStartSize(element.getMaxScale());
+            emitter.setEndSize(element.getMinScale());
         } else {
-            emitter.setStartSize(element.getMaxScale() / 2f);
-            emitter.setEndSize(element.getMinScale() / 2f);
+            emitter.setEndSize(element.getMaxScale() / 1.5f);
+            emitter.setStartSize(element.getMinScale() / 1.5f);
         }
     }
 
