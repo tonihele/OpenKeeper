@@ -39,7 +39,7 @@ public class EffectParticleEmitter extends ParticleEmitter {
      * Tunable: no confirmed source value for how strongly elasticity should
      * translate into sway magnitude; adjust by playtesting.
      */
-    private static final float DIRECTIONAL_FRICTION_DRIFT_AMPLITUDE = 0.8f;
+    private static final float DIRECTIONAL_FRICTION_DRIFT_AMPLITUDE = 0.2f;
 
     private final float airFriction;
     private final float elasticity;
