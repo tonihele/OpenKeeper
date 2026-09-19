@@ -100,23 +100,21 @@ public class EffectMesh extends Mesh {
                                                              1, 0,
                                                              0, 0});
 
+        // Particle.frag multiplies the sampled texture by this per-vertex
+        // colour (inColor) - without a bound buffer here the GL generic
+        // vertex attribute defaults to (0,0,0,1), which zeroes out the
+        // texture's own RGB and leaves every effect looking like a black/
+        // grey silhouette of its alpha shape. Opaque white is a no-op
+        // multiplier, so the texture's baked-in colour (e.g. bloodfoot.png's
+        // red vs. waterfoot.png's teal) actually shows.
+        setBuffer(VertexBuffer.Type.Color, 4, new float[]{
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+            1, 1, 1, 1,
+            1, 1, 1, 1
+        });
+
         updateBound();
-        /*
-
-        // set colors
-        ByteBuffer cb = BufferUtils.createByteBuffer(4 * 4);
-        buf = getBuffer(VertexBuffer.Type.Color);
-        if (buf != null) {
-            buf.updateData(cb);
-        } else {
-            VertexBuffer cvb = new VertexBuffer(VertexBuffer.Type.Color);
-            cvb.setupData(VertexBuffer.Usage.Stream, 4, VertexBuffer.Format.UnsignedByte, cb);
-            cvb.setNormalized(true);
-            setBuffer(cvb);
-        }
-
-        updateCounts();
-        */
     }
 
     public final void setFrames(int frames) {
