@@ -322,7 +322,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 // use the default puddle of blood
                 deathEffectId = 129;
             }
-            stateManager.getState(EffectManagerState.class).load(nodeCreatures, object.getWorldTranslation(), deathEffectId, true);
+            stateManager.getState(EffectManagerState.class).load(nodeCreatures, object.getWorldTranslation(), deathEffectId, true, control.getOwnerId());
         }
     }
 

@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -236,14 +237,15 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     private void updateTiles(Point[] points) {
         for (Point point : points) {
-            short newTerrainId = mapInformation.getMapData().getTile(point).getTerrainId();
+            IMapTileInformation tile = mapInformation.getMapData().getTile(point);
+            short newTerrainId = tile.getTerrainId();
             short oldTerrainId = lastTerrainIds[point.x][point.y];
             if (newTerrainId != oldTerrainId) {
                 Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
                 if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
                     effectManager.load(worldNode,
                             WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getMaxHealthEffectId(), false);
+                            oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
                 } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
                     effectManager.load(worldNode,
                             WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),

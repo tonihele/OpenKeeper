@@ -650,7 +650,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 stateManager.getState(EffectManagerState.class).load(
                         (Node) interactiveControl.getSpatial().getParent(),
                         interactiveControl.getSpatial().getWorldTranslation(),
-                        interactiveControl.getSlapEffectId(player.getPlayerId()), false);
+                        interactiveControl.getSlapEffectId(player.getPlayerId()), false, interactiveControl.getOwnerId());
 
                 // Flash the slap cursor once; the updateCursor() call below
                 // picks it up, and update(tpf) reverts it once it elapses

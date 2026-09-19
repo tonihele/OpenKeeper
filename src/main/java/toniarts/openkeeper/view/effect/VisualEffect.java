@@ -33,6 +33,7 @@ import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
@@ -74,6 +75,7 @@ public class VisualEffect {
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EffectManagerState effectManagerState;
+    private final short ownerId;
     private boolean infinite;
     private PointLight light;
     // Populated only for a MESH_COLLECTION effect:
@@ -86,15 +88,20 @@ public class VisualEffect {
     }
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Effect effect) {
-        this(effectManagerState, node, null, effect, false);
+        this(effectManagerState, node, null, effect, false, Player.NEUTRAL_PLAYER_ID);
     }
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite) {
+        this(effectManagerState, node, location, effect, infinite, Player.NEUTRAL_PLAYER_ID);
+    }
+
+    public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite, short ownerId) {
         this.effect = effect;
         this.kwdFile = effectManagerState.getKwdFile();
         this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
         this.infinite = infinite;
+        this.ownerId = ownerId;
 
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
@@ -295,7 +302,7 @@ public class VisualEffect {
             return;
         }
 
-        VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, kwdFile.getEffect(id), false);
+        VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, kwdFile.getEffect(id), false, ownerId);
         effects.add(visualEffect);
         effectNode.attachChild(visualEffect.effectNode);
     }
@@ -416,24 +423,36 @@ public class VisualEffect {
     }
 
     private void applyParticleColor(ParticleEmitter emitter, EffectElement element) {
-        Color color = element.getColor();
         float alpha = 1f;
         if (element.getFlags().contains(EffectElement.EffectElementFlag.FADE)) {
             alpha -= element.getFadePercentage() / 100;
         }
 
-        int maxComponent = Math.max(color.getRed(), Math.max(color.getGreen(), color.getBlue()));
-        float red, green, blue;
-        if (maxComponent == 0) {
-            red = green = blue = 1f;
-        } else {
-            red = color.getRed() / (float) maxComponent;
-            green = color.getGreen() / (float) maxComponent;
-            blue = color.getBlue() / (float) maxComponent;
+        ColorRGBA rgb = getElementColor(element);
+        emitter.setStartColor(new ColorRGBA(rgb.r, rgb.g, rgb.b, 1f));
+        emitter.setEndColor(new ColorRGBA(rgb.r, rgb.g, rgb.b, alpha));
+    }
+
+    /**
+     * An element whose art resource is flagged PLAYER_COLOURED is authored
+     * with its own color zeroed out (0,0,0) and takes its actual color from
+     * the owning player instead - this is how e.g. the claim/tag burst ends
+     * up tinted with the keeper's color
+     */
+    private ColorRGBA getElementColor(EffectElement element) {
+        if (element.getArtResource().getFlags().contains(ArtResource.ArtResourceFlag.PLAYER_COLOURED)) {
+            java.awt.Color playerColor = MapThumbnailGenerator.getPlayerColor(ownerId);
+            return new ColorRGBA(playerColor.getRed() / 255f, playerColor.getGreen() / 255f,
+                    playerColor.getBlue() / 255f, playerColor.getAlpha() / 255f);
         }
 
-        emitter.setStartColor(new ColorRGBA(red, green, blue, 1f));
-        emitter.setEndColor(new ColorRGBA(red, green, blue, alpha));
+        Color color = element.getColor();
+        int maxComponent = Math.max(color.getRed(), Math.max(color.getGreen(), color.getBlue()));
+        if (maxComponent == 0) {
+            return new ColorRGBA(1f, 1f, 1f, 1f);
+        }
+        return new ColorRGBA(color.getRed() / (float) maxComponent, color.getGreen() / (float) maxComponent,
+                color.getBlue() / (float) maxComponent, 1f);
     }
 
     private void applyParticleScale(ParticleEmitter emitter, EffectElement element) {
