@@ -51,6 +51,7 @@ import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -310,7 +311,19 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
-        object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
+        IEntityViewControl control = object.getControl(IEntityViewControl.class);
+        boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
+        control.setTargetState(viewState.state);
+
+        // Trigger the death effect once, when the creature actually dies
+        if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
+            int deathEffectId = control.getDeathEffectId();
+            if (deathEffectId == 0) {
+                // use the default puddle of blood
+                deathEffectId = 129;
+            }
+            stateManager.getState(EffectManagerState.class).load(nodeCreatures, object.getWorldTranslation(), deathEffectId, true);
+        }
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {

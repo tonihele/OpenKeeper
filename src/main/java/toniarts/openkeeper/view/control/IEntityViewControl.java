@@ -112,6 +112,15 @@ public interface IEntityViewControl<T, S> extends Control {
     }
 
     /**
+     * Get the effect ID to play when the control dies
+     *
+     * @return the effect ID, or 0 if none
+     */
+    public default int getDeathEffectId() {
+        return 0;
+    }
+
+    /**
      * Get the in hand cursor
      *
      * @return cursor type when the control is held by the keeper
@@ -204,6 +213,13 @@ public interface IEntityViewControl<T, S> extends Control {
     public EntityId getEntityId();
 
     public void setTargetState(S state);
+
+    /**
+     * Get the currently playing/played state
+     *
+     * @return the current state
+     */
+    public S getCurrentState();
 
     public T getDataObject();
 
