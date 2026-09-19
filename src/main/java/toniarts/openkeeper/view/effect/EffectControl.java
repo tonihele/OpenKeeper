@@ -38,8 +38,7 @@ public abstract class EffectControl extends AbstractControl {
     /**
      * Conversion from the file's mass unit (float32, 4096 = 1.0) to
      * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
-     * velocity fixed-point precision difference (16x). See
-     * dig_rubble_effect.md §4.
+     * velocity fixed-point precision difference (16x).
      */
     private static final float GRAVITY_FACTOR = 25f;
 
@@ -115,8 +114,7 @@ public abstract class EffectControl extends AbstractControl {
      * ({@code innerOriginRange}/{@code outerOriginRange},
      * {@code lowerHeightLimit}/{@code upperHeightLimit}), used to scatter
      * individually generated elements around the emission point instead of
-     * stacking them all at the same spot (a {@code CUBE_GEN} burst - see
-     * frontend_gems_effect.md §1.1).
+     * stacking them all at the same spot (a {@code CUBE_GEN} burst
      */
     public static Vector3f randomOriginOffset(Effect effect) {
         float rMin = effect.getInnerOriginRange() * 23f / 4096f;
@@ -132,9 +130,7 @@ public abstract class EffectControl extends AbstractControl {
     /**
      * A random value in the file's tick/turn unit, {@code range*4}
      * peak-to-peak about zero (matches {@code spriteSpinRateRange} 32 ->
-     * ±128 and {@code orientationRange} 255 -> ±1020 in
-     * frontend_gems_effect.md), before conversion to radians (or radians/s
-     * for a per-tick rate).
+     * ±128 and {@code orientationRange} 255 -> ±1020
      */
     public static float randomSpread(int range) {
         float r = range * 8f;
@@ -164,6 +160,43 @@ public abstract class EffectControl extends AbstractControl {
                 randomSpread(orientationRange) * toRad,
                 randomSpread(orientationRange) * toRad,
                 randomSpread(orientationRange) * toRad);
+    }
+
+    /**
+     * Distance (tile) where the reference tangential speed is set
+     */
+    private static final float WHIRLPOOL_REF_D_TILE = 0.0884f;
+    /**
+     * Angular speed (1/2048-turn-per-tick, same unit as the file's rate
+     * field) per unit whirlpoolRate at WHIRLPOOL_REF_D_TILE
+     */
+    private static final float WHIRLPOOL_REF_ANGLE_PER_RATE = 8f;
+    private static final float WHIRLPOOL_ANGLE_UNITS_PER_TURN = 2048f;
+    private static final float WHIRLPOOL_ANGLE_CLAMP = 1024f;
+
+    /**
+     * The position-only impulse from the effect's whirlpool: for an element
+     * at horizontal offset (dx, dz) from the effect's own origin, how far
+     * its position should shift this frame, spiralling it around that
+     * origin. Velocity, facing and spin are left untouched - callers add the
+     * result directly to a position.
+     */
+    public static Vector3f whirlpoolDelta(int whirlpoolRate, float dx, float dz, float tpf) {
+        byte rate = (byte) whirlpoolRate; // editor value is a signed byte; 128..255 = reverse direction
+        if (rate == 0) {
+            return new Vector3f();
+        }
+        float dTile = FastMath.sqrt(dx * dx + dz * dz);
+        if (dTile <= 0f) {
+            return new Vector3f(); // no direction to rotate a zero-length offset in
+        }
+        float thetaRefTicks = rate * WHIRLPOOL_REF_ANGLE_PER_RATE;
+        float thetaTicks = FastMath.clamp(thetaRefTicks * WHIRLPOOL_REF_D_TILE / Math.max(dTile, WHIRLPOOL_REF_D_TILE),
+                -WHIRLPOOL_ANGLE_CLAMP, WHIRLPOOL_ANGLE_CLAMP);
+        float thetaFrame = thetaTicks * FastMath.TWO_PI / WHIRLPOOL_ANGLE_UNITS_PER_TURN * 20f * tpf;
+        float cos = FastMath.cos(thetaFrame);
+        float sin = FastMath.sin(thetaFrame);
+        return new Vector3f(dx * cos - dz * sin - dx, 0, dx * sin + dz * cos - dz);
     }
 
     @Override

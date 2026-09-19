@@ -59,8 +59,7 @@ public class VisualEffect {
     /**
      * Conversion from the file's mass unit (float32, 4096 = 1.0) to
      * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
-     * velocity fixed-point precision difference (16x). See
-     * dig_rubble_effect.md §4.
+     * velocity fixed-point precision difference (16x)
      */
     private static final float GRAVITY_FACTOR = 25f;
 
@@ -77,7 +76,7 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private boolean infinite;
     private PointLight light;
-    // Populated only for a MESH_COLLECTION effect (mesh_collection_effect.md):
+    // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.
     private List<MeshCollectionPart> meshCollectionParts;
@@ -141,9 +140,7 @@ public class VisualEffect {
         generateChildren();
 
         // A MESH_COLLECTION's parts break off regardless of the effect's own
-        // generation flags (mesh_collection_effect.md §4) - the group's own
-        // art is never rendered (see the MESH_COLLECTION case in
-        // createEffectModel), only the listed parts are.
+        // generation flags
         if (meshCollectionParts != null) {
             generateMeshCollectionParts();
         }
@@ -170,7 +167,6 @@ public class VisualEffect {
             case MESH_COLLECTION:
                 // The group's own art is never rendered - only the parts
                 // spawned by generateMeshCollectionParts() are
-                // (mesh_collection_effect.md §4).
                 break;
 
             case ALPHA:
@@ -361,7 +357,8 @@ public class VisualEffect {
                 effect.getElementsPerTurn(),
                 element.getAirFriction(),
                 element.getElasticity(),
-                element.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION));
+                element.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION),
+                effect.getWhirlpoolRate());
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
             // Scatter each particle's spawn point across the annulus/
             // height band instead of jME3's default emission point
@@ -479,8 +476,8 @@ public class VisualEffect {
 
     /**
      * Reads the {@code .kmf} group's part list - name and baked offset per
-     * part - from the pre-converted group asset (mesh_collection_effect.md
-     * §2-3). The group's own art is never rendered; only these parts are.
+     * part - from the pre-converted group asset
+     * The group's own art is never rendered; only these parts are.
      */
     private List<MeshCollectionPart> loadMeshCollectionParts(ArtResource resource) {
         Spatial group = AssetUtils.loadModel(assetManager, resource.getName(), resource);
@@ -500,11 +497,7 @@ public class VisualEffect {
 
     /**
      * Spawns one debris element per part in the group, all sharing the
-     * effect's first generation id (mesh_collection_effect.md §4: "the same
-     * element id, generateIds[0], for every part"). Unlike
-     * generateChildren(), this doesn't scatter parts randomly - each spawns
-     * at exactly the offset baked into the group - and runs regardless of
-     * the effect's own generation flags/elementsPerTurn.
+     * effect's first generation id
      */
     private void generateMeshCollectionParts() {
         List<Integer> generateIds = effect.getGenerateIds();
@@ -606,7 +599,6 @@ public class VisualEffect {
     private void updateCircularPath(float tpf) {
         if (effect.getCircularPathRate() != 0) {
             // All the generated elements swirl together as one rigid group
-            // around the effect's own origin (frontend_gems_effect.md §3.1):
             // since none of them carry independent velocity, rotating the
             // whole effect node each tick is equivalent to rotating every
             // element's position vector individually, and far simpler.

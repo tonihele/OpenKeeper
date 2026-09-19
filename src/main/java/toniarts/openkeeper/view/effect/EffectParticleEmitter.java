@@ -44,13 +44,15 @@ public class EffectParticleEmitter extends ParticleEmitter {
     private final float airFriction;
     private final float elasticity;
     private final boolean directionalFriction;
+    private final int whirlpoolRate;
 
     public EffectParticleEmitter(String name, ParticleMesh.Type type, int numParticles,
-            float airFriction, float elasticity, boolean directionalFriction) {
+            float airFriction, float elasticity, boolean directionalFriction, int whirlpoolRate) {
         super(name, type, numParticles);
         this.airFriction = airFriction;
         this.elasticity = elasticity;
         this.directionalFriction = directionalFriction;
+        this.whirlpoolRate = whirlpoolRate;
     }
 
     @Override
@@ -59,18 +61,38 @@ public class EffectParticleEmitter extends ParticleEmitter {
             p.velocity.multLocal(FastMath.pow(1f - 16f * airFriction, tpf * 20f));
         }
 
+        // The parent emitter's world Y offset - particles are stored in
+        // the emitter's local space (see VisualEffect.createParticleElement's
+        // setInWorldSpace(false)), same convention as EffectElementControl.
+        float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
+                - (getWorldTranslation().y - getLocalTranslation().y);
+
+        // A particle's first-ever update call always has life == startlife -
+        // tpf (jME3 decrements life by tpf before calling updateParticle, in
+        // every emission path), so this is the "just spawned" check - not
+        // whirled on the spawn tick, same as EffectElementControl.
+        boolean justSpawned = (p.startlife - p.life) <= tpf + 1e-4f;
+        // Unlike EffectElementControl's persistent `landed` flag, a stuck
+        // DIRECTIONAL_FRICTION particle re-derives floor contact every tick
+        // from its position alone - checked pre-tick here so a landed
+        // particle doesn't get nudged sideways by whirl forever.
+        boolean wasLanded = directionalFriction && p.position.y <= floorHeightLocal;
+        float preX = p.position.x;
+        float preZ = p.position.z;
+
         // Gravity + position integration + color/size/angle/bounding volume
         // upkeep are all private to the base class, so they still have to
         // run through here rather than being reimplemented.
         super.updateParticle(p, tpf, min, max);
 
-        if (directionalFriction) {
-            // The parent emitter's world Y offset - particles are stored in
-            // the emitter's local space (see VisualEffect.createParticleElement's
-            // setInWorldSpace(false)), same convention as EffectElementControl.
-            float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
-                    - (getWorldTranslation().y - getLocalTranslation().y);
+        if (whirlpoolRate != 0 && !justSpawned && !wasLanded) {
+            Vector3f base = getLocalTranslation();
+            Vector3f delta = EffectControl.whirlpoolDelta(whirlpoolRate / 4, base.x + preX, base.z + preZ, tpf);
+            p.position.x += delta.x;
+            p.position.z += delta.z;
+        }
 
+        if (directionalFriction) {
             if (p.position.y < floorHeightLocal) {
                 // Sticks where it lands instead of bouncing or sinking
                 // through the floor, and stops spinning rather than

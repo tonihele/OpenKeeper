@@ -40,12 +40,12 @@ public abstract class EffectElementControl extends AbstractControl {
     /**
      * Conversion from the file's mass unit (float32, 4096 = 1.0) to
      * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
-     * velocity fixed-point precision difference (16x). See
-     * dig_rubble_effect.md §4.
+     * velocity fixed-point precision difference (16x)
      */
     private static final float GRAVITY_FACTOR = 25f;
 
     private final EffectElement effect;
+    private final int whirlpoolRate;
 
     private float hpCurrent;
     private float hp;
@@ -56,6 +56,7 @@ public abstract class EffectElementControl extends AbstractControl {
     private float spinY;
     private float spinZ;
     private boolean landed;
+    private boolean whirled;
 
     /**
      * For serialization only. Do not use.
@@ -63,10 +64,12 @@ public abstract class EffectElementControl extends AbstractControl {
     public EffectElementControl() {
         super();
         effect = null;
+        whirlpoolRate = 0;
     }
 
-    protected EffectElementControl(EffectElement effect, int spinRateRange) {
+    protected EffectElementControl(EffectElement effect, int spinRateRange, int whirlpoolRate) {
         this.effect = effect;
+        this.whirlpoolRate = whirlpoolRate;
         initialize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
                 EffectControl.randomSpinRate(spinRateRange));
     }
@@ -74,12 +77,11 @@ public abstract class EffectElementControl extends AbstractControl {
     /**
      * Re-initializes a single burst element with a spin already rolled
      * elsewhere - used for an in-place {@code deathElementId == self}
-     * respawn (frontend_gems_effect.md §3), which carries the dying
-     * element's own spin rates over to its replacement instead of rerolling
-     * them.
+     * respawn
      */
-    protected EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ) {
+    protected EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ, int whirlpoolRate) {
         this.effect = effect;
+        this.whirlpoolRate = whirlpoolRate;
         initialize(spinX, spinY, spinZ);
     }
 
@@ -149,7 +151,20 @@ public abstract class EffectElementControl extends AbstractControl {
             // graph state (valid from the frame after the spatial is attached).
             float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
                     - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
-            Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
+            Vector3f preTickLocation = spatial.getLocalTranslation();
+            Vector3f location = preTickLocation.clone().addLocal(velocity.mult(tpf));
+
+            if (whirlpoolRate != 0) {
+                // Not whirled on the spawn tick - the first rotation is the
+                // tick after spawn, using the annulus radius (plus this
+                // tick's own velocity move) as d.
+                if (whirled) {
+                    Vector3f base = (spatial.getParent() != null) ? spatial.getParent().getLocalTranslation() : Vector3f.ZERO;
+                    location.addLocal(EffectControl.whirlpoolDelta(whirlpoolRate,
+                            base.x + preTickLocation.x, base.z + preTickLocation.z, tpf));
+                }
+                whirled = true;
+            }
 
             boolean directionalFriction = effect.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION);
 
