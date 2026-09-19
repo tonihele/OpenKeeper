@@ -462,11 +462,11 @@ public class VisualEffect {
         // the mesh path's Spatial.setLocalScale) has to be halved here or
         // every particle renders twice as big as authored.
         if (element.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-            emitter.setStartSize(element.getMaxScale());
-            emitter.setEndSize(element.getMinScale());
+            emitter.setStartSize(element.getMinScale());
+            emitter.setEndSize(element.getMaxScale());
         } else {
-            emitter.setEndSize(element.getMaxScale() / 1.5f);
-            emitter.setStartSize(element.getMinScale() / 1.5f);
+            emitter.setStartSize(element.getMaxScale() / 1.5f);
+            emitter.setEndSize(element.getMinScale() / 1.5f);
         }
     }
 
