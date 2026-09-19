@@ -133,6 +133,13 @@ public abstract class EffectElementControl extends AbstractControl {
             return;
         }
 
+        updateScale(tpf);
+        updateSpin(tpf);
+        updateMovement(tpf);
+        updateLifetime(tpf);
+    }
+
+    private void updateScale(float tpf) {
         if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
             scale.sub(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
@@ -140,70 +147,86 @@ public abstract class EffectElementControl extends AbstractControl {
             scale.add(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         }
+    }
 
+    private void updateSpin(float tpf) {
         if (spinX != 0 || spinY != 0 || spinZ != 0) {
             spatial.rotate(spinX * tpf, spinY * tpf, spinZ * tpf);
         }
+    }
 
-        if (!landed && velocity != Vector3f.ZERO) {
-            // The parent chain's world Y offset, read before this frame's own
-            // translation change so it reflects the last fully-updated scene
-            // graph state (valid from the frame after the spatial is attached).
-            float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
-                    - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
-            Vector3f preTickLocation = spatial.getLocalTranslation();
-            Vector3f location = preTickLocation.clone().addLocal(velocity.mult(tpf));
-
-            if (whirlpoolRate != 0) {
-                // Not whirled on the spawn tick - the first rotation is the
-                // tick after spawn, using the annulus radius (plus this
-                // tick's own velocity move) as d.
-                if (whirled) {
-                    Vector3f base = (spatial.getParent() != null) ? spatial.getParent().getLocalTranslation() : Vector3f.ZERO;
-                    location.addLocal(EffectControl.whirlpoolDelta(whirlpoolRate,
-                            base.x + preTickLocation.x, base.z + preTickLocation.z, tpf));
-                }
-                whirled = true;
-            }
-
-            boolean directionalFriction = effect.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION);
-
-            if (location.y < floorHeightLocal) {
-                if (directionalFriction) {
-                    // Sticks where it lands instead of bouncing - elasticity
-                    // is ignored here, and unlike the bounce below the spin
-                    // rates are left untouched so it keeps tumbling in place
-                    // until hp runs out.
-                    location.y = floorHeightLocal;
-                    velocity.set(Vector3f.ZERO);
-                    landed = true;
-                } else {
-                    float e = effect.getElasticity();
-                    location.y = floorHeightLocal + (floorHeightLocal - location.y) * e;
-                    velocity.x *= e;
-                    velocity.z *= e;
-                    velocity.y = -velocity.y * e;
-                    spinX = spinY = spinZ = 0f;
-                }
-            }
-
-            spatial.setLocalTranslation(location);
-
-            if (effect.getAirFriction() != 0) {
-                velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
-            }
-
-            if (effect.getMass() != 0) {
-                velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
-            }
+    private void updateMovement(float tpf) {
+        if (landed || velocity == Vector3f.ZERO) {
+            return;
         }
 
+        // The parent chain's world Y offset, read before this frame's own
+        // translation change so it reflects the last fully-updated scene
+        // graph state (valid from the frame after the spatial is attached).
+        float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
+                - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
+        Vector3f preTickLocation = spatial.getLocalTranslation();
+        Vector3f location = preTickLocation.clone().addLocal(velocity.mult(tpf));
+
+        applyWhirlpool(location, preTickLocation, tpf);
+
+        if (location.y < floorHeightLocal) {
+            applyFloorCollision(location, floorHeightLocal);
+        }
+
+        spatial.setLocalTranslation(location);
+
+        if (effect.getAirFriction() != 0) {
+            velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
+        }
+
+        if (effect.getMass() != 0) {
+            velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
+        }
+    }
+
+    private void applyWhirlpool(Vector3f location, Vector3f preTickLocation, float tpf) {
+        if (whirlpoolRate == 0) {
+            return;
+        }
+
+        // Not whirled on the spawn tick - the first rotation is the tick
+        // after spawn, using the annulus radius (plus this tick's own
+        // velocity move) as d.
+        if (whirled) {
+            Vector3f base = (spatial.getParent() != null) ? spatial.getParent().getLocalTranslation() : Vector3f.ZERO;
+            location.addLocal(EffectControl.whirlpoolDelta(whirlpoolRate,
+                    base.x + preTickLocation.x, base.z + preTickLocation.z, tpf));
+        }
+        whirled = true;
+    }
+
+    private void applyFloorCollision(Vector3f location, float floorHeightLocal) {
+        boolean directionalFriction = effect.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION);
+        if (directionalFriction) {
+            // Sticks where it lands instead of bouncing - elasticity is
+            // ignored here, and unlike the bounce below the spin rates are
+            // left untouched so it keeps tumbling in place until hp runs out.
+            location.y = floorHeightLocal;
+            velocity.set(Vector3f.ZERO);
+            landed = true;
+        } else {
+            float e = effect.getElasticity();
+            location.y = floorHeightLocal + (floorHeightLocal - location.y) * e;
+            velocity.x *= e;
+            velocity.z *= e;
+            velocity.y = -velocity.y * e;
+            spinX = spinY = spinZ = 0f;
+        }
+    }
+
+    private void updateLifetime(float tpf) {
         if (isHit()) {
             hpCurrent = 0;
             onHit(null);
         }
 
-        hpCurrent-= tpf;
+        hpCurrent -= tpf;
         if (hpCurrent <= 0) {
             onDie(spatial.getLocalTranslation());
             spatial.removeFromParent();

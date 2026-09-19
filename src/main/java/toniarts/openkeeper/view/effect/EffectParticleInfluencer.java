@@ -69,7 +69,8 @@ public class EffectParticleInfluencer implements ParticleInfluencer {
 
     @Override
     public ParticleInfluencer clone() {
-        return new EffectParticleInfluencer(element);
+        Cloner cloner = new Cloner();
+        return cloner.clone(this);
     }
 
     @Override
@@ -92,9 +93,16 @@ public class EffectParticleInfluencer implements ParticleInfluencer {
         return 0f;
     }
 
+    /**
+     * Called internally by {@link Cloner}. Do not call directly.
+     */
     @Override
     public Object jmeClone() {
-        return new EffectParticleInfluencer(element);
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException ex) {
+            throw new AssertionError(ex);
+        }
     }
 
     @Override
