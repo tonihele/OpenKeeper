@@ -20,6 +20,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.Entity;
@@ -39,8 +40,11 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.DoorFlowerControl;
@@ -56,6 +60,8 @@ import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
@@ -156,6 +162,26 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureModelContainer.update();
         doorModelContainer.update();
         trapModelContainer.update();
+
+        // Lighting: re-derive attached-light positions and the flat-light
+        // sample every frame (design §7.4/§9) -- lights on other things
+        // (a nearby flickering torch) change even for a thing that hasn't
+        // itself moved, so this can't rely on EntityContainer's own
+        // change-driven updateObject().
+        LightRules lightRules = getLightRules();
+        if (lightRules != null) {
+            for (Spatial object : objectModelContainer.getModels()) {
+                AssetUtils.applyFlatLight(object, lightRules);
+            }
+            for (Spatial object : creatureModelContainer.getModels()) {
+                AssetUtils.applyFlatLight(object, lightRules);
+            }
+        }
+    }
+
+    private LightRules getLightRules() {
+        PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+        return mapViewState != null ? mapViewState.getMapLoader().getLightRules() : null;
     }
 
     @Override
@@ -311,6 +337,9 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
         object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
+
+        Creature creature = kwdFile.getCreature(viewState.creatureId);
+        applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
@@ -332,6 +361,45 @@ public class PlayerEntityViewState extends AbstractAppState {
             control.setTargetState(viewState);
         }
         object.setCullHint(viewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+
+        GameObject gameObject = kwdFile.getObject(viewState.objectId);
+        applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY);
+    }
+
+    /**
+     * Design &sect;6.1's thing-light formula, for objects/creatures. Shots
+     * and slab lights aren't wired here -- see the lighting plan's
+     * "Divergences" for why (no shot rendering, no slab-light data in this
+     * codebase's parser). Player-coloured lights are not yet resolved to
+     * an actual player colour here (a known simplification); everything
+     * else in &sect;6.1 (enable bit, over-bright bits, radius scale,
+     * pulse/flicker) is implemented.
+     */
+    private void applyThingLight(EntityId id, Spatial object, Light light, float intensity) {
+        LightRules lightRules = getLightRules();
+        if (lightRules == null) {
+            return;
+        }
+        if (light == null || !light.getFlags().contains(Light.LightFlag.UNKNOWN)) {
+            lightRules.removeThingLight(id);
+            return;
+        }
+
+        Vector3f offset = new Vector3f(light.getmKPos().x, light.getmKPos().y, light.getmKPos().z);
+        if (lightRules.getThingLight(id) == null) {
+            java.awt.Color c = light.getColor();
+            lightRules.addThingLight(id, object.getWorldTranslation(), offset,
+                    c.getRed(), c.getGreen(), c.getBlue(),
+                    light.getFlags().contains(Light.LightFlag.COLOR_RED),
+                    light.getFlags().contains(Light.LightFlag.COLOR_GREEN),
+                    light.getFlags().contains(Light.LightFlag.COLOR_BLUE),
+                    false, null,
+                    light.getRadius(), intensity,
+                    light.getFlags().contains(Light.LightFlag.PULSE),
+                    light.getFlags().contains(Light.LightFlag.FLICKER));
+        } else {
+            lightRules.updateThingLightPosition(id, object.getWorldTranslation(), offset);
+        }
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -342,6 +410,11 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
+
+        LightRules lightRules = getLightRules();
+        if (lightRules != null) {
+            lightRules.removeThingLight(e.getId());
+        }
 
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());
         if (entityViewControl != null) {
@@ -391,6 +464,10 @@ public class PlayerEntityViewState extends AbstractAppState {
             removeModel(object, e);
         }
 
+        Spatial[] getModels() {
+            return getArray();
+        }
+
     }
 
     /**
@@ -420,6 +497,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
+        }
+
+        Spatial[] getModels() {
+            return getArray();
         }
 
     }

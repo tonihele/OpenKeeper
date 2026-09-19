@@ -72,6 +72,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
@@ -216,6 +217,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
         }
+        updateCursorLight();
 
 //        updateStateFlags();
         timeFromLastUpdate += tpf;
@@ -430,6 +432,33 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
                 && isOnMap && gameClientState.getMapClientService().isTaggable(p);
+    }
+
+    /**
+     * The cursor light (lighting_design.md &sect;6.4/&sect;7.3): follows
+     * the tile under the mouse, hidden in build mode / off the world / off
+     * the map, black (not hidden) over the map border or unexplored
+     * ground.
+     */
+    private void updateCursorLight() {
+        PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+        if (mapViewState == null) {
+            return;
+        }
+        LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+
+        boolean visible = isOnMap && !isOnGui && interactionState.getType() != Type.ROOM;
+        Point p = selectionHandler.getPointedTileIndex();
+        if (visible) {
+            int width = mapInformation.getMapData().getWidth();
+            int height = mapInformation.getMapData().getHeight();
+            if (p.x < 1 || p.y < 1 || p.x >= width - 1 || p.y >= height - 1) {
+                visible = false;
+            }
+        }
+
+        boolean explored = visible && lightRules.getFogOfWar().isExplored(p);
+        lightRules.updateCursorLight(visible, p, explored);
     }
 
     private boolean isOnMap() {

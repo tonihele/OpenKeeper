@@ -6,12 +6,18 @@
 package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -33,6 +39,16 @@ public abstract class RoomConstructor {
     protected final boolean[][] map;
     protected final Point start;
 
+    /**
+     * This room's vertex ambient (lighting_design.md &sect;8.1), set by
+     * the caller (see {@code MapViewController.handleRoom}) before
+     * {@link #construct()}/{@link #getWallSpatial} run, since it's needed
+     * to build the DkTerrain materials this class pre-swaps its geometry
+     * onto BEFORE batching it (jME forbids re-materialling afterwards).
+     */
+    private ColorRGBA ambient = ColorRGBA.Black;
+    private final List<Material> lightingMaterials = new ArrayList<>();
+
     private final static int[] WALL_INDEXES = new int[]{7, 8};
 
     public RoomConstructor(AssetManager assetManager, RoomInstance roomInstance) {
@@ -40,6 +56,20 @@ public abstract class RoomConstructor {
         this.roomInstance = roomInstance;
         this.map = roomInstance.getCoordinatesAsMatrix();
         this.start = roomInstance.getMatrixStartPoint();
+    }
+
+    public void setAmbient(ColorRGBA ambient) {
+        this.ambient = ambient;
+    }
+
+    /**
+     * The DkTerrain materials {@link #construct()} swapped its floor/wall
+     * geometry onto, for the caller to register with {@code LightRules}
+     * (design &sect;4/&sect;11). Only populated after {@link #construct()}
+     * has run.
+     */
+    public List<Material> getLightingMaterials() {
+        return lightingMaterials;
     }
 
     /**
@@ -55,6 +85,7 @@ public abstract class RoomConstructor {
         if (floorNode != null) {
             floorNode.setName("Floor");
             floorNode.setShadowMode(getFloorShadowMode());
+            applyLighting(floorNode, lightingMaterials);
             floorNode.batch();
             root.attachChild(floorNode);
         }
@@ -64,11 +95,35 @@ public abstract class RoomConstructor {
         if (wallNode != null) {
             wallNode.setName("Wall");
             wallNode.setShadowMode(getWallShadowMode());
+            applyLighting(wallNode, lightingMaterials);
             wallNode.batch();
             root.attachChild(wallNode);
         }
 
         return root;
+    }
+
+    /**
+     * Swaps every geometry under {@code node} to a DkTerrain material
+     * (design &sect;8.1/&sect;9) -- must run before {@code node.batch()},
+     * see the class-level note on {@link #ambient}. {@code outMaterials}
+     * is a separate list per call site (not always {@link
+     * #lightingMaterials}) so a single per-tile wall corner piece (see
+     * {@link #getWallSpatial}) doesn't also end up double-registered as
+     * part of the whole room's region.
+     */
+    private void applyLighting(Node node, List<Material> outMaterials) {
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                Material dkTerrain = AssetUtils.createDkTerrainMaterial(assetManager, geometry.getMaterial(), ambient);
+                geometry.setMaterial(dkTerrain);
+                outMaterials.add(dkTerrain);
+            }
+        });
     }
 
     protected abstract BatchNode constructFloor();
@@ -181,6 +236,11 @@ public abstract class RoomConstructor {
                     part.rotate(0, yAngle, 0);
                     ((BatchNode) spatial).attachChild(part);
 
+                    // Pre-swap to DkTerrain before batching (see the class-level
+                    // note on `ambient`) -- MapViewController.applyTerrainLighting
+                    // recognizes and collects the already-swapped result for
+                    // per-tile light registration, it doesn't re-swap it.
+                    applyLighting((BatchNode) spatial, new ArrayList<>());
                     ((BatchNode) spatial).batch();
                 } else {
                     // Complete walls, 8, 7, 8, 7 and so forth

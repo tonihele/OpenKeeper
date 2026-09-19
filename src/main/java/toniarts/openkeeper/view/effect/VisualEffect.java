@@ -20,7 +20,6 @@ import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
-import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
@@ -32,6 +31,8 @@ import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -62,7 +63,7 @@ public class VisualEffect {
     private final AssetManager assetManager;
     private final EffectManagerState effectManagerState;
     private boolean infinite;
-    private PointLight light;
+    private Spatial lightTarget;
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Effect effect) {
         this(effectManagerState, node, null, effect, false);
@@ -180,11 +181,9 @@ public class VisualEffect {
             effectNode.attachChild(model);
         }
 
-        // Light
-        light = getLight(effect.getLight());
-        if (light != null) {
-            model.addLight(light);
-        }
+        // Light (lighting_design.md §6.1/§6.6)
+        lightTarget = model;
+        applyEffectLight(effect.getLight());
 
         // Elements/effects
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
@@ -363,19 +362,40 @@ public class VisualEffect {
         return null;
     }
 
-    private PointLight getLight(Light effectLight) {
-        if (effectLight == null) {
-            return null;
+    /**
+     * Design &sect;6.1's thing-light formula, applied to this effect
+     * (owner = the effect itself). Fade modulators (&sect;6.6) are left to
+     * the effect system to trigger via {@code LightSource.startFade} --
+     * this only creates the entry point, per the lighting plan's Phase 7
+     * scope note; nothing here decides which effects fade or for how long.
+     * Player-coloured lights are not yet resolved to an actual player
+     * colour (a known simplification).
+     */
+    private void applyEffectLight(Light effectLight) {
+        LightRules lightRules = getLightRules();
+        if (lightRules == null) {
+            return;
+        }
+        if (effectLight == null || !effectLight.getFlags().contains(Light.LightFlag.UNKNOWN)) {
+            lightRules.removeThingLight(this);
+            return;
         }
 
-        PointLight realLight = new PointLight();
-        realLight.setColor(new ColorRGBA(effectLight.getColor().getRed() / 255f,
-                effectLight.getColor().getGreen() / 255f,
-                effectLight.getColor().getBlue() / 255f,
-                effectLight.getColor().getAlpha() / 255f));
-        realLight.setRadius(effectLight.getRadius());
-        realLight.setPosition(new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z));
-        return realLight;
+        java.awt.Color c = effectLight.getColor();
+        Vector3f offset = new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z);
+        lightRules.addThingLight(this, effectNode.getWorldTranslation(), offset,
+                c.getRed(), c.getGreen(), c.getBlue(),
+                effectLight.getFlags().contains(Light.LightFlag.COLOR_RED),
+                effectLight.getFlags().contains(Light.LightFlag.COLOR_GREEN),
+                effectLight.getFlags().contains(Light.LightFlag.COLOR_BLUE),
+                false, null,
+                effectLight.getRadius(), LightConstants.EFFECT_LIGHT_INTENSITY,
+                effectLight.getFlags().contains(Light.LightFlag.PULSE),
+                effectLight.getFlags().contains(Light.LightFlag.FLICKER));
+    }
+
+    private LightRules getLightRules() {
+        return effectManagerState.getPlayerMapViewState().getMapLoader().getLightRules();
     }
 
     /**
@@ -386,6 +406,14 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if the effect has died
      */
     public boolean update(float tpf) {
+
+        // Lighting: refresh the flat-light sample every frame (design
+        // §7.4/§9) -- nearby lights flicker/pulse even though effectNode's
+        // own position is set once at construction and never moves.
+        LightRules lightRules = getLightRules();
+        if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
+            AssetUtils.applyFlatLight(lightTarget, lightRules);
+        }
 
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
@@ -432,11 +460,14 @@ public class VisualEffect {
 
             // If infitine, just restart
             if (infinite) {
-                if (light != null) {
-                    effectNode.removeLight(light);
+                if (lightRules != null) {
+                    lightRules.removeThingLight(this);
                 }
                 load();
             } else {
+                if (lightRules != null) {
+                    lightRules.removeThingLight(this);
+                }
                 effectNode.removeFromParent();
                 return false;
             }

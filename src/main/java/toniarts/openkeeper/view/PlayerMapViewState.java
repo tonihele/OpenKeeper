@@ -18,6 +18,7 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.math.ColorRGBA;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
@@ -25,6 +26,7 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -105,7 +107,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // Create the actual map
-        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, playerId) {
+        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, playerId,
+                Main.getUserSettings().getBoolean(Settings.Setting.TORCHES_ENABLED)) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -135,10 +138,16 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
+
+        // Lighting: the cursor light lives as long as the world does (design §6.4)
+        mapLoader.getLightRules().createCursorLight();
     }
 
     @Override
     public void cleanup() {
+
+        // Lighting
+        mapLoader.getLightRules().destroyCursorLight();
 
         // Detach our map
         if (worldNode != null) {
@@ -165,6 +174,19 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Always process rooms before the map tiles
         mapRoomContainer.update();
         mapTileContainer.update();
+
+        // Lighting: pick up live settings changes, advance modulators
+        // (pulse/fade/flicker) and re-upload the terrain materials they
+        // touched (lighting_design.md §4/§7/§10)
+        Settings settings = Main.getUserSettings();
+        float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
+        mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+        mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+        mapLoader.getLightRules().update(tpf);
+    }
+
+    public MapViewController getMapLoader() {
+        return mapLoader;
     }
 
     public AssetManager getAssetManager() {

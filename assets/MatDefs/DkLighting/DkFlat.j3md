@@ -1,0 +1,45 @@
+MaterialDef DK Flat Lighting {
+
+    MaterialParameters {
+        Texture2D DiffuseMap
+
+        // KmfModelLoader.setMaterialFlags sets this on alpha-flagged
+        // materials -- must be declared here or that call throws.
+        Float AlphaDiscardThreshold
+
+        // Global ambient (design §8.2): the video "ambient light" setting.
+        // Defaulted to black -- materials that nobody pushes a live value
+        // into (e.g. batched room geometry this pass leaves untouched,
+        // see MapViewController.applyTerrainLighting) must not read an
+        // uninitialized GPU uniform here.
+        Color GlobalAmbient : 0.0 0.0 0.0 0.0
+
+        // The "flat" evaluation (design §9): one sample at the mesh
+        // origin, normal term dropped, summed over every in-range light by
+        // SceneLights on the CPU (there is no per-fragment light loop for
+        // this technique) and uploaded as a single additive colour, 0..1.
+        // Defaulted to black for the same reason as GlobalAmbient above.
+        Color FlatLight : 0.0 0.0 0.0 0.0
+
+        // Not part of the lighting design -- kept only so the existing
+        // selection/flash/highlight code (AssetUtils.setModelHighlight,
+        // MapViewController's tile flash/tag, Arrow/HighlightBlinkControl)
+        // can keep tinting geometries without special-casing this def.
+        // Simply added on top of the lit colour, not a full override.
+        Color Ambient : 0.0 0.0 0.0 0.0
+        Boolean UseMaterialColors
+    }
+
+    Technique {
+        VertexShader GLSL150: Shaders/DkLighting/DkFlat.vert
+        FragmentShader GLSL150: Shaders/DkLighting/DkFlat.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+        }
+
+        Defines {
+            DISCARD_ALPHA : AlphaDiscardThreshold
+        }
+    }
+}

@@ -62,6 +62,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.view.lighting.LightRules;
 
 /**
  * Collection of asset related common functions
@@ -215,6 +216,66 @@ public final class AssetUtils {
         });
     }
 
+    public static final String DK_TERRAIN_MATDEF = "MatDefs/DkLighting/DkTerrain.j3md";
+
+    /**
+     * Builds a {@code DkTerrain} material carrying {@code original}'s
+     * DiffuseMap/AlphaDiscardThreshold/transparency and this terrain
+     * type's vertex ambient (design &sect;8.1). Must be called BEFORE the
+     * geometry it's applied to is batched (jME refuses to re-material an
+     * already-batched {@code Geometry}, and {@code BatchNode.setMaterial}
+     * throws post-batch too -- "please set the material on the geoms
+     * before batching").
+     */
+    public static Material createDkTerrainMaterial(AssetManager assetManager, Material original, ColorRGBA ambient) {
+        Material dkTerrain = new Material(assetManager, DK_TERRAIN_MATDEF);
+        dkTerrain.setName(original.getName());
+        if (original.getTextureParam("DiffuseMap") != null) {
+            dkTerrain.setTexture("DiffuseMap", original.getTextureParam("DiffuseMap").getTextureValue());
+        }
+        if (original.getParam("AlphaDiscardThreshold") != null) {
+            dkTerrain.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
+        }
+        dkTerrain.setTransparent(original.isTransparent());
+        dkTerrain.setColor("Ambient", ambient);
+        dkTerrain.setInt("NumLights", 0);
+        return dkTerrain;
+    }
+
+    public static boolean isDkTerrainMaterial(Material material) {
+        return DK_TERRAIN_MATDEF.equals(material.getMaterialDef().getAssetName());
+    }
+
+    /**
+     * Refreshes the "flat" light sample (lighting_design.md &sect;9) on
+     * every {@code DkFlat}-materialled geometry under {@code spatial},
+     * using {@code spatial}'s current world position. Meant to be called
+     * once per frame for anything with an attached thing light (design
+     * &sect;7.4) -- position changes and modulator/flicker changes on
+     * nearby lights both need this, not just the former.
+     *
+     * @param spatial the model to refresh (a creature, object, effect...)
+     * @param lightRules the owning map's lighting rules
+     */
+    public static void applyFlatLight(Spatial spatial, LightRules lightRules) {
+        ColorRGBA flatLight = lightRules.computeFlatLight(spatial.getWorldTranslation());
+        ColorRGBA globalAmbient = lightRules.getGlobalAmbient();
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial s) {
+                if (!(s instanceof Geometry geometry)) {
+                    return;
+                }
+                Material material = geometry.getMaterial();
+                if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                    return;
+                }
+                material.setColor("FlatLight", flatLight);
+                material.setColor("GlobalAmbient", globalAmbient);
+            }
+        });
+    }
+
     /**
      * Assign different kind of maps (Specular, Norma, etc.) to material, if
      * found
@@ -233,6 +294,12 @@ public final class AssetUtils {
     }
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
+
+        // DkFlat/DkTerrain (design's "no specular term" model) don't declare
+        // Normal/Specular/ParallaxMap at all -- nothing to assign there.
+        if (material.getMaterialDef().getMaterialParam(paramName) == null) {
+            return;
+        }
 
         Boolean found = TEXTURE_MAP_CACHE.get(textureName);
         if (found == null) {
