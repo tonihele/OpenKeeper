@@ -30,44 +30,75 @@ public class EffectMesh extends Mesh {
     private float scale = 1;
     private int frames = 1;
     private boolean uniqueTexCoords = false;
+    private boolean flat;
     boolean facingVelocity = false;
     Vector3f faceNormal = Vector3f.UNIT_Y;
 
     public EffectMesh(int frames, float scale) {
-        this();
+        this(false);
         setFrames(frames);
         setScale(scale);
     }
 
     public EffectMesh(int frames) {
-        this();
+        this(false);
         setFrames(frames);
     }
 
     public EffectMesh() {
+        this(false);
+    }
+
+    /**
+     * @param flat true for a FLAT-flagged art resource - the quad is built
+     * lying in the XZ plane (normal up, on the floor) instead of standing in
+     * the XY plane (normal facing +Z).
+     */
+    public EffectMesh(boolean flat) {
         super();
 
+        this.flat = flat;
         //setMode(Mesh.Mode.Triangles);
 
-        setBuffer(VertexBuffer.Type.Position, 3, new float[]{
-            -scale / 2, 0,     0,
-            scale / 2,  0,     0,
-            scale / 2,  scale, 0,
-            -scale / 2, scale, 0
-        });
+        if (flat) {
+            setBuffer(VertexBuffer.Type.Position, 3, new float[]{
+                -scale / 2, 0, 0,
+                scale / 2,  0, 0,
+                scale / 2,  0, scale,
+                -scale / 2, 0, scale
+            });
+
+            setBuffer(VertexBuffer.Type.Normal, 3, new float[]{0, 1, 0,
+                                                               0, 1, 0,
+                                                               0, 1, 0,
+                                                               0, 1, 0});
+
+            // Winding flipped (0,2,1 / 0,3,2) relative to the standing quad
+            // below so the face normal still points outward (+Y, up)
+            // instead of into the floor.
+            setBuffer(VertexBuffer.Type.Index, 3, new short[]{0, 2, 1,
+                                                              0, 3, 2});
+        } else {
+            setBuffer(VertexBuffer.Type.Position, 3, new float[]{
+                -scale / 2, 0,     0,
+                scale / 2,  0,     0,
+                scale / 2,  scale, 0,
+                -scale / 2, scale, 0
+            });
+
+            setBuffer(VertexBuffer.Type.Normal, 3, new float[]{0, 0, 1,
+                                                               0, 0, 1,
+                                                               0, 0, 1,
+                                                               0, 0, 1});
+
+            setBuffer(VertexBuffer.Type.Index, 3, new short[]{0, 1, 2,
+                                                              0, 2, 3});
+        }
 
         setBuffer(VertexBuffer.Type.TexCoord, 2, new float[]{0, 1,
                                                              1, 1,
                                                              1, 0,
                                                              0, 0});
-
-        setBuffer(VertexBuffer.Type.Normal, 3, new float[]{0, 0, 1,
-                                                           0, 0, 1,
-                                                           0, 0, 1,
-                                                           0, 0, 1});
-
-        setBuffer(VertexBuffer.Type.Index, 3, new short[]{0, 1, 2,
-                                                          0, 2, 3});
 
         updateBound();
         /*
@@ -104,12 +135,21 @@ public class EffectMesh extends Mesh {
 
         positions.clear();
 
-        positions.put(new float[]{
-            -scale / 2, 0,     0,
-            scale / 2,  0,     0,
-            scale / 2,  scale, 0,
-            -scale / 2, scale, 0
-        });
+        if (flat) {
+            positions.put(new float[]{
+                -scale / 2, 0, 0,
+                scale / 2,  0, 0,
+                scale / 2,  0, scale,
+                -scale / 2, 0, scale
+            });
+        } else {
+            positions.put(new float[]{
+                -scale / 2, 0,     0,
+                scale / 2,  0,     0,
+                scale / 2,  scale, 0,
+                -scale / 2, scale, 0
+            });
+        }
 
         pvb.updateData(positions);
     }

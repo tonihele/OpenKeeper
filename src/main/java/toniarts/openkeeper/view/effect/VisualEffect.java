@@ -172,7 +172,7 @@ public class VisualEffect {
             case ALPHA:
             case ADDITIVE_ALPHA:
             case SPRITE:
-                EffectGeometry g = new EffectGeometry("effect");
+                EffectGeometry g = new EffectGeometry("effect", resource.getFlags().contains(ArtResource.ArtResourceFlag.FLAT));
                 g.setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
@@ -383,7 +383,16 @@ public class VisualEffect {
         //
         applyParticleScale(emitter, element);
         //
-        emitter.setFacingVelocity(element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
+        boolean flat = resource.getFlags().contains(ArtResource.ArtResourceFlag.FLAT);
+        if (flat) {
+            // Lies flat on the floor (e.g. a decal/splat) instead of the
+            // default camera-facing billboard - takes priority over
+            // ROTATE_TO_MOVEMENT_DIRECTION, since jME3's ParticleTriMesh
+            // checks facingVelocity before faceNormal and would otherwise
+            // silently ignore the latter.
+            emitter.setFaceNormal(new Vector3f(0, 1, 0));
+        }
+        emitter.setFacingVelocity(!flat && element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
         //
         emitter.setRandomAngle(true);
         emitter.setRotateSpeed(Math.abs(EffectControl.randomSpinRate(effect.getSpriteSpinRateRange())));
