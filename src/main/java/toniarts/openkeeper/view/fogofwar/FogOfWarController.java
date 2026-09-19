@@ -195,7 +195,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
     public void markPendingTagged(List<Point> points, boolean tagged) {
         List<Point> changed = new ArrayList<>();
         for (Point p : points) {
-            if (isVisible(p) || !isHighlightable(p)) {
+            if (isVisible(p)) {
                 continue;
             }
             boolean wasPending = pendingTaggedTiles.contains(p);
@@ -509,17 +509,9 @@ public final class FogOfWarController implements IFogOfWarInformation {
             return false;
         }
         if (!isExplored(p)) {
-            // The map border never actually explores (see clearBorder()) and is
-            // always the unbreakable map edge, so it must never look taggable
-            // just because it happens to still be unexplored.
-            return !isMapBorder(p);
+            return true;
         }
         return kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
-    }
-
-    private boolean isMapBorder(Point p) {
-        return p.x == 0 || p.y == 0
-                || p.x == mapData.getWidth() - 1 || p.y == mapData.getHeight() - 1;
     }
 
     @Override
