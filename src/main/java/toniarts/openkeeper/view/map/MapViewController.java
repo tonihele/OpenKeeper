@@ -321,11 +321,18 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 }
                 if (isFlashing(tile)) {
                     material.setColor("Ambient", COLOR_FLASH);
-                    material.setBoolean("UseMaterialColors", true);
+                    // DkTerrain (jME's CommonMat-parameter-free def) has no
+                    // UseMaterialColors; guard like AssetUtils does so the flag
+                    // is only flipped on defs that declare it
+                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+                        material.setBoolean("UseMaterialColors", true);
+                    }
                 }
                 if (tile.isSelected(playerId)) {
                     material.setColor("Ambient", COLOR_TAG);
-                    material.setBoolean("UseMaterialColors", true);
+                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+                        material.setBoolean("UseMaterialColors", true);
+                    }
                 }
 
             }
@@ -1238,7 +1245,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             material.setColor("Specular", new ColorRGBA(r / 255f, g / 255f, b / 255f, 0));
         }
         material.setColor("Diffuse", ColorRGBA.White);
-        material.setBoolean("UseMaterialColors", false); // Hmm...
+        if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+            material.setBoolean("UseMaterialColors", false); // Hmm...
+        }
     }
 
     /**
