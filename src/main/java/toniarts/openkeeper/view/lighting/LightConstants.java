@@ -23,10 +23,8 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
 /**
  * Lighting-related constants. Values with a file field are read from
- * {@link IKwdFile#getVariables()}; values with no file field are named,
- * documented constants per {@code lighting_design.md}.
+ * {@link IKwdFile#getVariables()}; values with no file field are named
  *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class LightConstants {
 
@@ -41,53 +39,45 @@ public final class LightConstants {
     public static final float MIN_AMBIENT_FLOOR = 0.12f;
 
     /**
-     * The original's terrain-light radius (design &sect;6.3): the terrain
+     * The original's terrain-light radius: the terrain
      * data has no radius field, the original reuses a fixed scratch value.
      */
     public static final float TERRAIN_LIGHT_RADIUS_TILES = 4.5f;
 
     /**
-     * The original's terrain-light intensity (design &sect;6.3): no file
-     * field, always nominal.
+     * The original's terrain-light intensity
      */
     public static final float TERRAIN_LIGHT_INTENSITY = 1.0f;
 
     /**
-     * Cursor light radius (design &sect;6.4). No file field.
-     * <p>
-     * Note: at 7 tiles this radius puts the falloff into the original's
-     * out-of-range distance-table regime (design decision D7), which would
-     * render a dark-gap + second full-brightness band around the glow. The
-     * cursor is deliberately exempted from that regime -- see
-     * {@link LightSource#needsSmoothFalloff()} -- so this radius only
-     * decides the glow's reach.
+     * Cursor light radius
      */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 7f;
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 3f;
 
     /**
-     * Cursor light intensity, 255/128 (design &sect;6.4). No file field.
+     * Cursor light intensity, 255/128
      */
     public static final float CURSOR_LIGHT_INTENSITY = 255f / 128f;
 
     /**
-     * Cursor light height above the floor (design &sect;6.4). No file
+     * Cursor light height above the floor
      * field.
      */
     public static final float CURSOR_LIGHT_HEIGHT = 2.125f;
 
     /**
      * Portal light radius: this is also the hard cap every light's radius
-     * is clamped to (design &sect;6.1/&sect;6.5/&sect;9).
+     * is clamped to
      */
     public static final float PORTAL_LIGHT_RADIUS_TILES = 9.875f;
 
     /**
-     * Hard cap on any light source's radius (design &sect;6.1, &sect;9).
+     * Hard cap on any light source's radius
      */
     public static final float MAX_LIGHT_RADIUS_TILES = 9.875f;
 
     /**
-     * Portal light colour/intensity (design &sect;6.5). No file field; DK2
+     * Portal light colour/intensity DK2
      * hard-codes this for room ids 3 (Portal) and 25 (Hero Portal).
      */
     public static final int PORTAL_LIGHT_RED = 255;
@@ -104,27 +94,24 @@ public final class LightConstants {
     public static final float EFFECT_LIGHT_INTENSITY = 1.0f;
 
     /**
-     * Thing-light radius scale (design &sect;6.1): the {@code Light} struct
-     * radius is scaled by 2/3 before the {@link #MAX_LIGHT_RADIUS_TILES}
-     * cap is applied. Torches, terrain lights and the portal light are NOT
-     * scaled this way.
+     * Thing-light radius scale
      */
     public static final float THING_LIGHT_RADIUS_SCALE = 2f / 3f;
 
     /**
-     * {@code flags.PLAYER_COLOURED} clamp floor (design &sect;6.1):
+     * {@code flags.PLAYER_COLOURED} clamp floor
      * {@code colour = max(32, colour * playerColour / 255)}.
      */
     public static final int PLAYER_COLOURED_MIN = 32;
 
     /**
-     * The over-bright bit adds this to a colour channel (design &sect;3).
+     * The over-bright bit adds this to a colour channel
      */
     public static final int OVER_BRIGHT_BONUS = 256;
     public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
 
     /**
-     * Player-coloured reinforced walls/paths (no lighting_design.md source
+     * Player-coloured reinforced walls/paths
      * -- this is DK2's own claimed-terrain tinting, not part of the
      * dynamic-light model). Since vertex ambient multiplies the diffuse
      * texture, blend the owner's colour with a neutral grey rather than
@@ -137,18 +124,6 @@ public final class LightConstants {
 
     /**
      * The rate {@link LightModulators#tick()} is expected to be driven at.
-     * <p>
-     * There is no simulation-tick clock exposed to the presentation layer
-     * (design goal 3 deliberately keeps lighting out of the simulation), so
-     * this does not read the sim's real tick rate. It is a named constant
-     * matching the stock data's raw {@code GAME_TICKS} misc-variable value
-     * (4 -- see the comment next to {@link MiscType#GAME_TICKS} in
-     * {@code Variable.java}). Deliberately NOT read via
-     * {@code MiscVariable.getValue()}: that accessor applies an unrelated,
-     * poorly-understood transform to this particular variable
-     * ({@code 1363 / rawValue}, flagged with its own "how save int or float
-     * values???" TODO in {@code Variable.java}) that has nothing to do with
-     * a ticks-per-second rate.
      */
     public static final int SIMULATION_TICKS_PER_SECOND = 4;
 
