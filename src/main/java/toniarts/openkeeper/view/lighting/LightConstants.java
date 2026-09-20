@@ -42,7 +42,7 @@ public final class LightConstants {
      * The original's terrain-light radius: the terrain
      * data has no radius field, the original reuses a fixed scratch value.
      */
-    public static final float TERRAIN_LIGHT_RADIUS_TILES = 4.5f;
+    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.5f;
 
     /**
      * The original's terrain-light intensity
@@ -52,7 +52,7 @@ public final class LightConstants {
     /**
      * Cursor light radius
      */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 3f;
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 1.5f;
 
     /**
      * Cursor light intensity, 255/128
@@ -74,7 +74,7 @@ public final class LightConstants {
     /**
      * Hard cap on any light source's radius
      */
-    public static final float MAX_LIGHT_RADIUS_TILES = 9.875f;
+    public static final float MAX_LIGHT_RADIUS_TILES = 2f;
 
     /**
      * Portal light colour/intensity DK2
