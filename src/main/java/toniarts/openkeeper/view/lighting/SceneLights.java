@@ -198,7 +198,15 @@ public final class SceneLights {
 
         int count = Math.min(nearby.size(), MAX_LIGHTS_PER_MATERIAL);
         for (Material material : materials) {
-            applyLights(material, nearby, count);
+            if (count == 0) {
+                // jME's renderer throws ("Attempting to upload empty
+                // buffer") on a zero-length Vector4Array upload -- most
+                // tiles have no light in range most of the time, so this
+                // isn't an edge case, it's the common case.
+                clearLights(material);
+            } else {
+                applyLights(material, nearby, count);
+            }
         }
     }
 
@@ -212,6 +220,7 @@ public final class SceneLights {
     private void applyLights(Material material, List<LightSource> nearby, int count) {
         Vector4f[] posRadius = new Vector4f[count];
         Vector4f[] colorIntensity = new Vector4f[count];
+        int[] radial = new int[count];
         for (int i = 0; i < count; i++) {
             LightSource light = nearby.get(i);
             Vector3f pos = light.getPosition();
@@ -219,9 +228,11 @@ public final class SceneLights {
             colorIntensity[i] = new Vector4f(
                     light.getRed() / 255f, light.getGreen() / 255f, light.getBlue() / 255f,
                     light.getEffectiveIntensity());
+            radial[i] = light.needsSmoothFalloff() ? 1 : 0;
         }
         material.setParam("LightPosRadius", VarType.Vector4Array, posRadius);
         material.setParam("LightColorIntensity", VarType.Vector4Array, colorIntensity);
+        material.setParam("LightRadial", VarType.IntArray, radial);
         material.setInt("NumLights", count);
         material.setColor("GlobalAmbient", globalAmbient);
     }
@@ -258,7 +269,7 @@ public final class SceneLights {
             }
 
             float n = (float) Math.floor(16.0 * d2);
-            float f = dkFalloff(n);
+            float f = light.needsSmoothFalloff() ? dkFalloffMonotonic(n) : dkFalloff(n);
             float k = (r2 - d2) * f * (1f / r2) * light.getEffectiveIntensity();
             k = Math.min(k, 1f);
             if (k <= 0f) {
@@ -285,5 +296,19 @@ public final class SceneLights {
             return 0.25f + 16f / n;
         }
         return n - 256f;
+    }
+
+    /**
+     * Java-side twin of {@code DkFalloff.glsllib}'s {@code dkFalloffMonotonic}
+     * -- keep the two in sync. Used for sources that
+     * {@link LightSource#needsSmoothFalloff()} (the cursor light): drops the
+     * out-of-range {@code n - 256} limb so the glow can't re-saturate into
+     * the dark-gap + second full-brightness band beyond 4 tiles.
+     */
+    private static float dkFalloffMonotonic(float n) {
+        if (n < 0.5f) {
+            return 1e6f;
+        }
+        return 0.25f + 16f / n;
     }
 }

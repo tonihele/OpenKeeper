@@ -36,6 +36,7 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
+import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
@@ -736,7 +737,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         topTileNode.attachChild(spatial);
-        lightRules.registerTerrainTile(p, applyTerrainLighting(topTileNode, terrain));
+        lightRules.registerTerrainTile(p, applyTerrainLighting(topTileNode, terrain, tile.getOwnerId()));
         setTileMaterialToGeometries(tile, topTileNode);
         AssetUtils.translateToTile(topTileNode, p);
     }
@@ -753,7 +754,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
 
-        lightRules.registerTerrainTile(p, applyTerrainLighting(sideTileNode, terrain));
+        lightRules.registerTerrainTile(p, applyTerrainLighting(sideTileNode, terrain, tile.getOwnerId()));
         setTileMaterialToGeometries(tile, sideTileNode);
         AssetUtils.translateToTile(sideTileNode, p);
     }
@@ -933,7 +934,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // DkTerrain BEFORE it batches them (jME forbids re-materialling
         // after batching).
         Terrain roomTerrain = kwdFile.getTerrain(roomInstance.getRoom().getTerrainId());
-        roomConstructor.setAmbient(getVertexAmbient(roomTerrain));
+        roomConstructor.setAmbient(getVertexAmbient(roomTerrain, roomInstance.getOwnerId()));
 
         Spatial roomNode = roomConstructor.construct();
         List<Material> materials = roomConstructor.getLightingMaterials();
@@ -1025,9 +1026,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * into these materials continuously by {@link SceneLights}, since they
      * change with flicker/pulse/settings.
      */
-    private List<Material> applyTerrainLighting(Node node, Terrain terrain) {
+    private List<Material> applyTerrainLighting(Node node, Terrain terrain, short ownerId) {
         List<Material> materials = new ArrayList<>();
-        ColorRGBA ambient = getVertexAmbient(terrain);
+        ColorRGBA ambient = getVertexAmbient(terrain, ownerId);
         node.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
@@ -1067,15 +1068,40 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         return result[0];
     }
 
-    private ColorRGBA getVertexAmbient(Terrain terrain) {
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
-            return ColorRGBA.Black;
+    private ColorRGBA getVertexAmbient(Terrain terrain, short ownerId) {
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
+            Color c = terrain.getAmbientLight();
+            int r = c.getRed() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
+            int g = c.getGreen() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
+            int b = c.getBlue() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
+            return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
         }
-        Color c = terrain.getAmbientLight();
-        int r = c.getRed() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-        int g = c.getGreen() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-        int b = c.getBlue() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-        return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
+
+        // Player-coloured reinforced walls/paths (design isn't covered by
+        // lighting_design.md, which is only about dynamic point lights --
+        // this terrain has no AMBIENT_LIGHT of its own in the file data at
+        // all) default to a tint of the owner's colour instead of staying
+        // unlit, matching DK2's own look for claimed dungeon walls. Since
+        // this multiplies the diffuse texture (design §9), the raw player
+        // colour alone would crush whichever channels it doesn't cover
+        // (a pure red would zero out the texture's green/blue and read as
+        // a flat colour block) -- blend it with a neutral grey instead so
+        // the terrain's own texture still reads through, just tinted.
+        if ((terrain.getFlags().contains(Terrain.TerrainFlag.PLAYER_COLOURED_WALL)
+                || terrain.getFlags().contains(Terrain.TerrainFlag.PLAYER_COLOURED_PATH))
+                && ownerId != Player.NEUTRAL_PLAYER_ID) {
+            java.awt.Color playerColor = MapThumbnailGenerator.getPlayerColor(ownerId);
+            if (playerColor != null) {
+                float neutral = LightConstants.PLAYER_COLOURED_TERRAIN_BASE;
+                float tint = LightConstants.PLAYER_COLOURED_TERRAIN_TINT;
+                return new ColorRGBA(
+                        neutral + (playerColor.getRed() / 255f) * tint,
+                        neutral + (playerColor.getGreen() / 255f) * tint,
+                        neutral + (playerColor.getBlue() / 255f) * tint, 1f);
+            }
+        }
+
+        return ColorRGBA.Black;
     }
 
     /**

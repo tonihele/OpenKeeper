@@ -31,6 +31,16 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 public final class LightConstants {
 
     /**
+     * No lighting_design.md source -- a deliberate deviation from the
+     * design's own "the mesh base colour" (i.e. black) outside every
+     * light's reach: a fully unlit tile still gets this much ambient
+     * floor, so torch-less ground reads as a dim, murky dungeon rather
+     * than a flat black void. Applied as a per-channel floor (max), not
+     * an addition, so it never washes out an already-lit tile.
+     */
+    public static final float MIN_AMBIENT_FLOOR = 0.12f;
+
+    /**
      * The original's terrain-light radius (design &sect;6.3): the terrain
      * data has no radius field, the original reuses a fixed scratch value.
      */
@@ -44,6 +54,13 @@ public final class LightConstants {
 
     /**
      * Cursor light radius (design &sect;6.4). No file field.
+     * <p>
+     * Note: at 7 tiles this radius puts the falloff into the original's
+     * out-of-range distance-table regime (design decision D7), which would
+     * render a dark-gap + second full-brightness band around the glow. The
+     * cursor is deliberately exempted from that regime -- see
+     * {@link LightSource#needsSmoothFalloff()} -- so this radius only
+     * decides the glow's reach.
      */
     public static final float CURSOR_LIGHT_RADIUS_TILES = 7f;
 
@@ -105,6 +122,18 @@ public final class LightConstants {
      */
     public static final int OVER_BRIGHT_BONUS = 256;
     public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
+
+    /**
+     * Player-coloured reinforced walls/paths (no lighting_design.md source
+     * -- this is DK2's own claimed-terrain tinting, not part of the
+     * dynamic-light model). Since vertex ambient multiplies the diffuse
+     * texture, blend the owner's colour with a neutral grey rather than
+     * using it at full strength, or channels it doesn't cover would be
+     * crushed to black and the terrain would read as a flat colour block
+     * instead of a tinted texture. Tunable, not derived from game data.
+     */
+    public static final float PLAYER_COLOURED_TERRAIN_BASE = 0.45f;
+    public static final float PLAYER_COLOURED_TERRAIN_TINT = 0.35f;
 
     /**
      * The rate {@link LightModulators#tick()} is expected to be driven at.

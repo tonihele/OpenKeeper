@@ -9,6 +9,9 @@ uniform vec4 m_Ambient;
 uniform vec4 m_GlobalAmbient;
 uniform vec4 m_LightPosRadius[DK_MAX_LIGHTS];
 uniform vec4 m_LightColorIntensity[DK_MAX_LIGHTS];
+// 1 = use the smooth monotonic falloff (the cursor light), 0 = the exact
+// D7 falloff. Must stay the same length as the pair above.
+uniform int m_LightRadial[DK_MAX_LIGHTS];
 uniform int m_NumLights;
 
 attribute vec3 inPosition;
@@ -34,7 +37,7 @@ void main() {
         vec4 posRadius = m_LightPosRadius[i];
         vec4 colorIntensity = m_LightColorIntensity[i];
         sum += dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
-                posRadius.w, colorIntensity.rgb, colorIntensity.w);
+                posRadius.w, colorIntensity.rgb, colorIntensity.w, m_LightRadial[i] == 1);
     }
 
     vVertexColor = dkSoftClamp(sum);

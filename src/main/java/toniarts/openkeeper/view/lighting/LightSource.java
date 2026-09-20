@@ -66,6 +66,21 @@ public final class LightSource {
         return kind;
     }
 
+    /**
+     * Whether this light's falloff may not use the original's out-of-range
+     * distance table (design decision D7) and must stay monotonic instead.
+     * Only the cursor light needs this: its 7-tile radius would otherwise
+     * re-saturate into the dark-gap + second full-brightness band beyond 4
+     * tiles. Mirrors the {@code smoothFalloff} selection in
+     * {@code DkFalloff.glsllib}/{@code SceneLights}.
+     *
+     * @return {@code true} for the cursor light, {@code false} for every
+     * other source
+     */
+    public boolean needsSmoothFalloff() {
+        return kind == LightKind.CURSOR;
+    }
+
     public Object getOwner() {
         return owner;
     }

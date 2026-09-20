@@ -30,7 +30,12 @@ MaterialDef DK Terrain Lighting {
         // effective intensity (design §7.2's flicker included).
         Vector4Array LightColorIntensity
 
-        // How many of the two arrays above are actually populated this
+        // Per-light falloff selection, parallel to the two arrays above:
+        // 1 = smooth monotonic falloff (the cursor light, see
+        // LightSource.needsSmoothFalloff), 0 = the exact D7 falloff.
+        IntArray LightRadial
+
+        // How many of the arrays above are actually populated this
         // upload (unused slots are not evaluated, not just zeroed).
         // Defaulted to 0 so a material never read by SceneLights (yet)
         // doesn't evaluate an uninitialized light array.

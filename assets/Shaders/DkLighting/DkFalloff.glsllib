@@ -19,6 +19,21 @@ float dkFalloff(float n) {
     return n - 256.0;
 }
 
+// Monotonic variant used by the cursor light (and the "needs smooth
+// falloff" sources): drops dkFalloff's n >= 256 "n - 256" limb so the
+// contribution can never re-saturate beyond the 4-tile regime -- the
+// cursor glow fades out as one smooth circle instead of forming the
+// dark-gap + second full-brightness band that large-radius lights pick
+// up from the out-of-range table. Deliberate deviation from design
+// decision D7 for this light only; keep in sync with
+// SceneLights.dkFalloffMonotonic.
+float dkFalloffMonotonic(float n) {
+    if (n < 0.5) {
+        return 1e6;
+    }
+    return 0.25 + 16.0 / n;
+}
+
 // One point light's additive per-vertex contribution (design §9's
 // per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and
 // `intensity` is the source's effective (flicker-scaled) intensity --
@@ -28,7 +43,7 @@ float dkFalloff(float n) {
 // behaviour actually combine, not a mistake to "fix" into a normalized
 // Lambert term.
 vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
-        float radius, vec3 lightColor, float intensity) {
+        float radius, vec3 lightColor, float intensity, bool smoothFalloff) {
     vec3 d = lightPos - worldPos;
     float d2 = dot(d, d);
     float r2 = radius * radius;
@@ -42,7 +57,8 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
     }
 
     float n = floor(16.0 * d2);
-    float k = (r2 - d2) * dkFalloff(n) * (1.0 / r2) * lam;
+    float f = smoothFalloff ? dkFalloffMonotonic(n) : dkFalloff(n);
+    float k = (r2 - d2) * f * (1.0 / r2) * lam;
     return lightColor * min(k, 1.0);
 }
 
@@ -58,9 +74,16 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
 #define DK_SOFTCLAMP_KNEE 0.85
 #define DK_SOFTCLAMP_CEILING 1.0
 
+// No lighting_design.md source -- a deliberate deviation from "the mesh
+// base colour" (black) outside every light's reach: keeps torch-less
+// ground dim rather than a flat black void. Must match
+// LightConstants.MIN_AMBIENT_FLOOR. Applied as a floor (max), not an
+// addition, so it never washes out an already-lit point.
+#define DK_MIN_AMBIENT_FLOOR 0.12
+
 float dkSoftClampChannel(float x) {
     if (x <= DK_SOFTCLAMP_KNEE) {
-        return x;
+        return max(x, DK_MIN_AMBIENT_FLOOR);
     }
     float span = DK_SOFTCLAMP_CEILING - DK_SOFTCLAMP_KNEE;
     float excess = x - DK_SOFTCLAMP_KNEE;
