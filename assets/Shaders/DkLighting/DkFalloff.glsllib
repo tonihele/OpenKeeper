@@ -34,6 +34,19 @@ float dkFalloffMonotonic(float n) {
     return 0.25 + 16.0 / n;
 }
 
+// Loose tail stretched past every light's radius (a deliberate deviation
+// from design decision D7, requested in-game). D7 cuts the contribution
+// to exactly 0 at the radius surface, so a small radius pool (torches
+// and terrain lights sit at 1.5 tiles) saturates up to its edge and then
+// stops dead -- the neighbouring tiles read as flat, harsh unlit blocks.
+// Instead of that hard surface, dkPointLightContribution fades across
+// [radius, radius + DK_SOFT_FALLOFF_TAIL_TILES]: the near-field k is
+// still > 1, so the saturated core keeps its D7 look, but the tail
+// grades into the adjacent tiles so they mix in their lit neighbours'
+// light. Must match LightConstants.SOFT_FALLOFF_TAIL_TILES and SceneLights'
+// reach test / computeFlatLight.
+#define DK_SOFT_FALLOFF_TAIL_TILES 1.0
+
 // One point light's additive per-vertex contribution (design §9's
 // per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and
 // `intensity` is the source's effective (flicker-scaled) intensity --
@@ -46,7 +59,7 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
         float radius, vec3 lightColor, float intensity, bool smoothFalloff) {
     vec3 d = lightPos - worldPos;
     float d2 = dot(d, d);
-    float r2 = radius * radius;
+    float r2 = (radius + DK_SOFT_FALLOFF_TAIL_TILES) * (radius + DK_SOFT_FALLOFF_TAIL_TILES);
     if (r2 <= 0.0 || d2 >= r2) {
         return vec3(0.0);
     }

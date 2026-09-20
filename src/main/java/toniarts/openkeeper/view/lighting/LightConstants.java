@@ -39,6 +39,11 @@ public final class LightConstants {
     public static final float MIN_AMBIENT_FLOOR = 0.12f;
 
     /**
+     * Loose tail stretched past every light's radius
+     */
+    public static final float SOFT_FALLOFF_TAIL_TILES = 1.0f;
+
+    /**
      * The original's terrain-light radius: the terrain
      * data has no radius field, the original reuses a fixed scratch value.
      */
@@ -84,6 +89,16 @@ public final class LightConstants {
     public static final int PORTAL_LIGHT_GREEN = 33;
     public static final int PORTAL_LIGHT_BLUE = 26;
     public static final float PORTAL_LIGHT_INTENSITY = 1.0f;
+
+    /**
+     * Fallbacks for the {@code DEFAULT_TORCH_LIGHT_*} misc variables
+     */
+    public static final int DEFAULT_TORCH_LIGHT_RED_FALLBACK = 300;
+    public static final int DEFAULT_TORCH_LIGHT_GREEN_FALLBACK = 200;
+    public static final int DEFAULT_TORCH_LIGHT_BLUE_FALLBACK = 100;
+    public static final float DEFAULT_TORCH_LIGHT_INTENSITY_FALLBACK = 180f / 128f;
+    public static final float DEFAULT_TORCH_LIGHT_RADIUS_TILES_FALLBACK = 1.5f;
+    public static final float DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK = 1.5f;
 
     /**
      * Thing-light intensity by owner type (design &sect;6.1).
@@ -141,30 +156,37 @@ public final class LightConstants {
     }
 
     public static int getDefaultTorchLightRed(IKwdFile kwdFile) {
-        return (int) getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_RED);
+        int value = (int) getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_RED);
+        return value > 0 ? value : DEFAULT_TORCH_LIGHT_RED_FALLBACK;
     }
 
     public static int getDefaultTorchLightGreen(IKwdFile kwdFile) {
-        return (int) getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_GREEN);
+        int value = (int) getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_GREEN);
+        return value > 0 ? value : DEFAULT_TORCH_LIGHT_GREEN_FALLBACK;
     }
 
     public static int getDefaultTorchLightBlue(IKwdFile kwdFile) {
-        return (int) getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_BLUE);
+        int value = (int) getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_BLUE);
+        return value > 0 ? value : DEFAULT_TORCH_LIGHT_BLUE_FALLBACK;
     }
 
     /**
      * The file value is a byte where 128 = 1.0 (design &sect;3).
      */
     public static float getDefaultTorchLightIntensity(IKwdFile kwdFile) {
-        return getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_INTENSITY) / 128f;
+        float intensity = getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_INTENSITY) / 128f;
+        return intensity > 0f ? intensity : DEFAULT_TORCH_LIGHT_INTENSITY_FALLBACK;
     }
 
     /**
      * Already converted to tiles at parse time (see
-     * {@code MiscVariable.setValue}).
+     * {@code MiscVariable.setValue}). A level that omits the variable
+     * yields a zero-radius source that renders nothing (see the fallback
+     * constants' comment), so zero falls back to a working pool.
      */
     public static float getDefaultTorchLightRadiusTiles(IKwdFile kwdFile) {
-        return getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES);
+        float radius = getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_RADIUS_TILES);
+        return radius > 0f ? radius : DEFAULT_TORCH_LIGHT_RADIUS_TILES_FALLBACK;
     }
 
     /**
@@ -172,7 +194,8 @@ public final class LightConstants {
      * {@code MiscVariable.setValue}).
      */
     public static float getDefaultTorchLightHeightTiles(IKwdFile kwdFile) {
-        return getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES);
+        float height = getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_HEIGHT_TILES);
+        return height > 0f ? height : DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK;
     }
 
     public static int getClaimScanLightRed(IKwdFile kwdFile) {

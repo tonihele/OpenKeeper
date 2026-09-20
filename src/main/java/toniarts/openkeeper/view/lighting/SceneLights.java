@@ -22,10 +22,14 @@ import com.jme3.math.Vector3f;
 import com.jme3.math.Vector4f;
 import com.jme3.shader.VarType;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -38,7 +42,10 @@ import toniarts.openkeeper.utils.Point;
  * material parameters, refreshed every frame (lights flicker/pulse/fade,
  * so this can't be a one-time upload). Tile-vs-light selection is an
  * approximation by tile-centre distance (padded, see
- * {@link #TILE_SELECTION_PADDING}) -- a renderer/culling detail per D9,
+ * {@link #TILE_SELECTION_PADDING}, and stretched past the light's radius
+ * by {@link LightConstants#SOFT_FALLOFF_TAIL_TILES} -- the reach test
+ * must also cover the shader's soft-falloff band, not just the radius) --
+ * a renderer/culling detail per D9,
  * not a change to the lighting model itself, which is still evaluated
  * exactly, per vertex, in the shader.</li>
  * <li><b>Flat things</b> ({@code DkFlat.j3md}): {@link #computeFlatLight}
@@ -53,8 +60,11 @@ import toniarts.openkeeper.utils.Point;
  */
 public final class SceneLights {
 
+    private static final Logger logger = Logger.getLogger(SceneLights.class.getName());
+
     /**
-     * Must match {@code DK_MAX_LIGHTS} in {@code DkTerrain.vert}.
+     * Must match {@code DK_MAX_LIGHTS} in {@code DkTerrain.vert}. The GLSL
+     * array is fixed-size, so a material genuinely can't take
      */
     public static final int MAX_LIGHTS_PER_MATERIAL = 16;
 
@@ -186,14 +196,22 @@ public final class SceneLights {
             Vector3f pos = light.getPosition();
             float dx = pos.x - centerX;
             float dz = pos.z - centerZ;
-            float reach = light.getRadius() + padding;
+            float reach = light.getRadius() + LightConstants.SOFT_FALLOFF_TAIL_TILES + padding;
             if (dx * dx + dz * dz <= reach * reach) {
                 nearby.add(light);
             }
         }
 
         if (nearby.size() > MAX_LIGHTS_PER_MATERIAL) {
-            nearby.sort(Comparator.comparingDouble(l -> distanceSquared(l, centerX, centerZ)));
+            // GLSL array is fixed-size; see MAX_LIGHTS_PER_MATERIAL
+            nearby.sort((a, b) -> {
+                int pa = a.getKind() == LightKind.TERRAIN ? 1 : 0;
+                int pb = b.getKind() == LightKind.TERRAIN ? 1 : 0;
+                if (pa != pb) {
+                    return Integer.compare(pa, pb);
+                }
+                return Float.compare(distanceSquared(a, centerX, centerZ), distanceSquared(b, centerX, centerZ));
+            });
         }
 
         int count = Math.min(nearby.size(), MAX_LIGHTS_PER_MATERIAL);
@@ -262,7 +280,7 @@ public final class SceneLights {
             float dy = pos.y - worldPos.y;
             float dz = pos.z - worldPos.z;
             float d2 = dx * dx + dy * dy + dz * dz;
-            float radius = light.getRadius();
+            float radius = light.getRadius() + LightConstants.SOFT_FALLOFF_TAIL_TILES;
             float r2 = radius * radius;
             if (r2 <= 0f || d2 >= r2) {
                 continue;

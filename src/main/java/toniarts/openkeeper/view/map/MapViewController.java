@@ -23,10 +23,12 @@ import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
+ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.*;
 import com.jme3.texture.Texture;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.common.EntityInstance;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -50,6 +52,7 @@ import toniarts.openkeeper.view.map.construction.WaterConstructor;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.FloatBuffer;
 import java.util.*;
 
 /**
@@ -104,6 +107,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
+    private final Map<Node, List<Object>> pageBatchRegionKeys = new IdentityHashMap<>(); // Region keys registered per page, removed on re-batch
     private final LightRules lightRules = new LightRules();
 
     public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
@@ -163,6 +167,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             ((BatchNode) page.getChild(FLOOR_INDEX)).batch();
             ((BatchNode) page.getChild(WALL_INDEX)).batch();
             ((BatchNode) page.getChild(TOP_INDEX)).batch();
+            registerPageBatchRegions(page);
         }
         map.attachChild(terrain);
 
@@ -259,6 +264,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Batch
         for (BatchNode batchNode : nodesNeedBatching) {
             batchNode.batch();
+            // Re-batching creates new batched geometries/materials in place,
+            // so the page's region registration must be refreshed
+            if (batchNode.getParent() instanceof Node page) {
+                registerPageBatchRegions(page);
+            }
         }
     }
 
@@ -372,6 +382,73 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 pageBatch.attachChild(new Node((x + pageX * PAGE_SQUARE_SIZE) + "_" + (y + pageY * PAGE_SQUARE_SIZE)));
             }
         }
+    }
+
+    /**
+     * Registers the batched geometry of a whole page as lighting regions
+     */
+    private void registerPageBatchRegions(Node page) {
+        if (page == null) {
+            return;
+        }
+        List<Object> keys = pageBatchRegionKeys.get(page);
+        if (keys != null) {
+            for (Object key : keys) {
+                lightRules.unregisterRegionMaterials(key);
+            }
+        }
+        keys = new ArrayList<>();
+
+        String[] pageCoords = page.getName().split("_");
+        if (pageCoords.length < 2) {
+            return;
+        }
+        int pageX;
+        int pageY;
+        try {
+            pageX = Integer.parseInt(pageCoords[0]);
+            pageY = Integer.parseInt(pageCoords[1]);
+        } catch (NumberFormatException e) {
+            return;
+        }
+        float minX = pageX * PAGE_SQUARE_SIZE - 0.5f;
+        float minZ = pageY * PAGE_SQUARE_SIZE - 0.5f;
+        float maxX = (pageX + 1) * PAGE_SQUARE_SIZE + 0.5f;
+        float maxZ = (pageY + 1) * PAGE_SQUARE_SIZE + 0.5f;
+        Vector3f[] pageBounds = new com.jme3.math.Vector3f[]{
+            new com.jme3.math.Vector3f(minX, 1f, minZ),
+            new com.jme3.math.Vector3f(maxX, 2f, maxZ)
+        };
+        // The merged batch geometries are the batch node's direct Geometry
+        Map<Material, Vector3f[]> materialBounds = new IdentityHashMap<>();
+        for (int i = 0; i <= TOP_INDEX; i++) {
+            Spatial batch = page.getChild(i);
+            if (!(batch instanceof BatchNode batchNode)) {
+                continue;
+            }
+            for (Spatial child : batchNode.getChildren()) {
+                if (!(child instanceof Geometry geometry) || geometry.getMesh() == null) {
+                    continue;
+                }
+                Material material = geometry.getMaterial();
+                // Only DkTerrain materials take a per-vertex light array
+                // (NumLights etc.); DkFlat things are lit CPU-side per thing
+                if (material == null || !AssetUtils.isDkTerrainMaterial(material)) {
+                    continue;
+                }
+                materialBounds.putIfAbsent(material, pageBounds);
+            }
+        }
+        int regionIndex = 0;
+        for (Map.Entry<Material, Vector3f[]> entry : materialBounds.entrySet()) {
+            Vector3f center = entry.getValue()[0].add(entry.getValue()[1]).multLocal(0.5f);
+            float radius = center.distance(entry.getValue()[0]);
+            Object key = page.getName() + ":batch:" + regionIndex;
+            lightRules.registerRegionMaterials(key, center, radius, List.of(entry.getKey()));
+            keys.add(key);
+            regionIndex++;
+        }
+        pageBatchRegionKeys.put(page, keys);
     }
 
     private Spatial getWallSpatial(IMapTileInformation tile, WallDirection direction) {
@@ -626,7 +703,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
 
-        lightRules.addTorchLight(tile.getLocation(), worldPosition, red, green, blue, intensity, radius);
+        float lightY = WorldUtils.TOP_HEIGHT + WorldUtils.TILE_HEIGHT * 0.25f;
+        Vector3f torchLightPosition = WorldUtils.pointToVector3f(tile.getLocation())
+                .addLocal(WorldUtils.TILE_WIDTH / 2f, lightY, WorldUtils.TILE_WIDTH / 2f);
+        switch (direction) {
+            case EAST -> torchLightPosition.x -= WorldUtils.TILE_WIDTH / 2f;
+            case SOUTH -> torchLightPosition.z -= WorldUtils.TILE_WIDTH / 2f;
+            default -> {
+            }
+        }
+        lightRules.addTorchLight(tile.getLocation(), torchLightPosition, red, green, blue, intensity, radius);
     }
 
     private Terrain getTorchTerrain(int x, int y) {
