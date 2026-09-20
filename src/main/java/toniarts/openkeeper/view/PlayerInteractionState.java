@@ -436,9 +436,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     /**
      * The cursor light (lighting_design.md &sect;6.4/&sect;7.3): follows
-     * the tile under the mouse, hidden in build mode / off the world / off
-     * the map, black (not hidden) over the map border or unexplored
-     * ground.
+     * the point on the world directly under the mouse (continuous, not
+     * snapped to tile centres -- see LightRules.updateCursorLight for the
+     * deviation), hidden in build mode / off the world / off the map,
+     * black (not hidden) over the map border or unexplored ground.
      */
     private void updateCursorLight() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
@@ -457,8 +458,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
         }
 
+        Vector2f pointed = selectionHandler.getActualPointedPosition();
+        Vector3f position = new Vector3f(pointed.x + 0.5f, 0f, pointed.y + 0.5f);
+
         boolean explored = visible && lightRules.getFogOfWar().isExplored(p);
-        lightRules.updateCursorLight(visible, p, explored);
+        lightRules.updateCursorLight(visible, position, explored);
     }
 
     private boolean isOnMap() {

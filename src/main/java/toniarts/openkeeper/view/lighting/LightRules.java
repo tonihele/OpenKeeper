@@ -278,11 +278,14 @@ public final class LightRules {
     /**
      * Design &sect;7.3: {@code visible = false} hides the light entirely
      * (build mode, cursor not over the world, off-map); otherwise it moves
-     * to {@code tileCenter} and is white if {@code explored}, else black
+     * to {@code position} and is white if {@code explored}, else black
      * (still lit, not hidden -- design is explicit this differs from
-     * "invisible").
+     * "invisible"). Deviation from the design's tile-centred
+     * {@code cursorTile.x + 0.5}: the caller passes the continuous cursor
+     * floor point (plus the half-tile offset), so the glow glides instead
+     * of snapping between tiles.
      */
-    public void updateCursorLight(boolean visible, Point tile, boolean explored) {
+    public void updateCursorLight(boolean visible, Vector3f position, boolean explored) {
         if (cursorLight == null) {
             return;
         }
@@ -290,7 +293,7 @@ public final class LightRules {
         if (!visible) {
             return;
         }
-        cursorLight.setPosition(new Vector3f(tile.x + 0.5f, LightConstants.CURSOR_LIGHT_HEIGHT, tile.y + 0.5f));
+        cursorLight.setPosition(new Vector3f(position.x, LightConstants.CURSOR_LIGHT_HEIGHT, position.z));
         int value = explored ? 511 : 0;
         cursorLight.setBaseColour(value, value, value);
     }
