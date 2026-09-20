@@ -18,8 +18,10 @@ package toniarts.openkeeper.view.lighting;
 
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Plane;
 import com.jme3.math.Vector3f;
 import com.jme3.math.Vector4f;
+import com.jme3.renderer.Camera;
 import com.jme3.shader.VarType;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,6 +77,11 @@ public final class SceneLights {
      * corners are up to ~0.71 tiles from centre).
      */
     private static final float TILE_SELECTION_PADDING = 1.0f;
+
+    /**
+     * Culling margin of the per-frame update pass
+     */
+    private static final float FRUSTUM_MARGIN_TILES = 2f;
 
     private final Map<Point, List<Material>> terrainMaterialsByTile = new HashMap<>();
     private final Map<Object, Region> regionMaterials = new HashMap<>();
@@ -147,18 +154,17 @@ public final class SceneLights {
     /**
      * Refreshes every registered terrain tile's light-array material
      * parameters from the current state of {@code lights}. Meant to be
-     * called once per frame (see {@link LightRules#update(float)}) --
+     * called once per frame (see {@link LightRules#update(float, Camera)}) --
      * flicker/pulse/fade mean this can't be a one-shot upload done only
      * when lights are created or moved.
      * <p>
-     * This is an unconditional full pass over every registered tile,
-     * deliberately simple rather than spatially indexed -- design's D9
-     * explicitly leaves renderer batching/culling as the renderer's own
-     * business, and profiling this before adding any smarter indexing is
-     * called out as its own follow-up (see the plan's settings/cleanup
-     * phase) rather than something to guess at up front.
+     * This is a per-frame pass over every registered tile/region that is
+     * within the camera frustum (plus {@link #FRUSTUM_MARGIN_TILES} on each
+     * side, so lights just off-screen are already correct when the camera
+     * swings round); anything further out isn't rendered, so it keeps its
+     * last uploaded array.
      */
-    public void update(List<LightSource> lights) {
+    public void update(List<LightSource> lights, Camera camera) {
         if (terrainMaterialsByTile.isEmpty() && regionMaterials.isEmpty()) {
             return;
         }
@@ -176,14 +182,51 @@ public final class SceneLights {
             return;
         }
 
+        Plane[] frustum = null;
+        if (camera != null) {
+            // jME 3.9 Camera folded the classic Frustum's six world planes
+            // into getWorldPlane(int); the plane index constants are private
+            // there, but indices 0..5 are fixed as LEFT, RIGHT, BOTTOM, TOP,
+            // FAR, NEAR -- a cull test doesn't care about their order.
+            frustum = new Plane[6];
+            for (int i = 0; i < 6; i++) {
+                frustum[i] = camera.getWorldPlane(i);
+            }
+        }
         List<LightSource> nearby = new ArrayList<>(MAX_LIGHTS_PER_MATERIAL + 1);
         for (Map.Entry<Point, List<Material>> entry : terrainMaterialsByTile.entrySet()) {
             Point tile = entry.getKey();
+            if (frustum != null && !reachableFromCamera(frustum, FRUSTUM_MARGIN_TILES, tile.x + 0.5f, tile.y + 0.5f)) {
+                continue;
+            }
             updateGroup(entry.getValue(), tile.x + 0.5f, tile.y + 0.5f, TILE_SELECTION_PADDING, lights, nearby);
         }
         for (Region region : regionMaterials.values()) {
+            if (frustum != null && !reachableFromCamera(frustum, FRUSTUM_MARGIN_TILES, region.center.x, region.center.z)) {
+                continue;
+            }
             updateGroup(region.materials, region.center.x, region.center.z, region.radius, lights, nearby);
         }
+    }
+
+    /**
+     * Whether a tile/region centre (at ground height) is inside the camera
+     * frustum expanded by {@code margin} tiles on each side. The frustum
+     * planes' normals point inward, so {@code distance >= -margin} keeps a
+     * point up to {@code margin} outside a plane -- i.e. exactly "the
+     * frustum plus the margin strip around it".
+     */
+    private static boolean reachableFromCamera(Plane[] planes, float margin, float x, float z) {
+        for (Plane plane : planes) {
+            // pseudoDistance = normal.Dot(point) - constant, computed without
+            // allocating a Vector3f per tile/region every frame
+            Vector3f normal = plane.getNormal();
+            float distance = normal.x * x + normal.z * z - plane.getConstant();
+            if (distance < -margin) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void updateGroup(List<Material> materials, float centerX, float centerZ, float padding,

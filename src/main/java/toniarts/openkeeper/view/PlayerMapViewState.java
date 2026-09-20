@@ -182,7 +182,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
         mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
         mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
-        mapLoader.getLightRules().update(tpf);
+        mapLoader.getLightRules().update(tpf, app.getCamera());
     }
 
     public MapViewController getMapLoader() {

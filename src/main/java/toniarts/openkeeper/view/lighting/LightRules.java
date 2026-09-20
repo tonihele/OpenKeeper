@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.lighting;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.Camera;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -90,11 +91,16 @@ public final class LightRules {
      * Advances every source's modulators and re-uploads the affected
      * terrain materials' light arrays. Call once per frame (or per
      * simulation tick for {@code tpf} accounting -- {@link LightModulators}
-     * does its own fixed-step accumulation either way).
+     * does its own fixed-step accumulation either way). {@code camera} is
+     * used to cull the upload pass to tiles/regions near the view frustum;
+     * may be {@code null} (then nothing is culled).
+     *
+     * @param tpf frame delta
+     * @param camera the camera whose frustum gates the per-frame upload
      */
-    public void update(float tpf) {
+    public void update(float tpf, Camera camera) {
         modulators.update(tpf);
-        sceneLights.update(modulators.getSources());
+        sceneLights.update(modulators.getSources(), camera);
     }
 
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
