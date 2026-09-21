@@ -164,15 +164,23 @@ public final class SlapSystem extends GameTimeCounter {
         // debt when slapped. A fresh debt contains four such units.
         CreatureAi creatureAi = entityData.getComponent(entity.getId(), CreatureAi.class);
         CreatureSleep creatureSleep = entityData.getComponent(entity.getId(), CreatureSleep.class);
-        if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.SLEEPING
-                && creatureSleep != null && creatureSleep.sleepNeed != 0) {
-            int sleepNeed = Math.max(0,
-                    creatureSleep.sleepNeed - creature.getAttributes().getTimeSleep());
-            entityData.setComponent(entity.getId(), new CreatureSleep(creatureSleep.lairObjectId,
-                    creatureSleep.lastSleepTime, creatureSleep.sleepStartTime, sleepNeed));
+        CreatureSleep updatedSleep = applySleepingSlap(creatureSleep,
+                creatureAi == null ? null : creatureAi.getCreatureState(),
+                creature.getAttributes().getTimeSleep());
+        if (updatedSleep != creatureSleep) {
+            entityData.setComponent(entity.getId(), updatedSleep);
         }
 
         // TODO: Apply the force
+    }
+
+    static CreatureSleep applySleepingSlap(CreatureSleep sleep, CreatureState state,
+            int authoredTimeSleep) {
+        if (sleep == null || state != CreatureState.SLEEPING || sleep.sleepNeed == 0) {
+            return sleep;
+        }
+        return new CreatureSleep(sleep.lairObjectId, sleep.lastSleepTime,
+                sleep.sleepStartTime, Math.max(0, sleep.sleepNeed - authoredTimeSleep));
     }
 
     private void processDeletedEntities(Set<Entity> entities) {

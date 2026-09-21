@@ -146,9 +146,13 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                 recuperating.startTime, recuperating.healthCheckTime,
                 recuperating.moodCheckTime + 1));
         if (angerRecoveryInLairPerSecond != 0) {
-            entityData.setComponent(entity.getId(), mood.add(
-                    CreatureMood.REASON_OTHER, angerRecoveryInLairPerSecond));
+            entityData.setComponent(entity.getId(), recoverInLair(
+                    mood, angerRecoveryInLairPerSecond));
         }
+    }
+
+    static CreatureMood recoverInLair(CreatureMood mood, int angerChange) {
+        return mood.add(CreatureMood.REASON_OTHER, angerChange);
     }
 
     private static String stateName(int state) {
