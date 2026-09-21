@@ -228,6 +228,17 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     /**
+     * Whether this flower must remain visible without an explicit call to
+     * {@link #show()}. Subclasses can use this for persistent native status
+     * indications.
+     *
+     * @return true when the flower should be visible
+     */
+    protected boolean isPersistentVisibilityRequired() {
+        return false;
+    }
+
+    /**
      * Show the flower for a brief time
      */
     @Override
@@ -283,6 +294,12 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     public void update(float tpf) {
         entity.applyChanges();
 
+        if (!isEnabled() && unitSpatial != null && isPersistentVisibilityRequired()) {
+            // This is the jMonkeyEngine scene-control update, not an AWT component call.
+            // skipcq: JAVA-W1062
+            show();
+        }
+
         super.update(tpf);
     }
 
@@ -291,7 +308,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         super.controlUpdate(tpf);
 
         timeVisible += tpf;
-        if (timeVisible >= targetTimeVisible) {
+        if (timeVisible >= targetTimeVisible && !isPersistentVisibilityRequired()) {
 
             // Remove us
             hide();

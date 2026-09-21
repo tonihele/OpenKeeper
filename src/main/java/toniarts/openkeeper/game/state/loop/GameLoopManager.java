@@ -73,6 +73,7 @@ public final class GameLoopManager {
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
+                new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController()),
