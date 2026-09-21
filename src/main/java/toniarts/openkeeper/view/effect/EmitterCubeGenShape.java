@@ -27,13 +27,10 @@ import java.io.IOException;
 
 /**
  * Samples a {@code CUBE_GEN} effect's annulus/height-band spawn volume
- * (innerOriginRange/outerOriginRange, lowerHeightLimit/upperHeightLimit -
- * see frontend_gems_effect.md §1.1) for jME3's built-in
- * {@link com.jme3.effect.ParticleEmitter}, so sprite-type elements (e.g. the
+ * (innerOriginRange/outerOriginRange, lowerHeightLimit/upperHeightLimit)
+ * see {@link com.jme3.effect.ParticleEmitter}, so sprite-type elements (e.g. the
  * front-end gems' sparkles) scatter the same way the mesh-type elements do
  * instead of all emitting from one point.
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class EmitterCubeGenShape implements EmitterShape {
 

@@ -522,7 +522,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "RoomEffectContainer.addObject({0})", e);
             RoomEffect roomEffect = e.get(RoomEffect.class);
             // Effect 350 sits half a tile further than the gem holder's own
-            // tile centre (frontend_gems_effect.md §2.3).
+            // tile centre
             Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
                     .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f);
             stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
