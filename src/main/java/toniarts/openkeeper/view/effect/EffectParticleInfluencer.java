@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.effect;
 
 import com.jme3.effect.Particle;
+import com.jme3.effect.influencers.DefaultParticleInfluencer;
 import com.jme3.effect.influencers.ParticleInfluencer;
 import com.jme3.effect.shapes.EmitterShape;
 import com.jme3.export.JmeExporter;
@@ -67,8 +68,12 @@ public class EffectParticleInfluencer implements ParticleInfluencer {
         particle.velocity.set(velocity);
     }
 
+    /**
+     * @see DefaultParticleInfluencer#clone()
+     * @return ParticleInfluencer the cloned influencer
+     */
     @Override
-    public ParticleInfluencer clone() {
+    public ParticleInfluencer clone() { // skipcq: JAVA-E0048
         Cloner cloner = new Cloner();
         return cloner.clone(this);
     }
