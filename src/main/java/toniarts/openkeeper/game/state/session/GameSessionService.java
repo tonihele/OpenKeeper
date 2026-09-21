@@ -70,4 +70,31 @@ public interface GameSessionService extends PlayerListener, PlayerService {
     @Asynchronous
     public void flashTiles(List<Point> points, boolean enabled, short keeperId);
 
+    /**
+     * Scripted reveal/conceal of an action point's tiles (fog of war)
+     *
+     * @param points   the points to reveal/conceal
+     * @param explore  {@code true} to explore, {@code false} to unexplore
+     * @param keeperId the keeper whose fog of war is affected
+     */
+    @Asynchronous
+    public void revealTiles(List<Point> points, boolean explore, short keeperId);
+
+    /**
+     * The {@code REMOVE_FOW} cheat: disable fog of war
+     *
+     * @param keeperId the keeper whose fog of war is affected
+     */
+    @Asynchronous
+    public void disableFogOfWar(short keeperId);
+
+    /**
+     * The {@code RESET_FOW} console command: reset fog of war, as if the
+     * level had just started
+     *
+     * @param keeperId the keeper whose fog of war is affected
+     */
+    @Asynchronous
+    public void resetFogOfWar(short keeperId);
+
 }

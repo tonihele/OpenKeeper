@@ -109,7 +109,7 @@ public final class FiveByFiveRotatedConstructor extends RoomConstructor {
                 if (yAngle != 0) {
                     tile.rotate(0, yAngle, 0);
                 }
-                root.attachChild(tile);
+                attachFloorTile(root, p, tile);
             }
 
             // Only observed 5 by 5 is the Dungeon Heart, its object list is empty, so I just hard code these here

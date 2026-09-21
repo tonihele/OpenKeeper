@@ -173,6 +173,40 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public void unFlashTiles(List<Point> points, short playerId);
 
     /**
+     * Scripted reveal of an action point's tiles (fog of war). Fog of war is
+     * local, per-viewer view state, so this is purely a notification to the
+     * given player's client - no map/tile state is mutated here.
+     *
+     * @param points the points to reveal
+     * @param playerId the player whose fog of war is affected
+     */
+    public void revealTiles(List<Point> points, short playerId);
+
+    /**
+     * Scripted conceal of an action point's tiles (fog of war). See
+     * {@link #revealTiles(List, short)}.
+     *
+     * @param points the points to conceal
+     * @param playerId the player whose fog of war is affected
+     */
+    public void concealTiles(List<Point> points, short playerId);
+
+    /**
+     * The {@code REMOVE_FOW} cheat: disable fog of war for the given player
+     *
+     * @param playerId the player whose fog of war is affected
+     */
+    public void disableFogOfWar(short playerId);
+
+    /**
+     * The {@code RESET_FOW} console command: reset fog of war for the given
+     * player, as if the level had just started
+     *
+     * @param playerId the player whose fog of war is affected
+     */
+    public void resetFogOfWar(short playerId);
+
+    /**
      * Get the same terrain adjacent (not diagonally) to the stating point(s).
      * Kinda flood fill. The starting points maybe different terrain types.
      *

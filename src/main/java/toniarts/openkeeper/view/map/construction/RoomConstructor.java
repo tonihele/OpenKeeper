@@ -12,11 +12,16 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.map.WallSection;
 
 /**
@@ -33,6 +38,15 @@ public abstract class RoomConstructor {
     protected final boolean[][] map;
     protected final Point start;
 
+    // Per-tile floor pieces attached via attachFloorTile(), keyed by their world
+    // tile point. A room instance is found and built as a whole (see
+    // MapViewController#findRoom), covering every physically-connected tile regardless
+    // of fog, so this is what lets construct() hide the tiles the viewer hasn't
+    // actually explored yet instead of showing the whole room at once. A list per
+    // point since some constructors attach more than one piece to the same tile
+    // (e.g. HeroGateConstructor's cap piece plus its regular piece).
+    private final Map<Point, List<Spatial>> floorTiles = new HashMap<>();
+
     private final static int[] WALL_INDEXES = new int[]{7, 8};
 
     public RoomConstructor(AssetManager assetManager, RoomInstance roomInstance) {
@@ -45,9 +59,11 @@ public abstract class RoomConstructor {
     /**
      * Constructs the room
      *
+     * @param fogOfWarInformation the viewer's fog-of-war query surface, used to
+     * hide the floor of any room tile that isn't explored yet
      * @return the spatial representing the room
      */
-    public final Spatial construct() {
+    public final Spatial construct(IFogOfWarInformation fogOfWarInformation) {
         Node root = new Node(roomInstance.getRoom().getName());
 
         // Add the floor
@@ -55,6 +71,7 @@ public abstract class RoomConstructor {
         if (floorNode != null) {
             floorNode.setName("Floor");
             floorNode.setShadowMode(getFloorShadowMode());
+            hideUnexploredFloorTiles(fogOfWarInformation);
             floorNode.batch();
             root.attachChild(floorNode);
         }
@@ -69,6 +86,41 @@ public abstract class RoomConstructor {
         }
 
         return root;
+    }
+
+    /**
+     * Registers a per-tile floor piece so {@link #construct} can later decide
+     * whether to cull it, and attaches it to the floor batch. Use this instead
+     * of attaching straight to {@code root} for every piece that represents one
+     * room tile.
+     *
+     * @param root the floor batch node being built
+     * @param p the tile point this piece represents
+     * @param tile the floor piece
+     * @return {@code tile}, for chaining
+     */
+    protected final Spatial attachFloorTile(BatchNode root, Point p, Spatial tile) {
+        floorTiles.computeIfAbsent(p, k -> new ArrayList<>()).add(tile);
+        root.attachChild(tile);
+        return tile;
+    }
+
+    /**
+     * Excludes the floor pieces of not-yet-explored tiles from the batch and
+     * culls them. They must be excluded from the batch (not just culled)
+     * because a {@link BatchNode} merges its children's raw geometry once and
+     * for all at {@code batch()} time - a child's {@code CullHint} set
+     * afterwards has no effect on the merged mesh.
+     */
+    private void hideUnexploredFloorTiles(IFogOfWarInformation fogOfWarInformation) {
+        for (Map.Entry<Point, List<Spatial>> entry : floorTiles.entrySet()) {
+            if (!fogOfWarInformation.isVisible(entry.getKey())) {
+                for (Spatial tile : entry.getValue()) {
+                    tile.setBatchHint(Spatial.BatchHint.Never);
+                    tile.setCullHint(Spatial.CullHint.Always);
+                }
+            }
+        }
     }
 
     protected abstract BatchNode constructFloor();

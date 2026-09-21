@@ -39,6 +39,7 @@ import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
@@ -55,8 +56,39 @@ import java.util.*;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class MapViewController implements ILoader<IKwdFile> {
-    
+
     private static final Logger logger = System.getLogger(MapViewController.class.getName());
+
+    /**
+     * Used where no fog of war applies (main menu map preview, model viewer):
+     * everything is simply always visible.
+     */
+    private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
+        @Override
+        public boolean isVisible(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isExplored(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPerceived(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isHighlightable(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPendingTagged(Point p) {
+            return false;
+        }
+    };
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.6f, 0.6f, 1, 1);
@@ -78,11 +110,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Node map;
     private final AssetManager assetManager;
     private final IMapInformation mapClientService;
+    private final IFogOfWarInformation fogOfWarInformation;
+    private Terrain unexploredPlaceholderTerrain;
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
+    private Spatial waterSurface; // Currently attached merged water mesh, if any
+    private Spatial lavaSurface; // Currently attached merged lava mesh, if any
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
@@ -90,15 +126,26 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
 
-    public MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
-        this(assetManager, kwdFile, mapClientService, playerId, true);
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
+    }
+
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, true);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled) {
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled);
+    }
+
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
+        this.fogOfWarInformation = fogOfWarInformation;
         this.playerId = playerId;
         this.torchesEnabled = torchesEnabled;
     }
@@ -146,15 +193,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         map.attachChild(terrain);
 
-        // Create the water
-        if (!waterBatches.isEmpty()) {
-            map.attachChild(Water.construct(assetManager, waterBatches));
-        }
-
-        // And the lava
-        if (!lavaBatches.isEmpty()) {
-            map.attachChild(Water.construct(assetManager, lavaBatches));
-        }
+        // Create the water and lava surfaces
+        refreshWaterAndLavaSurfaces(true, true);
 
         long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000L;
         logger.log(Level.INFO, "Map {0} loaded in {1} ms", new Object[]{object.getGameLevel().getName(), loadTimeMs});
@@ -166,8 +206,89 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         return mapClientService.getMapData();
     }
 
+    /**
+     * Resolves the terrain to render for a tile. An unexplored tile always
+     * renders as generic, undifferentiated solid rock - regardless of what
+     * it actually is - matching the classic Dungeon Keeper look: what you
+     * haven't dug into yet reads as plain rock, diggable like any other,
+     * until you actually reveal it.
+     */
     private Terrain getTerrain(IMapTileInformation tile) {
+        if (!fogOfWarInformation.isVisible(tile.getLocation())) {
+            Terrain placeholder = getUnexploredPlaceholderTerrain();
+            if (placeholder != null) {
+                return placeholder;
+            }
+        }
         return kwdFile.getTerrain(tile.getTerrainId());
+    }
+
+    private Terrain getUnexploredPlaceholderTerrain() {
+        if (unexploredPlaceholderTerrain == null) {
+            unexploredPlaceholderTerrain = findUnexploredPlaceholderTerrain();
+        }
+        return unexploredPlaceholderTerrain;
+    }
+
+    /**
+     * Finds the plain, undug rock terrain (solid, not ownable, not
+     * impenetrable, not a room, no gold) to stand in for anything unexplored.
+     * Explicitly avoids any special/neighbour-aware construction type (quad,
+     * water) - the placeholder must always resolve to the simple, static
+     * "just load this one model" path in {@link #handleTop}, never the
+     * auto-tiling machinery meant for claimed surfaces.
+     */
+    private Terrain findUnexploredPlaceholderTerrain() {
+        Terrain fallback = null;
+        for (Terrain candidate : kwdFile.getTerrainList()) {
+            if (!candidate.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.WATER)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.LAVA)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)
+                    || candidate.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_WATER)
+                    || candidate.getGoldValue() > 0) {
+                continue;
+            }
+            if (fallback == null) {
+                fallback = candidate;
+            }
+            if ("rock".equalsIgnoreCase(candidate.getName())) {
+                return candidate;
+            }
+        }
+        return fallback;
+    }
+
+    /**
+     * (Re)builds the merged water and/or lava surface mesh from the current
+     * {@link #waterBatches}/{@link #lavaBatches} and attaches it, replacing
+     * whatever was attached before. {@code Water.construct(...)} merges an
+     * entire batch list into one mesh, so this must re-run in full whenever
+     * fog reveals a new batch (see {@link #findTerrainBatch}) - there's no
+     * incremental variant to append to.
+     */
+    private void refreshWaterAndLavaSurfaces(boolean waterChanged, boolean lavaChanged) {
+        if (waterChanged) {
+            waterSurface = replaceSurface(waterSurface, waterBatches);
+        }
+        if (lavaChanged) {
+            lavaSurface = replaceSurface(lavaSurface, lavaBatches);
+        }
+    }
+
+    private Spatial replaceSurface(Spatial oldSurface, List<EntityInstance<Terrain>> batches) {
+        if (oldSurface != null) {
+            oldSurface.removeFromParent();
+        }
+        if (batches.isEmpty()) {
+            return null;
+        }
+        Spatial surface = Water.construct(assetManager, batches);
+        map.attachChild(surface);
+        return surface;
     }
 
     /**
@@ -205,6 +326,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         // Reconstruct all tiles in the area
+        int waterBatchesBefore = waterBatches.size();
+        int lavaBatchesBefore = lavaBatches.size();
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : pointsToUpdate) {
@@ -240,6 +363,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         for (BatchNode batchNode : nodesNeedBatching) {
             batchNode.batch();
         }
+
+        // A newly fog-revealed water/lava batch needs its merged surface rebuilt
+        refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
+                lavaBatches.size() != lavaBatchesBefore);
     }
 
     /**
@@ -251,7 +378,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Change the material on geometries
         Terrain terrain = getTerrain(tile);
-        if (!isFlashing(tile) && !tile.isSelected(playerId)
+        final boolean tagged = tile.isSelected(playerId) || fogOfWarInformation.isPendingTagged(tile.getLocation());
+        if (!isFlashing(tile) && !tagged
                 && !terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
             return;
         }
@@ -263,7 +391,24 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     return;
                 }
 
-                Material material = ((Geometry) spatial).getMaterial();
+                Geometry geometry = (Geometry) spatial;
+
+                // For RANDOM_TEXTURE terrain (rock/gold/gems), setRandomTexture() has
+                // already replaced this geometry's material with one from
+                // randomTextureMaterials - a cache explicitly shared and reused across
+                // every tile with the same texture variant. Mutating that material in
+                // place (as below) would tint every other tile sharing the cached
+                // instance, not just this one. Clone it into a tile-private material
+                // before making any per-tile change.
+                // A geometry still associated with its page's BatchNode (already
+                // merged into a batch mesh) throws on setMaterial() - it must be
+                // ungrouped first. This can happen here even on a supposedly-fresh
+                // rebuild, so check unconditionally rather than assuming it never is.
+                if (geometry.isGrouped()) {
+                    geometry.unassociateFromGroupNode();
+                }
+                Material material = geometry.getMaterial().clone();
+                geometry.setMaterial(material);
 
                 // Decay
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
@@ -293,7 +438,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     material.setColor("Ambient", COLOR_FLASH);
                     material.setBoolean("UseMaterialColors", true);
                 }
-                if (tile.isSelected(playerId)) {
+                if (tagged) {
                     material.setColor("Ambient", COLOR_TAG);
                     material.setBoolean("UseMaterialColors", true);
                 }
@@ -376,6 +521,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return loadModel(modelName, artResource);
         }
 
+        // getTerrain() already substitutes the generic rock placeholder for an
+        // unexplored neighbour, so it reads as SOLID here exactly like real rock would
         if (getTerrain(neigbourTile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             return null;
         }
@@ -464,7 +611,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void handleTile(IMapTileInformation tile, Node root) {
 
-        // Get the terrain
+        // Get the terrain (an unexplored tile substitutes plain rock here, see getTerrain())
         Terrain terrain = getTerrain(tile);
         Point p = tile.getLocation();
         Node pageNode = getPageNode(p, root);
@@ -566,9 +713,23 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
         spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
         spatial.rotate(0, angleY, 0);
-        spatial.setLocalTranslation(WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position));
+        Vector3f intendedLocalPos = WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position);
+        spatial.setLocalTranslation(intendedLocalPos);
 
-        ((Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX))).attachChild(spatial);
+        Node parent = (Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX));
+        // This tile node can still carry a translation left over from when this
+        // exact tile was rendered as SOLID (either genuinely solid terrain, or -
+        // just as often - the unexplored fog-rock placeholder while this tile
+        // hadn't been explored yet): handleSide() positions a solid tile's wall
+        // geometry by translating the WHOLE tile node via
+        // AssetUtils.translateToTile(), not by offsetting the geometry itself.
+        // A torch is only ever placed once this host tile is confirmed non-solid
+        // (real floor terrain), and fog exploration is sticky - it will never
+        // become solid again - so it's safe, and necessary, to zero that out
+        // before attaching anything positioned in absolute (tile.getLocation())
+        // terms here, or the tile's own offset ends up applied twice.
+        parent.setLocalTranslation(Vector3f.ZERO);
+        parent.attachChild(spatial);
     }
 
     private Terrain getTorchTerrain(int x, int y) {
@@ -578,7 +739,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         Terrain terrain = getTerrain(tile);
         return terrain.getFlags().contains(Terrain.TerrainFlag.TORCH) ? terrain : null;
-
     }
 
     private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
@@ -842,7 +1002,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
         if (roomConstructor != null) {
-            return roomConstructor.construct();
+            return roomConstructor.construct(fogOfWarInformation);
         }
         return null;
     }

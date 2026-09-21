@@ -165,6 +165,8 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                         state.setEnabled(true);
                     }
 
+                    gameState.setPossessedCreature(null);
+
                     screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
                 }
 
@@ -196,6 +198,8 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                     // Enable state
                     possessionState.setTarget(entityId);
                     possessionState.setEnabled(true);
+
+                    gameState.setPossessedCreature(entityId);
 
                     screen.goToScreen(PlayerScreenController.SCREEN_POSSESSION_ID);
                 }
