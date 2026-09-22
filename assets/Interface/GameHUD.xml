@@ -322,10 +322,14 @@
                                     <!--The worker amount & status-->
                                     <!--                                    <control name="workerAmount" id="tab-workers" />-->
                                     <!--The tab contents scroll-->
-                                    <control name="tabScroll" />
+                                    <control name="tabScroll" id="tab-creature-scroll" />
                                     <!--The =, shown for creatures-->
                                     <control name="workerEqual" id="tab-workers-equal" />
-                                    <panel width="*" childLayout="horizontal" id="tab-creature-content" />
+                                    <panel width="*" height="100%" childLayout="absolute" childClip="true" id="tab-creature-viewport">
+                                        <panel x="0" y="0" width="100%" height="100%" childLayout="absolute" childClip="true" id="tab-creature-visible">
+                                            <panel x="0" y="0" width="100%" height="100%" childLayout="horizontal" id="tab-creature-content" />
+                                        </panel>
+                                    </panel>
                                 </panel>
                             </control>
 
