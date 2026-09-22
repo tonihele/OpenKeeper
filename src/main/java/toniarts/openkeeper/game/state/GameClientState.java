@@ -367,7 +367,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
-                minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation());
+                minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
+                        gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
+                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
 
                 // Attach the states
                 stateManager.attach(playerState);

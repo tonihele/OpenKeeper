@@ -245,6 +245,15 @@ public final class MinimapRasteriser {
         float pixelY(float tileY) {
             return originY + tileY * FIT_AXIS_PIXELS / (float) big;
         }
+
+        /**
+         * Pixels per tile at this map's fit-mode scale - for markers that
+         * need to size something (e.g. a reporting-distance radius) in the
+         * same scale the raster itself uses.
+         */
+        float pixelsPerTileScale() {
+            return FIT_AXIS_PIXELS / (float) big;
+        }
     }
 
 }

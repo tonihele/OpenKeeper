@@ -21,12 +21,14 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.elements.Element;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
@@ -45,12 +47,14 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * builds the colour-class grid, periodically rasterises fit-mode or zoomed
  * geometry depending on the current {@link #zoom} level, rotates the
  * octagon's UVs every frame to track the camera's yaw, positions the
- * fit-mode frustum overlay, and keeps a {@link MinimapView} overlay
- * positioned over the GameHUD's map panel element in place of the static
- * placeholder image that used to sit there.
+ * fit-mode frustum overlay, paints the marker overlay ({@link
+ * MinimapMarkerPainter} - see its own javadoc for which rows are and
+ * aren't implemented), and keeps a {@link MinimapView} overlay positioned
+ * over the GameHUD's map panel element in place of the static placeholder
+ * image that used to sit there.
  *
  * <p>
- * No markers, no click input yet - see
+ * No click input yet - see
  * minimap_jmonkey.md's step ordering for what those later steps add. The
  * rebuild is a brute-force full {@code recomputeRect} on a fixed interval
  * rather than fine-grained per-mutation invalidation (design §3.4's
@@ -72,6 +76,13 @@ public final class MinimapPanelState extends AbstractAppState {
      */
     private static final float REBUILD_INTERVAL = 0.15f;
 
+    /**
+     * How often {@link #blinkParity} flips. No authoritative source value
+     * exists for this either (see {@link #REBUILD_INTERVAL}'s own note) -
+     * a plain guess at a readable blink rate.
+     */
+    private static final float BLINK_INTERVAL = 0.5f;
+
     private static final int MIN_ZOOM = -1; // fit
     private static final int MAX_ZOOM = 4; // 16px/tile
 
@@ -79,11 +90,16 @@ public final class MinimapPanelState extends AbstractAppState {
 
     private final Main app;
     private final MapColourGrid grid;
+    private final IFogOfWarInformation fogOfWarInformation;
+    private final EntityData entityData;
+    private final Keeper localKeeper;
     private final short neutralPlayerNumber;
+    private final float dungeonHeartReportingDistanceTiles;
 
     private AppStateManager stateManager;
     private MinimapAssets assets;
     private MinimapView view;
+    private MinimapMarkerPainter markerPainter;
     private byte[] rasterBgr;
 
     private int zoom = MIN_ZOOM;
@@ -92,10 +108,17 @@ public final class MinimapPanelState extends AbstractAppState {
     // whichever mode you switch back to.
     private float timeSinceLastFitRebuild = Float.MAX_VALUE;
     private float timeSinceLastZoomedRebuild = Float.MAX_VALUE;
+    private float timeSinceLastBlink = 0f;
+    private boolean blinkParity = true;
 
     public MinimapPanelState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
-            IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation) {
+            IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
+            EntityData entityData, Keeper localKeeper, float dungeonHeartReportingDistanceTiles) {
         this.app = app;
+        this.fogOfWarInformation = fogOfWarInformation;
+        this.entityData = entityData;
+        this.localKeeper = localKeeper;
+        this.dungeonHeartReportingDistanceTiles = dungeonHeartReportingDistanceTiles;
         MapColourClassifier classifier = new MapColourClassifier(mapInformation, fogOfWarInformation, roomsInformation);
         this.grid = new MapColourGrid(mapInformation.getMapData().getWidth(), mapInformation.getMapData().getHeight(),
                 classifier, fogOfWarInformation);
@@ -117,6 +140,7 @@ public final class MinimapPanelState extends AbstractAppState {
         rasterBgr = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
         view = new MinimapView(app.getAssetManager(), app.getGuiNode());
         view.attach();
+        markerPainter = new MinimapMarkerPainter(entityData, assets.getPalette(), localKeeper.getId());
 
         grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
         rebuildRaster();
@@ -131,6 +155,12 @@ public final class MinimapPanelState extends AbstractAppState {
         updateLayoutFromHud();
         updateYaw();
         updateFrustum();
+
+        timeSinceLastBlink += tpf;
+        if (timeSinceLastBlink >= BLINK_INTERVAL) {
+            timeSinceLastBlink = 0f;
+            blinkParity = !blinkParity;
+        }
 
         timeSinceLastFitRebuild += tpf;
         timeSinceLastZoomedRebuild += tpf;
@@ -173,18 +203,24 @@ public final class MinimapPanelState extends AbstractAppState {
     }
 
     private void rebuildRaster() {
+        PlayerCamera camera = getPlayerCamera();
+        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
+        float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
+        float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
+
         if (zoom == MIN_ZOOM) {
             timeSinceLastFitRebuild = 0f;
             MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(), neutralPlayerNumber, rasterBgr);
         } else {
             timeSinceLastZoomedRebuild = 0f;
-            PlayerCamera camera = getPlayerCamera();
-            Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
-            float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
-            float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
             MinimapRasteriser.rebuildZoomedMode(grid, assets.getPalette(), assets.rockTextureBgr(),
                     neutralPlayerNumber, cameraTileX, cameraTileY, zoom, rasterBgr);
         }
+
+        markerPainter.update();
+        markerPainter.paint(rasterBgr, grid.getWidth(), grid.getHeight(), zoom, cameraTileX, cameraTileY,
+                fogOfWarInformation, blinkParity, localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
+
         view.updateRaster(rasterBgr);
     }
 
@@ -251,6 +287,9 @@ public final class MinimapPanelState extends AbstractAppState {
     public void cleanup() {
         if (view != null) {
             view.detach();
+        }
+        if (markerPainter != null) {
+            markerPainter.dispose();
         }
         super.cleanup();
     }
