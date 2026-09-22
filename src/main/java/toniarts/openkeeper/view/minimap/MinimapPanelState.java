@@ -20,6 +20,7 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.elements.Element;
 import java.io.IOException;
@@ -36,18 +37,20 @@ import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerCamera;
 import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
  * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4/5/6):
  * builds the colour-class grid, periodically rasterises fit-mode or zoomed
  * geometry depending on the current {@link #zoom} level, rotates the
- * octagon's UVs every frame to track the camera's yaw, and keeps a
- * {@link MinimapView} overlay positioned over the GameHUD's map panel
- * element in place of the static placeholder image that used to sit there.
+ * octagon's UVs every frame to track the camera's yaw, positions the
+ * fit-mode frustum overlay, and keeps a {@link MinimapView} overlay
+ * positioned over the GameHUD's map panel element in place of the static
+ * placeholder image that used to sit there.
  *
  * <p>
- * No frustum overlay, no markers, no click input yet - see
+ * No markers, no click input yet - see
  * minimap_jmonkey.md's step ordering for what those later steps add. The
  * rebuild is a brute-force full {@code recomputeRect} on a fixed interval
  * rather than fine-grained per-mutation invalidation (design §3.4's
@@ -127,6 +130,7 @@ public final class MinimapPanelState extends AbstractAppState {
 
         updateLayoutFromHud();
         updateYaw();
+        updateFrustum();
 
         timeSinceLastFitRebuild += tpf;
         timeSinceLastZoomedRebuild += tpf;
@@ -200,6 +204,32 @@ public final class MinimapPanelState extends AbstractAppState {
     private PlayerCamera getPlayerCamera() {
         PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
         return cameraState != null ? cameraState.getCamera() : null;
+    }
+
+    /**
+     * Fit mode only, and only when the camera isn't in the possession/
+     * first-person mode design §2.6/§5.7 says hides the overlay -
+     * {@code PossessionCameraState} is the closest match this codebase has
+     * to that "camera mode" concept (minimap_jmonkey.md §0).
+     */
+    private void updateFrustum() {
+        if (zoom != MIN_ZOOM) {
+            view.hideFrustum();
+            return;
+        }
+        PossessionCameraState possessionCameraState = stateManager.getState(PossessionCameraState.class);
+        if (possessionCameraState != null && possessionCameraState.isEnabled()) {
+            view.hideFrustum();
+            return;
+        }
+        PlayerCamera camera = getPlayerCamera();
+        if (camera == null) {
+            view.hideFrustum();
+            return;
+        }
+        Vector3f[] groundCorners = MinimapFrustum.groundCorners(camera.getCamera());
+        view.updateFrustum(groundCorners, grid.getWidth(), grid.getHeight(),
+                MinimapCoordinates.cameraYawRadians(camera.getCamera()));
     }
 
     private void updateLayoutFromHud() {

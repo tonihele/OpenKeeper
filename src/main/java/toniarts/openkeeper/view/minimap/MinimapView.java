@@ -20,11 +20,15 @@ import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer.Type;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture.MagFilter;
 import com.jme3.texture.Texture.MinFilter;
@@ -34,18 +38,30 @@ import com.jme3.texture.image.ColorSpace;
 import java.nio.ByteBuffer;
 
 /**
- * Renders the minimap octagon directly into the {@code guiNode}
+ * Renders the minimap octagon, and its fit-mode frustum overlay, directly
+ * into the {@code guiNode} (see this class's own history/javadoc on why:
+ * the design doc's recommended off-screen {@code FrameBuffer} +
+ * {@code RenderImageJme} approach doesn't work against this project's
+ * actual Nifty batch-render backend). Both are children of a shared
+ * {@link #overlayNode}, repositioned/rescaled together every frame
+ * ({@link #updateLayout}) to match wherever the Nifty panel element
+ * currently sits on screen.
  */
 public final class MinimapView {
 
     private final Node guiNode;
+    private final Node overlayNode;
     private final Texture2D rasterTexture;
     private final ByteBuffer rasterBuffer;
     private final Mesh octagonMesh;
     private final Geometry octagonGeometry;
+    private final Mesh frustumMesh;
+    private final Geometry frustumGeometry;
 
     public MinimapView(AssetManager assetManager, Node guiNode) {
         this.guiNode = guiNode;
+        overlayNode = new Node("MinimapOverlay");
+
         int size = MinimapRasteriser.RASTER_SIZE;
 
         rasterBuffer = ByteBuffer.allocateDirect(size * size * 3);
@@ -55,31 +71,61 @@ public final class MinimapView {
         rasterTexture.setMinFilter(MinFilter.NearestNoMipMaps);
         rasterTexture.setWrap(WrapMode.EdgeClamp);
 
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        material.setTexture("ColorMap", rasterTexture);
-        material.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.8f));
-        material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        Material rasterMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        rasterMaterial.setTexture("ColorMap", rasterTexture);
+        rasterMaterial.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.8f));
+        rasterMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 
         // Unit octagon (0..1 in both position and UV, since design's
-        // identity-UV formula already gives that range) - scaled/positioned
-        // every frame in updateLayout() to match the Nifty panel's rect.
+        // identity-UV formula already gives that range).
         octagonMesh = MinimapOctagon.build(0.5f, 0.5f, 0.5f);
         octagonGeometry = new Geometry("MinimapOctagon", octagonMesh);
-        octagonGeometry.setMaterial(material);
+        octagonGeometry.setMaterial(rasterMaterial);
         octagonGeometry.setQueueBucket(RenderQueue.Bucket.Gui);
-        octagonGeometry.setCullHint(Spatial.CullHint.Always); // hidden until updateLayout() first runs
+        overlayNode.attachChild(octagonGeometry);
+
+        // A white outline rather than the MapCameraBox.png sprite (design
+        // §4.3/§5.7's literal choice): that sprite is a small 16x16 icon,
+        // not a shape meant to be stretched across an arbitrary trapezoid,
+        // and stretching it that way is most likely why this first showed
+        // up as a degenerate-looking line rather than a visible quad.
+        Material frustumMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        frustumMaterial.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.75f));
+        frustumMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        frustumMaterial.getAdditionalRenderState().setLineWidth(2f);
+
+        frustumMesh = buildFrustumQuad();
+        frustumGeometry = new Geometry("MinimapFrustum", frustumMesh);
+        frustumGeometry.setMaterial(frustumMaterial);
+        frustumGeometry.setQueueBucket(RenderQueue.Bucket.Gui);
+        frustumGeometry.setCullHint(Spatial.CullHint.Always); // shown only by updateFrustum, fit mode only
+        overlayNode.attachChild(frustumGeometry);
+
+        overlayNode.setCullHint(Spatial.CullHint.Always); // hidden until updateLayout() first runs
+    }
+
+    private static Mesh buildFrustumQuad() {
+        // An outline, not a filled quad (design §5.7: "draw the quad
+        // outline") - LineLoop connects the 4 corners 0-1-2-3-0 directly,
+        // no index buffer needed.
+        Mesh mesh = new Mesh();
+        mesh.setBuffer(Type.Position, 3, new float[4 * 3]);
+        mesh.setMode(Mesh.Mode.LineLoop);
+        mesh.updateBound();
+        mesh.updateCounts();
+        return mesh;
     }
 
     public void attach() {
-        guiNode.attachChild(octagonGeometry);
+        guiNode.attachChild(overlayNode);
     }
 
     public void detach() {
-        octagonGeometry.removeFromParent();
+        overlayNode.removeFromParent();
     }
 
     /**
-     * Repositions/rescales the octagon to match the Nifty panel element's
+     * Repositions/rescales the overlay to match the Nifty panel element's
      * current on-screen rectangle. Nifty's own coordinates are top-left
      * origin, Y down (like most desktop UI toolkits); {@code guiNode}'s
      * {@code Bucket.Gui} content is bottom-left origin, Y up (standard
@@ -90,9 +136,9 @@ public final class MinimapView {
     public void updateLayout(int niftyX, int niftyY, int niftyWidth, int niftyHeight, int screenHeight) {
         float jmeX = niftyX;
         float jmeY = screenHeight - niftyY - niftyHeight;
-        octagonGeometry.setLocalTranslation(jmeX, jmeY, 0f);
-        octagonGeometry.setLocalScale(niftyWidth, niftyHeight, 1f);
-        octagonGeometry.setCullHint(Spatial.CullHint.Inherit);
+        overlayNode.setLocalTranslation(jmeX, jmeY, 0f);
+        overlayNode.setLocalScale(niftyWidth, niftyHeight, 1f);
+        overlayNode.setCullHint(Spatial.CullHint.Inherit);
     }
 
     /**
@@ -114,6 +160,72 @@ public final class MinimapView {
      */
     public void updateYaw(float yawRadians) {
         MinimapOctagon.updateUv(octagonMesh, yawRadians);
+    }
+
+    /**
+     * Hides the frustum overlay. Used in zoomed mode and whenever the
+     * camera is in whatever mode design §2.6/§5.7 says hides it - the
+     * caller ({@code MinimapPanelState}) decides that.
+     */
+    public void hideFrustum() {
+        frustumGeometry.setCullHint(Spatial.CullHint.Always);
+    }
+
+    /**
+     * Positions the frustum quad from the camera's 4 ground-plane frustum
+     * corners (design §5.7, fit mode only): each corner is converted to
+     * tile space, then fit-mode pixel space (the same mapping the raster
+     * itself uses - {@link MinimapRasteriser.FitGeometry}), then rotated
+     * around the raster centre to track the octagon's own content rotation
+     * before being normalised into this view's 0..1 local unit space.
+     *
+     * <p>
+     * The rotation here is the content's own visual rotation, which is the
+     * <em>opposite</em> sense from the octagon's {@code +yaw} UV rotation
+     * (rotating which part of the texture is sampled by {@code +yaw} makes
+     * the displayed content appear to turn by {@code -yaw}) - derived, not
+     * verified against the running game; if the frustum doesn't track the
+     * rotating map content correctly this sign is the first thing to flip.
+     *
+     * @param groundCorners from {@link MinimapFrustum#groundCorners} -
+     * hides the overlay if any entry is {@code null} (a corner's ray missed
+     * the ground plane)
+     */
+    public void updateFrustum(Vector3f[] groundCorners, int mapWidth, int mapHeight, float yawRadians) {
+        for (Vector3f corner : groundCorners) {
+            if (corner == null) {
+                hideFrustum();
+                return;
+            }
+        }
+
+        MinimapRasteriser.FitGeometry fit = MinimapRasteriser.FitGeometry.of(mapWidth, mapHeight);
+        int rasterSize = MinimapRasteriser.RASTER_SIZE;
+        float cos = FastMath.cos(-yawRadians);
+        float sin = FastMath.sin(-yawRadians);
+
+        float[] positions = new float[groundCorners.length * 3];
+        for (int i = 0; i < groundCorners.length; i++) {
+            Vector2f tile = MinimapCoordinates.worldToTile(groundCorners[i]);
+            float px = fit.pixelX(tile.x);
+            float py = fit.pixelY(tile.y);
+
+            // Raster pixel space -> this view's local unit space (0..1),
+            // matching the octagon's own confirmed position<->UV
+            // relationship at yaw 0 (V flipped, U not).
+            float localX = px / rasterSize;
+            float localY = 1f - py / rasterSize;
+
+            float dx = localX - 0.5f;
+            float dy = localY - 0.5f;
+            positions[i * 3] = 0.5f + dx * cos - dy * sin;
+            positions[i * 3 + 1] = 0.5f + dx * sin + dy * cos;
+            positions[i * 3 + 2] = 0f;
+        }
+
+        frustumMesh.setBuffer(Type.Position, 3, positions);
+        frustumMesh.updateBound();
+        frustumGeometry.setCullHint(Spatial.CullHint.Inherit);
     }
 
 }

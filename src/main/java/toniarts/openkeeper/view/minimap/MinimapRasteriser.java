@@ -69,35 +69,20 @@ public final class MinimapRasteriser {
         System.arraycopy(rockTextureBgr, 0, outBgr, 0, outBgr.length);
 
         // Fit-mode geometry (design §5.5). Camera position is ignored.
-        int big = Math.max(width, height);
-        int small = Math.min(width, height);
-        int offSmall = FIT_AXIS_OFFSET + ((big - small) / 2) * FIT_AXIS_PIXELS / big;
-        int smallSpan = small * FIT_AXIS_PIXELS / big;
-
-        int originX;
-        int endX;
-        int originY;
-        int endY;
-        if (width >= height) {
-            originX = FIT_AXIS_OFFSET;
-            endX = FIT_AXIS_OFFSET + FIT_AXIS_PIXELS;
-            originY = offSmall;
-            endY = offSmall + smallSpan;
-        } else {
-            originX = offSmall;
-            endX = offSmall + smallSpan;
-            originY = FIT_AXIS_OFFSET;
-            endY = FIT_AXIS_OFFSET + FIT_AXIS_PIXELS;
-        }
+        FitGeometry fit = FitGeometry.of(width, height);
+        int originX = fit.originX;
+        int endX = fit.endX;
+        int originY = fit.originY;
+        int endY = fit.endY;
 
         int[] argb = palette.rawArgb();
         for (int py = Math.max(originY, 0); py < Math.min(endY, RASTER_SIZE); py++) {
-            int ty = (py - originY) * big / FIT_AXIS_PIXELS;
+            int ty = (py - originY) * fit.big / FIT_AXIS_PIXELS;
             if (ty < 0 || ty >= height) {
                 continue;
             }
             for (int px = Math.max(originX, 0); px < Math.min(endX, RASTER_SIZE); px++) {
-                int tx = (px - originX) * big / FIT_AXIS_PIXELS;
+                int tx = (px - originX) * fit.big / FIT_AXIS_PIXELS;
                 if (tx < 0 || tx >= width) {
                     continue;
                 }
@@ -212,6 +197,54 @@ public final class MinimapRasteriser {
         outBgr[i] = (byte) argbColour; // blue
         outBgr[i + 1] = (byte) (argbColour >> 8); // green
         outBgr[i + 2] = (byte) (argbColour >> 16); // red
+    }
+
+    /**
+     * Fit-mode's origin/step geometry (design §5.5), factored out so the
+     * frustum overlay (design §5.7, fit mode only) can place things in
+     * exactly the same pixel space the raster itself uses, rather than
+     * risking the two computations drifting apart.
+     */
+    static final class FitGeometry {
+
+        final int big;
+        final int originX;
+        final int endX;
+        final int originY;
+        final int endY;
+
+        private FitGeometry(int big, int originX, int endX, int originY, int endY) {
+            this.big = big;
+            this.originX = originX;
+            this.endX = endX;
+            this.originY = originY;
+            this.endY = endY;
+        }
+
+        static FitGeometry of(int width, int height) {
+            int big = Math.max(width, height);
+            int small = Math.min(width, height);
+            int offSmall = FIT_AXIS_OFFSET + ((big - small) / 2) * FIT_AXIS_PIXELS / big;
+            int smallSpan = small * FIT_AXIS_PIXELS / big;
+
+            if (width >= height) {
+                return new FitGeometry(big, FIT_AXIS_OFFSET, FIT_AXIS_OFFSET + FIT_AXIS_PIXELS, offSmall, offSmall + smallSpan);
+            }
+            return new FitGeometry(big, offSmall, offSmall + smallSpan, FIT_AXIS_OFFSET, FIT_AXIS_OFFSET + FIT_AXIS_PIXELS);
+        }
+
+        /**
+         * Maps a fractional tile-space coordinate to fit-mode raster pixel
+         * space - the continuous version of the per-pixel {@code tx}/{@code
+         * ty} lookup {@link #rebuildFitMode} does in the other direction.
+         */
+        float pixelX(float tileX) {
+            return originX + tileX * FIT_AXIS_PIXELS / (float) big;
+        }
+
+        float pixelY(float tileY) {
+            return originY + tileY * FIT_AXIS_PIXELS / (float) big;
+        }
     }
 
 }
