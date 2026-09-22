@@ -53,11 +53,12 @@ public final class MapColourGrid {
     }
 
     /**
-     * The live array, index {@code y * width + x}. Read-only: nothing
-     * outside this class may write to it.
+     * A fresh copy of the live array, index {@code y * width + x} - a copy
+     * rather than the backing array itself, so callers can't corrupt the
+     * shared cache by mutating what they get back.
      */
     public short[] colourClasses() {
-        return classes;
+        return Arrays.copyOf(classes, classes.length);
     }
 
     /**

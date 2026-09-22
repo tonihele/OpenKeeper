@@ -47,7 +47,7 @@ class MapColourClassifierTest {
     private FakeRoomsInformation rooms;
     private MapColourClassifier classifier;
 
-    private void setUp(int width, int height) {
+    private void configureMap(int width, int height) {
         mapData = new FakeMapData(width, height);
 
         Map<Short, Terrain> terrains = new HashMap<>();
@@ -107,7 +107,7 @@ class MapColourClassifierTest {
 
     @Test
     void unexploredAndUnperceivedTileIsClassOne() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, GOLD_ID);
 
         assertEquals(MapColourClass.UNEXPLORED_OR_IMPENETRABLE, classifier.classify(1, 1));
@@ -115,7 +115,7 @@ class MapColourClassifierTest {
 
     @Test
     void outOfBoundsTileIsClassOne() {
-        setUp(3, 3);
+        configureMap(3, 3);
 
         assertEquals(MapColourClass.UNEXPLORED_OR_IMPENETRABLE, classifier.classify(-1, 0));
         assertEquals(MapColourClass.UNEXPLORED_OR_IMPENETRABLE, classifier.classify(0, 99));
@@ -123,7 +123,7 @@ class MapColourClassifierTest {
 
     @Test
     void perceivedWithoutRevealThroughFogTerrainStaysUnexplored() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, GOLD_ID); // no REVEAL_THROUGH_FOG_OF_WAR
         perceive(1, 1);
 
@@ -132,7 +132,7 @@ class MapColourClassifierTest {
 
     @Test
     void perceivedWithRevealThroughFogTerrainShowsItsRealClass() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, REVEALED_GOLD_ID);
         perceive(1, 1);
 
@@ -141,7 +141,7 @@ class MapColourClassifierTest {
 
     @Test
     void gemsAreSolidGoldValueImpenetrable() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, GEMS_ID);
         explore(1, 1);
 
@@ -150,7 +150,7 @@ class MapColourClassifierTest {
 
     @Test
     void goldIsSolidGoldValueNotImpenetrable() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, GOLD_ID);
         explore(1, 1);
 
@@ -159,7 +159,7 @@ class MapColourClassifierTest {
 
     @Test
     void impenetrableRockWithNoGoldValueIsClassOne() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, ROCK_ID);
         explore(1, 1);
 
@@ -168,7 +168,7 @@ class MapColourClassifierTest {
 
     @Test
     void diggableRockIsSolidNoGoldNotImpenetrable() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, DIGGABLE_ROCK_ID);
         explore(1, 1);
 
@@ -177,7 +177,7 @@ class MapColourClassifierTest {
 
     @Test
     void water() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, WATER_ID);
         explore(1, 1);
 
@@ -186,7 +186,7 @@ class MapColourClassifierTest {
 
     @Test
     void lava() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, LAVA_ID);
         explore(1, 1);
 
@@ -195,7 +195,7 @@ class MapColourClassifierTest {
 
     @Test
     void dirtPathIsClaimableFloor() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, DIRT_PATH_ID);
         explore(1, 1);
 
@@ -204,7 +204,7 @@ class MapColourClassifierTest {
 
     @Test
     void neutralOwnedNonClaimableNonRoomFloorIsTheMagentaSentinel() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, CLAIMED_PATH_ID);
         setOwner(1, 1, Player.NEUTRAL_PLAYER_ID);
         explore(1, 1);
@@ -214,7 +214,7 @@ class MapColourClassifierTest {
 
     @Test
     void ownedSolidTileUsesTheOwnedSolidBase() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, DIGGABLE_ROCK_ID); // solid
         setOwner(1, 1, KEEPER);
         explore(1, 1);
@@ -224,7 +224,7 @@ class MapColourClassifierTest {
 
     @Test
     void ownedFloorTileUsesTheOwnedFloorBase() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, CLAIMED_PATH_ID); // not solid
         setOwner(1, 1, KEEPER);
         explore(1, 1);
@@ -234,7 +234,7 @@ class MapColourClassifierTest {
 
     @Test
     void neutralOwnedRoomTileUsesTheRoomOwnersFloorBase() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, CLAIMED_PATH_ID);
         setOwner(1, 1, Player.NEUTRAL_PLAYER_ID);
         putRoom(1, 1, (short) 1, OTHER_KEEPER, false);
@@ -245,7 +245,7 @@ class MapColourClassifierTest {
 
     @Test
     void dungeonHeartRoomTileWinsOverPlainOwnerCheck() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, CLAIMED_PATH_ID);
         setOwner(1, 1, KEEPER);
         putRoom(1, 1, (short) 5, KEEPER, true);
@@ -256,7 +256,7 @@ class MapColourClassifierTest {
 
     @Test
     void dungeonHeartUsesTheRoomsOwnerNotJustTheTileOwner() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, CLAIMED_PATH_ID);
         setOwner(1, 1, KEEPER);
         putRoom(1, 1, (short) 5, OTHER_KEEPER, true);
@@ -267,7 +267,7 @@ class MapColourClassifierTest {
 
     @Test
     void removedRoomIsIgnoredEntirely() {
-        setUp(3, 3);
+        configureMap(3, 3);
         setTerrain(1, 1, CLAIMED_PATH_ID);
         setOwner(1, 1, Player.NEUTRAL_PLAYER_ID);
         EntityId roomInstance = putRoom(1, 1, (short) 5, OTHER_KEEPER, true);

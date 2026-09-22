@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
@@ -60,14 +61,16 @@ public final class MinimapAssets {
     }
 
     /**
-     * 128x128x3 bytes, B,G,R order per pixel (matching the final raster's
-     * own {@code BGR8} format, so {@code fillRock} can copy bytes straight
-     * across with no per-pixel conversion), row-major, index
-     * {@code (y * 128 + x) * 3}. Read-only: callers must not mutate the
-     * returned array.
+     * A fresh copy of the 128x128x3 B,G,R bytes (matching the final
+     * raster's own {@code BGR8} format, so {@code fillRock} can copy bytes
+     * straight across with no per-pixel conversion), row-major, index
+     * {@code (y * 128 + x) * 3} - a copy rather than the backing array
+     * itself, so callers can't corrupt the shared texture by mutating what
+     * they get back. Called once per raster rebuild (~7/s); the copy's
+     * cost is negligible next to the rest of that pass.
      */
     public byte[] rockTextureBgr() {
-        return rockTextureBgr;
+        return Arrays.copyOf(rockTextureBgr, rockTextureBgr.length);
     }
 
     /**

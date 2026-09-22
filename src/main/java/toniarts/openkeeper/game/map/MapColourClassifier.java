@@ -47,10 +47,7 @@ public final class MapColourClassifier {
 
         Point p = new Point(x, y);
         Terrain terrain = mapInformation.getTerrain(tile);
-
-        boolean revealThroughFog = terrain.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
-        boolean visible = (fogOfWarInformation.isPerceived(p) && revealThroughFog) || fogOfWarInformation.isExplored(p);
-        if (!visible) {
+        if (!isVisible(p, terrain)) {
             return MapColourClass.UNEXPLORED_OR_IMPENETRABLE;
         }
 
@@ -70,6 +67,20 @@ public final class MapColourClassifier {
             return (short) (MapColourClass.OWNED_FLOOR_BASE + PlayerNumbers.playerNumber(room.getOwnerId()));
         }
 
+        return classifyUnownedTerrain(terrain);
+    }
+
+    private boolean isVisible(Point p, Terrain terrain) {
+        boolean revealThroughFog = terrain.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
+        return (fogOfWarInformation.isPerceived(p) && revealThroughFog) || fogOfWarInformation.isExplored(p);
+    }
+
+    /**
+     * The decision table's terminal case: no room, and not owned by
+     * anyone (or, equivalently for colour purposes, owned by neutral) -
+     * classify purely from the terrain's own flags.
+     */
+    private short classifyUnownedTerrain(Terrain terrain) {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             boolean impenetrable = terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE);
             if (terrain.getGoldValue() != 0) {

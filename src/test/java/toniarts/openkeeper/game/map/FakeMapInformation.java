@@ -27,7 +27,7 @@ public final class FakeMapInformation implements IMapInformation<FakeMapTile> {
 
     public FakeMapInformation(FakeMapData mapData, Map<Short, Terrain> terrainsById) {
         this.mapData = mapData;
-        this.terrainsById = terrainsById;
+        this.terrainsById = Map.copyOf(terrainsById);
     }
 
     @Override

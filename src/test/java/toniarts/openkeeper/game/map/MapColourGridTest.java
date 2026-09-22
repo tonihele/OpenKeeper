@@ -122,7 +122,7 @@ class MapColourGridTest {
     }
 
     @Test
-    void colourClassesExposesTheSameArrayRecomputeWritesInto() {
+    void colourClassesReflectsWhatRecomputeStored() {
         fog.explored.add(new Point(0, 0));
         grid.recompute(0, 0);
 
