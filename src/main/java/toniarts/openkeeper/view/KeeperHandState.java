@@ -55,7 +55,6 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
@@ -313,7 +312,6 @@ public abstract class KeeperHandState extends AbstractAppState {
             itemNode.setLocalTranslation(0, 0, 0);
             itemNode.setLocalRotation(Matrix3f.ZERO);
             queueNode.attachChild(itemNode);
-            AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
         }
     }
 
