@@ -1026,8 +1026,14 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         topTileNode.attachChild(spatial);
-        lightRules.registerTerrainTile(p, applyTerrainLighting(topTileNode, terrain, tile.getOwnerId()));
+        applyTerrainLighting(topTileNode, terrain, tile.getOwnerId());
+        // setTileMaterialToGeometries (tag/flash/decay tint) may clone a
+        // fresh Material past this point - register whatever's actually on
+        // the geometries afterwards, not applyTerrainLighting's now possibly
+        // stale list, or LightRules would keep pushing light updates onto an
+        // orphaned Material no longer attached to anything on screen.
         setTileMaterialToGeometries(tile, topTileNode);
+        lightRules.registerTerrainTile(p, collectMaterials(topTileNode));
         AssetUtils.translateToTile(topTileNode, p);
     }
 
@@ -1043,8 +1049,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
 
-        lightRules.registerTerrainTile(p, applyTerrainLighting(sideTileNode, terrain, tile.getOwnerId()));
+        applyTerrainLighting(sideTileNode, terrain, tile.getOwnerId());
         setTileMaterialToGeometries(tile, sideTileNode);
+        lightRules.registerTerrainTile(p, collectMaterials(sideTileNode));
         AssetUtils.translateToTile(sideTileNode, p);
     }
 
@@ -1348,6 +1355,35 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         });
         return result[0];
+    }
+
+    /**
+     * Gathers whatever Material each Geometry under {@code node} currently
+     * carries - called after {@link #applyTerrainLighting} (DkTerrain
+     * conversion) and {@link #setTileMaterialToGeometries} (tag/flash/decay
+     * tint, which clones a fresh Material for a tagged/flashing/decaying
+     * tile) have both already run, so this always matches what's actually
+     * rendered instead of a pre-clone reference.
+     */
+    private static List<Material> collectMaterials(Node node) {
+        List<Material> materials = new ArrayList<>();
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof BatchNode batchNode) {
+                    Material existing = firstGeometryMaterial(batchNode);
+                    if (existing != null && AssetUtils.isDkTerrainMaterial(existing)) {
+                        materials.add(existing);
+                    }
+                    return;
+                }
+                if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                materials.add(geometry.getMaterial());
+            }
+        });
+        return materials;
     }
 
     private ColorRGBA getVertexAmbient(Terrain terrain, short ownerId) {

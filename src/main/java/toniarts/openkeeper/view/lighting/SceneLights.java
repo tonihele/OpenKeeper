@@ -68,7 +68,7 @@ public final class SceneLights {
      * Must match {@code DK_MAX_LIGHTS} in {@code DkTerrain.vert}. The GLSL
      * array is fixed-size, so a material genuinely can't take
      */
-    public static final int MAX_LIGHTS_PER_MATERIAL = 16;
+    public static final int MAX_LIGHTS_PER_MATERIAL = 32;
 
     /**
      * Extra distance added to a light's radius when deciding whether it
