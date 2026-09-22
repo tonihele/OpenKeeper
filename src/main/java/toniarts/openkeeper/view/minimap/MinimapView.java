@@ -38,7 +38,7 @@ import com.jme3.texture.image.ColorSpace;
 import java.nio.ByteBuffer;
 
 /**
- * Renders the minimap octagon, and its fit-mode frustum overlay, directly
+ * Renders the minimap disc, and its fit-mode frustum overlay, directly
  * into the {@code guiNode} (see this class's own history/javadoc on why:
  * the design doc's recommended off-screen {@code FrameBuffer} +
  * {@code RenderImageJme} approach doesn't work against this project's
@@ -53,8 +53,8 @@ public final class MinimapView {
     private final Node overlayNode;
     private final Texture2D rasterTexture;
     private final ByteBuffer rasterBuffer;
-    private final Mesh octagonMesh;
-    private final Geometry octagonGeometry;
+    private final Mesh discMesh;
+    private final Geometry discGeometry;
     private final Mesh frustumMesh;
     private final Geometry frustumGeometry;
 
@@ -76,19 +76,15 @@ public final class MinimapView {
         rasterMaterial.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.8f));
         rasterMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
 
-        // Unit octagon (0..1 in both position and UV, since design's
+        // Unit disc (0..1 in both position and UV, since design's
         // identity-UV formula already gives that range).
-        octagonMesh = MinimapOctagon.build(0.5f, 0.5f, 0.5f);
-        octagonGeometry = new Geometry("MinimapOctagon", octagonMesh);
-        octagonGeometry.setMaterial(rasterMaterial);
-        octagonGeometry.setQueueBucket(RenderQueue.Bucket.Gui);
-        overlayNode.attachChild(octagonGeometry);
+        discMesh = MinimapDisc.build(0.5f, 0.5f, 0.5f);
+        discGeometry = new Geometry("MinimapDisc", discMesh);
+        discGeometry.setMaterial(rasterMaterial);
+        discGeometry.setQueueBucket(RenderQueue.Bucket.Gui);
+        overlayNode.attachChild(discGeometry);
 
-        // A white outline rather than the MapCameraBox.png sprite (design
-        // §4.3/§5.7's literal choice): that sprite is a small 16x16 icon,
-        // not a shape meant to be stretched across an arbitrary trapezoid,
-        // and stretching it that way is most likely why this first showed
-        // up as a degenerate-looking line rather than a visible quad.
+        // Camera box
         Material frustumMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         frustumMaterial.setColor("Color", new ColorRGBA(1f, 1f, 1f, 0.75f));
         frustumMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
@@ -105,9 +101,8 @@ public final class MinimapView {
     }
 
     private static Mesh buildFrustumQuad() {
-        // An outline, not a filled quad (design §5.7: "draw the quad
-        // outline") - LineLoop connects the 4 corners 0-1-2-3-0 directly,
-        // no index buffer needed.
+        // An outline, not a filled quad - LineLoop connects
+        // the 4 corners 0-1-2-3-0 directly, no index buffer needed.
         Mesh mesh = new Mesh();
         mesh.setBuffer(Type.Position, 3, new float[4 * 3]);
         mesh.setMode(Mesh.Mode.LineLoop);
@@ -144,7 +139,7 @@ public final class MinimapView {
     /**
      * Uploads a freshly-rasterised 128x128x3 B,G,R buffer (see
      * {@link MinimapRasteriser#rebuildFitMode}) to the source texture the
-     * octagon samples.
+     * disc samples.
      */
     public void updateRaster(byte[] rasterBgr) {
         rasterBuffer.clear();
@@ -154,18 +149,17 @@ public final class MinimapView {
     }
 
     /**
-     * Rewrites the octagon's texture coordinates for the current camera
-     * yaw (design §5.7). Called every rendered frame, independent of the
+     * Rewrites the disc's texture coordinates for the current camera
+     * yaw. Called every rendered frame, independent of the
      * raster rebuild cadence, since the camera can turn between rebuilds.
      */
     public void updateYaw(float yawRadians) {
-        MinimapOctagon.updateUv(octagonMesh, yawRadians);
+        MinimapDisc.updateUv(discMesh, yawRadians);
     }
 
     /**
      * Hides the frustum overlay. Used in zoomed mode and whenever the
-     * camera is in whatever mode design §2.6/§5.7 says hides it - the
-     * caller ({@code MinimapPanelState}) decides that.
+     * camera is in whatever mode
      */
     public void hideFrustum() {
         frustumGeometry.setCullHint(Spatial.CullHint.Always);
@@ -173,19 +167,11 @@ public final class MinimapView {
 
     /**
      * Positions the frustum quad from the camera's 4 ground-plane frustum
-     * corners (design §5.7, fit mode only): each corner is converted to
-     * tile space, then fit-mode pixel space (the same mapping the raster
-     * itself uses - {@link MinimapRasteriser.FitGeometry}), then rotated
-     * around the raster centre to track the octagon's own content rotation
+     * corners: each corner is converted to tile space, then fit-mode pixel
+     * space (the same mapping the raster itself uses -
+     * {@link MinimapRasteriser.FitGeometry}), then rotated
+     * around the raster centre to track the disc's own content rotation
      * before being normalised into this view's 0..1 local unit space.
-     *
-     * <p>
-     * The rotation here is the content's own visual rotation, which is the
-     * <em>opposite</em> sense from the octagon's {@code +yaw} UV rotation
-     * (rotating which part of the texture is sampled by {@code +yaw} makes
-     * the displayed content appear to turn by {@code -yaw}) - derived, not
-     * verified against the running game; if the frustum doesn't track the
-     * rotating map content correctly this sign is the first thing to flip.
      *
      * @param groundCorners from {@link MinimapFrustum#groundCorners} -
      * hides the overlay if any entry is {@code null} (a corner's ray missed
@@ -211,7 +197,7 @@ public final class MinimapView {
             float py = fit.pixelY(tile.y);
 
             // Raster pixel space -> this view's local unit space (0..1),
-            // matching the octagon's own confirmed position<->UV
+            // matching the disc's own confirmed position<->UV
             // relationship at yaw 0 (V flipped, U not).
             float localX = px / rasterSize;
             float localY = 1f - py / rasterSize;

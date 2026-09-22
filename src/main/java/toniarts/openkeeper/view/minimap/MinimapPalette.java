@@ -21,8 +21,8 @@ import java.util.Arrays;
 import toniarts.openkeeper.game.map.MapColourClass;
 
 /**
- * {@code GUI\Map\MapColours.png} loaded into class -&gt; colour lookups
- * (minimap_design.md §4.1). Distinct from, and not to be confused with,
+ * {@code GUI\Map\MapColours.png} loaded into class -&gt; colour lookups.
+ * Distinct from, and not to be confused with,
  * {@code Textures\Thumbnails\MapColours.png} - a different, 16-slot palette
  * for front-end level thumbnails ({@code utils.MapThumbnailGenerator}); the
  * two files happen to share a name and even a resolution but have unrelated
@@ -81,7 +81,7 @@ public final class MinimapPalette {
     }
 
     /**
-     * Bug-for-bug parity (design §4.1): the neutral player's own wall/floor/
+     * Bug-for-bug parity: the neutral player's own wall/floor/
      * heart slots are aliased onto {@code n % 7}'s slot, so a neutral player
      * number of 7 (never true for shipped data - always 1) doesn't read
      * back as white. A no-op for every shipped level. Meant to be re-applied
@@ -101,12 +101,12 @@ public final class MinimapPalette {
     }
 
     /**
-     * Used only by the full-screen map (minimap_design.md §6), not the
-     * panel raster (which indexes {@link #argb} directly per-pixel via
-     * {@link #rawArgb}). Class 1 (unexplored/rock) reads as white here
-     * because the full-screen map skips class-1 tiles entirely rather than
-     * painting them, so this case is unreachable in practice; included for
-     * completeness per the design's own description.
+     * Used only by the full-screen map, not the panel raster (which indexes
+     * {@link #argb} directly per-pixel via {@link #rawArgb}).
+     * Class 1 (unexplored/rock) reads as white here because the full-screen
+     * map skips class-1 tiles entirely rather than painting them, so this
+     * case is unreachable in practice; included for completeness per the
+     * design's own description.
      *
      * @param neutralPlayerNumber {@code playerNumber(neutralPlayerId)}, for
      * the same aliasing {@link #applyNeutralGuard} performs

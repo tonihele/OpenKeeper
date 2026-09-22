@@ -32,8 +32,7 @@ public final class MinimapMarkers {
     }
 
     /**
-     * design §5.8's zoomed {@code toPixel}: the camera look-at tile is
-     * always the image centre (64,64).
+     * the camera look-at tile is always the image centre (64,64).
      */
     public static float zoomedPixelX(float tileX, float cameraTileX, int pixelsPerTile) {
         return RASTER_SIZE / 2f + (tileX - cameraTileX) * pixelsPerTile;
@@ -45,7 +44,7 @@ public final class MinimapMarkers {
 
     /**
      * The inverse of {@link #zoomedPixelX}/{@link #zoomedPixelY} - for
-     * click resolution (design §5.11).
+     * click resolution
      */
     public static float zoomedTileX(float pixelX, float cameraTileX, int pixelsPerTile) {
         return (pixelX - RASTER_SIZE / 2f) / pixelsPerTile + cameraTileX;
@@ -169,7 +168,7 @@ public final class MinimapMarkers {
 
     /**
      * A small bar. The exact glyph shape is unconfirmed against the
-     * original (design §9 item 2) - this is a best guess.
+     * original
      */
     public static void doorGlyphH(byte[] raster, int cx, int cy, int argbColour) {
         line(raster, cx - 2, cy, cx + 2, cy, argbColour);

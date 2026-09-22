@@ -21,15 +21,10 @@ import toniarts.openkeeper.game.map.MapColourGrid;
 
 /**
  * Fills the 128x128 B,G,R raster from a {@link MapColourGrid} and
- * {@link MinimapPalette} (minimap_design.md §5.3). Pure Java/int/float
- * math, no jME dependency - headlessly testable - matching how
+ * {@link MinimapPalette}. Pure Java/int/float math, no jME dependency
+ * - headlessly testable - matching how
  * {@link toniarts.openkeeper.game.map.MapColourClassifier} was kept
  * separate from rendering.
- *
- * <p>
- * Fit mode ({@code zoom == -1}, design §5.5) and zoomed mode
- * ({@code zoom} 0..4, design §5.4/§5.6) are both implemented. UVs stay
- * identity for both (no camera-yaw rotation) - that's Step 6's job.
  */
 public final class MinimapRasteriser {
 
@@ -44,8 +39,7 @@ public final class MinimapRasteriser {
     /**
      * @param grid the live colour-class grid to read
      * @param palette the palette to read colours from; {@link
-     * MinimapPalette#applyNeutralGuard} is called on it as the first step,
-     * per design §5.3
+     * MinimapPalette#applyNeutralGuard} is called on it as the first step
      * @param rockTextureBgr 128x128x3 B,G,R bytes (see {@link
      * MinimapAssets#rockTextureBgr})
      * @param neutralPlayerNumber {@code playerNumber(neutralPlayerId)}
@@ -61,14 +55,13 @@ public final class MinimapRasteriser {
         palette.applyNeutralGuard(neutralPlayerNumber);
 
         // Whole raster starts as rock. Class-1 (unexplored/impenetrable)
-        // tiles are meant to show rock anyway (design §5.3 step 4), so
         // leaving this untouched for those pixels is correct, not just a
         // placeholder - this also covers "outside the map rectangle is
-        // rock" for free: fit mode's border bands (design §5.6) always use
+        // rock" for free: fit mode's border bands always use
         // texX=texY=0, which for a 128x128 raster is exactly this copy.
         System.arraycopy(rockTextureBgr, 0, outBgr, 0, outBgr.length);
 
-        // Fit-mode geometry (design §5.5). Camera position is ignored.
+        // Fit-mode geometry. Camera position is ignored.
         FitGeometry fit = FitGeometry.of(width, height);
         int originX = fit.originX;
         int endX = fit.endX;
@@ -101,9 +94,7 @@ public final class MinimapRasteriser {
      * @param rockTextureBgr 128x128x3 B,G,R bytes
      * @param neutralPlayerNumber {@code playerNumber(neutralPlayerId)}
      * @param cameraTileX, cameraTileY the camera's look-at point, in
-     * fractional tile-space coordinates (design §5.4's sub-tile camera
-     * position, translated to float tile units per minimap_jmonkey.md
-     * Step 1)
+     * fractional tile-space coordinates
      * @param zoom 0 (1px/tile) .. 4 (16px/tile)
      * @param outBgr 128x128x3 B,G,R bytes, overwritten in place
      */
@@ -114,14 +105,14 @@ public final class MinimapRasteriser {
 
         palette.applyNeutralGuard(neutralPlayerNumber);
 
-        // Zoomed geometry (design §5.4). The camera look-at point is always
-        // the image centre (64,64). The original computes this in 16.16
-        // fixed point over sub-tile camera coordinates; translated to plain
-        // float tile-unit arithmetic per minimap_jmonkey.md Step 1 - same
+        // The camera look-at point is always the image centre (64,64).
+        // The original computes this in 16.16 fixed point over sub-tile
+        // camera coordinates; translated to plain
         // origin/step/clamped-range logic, including the original's own
         // integer-pixel snapping (origins are floored to int before the
         // per-pixel tile lookup, exactly as design's own originX>>16 does),
         // not smooth sub-pixel scrolling.
+
         int pixelsPerTile = 1 << zoom;
         float halfRaster = RASTER_SIZE / 2f;
         float originXf = halfRaster - cameraTileX * pixelsPerTile;
@@ -132,7 +123,7 @@ public final class MinimapRasteriser {
         int endY = (int) Math.floor(originYf + height * pixelsPerTile);
         int mapPixelHeight = endY - originY;
 
-        // Rock border bands (design §5.6): texX/texY are the negative
+        // Rock border bands: texX/texY are the negative
         // origins here, so the rock texture scrolls with the map.
         fillRock(outBgr, rockTextureBgr, 0, 0, RASTER_SIZE, originY, -originX, -originY);
         fillRock(outBgr, rockTextureBgr, 0, originY, originX, mapPixelHeight, -originX, -originY);
@@ -154,10 +145,7 @@ public final class MinimapRasteriser {
                 short cls = grid.get(tx, ty);
                 if (cls == MapColourClass.UNEXPLORED_OR_IMPENETRABLE) {
                     // Unlike fit mode, the border bands above don't cover the
-                    // inside of the map rectangle, so class-1 tiles here need
-                    // an explicit (non-scrolling: design §5.3 step 4 samples
-                    // rock at the raw pixel coordinate, not the scrolling
-                    // texX/texY the border bands use) rock write.
+                    // inside of the map rectangle
                     int rockIndex = ((py & (RASTER_SIZE - 1)) * RASTER_SIZE + (px & (RASTER_SIZE - 1))) * 3;
                     int outIndex = (py * RASTER_SIZE + px) * 3;
                     outBgr[outIndex] = rockTextureBgr[rockIndex];
@@ -171,7 +159,7 @@ public final class MinimapRasteriser {
     }
 
     /**
-     * design §5.6: clip to the raster, then for each pixel copy
+     * clip to the raster, then for each pixel copy
      * {@code rock[(y+texY) & 127][(x+texX) & 127]}.
      */
     private static void fillRock(byte[] outBgr, byte[] rockBgr, int x, int y, int w, int h, int texX, int texY) {
@@ -200,9 +188,9 @@ public final class MinimapRasteriser {
     }
 
     /**
-     * Fit-mode's origin/step geometry (design §5.5), factored out so the
-     * frustum overlay (design §5.7, fit mode only) can place things in
-     * exactly the same pixel space the raster itself uses, rather than
+     * Fit-mode's origin/step geometry, factored out so the
+     * frustum overlay can place things in exactly the same
+     * pixel space the raster itself uses, rather than
      * risking the two computations drifting apart.
      */
     static final class FitGeometry {
@@ -248,7 +236,7 @@ public final class MinimapRasteriser {
 
         /**
          * The inverse of {@link #pixelX}/{@link #pixelY} - for click
-         * resolution (design §5.11).
+         * resolution
          */
         float tileX(float pixelX) {
             return (pixelX - originX) / pixelsPerTileScale();

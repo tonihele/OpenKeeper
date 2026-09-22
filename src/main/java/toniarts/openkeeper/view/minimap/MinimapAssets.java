@@ -32,8 +32,8 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 
 /**
- * The minimap's static, non-derived assets: the palette (§4.1), the rock
- * texture (§4.2) and the camera-frustum sprite (§4.3). Loaded once and
+ * The minimap's static, non-derived assets: the palette, the rock
+ * texture and the camera-frustum sprite. Loaded once and
  * reused for the life of the session - none of this changes at runtime.
  */
 public final class MinimapAssets {
@@ -125,7 +125,7 @@ public final class MinimapAssets {
     }
 
     /**
-     * The fit-mode frustum outline sprite (design §4.3), loaded through the
+     * The fit-mode frustum outline sprite, loaded through the
      * same GUI-texture asset path the rest of the interface's sprites use -
      * treated as an opaque handle, nothing here inspects its pixels.
      */

@@ -260,8 +260,7 @@
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
-                            <!-- Resize Map (minimap_jmonkey.md Step 5, design §5.2): left click
-                                 zooms in, right click zooms out. -->
+                            <!-- Resize Map left click zooms in, right click zooms out. -->
                             <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
                                 <interact onClick="resizeMap()" onSecondaryClick="resizeMapDown()"/>
                                 <effect>

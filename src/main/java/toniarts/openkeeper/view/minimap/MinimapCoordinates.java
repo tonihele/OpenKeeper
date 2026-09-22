@@ -58,9 +58,8 @@ public final class MinimapCoordinates {
      * the minimap content 180 degrees off from the camera's actual facing -
      * this engine's default camera direction (a level's initial preset
      * angle) apparently sits opposite {@code atan2}'s own zero reference.
-     * The turning *sense* (which way the octagon UVs move as the camera
-     * turns) is still unverified against the original - design §9 item
-     * 4/5 - only this static zero-point offset has been checked so far.
+     * The turning direction (which way the disc's content rotates as the
+     * camera turns)
      */
     public static float cameraYawRadians(Camera camera) {
         Vector3f direction = camera.getDirection();

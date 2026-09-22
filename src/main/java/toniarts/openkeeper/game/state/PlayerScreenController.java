@@ -345,8 +345,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
-     * "Resize Map" button, left click (minimap_jmonkey.md Step 5, design
-     * §5.2): zoom in one level (or into zoomed mode from fit).
+     * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
      */
     public void resizeMap() {
         playButtonSound("GUI_BUTTON_ZOOM");
@@ -357,8 +356,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
-     * "Resize Map" button, right click (minimap_jmonkey.md Step 5, design
-     * §5.2): zoom out one level (or back to fit mode).
+     * "Resize Map" button, right click: zoom out one level (or back to fit mode).
      */
     public void resizeMapDown() {
         MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();

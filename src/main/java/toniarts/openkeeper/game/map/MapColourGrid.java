@@ -40,7 +40,7 @@ public final class MapColourGrid {
         // Java default-initializes short[] to 0 (NEUTRAL_OWNED_SENTINEL, the
         // magenta bug tile) - fill with the "haven't looked here yet" class
         // instead, so the grid is safe to read even before the caller runs
-        // the initial recomputeRect() at level load (design §3.1).
+        // the initial recomputeRect() at level load
         Arrays.fill(classes, MapColourClass.UNEXPLORED_OR_IMPENETRABLE);
     }
 
@@ -108,7 +108,7 @@ public final class MapColourGrid {
     }
 
     /**
-     * The drag-box highlight rule (design §3.4): turning the highlight on
+     * The drag-box highlight rule: turning the highlight on
      * only actually stores {@link MapColourClass#HIGHLIGHT} if the tile is
      * unexplored or taggable - reusing
      * {@link IFogOfWarInformation#isHighlightable} rather than

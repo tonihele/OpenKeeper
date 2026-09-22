@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Exercises {@link MinimapPalette}'s index-mapping formula (design §4.1)
+ * Exercises {@link MinimapPalette}'s index-mapping formula
  * against a small synthetic image with a distinct, checkable colour per
  * column - deterministic and independent of whatever the shipped
  * {@code MapColours.png} happens to contain.

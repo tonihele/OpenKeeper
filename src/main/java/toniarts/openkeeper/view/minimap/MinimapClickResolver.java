@@ -19,14 +19,9 @@ package toniarts.openkeeper.view.minimap;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * Click -&gt; tile resolution (design §5.11), replacing the original's
- * literal 16.16 {@code cosTable}/{@code sinTable} un-rotation with plain
- * {@code Math.cos}/{@code Math.sin} over the continuous float yaw, per
- * minimap_jmonkey.md Step 1's translation decision - and rather than
- * porting the original's {@code >>2} two-extra-fractional-bits adjustment
- * literally (there's no equivalent fixed-point convention here to match),
- * this is derived directly from the octagon's own confirmed position/UV
- * relationship (see {@link MinimapOctagon}), so it is exact by
+ * Click -&gt; tile resolution:
+ * this is derived directly from the disc's own confirmed position/UV
+ * relationship (see {@link MinimapDisc}), so it is exact by
  * construction rather than needing an empirical correction factor.
  *
  * <p>
@@ -40,8 +35,8 @@ public final class MinimapClickResolver {
     /**
      * Un-rotates a click's displayed panel-local position back to the
      * raster's own unrotated pixel coordinates - the inverse of how the
-     * octagon's UVs turn the displayed content by {@code -yaw} relative to
-     * the raster (see {@link MinimapOctagon#updateUv}), so un-rotating the
+     * disc's UVs turn the displayed content by {@code -yaw} relative to
+     * the raster (see {@link MinimapDisc#updateUv}), so un-rotating the
      * click needs a {@code +yaw} rotation.
      *
      * @param localX, localY the click position in the overlay's own 0..1
@@ -63,7 +58,7 @@ public final class MinimapClickResolver {
 
         int size = MinimapRasteriser.RASTER_SIZE;
         float pixelX = rawLocalX * size;
-        float pixelY = (1f - rawLocalY) * size; // inverse of MinimapOctagon's confirmed V flip
+        float pixelY = (1f - rawLocalY) * size; // inverse of MinimapDisc's confirmed V flip
         return new float[]{pixelX, pixelY};
     }
 

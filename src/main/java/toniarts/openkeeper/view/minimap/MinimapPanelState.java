@@ -57,40 +57,20 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4-8):
  * builds the colour-class grid, periodically rasterises fit-mode or zoomed
  * geometry depending on the current {@link #zoom} level, rotates the
- * octagon's UVs every frame to track the camera's yaw, positions the
- * fit-mode frustum overlay, paints the marker overlay ({@link
- * MinimapMarkerPainter} - see its own javadoc for which rows are and
- * aren't implemented), handles click-to-jump/drag-scroll/right-click-cancel
- * input (design §5.11, via a raw jME mouse listener - see
- * {@link MinimapInputListener}'s own javadoc for why), and keeps a
- * {@link MinimapView} overlay positioned over the GameHUD's map panel
- * element in place of the static placeholder image that used to sit there.
- *
- * <p>
- * The rebuild is a brute-force full {@code recomputeRect} on a fixed interval
- * rather than fine-grained per-mutation invalidation (design §3.4's
- * intended eager model) - correct, just not yet wired to the tile-mutation
- * call sites minimap_jmonkey.md Step 2 identified
- * ({@code PlayerMapViewState.onTilesChange}/
- * {@code addFogOfWarTilesDirtyListener}); that's a follow-up optimisation,
- * not required for these steps' "get pixels on screen" goal.
+ * disc's UVs every frame to track the camera's yaw, positions the
+ * fit-mode frustum overlay, paints the marker overlay
  */
 public final class MinimapPanelState extends AbstractAppState {
 
     private static final Logger LOGGER = System.getLogger(MinimapPanelState.class.getName());
 
     /**
-     * How often the raster is rebuilt. No authoritative source value exists
-     * for this in the original engine (minimap_jmonkey.md §0) - matches
-     * {@code FogOfWarController.VISION_UPDATE_INTERVAL}'s own precedent for
-     * an approximated, unbacked cadence constant.
+     * How often the raster is rebuilt
      */
     private static final float REBUILD_INTERVAL = 0.15f;
 
     /**
-     * How often {@link #blinkParity} flips. No authoritative source value
-     * exists for this either (see {@link #REBUILD_INTERVAL}'s own note) -
-     * a plain guess at a readable blink rate.
+     * How often {@link #blinkParity} flips
      */
     private static final float BLINK_INTERVAL = 0.5f;
 
@@ -201,14 +181,14 @@ public final class MinimapPanelState extends AbstractAppState {
     }
 
     /**
-     * "Resize Map" button, left click (design §5.2).
+     * "Resize Map" button, left click.
      */
     public void zoomIn() {
         setZoom(Math.min(zoom + 1, MAX_ZOOM));
     }
 
     /**
-     * "Resize Map" button, right click (design §5.2).
+     * "Resize Map" button, right click.
      */
     public void zoomOut() {
         setZoom(Math.max(zoom - 1, MIN_ZOOM));
@@ -252,7 +232,7 @@ public final class MinimapPanelState extends AbstractAppState {
     }
 
     /**
-     * Rewrites the octagon's UVs for the current camera yaw (design §5.7)
+     * Rewrites the disc's UVs for the current camera yaw
      * - every frame, not tied to the raster rebuild cadence, since the
      * camera can turn between rebuilds.
      */
@@ -271,9 +251,7 @@ public final class MinimapPanelState extends AbstractAppState {
 
     /**
      * Fit mode only, and only when the camera isn't in the possession/
-     * first-person mode design §2.6/§5.7 says hides the overlay -
-     * {@code PossessionCameraState} is the closest match this codebase has
-     * to that "camera mode" concept (minimap_jmonkey.md §0).
+     * first-person mode design
      */
     private void updateFrustum() {
         if (zoom != MIN_ZOOM) {
@@ -322,8 +300,8 @@ public final class MinimapPanelState extends AbstractAppState {
     }
 
     /**
-     * Click -&gt; tile resolution and camera jump (design §5.11). Returns
-     * {@code true} if the click landed on the panel and resolved to a tile
+     * Click -&gt; tile resolution and camera jump. Returns {@code true}
+     * if the click landed on the panel and resolved to a tile
      * (so drag-scroll can keep following the cursor), {@code false}
      * otherwise.
      */
@@ -362,10 +340,8 @@ public final class MinimapPanelState extends AbstractAppState {
     }
 
     /**
-     * Right click (design §5.11): the panel's generic "cancel current
-     * tool" action, plus a full recompute. {@code world.setMapScrollY(1)}
-     * is inert - never read anywhere, in this engine or the original - so
-     * there is nothing to actually call for it.
+     * Right click: the panel's generic "cancel current tool" action, plus a full recompute.
+     * {@code world.setMapScrollY(1)}
      */
     private void cancelToolAndRecompute() {
         PlayerInteractionState interactionState = stateManager.getState(PlayerInteractionState.class);
@@ -420,7 +396,7 @@ public final class MinimapPanelState extends AbstractAppState {
         @Override
         public void onMouseMotionEvent(MouseMotionEvent evt) {
             if (leftButtonDown) {
-                // design §5.11: drag-to-scroll - keep resolving on every move while held.
+                // drag-to-scroll - keep resolving on every move while held.
                 jumpCameraToClickedTile(evt.getX(), evt.getY());
             }
         }

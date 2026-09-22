@@ -16,14 +16,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * The click round-trip test design §8/§9.5 asks for: the tile a click
- * resolves to must equal the tile visually under that point on the
+ * The click round-trip test: the tile a click resolves to must
+ * equal the tile visually under that point on the
  * rotated, zoomed octagon.
  */
 class MinimapClickResolverTest {
 
     /**
-     * The forward transform {@link MinimapOctagon}/{@link MinimapView}
+     * The forward transform {@link MinimapDisc}/{@link MinimapView}
      * apply to go from a raster pixel to the displayed panel-local
      * position - reimplemented independently here (not by calling
      * production code) so this test can't pass merely because both sides
@@ -121,10 +121,8 @@ class MinimapClickResolverTest {
     @Test
     void fullRoundTripFromTileThroughClickAndBackAtANontrivialYaw() {
         // The full pipeline: tile -> fit pixel -> displayed panel position
-        // (as the octagon would actually show it, rotated) -> click ->
-        // resolved tile. This is the exact scenario design §9.5 asks to
-        // verify: the tile chosen must equal the tile visually under that
-        // point on the rotated octagon.
+        // (as the disc would actually show it, rotated) -> click ->
+        // resolved tile.
         MinimapRasteriser.FitGeometry fit = MinimapRasteriser.FitGeometry.of(64, 64);
         float yaw = 2.4f;
 

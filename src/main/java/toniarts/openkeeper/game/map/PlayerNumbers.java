@@ -17,9 +17,9 @@
 package toniarts.openkeeper.game.map;
 
 /**
- * The minimap design (minimap_design.md §2.4) assumes a {@code
- * playerNumber(playerId)} translation from level-file player ids into a
- * 1..7 palette slot. In this codebase raw {@code short} owner/player ids
+ * The minimap design assumes a {@code playerNumber(playerId)}
+ * translation from level-file player ids into a 1..7 palette slot.
+ * In this codebase raw {@code short} owner/player ids
  * (see {@link toniarts.openkeeper.tools.convert.map.Player}) already are
  * those slot numbers
  */

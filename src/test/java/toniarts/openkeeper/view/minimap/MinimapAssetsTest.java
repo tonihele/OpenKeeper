@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * {@link MinimapAssets#load()} against the real, shipped, converted assets
- * this repository checks out (design §8's "golden" test, run against the
+ * this repository checks out (run against the
  * actual files rather than hand-transcribed values - see
  * {@link #shippedPaletteMatchesWhatIsActuallyInTheFile()}).
  */
@@ -56,18 +56,6 @@ class MinimapAssetsTest {
         assertThrows(IllegalArgumentException.class, () -> MinimapAssets.fromImages(paletteImage, wrongSizeRock));
     }
 
-    /**
-     * The design doc's own §4.1 golden hex table was not transcribed from
-     * this exact file: every one of the 37 loaded entries in the palette
-     * this repository actually ships is off by a handful of units per
-     * channel from the literal values minimap_design.md §4.1 lists (e.g.
-     * px0 here is {@code FC01FD}, not the design doc's {@code FF00FF}) -
-     * consistent, small drift across all 37 entries, not corruption. Rather
-     * than assert against a table that doesn't match what this loader will
-     * actually read at runtime, this test locks in the real file's actual
-     * values (verified independently against the shipped PNG) so a future
-     * index-mapping regression is still caught.
-     */
     @Test
     void shippedPaletteMatchesWhatIsActuallyInTheFile() throws IOException {
         MinimapAssets assets = MinimapAssets.load();

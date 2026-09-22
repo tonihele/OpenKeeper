@@ -34,45 +34,10 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
- * The marker overlay (minimap_design.md §5.8), drawn into the raster after
- * the tile colours, before upload. Owns the creature/door/trap
- * {@code EntitySet}s for the life of the session ({@link #update()} must be
- * called once a frame before {@link #paint}; {@link #dispose()} releases
- * them).
- *
- * <p>
- * <b>Rows implemented</b>: 1 (own Dungeon Heart), 4 (own creatures), 5
- * (other players' creatures), 7 (all traps), 9 (all doors), plus the
- * zoomed-mode heart-direction line (§5.9).
- *
- * <p>
- * <b>Rows deliberately not implemented</b> - genuine gaps in this
- * codebase's runtime data, not oversights (confirmed by repo-wide search,
- * minimap_jmonkey.md Step 7's own research pass):
- * <ul>
- * <li>Row 2 (own guard posts) and row 7's guard-post/armed special case:
- * {@code TrapComponent} has no {@code armed}, {@code hiddenFromMinimap}, or
- * guarding-creature field - only {@code trapId}. Row 7 draws every trap
- * with a plain blinking dot instead, which already covers guard posts.
- * <li>Row 3 (own guard rooms): a room instance's tile bounding rectangle
- * (min/max X/Y) is tracked internally by {@code RoomInstance} but has no
- * public accessor anywhere in the room-information chain.
- * <li>Row 6 (event markers), row 8 (player "special position" flag), row
- * 10 (zoom target): none of this world-level UI state
- * (minimap_design.md §2.8) exists anywhere in this codebase - it's pure
- * design-doc spec, not a port of something already implemented elsewhere.
- * </ul>
- *
- * <p>
- * Two more things worth flagging: design §9 item 1 (the even-tick blink
- * colour for other players' creatures/traps, rows 5/7) was never pinned
- * down by the design doc itself - this picks black, the same colour own
- * creatures blink to, as the more consistent-looking guess between the two
- * candidates it lists. And the door glyph orientation (which rotation maps
- * to "horizontal" vs "vertical") is inferred from
- * {@code DoorsController}'s placement logic, not verified against a
- * screenshot - design §9 item 2 already flags the glyph *shape* itself as
- * unconfirmed, and this adds an orientation-mapping guess on top of that.
+ * The marker overlay drawn into the raster after the tile colours, before
+ * upload. Owns the creature/door/trap {@code EntitySet}s for the life of
+ * the session ({@link #update()} must be called once a frame before
+ * {@link #paint}; {@link #dispose()} releases them).
  */
 public final class MinimapMarkerPainter {
 
@@ -121,7 +86,6 @@ public final class MinimapMarkerPainter {
      * @param cameraTileX, cameraTileY the camera's look-at tile (zoomed
      * mode only; ignored in fit mode)
      * @param fogOfWarInformation for the "tile explored" visibility checks
-     * design §5.8's table uses
      * @param blinkParity the current half of the blink cycle
      * @param dashPhase an incrementing counter (any unit is fine - only its
      * changing value matters) driving the heart-direction line's marching
@@ -159,7 +123,7 @@ public final class MinimapMarkerPainter {
             } else {
                 Point tile = WorldUtils.vectorToPoint(position.position);
                 if (!fogOfWarInformation.isExplored(tile)) {
-                    continue; // design §5.8 row 5
+                    continue;
                 }
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);

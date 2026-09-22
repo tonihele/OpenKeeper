@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 
 /**
- * The classifier table test from minimap_design.md §8: exercises every row
- * of §3.3's decision table (in particular Gems -> 5, Gold -> 7, Dirt
+ * The classifier table test: exercises every row
+ * of decision table (in particular Gems -> 5, Gold -> 7, Dirt
  * Path/Mana Vault -> 2, unexplored -> 1) across
  * {explored, perceived, unexplored} x {neutral, owned} x {room, no room}.
  */
