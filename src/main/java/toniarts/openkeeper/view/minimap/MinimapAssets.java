@@ -43,6 +43,7 @@ public final class MinimapAssets {
     private static final String ROCK_TEXTURE_PATH = "Textures" + File.separator + "GUI"
             + File.separator + "Map" + File.separator + "Map-BG.png";
     private static final String FRUSTUM_SPRITE_ASSET_PATH = "Textures/GUI/Map/MapCameraBox.png";
+    private static final String NORTH_INDICATOR_ASSET_PATH = "Textures/GUI/Map/north.png";
 
     public static final int ROCK_TEXTURE_SIZE = 128;
 
@@ -131,6 +132,16 @@ public final class MinimapAssets {
      */
     public static Texture2D loadFrustumSprite(AssetManager assetManager) {
         Texture texture = assetManager.loadTexture(FRUSTUM_SPRITE_ASSET_PATH);
+        return (Texture2D) texture;
+    }
+
+    /**
+     * The north-indicator icon that orbits the disc's rim - see
+     * {@link MinimapView#updateNorthIndicator}. Treated as an opaque
+     * handle, nothing here inspects its pixels.
+     */
+    public static Texture2D loadNorthIndicatorSprite(AssetManager assetManager) {
+        Texture texture = assetManager.loadTexture(NORTH_INDICATOR_ASSET_PATH);
         return (Texture2D) texture;
     }
 

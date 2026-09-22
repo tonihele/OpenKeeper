@@ -236,16 +236,18 @@ public final class MinimapPanelState extends AbstractAppState {
     }
 
     /**
-     * Rewrites the disc's UVs for the current camera yaw
-     * - every frame, not tied to the raster rebuild cadence, since the
-     * camera can turn between rebuilds.
+     * Rewrites the disc's UVs, and the north indicator's orbit position,
+     * for the current camera yaw - every frame, not tied to the raster
+     * rebuild cadence, since the camera can turn between rebuilds.
      */
     private void updateYaw() {
         PlayerCamera camera = getPlayerCamera();
         if (camera == null) {
             return;
         }
-        view.updateYaw(MinimapCoordinates.cameraYawRadians(camera.getCamera()));
+        float yaw = MinimapCoordinates.cameraYawRadians(camera.getCamera());
+        view.updateYaw(yaw);
+        view.updateNorthIndicator(yaw);
     }
 
     private PlayerCamera getPlayerCamera() {

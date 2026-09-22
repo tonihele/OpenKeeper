@@ -57,6 +57,21 @@ public final class MinimapView {
     private final Geometry discGeometry;
     private final Mesh frustumMesh;
     private final Geometry frustumGeometry;
+    private final Mesh northIndicatorMesh;
+    private final Geometry northIndicatorGeometry;
+
+    /**
+     * The north indicator orbits just inside the disc's own edge (radius
+     * 0.5 in this local unit space), kept far enough in that its full icon
+     * - not just its centre - clears the rim by at least {@code
+     * NORTH_INDICATOR_MARGIN_PX} raster pixels.
+     */
+    private static final float DISC_RADIUS_PX = MinimapRasteriser.RASTER_SIZE / 2f; // 64
+    private static final float NORTH_INDICATOR_MARGIN_PX = 5f;
+    private static final float NORTH_INDICATOR_HALF_SIZE_PX = 3.2f; // ~6.4px icon
+    private static final float NORTH_INDICATOR_HALF_SIZE = NORTH_INDICATOR_HALF_SIZE_PX / MinimapRasteriser.RASTER_SIZE;
+    private static final float NORTH_INDICATOR_ORBIT_RADIUS =
+            (DISC_RADIUS_PX - NORTH_INDICATOR_MARGIN_PX - NORTH_INDICATOR_HALF_SIZE_PX) / MinimapRasteriser.RASTER_SIZE;
 
     public MinimapView(AssetManager assetManager, Node guiNode) {
         this.guiNode = guiNode;
@@ -97,6 +112,22 @@ public final class MinimapView {
         frustumGeometry.setCullHint(Spatial.CullHint.Always); // shown only by updateFrustum, fit mode only
         overlayNode.attachChild(frustumGeometry);
 
+        // North indicator: orbits just inside the disc's rim as the camera
+        // turns, always pointing at wherever north currently maps to - but
+        // the icon quad itself is never rotated, only translated, so it
+        // stays upright (see updateNorthIndicator).
+        Material northIndicatorMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        northIndicatorMaterial.setTexture("ColorMap", MinimapAssets.loadNorthIndicatorSprite(assetManager));
+        northIndicatorMaterial.setColor("Color", ColorRGBA.White);
+        northIndicatorMaterial.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+
+        northIndicatorMesh = buildNorthIndicatorQuad();
+        northIndicatorGeometry = new Geometry("MinimapNorthIndicator", northIndicatorMesh);
+        northIndicatorGeometry.setMaterial(northIndicatorMaterial);
+        northIndicatorGeometry.setQueueBucket(RenderQueue.Bucket.Gui);
+        overlayNode.attachChild(northIndicatorGeometry);
+        updateNorthIndicator(0f); // starts north-up, matching the disc's own untouched initial UVs
+
         overlayNode.setCullHint(Spatial.CullHint.Always); // hidden until updateLayout() first runs
     }
 
@@ -106,6 +137,28 @@ public final class MinimapView {
         Mesh mesh = new Mesh();
         mesh.setBuffer(Type.Position, 3, new float[4 * 3]);
         mesh.setMode(Mesh.Mode.LineLoop);
+        mesh.updateBound();
+        mesh.updateCounts();
+        return mesh;
+    }
+
+    /**
+     * A filled, textured quad - positions are overwritten every frame by
+     * {@link #updateNorthIndicator}; the UVs are fixed (standard bottom-left
+     * origin mapping - unverified against the actual north.png orientation
+     * until seen running).
+     */
+    private static Mesh buildNorthIndicatorQuad() {
+        Mesh mesh = new Mesh();
+        mesh.setBuffer(Type.Position, 3, new float[4 * 3]);
+        mesh.setBuffer(Type.TexCoord, 2, new float[]{
+            0f, 0f,
+            1f, 0f,
+            1f, 1f,
+            0f, 1f
+        });
+        mesh.setBuffer(Type.Index, 3, new short[]{0, 1, 2, 0, 2, 3});
+        mesh.setMode(Mesh.Mode.Triangles);
         mesh.updateBound();
         mesh.updateCounts();
         return mesh;
@@ -155,6 +208,30 @@ public final class MinimapView {
      */
     public void updateYaw(float yawRadians) {
         MinimapDisc.updateUv(discMesh, yawRadians);
+    }
+
+    /**
+     * Repositions the north-indicator quad on the disc's rim. North's raw
+     * (unrotated) position is the raster's top-centre point - the same
+     * point the disc's own confirmed UV formula and {@link #updateFrustum}
+     * both rotate by {@code -yawRadians} - so this reuses that identical
+     * transform, just at a fixed radius rather than per-corner. Unlike the
+     * disc/frustum, only the quad's centre moves; its 4 corners stay
+     * axis-aligned, so the icon itself never rotates - it stays upright as
+     * it orbits.
+     */
+    public void updateNorthIndicator(float yawRadians) {
+        float cx = 0.5f + NORTH_INDICATOR_ORBIT_RADIUS * FastMath.sin(yawRadians);
+        float cy = 0.5f + NORTH_INDICATOR_ORBIT_RADIUS * FastMath.cos(yawRadians);
+        float h = NORTH_INDICATOR_HALF_SIZE;
+        float[] positions = {
+            cx - h, cy - h, 0f,
+            cx + h, cy - h, 0f,
+            cx + h, cy + h, 0f,
+            cx - h, cy + h, 0f
+        };
+        northIndicatorMesh.setBuffer(Type.Position, 3, positions);
+        northIndicatorMesh.updateBound();
     }
 
     /**
