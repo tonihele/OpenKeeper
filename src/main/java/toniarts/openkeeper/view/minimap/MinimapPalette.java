@@ -131,11 +131,12 @@ public final class MinimapPalette {
     }
 
     /**
-     * The raw loaded table, opaque ARGB, index = colour class. Read-only:
-     * callers must not mutate the returned array.
+     * A fresh copy of the loaded table, opaque ARGB, index = colour class -
+     * a copy rather than the backing array itself, so callers can't
+     * corrupt the shared palette by mutating what they get back.
      */
     public int[] rawArgb() {
-        return argb;
+        return Arrays.copyOf(argb, argb.length);
     }
 
 }

@@ -358,28 +358,16 @@ public final class MinimapPanelState extends AbstractAppState {
      * otherwise.
      */
     private boolean jumpCameraToClickedTile(float mouseXJme, float mouseYJme) {
-        if (!panelLayoutKnown || panelWidth <= 0 || panelHeight <= 0) {
+        Vector2f local = toPanelLocal(mouseXJme, mouseYJme);
+        if (local == null) {
             return false;
-        }
-        float localX = (mouseXJme - panelJmeX) / panelWidth;
-        float localY = (mouseYJme - panelJmeY) / panelHeight;
-        if (localX < 0f || localX > 1f || localY < 0f || localY > 1f) {
-            return false; // outside the panel - not ours to handle
         }
 
         PlayerCamera camera = getPlayerCamera();
         float yaw = camera != null ? MinimapCoordinates.cameraYawRadians(camera.getCamera()) : 0f;
-        float[] pixel = MinimapClickResolver.panelLocalToRasterPixel(localX, localY, yaw);
+        float[] pixel = MinimapClickResolver.panelLocalToRasterPixel(local.x, local.y, yaw);
 
-        boolean fit = zoom == MIN_ZOOM;
-        MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(grid.getWidth(), grid.getHeight()) : null;
-        int pixelsPerTile = fit ? 0 : (1 << zoom);
-        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
-        float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
-        float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
-
-        Point tile = MinimapClickResolver.resolveTile(pixel[0], pixel[1], fit, fitGeometry,
-                cameraTileX, cameraTileY, pixelsPerTile, grid.getWidth(), grid.getHeight());
+        Point tile = resolveClickedTile(pixel, camera);
         if (tile == null) {
             return true; // on the panel, just not a resolvable map tile (e.g. the rock border)
         }
@@ -389,6 +377,36 @@ public final class MinimapPanelState extends AbstractAppState {
             cameraState.setCameraLookAt(tile);
         }
         return true;
+    }
+
+    /**
+     * @return the click's panel-local (0..1) position, or {@code null} if
+     * the panel's on-screen layout isn't known yet or the click landed
+     * outside it - both cases the original, un-split method also just
+     * returned {@code false} for.
+     */
+    private Vector2f toPanelLocal(float mouseXJme, float mouseYJme) {
+        if (!panelLayoutKnown || panelWidth <= 0 || panelHeight <= 0) {
+            return null;
+        }
+        float localX = (mouseXJme - panelJmeX) / panelWidth;
+        float localY = (mouseYJme - panelJmeY) / panelHeight;
+        if (localX < 0f || localX > 1f || localY < 0f || localY > 1f) {
+            return null; // outside the panel - not ours to handle
+        }
+        return new Vector2f(localX, localY);
+    }
+
+    private Point resolveClickedTile(float[] pixel, PlayerCamera camera) {
+        boolean fit = zoom == MIN_ZOOM;
+        MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(grid.getWidth(), grid.getHeight()) : null;
+        int pixelsPerTile = fit ? 0 : (1 << zoom);
+        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
+        float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
+        float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
+
+        return MinimapClickResolver.resolveTile(pixel[0], pixel[1], fit, fitGeometry,
+                cameraTileX, cameraTileY, pixelsPerTile, grid.getWidth(), grid.getHeight());
     }
 
     /**

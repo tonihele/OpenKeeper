@@ -213,6 +213,21 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             return getValue.apply(storageEntity.get(Storage.class));
         }
 
+        /**
+         * Explicit, not inherited implicitly: {@link #entity} is this
+         * class's own field, but identity is still just the wrapped
+         * entity ID, per {@link AbstractRoomInformation#equals}.
+         */
+        @Override
+        public boolean equals(Object obj) {
+            return super.equals(obj);
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode();
+        }
+
     }
 
 }
