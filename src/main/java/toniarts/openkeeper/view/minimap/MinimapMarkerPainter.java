@@ -76,17 +76,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  */
 public final class MinimapMarkerPainter {
 
-    /**
-     * design §5.9's own colour, for the heart-direction line only - the
-     * own-heart marker itself (row 1) intentionally does not use this; see
-     * {@link #OWN_HEART_RING_COLOUR}.
-     */
-    private static final int HEART_LINE_COLOUR = 0xFFFF9696;
-
-    /**
-     * Row 1's own-heart marker: a light blue ring, not design's literal
-     * pink filled disc - a deliberate deviation, not a bug or a guess.
-     */
+    private static final int HEART_LINE_COLOUR = 0xFFFFFFFF;
     private static final int OWN_HEART_RING_COLOUR = 0xFFADD8E6;
 
     private static final int BLACK = 0xFF000000;
@@ -133,20 +123,23 @@ public final class MinimapMarkerPainter {
      * @param fogOfWarInformation for the "tile explored" visibility checks
      * design §5.8's table uses
      * @param blinkParity the current half of the blink cycle
+     * @param dashPhase an incrementing counter (any unit is fine - only its
+     * changing value matters) driving the heart-direction line's marching
+     * dash animation
      * @param dungeonHeartTile the local player's Dungeon Heart tile, or
      * {@code null} if it hasn't been built/located yet
      * @param dungeonHeartReportingDistanceTiles
      * {@code DUNGEON_HEART_REPORTING_DISTANCE_TILES}
      */
     public void paint(byte[] raster, int mapWidth, int mapHeight, int zoom, float cameraTileX, float cameraTileY,
-            IFogOfWarInformation fogOfWarInformation, boolean blinkParity, Point dungeonHeartTile,
+            IFogOfWarInformation fogOfWarInformation, boolean blinkParity, int dashPhase, Point dungeonHeartTile,
             float dungeonHeartReportingDistanceTiles) {
         boolean fit = zoom < 0;
         MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(mapWidth, mapHeight) : null;
         int pixelsPerTile = fit ? 0 : (1 << zoom);
         float pixelsPerTileScale = fit ? fitGeometry.pixelsPerTileScale() : pixelsPerTile;
 
-        // Row 1: own Dungeon Heart.
+        // Marker 1: own Dungeon Heart.
         if (dungeonHeartTile != null) {
             float px = toPixelX(dungeonHeartTile.x, fit, fitGeometry, cameraTileX, pixelsPerTile);
             float py = toPixelY(dungeonHeartTile.y, fit, fitGeometry, cameraTileY, pixelsPerTile);
@@ -154,14 +147,14 @@ public final class MinimapMarkerPainter {
             MinimapMarkers.circleOutline(raster, Math.round(px), Math.round(py), radius, OWN_HEART_RING_COLOUR);
         }
 
-        // Row 4: own creatures. Row 5: other players' creatures.
+        // Marker 2: own creatures. Marker 3: other players' creatures.
         for (Entity e : creatures) {
             Owner owner = e.get(Owner.class);
             Position position = e.get(Position.class);
             boolean own = owner.ownerId == viewerId;
             if (own) {
                 if (entityData.getComponent(e.getId(), InHand.class) != null) {
-                    continue; // design §5.8 row 4: not in hand
+                    continue; // not in hand
                 }
             } else {
                 Point tile = WorldUtils.vectorToPoint(position.position);
@@ -175,7 +168,7 @@ public final class MinimapMarkerPainter {
             MinimapMarkers.dot(raster, Math.round(px), Math.round(py), colour);
         }
 
-        // Row 7: all traps (own, or explored - hiddenFromMinimap doesn't
+        // Marker 4: all traps (own, or explored - hiddenFromMinimap doesn't
         // exist in this codebase, see this class's own javadoc).
         for (Entity e : traps) {
             Owner owner = e.get(Owner.class);
@@ -191,7 +184,7 @@ public final class MinimapMarkerPainter {
             MinimapMarkers.dot(raster, Math.round(px), Math.round(py), colour);
         }
 
-        // Row 9: all doors (own, or explored).
+        // Marker 5: all doors (own, or explored).
         for (Entity e : doors) {
             Owner owner = e.get(Owner.class);
             Position position = e.get(Position.class);
@@ -202,9 +195,7 @@ public final class MinimapMarkerPainter {
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);
             float py = toPixelY(position.position.z, fit, fitGeometry, cameraTileY, pixelsPerTile);
-            // design §5.8 row 9: blink(black, wallColour(owner)) - note the
-            // reversed argument order compared to rows 4/5/7's blink(owner
-            // colour, black).
+
             int colour = MinimapMarkers.blink(BLACK, wallColour(owner.ownerId), blinkParity);
             // DoorsController rotates a door -HALF_PI when the tiles north
             // and south of it are walls (an east-west corridor), leaving
@@ -220,7 +211,7 @@ public final class MinimapMarkerPainter {
             }
         }
 
-        // Heart-direction line (design §5.9), zoomed mode only.
+        // Heart-direction line, zoomed mode only.
         if (!fit && dungeonHeartTile != null) {
             float px = toPixelX(dungeonHeartTile.x, false, null, cameraTileX, pixelsPerTile);
             float py = toPixelY(dungeonHeartTile.y, false, null, cameraTileY, pixelsPerTile);
@@ -232,9 +223,8 @@ public final class MinimapMarkerPainter {
                 float length = FastMath.sqrt(dx * dx + dy * dy);
                 if (length > 0.0001f) {
                     float[] edge = MinimapMarkers.clipToEdge(centre, centre, dx / length, dy / length, size);
-                    int colour = MinimapMarkers.blink(HEART_LINE_COLOUR, BLACK, blinkParity);
-                    MinimapMarkers.line(raster, Math.round(centre), Math.round(centre),
-                            Math.round(edge[0]), Math.round(edge[1]), colour);
+                    MinimapMarkers.dottedLine(raster, Math.round(centre), Math.round(centre),
+                            Math.round(edge[0]), Math.round(edge[1]), HEART_LINE_COLOUR, 3, dashPhase);
                 }
             }
         }

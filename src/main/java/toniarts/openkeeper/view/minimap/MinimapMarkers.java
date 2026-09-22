@@ -18,8 +18,8 @@ package toniarts.openkeeper.view.minimap;
 
 /**
  * The marker-overlay drawing primitives and zoomed-mode pixel mapping
- * design §5.8/§5.9 describes. Pure int/float math over a B,G,R raster
- * buffer, no jME dependency - headlessly testable, matching
+ * Pure int/float math over a B,G,R raster buffer,
+ * no jME dependency - headlessly testable, matching
  * {@link MinimapRasteriser}. (Fit-mode pixel mapping is already covered by
  * {@link MinimapRasteriser.FitGeometry}; only zoomed mode needs a new
  * helper here.)
@@ -44,10 +44,10 @@ public final class MinimapMarkers {
     }
 
     /**
-     * design's {@code blink(a, b)}: {@code a} on the "odd" half of the
+     * {@code blink(a, b)}: {@code a} on the "odd" half of the
      * blink cycle, {@code b} on the "even" half - driven by a local
      * fixed-interval accumulator's parity bit, not a real synced game tick
-     * (minimap_jmonkey.md §0), since no such tick is exposed client-side.
+     * since no such tick is exposed client-side.
      */
     public static int blink(int colourA, int colourB, boolean oddParity) {
         return oddParity ? colourA : colourB;
@@ -111,9 +111,43 @@ public final class MinimapMarkers {
     }
 
     /**
-     * An outline, not a fill - confirmed in-game reads as an outline
-     * (design §9 item 3).
+     * A dashed line: pixels along the line are grouped into runs of
+     * {@code dashLength}, alternating drawn/skipped. {@code phaseOffset}
+     * shifts where that alternation starts, so calling this with an
+     * incrementing {@code phaseOffset} each tick animates the dashes
+     * marching along the line.
      */
+    public static void dottedLine(byte[] raster, int x0, int y0, int x1, int y1, int argbColour,
+            int dashLength, int phaseOffset) {
+        int dx = Math.abs(x1 - x0);
+        int dy = -Math.abs(y1 - y0);
+        int sx = x0 < x1 ? 1 : -1;
+        int sy = y0 < y1 ? 1 : -1;
+        int err = dx + dy;
+        int x = x0;
+        int y = y0;
+        int step = 0;
+        while (true) {
+            boolean on = Math.floorMod((step + phaseOffset) / dashLength, 2) == 0;
+            if (on) {
+                setPixel(raster, x, y, argbColour);
+            }
+            if (x == x1 && y == y1) {
+                break;
+            }
+            int e2 = 2 * err;
+            if (e2 >= dy) {
+                err += dy;
+                x += sx;
+            }
+            if (e2 <= dx) {
+                err += dx;
+                y += sy;
+            }
+            step++;
+        }
+    }
+
     public static void rectOutline(byte[] raster, int x0, int y0, int x1, int y1, int argbColour) {
         line(raster, x0, y0, x1, y0, argbColour);
         line(raster, x1, y0, x1, y1, argbColour);
@@ -134,7 +168,7 @@ public final class MinimapMarkers {
     }
 
     /**
-     * design §5.9: the point where a ray from {@code (cx,cy)} in direction
+     * the point where a ray from {@code (cx,cy)} in direction
      * {@code (dx,dy)} leaves the {@code [0,size]} square - for the
      * heart-direction line, clipped to the raster edge.
      */

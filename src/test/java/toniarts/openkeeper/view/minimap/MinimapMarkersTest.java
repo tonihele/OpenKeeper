@@ -56,6 +56,29 @@ class MinimapMarkersTest {
     }
 
     @Test
+    void dottedLineAlternatesInRunsOfTheGivenDashLength() {
+        byte[] raster = blankRaster();
+        MinimapMarkers.dottedLine(raster, 0, 0, 11, 0, 0xFFFFFFFF, 3, 0);
+
+        assertPixel(raster, 0, 0, 0xFFFFFFFF); // first dash
+        assertPixel(raster, 2, 0, 0xFFFFFFFF);
+        assertPixel(raster, 3, 0, 0); // first gap
+        assertPixel(raster, 5, 0, 0);
+        assertPixel(raster, 6, 0, 0xFFFFFFFF); // second dash
+        assertPixel(raster, 9, 0, 0); // second gap
+    }
+
+    @Test
+    void dottedLinePhaseOffsetShiftsTheDashPattern() {
+        byte[] raster = blankRaster();
+        MinimapMarkers.dottedLine(raster, 0, 0, 11, 0, 0xFFFFFFFF, 3, 3);
+
+        // A phase offset of one full dash length flips what was on to off.
+        assertPixel(raster, 0, 0, 0);
+        assertPixel(raster, 3, 0, 0xFFFFFFFF);
+    }
+
+    @Test
     void circleOutlineDoesNotPaintTheInterior() {
         byte[] raster = blankRaster();
         MinimapMarkers.circleOutline(raster, 10, 10, 4, 0xFFFFFFFF);

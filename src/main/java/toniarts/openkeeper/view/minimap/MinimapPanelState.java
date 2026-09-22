@@ -103,13 +103,14 @@ public final class MinimapPanelState extends AbstractAppState {
     private byte[] rasterBgr;
 
     private int zoom = MIN_ZOOM;
-    // design §5.1/§5.3: the original keeps one throttle per mode, so
+    // the original keeps one throttle per mode, so
     // switching zoom modes doesn't skip a legitimately due rebuild of
     // whichever mode you switch back to.
     private float timeSinceLastFitRebuild = Float.MAX_VALUE;
     private float timeSinceLastZoomedRebuild = Float.MAX_VALUE;
     private float timeSinceLastBlink = 0f;
     private boolean blinkParity = true;
+    private int dashPhase = 0;
 
     public MinimapPanelState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
             IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
@@ -160,6 +161,7 @@ public final class MinimapPanelState extends AbstractAppState {
         if (timeSinceLastBlink >= BLINK_INTERVAL) {
             timeSinceLastBlink = 0f;
             blinkParity = !blinkParity;
+            dashPhase++; // advances the heart-direction line's marching-dash animation
         }
 
         timeSinceLastFitRebuild += tpf;
@@ -191,9 +193,7 @@ public final class MinimapPanelState extends AbstractAppState {
         }
         zoom = newZoom;
         if (zoom == 0) {
-            // design §5.2: landing exactly on 0 also calls the inert
-            // world.setMapScrollX(0) - never read anywhere, in this engine
-            // or the original, so there is nothing to actually call here;
+            // landing exactly on 0 also calls the inert world.setMapScrollX(0)
             // recomputeRect below is the only observable part of this rule.
             grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
         }
@@ -219,7 +219,7 @@ public final class MinimapPanelState extends AbstractAppState {
 
         markerPainter.update();
         markerPainter.paint(rasterBgr, grid.getWidth(), grid.getHeight(), zoom, cameraTileX, cameraTileY,
-                fogOfWarInformation, blinkParity, localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
+                fogOfWarInformation, blinkParity, dashPhase, localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
 
         view.updateRaster(rasterBgr);
     }
