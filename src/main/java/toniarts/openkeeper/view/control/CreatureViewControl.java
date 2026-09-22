@@ -17,11 +17,7 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.TextureKey;
-import com.jme3.material.Material;
-import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
-import com.jme3.texture.Texture;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -87,39 +83,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private void playAnimation(Creature.AnimationType animation) {
         AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
         if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
-            applyUniqueTextures(getSpatial());
+            CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
         isAnimationPlaying = true;
         currentState = animation;
-    }
-
-    /** Elite models reuse the regular mesh but have textures prefixed with Unique_. */
-    private void applyUniqueTextures(Spatial model) {
-        model.depthFirstTraversal(spatial -> {
-            if (!(spatial instanceof Geometry geometry)) {
-                return;
-            }
-            Material material = geometry.getMaterial();
-            if (material.getParam("DiffuseMap") == null) {
-                return;
-            }
-            Texture texture = (Texture) material.getParam("DiffuseMap").getValue();
-            if (texture == null || texture.getKey() == null) {
-                return;
-            }
-            String name = texture.getKey().getName();
-            int slash = name.lastIndexOf('/');
-            if (name.regionMatches(slash + 1, "Unique_", 0, "Unique_".length())) {
-                return;
-            }
-            String uniqueName = name.substring(0, slash + 1) + "Unique_" + name.substring(slash + 1);
-            TextureKey key = new TextureKey(uniqueName, false);
-            if (assetManager.locateAsset(key) != null) {
-                Material uniqueMaterial = material.clone();
-                uniqueMaterial.setTexture("DiffuseMap", assetManager.loadTexture(key));
-                geometry.setMaterial(uniqueMaterial);
-            }
-        });
     }
 
     @Override
