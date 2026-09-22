@@ -458,4 +458,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
         return entityData.getComponent(entityId, type);
     }
+    
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
 }
