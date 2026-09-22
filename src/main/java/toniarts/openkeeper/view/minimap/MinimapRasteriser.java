@@ -247,6 +247,18 @@ public final class MinimapRasteriser {
         }
 
         /**
+         * The inverse of {@link #pixelX}/{@link #pixelY} - for click
+         * resolution (design §5.11).
+         */
+        float tileX(float pixelX) {
+            return (pixelX - originX) / pixelsPerTileScale();
+        }
+
+        float tileY(float pixelY) {
+            return (pixelY - originY) / pixelsPerTileScale();
+        }
+
+        /**
          * Pixels per tile at this map's fit-mode scale - for markers that
          * need to size something (e.g. a reporting-distance radius) in the
          * same scale the raster itself uses.

@@ -44,6 +44,18 @@ public final class MinimapMarkers {
     }
 
     /**
+     * The inverse of {@link #zoomedPixelX}/{@link #zoomedPixelY} - for
+     * click resolution (design §5.11).
+     */
+    public static float zoomedTileX(float pixelX, float cameraTileX, int pixelsPerTile) {
+        return (pixelX - RASTER_SIZE / 2f) / pixelsPerTile + cameraTileX;
+    }
+
+    public static float zoomedTileY(float pixelY, float cameraTileY, int pixelsPerTile) {
+        return (pixelY - RASTER_SIZE / 2f) / pixelsPerTile + cameraTileY;
+    }
+
+    /**
      * {@code blink(a, b)}: {@code a} on the "odd" half of the
      * blink cycle, {@code b} on the "even" half - driven by a local
      * fixed-interval accumulator's parity bit, not a real synced game tick

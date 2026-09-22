@@ -219,15 +219,11 @@
                     <!--The map-->
                     <panel height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
                         <panel padding="10px" childLayout="center">
+                            <panel id="minimapImage" valign="center" width="180px" height="180px"/>
                             <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
                         </panel>
-                        <panel id="minimapImage" valign="center" width="128px" height="128px" childLayout="absolute-inside">
-                            <!-- No backgroundImage: MinimapPanelState (minimap_jmonkey.md Step 4) draws the
-                                 live minimap itself as a guiNode overlay positioned over this element's
-                                 screen rectangle every frame - this panel exists only as a transparent
-                                 hit-area/layout anchor for the buttons below, per design §5.10/§9 item 10's
-                                 note for that approach. width/height are set explicitly (matching the old
-                                 map.png's own size) since nothing else here sizes the panel anymore. -->
+                        <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
+                                   imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
                             <!-- Query pointer -->
                             <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
                                 <interact onClick="playButtonSound(GUI_BUTTON_DEFAULT)"/>

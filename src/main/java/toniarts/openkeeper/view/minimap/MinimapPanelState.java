@@ -19,6 +19,14 @@ package toniarts.openkeeper.view.minimap;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.input.MouseInput;
+import com.jme3.input.RawInputListener;
+import com.jme3.input.event.JoyAxisEvent;
+import com.jme3.input.event.JoyButtonEvent;
+import com.jme3.input.event.KeyInputEvent;
+import com.jme3.input.event.MouseButtonEvent;
+import com.jme3.input.event.MouseMotionEvent;
+import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -37,26 +45,29 @@ import toniarts.openkeeper.game.map.MapColourClassifier;
 import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCamera;
 import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.view.PlayerInteractionState;
+import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
- * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4/5/6):
+ * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4-8):
  * builds the colour-class grid, periodically rasterises fit-mode or zoomed
  * geometry depending on the current {@link #zoom} level, rotates the
  * octagon's UVs every frame to track the camera's yaw, positions the
  * fit-mode frustum overlay, paints the marker overlay ({@link
  * MinimapMarkerPainter} - see its own javadoc for which rows are and
- * aren't implemented), and keeps a {@link MinimapView} overlay positioned
- * over the GameHUD's map panel element in place of the static placeholder
- * image that used to sit there.
+ * aren't implemented), handles click-to-jump/drag-scroll/right-click-cancel
+ * input (design §5.11, via a raw jME mouse listener - see
+ * {@link MinimapInputListener}'s own javadoc for why), and keeps a
+ * {@link MinimapView} overlay positioned over the GameHUD's map panel
+ * element in place of the static placeholder image that used to sit there.
  *
  * <p>
- * No click input yet - see
- * minimap_jmonkey.md's step ordering for what those later steps add. The
- * rebuild is a brute-force full {@code recomputeRect} on a fixed interval
+ * The rebuild is a brute-force full {@code recomputeRect} on a fixed interval
  * rather than fine-grained per-mutation invalidation (design §3.4's
  * intended eager model) - correct, just not yet wired to the tile-mutation
  * call sites minimap_jmonkey.md Step 2 identified
@@ -112,6 +123,19 @@ public final class MinimapPanelState extends AbstractAppState {
     private boolean blinkParity = true;
     private int dashPhase = 0;
 
+    // The panel's current on-screen rectangle in jME's own bottom-left
+    // origin space, refreshed every frame by updateLayoutFromHud() -
+    // MinimapView.updateLayout is given the same numbers, so the overlay's
+    // 0..1 local space and this rectangle always agree.
+    private float panelJmeX;
+    private float panelJmeY;
+    private float panelWidth;
+    private float panelHeight;
+    private boolean panelLayoutKnown;
+    private boolean leftButtonDown;
+
+    private RawInputListener inputListener;
+
     public MinimapPanelState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
             IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
             EntityData entityData, Keeper localKeeper, float dungeonHeartReportingDistanceTiles) {
@@ -142,6 +166,9 @@ public final class MinimapPanelState extends AbstractAppState {
         view = new MinimapView(app.getAssetManager(), app.getGuiNode());
         view.attach();
         markerPainter = new MinimapMarkerPainter(entityData, assets.getPalette(), localKeeper.getId());
+
+        inputListener = new MinimapInputListener();
+        app.getInputManager().addRawInputListener(inputListener);
 
         grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
         rebuildRaster();
@@ -278,13 +305,82 @@ public final class MinimapPanelState extends AbstractAppState {
             return;
         }
 
+        int niftyX = mapImageElement.getX();
+        int niftyY = mapImageElement.getY();
+        int niftyWidth = mapImageElement.getWidth();
+        int niftyHeight = mapImageElement.getHeight();
         int screenHeight = app.getCamera().getHeight();
-        view.updateLayout(mapImageElement.getX(), mapImageElement.getY(),
-                mapImageElement.getWidth(), mapImageElement.getHeight(), screenHeight);
+        view.updateLayout(niftyX, niftyY, niftyWidth, niftyHeight, screenHeight);
+
+        // Same conversion as MinimapView.updateLayout, kept in sync here so
+        // click handling agrees with what's actually on screen.
+        panelJmeX = niftyX;
+        panelJmeY = screenHeight - niftyY - niftyHeight;
+        panelWidth = niftyWidth;
+        panelHeight = niftyHeight;
+        panelLayoutKnown = true;
+    }
+
+    /**
+     * Click -&gt; tile resolution and camera jump (design §5.11). Returns
+     * {@code true} if the click landed on the panel and resolved to a tile
+     * (so drag-scroll can keep following the cursor), {@code false}
+     * otherwise.
+     */
+    private boolean jumpCameraToClickedTile(float mouseXJme, float mouseYJme) {
+        if (!panelLayoutKnown || panelWidth <= 0 || panelHeight <= 0) {
+            return false;
+        }
+        float localX = (mouseXJme - panelJmeX) / panelWidth;
+        float localY = (mouseYJme - panelJmeY) / panelHeight;
+        if (localX < 0f || localX > 1f || localY < 0f || localY > 1f) {
+            return false; // outside the panel - not ours to handle
+        }
+
+        PlayerCamera camera = getPlayerCamera();
+        float yaw = camera != null ? MinimapCoordinates.cameraYawRadians(camera.getCamera()) : 0f;
+        float[] pixel = MinimapClickResolver.panelLocalToRasterPixel(localX, localY, yaw);
+
+        boolean fit = zoom == MIN_ZOOM;
+        MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(grid.getWidth(), grid.getHeight()) : null;
+        int pixelsPerTile = fit ? 0 : (1 << zoom);
+        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
+        float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
+        float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
+
+        Point tile = MinimapClickResolver.resolveTile(pixel[0], pixel[1], fit, fitGeometry,
+                cameraTileX, cameraTileY, pixelsPerTile, grid.getWidth(), grid.getHeight());
+        if (tile == null) {
+            return true; // on the panel, just not a resolvable map tile (e.g. the rock border)
+        }
+
+        PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
+        if (cameraState != null) {
+            cameraState.setCameraLookAt(tile);
+        }
+        return true;
+    }
+
+    /**
+     * Right click (design §5.11): the panel's generic "cancel current
+     * tool" action, plus a full recompute. {@code world.setMapScrollY(1)}
+     * is inert - never read anywhere, in this engine or the original - so
+     * there is nothing to actually call for it.
+     */
+    private void cancelToolAndRecompute() {
+        PlayerInteractionState interactionState = stateManager.getState(PlayerInteractionState.class);
+        if (interactionState != null) {
+            interactionState.setInteractionState(Type.NONE, 0);
+        }
+        grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
+        rebuildRaster();
     }
 
     @Override
     public void cleanup() {
+        if (inputListener != null) {
+            app.getInputManager().removeRawInputListener(inputListener);
+        }
         if (view != null) {
             view.detach();
         }
@@ -292,6 +388,70 @@ public final class MinimapPanelState extends AbstractAppState {
             markerPainter.dispose();
         }
         super.cleanup();
+    }
+
+    /**
+     * Raw jME mouse input, the same pattern
+     * {@code PlayerInteractionState.MapInteractionInputListener} already
+     * uses (Nifty's own {@code <interact>} click events don't hand back
+     * per-pixel mouse position, which this needs for the click-to-tile
+     * math) - bypassing Nifty's own input path the same way this feature
+     * already bypasses its render path (see {@link MinimapView}'s own
+     * javadoc).
+     */
+    private final class MinimapInputListener implements RawInputListener {
+
+        @Override
+        public void beginInput() {
+        }
+
+        @Override
+        public void endInput() {
+        }
+
+        @Override
+        public void onJoyAxisEvent(JoyAxisEvent evt) {
+        }
+
+        @Override
+        public void onJoyButtonEvent(JoyButtonEvent evt) {
+        }
+
+        @Override
+        public void onMouseMotionEvent(MouseMotionEvent evt) {
+            if (leftButtonDown) {
+                // design §5.11: drag-to-scroll - keep resolving on every move while held.
+                jumpCameraToClickedTile(evt.getX(), evt.getY());
+            }
+        }
+
+        @Override
+        public void onMouseButtonEvent(MouseButtonEvent evt) {
+            if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
+                if (evt.isPressed()) {
+                    leftButtonDown = jumpCameraToClickedTile(evt.getX(), evt.getY());
+                } else if (evt.isReleased()) {
+                    leftButtonDown = false;
+                }
+            } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
+                if (panelLayoutKnown) {
+                    float localX = (evt.getX() - panelJmeX) / panelWidth;
+                    float localY = (evt.getY() - panelJmeY) / panelHeight;
+                    if (localX >= 0f && localX <= 1f && localY >= 0f && localY <= 1f) {
+                        cancelToolAndRecompute();
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onKeyEvent(KeyInputEvent evt) {
+        }
+
+        @Override
+        public void onTouchEvent(TouchEvent evt) {
+        }
+
     }
 
 }
