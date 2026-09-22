@@ -190,6 +190,13 @@ public final class MinimapView {
     }
 
     /**
+     * Hides the whole overlay (disc, frustum, north indicator)
+     */
+    public void hide() {
+        overlayNode.setCullHint(Spatial.CullHint.Always);
+    }
+
+    /**
      * Uploads a freshly-rasterised 128x128x3 B,G,R buffer (see
      * {@link MinimapRasteriser#rebuildFitMode}) to the source texture the
      * disc samples.

@@ -281,11 +281,17 @@ public final class MinimapPanelState extends AbstractAppState {
 
     private void updateLayoutFromHud() {
         Nifty nifty = app.getNifty();
-        if (nifty == null || nifty.getCurrentScreen() == null) {
-            return;
-        }
-        Element mapImageElement = nifty.getCurrentScreen().findElementById(MAP_IMAGE_ELEMENT_ID);
+        Element mapImageElement = (nifty != null && nifty.getCurrentScreen() != null)
+                ? nifty.getCurrentScreen().findElementById(MAP_IMAGE_ELEMENT_ID) : null;
         if (mapImageElement == null) {
+            // Not on the HUD screen right now (e.g. widescreen/cinematic
+            // mode switches to a different Nifty screen entirely) - hide
+            // rather than leaving the overlay floating at its last known
+            // position over whatever's showing instead.
+            if (panelLayoutKnown) {
+                view.hide();
+                panelLayoutKnown = false;
+            }
             return;
         }
 
