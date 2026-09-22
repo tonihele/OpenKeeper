@@ -46,12 +46,14 @@ import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerCamera;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionCameraState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.selection.SelectionArea;
 
 /**
  * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4-8):
@@ -81,6 +83,7 @@ public final class MinimapPanelState extends AbstractAppState {
 
     private final Main app;
     private final MapColourGrid grid;
+    private final IMapInformation<? extends IMapTileInformation> mapInformation;
     private final IFogOfWarInformation fogOfWarInformation;
     private final EntityData entityData;
     private final Keeper localKeeper;
@@ -121,6 +124,7 @@ public final class MinimapPanelState extends AbstractAppState {
             IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
             EntityData entityData, Keeper localKeeper, float dungeonHeartReportingDistanceTiles) {
         this.app = app;
+        this.mapInformation = mapInformation;
         this.fogOfWarInformation = fogOfWarInformation;
         this.entityData = entityData;
         this.localKeeper = localKeeper;
@@ -217,6 +221,7 @@ public final class MinimapPanelState extends AbstractAppState {
         float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
 
         neutralRotationPhase++;
+        applySelectionHighlight();
         if (zoom == MIN_ZOOM) {
             timeSinceLastFitRebuild = 0f;
             MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(),
@@ -233,6 +238,41 @@ public final class MinimapPanelState extends AbstractAppState {
                 localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
 
         view.updateRaster(rasterBgr);
+    }
+
+    /**
+     * Paints the active selection into the grid as {@link
+     * toniarts.openkeeper.game.map.MapColourClass#HIGHLIGHT} tiles. Always
+     * called right after the caller's own full {@link
+     * MapColourGrid#recomputeRect} pass, so there's nothing to clear when
+     * nothing's selected - the grid is already back to its plain,
+     * unhighlighted state.
+     */
+    private void applySelectionHighlight() {
+        short playerId = localKeeper.getId();
+        int width = grid.getWidth();
+        int height = grid.getHeight();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Point p = new Point(x, y);
+                if (mapInformation.isSelected(p, playerId) || fogOfWarInformation.isPendingTagged(p)) {
+                    grid.setHighlight(x, y, true);
+                }
+            }
+        }
+
+        PlayerInteractionState interactionState = stateManager.getState(PlayerInteractionState.class);
+        SelectionArea selectionArea = interactionState != null ? interactionState.getActiveSelectionArea() : null;
+        if (selectionArea == null) {
+            return;
+        }
+        Point start = WorldUtils.vectorToPoint(selectionArea.getStart());
+        Point end = WorldUtils.vectorToPoint(selectionArea.getEnd());
+        for (int y = start.y; y <= end.y; y++) {
+            for (int x = start.x; x <= end.x; x++) {
+                grid.setHighlight(x, y, true);
+            }
+        }
     }
 
     /**
