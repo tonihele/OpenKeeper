@@ -213,4 +213,12 @@ public final class PlayerCamera {
     public void setLimit(Vector2f limit) {
         this.limit = limit;
     }
+
+    /**
+     * The underlying jME camera, for callers that need more than
+     * {@link #getLookAt()} (e.g. reading its direction for yaw).
+     */
+    public Camera getCamera() {
+        return cam;
+    }
 }

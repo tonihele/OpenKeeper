@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
@@ -85,6 +86,11 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     @Override
     public boolean isDestroyed() {
         return getEntityComponent(RoomComponent.class).destroyed;
+    }
+
+    @Override
+    public boolean isDungeonHeart() {
+        return getEntityComponent(DungeonHeart.class) != null;
     }
 
     @Override
