@@ -48,7 +48,7 @@ public final class HeroGateTwoByTwoConstructor extends RoomConstructor {
             // Reset
             moveSpatial(tile, start, p);
 
-            root.attachChild(tile);
+            attachFloorTile(root, p, tile);
         }
 
         // Set the transform and scale to our scale and 0 the transform

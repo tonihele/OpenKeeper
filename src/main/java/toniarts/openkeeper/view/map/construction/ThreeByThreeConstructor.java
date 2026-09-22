@@ -47,7 +47,7 @@ public final class ThreeByThreeConstructor extends RoomConstructor {
 
             moveSpatial(tile, start, p);
 
-            root.attachChild(tile);
+            attachFloorTile(root, p, tile);
             i++;
         }
 

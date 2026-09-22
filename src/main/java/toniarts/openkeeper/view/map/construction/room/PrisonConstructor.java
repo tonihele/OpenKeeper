@@ -80,7 +80,7 @@ public final class PrisonConstructor extends DoubleQuadConstructor {
                     AssetUtils.translateToTile(part, new Point(x, y));
                     part.move(-WorldUtils.TILE_WIDTH / 4, 0, -WorldUtils.TILE_WIDTH / 4);
 
-                    root.attachChild(part);
+                    attachFloorTile(root, roomInstance.localCoordinateToWorldCoordinate(x, y), part);
 
                     door = true;
                     continue;
@@ -90,7 +90,7 @@ public final class PrisonConstructor extends DoubleQuadConstructor {
                         northWestInside, northEastInside, southWestInside, southEastInside,
                         northInside, eastInside, southInside, westInside);
                 AssetUtils.translateToTile(model, new Point(x, y));
-                root.attachChild(model);
+                attachFloorTile(root, roomInstance.localCoordinateToWorldCoordinate(x, y), model);
             }
         }
 

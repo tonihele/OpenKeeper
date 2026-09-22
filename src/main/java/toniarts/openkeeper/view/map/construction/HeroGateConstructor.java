@@ -131,7 +131,7 @@ public final class HeroGateConstructor extends RoomConstructor {
                 ArtResource artResource = roomInstance.getRoom().getCapResource();
                 tile = AssetUtils.loadModel(assetManager, artResource.getName(), artResource, false, true);
                 moveSpatial(tile, start, p);
-                root.attachChild(tile);
+                attachFloorTile(root, p, tile);
                 piece = 9;
             } else if (!W) {
                 piece = 3;
@@ -149,7 +149,7 @@ public final class HeroGateConstructor extends RoomConstructor {
             // Set the shadows
             //tile.setShadowMode(RenderQueue.ShadowMode.Receive);
 
-            root.attachChild(tile);
+            attachFloorTile(root, p, tile);
         }
 
         // Set the transform and scale to our scale and 0 the transform

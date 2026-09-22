@@ -391,6 +391,27 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onTilesReveal(points, explore, keeperId);
+            }
+        }
+
+        @Override
+        public void onFogOfWarDisabled(short keeperId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onFogOfWarDisabled(keeperId);
+            }
+        }
+
+        @Override
+        public void onFogOfWarReset(short keeperId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onFogOfWarReset(keeperId);
+            }
+        }
+
+        @Override
         public void onZoomViewToEntity(EntityId entityId) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onZoomViewToEntity(entityId);

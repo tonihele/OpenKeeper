@@ -329,6 +329,21 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 // Not interested
             }
 
+            @Override
+            public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+                // Not interested
+            }
+
+            @Override
+            public void onFogOfWarDisabled(short keeperId) {
+                // Not interested
+            }
+
+            @Override
+            public void onFogOfWarReset(short keeperId) {
+                // Not interested
+            }
+
         });
 
         // Bridges! They open up new opportunities in new lands

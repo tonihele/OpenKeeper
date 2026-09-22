@@ -120,7 +120,7 @@ public final class FunnyCameraContol  implements Control, JmeCloneable {
      * @return
      */
     @Override
-    public Control cloneForSpatial(Spatial spatial) {
+      public Control cloneForSpatial(Spatial spatial) {
         FunnyCameraContol cc = new FunnyCameraContol(cam, spatial);
         return cc;
     }

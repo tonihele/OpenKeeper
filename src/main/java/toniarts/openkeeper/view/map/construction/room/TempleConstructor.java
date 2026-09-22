@@ -93,7 +93,7 @@ public final class TempleConstructor extends DoubleQuadConstructor {
                         northWestInside, northEastInside, southWestInside, southEastInside,
                         northInside, eastInside, southInside, westInside);
                 AssetUtils.translateToTile(model, new Point(x, y));
-                root.attachChild(model);
+                attachFloorTile(root, roomInstance.localCoordinateToWorldCoordinate(x, y), model);
             }
         }
 

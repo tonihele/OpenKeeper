@@ -176,7 +176,7 @@ public class QuadConstructor extends RoomConstructor {
             Node model = constructQuad(assetManager, modelName, artResource, N, NE, E, SE, S, SW, W, NW);
             //AssetUtils.scale(model);
             AssetUtils.translateToTile(model, p);
-            root.attachChild(model);
+            attachFloorTile(root, p, model);
         }
 
         // Set the transform and scale to our scale and 0 the transform

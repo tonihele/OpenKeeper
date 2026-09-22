@@ -68,7 +68,15 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case CREATURE_MOOD:
                 CreatureMood creatureMood = entity.get(CreatureMood.class);
                 if (creatureMood != null) {
-                    return Integer.toString(creatureMood.moodValue);
+                    int unhappyThreshold = CreatureMood.toRuntimeThreshold(
+                            creature.getAttributes().getUnhappyThreshold());
+                    String textId = switch (creatureMood.getState(unhappyThreshold)) {
+                        case 0 -> "1981"; // Content
+                        case 1 -> "1983"; // Discontent
+                        case 2 -> "1985"; // Angry
+                        default -> throw new IllegalStateException("Unknown creature mood state");
+                    };
+                    return Utils.getMainTextResourceBundle().getString(textId);
                 }
                 return "";
             case CREATURE_EFFICIENCY:

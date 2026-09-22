@@ -334,8 +334,8 @@ public final class CreaturesController implements ICreaturesController {
         // I guess the initial efficiency is 80%
         entityData.setComponent(entity, new CreatureEfficiency(80));
 
-        // I guess the initial mood is 10000
-        entityData.setComponent(entity, new CreatureMood(10000));
+        // Native DKII creatures start with all six anger reasons clear
+        entityData.setComponent(entity, new CreatureMood());
 
         // Position
         // FIXME: no floor height

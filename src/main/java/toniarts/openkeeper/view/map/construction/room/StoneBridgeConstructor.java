@@ -149,7 +149,7 @@ public final class StoneBridgeConstructor extends QuadConstructor {
             }
             //AssetUtils.scale(quad);
             AssetUtils.translateToTile(quad, p);
-            root.attachChild(quad);
+            attachFloorTile(root, p, quad);
         }
 
         return root;

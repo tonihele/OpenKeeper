@@ -152,7 +152,8 @@ public final class SlapSystem extends GameTimeCounter {
         if (moodChange != 0) {
             CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
             if (mood != null) {
-                entityData.setComponent(entity.getId(), new CreatureMood(mood.moodValue - moodChange));
+                entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_OTHER,
+                        CreatureMood.toRuntimeValue(moodChange)));
             }
         }
 

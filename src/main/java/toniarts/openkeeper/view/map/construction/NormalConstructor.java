@@ -70,7 +70,7 @@ public class NormalConstructor extends RoomConstructor {
                     part = QuadConstructor.constructQuad(assetManager, modelName, artResource, N, NE, E, SE, S, SW, W, NW);
                 }
                 AssetUtils.translateToTile(part, new Point(x, y));
-                root.attachChild(part);
+                attachFloorTile(root, roomInstance.localCoordinateToWorldCoordinate(x, y), part);
             }
         }
 

@@ -67,6 +67,7 @@ public final class GameConsole {
         UNLOCK_SPELLS,
         UNLOCK_ROOMS_TRAPS,
         REMOVE_FOW,
+        RESET_FOW,
         WIN_LEVEL;
     };
 
@@ -145,6 +146,7 @@ public final class GameConsole {
                 case UNLOCK_SPELLS:
                 case UNLOCK_ROOMS_TRAPS:
                 case REMOVE_FOW:
+                case RESET_FOW:
                 case WIN_LEVEL:
                     stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.valueOf(command));
                     break;

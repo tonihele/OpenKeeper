@@ -323,7 +323,11 @@ public final class GameServerState extends AbstractAppState {
                     break;
                 }
                 case REMOVE_FOW: {
-                    // TODO:
+                    mapController.disableFogOfWar(playerId);
+                    break;
+                }
+                case RESET_FOW: {
+                    mapController.resetFogOfWar(playerId);
                     break;
                 }
                 case UNLOCK_ROOMS: {
@@ -380,6 +384,21 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
             gameService.flashTiles(points, enabled, keeperId);
+        }
+
+        @Override
+        public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+            gameService.revealTiles(points, explore, keeperId);
+        }
+
+        @Override
+        public void onFogOfWarDisabled(short keeperId) {
+            gameService.disableFogOfWar(keeperId);
+        }
+
+        @Override
+        public void onFogOfWarReset(short keeperId) {
+            gameService.resetFogOfWar(keeperId);
         }
     }
 

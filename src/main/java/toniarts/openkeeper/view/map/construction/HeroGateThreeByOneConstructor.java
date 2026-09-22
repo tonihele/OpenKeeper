@@ -52,7 +52,7 @@ public final class HeroGateThreeByOneConstructor extends RoomConstructor {
             Spatial tile = AssetUtils.loadModel(assetManager, modelName + piece, artResource, false, true);
             j++;
             moveSpatial(tile, p);
-            root.attachChild(tile);
+            attachFloorTile(root, p, tile);
 
             // Set the transform and scale to our scale and 0 the transform
             switch (roomInstance.getDirection()) {
