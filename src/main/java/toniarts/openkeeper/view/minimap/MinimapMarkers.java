@@ -28,7 +28,26 @@ public final class MinimapMarkers {
 
     private static final int RASTER_SIZE = MinimapRasteriser.RASTER_SIZE;
 
+    /**
+     * Shared with {@link MinimapRasteriser} (neutral-owned rooms) and
+     * {@link MinimapMarkerPainter} (neutral-owned creatures): both cycle
+     * through this same sequence, one step per raster rebuild, instead of
+     * sitting on a single fixed colour - a deliberate, user-requested
+     * visual flourish (not original-game fidelity) to make neutral-owned
+     * things stand out.
+     */
+    private static final int[] NEUTRAL_ROTATION_COLOURS = {
+        0xFFFF0000, 0xFFFF8000, 0xFFFFFF00, 0xFF00FF00, 0xFF00FFFF, 0xFF0000FF
+    };
+
     private MinimapMarkers() {
+    }
+
+    /**
+     * @param rotationPhase advances by one every rebuild
+     */
+    public static int neutralRotationColour(int rotationPhase) {
+        return NEUTRAL_ROTATION_COLOURS[Math.floorMod(rotationPhase, NEUTRAL_ROTATION_COLOURS.length)];
     }
 
     /**

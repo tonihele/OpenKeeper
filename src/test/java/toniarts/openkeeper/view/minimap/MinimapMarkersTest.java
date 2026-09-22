@@ -120,6 +120,18 @@ class MinimapMarkersTest {
     }
 
     @Test
+    void neutralRotationColourCyclesAndWrapsAroundThePhaseCount() {
+        int phase0 = MinimapMarkers.neutralRotationColour(0);
+        int phase1 = MinimapMarkers.neutralRotationColour(1);
+        assertEquals(0xFFFF0000, phase0);
+        assertEquals(0xFFFF8000, phase1);
+        // Wraps back to the same colour after a full cycle.
+        assertEquals(phase0, MinimapMarkers.neutralRotationColour(6));
+        // Negative phases (Math.floorMod, not %) don't throw or go out of bounds.
+        assertEquals(phase0, MinimapMarkers.neutralRotationColour(-6));
+    }
+
+    @Test
     void clipToEdgeHandlesADiagonalDirection() {
         float[] edge = MinimapMarkers.clipToEdge(64, 64, 1f, 1f, MinimapRasteriser.RASTER_SIZE);
         // Symmetric diagonal from centre hits the corner (128,128).

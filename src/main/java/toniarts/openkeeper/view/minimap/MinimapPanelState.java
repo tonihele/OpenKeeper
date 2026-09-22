@@ -102,6 +102,7 @@ public final class MinimapPanelState extends AbstractAppState {
     private float timeSinceLastBlink = 0f;
     private boolean blinkParity = true;
     private int dashPhase = 0;
+    private int neutralRotationPhase = 0;
 
     // The panel's current on-screen rectangle in jME's own bottom-left
     // origin space, refreshed every frame by updateLayoutFromHud() -
@@ -215,18 +216,21 @@ public final class MinimapPanelState extends AbstractAppState {
         float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
         float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
 
+        neutralRotationPhase++;
         if (zoom == MIN_ZOOM) {
             timeSinceLastFitRebuild = 0f;
-            MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(), neutralPlayerNumber, rasterBgr);
+            MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(),
+                    neutralPlayerNumber, neutralRotationPhase, rasterBgr);
         } else {
             timeSinceLastZoomedRebuild = 0f;
             MinimapRasteriser.rebuildZoomedMode(grid, assets.getPalette(), assets.rockTextureBgr(),
-                    neutralPlayerNumber, cameraTileX, cameraTileY, zoom, rasterBgr);
+                    neutralPlayerNumber, cameraTileX, cameraTileY, zoom, neutralRotationPhase, rasterBgr);
         }
 
         markerPainter.update();
         markerPainter.paint(rasterBgr, grid.getWidth(), grid.getHeight(), zoom, cameraTileX, cameraTileY,
-                fogOfWarInformation, blinkParity, dashPhase, localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
+                fogOfWarInformation, blinkParity, dashPhase, neutralRotationPhase,
+                localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
 
         view.updateRaster(rasterBgr);
     }

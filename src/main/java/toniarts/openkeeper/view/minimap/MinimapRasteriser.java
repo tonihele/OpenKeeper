@@ -43,16 +43,21 @@ public final class MinimapRasteriser {
      * @param rockTextureBgr 128x128x3 B,G,R bytes (see {@link
      * MinimapAssets#rockTextureBgr})
      * @param neutralPlayerNumber {@code playerNumber(neutralPlayerId)}
+     * @param rotationPhase advances by one every rebuild; selects the
+     * current colour from {@link MinimapMarkers#neutralRotationColour} for
+     * neutral-owned rooms
      * @param outBgr 128x128x3 B,G,R bytes, overwritten in place; must
      * already be allocated by the caller (so it can be reused/reshared with
      * a texture's backing buffer without reallocating every rebuild)
      */
     public static void rebuildFitMode(MapColourGrid grid, MinimapPalette palette, byte[] rockTextureBgr,
-            short neutralPlayerNumber, byte[] outBgr) {
+            short neutralPlayerNumber, int rotationPhase, byte[] outBgr) {
         int width = grid.getWidth();
         int height = grid.getHeight();
 
         palette.applyNeutralGuard(neutralPlayerNumber);
+        short neutralRoomClass = neutralRoomColourClass(neutralPlayerNumber);
+        int neutralRoomColour = MinimapMarkers.neutralRotationColour(rotationPhase);
 
         // Whole raster starts as rock. Class-1 (unexplored/impenetrable)
         // leaving this untouched for those pixels is correct, not just a
@@ -83,7 +88,8 @@ public final class MinimapRasteriser {
                 if (cls == MapColourClass.UNEXPLORED_OR_IMPENETRABLE) {
                     continue; // already rock from the base fill
                 }
-                writeColour(outBgr, px, py, argb[cls]);
+                int colour = cls == neutralRoomClass ? neutralRoomColour : argb[cls];
+                writeColour(outBgr, px, py, colour);
             }
         }
     }
@@ -96,14 +102,18 @@ public final class MinimapRasteriser {
      * @param cameraTileX, cameraTileY the camera's look-at point, in
      * fractional tile-space coordinates
      * @param zoom 0 (1px/tile) .. 4 (16px/tile)
+     * @param rotationPhase advances by one every rebuild; see {@link
+     * #rebuildFitMode}
      * @param outBgr 128x128x3 B,G,R bytes, overwritten in place
      */
     public static void rebuildZoomedMode(MapColourGrid grid, MinimapPalette palette, byte[] rockTextureBgr,
-            short neutralPlayerNumber, float cameraTileX, float cameraTileY, int zoom, byte[] outBgr) {
+            short neutralPlayerNumber, float cameraTileX, float cameraTileY, int zoom, int rotationPhase, byte[] outBgr) {
         int width = grid.getWidth();
         int height = grid.getHeight();
 
         palette.applyNeutralGuard(neutralPlayerNumber);
+        short neutralRoomClass = neutralRoomColourClass(neutralPlayerNumber);
+        int neutralRoomColour = MinimapMarkers.neutralRotationColour(rotationPhase);
 
         // The camera look-at point is always the image centre (64,64).
         // The original computes this in 16.16 fixed point over sub-tile
@@ -153,9 +163,24 @@ public final class MinimapRasteriser {
                     outBgr[outIndex + 2] = rockTextureBgr[rockIndex + 2];
                     continue;
                 }
-                writeColour(outBgr, px, py, argb[cls]);
+                int colour = cls == neutralRoomClass ? neutralRoomColour : argb[cls];
+                writeColour(outBgr, px, py, colour);
             }
         }
+    }
+
+    /**
+     * The colour class a genuinely neutral-owned room (as opposed to a
+     * neutral-owned, no-room tile, which is the magenta sentinel) resolves
+     * to - see {@link toniarts.openkeeper.game.map.MapColourClassifier}'s
+     * room branch. {@code -1} outside the valid player-number range means
+     * "no rotation applies" without colliding with any real colour class.
+     */
+    private static short neutralRoomColourClass(short neutralPlayerNumber) {
+        if (neutralPlayerNumber < 1 || neutralPlayerNumber > 7) {
+            return -1;
+        }
+        return (short) (MapColourClass.OWNED_FLOOR_BASE + neutralPlayerNumber);
     }
 
     /**

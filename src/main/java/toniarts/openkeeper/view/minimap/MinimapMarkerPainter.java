@@ -90,14 +90,18 @@ public final class MinimapMarkerPainter {
      * @param dashPhase an incrementing counter (any unit is fine - only its
      * changing value matters) driving the heart-direction line's marching
      * dash animation
+     * @param rotationPhase advances by one every rebuild; drives neutral-
+     * owned creatures' rotating marker colour (see {@link
+     * MinimapMarkers#neutralRotationColour} and {@link
+     * MinimapRasteriser}'s identical treatment of neutral-owned rooms)
      * @param dungeonHeartTile the local player's Dungeon Heart tile, or
      * {@code null} if it hasn't been built/located yet
      * @param dungeonHeartReportingDistanceTiles
      * {@code DUNGEON_HEART_REPORTING_DISTANCE_TILES}
      */
     public void paint(byte[] raster, int mapWidth, int mapHeight, int zoom, float cameraTileX, float cameraTileY,
-            IFogOfWarInformation fogOfWarInformation, boolean blinkParity, int dashPhase, Point dungeonHeartTile,
-            float dungeonHeartReportingDistanceTiles) {
+            IFogOfWarInformation fogOfWarInformation, boolean blinkParity, int dashPhase, int rotationPhase,
+            Point dungeonHeartTile, float dungeonHeartReportingDistanceTiles) {
         boolean fit = zoom < 0;
         MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(mapWidth, mapHeight) : null;
         int pixelsPerTile = fit ? 0 : (1 << zoom);
@@ -128,7 +132,9 @@ public final class MinimapMarkerPainter {
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);
             float py = toPixelY(position.position.z, fit, fitGeometry, cameraTileY, pixelsPerTile);
-            int colour = MinimapMarkers.blink(wallColour(owner.ownerId), BLACK, blinkParity);
+            int baseColour = owner.ownerId == Player.NEUTRAL_PLAYER_ID
+                    ? MinimapMarkers.neutralRotationColour(rotationPhase) : wallColour(owner.ownerId);
+            int colour = MinimapMarkers.blink(baseColour, BLACK, blinkParity);
             MinimapMarkers.dot(raster, Math.round(px), Math.round(py), colour);
         }
 

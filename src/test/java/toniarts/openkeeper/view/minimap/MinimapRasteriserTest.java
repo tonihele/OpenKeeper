@@ -84,7 +84,7 @@ class MinimapRasteriserTest {
         byte[] rock = solidRockTexture();
         byte[] out = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
-        MinimapRasteriser.rebuildFitMode(grid, palette, rock, (short) 2, out);
+        MinimapRasteriser.rebuildFitMode(grid, palette, rock, (short) 2, 0, out);
 
         // tile (0,0) -> pixel (20,42); see the geometry derivation in this
         // test's design notes (offSmall=42 for a 4x2 map).
@@ -105,7 +105,7 @@ class MinimapRasteriserTest {
         byte[] rock = solidRockTexture();
         byte[] out = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
-        MinimapRasteriser.rebuildFitMode(grid, markerPalette(), rock, (short) 2, out);
+        MinimapRasteriser.rebuildFitMode(grid, markerPalette(), rock, (short) 2, 0, out);
 
         // (0,0) is well outside [20,110) x [42,87).
         assertEquals(0x11, out[0] & 0xFF);
@@ -125,7 +125,7 @@ class MinimapRasteriserTest {
         byte[] rock = solidRockTexture();
         byte[] out = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
-        MinimapRasteriser.rebuildFitMode(grid, markerPalette(), rock, (short) 2, out);
+        MinimapRasteriser.rebuildFitMode(grid, markerPalette(), rock, (short) 2, 0, out);
 
         int i = (42 * MinimapRasteriser.RASTER_SIZE + 20) * 3;
         assertEquals(0x11, out[i] & 0xFF);
@@ -192,7 +192,7 @@ class MinimapRasteriserTest {
         byte[] out = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
         // originX = originY = 64 - 2*1 = 62 (camera centred at tile (2,2)).
-        MinimapRasteriser.rebuildZoomedMode(grid, palette, rock, (short) 2, 2f, 2f, 0, out);
+        MinimapRasteriser.rebuildZoomedMode(grid, palette, rock, (short) 2, 2f, 2f, 0, 0, out);
 
         assertPixel(out, 62, 62, palette.rawArgb()[MapColourClass.GOLD]); // tile (0,0)
         assertPixel(out, 65, 65, palette.rawArgb()[MapColourClass.WATER]); // tile (3,3)
@@ -216,7 +216,7 @@ class MinimapRasteriserTest {
         byte[] out = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
         // origin = (62, 62) again.
-        MinimapRasteriser.rebuildZoomedMode(grid, markerPalette(), rock, (short) 2, 2f, 2f, 0, out);
+        MinimapRasteriser.rebuildZoomedMode(grid, markerPalette(), rock, (short) 2, 2f, 2f, 0, 0, out);
 
         // Left band covers x in [0,62); pick (0,64). texX=texY=-62.
         assertSampledFrom(out, 0, 64, 0 - 62, 64 - 62);
@@ -236,7 +236,7 @@ class MinimapRasteriserTest {
         byte[] rock = variedRockTexture();
         byte[] out = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
-        MinimapRasteriser.rebuildZoomedMode(grid, markerPalette(), rock, (short) 2, 2f, 2f, 0, out);
+        MinimapRasteriser.rebuildZoomedMode(grid, markerPalette(), rock, (short) 2, 2f, 2f, 0, 0, out);
 
         // tile (0,0) at pixel (62,62): unexplored, so class 1 -> rock, but
         // sampled directly at (62,62), not scrolled by the -62,-62 offset
@@ -270,9 +270,44 @@ class MinimapRasteriserTest {
         // -16 (negative). tile (0,0)'s gold would land at pixel (-16,-16),
         // entirely off-raster; pixel (0,0) instead lands on tile (1,1),
         // which is untouched (plain neutral, non-claimable) terrain.
-        MinimapRasteriser.rebuildZoomedMode(grid, palette, variedRockTexture(), (short) 2, 5f, 5f, 4, out);
+        MinimapRasteriser.rebuildZoomedMode(grid, palette, variedRockTexture(), (short) 2, 5f, 5f, 4, 0, out);
 
         assertPixel(out, 0, 0, palette.rawArgb()[MapColourClass.NEUTRAL_OWNED_SENTINEL]);
+    }
+
+    @Test
+    void neutralOwnedRoomTilesUseTheRotationColourInsteadOfThePaletteEntry() {
+        FakeMapData mapData = new FakeMapData(2, 1);
+        Map<Short, Terrain> terrains = terrainsWithDefault();
+        FakeMapInformation mapInformation = new FakeMapInformation(mapData, terrains);
+        FakeFogOfWarInformation fog = new FakeFogOfWarInformation();
+        fog.explored.add(new Point(0, 0));
+        fog.explored.add(new Point(1, 0));
+        FakeRoomsInformation rooms = new FakeRoomsInformation();
+        toniarts.openkeeper.game.map.FakeRoomInformation neutralRoom =
+                new toniarts.openkeeper.game.map.FakeRoomInformation(new com.simsilica.es.EntityId(1));
+        neutralRoom.ownerId = toniarts.openkeeper.tools.convert.map.Player.NEUTRAL_PLAYER_ID;
+        rooms.rooms.put(new com.simsilica.es.EntityId(1), neutralRoom);
+        mapData.getTile(0, 0).roomId = new com.simsilica.es.EntityId(1);
+        mapData.getTile(0, 0).ownerId = toniarts.openkeeper.tools.convert.map.Player.NEUTRAL_PLAYER_ID;
+
+        MapColourClassifier classifier = new MapColourClassifier(mapInformation, fog, rooms);
+        MapColourGrid grid = new MapColourGrid(2, 1, classifier, fog);
+        grid.recomputeRect(0, 0, 2, 1);
+
+        MinimapPalette palette = markerPalette();
+        byte[] rock = solidRockTexture();
+        byte[] outPhaseZero = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
+        byte[] outPhaseOne = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
+
+        MinimapRasteriser.rebuildZoomedMode(grid, palette, rock, (short) 2, 0f, 0f, 4, 0, outPhaseZero);
+        MinimapRasteriser.rebuildZoomedMode(grid, palette, rock, (short) 2, 0f, 0f, 4, 1, outPhaseOne);
+
+        // tile (0,0) at zoom 4 (16px/tile), camera at (0,0) -> pixel (64,64).
+        // Different rotation phases give different colours, neither of
+        // which is the plain palette entry for that class.
+        assertPixel(outPhaseZero, 64, 64, 0xFFFF0000);
+        assertPixel(outPhaseOne, 64, 64, 0xFFFF8000);
     }
 
 }
