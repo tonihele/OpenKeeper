@@ -111,8 +111,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
             WallDirection.SOUTH, WallDirection.EAST);
     /**
-     * Terrain type 38, "Claim Scan" -- lights unexplored-but-perceived
-     * ground (lighting_design.md §6.3).
+     * Terrain type 38, "Claim Scan" -- the stand-in for a tile the local
+     * player has perceived but not yet explored, when the tile is owned or
+     * a room (lighting_design.md §6.3, claim_scan_terrain.md).
      */
     private static final short CLAIM_SCAN_TERRAIN_ID = 38;
     /**
@@ -130,6 +131,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final IMapInformation mapClientService;
     private final IFogOfWarInformation fogOfWarInformation;
     private Terrain unexploredPlaceholderTerrain;
+    private Terrain claimScanTerrain;
+    private boolean claimScanTerrainResolved;
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
@@ -232,20 +235,54 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Resolves the terrain to render for a tile. An unexplored tile always
+     * Resolves the terrain to render for a tile. An unexplored tile normally
      * renders as generic, undifferentiated solid rock - regardless of what
      * it actually is - matching the classic Dungeon Keeper look: what you
      * haven't dug into yet reads as plain rock, diggable like any other,
-     * until you actually reveal it.
+     * until you actually reveal it. The one exception is
+     * {@link #isClaimScanTile(IMapTileInformation)}: a perceived-but-
+     * unexplored tile that is owned or a room substitutes the Claim Scan
+     * terrain instead, so it still looks like anonymous rock but glows
+     * (handleTerrainLight) to signal something is there.
      */
     private Terrain getTerrain(IMapTileInformation tile) {
         if (!fogOfWarInformation.isVisible(tile.getLocation())) {
+            if (isClaimScanTile(tile)) {
+                Terrain claimScan = getClaimScanPlaceholderTerrain();
+                if (claimScan != null) {
+                    return claimScan;
+                }
+            }
             Terrain placeholder = getUnexploredPlaceholderTerrain();
             if (placeholder != null) {
                 return placeholder;
             }
         }
         return kwdFile.getTerrain(tile.getTerrainId());
+    }
+
+    /**
+     * claim_scan_terrain.md §4/§6.3: a tile the local player has perceived
+     * (but not explored) shows the Claim Scan stand-in instead of plain rock
+     * when it's owned by someone, or its real terrain is a room - i.e. when
+     * the rock placeholder would otherwise be hiding a claimed area.
+     */
+    private boolean isClaimScanTile(IMapTileInformation tile) {
+        if (!fogOfWarInformation.isPerceived(tile.getLocation())) {
+            return false;
+        }
+        if (tile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
+            return true;
+        }
+        return kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM);
+    }
+
+    private Terrain getClaimScanPlaceholderTerrain() {
+        if (!claimScanTerrainResolved) {
+            claimScanTerrain = kwdFile.getTerrain(CLAIM_SCAN_TERRAIN_ID);
+            claimScanTerrainResolved = true;
+        }
+        return claimScanTerrain;
     }
 
     private Terrain getUnexploredPlaceholderTerrain() {
@@ -1209,26 +1246,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * interior-slab rule (D3) is unverified in the reference design and
      * should be checked in game against a 3x3/5x5 room per the design's
      * own test description.
+     * <p>
+     * {@code terrain} is whatever {@link #getTerrain(IMapTileInformation)}
+     * already resolved for this tile's mesh (real terrain, the Claim Scan
+     * stand-in, or the plain rock stand-in) - the fog decision lives there,
+     * not here, so mesh and light can never disagree about what a tile is.
      */
     private void handleTerrainLight(IMapTileInformation tile, Terrain terrain, boolean isRoomTile, RoomInstance roomInstance) {
         Point p = tile.getLocation();
-        Terrain lightingTerrain;
-        boolean claimScan = false;
-
-        if (isRoomTile) {
-            lightingTerrain = isInteriorRoomSlab(p, roomInstance) ? terrain : null;
-        } else if (lightRules.getFogOfWar().isExplored(p)) {
-            lightingTerrain = terrain;
-        } else if (lightRules.getFogOfWar().isPerceived(p)) {
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR)) {
-                lightingTerrain = terrain;
-            } else {
-                lightingTerrain = kwdFile.getTerrain(CLAIM_SCAN_TERRAIN_ID);
-                claimScan = true;
-            }
-        } else {
-            lightingTerrain = null;
-        }
+        Terrain lightingTerrain = isRoomTile
+                ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
+                : terrain;
 
         if (lightingTerrain == null || !lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)) {
             return;
@@ -1237,7 +1265,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         int red;
         int green;
         int blue;
-        if (claimScan) {
+        if (lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID) {
+            // claim_scan_terrain.md §5: the stand-in's own baked colour is
+            // always overridden by these level variables.
             red = LightConstants.getClaimScanLightRed(kwdFile);
             green = LightConstants.getClaimScanLightGreen(kwdFile);
             blue = LightConstants.getClaimScanLightBlue(kwdFile);

@@ -243,6 +243,18 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         return mapLoader;
     }
 
+    /**
+     * {@code false} while the "GameClientMapLoader" background thread is
+     * still populating {@code mapLoader}'s {@code LightRules} (registering
+     * terrain materials, torches, etc.). Anything outside this class that
+     * touches {@code LightRules} on the render thread (entity/effect flat
+     * lighting) must gate on this the same way {@link #update(float)} above
+     * does, or it races those writes with a {@code ConcurrentModificationException}.
+     */
+    public boolean isMapLoaded() {
+        return mapLoaded;
+    }
+
     public AssetManager getAssetManager() {
         return assetManager;
     }

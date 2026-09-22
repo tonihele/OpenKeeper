@@ -225,7 +225,9 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private LightRules getLightRules() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
-        return mapViewState != null ? mapViewState.getMapLoader().getLightRules() : null;
+        // Guard against racing the map loader thread's LightRules writes
+        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
+        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
     }
 
     @Override

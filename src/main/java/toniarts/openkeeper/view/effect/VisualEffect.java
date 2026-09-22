@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 
@@ -395,7 +396,10 @@ public class VisualEffect {
     }
 
     private LightRules getLightRules() {
-        return effectManagerState.getPlayerMapViewState().getMapLoader().getLightRules();
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        // Guard against racing the map loader thread's LightRules writes
+        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
+        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
     }
 
     /**

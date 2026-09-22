@@ -20,11 +20,8 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * The read-only fog-of-war query surface for a single viewer. This is the
- * only way the presentation layer (and the handful of gameplay consumers
- * listed in the fog-of-war design document, §8.5) may look at fog - nothing
- * should read raw explored/perceived state directly.
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * only way the presentation layer may look at fog - nothing should read raw
+ * explored/perceived state directly.
  */
 public interface IFogOfWarInformation {
 
