@@ -12,17 +12,18 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 
 /**
- * An {@link IRoomInformation} test double.
+ * An {@link IRoomInformation} test double. Public: also reused by
+ * {@code view.minimap}'s rendering tests.
  */
-final class FakeRoomInformation implements IRoomInformation {
+public final class FakeRoomInformation implements IRoomInformation {
 
     private final EntityId entityId;
-    short ownerId;
-    short roomId;
-    boolean dungeonHeart;
-    boolean removed;
+    public short ownerId;
+    public short roomId;
+    public boolean dungeonHeart;
+    public boolean removed;
 
-    FakeRoomInformation(EntityId entityId) {
+    public FakeRoomInformation(EntityId entityId) {
         this.entityId = entityId;
     }
 

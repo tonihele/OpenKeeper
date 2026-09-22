@@ -13,16 +13,17 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * A minimal, mutable {@link IMapTileInformation} test double.
+ * A minimal, mutable {@link IMapTileInformation} test double. Public: also
+ * reused by {@code view.minimap}'s rendering tests.
  */
-final class FakeMapTile implements IMapTileInformation {
+public final class FakeMapTile implements IMapTileInformation {
 
     private final Point location;
-    short terrainId;
-    short ownerId;
-    EntityId roomId;
+    public short terrainId;
+    public short ownerId;
+    public EntityId roomId;
 
-    FakeMapTile(Point location) {
+    public FakeMapTile(Point location) {
         this.location = location;
     }
 

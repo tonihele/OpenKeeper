@@ -15,13 +15,14 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
  * An {@link IFogOfWarInformation} test double driven directly by test setup
- * rather than by simulating real fog rules.
+ * rather than by simulating real fog rules. Public: also reused by
+ * {@code view.minimap}'s rendering tests.
  */
-final class FakeFogOfWarInformation implements IFogOfWarInformation {
+public final class FakeFogOfWarInformation implements IFogOfWarInformation {
 
-    final Set<Point> explored = new HashSet<>();
-    final Set<Point> perceived = new HashSet<>();
-    final Set<Point> highlightable = new HashSet<>();
+    public final Set<Point> explored = new HashSet<>();
+    public final Set<Point> perceived = new HashSet<>();
+    public final Set<Point> highlightable = new HashSet<>();
 
     @Override
     public boolean isVisible(Point p) {

@@ -13,11 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * An {@link IRoomsInformation} test double.
+ * An {@link IRoomsInformation} test double. Public: also reused by
+ * {@code view.minimap}'s rendering tests.
  */
-final class FakeRoomsInformation implements IRoomsInformation<FakeRoomInformation> {
+public final class FakeRoomsInformation implements IRoomsInformation<FakeRoomInformation> {
 
-    final Map<EntityId, FakeRoomInformation> rooms = new HashMap<>();
+    public final Map<EntityId, FakeRoomInformation> rooms = new HashMap<>();
 
     @Override
     public FakeRoomInformation getRoomInformation(EntityId entityId) {

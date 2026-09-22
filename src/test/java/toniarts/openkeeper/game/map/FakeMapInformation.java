@@ -17,14 +17,15 @@ import toniarts.openkeeper.utils.Point;
  * An {@link IMapInformation} test double. Only implements what
  * {@link MapColourClassifier} actually calls ({@code getMapData},
  * {@code getTerrain}, {@code isSolid}) with real behaviour; everything else
- * is a harmless stub.
+ * is a harmless stub. Public: also reused by {@code view.minimap}'s
+ * rendering tests.
  */
-final class FakeMapInformation implements IMapInformation<FakeMapTile> {
+public final class FakeMapInformation implements IMapInformation<FakeMapTile> {
 
     private final FakeMapData mapData;
     private final Map<Short, Terrain> terrainsById;
 
-    FakeMapInformation(FakeMapData mapData, Map<Short, Terrain> terrainsById) {
+    public FakeMapInformation(FakeMapData mapData, Map<Short, Terrain> terrainsById) {
         this.mapData = mapData;
         this.terrainsById = terrainsById;
     }

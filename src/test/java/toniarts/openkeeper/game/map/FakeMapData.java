@@ -13,15 +13,16 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * A simple grid-backed {@link IMapDataInformation} test double.
+ * A simple grid-backed {@link IMapDataInformation} test double. Public:
+ * also reused by {@code view.minimap}'s rendering tests.
  */
-final class FakeMapData implements IMapDataInformation<FakeMapTile> {
+public final class FakeMapData implements IMapDataInformation<FakeMapTile> {
 
     private final int width;
     private final int height;
     private final FakeMapTile[][] tiles;
 
-    FakeMapData(int width, int height) {
+    public FakeMapData(int width, int height) {
         this.width = width;
         this.height = height;
         this.tiles = new FakeMapTile[width][height];
