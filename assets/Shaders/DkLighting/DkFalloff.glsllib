@@ -64,10 +64,7 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
         return vec3(0.0);
     }
 
-    float lam = dot(worldNormal, d) * intensity;
-    if (lam <= 0.0) {
-        return vec3(0.0);
-    }
+    float lam = abs(dot(worldNormal, d)) * intensity;
 
     float n = floor(16.0 * d2);
     float f = smoothFalloff ? dkFalloffMonotonic(n) : dkFalloff(n);
