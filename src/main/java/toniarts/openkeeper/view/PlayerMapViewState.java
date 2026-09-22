@@ -113,7 +113,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
-                    mapLoaded = true;
 
                     // Apply any tile updates (fog reveals from the seeding above,
                     // or from creatures already ticking) that arrived too early to
@@ -126,6 +125,13 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                         }
                         mapLoader.updateTiles(pending.toArray(new Point[0]));
                     }
+
+                    // Only now is mapLoader done being mutated off the render
+                    // thread: update(tpf) reads its LightRules (registered
+                    // terrain materials) every frame and gates on this flag,
+                    // so flipping it any earlier would let that read race the
+                    // registerTerrainTile()/updateTiles() writes above.
+                    mapLoaded = true;
 
                     app.enqueue(() -> {
                         worldNode.attachChild(map);
@@ -220,12 +226,17 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Lighting: pick up live settings changes, advance modulators
         // (pulse/fade/flicker) and re-upload the terrain materials they
-        // touched (lighting_design.md §4/§7/§10)
-        Settings settings = Main.getUserSettings();
-        float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
-        mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
-        mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
-        mapLoader.getLightRules().update(tpf, app.getCamera());
+        // touched (lighting_design.md §4/§7/§10). Skipped until the map is
+        // done loading - the loader thread is still registering terrain
+        // materials into the same LightRules up to that point, and reading
+        // it here concurrently with that would race (ConcurrentModificationException).
+        if (mapLoaded) {
+            Settings settings = Main.getUserSettings();
+            float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
+            mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+            mapLoader.getLightRules().update(tpf, app.getCamera());
+        }
     }
 
     public MapViewController getMapLoader() {
