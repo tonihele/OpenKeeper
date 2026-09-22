@@ -682,6 +682,10 @@ public final class GameClientState extends AbstractPauseAwareState {
         return fogOfWarInformation;
     }
 
+    public MinimapPanelState getMinimapPanelState() {
+        return minimapPanelState;
+    }
+
     /**
      * Marks (or unmarks) still-unexplored tiles as locally "looking tagged"
      * while the viewer drags a tag/dig selection over them - see

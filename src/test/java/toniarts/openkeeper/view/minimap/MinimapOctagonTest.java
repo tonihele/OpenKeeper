@@ -63,15 +63,27 @@ class MinimapOctagonTest {
     }
 
     @Test
-    void uvAtVertexZeroIsZeroOnTheUAxisCenterOnTheVAxis() {
+    void uvAtVertexZeroMatchesItsPositionsAngleOnTheUAxis() {
         Mesh mesh = MinimapOctagon.build(10f, 20f, 5f);
         FloatBuffer uvs = (FloatBuffer) mesh.getBuffer(Type.TexCoord).getData();
         uvs.rewind();
 
-        // UV is position's angle rotated 180 degrees - confirmed against
-        // the running game (see MinimapOctagon's javadoc).
-        assertEquals(0f, uvs.get(0), 1e-4f); // 0.5 - 0.5*cos(0)
+        assertEquals(1f, uvs.get(0), 1e-4f); // 0.5 + 0.5*cos(0)
         assertEquals(0.5f, uvs.get(1), 1e-4f); // 0.5 - 0.5*sin(0)
+    }
+
+    @Test
+    void uvAtVertexTwoIsFlippedOnTheVAxisOnlyRelativeToItsPosition() {
+        Mesh mesh = MinimapOctagon.build(10f, 20f, 5f);
+        FloatBuffer uvs = (FloatBuffer) mesh.getBuffer(Type.TexCoord).getData();
+        uvs.rewind();
+
+        // k=2 -> angle = pi/2 -> cos=0, sin=1. U matches the position
+        // formula's own cos term; only V (sin) is negated - confirmed
+        // against the running game (see MinimapOctagon's javadoc): only
+        // the vertical axis was actually mirrored, not the horizontal one.
+        assertEquals(0.5f, uvs.get(2 * 2), 1e-4f); // 0.5 + 0.5*cos(pi/2)
+        assertEquals(0f, uvs.get(2 * 2 + 1), 1e-4f); // 0.5 - 0.5*sin(pi/2)
     }
 
 }

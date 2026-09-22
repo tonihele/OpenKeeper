@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.minimap;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.math.Vector2f;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.elements.Element;
 import java.io.IOException;
@@ -33,14 +34,27 @@ import toniarts.openkeeper.game.map.MapColourClassifier;
 import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.view.PlayerCamera;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
- * Owns the panel minimap's live raster (minimap_jmonkey.md Step 4): builds
- * the colour-class grid, periodically rasterises fit-mode geometry, and
- * keeps a {@link MinimapView} overlay positioned over the GameHUD's map
- * panel element in place of the static placeholder image that used to sit
- * there.
+ * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4/5):
+ * builds the colour-class grid, periodically rasterises fit-mode or zoomed
+ * geometry depending on the current {@link #zoom} level, and keeps a
+ * {@link MinimapView} overlay positioned over the GameHUD's map panel
+ * element in place of the static placeholder image that used to sit there.
+ *
+ * <p>
+ * No camera-yaw rotation, no markers, no click input yet - see
+ * minimap_jmonkey.md's step ordering for what those later steps add. The
+ * rebuild is a brute-force full {@code recomputeRect} on a fixed interval
+ * rather than fine-grained per-mutation invalidation (design §3.4's
+ * intended eager model) - correct, just not yet wired to the tile-mutation
+ * call sites minimap_jmonkey.md Step 2 identified
+ * ({@code PlayerMapViewState.onTilesChange}/
+ * {@code addFogOfWarTilesDirtyListener}); that's a follow-up optimisation,
+ * not required for these steps' "get pixels on screen" goal.
  */
 public final class MinimapPanelState extends AbstractAppState {
 
@@ -54,16 +68,26 @@ public final class MinimapPanelState extends AbstractAppState {
      */
     private static final float REBUILD_INTERVAL = 0.15f;
 
+    private static final int MIN_ZOOM = -1; // fit
+    private static final int MAX_ZOOM = 4; // 16px/tile
+
     private static final String MAP_IMAGE_ELEMENT_ID = "minimapImage";
 
     private final Main app;
     private final MapColourGrid grid;
     private final short neutralPlayerNumber;
 
+    private AppStateManager stateManager;
     private MinimapAssets assets;
     private MinimapView view;
     private byte[] rasterBgr;
-    private float timeSinceLastRebuild = Float.MAX_VALUE; // force a rebuild on the first update
+
+    private int zoom = MIN_ZOOM;
+    // design §5.1/§5.3: the original keeps one throttle per mode, so
+    // switching zoom modes doesn't skip a legitimately due rebuild of
+    // whichever mode you switch back to.
+    private float timeSinceLastFitRebuild = Float.MAX_VALUE;
+    private float timeSinceLastZoomedRebuild = Float.MAX_VALUE;
 
     public MinimapPanelState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
             IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation) {
@@ -77,6 +101,7 @@ public final class MinimapPanelState extends AbstractAppState {
     @Override
     public void initialize(AppStateManager stateManager, Application application) {
         super.initialize(stateManager, application);
+        this.stateManager = stateManager;
 
         try {
             assets = MinimapAssets.load();
@@ -101,17 +126,71 @@ public final class MinimapPanelState extends AbstractAppState {
 
         updateLayoutFromHud();
 
-        timeSinceLastRebuild += tpf;
-        if (timeSinceLastRebuild >= REBUILD_INTERVAL) {
-            timeSinceLastRebuild = 0f;
+        timeSinceLastFitRebuild += tpf;
+        timeSinceLastZoomedRebuild += tpf;
+        boolean due = zoom == MIN_ZOOM ? timeSinceLastFitRebuild >= REBUILD_INTERVAL : timeSinceLastZoomedRebuild >= REBUILD_INTERVAL;
+        if (due) {
             grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
             rebuildRaster();
         }
     }
 
+    /**
+     * "Resize Map" button, left click (design §5.2).
+     */
+    public void zoomIn() {
+        setZoom(Math.min(zoom + 1, MAX_ZOOM));
+    }
+
+    /**
+     * "Resize Map" button, right click (design §5.2).
+     */
+    public void zoomOut() {
+        setZoom(Math.max(zoom - 1, MIN_ZOOM));
+    }
+
+    private void setZoom(int newZoom) {
+        if (newZoom == zoom) {
+            return;
+        }
+        zoom = newZoom;
+        if (zoom == 0) {
+            // design §5.2: landing exactly on 0 also calls the inert
+            // world.setMapScrollX(0) - never read anywhere, in this engine
+            // or the original, so there is nothing to actually call here;
+            // recomputeRect below is the only observable part of this rule.
+            grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
+        }
+        // Rebuild immediately rather than waiting for the next throttle
+        // tick, so the zoom button feels responsive.
+        rebuildRaster();
+    }
+
     private void rebuildRaster() {
-        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(), neutralPlayerNumber, rasterBgr);
+        if (zoom == MIN_ZOOM) {
+            timeSinceLastFitRebuild = 0f;
+            MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(), neutralPlayerNumber, rasterBgr);
+        } else {
+            timeSinceLastZoomedRebuild = 0f;
+            Vector2f cameraTile = getCameraLookAtTile();
+            float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
+            float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
+            MinimapRasteriser.rebuildZoomedMode(grid, assets.getPalette(), assets.rockTextureBgr(),
+                    neutralPlayerNumber, cameraTileX, cameraTileY, zoom, rasterBgr);
+        }
         view.updateRaster(rasterBgr);
+    }
+
+    private Vector2f getCameraLookAtTile() {
+        PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
+        if (cameraState == null) {
+            return null;
+        }
+        PlayerCamera camera = cameraState.getCamera();
+        if (camera == null) {
+            return null;
+        }
+        return MinimapCoordinates.worldToTile(camera.getLookAt());
     }
 
     private void updateLayoutFromHud() {

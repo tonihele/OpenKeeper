@@ -264,9 +264,10 @@
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
-                            <!-- mag magnifier -->
+                            <!-- Resize Map (minimap_jmonkey.md Step 5, design §5.2): left click
+                                 zooms in, right click zooms out. -->
                             <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
-                                <interact onClick="playButtonSound(GUI_BUTTON_ZOOM)"/>
+                                <interact onClick="resizeMap()" onSecondaryClick="resizeMapDown()"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->

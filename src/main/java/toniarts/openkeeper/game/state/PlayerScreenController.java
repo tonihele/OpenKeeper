@@ -70,6 +70,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.DoorIconTextParser;
 import toniarts.openkeeper.view.text.RoomIconTextParser;
 import toniarts.openkeeper.view.text.SpellIconTextParser;
@@ -341,6 +342,29 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void zoomToDungeon() {
         state.zoomToDungeon();
+    }
+
+    /**
+     * "Resize Map" button, left click (minimap_jmonkey.md Step 5, design
+     * §5.2): zoom in one level (or into zoomed mode from fit).
+     */
+    public void resizeMap() {
+        playButtonSound("GUI_BUTTON_ZOOM");
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomIn();
+        }
+    }
+
+    /**
+     * "Resize Map" button, right click (minimap_jmonkey.md Step 5, design
+     * §5.2): zoom out one level (or back to fit mode).
+     */
+    public void resizeMapDown() {
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomOut();
+        }
     }
 
     @Override

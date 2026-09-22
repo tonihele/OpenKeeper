@@ -61,16 +61,16 @@ public final class MinimapOctagon {
             positions[k * 3 + 1] = centerY + radius * sin;
             positions[k * 3 + 2] = 0f;
 
-            // UV uses the angle rotated 180 degrees from the position's own
-            // angle (i.e. -cos/-sin) - confirmed against the running game:
-            // without this the raster's content renders upside down, even
-            // though the octagon's on-screen position/shape is correct.
-            // Most likely cause: the raster buffer is filled row 0 = top of
-            // the logical image, but V=0 samples the bottom of the texture
-            // in this engine's convention - a plain V-flip would also have
-            // fixed a pure top/bottom mirror, but the observed symptom was
-            // a full 180-degree rotation, so both axes are inverted here.
-            uvs[k * 2] = 0.5f - 0.5f * cos;
+            // V only is flipped relative to the position's own angle -
+            // confirmed against the running game across two rounds: a
+            // first attempt that negated both cos and sin (a full 180
+            // degree rotation) fixed the vertical mirror but introduced an
+            // unwanted horizontal one, so only sin (V) is negated here.
+            // Cause: the raster buffer is filled row 0 = top of the logical
+            // image, but V=0 samples the bottom of the texture in this
+            // engine's convention - a pure top/bottom mirror, not a
+            // rotation.
+            uvs[k * 2] = 0.5f + 0.5f * cos;
             uvs[k * 2 + 1] = 0.5f - 0.5f * sin;
         }
 
