@@ -68,7 +68,7 @@ public final class MinimapView {
      */
     private static final float DISC_RADIUS_PX = MinimapRasteriser.RASTER_SIZE / 2f; // 64
     private static final float NORTH_INDICATOR_MARGIN_PX = 5f;
-    private static final float NORTH_INDICATOR_HALF_SIZE_PX = 3.2f; // ~6.4px icon
+    private static final float NORTH_INDICATOR_HALF_SIZE_PX = 4f;
     private static final float NORTH_INDICATOR_HALF_SIZE = NORTH_INDICATOR_HALF_SIZE_PX / MinimapRasteriser.RASTER_SIZE;
     private static final float NORTH_INDICATOR_ORBIT_RADIUS =
             (DISC_RADIUS_PX - NORTH_INDICATOR_MARGIN_PX - NORTH_INDICATOR_HALF_SIZE_PX) / MinimapRasteriser.RASTER_SIZE;
