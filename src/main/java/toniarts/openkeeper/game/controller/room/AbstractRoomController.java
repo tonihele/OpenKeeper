@@ -458,21 +458,4 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
         return entityData.getComponent(entityId, type);
     }
-
-    /**
-     * Explicit, not inherited implicitly: this class adds several fields
-     * of its own (constructed-object bookkeeping, cached map/start
-     * coordinates, ...), but none of them are part of a room's identity -
-     * that's still just the wrapped entity, per {@link
-     * AbstractRoomInformation#equals}.
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }
