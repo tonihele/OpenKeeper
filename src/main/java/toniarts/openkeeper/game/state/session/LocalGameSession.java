@@ -270,6 +270,33 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void revealTiles(List<Point> points, boolean explore, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onTilesReveal(points, explore, playerId);
+            }
+        }
+    }
+
+    @Override
+    public void disableFogOfWar(short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onFogOfWarDisabled(playerId);
+            }
+        }
+    }
+
+    @Override
+    public void resetFogOfWar(short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onFogOfWarReset(playerId);
+            }
+        }
+    }
+
+    @Override
     public void loadComplete() {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onLoadComplete(PLAYER_ID);

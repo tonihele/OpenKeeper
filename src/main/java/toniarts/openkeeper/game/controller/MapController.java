@@ -763,6 +763,34 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public void revealTiles(List<Point> points, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onTilesReveal(points, true, playerId);
+        }
+    }
+
+    @Override
+    public void concealTiles(List<Point> points, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onTilesReveal(points, false, playerId);
+        }
+    }
+
+    @Override
+    public void disableFogOfWar(short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onFogOfWarDisabled(playerId);
+        }
+    }
+
+    @Override
+    public void resetFogOfWar(short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onFogOfWarReset(playerId);
+        }
+    }
+
+    @Override
     public void start() {
 
     }

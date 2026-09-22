@@ -42,7 +42,9 @@ import com.simsilica.es.EntitySet;
 import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.Element;
 import toniarts.openkeeper.utils.Point;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
@@ -73,6 +75,7 @@ import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
@@ -338,40 +341,40 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
             interactiveControl.onHover(player.getPlayerId());
         } else if (isOnMap) {
-
-            // Tile tooltip then
             p = selectionHandler.getPointedTileIndex();
-            IMapTileInformation tile = mapInformation.getMapData().getTile(p);
-            if (tile != null) {
-                Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                    tooltip.setText(getRoomTooltip(tile, terrain));
-                } else {
-                    tooltip.setText(textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile));
-                }
-            } else {
-                tooltip.setText("");
-            }
+            tooltip.setText(getTileTooltip(p));
         }
 
         // If debug, show tile coordinate
         if (Main.isDebug() && (interactiveControl != null || isOnMap)) {
-            StringBuilder sb = new StringBuilder();
             if (interactiveControl != null) {
                 p = WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation());
             }
-            sb.append("(");
-            sb.append(p.x + 1);  // 1-based coordinates
-            sb.append(", ");
-            sb.append(p.y + 1);  // 1-based coordinates
-            sb.append("): ");
-            sb.append(tooltip.getText());
-            tooltip.setText(sb.toString());
+            tooltip.setText(getDebugTooltip(p, tooltip.getText()));
         }
 
         return interactiveControl != null
                 && (interactiveControl.isPickable(player.getPlayerId())
                 || interactiveControl.isInteractable(player.getPlayerId()));
+    }
+
+    private String getTileTooltip(Point p) {
+        IMapTileInformation tile = mapInformation.getMapData().getTile(p);
+        if (tile == null) {
+            return "";
+        }
+
+        IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
+        if (fogOfWarInformation != null && !fogOfWarInformation.isExplored(p)) {
+            return Utils.getMainTextResourceBundle().getString("348");
+        }
+
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return getRoomTooltip(tile, terrain);
+        }
+
+        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
@@ -385,6 +388,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey),
                 tile.getRoomId(), gameClientState.getPlayer(tile.getOwnerId()));
+    }
+
+    private static String getDebugTooltip(Point p, String tooltipText) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        sb.append(p.x + 1);  // 1-based coordinates
+        sb.append(", ");
+        sb.append(p.y + 1);  // 1-based coordinates
+        sb.append("): ");
+        sb.append(tooltipText);
+        return sb.toString();
     }
 
     private void updateInteractiveObjectOnCursor() {
@@ -446,7 +460,23 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                && isOnMap && gameClientState.getMapClientService().isTaggable(p);
+                  && isOnMap && gameClientState.getFogOfWarInformation().isHighlightable(p);
+    }
+
+    /**
+     * All tile coordinates covered by a selection area's rectangle
+     * (inclusive of both corners).
+     */
+    private static List<Point> getRectPoints(SelectionArea selectionArea) {
+        Point start = WorldUtils.vectorToPoint(selectionArea.getStart());
+        Point end = WorldUtils.vectorToPoint(selectionArea.getEnd());
+        List<Point> points = new ArrayList<>();
+        for (int x = start.x; x <= end.x; x++) {
+            for (int y = start.y; y <= end.y; y++) {
+                points.add(new Point(x, y));
+            }
+        }
+        return points;
     }
 
     private boolean isOnMap() {
@@ -484,43 +514,263 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private void initializeInput() {
-        inputListener = new RawInputListener() {
-            @Override
-            public void beginInput() {
+          inputListener = new MapInteractionInputListener();
+    }
+
+    /**
+     * Handles raw input for the map interaction state. Split into per-button
+     * and per-key helper methods (rather than one large listener method) to
+     * keep each individual handler's branching manageable.
+     */
+    private final class MapInteractionInputListener implements RawInputListener {
+
+        @Override
+        public void beginInput() {
+        }
+
+        @Override
+        public void endInput() {
+        }
+
+        @Override
+        public void onJoyAxisEvent(JoyAxisEvent evt) {
+        }
+
+        @Override
+        public void onJoyButtonEvent(JoyButtonEvent evt) {
+        }
+
+        @Override
+        public void onMouseMotionEvent(MouseMotionEvent evt) {
+            mousePosition.set(evt.getX(), evt.getY());
+            keeperHandState.setPosition(evt.getX(), evt.getY());
+
+            timeFromLastUpdate = 0;
+            updateStateFlags();
+            //updateCursor();
+        }
+
+        @Override
+        public void onMouseButtonEvent(MouseButtonEvent evt) {
+//            timeFromLastUpdate = 0;
+            if (isOnGui || !isOnMap) {
+                return;
             }
 
-            @Override
-            public void endInput() {
+            if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
+                onLeftMouseButtonEvent(evt);
+            } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
+                onRightMouseButtonReleased();
+            } else if (evt.getButtonIndex() == MouseInput.BUTTON_MIDDLE && evt.isReleased()) {
+//                if (Main.isDebug()) {
+//                    Point p = selectionHandler.getPointedTileIndex();
+//                    getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
+//                }
+            }
+        }
+
+        private void onLeftMouseButtonEvent(MouseButtonEvent evt) {
+            if (evt.isPressed()) {
+                onLeftMouseButtonPressed();
+            } else if (evt.isReleased() && selectionHandler.isActive()) {
+                onLeftMouseButtonReleased();
+            }
+        }
+
+        private void onLeftMouseButtonPressed() {
+            if (interactionState.getType() == Type.SPELL) {
+                castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
+                //TODO correct interactiveControl.isPickable
+                /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
+                        && interactiveControl.isPickable(player.getPlayerId())) {
+                    CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
+                    if (cc != null) {
+                        onPossession(cc);
+                        // Reset the state
+                        // TODO disable selection box
+                        setInteractionState(Type.NONE, 0);
+                    }
+                }*/
+            } else if (interactionState.getType() == Type.TRAP) {
+                //TODO put trap
+            } else if (interactionState.getType() == Type.DOOR) {
+                //TODO put door
+            } else if (interactionState.getType() == Type.NONE
+                    && interactiveControl != null && !keeperHandState.isFull()
+                    && interactiveControl.isPickable(player.getPlayerId())) {
+                pickupObject(interactiveControl);
+            } else if (interactionState.getType() == Type.NONE
+                    && interactiveControl != null
+                    && interactiveControl.isInteractable(player.getPlayerId())) {
+                interactiveControl.interact(player.getPlayerId());
+            } else {
+
+                // Selection stuff
+                if (selectionHandler.isVisible()) {
+                    selectionHandler.setActive(true);
+                }
+
+                // I suppose we are tagging
+                if (isTaggable) {
+                    updateCursor();
+                    // The tagging sound is positional and played against the cursor change, not the action itself
+                    Point pos = selectionHandler.getPointedTileIndex();
+//                    getWorldHandler().playSoundAtTile(pos, GlobalCategory.HAND, GlobalType.HAND_TAG);
+                }
+            }
+        }
+
+        private void onLeftMouseButtonReleased() {
+            SelectionArea selectionArea = selectionHandler.getSelectionArea();
+            if (interactionState.getType() == Type.NONE
+                    || (interactionState.getType() == Type.ROOM
+                    && gameClientState.getFogOfWarInformation().isHighlightable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
+
+                // Determine if this is a select/deselect by the starting tile's status.
+                // An unexplored start tile has no real server-side selected state to
+                // speak of yet, so also fold in whether it currently *looks* tagged.
+                Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
+                boolean currentlyTagged = gameClientState.getMapClientService().isSelected(realStart, player.getPlayerId())
+                        || gameClientState.getFogOfWarInformation().isPendingTagged(realStart);
+                boolean select = !currentlyTagged;
+                gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
+
+                // The server only marks a tile selected if its real, hidden terrain is
+                // actually taggable - fog can't reach it to know any better. Locally,
+                // still-unexplored tiles in this drag should look tagged regardless,
+                // until exploration reveals whether that's really true (§8.5).
+                gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
+            } else if (interactionState.getType() == Type.ROOM
+                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                            selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
+                            (short) interactionState.getItemId(),
+                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
+                gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
+            } else if (interactionState.getType() == Type.SELL) {
+                gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
             }
 
-            @Override
-            public void onJoyAxisEvent(JoyAxisEvent evt) {
+            selectionHandler.setActive(false);
+            updateCursor();
+        }
+
+        private void onRightMouseButtonReleased() {
+            Point p = selectionHandler.getPointedTileIndex();
+            if (interactionState.getType() == Type.NONE) {
+
+                // Drop
+                IEntityViewControl entityViewControl = keeperHandState.getItem();
+                if (entityViewControl != null) {
+                    IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
+                    if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                        gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
+                    }
+                    //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
+//                    IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
+//                    if (status != IEntityControl.DroppableStatus.NOT_DROPPABLE) {
+//
+//                        // Drop & update cursor
+//                        keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
+//                        updateCursor();
+//                    }
+                } else if (interactiveControl != null && interactiveControl.isSlappable(player.getPlayerId())) {
+//                    getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
+                    gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
+                    interactiveControl.slap(player.getPlayerId());
+                    stateManager.getState(EffectManagerState.class).load(
+                            (Node) interactiveControl.getSpatial().getParent(),
+                            interactiveControl.getSpatial().getWorldTranslation(),
+                            interactiveControl.getSlapEffectId(player.getPlayerId()), false, interactiveControl.getOwnerId());
+
+                    // Flash the slap cursor once; the updateCursor() call below
+                    // picks it up, and update(tpf) reverts it once it elapses
+                    slapCursorTimeRemaining = CursorFactory.getAnimationDuration(CursorFactory.CursorType.SLAP, assetManager);
+                } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
+                    gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
+                    interactiveControl.interact(player.getPlayerId());
+                } else if (Main.isDebug()) {
+                    // taggable -> "dig"
+//                    if (getWorldHandler().isTaggable(p.x, p.y)) {
+//                        getWorldHandler().digTile(p.x, p.y);
+//                    } // ownable -> "claim"
+//                    else if (getWorldHandler().isClaimable(p.x, p.y, player.getPlayerId())) {
+//                        getWorldHandler().claimTile(p.x, p.y, player.getPlayerId());
+//                    }
+                }
             }
 
-            @Override
-            public void onJoyButtonEvent(JoyButtonEvent evt) {
+            // Reset the state
+            setInteractionState(Type.NONE, 0);
+            updateCursor();
+
+            selectionHandler.setActive(false);
+        }
+
+        @Override
+        public void onKeyEvent(KeyInputEvent evt) {
+            updateModifierKeys(evt);
+
+            if (evt.isPressed()) {
+                handleKeyPress(evt);
             }
 
-            @Override
-            public void onMouseMotionEvent(MouseMotionEvent evt) {
-                handleMouseMotionEvent(evt);
+            if (evt.isPressed() && evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
+                stateManager.getState(PlayerState.class).getScreen().toggleGui();
             }
+        }
 
-            @Override
-            public void onMouseButtonEvent(MouseButtonEvent evt) {
-                handleMouseButtonEvent(evt);
+        private void updateModifierKeys(KeyInputEvent evt) {
+
+            // See the CTRL + ALT
+            switch (evt.getKeyCode()) {
+                case KeyInput.KEY_LCONTROL:
+                case KeyInput.KEY_RCONTROL:
+                    if (evt.isPressed()) {
+                        keys.add(KeyInput.KEY_LCONTROL);
+                        keys.add(KeyInput.KEY_RCONTROL);
+                    } else {
+                        keys.remove(Integer.valueOf(KeyInput.KEY_LCONTROL));
+                        keys.remove(Integer.valueOf(KeyInput.KEY_RCONTROL));
+                    }
+                    break;
+
+                case KeyInput.KEY_LMENU:
+                case KeyInput.KEY_RMENU:
+                    if (evt.isPressed()) {
+                        keys.add(KeyInput.KEY_LMENU);
+                        keys.add(KeyInput.KEY_RMENU);
+                    } else {
+                        keys.remove(Integer.valueOf(KeyInput.KEY_LMENU));
+                        keys.remove(Integer.valueOf(KeyInput.KEY_RMENU));
+                    }
+                    break;
             }
+        }
 
-            @Override
-            public void onKeyEvent(KeyInputEvent evt) {
-                handleKeyEvent(evt);
+        private void handleKeyPress(KeyInputEvent evt) {
+            if (evt.getKeyCode() == KeyInput.KEY_C && keys.contains(KeyInput.KEY_LCONTROL) && keys.contains(KeyInput.KEY_LMENU)) {
+                CheatState cheat = stateManager.getState(CheatState.class);
+                if (cheat != null && !cheat.isEnabled()) {
+                    cheat.setEnabled(true);
+                }
+            } else if (evt.getKeyCode() == ConsoleState.KEY && Main.isDebug()) {
+                stateManager.getState(ConsoleState.class).setEnabled(true);
+            } else if (evt.getKeyCode() == (Integer) Settings.Setting.TOGGLE_PLAYER_INFORMATION.getDefaultValue()) {
+                Element stats = view.findElementById("statistics");
+                if (stats != null) {
+                    if (stats.isVisible()) {
+                        stats.hide();
+                    } else {
+                        stats.show();
+                    }
+                }
             }
+        }
 
-            @Override
-            public void onTouchEvent(TouchEvent evt) {
-            }
+        @Override
+        public void onTouchEvent(TouchEvent evt) {
+        }
 
-        };
     }
 
     private void handleMouseMotionEvent(MouseMotionEvent evt) {
@@ -875,7 +1125,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private boolean isInvalidRoomSelection(Point point) {
             return interactionState.getType() == Type.ROOM
-                    && !gameClientState.getMapClientService().isTaggable(point)
+                    && !gameClientState.getFogOfWarInformation().isHighlightable(point)
                     && !isRoomSelectionValid();
         }
 

@@ -29,8 +29,11 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -43,6 +46,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
@@ -60,6 +64,7 @@ import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
@@ -68,8 +73,38 @@ import toniarts.openkeeper.view.text.TextParser;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class PlayerEntityViewState extends AbstractAppState {
-    
+
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
+
+    /**
+     * Used where no fog of war applies: everything is simply always visible.
+     */
+    private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
+        @Override
+        public boolean isVisible(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isExplored(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPerceived(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isHighlightable(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPendingTagged(Point p) {
+            return false;
+        }
+    };
 
     private AppStateManager stateManager;
     private final IKwdFile kwdFile;
@@ -78,6 +113,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final short playerId;
     private final Node rootNode;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
+    private final IFogOfWarInformation fogOfWarInformation;
 
     private final TextParser textParser;
     private final Node root;
@@ -100,11 +136,17 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
-        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null);
+        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
     }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
             TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData) {
+        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, mapData, ALWAYS_VISIBLE);
+    }
+
+    public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
+            TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData,
+            IFogOfWarInformation fogOfWarInformation) {
         super(Short.toString(playerId));
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -113,6 +155,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.textParser = textParser;
         this.rootNode = rootNode;
         this.mapData = mapData;
+        this.fogOfWarInformation = fogOfWarInformation;
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
@@ -332,11 +375,13 @@ public class PlayerEntityViewState extends AbstractAppState {
             }
             stateManager.getState(EffectManagerState.class).load(nodeCreatures, object.getWorldTranslation(), deathEffectId, true, control.getOwnerId());
         }
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
         DoorViewState viewState = e.get(DoorViewState.class);
         object.getControl(DoorViewControl.class).setTargetState(viewState);
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
     private void updateObjectModelState(Spatial object, Entity e) {
@@ -352,7 +397,53 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
-        object.setCullHint(viewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
+    }
+
+    /**
+     * Hides things standing on non-visible tiles (fog-of-war design §8.2).
+     * There is no "visible through fog" per-thing flag anywhere in this
+     * codebase's creature/object/door/trap data, so this applies uniformly,
+     * with no exceptions.
+     */
+    private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
+        boolean visible = baseVisible;
+        if (visible) {
+            visible = fogOfWarInformation.isVisible(tile);
+        }
+        object.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+    }
+
+    /**
+     * Fog-of-war state isn't an entity component, so a tile transitioning
+     * between explored/unexplored produces no {@link Position}/view-state
+     * component change on the (typically stationary) entities standing on
+     * it - the normal {@code updateObject*} paths above, which only run on
+     * such a change, would otherwise never re-run for them. This is called
+     * whenever fog notifies of newly-dirty tiles (mirroring how
+     * {@code MapViewController} re-derives terrain for the same tiles) to
+     * directly re-evaluate cull hint for every currently-tracked entity
+     * sitting on one of them.
+     */
+    public void onTilesDirty(Point[] points) {
+        if (points.length == 0 || entityViewControls.isEmpty()) {
+            return;
+        }
+        Set<Point> dirty = new HashSet<>(Arrays.asList(points));
+        for (Map.Entry<EntityId, IEntityViewControl> entry : entityViewControls.entrySet()) {
+            EntityId id = entry.getKey();
+            Position position = entityData.getComponent(id, Position.class);
+            if (position == null) {
+                continue;
+            }
+            Point tile = WorldUtils.vectorToPoint(position.position);
+            if (!dirty.contains(tile)) {
+                continue;
+            }
+            ObjectViewState objectViewState = entityData.getComponent(id, ObjectViewState.class);
+            boolean baseVisible = objectViewState == null || objectViewState.visible;
+            applyFogCullHint(entry.getValue().getSpatial(), tile, baseVisible);
+        }
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -497,6 +588,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
         }
 
         @Override

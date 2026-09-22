@@ -25,6 +25,7 @@ import java.util.Collection;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -41,7 +42,7 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     private enum Status {
 
-        LEVEL, STATUS
+        LEVEL, ACTIVITY, MOOD, REASON
     }
 
     private static final float CHANGE_STATUS_INTERVAL = 0.5f;
@@ -67,6 +68,7 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         components.add(PlayerObjective.class);
         components.add(PortalGem.class);
         components.add(CreatureExperience.class);
+        components.add(CreatureMood.class);
         return components;
     }
 
@@ -106,20 +108,50 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
     }
 
     private void changeStatus() {
-        if (currentStatus == Status.LEVEL && getStatusIcon() != null) {
-            currentStatus = Status.STATUS;
-        } else {
-            currentStatus = Status.LEVEL;
+        Status[] statuses = Status.values();
+        int currentOrdinal = currentStatus.ordinal();
+        for (int i = 0; i < statuses.length; i++) {
+            Status candidate = statuses[(currentOrdinal + i + 1) % statuses.length];
+            if (hasIcon(candidate)) {
+                currentStatus = candidate;
+                return;
+            }
+        }
+    }
+
+    private boolean hasIcon(Status status) {
+        switch (status) {
+            case LEVEL:
+                return getEntity().get(CreatureExperience.class) != null;
+            case ACTIVITY:
+                return getStatusIcon() != null;
+            case MOOD:
+                return getMoodIcon() != null;
+            case REASON:
+                return getMoodReasonIcon() != null;
+            default:
+                return false;
         }
     }
 
     @Override
     protected String getCenterIcon() {
-        if (currentStatus == Status.STATUS) {
-            String statusIcon = getStatusIcon();
-            if (statusIcon != null) {
-                return statusIcon;
-            }
+        String icon = null;
+        switch (currentStatus) {
+            case ACTIVITY:
+                icon = getStatusIcon();
+                break;
+            case MOOD:
+                icon = getMoodIcon();
+                break;
+            case REASON:
+                icon = getMoodReasonIcon();
+                break;
+            default:
+                break;
+        }
+        if (icon != null) {
+            return icon;
         }
 
         CreatureExperience creatureExperience = getEntity().get(CreatureExperience.class);
@@ -129,6 +161,41 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
         // Level icon if nothing is found
         return "Textures/GUI/moods/SL-" + String.format("%02d", creatureExperience.level) + ".png";
+    }
+
+    @Override
+    protected boolean isPersistentVisibilityRequired() {
+        return getMoodState() > 0;
+    }
+
+    private int getMoodState() {
+        CreatureMood mood = getEntity().get(CreatureMood.class);
+        if (mood == null) {
+            return 0;
+        }
+        int unhappyThreshold = CreatureMood.toRuntimeThreshold(
+                getDataObject().getAttributes().getUnhappyThreshold());
+        return mood.getState(unhappyThreshold);
+    }
+
+    private String getMoodIcon() {
+        switch (getMoodState()) {
+            case 1:
+                return "Textures/GUI/moods/SM-Sad.png";
+            case 2:
+                return "Textures/GUI/moods/SM-Angry.png";
+            default:
+                return null;
+        }
+    }
+
+    private String getMoodReasonIcon() {
+        CreatureMood mood = getEntity().get(CreatureMood.class);
+        if (mood != null && getMoodState() > 0
+                && mood.getDominantReason() == CreatureMood.REASON_NO_LAIR) {
+            return "Textures/GUI/moods/SJ-Rest.png";
+        }
+        return null;
     }
 
     private String getStatusIcon() {
