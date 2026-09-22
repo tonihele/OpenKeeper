@@ -33,19 +33,21 @@ class MinimapCoordinatesTest {
     }
 
     @Test
-    void cameraYawRadiansIsZeroFacingPositiveZ() {
+    void cameraYawRadiansFacingPositiveZIsPiAfterTheConfirmedZeroPointCorrection() {
         Camera camera = new Camera(800, 600);
         camera.setLocation(Vector3f.ZERO);
         camera.lookAtDirection(Vector3f.UNIT_Z, Vector3f.UNIT_Y);
-        assertEquals(0f, MinimapCoordinates.cameraYawRadians(camera), 1e-5f);
+        // atan2(0,1) = 0, plus the PI correction confirmed against the
+        // running game (see MinimapCoordinates' javadoc).
+        assertEquals(FastMath.PI, MinimapCoordinates.cameraYawRadians(camera), 1e-5f);
     }
 
     @Test
-    void cameraYawRadiansIsQuarterTurnFacingPositiveX() {
+    void cameraYawRadiansFacingPositiveXIsThreeQuarterTurnAfterTheZeroPointCorrection() {
         Camera camera = new Camera(800, 600);
         camera.setLocation(Vector3f.ZERO);
         camera.lookAtDirection(Vector3f.UNIT_X, Vector3f.UNIT_Y);
-        assertEquals(FastMath.HALF_PI, MinimapCoordinates.cameraYawRadians(camera), 1e-5f);
+        assertEquals(FastMath.HALF_PI + FastMath.PI, MinimapCoordinates.cameraYawRadians(camera), 1e-5f);
     }
 
 }

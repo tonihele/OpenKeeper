@@ -8,6 +8,7 @@
  */
 package toniarts.openkeeper.view.minimap;
 
+import com.jme3.math.FastMath;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.scene.VertexBuffer.Type;
@@ -84,6 +85,54 @@ class MinimapOctagonTest {
         // the vertical axis was actually mirrored, not the horizontal one.
         assertEquals(0.5f, uvs.get(2 * 2), 1e-4f); // 0.5 + 0.5*cos(pi/2)
         assertEquals(0f, uvs.get(2 * 2 + 1), 1e-4f); // 0.5 - 0.5*sin(pi/2)
+    }
+
+    @Test
+    void updateUvAtZeroYawMatchesBuildsOwnInitialUv() {
+        Mesh mesh = MinimapOctagon.build(10f, 20f, 5f);
+        FloatBuffer before = (FloatBuffer) mesh.getBuffer(Type.TexCoord).getData();
+        float[] beforeValues = new float[16];
+        before.rewind();
+        before.get(beforeValues);
+
+        MinimapOctagon.updateUv(mesh, 0f);
+
+        FloatBuffer after = (FloatBuffer) mesh.getBuffer(Type.TexCoord).getData();
+        float[] afterValues = new float[16];
+        after.rewind();
+        after.get(afterValues);
+        assertEquals(java.util.Arrays.toString(beforeValues), java.util.Arrays.toString(afterValues));
+    }
+
+    @Test
+    void updateUvDoesNotTouchPositionsOrIndices() {
+        Mesh mesh = MinimapOctagon.build(10f, 20f, 5f);
+        FloatBuffer positionsBefore = (FloatBuffer) mesh.getBuffer(Type.Position).getData();
+        float[] beforeValues = new float[24];
+        positionsBefore.rewind();
+        positionsBefore.get(beforeValues);
+
+        MinimapOctagon.updateUv(mesh, FastMath.HALF_PI);
+
+        FloatBuffer positionsAfter = (FloatBuffer) mesh.getBuffer(Type.Position).getData();
+        float[] afterValues = new float[24];
+        positionsAfter.rewind();
+        positionsAfter.get(afterValues);
+        assertEquals(java.util.Arrays.toString(beforeValues), java.util.Arrays.toString(afterValues));
+    }
+
+    @Test
+    void updateUvRotatesTheSampledAngleByTheGivenYaw() {
+        Mesh mesh = MinimapOctagon.build(10f, 20f, 5f);
+
+        // yaw = pi/2: vertex 0's sampling angle becomes 0 + pi/2 = pi/2,
+        // i.e. the same UV vertex 2 had at yaw 0.
+        MinimapOctagon.updateUv(mesh, FastMath.HALF_PI);
+
+        FloatBuffer uvs = (FloatBuffer) mesh.getBuffer(Type.TexCoord).getData();
+        uvs.rewind();
+        assertEquals(0.5f, uvs.get(0), 1e-4f);
+        assertEquals(0f, uvs.get(1), 1e-4f);
     }
 
 }

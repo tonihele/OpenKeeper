@@ -41,6 +41,7 @@ public final class MinimapView {
     private final Node guiNode;
     private final Texture2D rasterTexture;
     private final ByteBuffer rasterBuffer;
+    private final Mesh octagonMesh;
     private final Geometry octagonGeometry;
 
     public MinimapView(AssetManager assetManager, Node guiNode) {
@@ -62,7 +63,7 @@ public final class MinimapView {
         // Unit octagon (0..1 in both position and UV, since design's
         // identity-UV formula already gives that range) - scaled/positioned
         // every frame in updateLayout() to match the Nifty panel's rect.
-        Mesh octagonMesh = MinimapOctagon.build(0.5f, 0.5f, 0.5f);
+        octagonMesh = MinimapOctagon.build(0.5f, 0.5f, 0.5f);
         octagonGeometry = new Geometry("MinimapOctagon", octagonMesh);
         octagonGeometry.setMaterial(material);
         octagonGeometry.setQueueBucket(RenderQueue.Bucket.Gui);
@@ -104,6 +105,15 @@ public final class MinimapView {
         rasterBuffer.put(rasterBgr);
         rasterBuffer.flip();
         rasterTexture.getImage().setUpdateNeeded();
+    }
+
+    /**
+     * Rewrites the octagon's texture coordinates for the current camera
+     * yaw (design §5.7). Called every rendered frame, independent of the
+     * raster rebuild cadence, since the camera can turn between rebuilds.
+     */
+    public void updateYaw(float yawRadians) {
+        MinimapOctagon.updateUv(octagonMesh, yawRadians);
     }
 
 }

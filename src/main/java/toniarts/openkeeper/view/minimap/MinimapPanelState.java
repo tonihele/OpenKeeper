@@ -39,14 +39,15 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
- * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4/5):
+ * Owns the panel minimap's live raster (minimap_jmonkey.md Steps 4/5/6):
  * builds the colour-class grid, periodically rasterises fit-mode or zoomed
- * geometry depending on the current {@link #zoom} level, and keeps a
+ * geometry depending on the current {@link #zoom} level, rotates the
+ * octagon's UVs every frame to track the camera's yaw, and keeps a
  * {@link MinimapView} overlay positioned over the GameHUD's map panel
  * element in place of the static placeholder image that used to sit there.
  *
  * <p>
- * No camera-yaw rotation, no markers, no click input yet - see
+ * No frustum overlay, no markers, no click input yet - see
  * minimap_jmonkey.md's step ordering for what those later steps add. The
  * rebuild is a brute-force full {@code recomputeRect} on a fixed interval
  * rather than fine-grained per-mutation invalidation (design §3.4's
@@ -125,6 +126,7 @@ public final class MinimapPanelState extends AbstractAppState {
         }
 
         updateLayoutFromHud();
+        updateYaw();
 
         timeSinceLastFitRebuild += tpf;
         timeSinceLastZoomedRebuild += tpf;
@@ -172,7 +174,8 @@ public final class MinimapPanelState extends AbstractAppState {
             MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(), neutralPlayerNumber, rasterBgr);
         } else {
             timeSinceLastZoomedRebuild = 0f;
-            Vector2f cameraTile = getCameraLookAtTile();
+            PlayerCamera camera = getPlayerCamera();
+            Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
             float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
             float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
             MinimapRasteriser.rebuildZoomedMode(grid, assets.getPalette(), assets.rockTextureBgr(),
@@ -181,16 +184,22 @@ public final class MinimapPanelState extends AbstractAppState {
         view.updateRaster(rasterBgr);
     }
 
-    private Vector2f getCameraLookAtTile() {
-        PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
-        if (cameraState == null) {
-            return null;
-        }
-        PlayerCamera camera = cameraState.getCamera();
+    /**
+     * Rewrites the octagon's UVs for the current camera yaw (design §5.7)
+     * - every frame, not tied to the raster rebuild cadence, since the
+     * camera can turn between rebuilds.
+     */
+    private void updateYaw() {
+        PlayerCamera camera = getPlayerCamera();
         if (camera == null) {
-            return null;
+            return;
         }
-        return MinimapCoordinates.worldToTile(camera.getLookAt());
+        view.updateYaw(MinimapCoordinates.cameraYawRadians(camera.getCamera()));
+    }
+
+    private PlayerCamera getPlayerCamera() {
+        PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
+        return cameraState != null ? cameraState.getCamera() : null;
     }
 
     private void updateLayoutFromHud() {

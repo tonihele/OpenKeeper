@@ -51,10 +51,20 @@ public final class MinimapCoordinates {
      * Continuous camera yaw in radians, standing in for the original
      * engine's integer 0..2047 turn value. Derived from the camera's XZ
      * forward direction.
+     *
+     * <p>
+     * The {@code + PI} was added after confirming against the running game
+     * (minimap_jmonkey.md Step 6) that the plain {@code atan2} value put
+     * the minimap content 180 degrees off from the camera's actual facing -
+     * this engine's default camera direction (a level's initial preset
+     * angle) apparently sits opposite {@code atan2}'s own zero reference.
+     * The turning *sense* (which way the octagon UVs move as the camera
+     * turns) is still unverified against the original - design §9 item
+     * 4/5 - only this static zero-point offset has been checked so far.
      */
     public static float cameraYawRadians(Camera camera) {
         Vector3f direction = camera.getDirection();
-        return FastMath.atan2(direction.x, direction.z);
+        return FastMath.atan2(direction.x, direction.z) + FastMath.PI;
     }
 
 }
