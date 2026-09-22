@@ -9,11 +9,13 @@
 package toniarts.openkeeper.view.minimap;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * {@link MinimapAssets#load()} against the real, shipped, converted assets
@@ -25,6 +27,7 @@ class MinimapAssetsTest {
 
     @Test
     void loadsTheRealShippedFilesWithoutError() throws IOException {
+        assumeShippedAssetsExist();
         MinimapAssets assets = MinimapAssets.load();
 
         assertEquals(MinimapAssets.ROCK_TEXTURE_SIZE * MinimapAssets.ROCK_TEXTURE_SIZE * 3,
@@ -33,6 +36,7 @@ class MinimapAssetsTest {
 
     @Test
     void rockTextureBytesAreBgrOrderedMatchingTheSourcePixels() throws IOException {
+        assumeShippedAssetsExist();
         MinimapAssets assets = MinimapAssets.load();
 
         BufferedImage rockImage = readShippedImage("Map-BG.png");
@@ -50,6 +54,7 @@ class MinimapAssetsTest {
 
     @Test
     void rejectsARockTextureThatIsNotExactly128x128() throws IOException {
+        assumeShippedAssetsExist();
         BufferedImage paletteImage = readShippedImage("MapColours.png");
         BufferedImage wrongSizeRock = new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
 
@@ -58,6 +63,7 @@ class MinimapAssetsTest {
 
     @Test
     void shippedPaletteMatchesWhatIsActuallyInTheFile() throws IOException {
+        assumeShippedAssetsExist();
         MinimapAssets assets = MinimapAssets.load();
         int[] argb = assets.getPalette().rawArgb();
 
@@ -75,9 +81,18 @@ class MinimapAssetsTest {
         assertEquals(0xFFE433D3, argb[0x2A]);
     }
 
+    private static void assumeShippedAssetsExist() {
+        assumeTrue(shippedAssetFile("MapColours.png").isFile() && shippedAssetFile("Map-BG.png").isFile(),
+                "assets/Converted/** isn't present in this checkout (generated, not committed) - "
+                + "skipping tests that read the real shipped files");
+    }
+
+    private static File shippedAssetFile(String fileName) {
+        return new File("assets/Converted/Textures/GUI/Map/" + fileName);
+    }
+
     private static BufferedImage readShippedImage(String fileName) throws IOException {
-        java.io.File file = new java.io.File("assets/Converted/Textures/GUI/Map/" + fileName);
-        return javax.imageio.ImageIO.read(file);
+        return javax.imageio.ImageIO.read(shippedAssetFile(fileName));
     }
 
 }
