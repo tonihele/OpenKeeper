@@ -683,52 +683,6 @@ public final class PlayerScreenController implements IPlayerScreenController {
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
-//        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
-//            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
-//        }
-//        state.getCreatureControl().addCreatureListener(new CreatureListener() {
-//
-//            @Override
-//            public void onSpawn(CreatureControl creature) {
-//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                        CreatureCardControl.class);
-//                if (card == null) {
-//                    card = createPlayerCreatureIcon(creature.getCreature(), hud, creaturePanel);// Create
-//                }
-//                card.setTotal(total);
-//            }
-//
-//            @Override
-//            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-//                if (newState == CreatureState.PICKED_UP || oldState == CreatureState.PICKED_UP) {
-//                    int total = 0;
-//                    Set<CreatureControl> c = state.getCreatureControl().getCreatures().get(creature.getCreature());
-//                    for (CreatureControl creatureControl : c) {
-//                        if (creatureControl.getStateMachine().getCurrentState() != CreatureState.PICKED_UP) {
-//                            total++;
-//                        }
-//                    }
-//                    CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                            CreatureCardControl.class);
-//                    card.setTotal(total);
-//                }
-//            }
-//
-//            @Override
-//            public void onDie(CreatureControl creature) {
-//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                        CreatureCardControl.class);
-//                card.setTotal(total);
-//                if (total == 0) {
-//                    card.getElement().markForRemoval(); // Remove
-//                }
-//            }
-//        });
-//        state.getCreatureControl().addWorkerListener(creatureTab.findControl("tab-workers",
-//                WorkerAmountControl.class));
-
         // Rooms
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
