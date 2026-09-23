@@ -160,6 +160,6 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
         if (!(obj instanceof FiveByFiveRotatedController that)) {
             return false;
         }
-        return Objects.equals(maxGold, that.maxGold);
+        return maxGold == that.maxGold;
     }
 }
