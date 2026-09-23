@@ -69,10 +69,8 @@ public final class ClaimLair extends AbstractCapacityCriticalRoomTask {
         EntityId lairId = (EntityId) control.addItem(creature.getEntityId(), getTaskLocation());
         if (lairId != null) {
             creature.setCreatureLair(lairId);
+            executed = true;
         }
-
-        // This is a one timer
-        executed = true;
     }
 
     @Override

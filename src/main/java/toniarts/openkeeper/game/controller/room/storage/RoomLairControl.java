@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -57,7 +58,11 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
         // FIXME: KWD stuff should not be used anymore in this level, all data must be in in-game objects
         Owner owner = entityData.getComponent(creature, Owner.class);
         CreatureComponent creatureComponent = entityData.getComponent(creature, CreatureComponent.class);
-        EntityId object = objectsController.loadObject(kwdFile.getCreature(creatureComponent.creatureId).getLairObjectId(), owner.ownerId, p.x, p.y);
+        Creature creatureDefinition = kwdFile.getCreature(creatureComponent.creatureId);
+        if (creatureDefinition.getLairObjectId() == 0) {
+            return null;
+        }
+        EntityId object = objectsController.loadObject(creatureDefinition.getLairObjectId(), owner.ownerId, p.x, p.y);
         entityData.setComponent(object, new LairBed(creatureComponent.creatureId));
         if (objects == null) {
             objects = new ArrayList<>(1);
