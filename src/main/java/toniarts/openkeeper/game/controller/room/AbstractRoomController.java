@@ -458,20 +458,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        if (!super.equals(obj)) return false;
-
-        AbstractRoomController roomController = (AbstractRoomController) obj;
-        return Objects.equals(entityData, roomController.entityData)
-                && Objects.equals(floorFurniture, roomController.floorFurniture)
-                && Objects.equals(kwdFile, roomController.kwdFile)
-                && Arrays.deepEquals(map, roomController.map)
-                && Objects.equals(roomInstance, roomController.roomInstance)
-                && Objects.equals(objectControls, roomController.objectControls)
-                && Objects.equals(objectsController, roomController.objectsController)
-                && Objects.equals(pillars, roomController.pillars)
-                && Objects.equals(start, roomController.start)
-                && Objects.equals(wallFurniture, roomController.wallFurniture);
+        if (!(obj instanceof AbstractRoomInformation that)) {
+            return false;
+        }
+        return Objects.equals(entityId, that.entityId);
     }
 }
