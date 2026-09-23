@@ -57,6 +57,11 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     @Override
+    public boolean isDungeonHeart() {
+        return true;
+    }
+
+    @Override
     public void destroy() {
         super.destroy();
 

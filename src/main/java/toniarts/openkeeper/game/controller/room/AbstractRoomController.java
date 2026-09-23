@@ -302,6 +302,16 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         return getRoomComponent().destroyed;
     }
 
+    /**
+     * Only {@link FiveByFiveRotatedController} is a Dungeon Heart. Answered
+     * from the type rather than the {@code DungeonHeart} component, so no
+     * component lookup is needed
+     */
+    @Override
+    public boolean isDungeonHeart() {
+        return false;
+    }
+
     private RoomComponent getRoomComponent() {
         return getEntityComponent(RoomComponent.class);
     }
