@@ -219,10 +219,11 @@
                     <!--The map-->
                     <panel height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
                         <panel padding="10px" childLayout="center">
+                            <panel id="minimapImage" valign="center" width="180px" height="180px"/>
                             <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
                         </panel>
                         <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
-                               imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
+                                   imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
                             <!-- Query pointer -->
                             <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
                                 <interact onClick="playButtonSound(GUI_BUTTON_DEFAULT)"/>
@@ -259,9 +260,9 @@
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
-                            <!-- mag magnifier -->
+                            <!-- Resize Map left click zooms in, right click zooms out. -->
                             <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
-                                <interact onClick="playButtonSound(GUI_BUTTON_ZOOM)"/>
+                                <interact onClick="resizeMap()" onSecondaryClick="resizeMapDown()"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->

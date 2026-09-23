@@ -22,6 +22,7 @@ import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
@@ -33,11 +34,7 @@ import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 import java.lang.System.Logger.Level;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -57,11 +54,14 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
     private final Map<EntityId, EntityId> roomByRoomCatalog = new HashMap<>();
 
     private final EntitySet roomCatalogs;
+    private final EntitySet dungeonHearts;
+    private final Set<EntityId> dungeonHeartIds = new HashSet<>();
 
     public MapRoomContainer(EntityData entityData, IKwdFile kwdFile) {
         super(entityData, RoomComponent.class, Owner.class, Health.class);
 
         roomCatalogs = entityData.getEntities(Storage.class);
+        dungeonHearts = entityData.getEntities(DungeonHeart.class);
     }
 
     @Override
@@ -124,6 +124,12 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             addCatalogs(roomCatalogs.getAddedEntities());
         }
 
+        // And the dungeon heart markers
+        if (dungeonHearts.applyChanges()) {
+            dungeonHearts.getRemovedEntities().forEach(e -> dungeonHeartIds.remove(e.getId()));
+            dungeonHearts.getAddedEntities().forEach(e -> dungeonHeartIds.add(e.getId()));
+        }
+
         return changes;
     }
 
@@ -133,6 +139,9 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
         roomCatalogs.applyChanges();
         addCatalogs(roomCatalogs);
+
+        dungeonHearts.applyChanges();
+        dungeonHearts.forEach(e -> dungeonHeartIds.add(e.getId()));
     }
 
     @Override
@@ -143,6 +152,9 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         roomCatalogsByRoom.clear();
         storageTypeByRoomCatalog.clear();
         roomByRoomCatalog.clear();
+
+        dungeonHearts.release();
+        dungeonHeartIds.clear();
 
         super.stop();
     }
@@ -194,6 +206,15 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             return entity.get(type);
         }
 
+        /**
+         * The container entity only carries RoomComponent, Owner and Health,
+         * so DungeonHeart is tracked through a separate entity set
+         */
+        @Override
+        public boolean isDungeonHeart() {
+            return dungeonHeartIds.contains(getEntityId());
+        }
+
         @Override
         public int getMaxCapacity(AbstractRoomController.ObjectType objectType) {
             return getStorageValueIfExists(objectType, (storage) -> storage.maxCapacity);
@@ -213,6 +234,20 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             return getValue.apply(storageEntity.get(Storage.class));
         }
 
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            if (!super.equals(obj)) return false;
+
+            RoomInformation roomInfo = (RoomInformation) obj;
+            return Objects.equals(entity, roomInfo.entity);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * super.hashCode() + Objects.hashCode(entity);
+        }
     }
 
 }
