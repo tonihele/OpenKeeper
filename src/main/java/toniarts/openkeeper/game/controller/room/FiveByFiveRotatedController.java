@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.Map;
+import java.util.Objects;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.ImpGenerator;
@@ -154,4 +155,11 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
         entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, Double.MIN_VALUE));
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof FiveByFiveRotatedController that)) {
+            return false;
+        }
+        return Objects.equals(maxGold, that.maxGold);
+    }
 }
