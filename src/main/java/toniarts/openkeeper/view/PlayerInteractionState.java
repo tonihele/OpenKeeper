@@ -74,6 +74,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
@@ -116,6 +117,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isTaggable = false;
     private boolean isOnMap = false;
     private boolean isInteractable = false;
+
+    /**
+     * Counts down while the one-shot slap cursor animation
+     * ({@link CursorFactory.CursorType#SLAP}) plays after a creature/chicken
+     * is slapped, so the cursor can revert to normal once it has finished
+     * instead of staying on the slap cursor.
+     */
+    private float slapCursorTimeRemaining = 0f;
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
@@ -218,6 +227,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         selectionHandler.update(mousePosition);
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
+        }
+
+        if (slapCursorTimeRemaining > 0) {
+            slapCursorTimeRemaining -= tpf;
+            if (slapCursorTimeRemaining <= 0) {
+                slapCursorTimeRemaining = 0;
+                updateCursor();
+            }
         }
 
 //        updateStateFlags();
@@ -473,7 +490,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     protected void updateCursor() {
         keeperHandState.setVisible(false);
         if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
-            if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
+            if (slapCursorTimeRemaining > 0) {
+
+                // Play the slap reaction once, then fall through to normal cursor logic
+                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.SLAP, assetManager));
+            } else if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
             } else if (selectionHandler.isActive() && isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
@@ -652,8 +673,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                        keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
 //                        updateCursor();
 //                    }
-                } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
+                } else if (interactiveControl != null && interactiveControl.isSlappable(player.getPlayerId())) {
 //                    getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
+                    gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
+                    interactiveControl.slap(player.getPlayerId());
+                    stateManager.getState(EffectManagerState.class).load(
+                            (Node) interactiveControl.getSpatial().getParent(),
+                            interactiveControl.getSpatial().getWorldTranslation(),
+                            interactiveControl.getSlapEffectId(player.getPlayerId()), false, interactiveControl.getOwnerId());
+
+                    // Flash the slap cursor once; the updateCursor() call below
+                    // picks it up, and update(tpf) reverts it once it elapses
+                    slapCursorTimeRemaining = CursorFactory.getAnimationDuration(CursorFactory.CursorType.SLAP, assetManager);
+                } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                     interactiveControl.interact(player.getPlayerId());
                 } else if (Main.isDebug()) {

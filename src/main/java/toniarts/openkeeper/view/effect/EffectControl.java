@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.effect;
 
 import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
@@ -31,14 +32,20 @@ import java.lang.System.Logger;
  * @author ArchDemon
  */
 public abstract class EffectControl extends AbstractControl {
-    
+
     private static final Logger log = System.getLogger(EffectControl.class.getName());
-    
+
+    /**
+     * Conversion from the file's mass unit (float32, 4096 = 1.0) to
+     * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
+     * velocity fixed-point precision difference (16x).
+     */
+    private static final float GRAVITY_FACTOR = 25f;
+
     private Effect effect;
 
     private float hpCurrent;
     private float hp;
-    private float height;
     private FloatLimit scale;
     private float scaleRatio;
     private Vector3f velocity;
@@ -56,10 +63,9 @@ public abstract class EffectControl extends AbstractControl {
     }
 
     private void initiazize() {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMaxHp(), effect.getMaxHp());
+        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
-        height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
 
         if (effect.getFlags().contains(Effect.EffectFlag.SHRINK)) {
             scale = new FloatLimit(effect.getMaxScale(), effect.getMaxScale(), effect.getMinScale());
@@ -103,6 +109,96 @@ public abstract class EffectControl extends AbstractControl {
 //        return result;
 //    }
 
+    /**
+     * A random offset within the effect's spawn annulus/height band
+     * ({@code innerOriginRange}/{@code outerOriginRange},
+     * {@code lowerHeightLimit}/{@code upperHeightLimit}), used to scatter
+     * individually generated elements around the emission point instead of
+     * stacking them all at the same spot (a {@code CUBE_GEN} burst
+     */
+    public static Vector3f randomOriginOffset(Effect effect) {
+        float rMin = effect.getInnerOriginRange() * 23f / 4096f;
+        float rMax = effect.getOuterOriginRange() * 23f / 4096f;
+        float r = rMin + FastMath.nextRandomFloat() * (rMax - rMin);
+        float h = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+        float zMin = effect.getLowerHeightLimit() * 16f / 4096f;
+        float zMax = effect.getUpperHeightLimit() * 16f / 4096f;
+        float z = zMin + FastMath.nextRandomFloat() * (zMax - zMin);
+        return new Vector3f(-(float) Math.sin(h) * r, z, (float) Math.cos(h) * r);
+    }
+
+    /**
+     * A random value in the file's tick/turn unit, {@code range*4}
+     * peak-to-peak about zero (matches {@code spriteSpinRateRange} 32 ->
+     * ±128 and {@code orientationRange} 255 -> ±1020
+     */
+    public static float randomSpread(int range) {
+        float r = range * 8f;
+        return r == 0 ? 0f : FastMath.nextRandomFloat() * r - r / 2f;
+    }
+
+    /**
+     * A random per-axis spin rate in rad/s, converted from the file's
+     * 2048-per-turn, per-tick {@code spriteSpinRateRange} via the 20 Hz
+     * effect clock.
+     */
+    public static float randomSpinRate(int spinRateRange) {
+        return randomSpread(spinRateRange) * FastMath.TWO_PI / 2048f * 20f;
+    }
+
+    /**
+     * A random one-shot facing from the effect's {@code orientationRange}
+     * (2048-per-turn unit), rolled independently on all three axes and
+     * applied once at spawn.
+     */
+    public static Quaternion randomOrientation(int orientationRange) {
+        if (orientationRange == 0) {
+            return Quaternion.IDENTITY;
+        }
+        float toRad = FastMath.TWO_PI / 2048f;
+        return new Quaternion().fromAngles(
+                randomSpread(orientationRange) * toRad,
+                randomSpread(orientationRange) * toRad,
+                randomSpread(orientationRange) * toRad);
+    }
+
+    /**
+     * Distance (tile) where the reference tangential speed is set
+     */
+    private static final float WHIRLPOOL_REF_D_TILE = 0.0884f;
+    /**
+     * Angular speed (1/2048-turn-per-tick, same unit as the file's rate
+     * field) per unit whirlpoolRate at WHIRLPOOL_REF_D_TILE
+     */
+    private static final float WHIRLPOOL_REF_ANGLE_PER_RATE = 8f;
+    private static final float WHIRLPOOL_ANGLE_UNITS_PER_TURN = 2048f;
+    private static final float WHIRLPOOL_ANGLE_CLAMP = 1024f;
+
+    /**
+     * The position-only impulse from the effect's whirlpool: for an element
+     * at horizontal offset (dx, dz) from the effect's own origin, how far
+     * its position should shift this frame, spiralling it around that
+     * origin. Velocity, facing and spin are left untouched - callers add the
+     * result directly to a position.
+     */
+    public static Vector3f whirlpoolDelta(int whirlpoolRate, float dx, float dz, float tpf) {
+        byte rate = (byte) whirlpoolRate; // editor value is a signed byte; 128..255 = reverse direction
+        if (rate == 0) {
+            return new Vector3f();
+        }
+        float dTile = FastMath.sqrt(dx * dx + dz * dz);
+        if (dTile <= 0f) {
+            return new Vector3f(); // no direction to rotate a zero-length offset in
+        }
+        float thetaRefTicks = rate * WHIRLPOOL_REF_ANGLE_PER_RATE;
+        float thetaTicks = FastMath.clamp(thetaRefTicks * WHIRLPOOL_REF_D_TILE / Math.max(dTile, WHIRLPOOL_REF_D_TILE),
+                -WHIRLPOOL_ANGLE_CLAMP, WHIRLPOOL_ANGLE_CLAMP);
+        float thetaFrame = thetaTicks * FastMath.TWO_PI / WHIRLPOOL_ANGLE_UNITS_PER_TURN * 20f * tpf;
+        float cos = FastMath.cos(thetaFrame);
+        float sin = FastMath.sin(thetaFrame);
+        return new Vector3f(dx * cos - dz * sin - dx, 0, dx * sin + dz * cos - dz);
+    }
+
     @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
@@ -136,21 +232,16 @@ public abstract class EffectControl extends AbstractControl {
 
         if (velocity != Vector3f.ZERO) {
             Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity.mult(tpf));
-            if (location.y > height) {
-                location.y = height;
-            }
             spatial.setLocalTranslation(location);
             //System.out.println(location);
         }
 
         if (effect.getAirFriction() != 0) {
-            velocity.x -= effect.getAirFriction() * tpf;
-            velocity.y -= effect.getAirFriction() * tpf;
-            velocity.z -= effect.getAirFriction() * tpf;
+            velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
         }
 
         if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * tpf;
+            velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
         }
 
         if (isHit()) {
@@ -160,8 +251,7 @@ public abstract class EffectControl extends AbstractControl {
             spatial.removeControl(this);
         }
 
-        //hpCurrent -= 1.0f / 4; // FIXME
-        hpCurrent -= tpf * 4; // FIXME
+        hpCurrent -= tpf;
         if (hpCurrent <= 0) {
             onDie(spatial.getLocalTranslation());
             spatial.removeFromParent();
