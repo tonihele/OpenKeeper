@@ -26,19 +26,28 @@ import com.simsilica.es.EntityId;
  */
 public final class CreatureSleep implements EntityComponent {
 
+    private static final int RUNTIME_SLEEP_SCALE = 4;
+
     public EntityId lairObjectId;
+    /** Time at which DKII last latched a new sleep debt. */
     public double lastSleepTime;
     public double sleepStartTime;
+    /** Remaining native sleep updates. */
+    public int sleepNeed;
 
     public CreatureSleep() {
         // For serialization
     }
 
-    public CreatureSleep(EntityId lairObjectId, double lastSleepTime, double sleepStartTime) {
+    public CreatureSleep(EntityId lairObjectId, double lastSleepTime, double sleepStartTime, int sleepNeed) {
         this.lairObjectId = lairObjectId;
         this.lastSleepTime = lastSleepTime;
         this.sleepStartTime = sleepStartTime;
+        this.sleepNeed = sleepNeed;
     }
 
+    public static int toRuntimeSleepNeed(int authoredTimeSleep) {
+        return authoredTimeSleep * RUNTIME_SLEEP_SCALE;
+    }
 
 }
