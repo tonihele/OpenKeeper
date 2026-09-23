@@ -35,7 +35,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
  * The marker overlay drawn into the raster after the tile colours, before
- * upload. Owns the creature/door/trap {@code EntitySet}s for the life of
+ * upload. Owns the creature/door/trap/in-hand {@code EntitySet}s for the life of
  * the session ({@link #update()} must be called once a frame before
  * {@link #paint}; {@link #dispose()} releases them).
  */
@@ -46,21 +46,21 @@ public final class MinimapMarkerPainter {
 
     private static final int BLACK = 0xFF000000;
 
-    private final EntityData entityData;
     private final MinimapPalette palette;
     private final short viewerId;
 
     private final EntitySet creatures;
     private final EntitySet doors;
     private final EntitySet traps;
+    private final EntitySet inHand;
 
     public MinimapMarkerPainter(EntityData entityData, MinimapPalette palette, short viewerId) {
-        this.entityData = entityData;
         this.palette = palette;
         this.viewerId = viewerId;
         creatures = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
         doors = entityData.getEntities(Position.class, Owner.class, DoorComponent.class);
         traps = entityData.getEntities(Position.class, Owner.class, TrapComponent.class);
+        inHand = entityData.getEntities(InHand.class);
     }
 
     /**
@@ -70,12 +70,14 @@ public final class MinimapMarkerPainter {
         creatures.applyChanges();
         doors.applyChanges();
         traps.applyChanges();
+        inHand.applyChanges();
     }
 
     public void dispose() {
         creatures.release();
         doors.release();
         traps.release();
+        inHand.release();
     }
 
     /**
@@ -143,8 +145,8 @@ public final class MinimapMarkerPainter {
             Position position = e.get(Position.class);
             boolean own = owner.ownerId == viewerId;
             if (own) {
-                if (entityData.getComponent(e.getId(), InHand.class) != null) {
-                    continue; // not in hand
+                if (inHand.containsId(e.getId())) {
+                    continue; // in hand, not on the map
                 }
             } else {
                 Point tile = WorldUtils.vectorToPoint(position.position);
