@@ -20,12 +20,9 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
@@ -461,6 +458,19 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     
     @Override
     public boolean equals(Object obj) {
-        return super.equals(obj);
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        if (!super.equals(obj)) return false;
+        AbstractRoomController roomController = (AbstractRoomController) obj;
+        return Objects.equals(entityData, roomController.entityData)
+                && Objects.equals(floorFurniture, roomController.floorFurniture)
+                && Objects.equals(kwdFile, roomController.kwdFile)
+                && Arrays.deepEquals(map, roomController.map)
+                && Objects.equals(roomInstance, roomController.roomInstance)
+                && Objects.equals(objectControls, roomController.objectControls)
+                && Objects.equals(objectsController, roomController.objectsController)
+                && Objects.equals(pillars, roomController.pillars)
+                && Objects.equals(start, roomController.start)
+                && Objects.equals(wallFurniture, roomController.wallFurniture);
     }
 }
