@@ -461,6 +461,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         if (!super.equals(obj)) return false;
+
         AbstractRoomController roomController = (AbstractRoomController) obj;
         return Objects.equals(entityData, roomController.entityData)
                 && Objects.equals(floorFurniture, roomController.floorFurniture)

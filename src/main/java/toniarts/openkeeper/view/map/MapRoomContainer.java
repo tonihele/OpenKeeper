@@ -33,11 +33,7 @@ import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 import java.lang.System.Logger.Level;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -211,6 +207,16 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             }
 
             return getValue.apply(storageEntity.get(Storage.class));
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            if (!super.equals(obj)) return false;
+
+            RoomInformation roomInfo = (RoomInformation) obj;
+            return Objects.equals(entity, roomInfo.entity);
         }
     }
 
