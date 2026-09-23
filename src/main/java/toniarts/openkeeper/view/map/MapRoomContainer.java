@@ -218,6 +218,11 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             RoomInformation roomInfo = (RoomInformation) obj;
             return Objects.equals(entity, roomInfo.entity);
         }
+
+        @Override
+        public int hashCode() {
+            return 31 * super.hashCode() + Objects.hashCode(entity);
+        }
     }
 
 }
