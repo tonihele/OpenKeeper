@@ -587,7 +587,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
         stateManager.getState(GameClientState.class).setPossessedCreature(target);
 
-        screen.goToScreen(PlayerScreenController.SCREEN_POSSESSION_ID);
+        screen.goToScreen(IPlayerScreenController.SCREEN_POSSESSION_ID);
     }
 
 }
