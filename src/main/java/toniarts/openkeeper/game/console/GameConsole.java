@@ -47,10 +47,20 @@ public final class GameConsole {
      * These Commands need at least one parameter to work
      */
     private enum ParameterCommands {
-        ADD_GOLD,
-        ADD_MANA,
-        SPAWN_CREATURE,
-        SPAWN_IMPS;
+        ADD_GOLD("<amount>"),
+        ADD_MANA("<amount>"),
+        SPAWN_CREATURE("<name> [level] [amount]"),
+        SPAWN_IMPS("<amount>");
+
+        final String param;
+
+        private ParameterCommands(final String param) {
+            this.param = param;
+        }
+
+        public String getParam() {
+            return this.param;
+        }
     };
 
     /**
@@ -259,7 +269,7 @@ public final class GameConsole {
 
         for (ParameterCommands parameterCmd : ParameterCommands.values()) {
             outputText.append("    ");
-            outputText.append(parameterCmd.toString().toLowerCase().concat(" <PARAMETER>"));
+            outputText.append(parameterCmd.toString().toLowerCase().concat(" ").concat(parameterCmd.getParam()));
             outputText.append("\n");
         }
 
