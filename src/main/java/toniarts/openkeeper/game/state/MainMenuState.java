@@ -149,6 +149,11 @@ public final class MainMenuState extends AbstractAppState {
      */
     private void loadMenuScene(final SingleBarLoadingState loadingScreen, final AssetManager assetManager,
             final Main app) throws IOException {
+        // On the direct startup path this runs from the constructor, before the
+        // state is attached and initialize() sets this field, yet refreshCampaignMap()
+        // below already needs it
+        this.assetManager = assetManager;
+
         // Load the 3D Front end
         frontEndKwd = KwdFile.load("FrontEnd3DLevel");
         if (loadingScreen != null) {
@@ -180,6 +185,11 @@ public final class MainMenuState extends AbstractAppState {
 
         };
         menuNode.attachChild(mapLoader.load(assetManager, frontEndKwd));
+
+        // Reflect current campaign progress (playable levels / arrow wiring) as soon
+        // as the menu scene exists, not only on first visit to selectCampaignLevel.
+        refreshCampaignMap();
+
         if (loadingScreen != null) {
             loadingScreen.setProgress(1.0f);
         }
@@ -566,6 +576,7 @@ public final class MainMenuState extends AbstractAppState {
             menuNode.depthFirstTraversal(spatial -> {
                 if ("Map".equals(spatial.getName()) && spatial instanceof com.jme3.scene.Node mapNode) {
                     HeroGateFrontEndConstructor.applyCampaignProgression(mapNode);
+                    HeroGateFrontEndConstructor.applyProgressTextures(mapNode, assetManager);
                 }
             });
         }
