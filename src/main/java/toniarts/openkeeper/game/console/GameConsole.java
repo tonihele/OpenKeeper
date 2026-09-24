@@ -132,15 +132,13 @@ public final class GameConsole {
                 case HELP:
                     showHelpMessage();
                     break;
-                case LOOSE_LEVEL:
-                    // TODO
-                    break;
                 case SPAWN_IMP:
                     spawnImp();
                     break;
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
                     break;
+                case LOOSE_LEVEL:
                 case LEVEL_MAX:
                 case UNLOCK_ROOMS:
                 case UNLOCK_SPELLS:
