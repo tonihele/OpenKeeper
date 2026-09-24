@@ -627,6 +627,27 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void triggerSpawnCreatureCheat(short creatureId, int level, int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSpawnCreatureCheatTriggered(creatureId, level, amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void endPossession() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onEndPossession(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onCastKeeperSpell(keeperSpellId, target, tile, position, clientInfo.getKeeper().getId());

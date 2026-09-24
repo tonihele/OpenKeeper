@@ -21,6 +21,11 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
@@ -28,6 +33,7 @@ import java.lang.System.Logger.Level;
 import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -35,12 +41,15 @@ import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -368,6 +377,61 @@ public final class GameServerState extends AbstractAppState {
                 default:
                     logger.log(Level.INFO, "Cheat {0} not implemented!", cheat);
             }
+        }
+
+        @Override
+        public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
+            if (isMultiplayer()) {
+                return; // No! Bad!
+            }
+
+            IRoomController dungeonHeart = game.getGameController().getPlayerController(playerId).getRoomControl().getDungeonHeart();
+            if (!(dungeonHeart instanceof ICreatureEntrance entrance)) {
+                logger.log(Level.WARNING, "Player {0} has no dungeon heart to spawn creatures at!", playerId);
+                return;
+            }
+
+            Point entranceCoordinate = entrance.getEntranceCoordinate();
+            Vector2f position = new Vector2f(entranceCoordinate.x, entranceCoordinate.y);
+            int creatureLevel = Math.clamp(level, 1, Utils.MAX_CREATURE_LEVEL);
+            for (int i = 0; i < amount; i++) {
+                gameWorldController.getCreaturesController().spawnCreature(creatureId, playerId, creatureLevel, position, ICreaturesController.SpawnType.PLACE);
+            }
+        }
+
+        @Override
+        public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
+            EntityId possessed = getPossessedCreature(playerId);
+            if (possessed == null) {
+                return;
+            }
+
+            Creature.Attributes attributes = gameWorldController.getCreaturesController().createController(possessed).getCreature().getAttributes();
+            float speed = switch (speedMode) {
+                case PossessedMovement.SPEED_RUN -> attributes.getRunSpeed();
+                case PossessedMovement.SPEED_CREEP -> attributes.getShuffleSpeed();
+                default -> attributes.getSpeed();
+            };
+            Vector2f normalizedDirection = direction.lengthSquared() > 0 ? direction.normalize() : new Vector2f();
+            gameService.getEntityData().setComponent(possessed, new PossessedMovement(normalizedDirection, rotation, speed));
+        }
+
+        @Override
+        public void onEndPossession(short playerId) {
+            EntityId possessed = getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+            }
+        }
+    }
+
+    @Nullable
+    private EntityId getPossessedCreature(short playerId) {
+        EntitySet possessed = gameService.getEntityData().getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
+        try {
+            return possessed.isEmpty() ? null : possessed.iterator().next().getId();
+        } finally {
+            possessed.release();
         }
     }
 

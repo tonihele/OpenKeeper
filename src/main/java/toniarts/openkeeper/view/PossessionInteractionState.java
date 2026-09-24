@@ -28,11 +28,13 @@ import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Vector2f;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.view.PossessionCameraControl.Direction;
 
 /**
@@ -85,35 +87,72 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
 
+        if (!isInitialized()) {
+            return;
+        }
+
         inputManager.setCursorVisible(!enabled);
 
         if (enabled) {
             changeAction(Action.MELEE);
             app.getInputManager().addRawInputListener(inputListener);
 
-            PossessionCameraControl pcc = new PossessionCameraControl(app.getCamera(), Direction.ENTRANCE) {
-                @Override
-                public void onExit() {
-                    stateManager.getState(PossessionCameraState.class).setEnabled(true);
-                }
-            };
-            //target.getSpatial().addControl(pcc);
+            // Fly into the creature, then hand over to the first person camera
+            Spatial spatial = getTargetSpatial();
+            if (spatial == null) {
+                stateManager.getState(PossessionCameraState.class).setEnabled(true);
+            } else {
+                removeCameraControls(spatial);
+                spatial.addControl(new PossessionCameraControl(app.getCamera(), Direction.ENTRANCE) {
+                    @Override
+                    public void onExit() {
+                        if (PossessionInteractionState.this.isEnabled()) {
+                            stateManager.getState(PossessionCameraState.class).setEnabled(true);
+                        }
+                    }
+                });
+            }
         } else {
+            Spatial spatial = getTargetSpatial();
             stateManager.getState(PossessionCameraState.class).setEnabled(false);
             app.getInputManager().removeRawInputListener(inputListener);
 
+            // Fly out of the creature back to the keeper view above it
             PlayerCamera pc = stateManager.getState(PlayerCameraState.class).getCamera();
             pc.initialize();
-            //pc.setLookAt(target.getSpatial().getLocalTranslation());
-            PossessionCameraControl pcc = new PossessionCameraControl(app.getCamera(), Direction.EXIT) {
-                @Override
-                public void onExit() {
-                    PossessionInteractionState.this.onExit();
-                }
-            };
-            //target.getSpatial().addControl(pcc);
+            if (spatial == null) {
+                onExit();
+            } else {
+                pc.setLookAt(spatial.getWorldTranslation());
+                removeCameraControls(spatial);
+                spatial.addControl(new PossessionCameraControl(app.getCamera(), Direction.EXIT) {
+                    @Override
+                    public void onExit() {
+                        PossessionInteractionState.this.onExit();
+                    }
+                });
+            }
             target = null;
         }
+    }
+
+    private static void removeCameraControls(Spatial spatial) {
+        PossessionCameraControl control;
+        while ((control = spatial.getControl(PossessionCameraControl.class)) != null) {
+            spatial.removeControl(control);
+        }
+    }
+
+    /**
+     * The model of the possessed creature, if it is still in the scene
+     */
+    private Spatial getTargetSpatial() {
+        if (target == null) {
+            return null;
+        }
+        PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+        Spatial spatial = entityViewState != null ? entityViewState.getEntitySpatial(target) : null;
+        return spatial != null && spatial.getParent() != null ? spatial : null;
     }
 
     @Override
@@ -182,7 +221,9 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
                 if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
                     // attack
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
-                    setEnabled(false);
+
+                    // The server tells us when the possession has ended
+                    stateManager.getState(GameClientState.class).getGameClientService().endPossession();
                 }
             }
 
