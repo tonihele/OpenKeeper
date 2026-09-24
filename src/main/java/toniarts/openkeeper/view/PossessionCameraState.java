@@ -270,6 +270,26 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private void sendMovement(float tpf) {
         timeSinceSend += tpf;
 
+        Vector2f direction = computeMovementDirection();
+        float rotation = getFacing();
+        byte speedMode = getSpeedMode();
+
+        boolean changed = hasMovementChanged(direction, speedMode);
+        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD;
+        if (changed || (rotated && timeSinceSend >= ROTATION_SEND_INTERVAL)) {
+            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, speedMode);
+            sentDirection.set(direction);
+            sentRotation = rotation;
+            sentSpeedMode = speedMode;
+            timeSinceSend = 0;
+        }
+    }
+
+    /**
+     * The camera-relative movement direction from the current input state,
+     * normalized
+     */
+    private Vector2f computeMovementDirection() {
         Camera cam = app.getCamera();
         Vector2f forward = new Vector2f(cam.getDirection().x, cam.getDirection().z);
         Vector2f left = new Vector2f(cam.getLeft().x, cam.getLeft().z);
@@ -281,26 +301,40 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         }
 
         Vector2f direction = new Vector2f();
-        direction.addLocal(forward.mult((moveForward ? 1 : 0) - (moveBackward ? 1 : 0)));
-        direction.addLocal(left.mult((moveLeft ? 1 : 0) - (moveRight ? 1 : 0)));
+        direction.addLocal(forward.mult(axisValue(moveForward, moveBackward)));
+        direction.addLocal(left.mult(axisValue(moveLeft, moveRight)));
         if (direction.lengthSquared() > 0) {
             direction.normalizeLocal();
         }
+        return direction;
+    }
 
-        float rotation = getFacing();
-        byte speedMode = run ? PossessedMovement.SPEED_RUN : creep ? PossessedMovement.SPEED_CREEP : PossessedMovement.SPEED_WALK;
-        boolean moving = direction.lengthSquared() > 0;
-        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD;
-        boolean changed = speedMode != sentSpeedMode
-                || (moving != (sentDirection.lengthSquared() > 0))
-                || (moving && direction.distanceSquared(sentDirection) > ROTATION_SEND_THRESHOLD * ROTATION_SEND_THRESHOLD);
-        if (changed || (rotated && timeSinceSend >= ROTATION_SEND_INTERVAL)) {
-            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, speedMode);
-            sentDirection.set(direction);
-            sentRotation = rotation;
-            sentSpeedMode = speedMode;
-            timeSinceSend = 0;
+    private static float axisValue(boolean positive, boolean negative) {
+        return (positive ? 1 : 0) - (negative ? 1 : 0);
+    }
+
+    private byte getSpeedMode() {
+        if (run) {
+            return PossessedMovement.SPEED_RUN;
         }
+        return creep ? PossessedMovement.SPEED_CREEP : PossessedMovement.SPEED_WALK;
+    }
+
+    /**
+     * Whether the direction or speed mode differ enough from what was last
+     * sent to the server to warrant an update
+     */
+    private boolean hasMovementChanged(Vector2f direction, byte speedMode) {
+        if (speedMode != sentSpeedMode) {
+            return true;
+        }
+
+        boolean moving = direction.lengthSquared() > 0;
+        if (moving != (sentDirection.lengthSquared() > 0)) {
+            return true;
+        }
+
+        return moving && direction.distanceSquared(sentDirection) > ROTATION_SEND_THRESHOLD * ROTATION_SEND_THRESHOLD;
     }
 
     /**
