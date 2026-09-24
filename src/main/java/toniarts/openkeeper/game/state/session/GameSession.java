@@ -154,6 +154,16 @@ public interface GameSession {
     public void triggerCheat(CheatState.CheatType cheat);
 
     /**
+     * Trigger a cheat that spawns creatures at the player's dungeon heart
+     *
+     * @param creatureId the creature to spawn
+     * @param level the creature level
+     * @param amount how many creatures to spawn
+     */
+    @Asynchronous
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount);
+
+    /**
      * Cast a keeper spell
      *
      * @param keeperSpellId the spell to cast

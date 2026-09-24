@@ -208,6 +208,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount) {
+        getDelegate().triggerSpawnCreatureCheat(creatureId, level, amount);
+    }
+
+    @Override
     public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
         getDelegate().castKeeperSpell(keeperSpellId, target, tile, position);
     }

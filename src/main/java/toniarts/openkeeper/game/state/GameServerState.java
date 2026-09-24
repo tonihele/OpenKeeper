@@ -28,6 +28,7 @@ import java.lang.System.Logger.Level;
 import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -35,6 +36,8 @@ import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
@@ -367,6 +370,26 @@ public final class GameServerState extends AbstractAppState {
                 }
                 default:
                     logger.log(Level.INFO, "Cheat {0} not implemented!", cheat);
+            }
+        }
+
+        @Override
+        public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
+            if (isMultiplayer()) {
+                return; // No! Bad!
+            }
+
+            IRoomController dungeonHeart = game.getGameController().getPlayerController(playerId).getRoomControl().getDungeonHeart();
+            if (!(dungeonHeart instanceof ICreatureEntrance entrance)) {
+                logger.log(Level.WARNING, "Player {0} has no dungeon heart to spawn creatures at!", playerId);
+                return;
+            }
+
+            Point entranceCoordinate = entrance.getEntranceCoordinate();
+            Vector2f position = new Vector2f(entranceCoordinate.x, entranceCoordinate.y);
+            int creatureLevel = Math.clamp(level, 1, Utils.MAX_CREATURE_LEVEL);
+            for (int i = 0; i < amount; i++) {
+                gameWorldController.getCreaturesController().spawnCreature(creatureId, playerId, creatureLevel, position, ICreaturesController.SpawnType.PLACE);
             }
         }
     }

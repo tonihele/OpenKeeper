@@ -409,6 +409,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSpawnCreatureCheatTriggered(creatureId, level, amount, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onCastKeeperSpell(keeperSpellId, target, tile, position, PLAYER_ID);

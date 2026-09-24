@@ -148,6 +148,17 @@ public interface GameSessionServiceListener {
     public void onCheatTriggered(CheatState.CheatType cheat, short playerId);
 
     /**
+     * Player has triggered a creature spawning cheat
+     *
+     * @param creatureId the creature to spawn
+     * @param level the creature level
+     * @param amount how many creatures to spawn
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId);
+
+    /**
      * Player wants to cast a spell
      *
      * @param keeperSpellId the spell to cast

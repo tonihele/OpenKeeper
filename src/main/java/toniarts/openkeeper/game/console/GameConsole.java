@@ -166,10 +166,12 @@ public final class GameConsole {
                 return;
             }
 
+            GameClientState gameClientState = stateManager.getState(GameClientState.class);
             switch (ParameterCommands.valueOf(command)) {
                 case ADD_GOLD:
                     try {
                         int amount = Integer.parseInt(args[1]);
+                        gameClientState.getPlayer(keeper.getId()).setGold(amount);
                     } catch (NumberFormatException e) {
                         console.outputError("First parameter must be a number!");
                     }
@@ -177,7 +179,7 @@ public final class GameConsole {
                 case ADD_MANA:
                     try {
                         int amount = Integer.parseInt(args[1]);
-//                        keeper.getManaControl().addMana(amount);
+                        gameClientState.getPlayer(keeper.getId()).setMana(amount);
                     } catch (NumberFormatException e) {
                         console.outputError("First parameter must be a number!");
                     }
@@ -192,25 +194,24 @@ public final class GameConsole {
                     break;
                 case SPAWN_CREATURE:
                     final String name = args[1].replace("_", " ");
-                    short id = 1;
-                    short level = 1;
-                    boolean found = false;
-                    if (args.length > 2) {
-                        try {
-                            level = Short.parseShort(args[2]);
-                        } catch (NumberFormatException e) {
-                            console.outputError("Second parameter must be the creature level!");
+                    int level = 1;
+                    int amount = 1;
+                    try {
+                        if (args.length > 2) {
+                            level = Integer.parseInt(args[2]);
                         }
-                    }
-                    for (Creature creature : creatures) {
-                        if (creature.getName().equalsIgnoreCase(name)) {
-                            spawnCreature(id, level < 10 ? level : 10);
-                            found = true;
+                        if (args.length > 3) {
+                            amount = Integer.parseInt(args[3]);
                         }
-                        id++;
+                    } catch (NumberFormatException e) {
+                        console.outputError("Usage: spawn_creature <name> [level] [amount]");
+                        return;
                     }
-                    if (!found) {
+                    Creature creature = findCreature(name);
+                    if (creature == null) {
                         console.outputError("Creature " + name + " doesn't exist");
+                    } else {
+                        spawnCreature(creature.getCreatureId(), level, amount);
                     }
                     break;
                 default:
@@ -219,19 +220,30 @@ public final class GameConsole {
         }
     }
 
-    private void spawnImps(final int amount) {
-        for (int i = 0; i < amount; i++) {
-            spawnImp();
+    private Creature findCreature(final String name) {
+        for (Creature creature : creatures) {
+            if (creature.getName().equalsIgnoreCase(name)) {
+                return creature;
+            }
         }
+        return null;
+    }
+
+    private void spawnImps(final int amount) {
+        GameClientState gameClientState = stateManager.getState(GameClientState.class);
+        spawnCreature(gameClientState.getLevelData().getImp().getCreatureId(), 1, amount);
     }
 
     private void spawnImp() {
-//        spawnCreature(keeper.getCreatureControl().getImp().getCreatureId(), (short) 1);
+        spawnImps(1);
     }
 
-    private void spawnCreature(short creatureId, short level) {
-//        Vector2f dhEntrance = WorldUtils.pointToVector2f(((ICreatureEntrance) keeper.getRoomControl().getDungeonHeart()).getEntranceCoordinate());
-//        stateManager.getState(WorldState.class).getThingLoader().spawnCreature(creatureId, keeper.getId(), level, dhEntrance, false, null);
+    private void spawnCreature(short creatureId, int level, int amount) {
+        if (amount < 1) {
+            console.outputError("Amount must be at least 1!");
+            return;
+        }
+        stateManager.getState(GameClientState.class).getGameClientService().triggerSpawnCreatureCheat(creatureId, level, amount);
     }
 
     private boolean showHelpMessage() {
