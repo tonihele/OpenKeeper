@@ -89,12 +89,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -1464,4 +1459,12 @@ public final class CreatureController extends EntityController implements ICreat
         getStateMachine().changeState(CreatureState.IDLE);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CreatureController that)) {
+            return false;
+        }
+
+        return Objects.equals(creature, that.creature);
+    }
 }
