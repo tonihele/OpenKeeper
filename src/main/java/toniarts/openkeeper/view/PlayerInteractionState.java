@@ -89,7 +89,6 @@ import toniarts.openkeeper.view.text.TextParser;
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
-    private static final int SPELL_POSSESSION_ID = 2;
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
     private Main app;
@@ -559,17 +558,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         private void onLeftMouseButtonPressed() {
             if (interactionState.getType() == Type.SPELL) {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
-                //TODO correct interactiveControl.isPickable
-                /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
-                        && interactiveControl.isPickable(player.getPlayerId())) {
-                    CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
-                    if (cc != null) {
-                        onPossession(cc);
-                        // Reset the state
-                        // TODO disable selection box
-                        setInteractionState(Type.NONE, 0);
-                    }
-                }*/
             } else if (interactionState.getType() == Type.TRAP) {
                 //TODO put trap
             } else if (interactionState.getType() == Type.DOOR) {
@@ -812,8 +800,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @param interactionState new state
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
-
-    protected abstract void onPossession(EntityId creature);
 
     private final class InteractionKeeperHandState extends KeeperHandState {
 

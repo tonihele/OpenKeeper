@@ -24,34 +24,62 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.FunnyCameraContol;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
+ * First person view of the possessed creature. Looks around locally and sends
+ * the movement intent to the server, which moves the creature
  *
  * @author ArchDemon
  */
 public final class PossessionCameraState extends AbstractPauseAwareState implements ActionListener, AnalogListener {
 
     private static final Logger logger = System.getLogger(PossessionCameraState.class.getName());
-    
+
+    /**
+     * Minimum facing change (radians) worth telling the server about
+     */
+    private static final float ROTATION_SEND_THRESHOLD = 0.05f;
+    /**
+     * Minimum interval (seconds) between facing-only updates to the server
+     */
+    private static final float ROTATION_SEND_INTERVAL = 0.1f;
+
     private Main app;
+    private AppStateManager stateManager;
     private InputManager inputManager;
 
     private EntityId target;
     private Creature creature;
-    public Vector2f mousePosition = Vector2f.ZERO;
+    private Spatial targetSpatial;
 
     private PossessionCamera camera;
-    //private Integer specialKey = null;
+    private boolean inputRegistered = false;
+
+    private boolean moveForward;
+    private boolean moveBackward;
+    private boolean moveLeft;
+    private boolean moveRight;
+    private boolean run;
+    private boolean creep;
+
+    private final Vector2f sentDirection = new Vector2f();
+    private float sentRotation;
+    private byte sentSpeedMode;
+    private float timeSinceSend;
 
     private static final String POSSESSION = "POSSESSION_";
 
@@ -59,10 +87,6 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private static final String CAMERA_VIEW_UP = "CAMERA_VIEW_UP";
     private static final String CAMERA_VIEW_RIGHT = "CAMERA_VIEW_RIGHT";
     private static final String CAMERA_VIEW_DOWN = "CAMERA_VIEW_DOWN";
-
-    private static final String SPECIAL_KEY_CONTROL = "SPECIAL_KEY_CONTROL";
-    private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
-    private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
 
     private static final String[] mappings = new String[]{
         // view
@@ -76,21 +100,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         POSSESSION + Settings.Setting.CAMERA_LEFT.name(),
         POSSESSION + Settings.Setting.CAMERA_RIGHT.name(),
         Settings.Setting.POSSESSED_RUN.name(),
-        Settings.Setting.POSSESSED_CREEP.name(),
-        // attack
-        Settings.Setting.POSSESSED_SELECT_MELEE.name(),
-        Settings.Setting.POSSESSED_SELECT_SPELL_1.name(),
-        Settings.Setting.POSSESSED_SELECT_SPELL_2.name(),
-        Settings.Setting.POSSESSED_SELECT_SPELL_3.name(),
-        Settings.Setting.POSSESSED_SELECT_ABILITY_1.name(),
-        Settings.Setting.POSSESSED_SELECT_ABILITY_2.name(),
-        // group
-        Settings.Setting.POSSESSED_SELECT_GROUP.name(),
-        Settings.Setting.POSSESSED_REMOVE_FROM_GROUP.name(),
-        Settings.Setting.POSSESSED_PICK_LOCK_OR_DISARM.name(), // special
-    //SPECIAL_KEY_CONTROL,
-    //SPECIAL_KEY_ALT,
-    //SPECIAL_KEY_SHIFT,
+        Settings.Setting.POSSESSED_CREEP.name()
     };
 
     public PossessionCameraState(boolean enabled) {
@@ -102,6 +112,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         super.initialize(stateManager, app);
 
         this.app = (Main) app;
+        this.stateManager = stateManager;
         inputManager = this.app.getInputManager();
     }
 
@@ -109,38 +120,58 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
 
-        if (enabled) {
-            // The camera
+        if (!isInitialized()) {
+            return;
+        }
+
+        PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+        if (enabled && creature != null) {
+            targetSpatial = entityViewState != null ? entityViewState.getEntitySpatial(target) : null;
             camera = new PossessionCamera(app.getCamera(), creature.getAttributes().getSpeed(), creature.getFirstPersonOscillateScale());
             loadCameraStartLocation();
+            if (entityViewState != null) {
+                entityViewState.setHiddenEntity(target);
+            }
 
-            FunnyCameraContol fcc = new FunnyCameraContol(app.getCamera(), null/*target.getSpatial()*/);
-            fcc.setLookAtOffset(new Vector3f(0, creature.getAttributes().getEyeHeight(), 0));
-            fcc.setHeight(creature.getAttributes().getHeight());
-            fcc.setDistance(1.5f);
-
-            // The controls
+            resetMovement();
             registerInput();
         } else {
             unregisterInput();
-            //target.getSpatial().removeControl(FunnyCameraContol.class);
-            target = null;
+            resetMovement();
+            if (entityViewState != null) {
+                entityViewState.setHiddenEntity(null);
+            }
+            targetSpatial = null;
         }
     }
 
     /**
-     * Load the initial camera position
+     * Load the initial camera position, looking the way the creature faces
      */
     private void loadCameraStartLocation() {
-        //Point p = target.getCreatureCoordinates();
-        //Vector3f startLocation = new Vector3f(p.x, target.getHeight(), p.y);
         Camera cam = app.getCamera();
-        //cam.setLocation(startLocation.addLocal(0, creature.getAttributes().getEyeHeight(), 0));
-        //cam.setFrustumPerspective(45, cam.getWidth() / cam.getHeight(), 0.1f, creature.getDistanceCanSee() * 10);
-        cam.setAxes(Vector3f.UNIT_X, Vector3f.UNIT_Y, Vector3f.UNIT_Z);
+        cam.setFrustumPerspective(45, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+        if (targetSpatial != null) {
+            updateCameraLocation();
+            Vector3f facing = targetSpatial.getWorldRotation().mult(Vector3f.UNIT_Z);
+            facing.y = 0;
+            if (facing.lengthSquared() > 0) {
+                cam.lookAtDirection(facing.normalizeLocal(), Vector3f.UNIT_Y);
+            }
+        } else {
+            cam.setAxes(Vector3f.UNIT_X, Vector3f.UNIT_Y, Vector3f.UNIT_Z);
+        }
+        sentRotation = getFacing();
+    }
+
+    private void updateCameraLocation() {
+        app.getCamera().setLocation(targetSpatial.getWorldTranslation().add(0, creature.getAttributes().getEyeHeight(), 0));
     }
 
     private void registerInput() {
+        if (inputRegistered) {
+            return;
+        }
 
         // Add the keys
         Settings settings = Main.getUserSettings();
@@ -157,10 +188,8 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         inputManager.addMapping(CAMERA_VIEW_UP, new MouseAxisTrigger(MouseInput.AXIS_Y, true));
         inputManager.addMapping(CAMERA_VIEW_DOWN, new MouseAxisTrigger(MouseInput.AXIS_Y, false));
 
-        //inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
-        //inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
-        //inputManager.addMapping(SPECIAL_KEY_SHIFT, new KeyTrigger(KeyInput.KEY_LSHIFT), new KeyTrigger(KeyInput.KEY_RSHIFT));
         inputManager.addListener(this, mappings);
+        inputRegistered = true;
     }
 
     @Override
@@ -174,24 +203,24 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             return;
         }
 
-        if (name.equals(Settings.Setting.POSSESSED_RUN.name())) {
-            if (isPressed) {
-                camera.setSpeed(creature.getAttributes().getRunSpeed());
-            } else {
-                camera.setSpeed(creature.getAttributes().getSpeed());
-            }
+        if (name.equals(POSSESSION + Settings.Setting.CAMERA_UP.name())) {
+            moveForward = isPressed;
+        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_DOWN.name())) {
+            moveBackward = isPressed;
+        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_LEFT.name())) {
+            moveLeft = isPressed;
+        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_RIGHT.name())) {
+            moveRight = isPressed;
+        } else if (name.equals(Settings.Setting.POSSESSED_RUN.name())) {
+            run = isPressed;
         } else if (name.equals(Settings.Setting.POSSESSED_CREEP.name())) {
-            if (isPressed) {
-                camera.setSpeed(creature.getAttributes().getShuffleSpeed());
-            } else {
-                camera.setSpeed(creature.getAttributes().getSpeed());
-            }
+            creep = isPressed;
         }
     }
 
     @Override
     public void onAnalog(String name, float value, float tpf) {
-        if (!isEnabled()) {
+        if (!isEnabled() || camera == null) {
             return;
         }
 
@@ -201,23 +230,17 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             case CAMERA_VIEW_UP -> camera.rotate(value, false);
             case CAMERA_VIEW_DOWN -> camera.rotate(-value, false);
         }
-
-        if (name.equals(POSSESSION + Settings.Setting.CAMERA_UP.name())) {
-            camera.move(value, false);
-        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_DOWN.name())) {
-            camera.move(-value, false);
-        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_LEFT.name())) {
-            camera.move(value, true);
-        } else if (name.equals(POSSESSION + Settings.Setting.CAMERA_RIGHT.name())) {
-            camera.move(-value, true);
-        }
     }
 
     private void unregisterInput() {
+        if (!inputRegistered) {
+            return;
+        }
         for (String s : mappings) {
             inputManager.deleteMapping(s);
         }
         inputManager.removeListener(this);
+        inputRegistered = false;
     }
 
     @Override
@@ -231,13 +254,87 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
 
     @Override
     public void update(float tpf) {
+        if (targetSpatial != null) {
+            updateCameraLocation();
+            sendMovement(tpf);
+        }
+
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
     }
 
+    /**
+     * Tell the server where we want to go, only when something changes
+     */
+    private void sendMovement(float tpf) {
+        timeSinceSend += tpf;
+
+        Camera cam = app.getCamera();
+        Vector2f forward = new Vector2f(cam.getDirection().x, cam.getDirection().z);
+        Vector2f left = new Vector2f(cam.getLeft().x, cam.getLeft().z);
+        if (forward.lengthSquared() > 0) {
+            forward.normalizeLocal();
+        }
+        if (left.lengthSquared() > 0) {
+            left.normalizeLocal();
+        }
+
+        Vector2f direction = new Vector2f();
+        direction.addLocal(forward.mult((moveForward ? 1 : 0) - (moveBackward ? 1 : 0)));
+        direction.addLocal(left.mult((moveLeft ? 1 : 0) - (moveRight ? 1 : 0)));
+        if (direction.lengthSquared() > 0) {
+            direction.normalizeLocal();
+        }
+
+        float rotation = getFacing();
+        byte speedMode = run ? PossessedMovement.SPEED_RUN : creep ? PossessedMovement.SPEED_CREEP : PossessedMovement.SPEED_WALK;
+        boolean moving = direction.lengthSquared() > 0;
+        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD;
+        boolean changed = speedMode != sentSpeedMode
+                || (moving != (sentDirection.lengthSquared() > 0))
+                || (moving && direction.distanceSquared(sentDirection) > ROTATION_SEND_THRESHOLD * ROTATION_SEND_THRESHOLD);
+        if (changed || (rotated && timeSinceSend >= ROTATION_SEND_INTERVAL)) {
+            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, speedMode);
+            sentDirection.set(direction);
+            sentRotation = rotation;
+            sentSpeedMode = speedMode;
+            timeSinceSend = 0;
+        }
+    }
+
+    /**
+     * The facing of the camera in the same convention as the entity position
+     * rotation
+     */
+    private float getFacing() {
+        Vector3f dir = app.getCamera().getDirection();
+        return FastMath.atan2(dir.x, dir.z);
+    }
+
+    private void resetMovement() {
+        moveForward = false;
+        moveBackward = false;
+        moveLeft = false;
+        moveRight = false;
+        run = false;
+        creep = false;
+        sentDirection.set(0, 0);
+        sentSpeedMode = PossessedMovement.SPEED_WALK;
+        timeSinceSend = 0;
+    }
+
     public void setTarget(EntityId target) {
         this.target = target;
-        //creature = this.target.getCreature();
+        creature = null;
+        if (target != null) {
+            GameClientState gameClientState = stateManager.getState(GameClientState.class);
+            CreatureComponent creatureComponent = gameClientState.getGameClientService().getEntityData().getComponent(target, CreatureComponent.class);
+            if (creatureComponent != null) {
+                creature = gameClientState.getLevelData().getCreature(creatureComponent.creatureId);
+            } else {
+                logger.log(Logger.Level.WARNING, "Possession target {0} is not a creature!", target);
+            }
+        }
     }
 }

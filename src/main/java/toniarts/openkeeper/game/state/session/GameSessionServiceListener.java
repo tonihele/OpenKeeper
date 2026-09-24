@@ -159,6 +159,25 @@ public interface GameSessionServiceListener {
     public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId);
 
     /**
+     * Player wants to steer the possessed creature
+     *
+     * @param direction normalized movement direction on the map plane
+     * @param rotation the facing of the creature
+     * @param speedMode one of the {@code PossessedMovement.SPEED_*} constants
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId);
+
+    /**
+     * Player wants to stop possessing
+     *
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onEndPossession(short playerId);
+
+    /**
      * Player wants to cast a spell
      *
      * @param keeperSpellId the spell to cast

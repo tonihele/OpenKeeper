@@ -213,6 +213,16 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        getDelegate().setPossessedMovement(direction, rotation, speedMode);
+    }
+
+    @Override
+    public void endPossession() {
+        getDelegate().endPossession();
+    }
+
+    @Override
     public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
         getDelegate().castKeeperSpell(keeperSpellId, target, tile, position);
     }

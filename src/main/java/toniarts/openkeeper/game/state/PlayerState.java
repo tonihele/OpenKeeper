@@ -25,6 +25,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.*;
@@ -183,25 +184,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState) {
                     PlayerState.this.screen.updateSelectedItem(interactionState);
-                }
-
-                @Override
-                protected void onPossession(EntityId entityId) {
-                    // Disable states
-                    for (AbstractAppState state : appStates) {
-                        if (state instanceof PossessionInteractionState
-                                || state instanceof PossessionCameraState) {
-                            continue;
-                        }
-                        state.setEnabled(false);
-                    }
-                    // Enable state
-                    possessionState.setTarget(entityId);
-                    possessionState.setEnabled(true);
-
-                    gameState.setPossessedCreature(entityId);
-
-                    screen.goToScreen(PlayerScreenController.SCREEN_POSSESSION_ID);
                 }
             };
             appStates.add(cameraState);
@@ -457,7 +439,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     protected Creature getPossessionCreature() {
-        return null/*possessionState.getTarget().getCreature()*/;
+        EntityId target = possessionState.getTarget();
+        CreatureComponent creatureComponent = target != null ? entityData.getComponent(target, CreatureComponent.class) : null;
+        return creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId) : null;
     }
 
     protected InteractionState getInteractionState() {
@@ -568,8 +552,42 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         screen.updateEntityResearch(researchableEntity);
     }
 
+    /**
+     * Server tells us that we started or stopped possessing a creature
+     *
+     * @param target the possessed creature, {@code null} if possession ended
+     */
     void setPossession(EntityId target) {
+        app.enqueue(() -> {
+            if (possessionState == null) {
+                return;
+            }
+            if (target != null) {
+                startPossession(target);
+            } else if (possessionState.isEnabled()) {
+                possessionState.setEnabled(false);
+            }
+        });
+    }
 
+    private void startPossession(EntityId target) {
+
+        // Disable states
+        for (AbstractAppState state : appStates) {
+            if (state instanceof PossessionInteractionState
+                    || state instanceof PossessionCameraState) {
+                continue;
+            }
+            state.setEnabled(false);
+        }
+
+        // Enable state
+        possessionState.setTarget(target);
+        possessionState.setEnabled(true);
+
+        stateManager.getState(GameClientState.class).setPossessedCreature(target);
+
+        screen.goToScreen(PlayerScreenController.SCREEN_POSSESSION_ID);
     }
 
 }
