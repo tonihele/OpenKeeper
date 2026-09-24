@@ -24,7 +24,10 @@ import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
-import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -36,12 +39,17 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class PossessedMovementSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
-    private final IMapInformation mapInformation;
+    private final IMapController mapController;
+    private final IEntityPositionLookup entityPositionLookup;
+    private final ICreaturesController creaturesController;
     private final EntitySet possessedEntities;
 
-    public PossessedMovementSystem(EntityData entityData, IMapInformation mapInformation) {
+    public PossessedMovementSystem(EntityData entityData, IMapController mapController,
+            IEntityPositionLookup entityPositionLookup, ICreaturesController creaturesController) {
         this.entityData = entityData;
-        this.mapInformation = mapInformation;
+        this.mapController = mapController;
+        this.entityPositionLookup = entityPositionLookup;
+        this.creaturesController = creaturesController;
         possessedEntities = entityData.getEntities(Possessed.class, PossessedMovement.class, Position.class);
     }
 
@@ -54,14 +62,16 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
             Position position = entity.get(Position.class);
             Vector3f newPosition = position.position.clone();
             if (!movement.direction.equals(Vector2f.ZERO)) {
+                INavigable navigable = creaturesController.createController(entity.getId());
                 float x = newPosition.x + movement.direction.x * movement.speed * tpf;
                 float z = newPosition.z + movement.direction.y * movement.speed * tpf;
 
-                // Slide along walls by trying the axes separately
-                if (isPassable(x, newPosition.z)) {
+                // Slide along walls by trying the axes separately, this way we
+                // only ever cross into an orthogonally adjacent tile
+                if (canMove(navigable, newPosition.x, newPosition.z, x, newPosition.z)) {
                     newPosition.x = x;
                 }
-                if (isPassable(newPosition.x, z)) {
+                if (canMove(navigable, newPosition.x, newPosition.z, newPosition.x, z)) {
                     newPosition.z = z;
                 }
             }
@@ -72,11 +82,22 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
         }
     }
 
-    private boolean isPassable(float x, float z) {
-        Point p = WorldUtils.vectorToPoint(x, z);
+    /**
+     * Uses the same rules as path finding (solid terrain, doors, room
+     * obstacles, water & lava abilities), but only when entering a new tile.
+     * Moving within the current tile is always allowed so that we can't get
+     * stuck e.g. on a tile that just became blocked.
+     */
+    private boolean canMove(INavigable navigable, float fromX, float fromZ, float toX, float toZ) {
+        Point fromPoint = WorldUtils.vectorToPoint(fromX, fromZ);
+        Point toPoint = WorldUtils.vectorToPoint(toX, toZ);
+        if (fromPoint.equals(toPoint)) {
+            return true;
+        }
 
-        // TODO: doors, water & lava restrictions of the creature
-        return mapInformation.getMapData().getTile(p) != null && !mapInformation.isSolid(p);
+        IMapTileInformation from = mapController.getMapData().getTile(fromPoint);
+        IMapTileInformation to = mapController.getMapData().getTile(toPoint);
+        return to != null && navigable.getCost(from, to, mapController, entityPositionLookup) != null;
     }
 
     @Override
