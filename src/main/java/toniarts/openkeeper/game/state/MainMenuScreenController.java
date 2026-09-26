@@ -85,7 +85,9 @@ import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
@@ -108,6 +110,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private ChatSessionListener chatSessionListener;
     private LobbySessionListener lobbySessionListener;
     private String cutsceneMovieName;
+    private final Map<String, Runnable> screenStartHandlers = createScreenStartHandlers();
 
     /**
      * A popup instance if some screen should need one
@@ -362,74 +365,49 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     public void onStartScreen() {
         setScreen(nifty.getCurrentScreen());
 
-        switch (screen.getScreenId()) {
-            case "selectCampaignLevel":
-                state.inputManager.addRawInputListener(state.listener);
-                state.refreshCampaignMap();
-                state.showArrows();
-                break;
-
-            case "briefing":
-                showBriefing();
-                break;
-
-            case "hiscores":
-                generateHiscoreList();
-                break;
-
-            case "optionsGraphics":
-                // Populate settings screen
-                setGraphicsSettingsToGUI();
-                break;
-
-            case "optionsControl":
-                setControlSettingsToGUI();
-                break;
-
-            case "optionsSound":
-                setSoundSettingsToGUI();
-                break;
-
-            case "movies":
-                generateMovieList();
-                break;
-
-            case "cutscene":
-                screen.findNiftyControl("cutsceneMovieName", Label.class).setText(cutsceneMovieName);
-                break;
-
-            case "multiplayer":
-                state.mapSelector.reset();
-                break;
-
-            case "multiplayerWatch":
-                showMultiplayerWatchScreen();
-                break;
-
-            case "skirmishLobby":
-                showSkirmishLobbyScreen();
-                break;
-
-            case "multiplayerLocal":
-                showMultiplayerLocalScreen();
-                break;
-
-            case "skirmishMapSelect":
-                // Populate the maps
-                populateMapSelection(true);
-                break;
-
-            case "myPetDungeon":
-                // check unlocked levels
-                unlockMPDMaps();
-                break;
-
-            case "myPetDungeonMapSelect":
-                // Populate the maps
-                state.mapSelector.setMPD(true);
-                populateMapSelection(false);
-                break;
+        Runnable handler = screenStartHandlers.get(screen.getScreenId());
+        if (handler != null) {
+            handler.run();
         }
+    }
+
+    /**
+     * Maps a screen id to the action that sets it up, so that {@link #onStartScreen()} stays a
+     * simple dispatch instead of one big branching switch
+     */
+    private Map<String, Runnable> createScreenStartHandlers() {
+        Map<String, Runnable> handlers = new HashMap<>();
+        handlers.put("selectCampaignLevel", this::showSelectCampaignLevelScreen);
+        handlers.put("briefing", this::showBriefing);
+        handlers.put("hiscores", this::generateHiscoreList);
+        handlers.put("optionsGraphics", this::setGraphicsSettingsToGUI);
+        handlers.put("optionsControl", this::setControlSettingsToGUI);
+        handlers.put("optionsSound", this::setSoundSettingsToGUI);
+        handlers.put("movies", this::generateMovieList);
+        handlers.put("cutscene", this::showCutsceneScreen);
+        handlers.put("multiplayer", () -> state.mapSelector.reset());
+        handlers.put("multiplayerWatch", this::showMultiplayerWatchScreen);
+        handlers.put("skirmishLobby", this::showSkirmishLobbyScreen);
+        handlers.put("multiplayerLocal", this::showMultiplayerLocalScreen);
+        handlers.put("skirmishMapSelect", () -> populateMapSelection(true));
+        handlers.put("myPetDungeon", this::unlockMPDMaps);
+        handlers.put("myPetDungeonMapSelect", this::showMyPetDungeonMapSelectScreen);
+        return handlers;
+    }
+
+    private void showSelectCampaignLevelScreen() {
+        state.inputManager.addRawInputListener(state.listener);
+        state.refreshCampaignMap();
+        state.showArrows();
+    }
+
+    private void showCutsceneScreen() {
+        screen.findNiftyControl("cutsceneMovieName", Label.class).setText(cutsceneMovieName);
+    }
+
+    private void showMyPetDungeonMapSelectScreen() {
+        state.mapSelector.setMPD(true);
+        populateMapSelection(false);
     }
 
     private void showMultiplayerWatchScreen() {
