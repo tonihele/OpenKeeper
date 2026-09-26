@@ -403,78 +403,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 break;
 
             case "multiplayerWatch":
-                TextField player = screen.findNiftyControl("playerName", TextField.class);
-                TextField hostAddress = screen.findNiftyControl("hostAddress", TextField.class);
-                player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
-                hostAddress.setText(Main.getUserSettings().getSetting(Settings.Setting.MULTIPLAYER_LAST_IP).toString());
+                showMultiplayerWatchScreen();
                 break;
 
             case "skirmishLobby":
-
-                LobbyState lobbyState = state.getLobbyState();
-
-                // Set up the players table
-                setupPlayersTable(lobbyState);
-
-                // Add chat listener
-                if (lobbyState.isOnline() && chatSessionListener == null) {
-                    Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
-                    chat.clear();
-                    state.getChatService().addChatSessionListener(getChatSessionListener());
-                }
-                screen.findElementById("chatPanel").setVisible(lobbyState.isOnline());
-
-                // Add player listener
-                lobbyState.addLobbySessionListener(getLobbySessionListener());
-
-                // Ask for players and map
-                refreshPlayerList(lobbyState.getLobbySession().getPlayers());
-                populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()));
-
-                Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
-                if (title != null) {
-                    title.setText(lobbyState.getGameName());
-                }
-                Element element = screen.findElementById("multiplayerMapControl");
-                if (element != null) {
-                    if (!lobbyState.isHosting()) {
-                        element.hide();
-                    } else {
-                        element.show();
-                    }
-                }
-                element = screen.findElementById("multiplayerPlayerControl");
-                if (element != null) {
-                    if (!lobbyState.isHosting()) {
-                        element.hide();
-                    } else {
-                        element.show();
-                    }
-                }
-
-                // Set the IP, is is really always our IP, not the servers?
-                Label ip = screen.findNiftyControl("ip", Label.class);
-                if (lobbyState.isOnline()) {
-                    ip.setText("IP: " + Utils.getLocalIPAddress());
-                } else {
-                    ip.setText(null);
-                }
-                TextRenderer renderer = ip.getElement().getRenderer(TextRenderer.class);
-                ip.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
-
-                screen.layoutLayers();
-
+                showSkirmishLobbyScreen();
                 break;
 
             case "multiplayerLocal":
-                state.mapSelector.reset();
-
-                // Set the game & user name
-                player = screen.findNiftyControl("playerName", TextField.class);
-                TextField game = screen.findNiftyControl("gameName", TextField.class);
-                player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
-                game.setText(Main.getUserSettings().getSetting(Settings.Setting.GAME_NAME).toString());
-                // multiplayerRefresh();
+                showMultiplayerLocalScreen();
                 break;
 
             case "skirmishMapSelect":
@@ -492,6 +429,76 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 state.mapSelector.setMPD(true);
                 populateMapSelection(false);
                 break;
+        }
+    }
+
+    private void showMultiplayerWatchScreen() {
+        TextField player = screen.findNiftyControl("playerName", TextField.class);
+        TextField hostAddress = screen.findNiftyControl("hostAddress", TextField.class);
+        player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
+        hostAddress.setText(Main.getUserSettings().getSetting(Settings.Setting.MULTIPLAYER_LAST_IP).toString());
+    }
+
+    private void showMultiplayerLocalScreen() {
+        state.mapSelector.reset();
+
+        // Set the game & user name
+        TextField player = screen.findNiftyControl("playerName", TextField.class);
+        TextField game = screen.findNiftyControl("gameName", TextField.class);
+        player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
+        game.setText(Main.getUserSettings().getSetting(Settings.Setting.GAME_NAME).toString());
+    }
+
+    private void showSkirmishLobbyScreen() {
+        LobbyState lobbyState = state.getLobbyState();
+
+        // Set up the players table
+        setupPlayersTable(lobbyState);
+
+        // Add chat listener
+        if (lobbyState.isOnline() && chatSessionListener == null) {
+            Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
+            chat.clear();
+            state.getChatService().addChatSessionListener(getChatSessionListener());
+        }
+        screen.findElementById("chatPanel").setVisible(lobbyState.isOnline());
+
+        // Add player listener
+        lobbyState.addLobbySessionListener(getLobbySessionListener());
+
+        // Ask for players and map
+        refreshPlayerList(lobbyState.getLobbySession().getPlayers());
+        populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()));
+
+        Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
+        if (title != null) {
+            title.setText(lobbyState.getGameName());
+        }
+        setSkirmishLobbyControlVisibility("multiplayerMapControl", lobbyState.isHosting());
+        setSkirmishLobbyControlVisibility("multiplayerPlayerControl", lobbyState.isHosting());
+
+        // Set the IP, is is really always our IP, not the servers?
+        Label ip = screen.findNiftyControl("ip", Label.class);
+        if (lobbyState.isOnline()) {
+            ip.setText("IP: " + Utils.getLocalIPAddress());
+        } else {
+            ip.setText(null);
+        }
+        TextRenderer renderer = ip.getElement().getRenderer(TextRenderer.class);
+        ip.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
+
+        screen.layoutLayers();
+    }
+
+    private void setSkirmishLobbyControlVisibility(String elementId, boolean visible) {
+        Element element = screen.findElementById(elementId);
+        if (element == null) {
+            return;
+        }
+        if (visible) {
+            element.show();
+        } else {
+            element.hide();
         }
     }
 
