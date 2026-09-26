@@ -114,27 +114,27 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private Element popupElement;
 
     static {
-        CUTSCENES.add(new Cutscene("Intro", "INTRO", "${menu.77}", ""));
-        CUTSCENES.add(new Cutscene("000", "CutSceneLevel1", "${speech.1417}", "149"));
-        CUTSCENES.add(new Cutscene("001", "CutSceneLevel2", "${speech.1439}", "171"));
-        CUTSCENES.add(new Cutscene("002", "CutSceneLevel3", "${speech.1435}", "165"));
-        CUTSCENES.add(new Cutscene("003", "CutSceneLevel4", "${speech.1445}", "177"));
-        CUTSCENES.add(new Cutscene("004", "CutSceneLevel5", "${speech.1428}", "160"));
-        CUTSCENES.add(new Cutscene("005", "CutSceneLevel6", "${speech.1426}", "158"));
-        CUTSCENES.add(new Cutscene("006", "CutSceneLevel7", "${speech.1430}", "162"));
-        CUTSCENES.add(new Cutscene("007", "CutSceneLevel8", "${speech.1432}", "164"));
-        CUTSCENES.add(new Cutscene("008", "CutSceneLevel9", "${speech.1441}", "173"));
-        CUTSCENES.add(new Cutscene("009", "CutSceneLevel10", "${speech.1431}", "163"));
-        CUTSCENES.add(new Cutscene("010", "CutSceneLevel11", "${speech.1433}", "167"));
-        CUTSCENES.add(new Cutscene("011", "CutSceneLevel12", "${speech.1419}", "151"));
-        CUTSCENES.add(new Cutscene("012", "CutSceneLevel13", "${speech.1414}", "146"));
-        CUTSCENES.add(new Cutscene("013", "CutSceneLevel14", "${speech.1437}", "169"));
-        CUTSCENES.add(new Cutscene("014", "CutSceneLevel15", "${speech.1416}", "148"));
-        CUTSCENES.add(new Cutscene("015", "CutSceneLevel16", "${speech.1420}", "152"));
-        CUTSCENES.add(new Cutscene("016", "CutSceneLevel17", "${speech.1421}", "153"));
-        CUTSCENES.add(new Cutscene("017", "CutSceneLevel18", "${speech.1443}", "175"));
-        CUTSCENES.add(new Cutscene("018", "CutSceneLevel19", "${speech.1422}", "154"));
-        CUTSCENES.add(new Cutscene("Outro", "Outro", "${menu.2843}",""));
+        CUTSCENES.add(new Cutscene( 0,"Intro", "INTRO", "${menu.77}", ""));
+        CUTSCENES.add(new Cutscene( 1,"000", "CutSceneLevel1", "${speech.1417}", "149"));
+        CUTSCENES.add(new Cutscene( 2,"001", "CutSceneLevel2", "${speech.1439}", "171"));
+        CUTSCENES.add(new Cutscene( 3,"002", "CutSceneLevel3", "${speech.1435}", "165"));
+        CUTSCENES.add(new Cutscene( 4,"003", "CutSceneLevel4", "${speech.1445}", "177"));
+        CUTSCENES.add(new Cutscene( 5,"004", "CutSceneLevel5", "${speech.1428}", "160"));
+        CUTSCENES.add(new Cutscene( 6,"005", "CutSceneLevel6", "${speech.1426}", "158"));
+        CUTSCENES.add(new Cutscene( 7,"006", "CutSceneLevel7", "${speech.1430}", "162"));
+        CUTSCENES.add(new Cutscene( 8,"007", "CutSceneLevel8", "${speech.1432}", "164"));
+        CUTSCENES.add(new Cutscene( 9,"008", "CutSceneLevel9", "${speech.1441}", "173"));
+        CUTSCENES.add(new Cutscene(10,"009", "CutSceneLevel10", "${speech.1431}", "163"));
+        CUTSCENES.add(new Cutscene(11,"010", "CutSceneLevel11", "${speech.1433}", "167"));
+        CUTSCENES.add(new Cutscene(12,"011", "CutSceneLevel12", "${speech.1419}", "151"));
+        CUTSCENES.add(new Cutscene(13,"012", "CutSceneLevel13", "${speech.1414}", "146"));
+        CUTSCENES.add(new Cutscene(14,"013", "CutSceneLevel14", "${speech.1437}", "169"));
+        CUTSCENES.add(new Cutscene(15,"014", "CutSceneLevel15", "${speech.1416}", "148"));
+        CUTSCENES.add(new Cutscene(16,"015", "CutSceneLevel16", "${speech.1420}", "152"));
+        CUTSCENES.add(new Cutscene(17,"016", "CutSceneLevel17", "${speech.1421}", "153"));
+        CUTSCENES.add(new Cutscene(18,"017", "CutSceneLevel18", "${speech.1443}", "175"));
+        CUTSCENES.add(new Cutscene(19,"018", "CutSceneLevel19", "${speech.1422}", "154"));
+        CUTSCENES.add(new Cutscene(20,"Outro", "Outro", "${menu.2843}",""));
     }
 
     public MainMenuScreenController(MainMenuState state, Nifty nifty) {
@@ -1188,8 +1188,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         protected String click;
         protected String moviename;
         protected String speechId;
+        protected int level;
 
-        public Cutscene(final String image,final String click,final String moviename, final String speechId) {
+        public Cutscene(final int level, final String image,final String click,final String moviename, final String speechId) {
+            this.level = level;
             this.image = image;
             this.click = click;
             this.moviename = moviename;
