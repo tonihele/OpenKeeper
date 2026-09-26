@@ -109,6 +109,12 @@ public final class MainMenuState extends AbstractAppState {
     private IKwdFile debriefingLevel;
     private boolean debriefingIsCampaign;
 
+    /**
+     * The campaign level that was just won and for which the level cutscene (mentor speech + movie)
+     * needs to be shown before the debriefing screen. {@code null} if there is nothing to show.
+     */
+    private CampaignLevel pendingCutsceneLevel;
+
     private IKwdFile frontEndKwd;
     protected final MainMenuInteraction listener;
     private Vector3f startLocation;
@@ -289,7 +295,15 @@ public final class MainMenuState extends AbstractAppState {
             // Start screen, do this here since another state may have just changed to empty screen -> have to do it like this, delayed
             if (debriefing) {
                 pendingDebriefing = false;
-                MainMenuState.this.screen.showDebriefing();
+                CampaignLevel cutsceneLevel = pendingCutsceneLevel;
+                pendingCutsceneLevel = null;
+                MainMenuScreenController.Cutscene cutscene = (cutsceneLevel != null)
+                        ? MainMenuScreenController.getCutscene(cutsceneLevel.getLevel()) : null;
+                if (cutscene != null) {
+                    playLevelWonCutscene(cutscene);
+                } else {
+                    MainMenuState.this.screen.showDebriefing();
+                }
             } else {
                 MainMenuState.this.screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
             }
@@ -658,6 +672,14 @@ public final class MainMenuState extends AbstractAppState {
         debriefingLevel = level != null ? level : (selectedLevel != null ? selectedLevel.getKwdMap().load() : null);
         debriefingIsCampaign = campaign || selectedLevel instanceof CampaignLevel;
         pendingDebriefing = result != null;
+
+        // FIXME: GameResult has no win/lose data yet (see showDebriefing()), so for now every
+        // completed campaign level is treated as won, same as the debriefing screen does
+        boolean levelWon = true;
+        pendingCutsceneLevel = (pendingDebriefing && debriefingIsCampaign && levelWon
+                && selectedLevel instanceof CampaignLevel lvl && lvl.getType() == CampaignLevel.LevelType.Level)
+                ? lvl : null;
+
         setEnabled(true);
 
         // The debriefing screen is shown (instead of the start screen) once the
@@ -665,6 +687,17 @@ public final class MainMenuState extends AbstractAppState {
         if (!pendingDebriefing) {
             screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
         }
+    }
+
+    /**
+     * Shows the level-won cutscene (mentor speech + movie), then continues on to the debriefing
+     * screen once it has finished playing.
+     *
+     * @param cutscene the cutscene to play
+     */
+    private void playLevelWonCutscene(MainMenuScreenController.Cutscene cutscene) {
+        screen.showCutscene(cutscene.moviename);
+        stateManager.attach(new CutsceneState(cutscene, () -> screen.showDebriefing()));
     }
 
     /**

@@ -339,6 +339,15 @@
         </layer>
     </screen>
 
+     <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- Level won cutscene: mentor speech + movie, shown before the debriefing -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="cutscene" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+        <layer childLayout="center" backgroundColor="#000f">
+            <control name="label" id="cutsceneMovieName" style="menuText" align="center" valign="center" />
+        </layer>
+    </screen>
+
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- Options, main selection -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->

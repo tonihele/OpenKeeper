@@ -107,6 +107,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
     private ChatSessionListener chatSessionListener;
     private LobbySessionListener lobbySessionListener;
+    private String cutsceneMovieName;
 
     /**
      * A popup instance if some screen should need one
@@ -393,6 +394,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 generateMovieList();
                 break;
 
+            case "cutscene":
+                screen.findNiftyControl("cutsceneMovieName", Label.class).setText(cutsceneMovieName);
+                break;
+
             case "multiplayer":
                 state.mapSelector.reset();
                 break;
@@ -667,6 +672,32 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 hiscoreControl.build(hiscoreList);
             }
         }
+    }
+
+    /**
+     * Finds the cutscene registered for the given campaign level
+     *
+     * @param level the campaign level number
+     * @return the cutscene, or {@code null} if the level has none
+     */
+    public static Cutscene getCutscene(int level) {
+        for (Cutscene cutscene : CUTSCENES) {
+            if (cutscene.level == level) {
+                return cutscene;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Shows the cutscene screen, a black screen with the movie name centered on it. The actual
+     * speech and movie playback is driven by {@link CutsceneState}.
+     *
+     * @param movieName the movie name to display
+     */
+    public void showCutscene(String movieName) {
+        this.cutsceneMovieName = movieName;
+        nifty.gotoScreen(SCREEN_CUTSCENE_ID);
     }
 
     /**
