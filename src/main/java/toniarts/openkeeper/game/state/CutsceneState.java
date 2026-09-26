@@ -37,8 +37,6 @@ import static toniarts.openkeeper.Main.getDkIIFolder;
  * the movie name (see the "cutscene" screen), and once the speech has finished, the actual cutscene
  * movie is played. Calls back once everything has finished so the caller can move on (e.g. to the
  * debriefing screen).
- *
- * @author OpenKeeper
  */
 public final class CutsceneState extends AbstractAppState {
 
