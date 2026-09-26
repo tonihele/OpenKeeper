@@ -1218,8 +1218,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         protected String image;
         protected String click;
         protected String moviename;
-        protected String speechId;
-        protected int level;
+        private String speechId;
+        private int level;
 
         public Cutscene(final int level, final String image,final String click,final String moviename, final String speechId) {
             this.level = level;
@@ -1270,6 +1270,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         private boolean isLevelCompleted(CampaignLevel level) {
             return Settings.getInstance().getLevelStatus(level).equals(LevelStatus.COMPLETED);
+        }
+
+        public String getSpeechId() {
+            return speechId;
         }
     }
 

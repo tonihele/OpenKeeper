@@ -76,9 +76,9 @@ public final class CutsceneState extends AbstractAppState {
         // No mouse cursor while the cutscene (speech + movie) is playing
         this.app.getInputManager().setCursorVisible(false);
 
-        if (cutscene.speechId != null && !cutscene.speechId.isEmpty()) {
+        if (cutscene.getSpeechId() != null && !cutscene.getSpeechId().isEmpty()) {
             String speechFile = AssetUtils.getCanonicalAssetKey(
-                    String.format(CUTSCENE_SPEECH_URL, Integer.parseInt(cutscene.speechId)));
+                    String.format(CUTSCENE_SPEECH_URL, Integer.parseInt(cutscene.getSpeechId())));
             speechNode = new AudioNode(app.getAssetManager(), speechFile, AudioData.DataType.Buffer);
             speechNode.setLooping(false);
             speechNode.setPositional(false);
