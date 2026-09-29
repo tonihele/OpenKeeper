@@ -105,6 +105,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
             WallDirection.SOUTH, WallDirection.EAST);
     private final boolean torchesEnabled;
+    private final boolean ceilingEnabled;
     private List<Node> pages;
     private final IKwdFile kwdFile;
     private Node map;
@@ -119,6 +120,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private Spatial waterSurface; // Currently attached merged water mesh, if any
     private Spatial lavaSurface; // Currently attached merged lava mesh, if any
+    private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
@@ -127,27 +129,38 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
-        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true, true);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId) {
-        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, true);
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, true, true);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled) {
-        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled);
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled, true);
+    }
+
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            short playerId, boolean torchesEnabled, boolean ceilingEnabled) {
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled, ceilingEnabled);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled, true);
+    }
+
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled, boolean ceilingEnabled) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
         this.fogOfWarInformation = fogOfWarInformation;
         this.playerId = playerId;
         this.torchesEnabled = torchesEnabled;
+        this.ceilingEnabled = ceilingEnabled;
     }
 
     @Override
@@ -195,6 +208,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Create the water and lava surfaces
         refreshWaterAndLavaSurfaces(true, true);
+
+        // Create the ceiling
+        refreshCeilingSurface();
 
         long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000L;
         logger.log(Level.INFO, "Map {0} loaded in {1} ms", new Object[]{object.getGameLevel().getName(), loadTimeMs});
@@ -292,6 +308,93 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
+     * Tiles sharing a {@code CeilingBatchKey} get merged into one
+     * {@link Ceiling#construct} draw call: the resolved terrain drives the
+     * material's static lighting tint and the resource name (if any) is a
+     * room's ceiling texture override - see {@link Room#getCeilingResource()}.
+     */
+    private record CeilingBatchKey(short terrainId, String ceilingResourceName) {
+    }
+
+    /**
+     * Rebuilds the whole ceiling from scratch: the {@link ClearanceField} for
+     * the current map, a patch for every open tile the fog-of-war currently
+     * reveals, grouped into one merged mesh per resolved material. Like
+     * {@link #refreshWaterAndLavaSurfaces}, there's no incremental variant -
+     * every dig, room change or fog reveal just rebuilds the whole thing.
+     */
+    private void refreshCeilingSurface() {
+        if (ceilingSurface != null) {
+            ceilingSurface.removeFromParent();
+            ceilingSurface = null;
+        }
+        if (!ceilingEnabled) {
+            return;
+        }
+
+        IMapDataInformation<IMapTileInformation> mapData = getMapData();
+        int width = mapData.getWidth();
+        int height = mapData.getHeight();
+
+        // The field's window scan probes each tile's solidity up to 81 times;
+        // precompute it once per tile rather than re-resolving (fog-substituted)
+        // terrain that many times over
+        boolean[] solid = new boolean[width * height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                IMapTileInformation t = mapData.getTile(x, y);
+                solid[y * width + x] = t == null || getTerrain(t).getFlags().contains(Terrain.TerrainFlag.SOLID);
+            }
+        }
+        ClearanceField clearanceField = new ClearanceField(width, height);
+        clearanceField.rebuild((x, y) -> solid[y * width + x]);
+
+        Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
+        Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();
+        Map<CeilingBatchKey, ArtResource> batchResource = new HashMap<>();
+        for (IMapTileInformation tile : mapData) {
+            Terrain terrain = getTerrain(tile);
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                continue;
+            }
+            Point p = tile.getLocation();
+            if (!fogOfWarInformation.isVisible(p)) {
+                continue;
+            }
+
+            ArtResource ceilingResource = null;
+            RoomInstance roomInstance = roomCoordinates.get(p);
+            if (roomInstance != null) {
+                ArtResource resource = roomInstance.getRoom().getCeilingResource();
+                if (resource != null && resource.getName() != null && !resource.getName().isEmpty()) {
+                    ceilingResource = resource;
+                }
+            }
+
+            CeilingBatchKey key = new CeilingBatchKey(terrain.getTerrainId(),
+                    ceilingResource != null ? ceilingResource.getName() : null);
+            batchTiles.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+            batchTerrain.putIfAbsent(key, terrain);
+            if (ceilingResource != null) {
+                batchResource.putIfAbsent(key, ceilingResource);
+            }
+        }
+
+        if (batchTiles.isEmpty()) {
+            return;
+        }
+
+        Node surface = new Node("Ceiling");
+        for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
+            CeilingBatchKey key = batch.getKey();
+            surface.attachChild(Ceiling.construct(assetManager, clearanceField,
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue()));
+        }
+        ceilingSurface = surface;
+        map.attachChild(ceilingSurface);
+    }
+
+    /**
      * Update the selected tiles (and neighbouring tiles if needed)
      *
      * @param points tile coordinates to update
@@ -367,6 +470,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // A newly fog-revealed water/lava batch needs its merged surface rebuilt
         refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
                 lavaBatches.size() != lavaBatchesBefore);
+
+        // Dig, fog and room changes all reshape which tiles get a ceiling patch
+        // and how tall it is - always rebuild it whole, there's no incremental
+        // variant, same as the water/lava surfaces above
+        refreshCeilingSurface();
     }
 
     /**
