@@ -1465,11 +1465,11 @@ public final class CreatureController extends EntityController implements ICreat
             return false;
         }
 
-        return Objects.equals(creature, that.creature);
+        return Objects.equals(entityId, that.entityId);
     }
 
     @Override
     public int hashCode() {
-        return 31 * super.hashCode() + Objects.hashCode(creature);
+        return 31 * super.hashCode() + Objects.hashCode(entityId);
     }
 }
