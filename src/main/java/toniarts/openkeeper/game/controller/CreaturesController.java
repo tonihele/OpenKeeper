@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -56,6 +57,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
@@ -64,6 +66,7 @@ import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -618,6 +621,56 @@ public final class CreaturesController implements ICreaturesController {
 
         // Load the creature anew
         loadCreature(newEntityId, kwdFile.getCreature(creatureId), creatureComponent.name, creatureComponent.bloodType, 100, 0, 1, SpawnType.PLACE, position.position.x, position.position.z, playerId, position.rotation, null, (short) 0, 0, trigger != null ? trigger.triggerId : null);
+    }
+
+    @Override
+    public void healCreatures(short playerId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
+        for (Entity entity : entities) {
+            Health health = entity.get(Health.class);
+            entityData.setComponent(entity.getId(), new Health(health.maxHealth, health.maxHealth));
+
+            // Wake up anyone that was left unconscious, healing them to full wouldn't otherwise revive them
+            if (entityData.getComponent(entity.getId(), Unconscious.class) != null) {
+                entityData.removeComponent(entity.getId(), Unconscious.class);
+                createController(entity.getId()).getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
+    }
+
+    @Override
+    public void makeCreaturesHappy(short playerId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureMood.class);
+        for (Entity entity : entities) {
+            entityData.setComponent(entity.getId(), new CreatureMood());
+        }
+    }
+
+    @Override
+    public void angerEnemyCreatures(short playerId) {
+        EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);
+        for (Entity entity : entities) {
+            if (entity.get(Owner.class).ownerId == playerId) {
+                continue;
+            }
+            entityData.setComponent(entity.getId(), new CreatureMood(CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER,
+                    CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER));
+        }
+    }
+
+    @Override
+    public void stunImps(short playerId) {
+        short impId = kwdFile.getImp().getId();
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
+        for (Entity entity : entities) {
+            if (entity.get(CreatureComponent.class).creatureId != impId) {
+                continue;
+            }
+
+            // Stunned creatures are unconscious, same as being knocked out in a fight
+            EntityId entityId = entity.getId();
+            createController(entityId).getStateMachine().changeState(CreatureState.STUNNED);
+        }
     }
 
     private void setSpells(EntityId entityId, Creature creature, int level) {

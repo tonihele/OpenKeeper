@@ -77,6 +77,19 @@ public final class ObjectsController implements IObjectsController {
     public final static short OBJECT_CHICKEN_ID = 9;
     public final static short OBJECT_EGG_ID = 47;
     public final static short OBJECT_SPECIAL_INCREASE_LEVEL_ID = 117;
+    public final static short OBJECT_SPECIAL_REVEAL_MAP_ID = 118;
+    public final static short OBJECT_SPECIAL_MAKE_SAFE_ID = 119;
+    public final static short OBJECT_SPECIAL_DESTROY_WALLS_ID = 120;
+    public final static short OBJECT_SPECIAL_INCREASE_GOLD_ID = 121;
+    public final static short OBJECT_SPECIAL_MANA_BOOST_ID = 122;
+    public final static short OBJECT_SPECIAL_STUN_IMPS_ID = 123;
+    public final static short OBJECT_SPECIAL_RECEIVE_IMPS_ID = 124;
+    public final static short OBJECT_SPECIAL_MAKE_HAPPY_ID = 125;
+    public final static short OBJECT_SPECIAL_MAKE_UNHAPPY_ID = 126;
+    public final static short OBJECT_SPECIAL_KILL_CREATURES_ID = 127;
+    public final static short OBJECT_SPECIAL_HEAL_ALL_ID = 128;
+    public final static short OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID = 129;
+    public final static short OBJECT_SPECIAL_TRANSFER_CREATURE_ID = 140; // unused in base game
 
     /**
      * Some objects have these die over time, I'm not sure what variable governs

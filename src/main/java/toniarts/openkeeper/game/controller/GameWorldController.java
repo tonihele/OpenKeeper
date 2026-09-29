@@ -797,7 +797,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        if (!activateSpecial(objectComponent.objectId, playerId)) {
+        if (!activateSpecial(objectComponent.objectId, playerId, position)) {
             return false;
         }
 
@@ -810,15 +810,142 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      *
      * @param objectId the special's object ID
      * @param playerId the player whose land the special was activated on
+     * @param position where the special was standing, for effects that spawn something on the spot
      * @return {@code true} if the object ID was a recognized special and its effect ran
      */
-    private boolean activateSpecial(short objectId, short playerId) {
+    private boolean activateSpecial(short objectId, short playerId, Position position) {
         if (objectId == ObjectsController.OBJECT_SPECIAL_INCREASE_LEVEL_ID) {
             creaturesController.increaseLevelOfCreatures(playerId, 1);
-            return true;
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_REVEAL_MAP_ID) {
+            mapController.disableFogOfWar(playerId);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MAKE_SAFE_ID) {
+            makeSafe(playerId);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID) {
+            destroyEnemyWalls(playerId);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID) {
+            addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID) {
+            playerControllers.get(playerId).getManaControl().addMana((int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_MANA_AMOUNT).getValue());
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID) {
+            stunEnemyImps(playerId);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_RECEIVE_IMPS_ID) {
+            receiveImps(playerId, position);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MAKE_HAPPY_ID) {
+            creaturesController.makeCreaturesHappy(playerId);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MAKE_UNHAPPY_ID) {
+            creaturesController.angerEnemyCreatures(playerId);
+        } else if (objectId == ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID) {
+            creaturesController.healCreatures(playerId);
+        } else {
+            logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
+            return false;
         }
-        logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
-        return false;
+        return true;
+    }
+
+    /**
+     * The "Make Safe" special: claims every unclaimed solid rock wall adjacent to the player's own land
+     *
+     * @param playerId the player claiming the walls
+     */
+    private void makeSafe(short playerId) {
+        var mapData = mapController.getMapData();
+        for (int x = 0; x < mapData.getWidth(); x++) {
+            for (int y = 0; y < mapData.getHeight(); y++) {
+                Point p = new Point(x, y);
+                IMapTileController tile = mapData.getTile(p);
+                if (tile == null || tile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
+                    continue;
+                }
+
+                Terrain terrain = mapController.getTerrain(tile);
+                if (terrain.getMaxHealthTypeTerrainId() == 0 || !mapController.isClaimableWall(p, playerId)) {
+                    continue;
+                }
+
+                mapController.alterTerrain(p, terrain.getMaxHealthTypeTerrainId(), playerId);
+            }
+        }
+    }
+
+    /**
+     * The "Destroy Walls" special: unclaims every solid wall owned by another player on the whole map and
+     * resets it back to its neutral rock terrain
+     *
+     * @param playerId the player activating the special, whose own walls are left untouched
+     */
+    private void destroyEnemyWalls(short playerId) {
+        var mapData = mapController.getMapData();
+        for (int x = 0; x < mapData.getWidth(); x++) {
+            for (int y = 0; y < mapData.getHeight(); y++) {
+                Point p = new Point(x, y);
+                IMapTileController tile = mapData.getTile(p);
+                if (tile == null) {
+                    continue;
+                }
+
+                short ownerId = tile.getOwnerId();
+                if (ownerId == Player.NEUTRAL_PLAYER_ID || ownerId == playerId) {
+                    continue;
+                }
+
+                Terrain terrain = mapController.getTerrain(tile);
+                if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) || !terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                    continue;
+                }
+
+                Terrain unclaimedTerrain = getUnclaimedWallTerrain(terrain);
+                if (unclaimedTerrain == null) {
+                    continue;
+                }
+
+                mapController.alterTerrain(p, unclaimedTerrain.getTerrainId(), Player.NEUTRAL_PLAYER_ID);
+            }
+        }
+    }
+
+    /**
+     * Finds the base, unclaimed wall terrain that heals into the given (already claimed) wall terrain
+     *
+     * @param claimedTerrain the claimed wall terrain
+     * @return the matching unclaimed terrain, or {@code null} if none was found
+     */
+    private Terrain getUnclaimedWallTerrain(Terrain claimedTerrain) {
+        for (Terrain candidate : kwdFile.getTerrainList()) {
+            if (candidate.getMaxHealthTypeTerrainId() == claimedTerrain.getTerrainId()) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The "Stun enemy imps" special: freezes every imp not owned by the activating player for a short time
+     *
+     * @param playerId the player activating the special
+     */
+    private void stunEnemyImps(short playerId) {
+        for (IPlayerController otherPlayerController : playerControllers.values()) {
+            short otherPlayerId = otherPlayerController.getKeeper().getId();
+            if (otherPlayerId == playerId) {
+                continue;
+            }
+            creaturesController.stunImps(otherPlayerId);
+        }
+    }
+
+    /**
+     * The "Receive imps" special: conjures 10 new imps for the player on the special's spot
+     *
+     * @param playerId the player receiving the imps
+     * @param position where the special was
+     */
+    private void receiveImps(short playerId, Position position) {
+        short impId = kwdFile.getImp().getCreatureId();
+        Vector2f spot = WorldUtils.vector3fToVector2f(position.position);
+        for (int i = 0; i < 10; i++) {
+            creaturesController.spawnCreature(impId, playerId, 1, spot, ICreaturesController.SpawnType.CONJURE);
+        }
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
