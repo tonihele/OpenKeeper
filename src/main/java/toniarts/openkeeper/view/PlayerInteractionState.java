@@ -180,6 +180,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             app.getInputManager().removeRawInputListener(inputListener);
             inputListenerAdded = false;
             keys.clear();
+
+            // We are no longer around to keep it updated (e.g. entering possession
+            // mode), so drop any leftover held-item/spell icon and cursor image
+            // rather than leaving them frozen on screen
+            keeperHandState.setSpellIcon(null);
+            keeperHandState.setVisible(false);
+            inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
         }
     }
 
@@ -471,9 +478,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected void updateCursor() {
         keeperHandState.setVisible(false);
+
+        // Show the spell's icon next to the cursor while it's selected for casting,
+        // the same way a grabbed creature or object is shown
+        boolean showSpellIcon = !isOnGui && interactionState.getType() == Type.SPELL;
+        keeperHandState.setSpellIcon(showSpellIcon ? kwdFile.getKeeperSpellById(interactionState.getItemId()).getGuiIcon() : null);
+
         if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
             if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+                if (showSpellIcon) {
+                    keeperHandState.setVisible(true);
+                }
             } else if (selectionHandler.isActive() && isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
@@ -486,7 +502,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
-        } else if (keeperHandState.getItem() != null) {
+        } else if (keeperHandState.getItem() != null || showSpellIcon) {
             keeperHandState.setVisible(true);
         }
     }
