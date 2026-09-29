@@ -1403,6 +1403,18 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    @Override
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        Creature.Attributes attributes = creature.getAttributes();
+        float speed = switch (speedMode) {
+            case PossessedMovement.SPEED_RUN -> attributes.getRunSpeed();
+            case PossessedMovement.SPEED_CREEP -> attributes.getShuffleSpeed();
+            default -> attributes.getSpeed();
+        };
+        Vector2f normalizedDirection = direction.lengthSquared() > 0 ? direction.normalize() : new Vector2f();
+        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed));
+    }
+
     private void startPossession() {
         if (entityData.getComponent(entityId, Possessed.class) != null) {
             return;
