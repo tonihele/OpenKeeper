@@ -346,6 +346,19 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 solid[y * width + x] = t == null || getTerrain(t).getFlags().contains(Terrain.TerrainFlag.SOLID);
             }
         }
+
+        // A pillar has its own little ceiling cap - it needs to push the cave
+        // ceiling away and get no patch of its own, exactly like a solid tile
+        Set<Point> pillarTiles = new HashSet<>();
+        for (RoomInstance roomInstance : new HashSet<>(roomCoordinates.values())) {
+            pillarTiles.addAll(PillarPlacement.getPillarTiles(roomInstance));
+        }
+        for (Point p : pillarTiles) {
+            if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
+                solid[p.y * width + p.x] = true;
+            }
+        }
+
         ClearanceField clearanceField = new ClearanceField(width, height, solid);
 
         Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
@@ -357,7 +370,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 continue;
             }
             Point p = tile.getLocation();
-            if (!fogOfWarInformation.isVisible(p)) {
+            if (pillarTiles.contains(p) || !fogOfWarInformation.isVisible(p)) {
                 continue;
             }
 
