@@ -691,7 +691,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     /**
      * Tells the local fog-of-war module which creature (if any) the viewer is
      * currently possessing, so it can bypass fog for the first-person view
-     * and keep exploring the possessed creature's tile (§2/§6.9).
+     * and keep exploring the possessed creature's tile
      *
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */

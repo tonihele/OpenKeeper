@@ -101,6 +101,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             Spatial spatial = getTargetSpatial();
             if (spatial == null) {
                 stateManager.getState(PossessionCameraState.class).setEnabled(true);
+                onEnter();
             } else {
                 removeCameraControls(spatial);
                 spatial.addControl(new PossessionCameraControl(app.getCamera(), Direction.ENTRANCE) {
@@ -108,6 +109,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
                     public void onExit() {
                         if (PossessionInteractionState.this.isEnabled()) {
                             stateManager.getState(PossessionCameraState.class).setEnabled(true);
+                            PossessionInteractionState.this.onEnter();
                         }
                     }
                 });
@@ -255,6 +257,13 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             }
         };
     }
+
+    /**
+     * A callback fired once the entrance transition (flying the camera into
+     * the possessed creature) has finished and the first person camera has
+     * taken over
+     */
+    protected abstract void onEnter();
 
     /**
      * A callback fired right when the exit transition (flying the camera back

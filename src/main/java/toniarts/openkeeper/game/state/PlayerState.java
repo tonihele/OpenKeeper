@@ -156,12 +156,18 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             possessionCameraState = new PossessionCameraState(false);
             possessionState = new PossessionInteractionState(false) {
                 @Override
+                protected void onEnter() {
+                    gameState.setPossessedCreature(getTarget());
+                }
+
+                @Override
                 protected void onExitStart() {
                     // Cancel any spell (e.g. the Possession spell itself) that
                     // was still selected from before entering possession
                     interactionState.setInteractionState(InteractionState.Type.NONE, 0);
 
                     screen.goToScreen(IPlayerScreenController.SCREEN_HUD_ID);
+                    gameState.setPossessedCreature(null);
                 }
 
                 @Override
@@ -177,8 +183,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                         }
                         state.setEnabled(true);
                     }
-
-                    gameState.setPossessedCreature(null);
                 }
 
                 @Override
@@ -594,8 +598,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         // Enable state
         possessionState.setTarget(target);
         possessionState.setEnabled(true);
-
-        stateManager.getState(GameClientState.class).setPossessedCreature(target);
 
         screen.goToScreen(IPlayerScreenController.SCREEN_POSSESSION_ID);
     }
