@@ -161,7 +161,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                     // was still selected from before entering possession
                     interactionState.setInteractionState(InteractionState.Type.NONE, 0);
 
-                    screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
+                    screen.goToScreen(IPlayerScreenController.SCREEN_HUD_ID);
                 }
 
                 @Override
@@ -213,7 +213,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
             appStates.clear();
             screen.cleanup();
-            screen.goToScreen(PlayerScreenController.SCREEN_EMPTY_ID);
+            screen.goToScreen(IPlayerScreenController.SCREEN_EMPTY_ID);
         }
     }
 
@@ -301,9 +301,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
 
         if (enable) {
-            screen.goToScreen(PlayerScreenController.SCREEN_CINEMATIC_ID);
+            screen.goToScreen(IPlayerScreenController.SCREEN_CINEMATIC_ID);
         } else {
-            screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
+            screen.goToScreen(IPlayerScreenController.SCREEN_HUD_ID);
         }
     }
 
