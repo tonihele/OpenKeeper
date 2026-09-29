@@ -121,6 +121,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Spatial waterSurface; // Currently attached merged water mesh, if any
     private Spatial lavaSurface; // Currently attached merged lava mesh, if any
     private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
+    private boolean ceilingVisible = true; // Runtime show/hide toggle, independent of ceilingEnabled (which decides whether it's built at all)
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
@@ -402,8 +403,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             surface.attachChild(Ceiling.construct(assetManager, clearanceField,
                     batchTerrain.get(key), batchResource.get(key), batch.getValue()));
         }
+        if (!ceilingVisible) {
+            surface.setCullHint(Spatial.CullHint.Always);
+        }
         ceilingSurface = surface;
         map.attachChild(ceilingSurface);
+    }
+
+    /**
+     * Shows or hides the already-built ceiling without rebuilding it - a
+     * runtime debug toggle, e.g. for the model viewer. Has no effect if this
+     * scene was constructed with the ceiling disabled entirely.
+     *
+     * @param visible show the ceiling if built
+     */
+    public void setCeilingVisible(boolean visible) {
+        ceilingVisible = visible;
+        if (ceilingSurface != null) {
+            ceilingSurface.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        }
     }
 
     /**
