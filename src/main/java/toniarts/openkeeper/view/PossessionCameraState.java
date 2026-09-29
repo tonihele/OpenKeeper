@@ -32,12 +32,13 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.view.control.CreatureViewControl;
+import toniarts.openkeeper.view.control.IEntityViewControl;
 
 /**
  * First person view of the possessed creature. Looks around locally and sends
@@ -362,10 +363,10 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         this.target = target;
         creature = null;
         if (target != null) {
-            GameClientState gameClientState = stateManager.getState(GameClientState.class);
-            CreatureComponent creatureComponent = gameClientState.getGameClientService().getEntityData().getComponent(target, CreatureComponent.class);
-            if (creatureComponent != null) {
-                creature = gameClientState.getLevelData().getCreature(creatureComponent.creatureId);
+            PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+            IEntityViewControl control = entityViewState != null ? entityViewState.getEntityViewControl(target) : null;
+            if (control instanceof CreatureViewControl creatureViewControl) {
+                creature = creatureViewControl.getDataObject();
             } else {
                 logger.log(Logger.Level.WARNING, "Possession target {0} is not a creature!", target);
             }

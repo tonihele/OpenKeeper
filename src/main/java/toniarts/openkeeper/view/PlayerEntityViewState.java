@@ -244,6 +244,19 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
+     * Gets the view control of an entity, already holding the locally
+     * resolved game data for the entity (e.g. the {@link Creature} for a
+     * creature entity), so callers don't need to query the server for it
+     *
+     * @param entityId the entity
+     * @return the view control, or {@code null} if the entity has no view
+     * (yet)
+     */
+    public IEntityViewControl getEntityViewControl(EntityId entityId) {
+        return entityViewControls.get(entityId);
+    }
+
+    /**
      * Hides the model of an entity regardless of fog of war, i.e. the creature
      * we are looking out of while possessing it
      *

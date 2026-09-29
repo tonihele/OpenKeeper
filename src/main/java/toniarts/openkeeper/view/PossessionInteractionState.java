@@ -117,6 +117,10 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             stateManager.getState(PossessionCameraState.class).setEnabled(false);
             app.getInputManager().removeRawInputListener(inputListener);
 
+            // Show the normal HUD as soon as the exit transition begins, rather
+            // than waiting for the camera to finish flying out
+            onExitStart();
+
             // Fly out of the creature back to the keeper view above it
             PlayerCamera pc = stateManager.getState(PlayerCameraState.class).getCamera();
             pc.initialize();
@@ -251,6 +255,12 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             }
         };
     }
+
+    /**
+     * A callback fired right when the exit transition (flying the camera back
+     * out of the possessed creature) begins
+     */
+    protected abstract void onExitStart();
 
     /**
      * A callback for changing the interaction state

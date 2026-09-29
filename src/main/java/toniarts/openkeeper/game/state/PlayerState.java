@@ -156,19 +156,29 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             possessionCameraState = new PossessionCameraState(false);
             possessionState = new PossessionInteractionState(false) {
                 @Override
+                protected void onExitStart() {
+                    // Cancel any spell (e.g. the Possession spell itself) that
+                    // was still selected from before entering possession
+                    interactionState.setInteractionState(InteractionState.Type.NONE, 0);
+
+                    screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
+                }
+
+                @Override
                 protected void onExit() {
                     // Enable states
                     for (AbstractAppState state : appStates) {
                         if (state instanceof PossessionInteractionState
-                                || state instanceof PossessionCameraState) {
+                                || state instanceof PossessionCameraState
+                                || state instanceof ConsoleState) {
+                            // Console's "enabled" toggles the console window
+                            // open/closed rather than activating the state
                             continue;
                         }
                         state.setEnabled(true);
                     }
 
                     gameState.setPossessedCreature(null);
-
-                    screen.goToScreen(PlayerScreenController.SCREEN_HUD_ID);
                 }
 
                 @Override
