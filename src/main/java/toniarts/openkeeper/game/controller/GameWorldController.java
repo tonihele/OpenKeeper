@@ -814,31 +814,33 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      * @return {@code true} if the object ID was a recognized special and its effect ran
      */
     private boolean activateSpecial(short objectId, short playerId, Position position) {
-        if (objectId == ObjectsController.OBJECT_SPECIAL_INCREASE_LEVEL_ID) {
-            creaturesController.increaseLevelOfCreatures(playerId, 1);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_REVEAL_MAP_ID) {
-            mapController.disableFogOfWar(playerId);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MAKE_SAFE_ID) {
-            makeSafe(playerId);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID) {
-            destroyEnemyWalls(playerId);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID) {
-            addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID) {
-            playerControllers.get(playerId).getManaControl().addMana((int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_MANA_AMOUNT).getValue());
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID) {
-            stunEnemyImps(playerId);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_RECEIVE_IMPS_ID) {
-            receiveImps(playerId, position);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MAKE_HAPPY_ID) {
-            creaturesController.makeCreaturesHappy(playerId);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_MAKE_UNHAPPY_ID) {
-            creaturesController.angerEnemyCreatures(playerId);
-        } else if (objectId == ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID) {
-            creaturesController.healCreatures(playerId);
-        } else {
-            logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
-            return false;
+        switch (objectId) {
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_LEVEL_ID ->
+                creaturesController.increaseLevelOfCreatures(playerId, 1);
+            case ObjectsController.OBJECT_SPECIAL_REVEAL_MAP_ID ->
+                mapController.disableFogOfWar(playerId);
+            case ObjectsController.OBJECT_SPECIAL_MAKE_SAFE_ID ->
+                makeSafe(playerId);
+            case ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID ->
+                destroyEnemyWalls(playerId);
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID ->
+                addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
+            case ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID ->
+                playerControllers.get(playerId).getManaControl().addMana((int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_MANA_AMOUNT).getValue());
+            case ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID ->
+                stunEnemyImps(playerId);
+            case ObjectsController.OBJECT_SPECIAL_RECEIVE_IMPS_ID ->
+                receiveImps(playerId, position);
+            case ObjectsController.OBJECT_SPECIAL_MAKE_HAPPY_ID ->
+                creaturesController.makeCreaturesHappy(playerId);
+            case ObjectsController.OBJECT_SPECIAL_MAKE_UNHAPPY_ID ->
+                creaturesController.angerEnemyCreatures(playerId);
+            case ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID ->
+                creaturesController.healCreatures(playerId);
+            default -> {
+                logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
+                return false;
+            }
         }
         return true;
     }
