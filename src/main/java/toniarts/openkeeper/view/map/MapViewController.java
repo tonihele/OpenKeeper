@@ -346,8 +346,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 solid[y * width + x] = t == null || getTerrain(t).getFlags().contains(Terrain.TerrainFlag.SOLID);
             }
         }
-        ClearanceField clearanceField = new ClearanceField(width, height);
-        clearanceField.rebuild((x, y) -> solid[y * width + x]);
+        ClearanceField clearanceField = new ClearanceField(width, height, solid);
 
         Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
         Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();

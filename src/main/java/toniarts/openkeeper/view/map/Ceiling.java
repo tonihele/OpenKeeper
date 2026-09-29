@@ -19,7 +19,6 @@ package toniarts.openkeeper.view.map;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
-import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -117,15 +116,20 @@ public final class Ceiling {
                 for (int i = 0; i < 3; i++) {
                     float u = i * HALF_STEP;
 
-                    float height = heightAt(clearanceField, tile.x, tile.y, u, v);
+                    // Tile-space position, i.e. the same unit ClearanceField
+                    // indexes its solidity grid in
+                    float px = tile.x - HALF_STEP + u;
+                    float py = tile.y - HALF_STEP + v;
+
+                    float height = heightAt(clearanceField, px, py);
                     // The height curve's "0" is the floor plane, but WorldUtils.FLOOR_HEIGHT
                     // is already 1 tile above this engine's ground reference (it's where
                     // creatures stand) - adding it on top double-counts that tile
-                    vertices.add(new Vector3f((tile.x - HALF_STEP + u) * WorldUtils.TILE_WIDTH,
+                    vertices.add(new Vector3f(px * WorldUtils.TILE_WIDTH,
                             WorldUtils.UNDERFLOOR_HEIGHT + height,
-                            (tile.y - HALF_STEP + v) * WorldUtils.TILE_WIDTH));
+                            py * WorldUtils.TILE_WIDTH));
                     textureCoordinates.add(new Vector2f(u, v));
-                    normals.add(normalAt(clearanceField, tile.x, tile.y, u, v));
+                    normals.add(normalAt(clearanceField, px, py));
                 }
             }
 
@@ -162,23 +166,11 @@ public final class Ceiling {
     }
 
     /**
-     * Bilinearly interpolates the clearance field over tile {@code (tileX,
-     * tileY)} at local coordinates {@code u, v} and maps it to a height
-     * above the floor. {@code u}/{@code v} may fall outside {@code [0, 1]}
-     * for the normal's central-difference samples, which reach half a tile
-     * into the neighbouring tile; the interpolated clearance is clamped back
-     * into the field's own range before the height curve is applied, since
-     * that curve is only valid over {@code [0, MAX_CLEARANCE]}.
+     * The ceiling height directly above a continuous tile-space point, from
+     * {@link ClearanceField#clearanceAt} mapped through the height curve.
      */
-    private static float heightAt(ClearanceField clearanceField, int tileX, int tileY, float u, float v) {
-        float c00 = clearanceField.at(tileX, tileY);
-        float c10 = clearanceField.at(tileX + 1, tileY);
-        float c01 = clearanceField.at(tileX, tileY + 1);
-        float c11 = clearanceField.at(tileX + 1, tileY + 1);
-
-        float clearance = c00 * (1 - u) * (1 - v) + c10 * u * (1 - v)
-                + c01 * (1 - u) * v + c11 * u * v;
-        clearance = FastMath.clamp(clearance, 0, ClearanceField.MAX_CLEARANCE);
+    private static float heightAt(ClearanceField clearanceField, float px, float py) {
+        float clearance = clearanceField.clearanceAt(px, py);
 
         // A parabola whose apex sits one step past MAX_CLEARANCE, so it is
         // monotonic and concave across the whole input range: the ceiling
@@ -190,16 +182,15 @@ public final class Ceiling {
     }
 
     /**
-     * A downward-facing normal from central differences of the (locally
-     * extrapolated) height surface, so the patch is lit rather than reading
-     * as flat-black under the terrain lighting model every other surface
-     * uses.
+     * A downward-facing normal from central differences of the height
+     * surface, so the patch is lit rather than reading as flat-black under
+     * the terrain lighting model every other surface uses.
      */
-    private static Vector3f normalAt(ClearanceField clearanceField, int tileX, int tileY, float u, float v) {
-        float hu0 = heightAt(clearanceField, tileX, tileY, u - HALF_STEP, v);
-        float hu1 = heightAt(clearanceField, tileX, tileY, u + HALF_STEP, v);
-        float hv0 = heightAt(clearanceField, tileX, tileY, u, v - HALF_STEP);
-        float hv1 = heightAt(clearanceField, tileX, tileY, u, v + HALF_STEP);
+    private static Vector3f normalAt(ClearanceField clearanceField, float px, float py) {
+        float hu0 = heightAt(clearanceField, px - HALF_STEP, py);
+        float hu1 = heightAt(clearanceField, px + HALF_STEP, py);
+        float hv0 = heightAt(clearanceField, px, py - HALF_STEP);
+        float hv1 = heightAt(clearanceField, px, py + HALF_STEP);
 
         float slopeU = (hu1 - hu0) / (2 * HALF_STEP);
         float slopeV = (hv1 - hv0) / (2 * HALF_STEP);

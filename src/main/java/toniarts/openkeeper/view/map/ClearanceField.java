@@ -16,113 +16,91 @@
  */
 package toniarts.openkeeper.view.map;
 
+import com.jme3.math.FastMath;
+
 /**
- * A per-tile field of how far a cave ceiling may rise above a tile, in a
- * {@code 0..15} unit anchored on the tile's own upper-left grid corner. Both
- * solid and open tiles carry a value, each measured to the nearest tile of
- * the <i>opposite</i> solidity, so the field is one continuous "distance to
- * the nearest solidity boundary" surface rather than two separate ones - it
- * has no discontinuity at a wall face.
+ * How far a cave ceiling may rise above any point of the map, in a
+ * {@code 0..MAX_CLEARANCE} unit: four times the distance from that point to
+ * the nearest solid tile's face, capped four tiles out.
+ * <p>
+ * This is queried at a continuous world position rather than precomputed per
+ * tile, so a gap as narrow as one tile still domes in the middle. Anchoring
+ * the value only at tile corners and interpolating between them can't do
+ * that: in a 1-wide corridor, both wall-adjacent corners of the corridor
+ * tile are themselves zero (each wall face is distance zero from the corner
+ * that touches it), and a bilinear blend of {@code 0, 0, 0, 0} is flat no
+ * matter where in the tile you sample it - the corners simply never see the
+ * half-tile of clearance that exists exactly between them.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class ClearanceField {
 
-    public static final int MAX_CLEARANCE = 15;
+    public static final float MAX_CLEARANCE = 15f;
 
     /**
-     * Distance is measured in a 9x9 window (4 tiles in every direction) and
-     * capped there; beyond that a tile just reads as fully clear/enclosed,
-     * i.e. saturated at {@link #MAX_CLEARANCE}.
+     * Distance is capped four tiles out - beyond that a point just reads as
+     * fully clear, i.e. saturated at {@link #MAX_CLEARANCE}.
      */
-    private static final int SEARCH_RADIUS = 4;
-    private static final int SATURATION_D2 = SEARCH_RADIUS * SEARCH_RADIUS;
+    private static final float SEARCH_LIMIT = 4f;
+
+    /**
+     * How many tiles out to look for a candidate solid tile. Needs to cover
+     * {@link #SEARCH_LIMIT} plus how far a query point can land from its own
+     * tile's centre (up to a tile, for the normal samples in
+     * {@link Ceiling}) plus the tile's own half-width.
+     */
+    private static final int SEARCH_RADIUS = 5;
 
     private final int width;
     private final int height;
-    private final byte[] values;
+    private final boolean[] solid;
 
-    public ClearanceField(int width, int height) {
+    /**
+     * @param width map width, in tiles
+     * @param height map height, in tiles
+     * @param solid this map's solidity, one entry per tile, row-major
+     * ({@code y * width + x}) - not copied, the caller owns it
+     */
+    public ClearanceField(int width, int height, boolean[] solid) {
         this.width = width;
         this.height = height;
-        this.values = new byte[width * height];
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
+        this.solid = solid;
     }
 
     /**
-     * @param x tile x, may be outside the grid
-     * @param y tile y, may be outside the grid
-     * @return the clearance at {@code (x, y)}, or {@code 0} outside the map
+     * @param worldX world x, in tiles
+     * @param worldY world y (map z), in tiles
+     * @return the clearance at that point
      */
-    public int at(int x, int y) {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
-            return 0;
-        }
-        return values[y * width + x] & 0xFF;
-    }
+    public float clearanceAt(float worldX, float worldY) {
+        int baseX = Math.round(worldX);
+        int baseY = Math.round(worldY);
+        float bestDistance = SEARCH_LIMIT;
 
-    /**
-     * Recomputes the whole field from the given solidity predicate.
-     *
-     * @param solidity queried for every tile inside the map bounds
-     */
-    public void rebuild(Solidity solidity) {
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                values[y * width + x] = (byte) computeClearance(x, y, solidity);
-            }
-        }
-    }
-
-    private int computeClearance(int x, int y, Solidity solidity) {
-        boolean solid = solidity.isSolid(x, y);
-        int bestD2 = SATURATION_D2;
         for (int oy = -SEARCH_RADIUS; oy <= SEARCH_RADIUS; oy++) {
-            int ty = y + oy;
+            int ty = baseY + oy;
             if (ty < 0 || ty >= height) {
                 continue;
             }
-            // The +1 on a negative delta re-anchors it to the tile's
-            // upper-left corner rather than its centre - the four tiles
-            // meeting at that corner are all at distance 0.
-            int dy = (oy < 0) ? oy + 1 : oy;
-            int dy2 = dy * dy;
-            if (dy2 >= bestD2) {
-                continue;
-            }
             for (int ox = -SEARCH_RADIUS; ox <= SEARCH_RADIUS; ox++) {
-                int tx = x + ox;
-                if (tx < 0 || tx >= width) {
+                int tx = baseX + ox;
+                if (tx < 0 || tx >= width || !solid[ty * width + tx]) {
                     continue;
                 }
-                if (solidity.isSolid(tx, ty) == solid) {
-                    continue;
-                }
-                int dx = (ox < 0) ? ox + 1 : ox;
-                int d2 = dx * dx + dy2;
-                if (d2 < bestD2) {
-                    bestD2 = d2;
+
+                // Clamped point-to-box distance: 0 once the point is over
+                // the tile's own footprint, otherwise the distance to its
+                // nearest face
+                float dx = Math.max(0f, Math.abs(worldX - tx) - 0.5f);
+                float dy = Math.max(0f, Math.abs(worldY - ty) - 0.5f);
+                float distance = FastMath.sqrt(dx * dx + dy * dy);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
                 }
             }
         }
-        return Math.min(MAX_CLEARANCE, Math.round(4f * (float) Math.sqrt(bestD2)));
-    }
 
-    @FunctionalInterface
-    public interface Solidity {
-
-        /**
-         * @param x tile x, always inside the map bounds
-         * @param y tile y, always inside the map bounds
-         * @return is the tile solid
-         */
-        boolean isSolid(int x, int y);
+        return Math.min(MAX_CLEARANCE, 4f * bestDistance);
     }
 }
