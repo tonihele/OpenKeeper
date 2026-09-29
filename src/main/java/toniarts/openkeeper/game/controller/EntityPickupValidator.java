@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -35,7 +36,8 @@ public final class EntityPickupValidator {
 
     /**
      * Checks object-specific restrictions for the entity's current location.
-     * Loose gold follows the Dungeon Keeper II own-land rule. Other entity
+     * Loose gold and specials follow the Dungeon Keeper II own-land rule: they
+     * can only be picked up from a tile the picking player owns. Other entity
      * types do not currently have a location restriction.
      *
      * @param object object metadata, or {@code null} for a non-object entity
@@ -46,7 +48,8 @@ public final class EntityPickupValidator {
      */
     public static boolean isValidLocation(ObjectComponent object, Position position, short playerId,
             IMapDataInformation<? extends IMapTileInformation> mapData) {
-        if (object == null || object.objectId != ObjectsController.OBJECT_GOLD_ID) {
+        if (object == null || (object.objectId != ObjectsController.OBJECT_GOLD_ID
+                && object.objectType != AbstractRoomController.ObjectType.SPECIAL)) {
             return true;
         }
         if (position == null || mapData == null) {
