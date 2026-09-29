@@ -119,6 +119,15 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     void levelUpCreatures(short playerId, int level);
 
     /**
+     * Increases the experience level of all of the player's creatures by the given amount, capped at the
+     * maximum creature level
+     *
+     * @param playerId whose creatures to level up
+     * @param levelIncrease how many levels to add to each creature's current level
+     */
+    void increaseLevelOfCreatures(short playerId, int levelIncrease);
+
+    /**
      * Turns an existing creature into another creature
      *
      * @param entityId the existing entity to turn

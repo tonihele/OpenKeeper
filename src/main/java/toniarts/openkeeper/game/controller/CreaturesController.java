@@ -431,6 +431,17 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void increaseLevelOfCreatures(short playerId, int levelIncrease) {
+
+        // Find all the living creatures of the wanted player and bump each one up individually
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, CreatureExperience.class, Health.class);
+        for (Entity entity : entities) {
+            int newLevel = Math.min(entity.get(CreatureExperience.class).level + levelIncrease, Utils.MAX_CREATURE_LEVEL);
+            levelUpCreature(entity.getId(), newLevel, 0);
+        }
+    }
+
+    @Override
     public void levelUpCreature(EntityId entityId, int level, int experience) {
 
         // Get all the components needed

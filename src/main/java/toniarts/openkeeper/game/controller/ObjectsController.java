@@ -76,6 +76,7 @@ public final class ObjectsController implements IObjectsController {
     public final static short OBJECT_SPELL_BOOK_ID = 4;
     public final static short OBJECT_CHICKEN_ID = 9;
     public final static short OBJECT_EGG_ID = 47;
+    public final static short OBJECT_SPECIAL_INCREASE_LEVEL_ID = 117;
 
     /**
      * Some objects have these die over time, I'm not sure what variable governs

@@ -764,10 +764,61 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void pickUp(EntityId entity, short playerId) {
+        if (activateSpecialOnOwnLand(entity, playerId)) {
+            return;
+        }
+
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
             putToKeeperHand(playerHandControl, entity, playerId);
         }
+    }
+
+    /**
+     * Specials execute their effect immediately and are consumed when clicked while sitting on the
+     * clicking player's own land, instead of being picked up into the keeper's hand
+     *
+     * @param entity the entity clicked on
+     * @param playerId the player who clicked
+     * @return {@code true} if the entity was a special whose effect was activated
+     */
+    private boolean activateSpecialOnOwnLand(EntityId entity, short playerId) {
+        ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+        if (objectComponent == null || !kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+            return false;
+        }
+
+        Position position = entityData.getComponent(entity, Position.class);
+        if (position == null) {
+            return false;
+        }
+        IMapTileController tile = mapController.getMapData().getTile(WorldUtils.vectorToPoint(position.position));
+        if (tile == null || tile.getOwnerId() != playerId) {
+            return false;
+        }
+
+        if (!activateSpecial(objectComponent.objectId, playerId)) {
+            return false;
+        }
+
+        entityData.removeEntity(entity);
+        return true;
+    }
+
+    /**
+     * Runs the effect for a known special object
+     *
+     * @param objectId the special's object ID
+     * @param playerId the player whose land the special was activated on
+     * @return {@code true} if the object ID was a recognized special and its effect ran
+     */
+    private boolean activateSpecial(short objectId, short playerId) {
+        if (objectId == ObjectsController.OBJECT_SPECIAL_INCREASE_LEVEL_ID) {
+            creaturesController.increaseLevelOfCreatures(playerId, 1);
+            return true;
+        }
+        logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
+        return false;
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
