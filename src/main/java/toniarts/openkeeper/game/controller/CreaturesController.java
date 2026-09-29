@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -116,6 +117,12 @@ public final class CreaturesController implements ICreaturesController {
     private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
 
     /**
+     * Creature IDs that always die instantly, skipping the unconscious/dying wait, regardless of the
+     * {@link Thing.Creature.CreatureFlag2#DIES_INSTANTLY} flag: Lord Of The Land, King Reginald and Stone Knight
+     */
+    private final static Set<Short> CREATURES_THAT_DIE_INSTANTLY = Set.of((short) 21, (short) 28, (short) 29);
+
+    /**
      * Load creatures from a KWD file straight (new game)
      *
      * @param kwdFile the KWD file
@@ -194,6 +201,7 @@ public final class CreaturesController implements ICreaturesController {
         Thing.HeroParty.Objective objective = null;
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
+        boolean diesInstantly = false;
         if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
@@ -202,6 +210,8 @@ public final class CreaturesController implements ICreaturesController {
             objective = goodCreature.getObjective();
             objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
             objectiveTargetActionPointId = goodCreature.getObjectiveTargetActionPointId();
+            diesInstantly = goodCreature.getFlags2() != null
+                    && goodCreature.getFlags2().contains(Thing.Creature.CreatureFlag2.DIES_INSTANTLY);
         } else if (creature instanceof Thing.NeutralCreature neutralCreature) {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
@@ -216,30 +226,34 @@ public final class CreaturesController implements ICreaturesController {
             ownerId = deadBody.getPlayerId();
         }
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
-                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId);
+                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
     }
 
     @Override
     public EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, SpawnType spawnType) {
-        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, spawnType, null, (short) 0, 0);
+        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, spawnType, null, (short) 0, 0, false);
     }
 
     private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money,
-            Integer triggerId, SpawnType spawnType, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId) {
+            Integer triggerId, SpawnType spawnType, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, boolean diesInstantly) {
         EntityId entity = entityData.createEntity();
         Creature creature = kwdFile.getCreature(creatureId);
 
-        return loadCreature(entity, creature, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+        return loadCreature(entity, creature, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, diesInstantly);
     }
 
-    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId, boolean diesInstantly) {
         String name = Utils.generateCreatureName();
         String bloodType = Utils.generateBloodType();
 
-        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, diesInstantly);
     }
 
     private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, false);
+    }
+
+    private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId, boolean diesInstantly) {
         short creatureId = creature.getId();
 
         // Create health, unless dead body
@@ -256,6 +270,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureComponent.creatureId = creatureId;
         creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
         creatureComponent.stunDuration = creature.getAttributes().getStunDuration();
+        creatureComponent.diesInstantly = diesInstantly || CREATURES_THAT_DIE_INSTANTLY.contains(creatureId);
 
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
