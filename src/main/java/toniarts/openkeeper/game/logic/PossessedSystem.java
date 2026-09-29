@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ public final class PossessedSystem extends GameTimeCounter {
 
     private final EntitySet possessedEntities;
     private final Map<Short, PlayerManaControl> manaControls;
+    private final Map<EntityId, Short> possessorsByEntity = new HashMap<>();
     private final EntityData entityData;
     private final IGameController gameController;
     private final ICreaturesController creaturesController;
@@ -101,13 +103,20 @@ public final class PossessedSystem extends GameTimeCounter {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            gameController.setPossession(entity.getId(), entity.get(Owner.class).ownerId);
+            short ownerId = entity.get(Owner.class).ownerId;
+            possessorsByEntity.put(entity.getId(), ownerId);
+            gameController.setPossession(entity.getId(), ownerId);
         }
     }
 
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            gameController.setPossession(null, entity.get(Owner.class).ownerId);
+            // A removed entity has lost its components (e.g. the creature died
+            // while possessed), so the owner is remembered from when it was added
+            Short ownerId = possessorsByEntity.remove(entity.getId());
+            if (ownerId != null) {
+                gameController.setPossession(null, ownerId);
+            }
         }
     }
 }

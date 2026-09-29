@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 
@@ -58,6 +59,10 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      * Minimum interval (seconds) between facing-only updates to the server
      */
     private static final float ROTATION_SEND_INTERVAL = 0.1f;
+    /**
+     * How far the possessed creature can see, in tiles
+     */
+    private static final float VIEW_DISTANCE_TILES = 15f;
 
     private Main app;
     private AppStateManager stateManager;
@@ -151,7 +156,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      */
     private void loadCameraStartLocation() {
         Camera cam = app.getCamera();
-        cam.setFrustumPerspective(45, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+        cam.setFrustumPerspective(45, (float) cam.getWidth() / cam.getHeight(), 0.01f, VIEW_DISTANCE_TILES * WorldUtils.TILE_WIDTH);
         if (targetSpatial != null) {
             updateCameraLocation();
             Vector3f facing = targetSpatial.getWorldRotation().mult(Vector3f.UNIT_Z);

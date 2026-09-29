@@ -663,8 +663,9 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void setPossession(EntityId target) {
+            // Runs on the network thread; PlayerState applies the possession
+            // (including the fog-of-war bypass) on the render thread
             playerState.setPossession(target);
-            setPossessedCreature(target);
         }
     }
 
