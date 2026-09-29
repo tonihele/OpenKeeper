@@ -284,39 +284,9 @@ public final class CreaturesController implements ICreaturesController {
         // Threat
         Threat threatComponent = new Threat();
 
-        // Fearless
-        if (creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
-            entityData.setComponent(entity, new Fearless(null));
-        }
+        setFlagDrivenComponents(entity, creature);
 
-        // Need for sleep
-        if (creature.getAttributes().getTimeSleep() > 0) {
-            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
-        }
-
-        // Hunger
-        if (creature.getAttributes().getHungerFill() > 0) {
-            entityData.setComponent(entity, new CreatureHunger(gameTimer.getGameTime(), 0));
-        }
-
-        CreatureState creatureState;
-        switch (spawnType) {
-            case ENTRANCE -> {
-                creatureState = CreatureState.ENTERING_DUNGEON;
-            }
-            case PLACE -> {
-                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
-            }
-            case CONJURE -> {
-                creatureState = null;
-                entityData.setComponent(entity, new CreatureFall());
-            }
-            default ->
-                throw new RuntimeException("SpawnType " + spawnType + " not handled!");
-        }
-        if (creatureState != null) {
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
-        }
+        CreatureState creatureState = setCreatureStateAndPosition(entity, spawnType, x, y, ownerId, creatureId);
 
         // Regeneration
         Regeneration regeneration = new Regeneration();
@@ -327,19 +297,12 @@ public final class CreaturesController implements ICreaturesController {
 
         entityData.setComponent(entity, creatureComponent);
         entityData.setComponent(entity, creatureExperience);
-        if (healthComponent != null) {
-            entityData.setComponent(entity, healthComponent);
-        } else {
-            entityData.setComponent(entity, new Death(gameTimer.getGameTime()));
-        }
+        setHealthAndRegeneration(entity, healthComponent, regeneration);
         if (sensesComponent != null) {
             entityData.setComponent(entity, sensesComponent);
         }
         entityData.setComponent(entity, goldComponent);
         entityData.setComponent(entity, threatComponent);
-        if (regeneration.ownLandHealthIncrease > 0) {
-            entityData.setComponent(entity, regeneration);
-        }
 
         // Mana generation
         if (kwdFile.getImp().equals(creature)) {
@@ -364,6 +327,70 @@ public final class CreaturesController implements ICreaturesController {
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER),
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA), creatureComponent.speed));
 
+        setObjectiveAndTrigger(entity, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+
+        setInteractionIfApplicable(entity, creature);
+
+        // Visuals
+        Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
+        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
+
+        return entity;
+    }
+
+    private void setFlagDrivenComponents(EntityId entity, Creature creature) {
+
+        // Fearless
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
+            entityData.setComponent(entity, new Fearless(null));
+        }
+
+        // Need for sleep
+        if (creature.getAttributes().getTimeSleep() > 0) {
+            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
+        }
+
+        // Hunger
+        if (creature.getAttributes().getHungerFill() > 0) {
+            entityData.setComponent(entity, new CreatureHunger(gameTimer.getGameTime(), 0));
+        }
+    }
+
+    private CreatureState setCreatureStateAndPosition(EntityId entity, SpawnType spawnType, float x, float y, short ownerId, short creatureId) {
+        CreatureState creatureState;
+        switch (spawnType) {
+            case ENTRANCE -> {
+                creatureState = CreatureState.ENTERING_DUNGEON;
+            }
+            case PLACE -> {
+                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
+            }
+            case CONJURE -> {
+                creatureState = null;
+                entityData.setComponent(entity, new CreatureFall());
+            }
+            default ->
+                throw new RuntimeException("SpawnType " + spawnType + " not handled!");
+        }
+        if (creatureState != null) {
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
+        }
+        return creatureState;
+    }
+
+    private void setHealthAndRegeneration(EntityId entity, Health healthComponent, Regeneration regeneration) {
+        if (healthComponent != null) {
+            entityData.setComponent(entity, healthComponent);
+        } else {
+            entityData.setComponent(entity, new Death(gameTimer.getGameTime()));
+        }
+        if (regeneration.ownLandHealthIncrease > 0) {
+            entityData.setComponent(entity, regeneration);
+        }
+    }
+
+    private void setObjectiveAndTrigger(EntityId entity, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+
         // Objective
         if (objective != null) {
             entityData.setComponent(entity, new Objective(objective, objectiveTargetPlayerId, objectiveTargetActionPointId));
@@ -373,17 +400,14 @@ public final class CreaturesController implements ICreaturesController {
         if (triggerId != null) {
             entityData.setComponent(entity, new Trigger(triggerId));
         }
+    }
+
+    private void setInteractionIfApplicable(EntityId entity, Creature creature) {
 
         // Add some interaction properties
         if (creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) || creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)) {
             entityData.setComponent(entity, new Interaction(true, creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED), creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP), false, false));
         }
-
-        // Visuals
-        Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
-        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
-
-        return entity;
     }
 
     private Creature.AnimationType getStartingAnimation(Health healthComponent, CreatureState creatureState) {
