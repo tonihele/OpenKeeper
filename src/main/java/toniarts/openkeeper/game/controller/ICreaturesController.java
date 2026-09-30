@@ -119,6 +119,15 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     void levelUpCreatures(short playerId, int level);
 
     /**
+     * Increases the experience level of all of the player's creatures by the given amount, capped at the
+     * maximum creature level
+     *
+     * @param playerId whose creatures to level up
+     * @param levelIncrease how many levels to add to each creature's current level
+     */
+    void increaseLevelOfCreatures(short playerId, int levelIncrease);
+
+    /**
      * Turns an existing creature into another creature
      *
      * @param entityId the existing entity to turn
@@ -126,5 +135,36 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * @param creatureId the creature to turn into
      */
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
+
+    /**
+     * Heals all of the given player's creatures to full health, waking up anyone left unconscious
+     *
+     * @param playerId whose creatures to heal
+     */
+    void healCreatures(short playerId);
+
+    /**
+     * Clears all anger reasons of the given player's creatures, the "Make Happy" special
+     *
+     * @param playerId whose creatures to calm down
+     */
+    void makeCreaturesHappy(short playerId);
+
+    /**
+     * Maxes out every anger reason of every creature not owned by the given player, the "Make Unhappy"
+     * special
+     *
+     * @param playerId the player whose enemies' creatures should be angered
+     */
+    void angerEnemyCreatures(short playerId);
+
+    /**
+     * Stuns all of the given player's imps, the "Stun enemy imps" special. Stunned creatures are simply
+     * knocked unconscious, same as being knocked out in a fight - they get back up when rescued, or die if
+     * left too long
+     *
+     * @param playerId whose imps to stun
+     */
+    void stunImps(short playerId);
 
 }

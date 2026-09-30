@@ -180,6 +180,12 @@ public final class HealthSystem extends GameTimeCounter {
             return;
         }
 
+        // Some creatures die instantly, skipping the unconscious/dying wait and any skeleton rising, no matter where they are
+        if (isDiesInstantly(entityId)) {
+            processDeath(entityId);
+            return;
+        }
+
         // Tortured entities just die outright
         if (torturedEntities.containsId(entityId)) {
             processDeath(entityId);
@@ -200,6 +206,11 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Leave the entity incapacitaded and waiting for death... or rescue
         processUnconscious(entityId, health);
+    }
+
+    private boolean isDiesInstantly(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null && creatureComponent.diesInstantly;
     }
 
     private Short getRoomCreatureId(EntityId entityId) {
