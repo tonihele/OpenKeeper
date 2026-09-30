@@ -63,6 +63,11 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      * How far the possessed creature can see, in tiles
      */
     private static final float VIEW_DISTANCE_TILES = 15f;
+    /**
+     * Tunable, the original's unit is unknown: how many degrees of turn roll a
+     * unit of mouse analog input adds, the roll is clamped by the walk cycle
+     */
+    private static final float TURN_ROLL_DEGREES_PER_ANALOG = 60f;
 
     private Main app;
     private AppStateManager stateManager;
@@ -73,6 +78,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private Spatial targetSpatial;
 
     private PossessionCamera camera;
+    private PossessionWalkCycle walkCycle;
     private boolean inputRegistered = false;
 
     private boolean moveForward;
@@ -134,6 +140,10 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         if (enabled && creature != null) {
             targetSpatial = entityViewState != null ? entityViewState.getEntitySpatial(target) : null;
             camera = new PossessionCamera(app.getCamera(), creature.getAttributes().getSpeed(), creature.getFirstPersonOscillateScale());
+            walkCycle = new PossessionWalkCycle(creature.getFirstPersonWalkCycleScale(),
+                    creature.getFirstPersonWaddleScale(), creature.getFirstPersonOscillateScale(),
+                    creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY),
+                    creature.getFlags().contains(Creature.CreatureFlag.CAMERA_ROLLS_WHEN_TURNING));
             loadCameraStartLocation();
             if (entityViewState != null) {
                 entityViewState.setHiddenEntity(target);
@@ -142,6 +152,9 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             resetMovement();
             registerInput();
         } else {
+            if (camera != null) {
+                camera.setRoll(0);
+            }
             unregisterInput();
             resetMovement();
             if (entityViewState != null) {
@@ -171,7 +184,9 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     }
 
     private void updateCameraLocation() {
-        app.getCamera().setLocation(targetSpatial.getWorldTranslation().add(0, creature.getAttributes().getEyeHeight(), 0));
+        boolean movingBackward = axisValue(moveForward, moveBackward) < 0;
+        float height = creature.getAttributes().getEyeHeight() + walkCycle.getBobHeight(movingBackward);
+        app.getCamera().setLocation(targetSpatial.getWorldTranslation().add(0, height, 0));
     }
 
     private void registerInput() {
@@ -231,8 +246,14 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         }
 
         switch (name) {
-            case CAMERA_VIEW_LEFT -> camera.rotate(value, true);
-            case CAMERA_VIEW_RIGHT -> camera.rotate(-value, true);
+            case CAMERA_VIEW_LEFT -> {
+                camera.rotate(value, true);
+                walkCycle.addTurnRoll(value * TURN_ROLL_DEGREES_PER_ANALOG);
+            }
+            case CAMERA_VIEW_RIGHT -> {
+                camera.rotate(-value, true);
+                walkCycle.addTurnRoll(-value * TURN_ROLL_DEGREES_PER_ANALOG);
+            }
             case CAMERA_VIEW_UP -> camera.rotate(value, false);
             case CAMERA_VIEW_DOWN -> camera.rotate(-value, false);
         }
@@ -261,7 +282,10 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     @Override
     public void update(float tpf) {
         if (targetSpatial != null) {
+            boolean moving = axisValue(moveForward, moveBackward) != 0 || axisValue(moveLeft, moveRight) != 0;
+            walkCycle.update(tpf, moving);
             updateCameraLocation();
+            camera.setRoll(walkCycle.getRollDegrees());
             sendMovement(tpf);
         }
 
@@ -362,6 +386,9 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         sentDirection.set(0, 0);
         sentSpeedMode = PossessedMovement.SPEED_WALK;
         timeSinceSend = 0;
+        if (walkCycle != null) {
+            walkCycle.reset();
+        }
     }
 
     public void setTarget(EntityId target) {

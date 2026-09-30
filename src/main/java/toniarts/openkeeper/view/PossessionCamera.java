@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Matrix3f;
 import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
@@ -31,6 +32,7 @@ public final class PossessionCamera {
     //private static final float ZOOM_SPEED = 25f;
     private float speed;
     private float oscillate;
+    private float appliedRoll;
     private static final float ROTATION_SPEED = 5f;
     private static final float Y_ANGLE_MAX = 0.8f;
 
@@ -82,6 +84,25 @@ public final class PossessionCamera {
         q.normalizeLocal();
 
         camera.setAxes(q);
+    }
+
+    /**
+     * Roll the camera about its forward axis. The roll is set absolutely: only
+     * the difference to the previously applied roll is rotated, so the look
+     * direction set by the mouse is left alone.
+     *
+     * @param degrees the wanted roll, 0 is level
+     */
+    protected void setRoll(float degrees) {
+        float radians = degrees * FastMath.DEG_TO_RAD;
+        float delta = radians - appliedRoll;
+        if (delta == 0) {
+            return;
+        }
+
+        Quaternion roll = new Quaternion().fromAngleNormalAxis(delta, camera.getDirection());
+        camera.setRotation(roll.mult(camera.getRotation()).normalizeLocal());
+        appliedRoll = radians;
     }
 
     public float getSpeed() {

@@ -102,6 +102,19 @@ public final class CreatureController extends EntityController implements ICreat
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
+    /**
+     * Not from the game data, a tunable guess: how much faster a possessed
+     * creature sprints than it walks when its data has no run speed bonus
+     */
+    private static final float POSSESSED_RUN_FALLBACK_MULTIPLIER = 1.5f;
+
+    /**
+     * Possessed movement speed relative to walking forward
+     */
+    private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
+    private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
+    private static final float SPEED_MULTIPLIER = 2f;
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -1405,14 +1418,27 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        // Use the level scaled speeds, same as the AI movement does
         Creature.Attributes attributes = creature.getAttributes();
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        float walkSpeed = creatureComponent != null ? creatureComponent.speed : attributes.getSpeed();
+        float runSpeed = creatureComponent != null ? creatureComponent.runSpeed : attributes.getRunSpeed();
         float speed = switch (speedMode) {
-            case PossessedMovement.SPEED_RUN -> attributes.getRunSpeed();
+            case PossessedMovement.SPEED_RUN -> runSpeed;
             case PossessedMovement.SPEED_CREEP -> attributes.getShuffleSpeed();
-            default -> attributes.getSpeed();
+            default -> walkSpeed;
         };
         Vector2f normalizedDirection = direction.lengthSquared() > 0 ? direction.normalize() : new Vector2f();
-        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed));
+        if (normalizedDirection.lengthSquared() > 0) {
+
+            // Backing up and strafing are slower than walking forward, relative to the facing
+            Vector2f facing = new Vector2f(FastMath.sin(rotation), FastMath.cos(rotation));
+            float forward = normalizedDirection.dot(facing);
+            float sideways = normalizedDirection.x * facing.y - normalizedDirection.y * facing.x;
+            speed *= new Vector2f(forward * (forward < 0 ? POSSESSED_BACKWARD_SPEED_FACTOR : 1f),
+                    sideways * POSSESSED_STRAFE_SPEED_FACTOR).length();
+        }
+        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
     }
 
     private void startPossession() {
