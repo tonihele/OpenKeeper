@@ -1259,7 +1259,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private void processChangedPlayerCreatureEntities(Set<Entity> entities) {
             Set<Short> modifiedCreatures = new LinkedHashSet<>();
             for (Entity entity : entities) {
-                short creatureId = entity.get(CreatureComponent.class).creatureId;
+                short creatureId = CreaturePortraitResolver.cardTypeId(
+                        kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId));
                 Short oldCreatureId = creatureIdsByEntityIds.put(entity.getId(), creatureId);
                 if (oldCreatureId != null) {
 
@@ -1313,10 +1314,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
+            ArtResource portrait = CreaturePortraitResolver.resolve(creature, kwdFile::getCreature);
+            String portraitName = portrait != null ? portrait.getName() : "Logo";
             ControlBuilder cb = new ControlBuilder("creature") {
                 {
                     filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                            + File.separator + creature.getPortraitResource().getName() + ".png"));
+                            + File.separator + portraitName + ".png"));
                     parameter("creatureId", Integer.toString(creature.getCreatureId()));
                     parameter("creatureName", Utils.getMainTextResourceBundle().getString(
                             Integer.toString(creature.getNameStringId())));
