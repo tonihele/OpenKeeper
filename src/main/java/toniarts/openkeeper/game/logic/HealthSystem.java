@@ -320,7 +320,10 @@ public final class HealthSystem extends GameTimeCounter {
         if (entity != null) {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
-                entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureRecuperating(
+                        creatureRecuperating.startTime,
+                        creatureRecuperating.healthCheckTime + 1,
+                        creatureRecuperating.moodCheckTime));
                 delta += healthRegeneratePerSecond;
             }
         }

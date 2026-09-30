@@ -28,9 +28,34 @@ class CreatureStateTest {
         assertMissingLairChangesStateToIdle(CreatureState.RECUPERATING);
     }
 
+    @Test
+    void sleepingCreatureStaysInBedUntilDebtAndHealthRecoveryAreComplete() {
+        AtomicReference<CreatureState> currentState = new AtomicReference<>(CreatureState.SLEEPING);
+        AtomicReference<Boolean> recovered = new AtomicReference<>(false);
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(currentState);
+        ICreatureController creature = creature(stateMachine, true, recovered);
+
+        CreatureState.SLEEPING.update(creature);
+        assertEquals(CreatureState.SLEEPING, currentState.get());
+
+        recovered.set(true);
+        CreatureState.SLEEPING.update(creature);
+        assertEquals(CreatureState.IDLE, currentState.get());
+    }
+
     private static void assertMissingLairChangesStateToIdle(CreatureState state) {
         AtomicReference<CreatureState> currentState = new AtomicReference<>(state);
-        StateMachine<ICreatureController, CreatureState> stateMachine = (StateMachine<ICreatureController, CreatureState>) Proxy.newProxyInstance(
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(currentState);
+        ICreatureController creature = creature(stateMachine, false, new AtomicReference<>(false));
+
+        state.update(creature);
+
+        assertEquals(CreatureState.IDLE, currentState.get());
+    }
+
+    private static StateMachine<ICreatureController, CreatureState> stateMachine(
+            AtomicReference<CreatureState> currentState) {
+        return (StateMachine<ICreatureController, CreatureState>) Proxy.newProxyInstance(
                 StateMachine.class.getClassLoader(), new Class<?>[]{StateMachine.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "changeState" -> {
                         currentState.set((CreatureState) args[0]);
@@ -39,16 +64,18 @@ class CreatureStateTest {
                     case "getCurrentState" -> currentState.get();
                     default -> defaultValue(method.getReturnType());
                 });
-        ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+    }
+
+    private static ICreatureController creature(
+            StateMachine<ICreatureController, CreatureState> stateMachine,
+            boolean hasLair, AtomicReference<Boolean> recovered) {
+        return (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "hasLair" -> false;
+                    case "hasLair" -> hasLair;
+                    case "isEnoughSleep" -> recovered.get();
                     case "getStateMachine" -> stateMachine;
                     default -> defaultValue(method.getReturnType());
                 });
-
-        state.update(creature);
-
-        assertEquals(CreatureState.IDLE, currentState.get());
     }
 
     private static Object defaultValue(Class<?> type) {

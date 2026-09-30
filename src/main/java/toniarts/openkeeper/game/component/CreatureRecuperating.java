@@ -27,14 +27,16 @@ public final class CreatureRecuperating implements EntityComponent {
 
     public double startTime;
     public double healthCheckTime;
+    public double moodCheckTime;
 
     public CreatureRecuperating() {
         // For serialization
     }
 
-    public CreatureRecuperating(double startTime, double healthCheckTime) {
+    public CreatureRecuperating(double startTime, double healthCheckTime, double moodCheckTime) {
         this.startTime = startTime;
         this.healthCheckTime = healthCheckTime;
+        this.moodCheckTime = moodCheckTime;
     }
 
 }

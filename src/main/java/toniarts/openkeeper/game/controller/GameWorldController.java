@@ -713,7 +713,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
             CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
             if (lair.equals(sleep.lairObjectId)) {
-                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime,
+                        sleep.sleepStartTime, sleep.sleepNeed));
                 break;
             }
         }

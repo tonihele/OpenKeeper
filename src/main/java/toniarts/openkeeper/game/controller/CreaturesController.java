@@ -273,7 +273,7 @@ public final class CreaturesController implements ICreaturesController {
 
         // Need for sleep
         if (creature.getAttributes().getTimeSleep() > 0) {
-            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
+            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0, 0));
         }
 
         // Hunger
