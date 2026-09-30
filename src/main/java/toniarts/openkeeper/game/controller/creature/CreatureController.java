@@ -103,12 +103,6 @@ public final class CreatureController extends EntityController implements ICreat
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
     /**
-     * Not from the game data, a tunable guess: how much faster a possessed
-     * creature sprints than it walks when its data has no run speed bonus
-     */
-    private static final float POSSESSED_RUN_FALLBACK_MULTIPLIER = 1.5f;
-
-    /**
      * Possessed movement speed relative to walking forward
      */
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
