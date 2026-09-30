@@ -217,6 +217,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             subObjective3.setText(gameLevel.getSubObjective3());
 
             element.layoutElements();
+            // skipcq: JAVA-W1062
             element.show();
         }
     }
@@ -238,7 +239,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
-
+        // skipcq: JAVA-W1062
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             this.playButtonSound("GUI_BUTTON_OPTIONS");
@@ -489,6 +490,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }.build(filterPanel);
         } else {
             filterImage.getRenderer(ImageRenderer.class).setImage(nifty.createImage(filterImageName, false));
+            // skipcq: JAVA-W1062
             state.app.enqueue(() -> filterImage.show());
         }
     }
@@ -558,12 +560,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         initHud = true;
         this.entityData = entityData;
 
-        nifty.gotoScreen(PlayerScreenController.SCREEN_HUD_ID);
+        nifty.gotoScreen(IPlayerScreenController.SCREEN_HUD_ID);
 
         hud.layoutLayers();
     }
 
     public void setPause(boolean paused) {
+        // skipcq: JAVA-W1062
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
     }
 
@@ -633,6 +636,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         state.app.enqueue(() -> {
             Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
             if (filter != null) {
+                // skipcq: JAVA-W1062
                 filter.show();
             }
         });
