@@ -32,8 +32,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -55,6 +57,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
@@ -64,6 +67,7 @@ import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -116,6 +120,12 @@ public final class CreaturesController implements ICreaturesController {
     private final ILevelInfo levelInfo;
 
     private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
+
+    /**
+     * Creature IDs that always die instantly, skipping the unconscious/dying wait, regardless of the
+     * {@link Thing.Creature.CreatureFlag2#DIES_INSTANTLY} flag: Lord Of The Land, King Reginald and Stone Knight
+     */
+    private final static Set<Short> CREATURES_THAT_DIE_INSTANTLY = Set.of((short) 21, (short) 28, (short) 29);
 
     /**
      * Load creatures from a KWD file straight (new game)
@@ -196,6 +206,7 @@ public final class CreaturesController implements ICreaturesController {
         Thing.HeroParty.Objective objective = null;
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
+        boolean diesInstantly = false;
         if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
@@ -204,6 +215,8 @@ public final class CreaturesController implements ICreaturesController {
             objective = goodCreature.getObjective();
             objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
             objectiveTargetActionPointId = goodCreature.getObjectiveTargetActionPointId();
+            diesInstantly = goodCreature.getFlags2() != null
+                    && goodCreature.getFlags2().contains(Thing.Creature.CreatureFlag2.DIES_INSTANTLY);
         } else if (creature instanceof Thing.NeutralCreature neutralCreature) {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
@@ -218,30 +231,34 @@ public final class CreaturesController implements ICreaturesController {
             ownerId = deadBody.getPlayerId();
         }
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
-                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId);
+                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
     }
 
     @Override
     public EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, SpawnType spawnType) {
-        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, spawnType, null, (short) 0, 0);
+        return loadCreature(creatureId, playerId, level, position.x, position.y, 0, 100, 0, null, spawnType, null, (short) 0, 0, false);
     }
 
     private EntityId loadCreature(short creatureId, short ownerId, int level, float x, float y, float rotation, Integer healthPercentage, int money,
-            Integer triggerId, SpawnType spawnType, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId) {
+            Integer triggerId, SpawnType spawnType, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, boolean diesInstantly) {
         EntityId entity = entityData.createEntity();
         Creature creature = kwdFile.getCreature(creatureId);
 
-        return loadCreature(entity, creature, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+        return loadCreature(entity, creature, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, diesInstantly);
     }
 
-    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+    private EntityId loadCreature(EntityId entity, Creature creature, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId, boolean diesInstantly) {
         String name = Utils.generateCreatureName();
         String bloodType = Utils.generateBloodType();
 
-        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, diesInstantly);
     }
 
     private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+        return loadCreature(entity, creature, name, bloodType, healthPercentage, money, level, spawnType, x, y, ownerId, rotation, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId, false);
+    }
+
+    private EntityId loadCreature(EntityId entity, Creature creature, String name, String bloodType, Integer healthPercentage, int money, int level, SpawnType spawnType, float x, float y, short ownerId, float rotation, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId, boolean diesInstantly) {
         short creatureId = creature.getId();
 
         // Create health, unless dead body
@@ -258,6 +275,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureComponent.creatureId = creatureId;
         creatureComponent.worker = creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER);
         creatureComponent.stunDuration = creature.getAttributes().getStunDuration();
+        creatureComponent.diesInstantly = diesInstantly || CREATURES_THAT_DIE_INSTANTLY.contains(creatureId);
 
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
@@ -268,39 +286,9 @@ public final class CreaturesController implements ICreaturesController {
         // Threat
         Threat threatComponent = new Threat();
 
-        // Fearless
-        if (creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
-            entityData.setComponent(entity, new Fearless(null));
-        }
+        setFlagDrivenComponents(entity, creature);
 
-        // Need for sleep
-        if (creature.getAttributes().getTimeSleep() > 0) {
-            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
-        }
-
-        // Hunger
-        if (creature.getAttributes().getHungerFill() > 0) {
-            entityData.setComponent(entity, new CreatureHunger(gameTimer.getGameTime(), 0));
-        }
-
-        CreatureState creatureState;
-        switch (spawnType) {
-            case ENTRANCE -> {
-                creatureState = CreatureState.ENTERING_DUNGEON;
-            }
-            case PLACE -> {
-                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
-            }
-            case CONJURE -> {
-                creatureState = null;
-                entityData.setComponent(entity, new CreatureFall());
-            }
-            default ->
-                throw new RuntimeException("SpawnType " + spawnType + " not handled!");
-        }
-        if (creatureState != null) {
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
-        }
+        CreatureState creatureState = setCreatureStateAndPosition(entity, spawnType, x, y, ownerId, creatureId);
 
         // Regeneration
         Regeneration regeneration = new Regeneration();
@@ -311,19 +299,12 @@ public final class CreaturesController implements ICreaturesController {
 
         entityData.setComponent(entity, creatureComponent);
         entityData.setComponent(entity, creatureExperience);
-        if (healthComponent != null) {
-            entityData.setComponent(entity, healthComponent);
-        } else {
-            entityData.setComponent(entity, new Death(gameTimer.getGameTime()));
-        }
+        setHealthAndRegeneration(entity, healthComponent, regeneration);
         if (sensesComponent != null) {
             entityData.setComponent(entity, sensesComponent);
         }
         entityData.setComponent(entity, goldComponent);
         entityData.setComponent(entity, threatComponent);
-        if (regeneration.ownLandHealthIncrease > 0) {
-            entityData.setComponent(entity, regeneration);
-        }
 
         // Mana generation
         if (kwdFile.getImp().equals(creature)) {
@@ -348,6 +329,70 @@ public final class CreaturesController implements ICreaturesController {
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_WATER),
                 creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA), creatureComponent.speed));
 
+        setObjectiveAndTrigger(entity, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, triggerId);
+
+        setInteractionIfApplicable(entity, creature);
+
+        // Visuals
+        Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
+        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
+
+        return entity;
+    }
+
+    private void setFlagDrivenComponents(EntityId entity, Creature creature) {
+
+        // Fearless
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_FEARLESS)) {
+            entityData.setComponent(entity, new Fearless(null));
+        }
+
+        // Need for sleep
+        if (creature.getAttributes().getTimeSleep() > 0) {
+            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
+        }
+
+        // Hunger
+        if (creature.getAttributes().getHungerFill() > 0) {
+            entityData.setComponent(entity, new CreatureHunger(gameTimer.getGameTime(), 0));
+        }
+    }
+
+    private CreatureState setCreatureStateAndPosition(EntityId entity, SpawnType spawnType, float x, float y, short ownerId, short creatureId) {
+        CreatureState creatureState;
+        switch (spawnType) {
+            case ENTRANCE -> {
+                creatureState = CreatureState.ENTERING_DUNGEON;
+            }
+            case PLACE -> {
+                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
+            }
+            case CONJURE -> {
+                creatureState = null;
+                entityData.setComponent(entity, new CreatureFall());
+            }
+            default ->
+                throw new RuntimeException("SpawnType " + spawnType + " not handled!");
+        }
+        if (creatureState != null) {
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureId));
+        }
+        return creatureState;
+    }
+
+    private void setHealthAndRegeneration(EntityId entity, Health healthComponent, Regeneration regeneration) {
+        if (healthComponent != null) {
+            entityData.setComponent(entity, healthComponent);
+        } else {
+            entityData.setComponent(entity, new Death(gameTimer.getGameTime()));
+        }
+        if (regeneration.ownLandHealthIncrease > 0) {
+            entityData.setComponent(entity, regeneration);
+        }
+    }
+
+    private void setObjectiveAndTrigger(EntityId entity, Thing.HeroParty.Objective objective, short objectiveTargetPlayerId, int objectiveTargetActionPointId, Integer triggerId) {
+
         // Objective
         if (objective != null) {
             entityData.setComponent(entity, new Objective(objective, objectiveTargetPlayerId, objectiveTargetActionPointId));
@@ -357,17 +402,14 @@ public final class CreaturesController implements ICreaturesController {
         if (triggerId != null) {
             entityData.setComponent(entity, new Trigger(triggerId));
         }
+    }
+
+    private void setInteractionIfApplicable(EntityId entity, Creature creature) {
 
         // Add some interaction properties
         if (creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) || creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)) {
             entityData.setComponent(entity, new Interaction(true, creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED), creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP), false, false));
         }
-
-        // Visuals
-        Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
-        entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
-
-        return entity;
     }
 
     private Creature.AnimationType getStartingAnimation(Health healthComponent, CreatureState creatureState) {
@@ -414,6 +456,17 @@ public final class CreaturesController implements ICreaturesController {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
         for (Entity entity : entities) {
             levelUpCreature(entity.getId(), level, 0);
+        }
+    }
+
+    @Override
+    public void increaseLevelOfCreatures(short playerId, int levelIncrease) {
+
+        // Find all the living creatures of the wanted player and bump each one up individually
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, CreatureExperience.class, Health.class);
+        for (Entity entity : entities) {
+            int newLevel = Math.min(entity.get(CreatureExperience.class).level + levelIncrease, Utils.MAX_CREATURE_LEVEL);
+            levelUpCreature(entity.getId(), newLevel, 0);
         }
     }
 
@@ -597,12 +650,35 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+
     public EntityId getPossessedCreature(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
         try {
             return entities.isEmpty() ? null : entities.iterator().next().getId();
         } finally {
             entities.release();
+        }
+    }
+
+    public void healCreatures(short playerId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
+        for (Entity entity : entities) {
+            Health health = entity.get(Health.class);
+            entityData.setComponent(entity.getId(), new Health(health.maxHealth, health.maxHealth));
+
+            // Wake up anyone that was left unconscious, healing them to full wouldn't otherwise revive them
+            if (entityData.getComponent(entity.getId(), Unconscious.class) != null) {
+                entityData.removeComponent(entity.getId(), Unconscious.class);
+                createController(entity.getId()).getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
+    }
+
+    @Override
+    public void makeCreaturesHappy(short playerId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureMood.class);
+        for (Entity entity : entities) {
+            entityData.setComponent(entity.getId(), new CreatureMood());
         }
     }
 
@@ -619,6 +695,33 @@ public final class CreaturesController implements ICreaturesController {
         int creatureLevel = Math.clamp(level, 1, Utils.MAX_CREATURE_LEVEL);
         for (int i = 0; i < amount; i++) {
             spawnCreature(creatureId, playerId, creatureLevel, position, SpawnType.PLACE);
+        }
+    }
+    
+    @Override
+    public void angerEnemyCreatures(short playerId) {
+        EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);
+        for (Entity entity : entities) {
+            if (entity.get(Owner.class).ownerId == playerId) {
+                continue;
+            }
+            entityData.setComponent(entity.getId(), new CreatureMood(CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER,
+                    CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER));
+        }
+    }
+
+    @Override
+    public void stunImps(short playerId) {
+        short impId = kwdFile.getImp().getId();
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
+        for (Entity entity : entities) {
+            if (entity.get(CreatureComponent.class).creatureId != impId) {
+                continue;
+            }
+
+            // Stunned creatures are unconscious, same as being knocked out in a fight
+            EntityId entityId = entity.getId();
+            createController(entityId).getStateMachine().changeState(CreatureState.STUNNED);
         }
     }
 
