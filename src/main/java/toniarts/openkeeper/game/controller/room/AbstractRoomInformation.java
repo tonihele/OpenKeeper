@@ -106,17 +106,9 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     public boolean isRemoved() {
         return getEntityComponent(RoomComponent.class) == null;
     }
-
-    /**
-     * Identity is the wrapped ECS entity, full stop - not overridden as
-     * {@code final} any more, but subclasses that add fields (a cached
-     * component, a constructed-object index, ...) should still just
-     * delegate to {@code super.hashCode()} rather than folding those
-     * fields in: two wrapper instances around the same {@link #entityId}
-     * are the same room regardless of what either one has locally cached.
-     */
+    
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         int hash = 7;
         hash = 41 * hash + Objects.hashCode(this.entityId);
         return hash;
@@ -126,7 +118,7 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
      * @see #hashCode()
      */
     @Override
-    public boolean equals(Object obj) {
+    public final boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }

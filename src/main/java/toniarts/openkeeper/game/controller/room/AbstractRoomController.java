@@ -19,11 +19,8 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.utils.Point;
-
-import java.util.*;
-
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
@@ -31,6 +28,14 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.Point;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Base class for all rooms
@@ -302,14 +307,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         return getRoomComponent().destroyed;
     }
 
-    /**
-     * Only {@link FiveByFiveRotatedController} is a Dungeon Heart. Answered
-     * from the type rather than the {@code DungeonHeart} component, so no
-     * component lookup is needed
-     */
     @Override
     public boolean isDungeonHeart() {
-        return false;
+        return getEntityComponent(DungeonHeart.class) != null;
     }
 
     private RoomComponent getRoomComponent() {
@@ -464,13 +464,5 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     @Override
     protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
         return entityData.getComponent(entityId, type);
-    }
-    
-    @Override
-    public boolean equals(Object obj) {
-        if (!(obj instanceof AbstractRoomInformation that)) {
-            return false;
-        }
-        return Objects.equals(entityId, that.entityId);
     }
 }

@@ -233,21 +233,6 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
             return getValue.apply(storageEntity.get(Storage.class));
         }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null || getClass() != obj.getClass()) return false;
-            if (!super.equals(obj)) return false;
-
-            RoomInformation roomInfo = (RoomInformation) obj;
-            return Objects.equals(entity, roomInfo.entity);
-        }
-
-        @Override
-        public int hashCode() {
-            return 31 * super.hashCode() + Objects.hashCode(entity);
-        }
     }
 
 }
