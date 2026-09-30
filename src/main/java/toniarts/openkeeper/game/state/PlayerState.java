@@ -21,12 +21,11 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.*;
 import toniarts.openkeeper.game.data.GameResult;
@@ -38,6 +37,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.*;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.control.EntityViewControl;
+import toniarts.openkeeper.view.control.IEntityViewControl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -413,9 +413,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @param animate whether to animate the transition
      */
     public void zoomToEntity(EntityId entityId, boolean animate) {
-        Position position = entityData.getComponent(entityId, Position.class);
-        if (position != null) {
-            zoomToPosition(position.position, animate);
+        PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+        Spatial spatial = entityViewState != null ? entityViewState.getEntitySpatial(entityId) : null;
+        if (spatial != null) {
+            zoomToPosition(spatial.getLocalTranslation(), animate);
         }
     }
 
@@ -456,8 +457,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     protected Creature getPossessionCreature() {
         EntityId target = possessionState.getTarget();
-        CreatureComponent creatureComponent = target != null ? entityData.getComponent(target, CreatureComponent.class) : null;
-        return creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId) : null;
+        PlayerEntityViewState entityViewState = target != null ? stateManager.getState(PlayerEntityViewState.class) : null;
+        IEntityViewControl<?, ?> control = entityViewState != null ? entityViewState.getEntityViewControl(target) : null;
+
+        return control != null && control.getDataObject() instanceof Creature creature ? creature : null;
     }
 
     protected InteractionState getInteractionState() {
