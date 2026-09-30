@@ -51,6 +51,14 @@ public interface IRoomInformation {
     short getRoomId();
 
     /**
+     * Are we the dungeon heart? Data-driven (an entity-component check, not
+     * a hardcoded room-type id) so it stays correct for modded room data.
+     *
+     * @return are we?
+     */
+    boolean isDungeonHeart();
+
+    /**
      * Is this room instance destroyed?
      *
      * @see #isRemoved()

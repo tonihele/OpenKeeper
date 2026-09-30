@@ -14,19 +14,22 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.map;
 
-import com.simsilica.es.EntityComponent;
+/**
+ * The minimap design assumes a {@code playerNumber(playerId)}
+ * translation from level-file player ids into a 1..7 palette slot.
+ * In this codebase raw {@code short} owner/player ids
+ * (see {@link toniarts.openkeeper.tools.convert.map.Player}) already are
+ * those slot numbers
+ */
+public final class PlayerNumbers {
 
-/** Marks a wooden bridge tile that will burn away over lava. */
-public final class WoodenBridgeDecay implements EntityComponent {
-
-    public double endTime;
-
-    public WoodenBridgeDecay() {
+    private PlayerNumbers() {
     }
 
-    public WoodenBridgeDecay(double endTime) {
-        this.endTime = endTime;
+    public static short playerNumber(short playerId) {
+        return playerId;
     }
+
 }

@@ -14,19 +14,28 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.map;
 
-import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
+import java.util.HashMap;
+import java.util.Map;
 
-/** Marks a wooden bridge tile that will burn away over lava. */
-public final class WoodenBridgeDecay implements EntityComponent {
+/**
+ * An {@link IRoomsInformation} test double. Public: also reused by
+ * {@code view.minimap}'s rendering tests.
+ */
+public final class FakeRoomsInformation implements IRoomsInformation<FakeRoomInformation> {
 
-    public double endTime;
+    public final Map<EntityId, FakeRoomInformation> rooms = new HashMap<>();
 
-    public WoodenBridgeDecay() {
+    @Override
+    public FakeRoomInformation getRoomInformation(EntityId entityId) {
+        return rooms.get(entityId);
     }
 
-    public WoodenBridgeDecay(double endTime) {
-        this.endTime = endTime;
+    @Override
+    public int getRoomCount(short ownerId, short roomId) {
+        return 0;
     }
+
 }

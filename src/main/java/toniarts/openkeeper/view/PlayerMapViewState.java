@@ -235,8 +235,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     public void onSold(short keeperId, List<Point> tiles) {
 
         // Not wired: by the time this fires the terrain has typically already
-        // reverted to non-room, so the room's TileConstruction (needed to decide
-        // whether a whole-room unexplore applies, §6.1) can no longer be resolved here
+        // reverted to non-room, so the room's TileConstruction
     }
 
     @Override
