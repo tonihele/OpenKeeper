@@ -157,6 +157,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             possessionState = new PossessionInteractionState(false) {
                 @Override
                 protected void onEnter() {
+                    screen.showPossessionFilter();
                     gameState.setPossessedCreature(getTarget());
                 }
 
@@ -166,6 +167,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                     // was still selected from before entering possession
                     interactionState.setInteractionState(InteractionState.Type.NONE, 0);
 
+                    screen.resetPossessionFilter();
                     screen.goToScreen(IPlayerScreenController.SCREEN_HUD_ID);
                     gameState.setPossessedCreature(null);
                 }

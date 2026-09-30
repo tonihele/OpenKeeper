@@ -438,23 +438,35 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
                 contentPanel = screen.findElementById("creature-filter");
                 if (contentPanel != null) {
-                    if (creature.getFirstPersonFilterResource() != null) {
-                        new ImageBuilder() {
-                            {
-                                filename(creature.getFirstPersonFilterResource().getName());
-                            }
-                        }.build(contentPanel);
-                    } else if (getFilterResourceName(creature.getCreatureId()) != null) {
-                        new ImageBuilder() {
-                            {
-                                filename(getFilterResourceName(creature.getCreatureId()));
-                            }
-                        }.build(contentPanel);
+                    String filterImageName = creature.getFirstPersonFilterResource() != null
+                            ? creature.getFirstPersonFilterResource().getName()
+                            : getFilterResourceName(creature.getCreatureId());
+
+                    // The image element is kept and only re-pointed, removing
+                    // elements loses the image on the next possession
+                    List<Element> filterChildren = contentPanel.getChildren();
+                    Element filterImage = filterChildren.isEmpty() ? null : filterChildren.get(0);
+                    if (filterImageName != null) {
+                        if (filterImage == null) {
+                            final String name = filterImageName;
+                            new ImageBuilder() {
+                                {
+                                    filename(name);
+                                }
+                            }.build(contentPanel);
+                        } else {
+                            filterImage.getRenderer(ImageRenderer.class).setImage(nifty.createImage(filterImageName, false));
+                            filterImage.show();
+                        }
+                    } else if (filterImage != null) {
+                        filterImage.hide();
                     }
 
-                    if (creature.getFirstPersonGammaEffect() != null) {
-                        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(getGammaEffectColor(creature.getFirstPersonGammaEffect()));
-                    }
+                    contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(creature.getFirstPersonGammaEffect() != null
+                            ? getGammaEffectColor(creature.getFirstPersonGammaEffect()) : new Color(0, 0, 0, 0));
+
+                    // Revealed once the camera has entered the creature, see showPossessionFilter
+                    contentPanel.hide();
                 }
 
                 contentPanel = screen.findElementById("creature-abilities");
@@ -592,6 +604,33 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     public void goToScreen(String screen) {
         nifty.gotoScreen(screen);
+    }
+
+    /**
+     * Shows the prepared first person filter of the possessed creature. Called
+     * only after the camera has entered the creature, not when the possession
+     * screen starts.
+     */
+    public void showPossessionFilter() {
+        Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
+        if (filter != null) {
+            filter.show();
+        }
+    }
+
+    /**
+     * Hides the first person filter image and clears the gamma tint of the
+     * possessed creature, so they don't linger after possession. The image
+     * element itself is kept, it is re-pointed on the next possession.
+     */
+    public void resetPossessionFilter() {
+        Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
+        if (filter == null) {
+            return;
+        }
+
+        filter.hide();
+        filter.getRenderer(PanelRenderer.class).setBackgroundColor(new Color(0, 0, 0, 0));
     }
 
     /**
