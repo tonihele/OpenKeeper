@@ -612,10 +612,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * screen starts.
      */
     public void showPossessionFilter() {
-        Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
-        if (filter != null) {
-            filter.show();
-        }
+        // Nifty must be touched from the render thread, enqueued so that it
+        // also stays in order with resetPossessionFilter
+        state.app.enqueue(() -> {
+            Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
+            if (filter != null) {
+                filter.show();
+            }
+        });
     }
 
     /**
@@ -624,13 +628,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * element itself is kept, it is re-pointed on the next possession.
      */
     public void resetPossessionFilter() {
-        Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
-        if (filter == null) {
-            return;
-        }
+        state.app.enqueue(() -> {
+            Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
+            if (filter == null) {
+                return;
+            }
 
-        filter.hide();
-        filter.getRenderer(PanelRenderer.class).setBackgroundColor(new Color(0, 0, 0, 0));
+            filter.hide();
+            filter.getRenderer(PanelRenderer.class).setBackgroundColor(new Color(0, 0, 0, 0));
+        });
     }
 
     /**
