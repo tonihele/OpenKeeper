@@ -427,81 +427,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 break;
             }
             case SCREEN_POSSESSION_ID:
-                // what we need? abitities and spells, also melee
-                //final Creature creature = gameState.getLevelData().getCreature((short)13);
-                final Creature creature = state.getPossessionCreature();
-
-                Element contentPanel = screen.findElementById("creature-icon");
-                if (contentPanel != null) {
-                    createCreatureIcon(creature.getIcon1Resource().getName()).build(contentPanel);
-                }
-
-                contentPanel = screen.findElementById("creature-filter");
-                if (contentPanel != null) {
-                    String filterImageName = creature.getFirstPersonFilterResource() != null
-                            ? creature.getFirstPersonFilterResource().getName()
-                            : getFilterResourceName(creature.getCreatureId());
-
-                    // The image element is kept and only re-pointed, removing
-                    // elements loses the image on the next possession
-                    List<Element> filterChildren = contentPanel.getChildren();
-                    Element filterImage = filterChildren.isEmpty() ? null : filterChildren.get(0);
-                    if (filterImageName != null) {
-                        if (filterImage == null) {
-                            final String name = filterImageName;
-                            new ImageBuilder() {
-                                {
-                                    filename(name);
-                                }
-                            }.build(contentPanel);
-                        } else {
-                            filterImage.getRenderer(ImageRenderer.class).setImage(nifty.createImage(filterImageName, false));
-                            filterImage.show();
-                        }
-                    } else if (filterImage != null) {
-                        filterImage.hide();
-                    }
-
-                    contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(creature.getFirstPersonGammaEffect() != null
-                            ? getGammaEffectColor(creature.getFirstPersonGammaEffect()) : new Color(0, 0, 0, 0));
-
-                    // Revealed once the camera has entered the creature, see showPossessionFilter
-                    contentPanel.hide();
-                }
-
-                contentPanel = screen.findElementById("creature-abilities");
-                if (contentPanel != null) {
-
-                    String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
-                    if (ability != null) {
-                        createCreatureAbilityIcon(ability, 1).build(contentPanel);
-                    }
-
-                    ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
-                    if (ability != null) {
-                        createCreatureAbilityIcon(ability, 2).build(contentPanel);
-                    }
-                }
-
-                contentPanel = screen.findElementById("creature-attacks");
-                if (contentPanel != null) {
-                    for (Element element : contentPanel.getChildren()) {
-                        element.markForRemoval();
-                    }
-
-                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
-
-                    int index = 1;
-                    for (Creature.Spell s : creature.getSpells()) {
-                        // TODO: check creature level availiablity
-                        if (s.getCreatureSpellId() == 0) {
-                            continue;
-                        }
-                        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-                        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
-                    }
-                }
-                updatePossessionSelectedItem(possessionAction);
+                initPossessionScreen(state.getPossessionCreature());
                 break;
 
             case SCREEN_CINEMATIC_ID:
@@ -509,6 +435,96 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 text.setText(cinematicText);
                 break;
         }
+    }
+
+    /**
+     * Fills the possession screen with the details of the possessed creature
+     */
+    private void initPossessionScreen(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-icon");
+        if (contentPanel != null) {
+            createCreatureIcon(creature.getIcon1Resource().getName()).build(contentPanel);
+        }
+
+        initPossessionFilter(creature);
+        initPossessionAbilities(creature);
+        initPossessionAttacks(creature);
+        updatePossessionSelectedItem(possessionAction);
+    }
+
+    private void initPossessionFilter(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-filter");
+        if (contentPanel == null) {
+            return;
+        }
+
+        String filterImageName = creature.getFirstPersonFilterResource() != null
+                ? creature.getFirstPersonFilterResource().getName()
+                : getFilterResourceName(creature.getCreatureId());
+        setPossessionFilterImage(contentPanel, filterImageName);
+
+        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(creature.getFirstPersonGammaEffect() != null
+                ? getGammaEffectColor(creature.getFirstPersonGammaEffect()) : new Color(0, 0, 0, 0));
+
+        // Revealed once the camera has entered the creature, see showPossessionFilter
+        contentPanel.hide();
+    }
+
+    /**
+     * The image element is kept and only re-pointed, removing elements loses
+     * the image on the next possession
+     */
+    private void setPossessionFilterImage(Element filterPanel, String filterImageName) {
+        List<Element> filterChildren = filterPanel.getChildren();
+        Element filterImage = filterChildren.isEmpty() ? null : filterChildren.get(0);
+        if (filterImageName == null) {
+            if (filterImage != null) {
+                filterImage.hide();
+            }
+        } else if (filterImage == null) {
+            new ImageBuilder() {
+                {
+                    filename(filterImageName);
+                }
+            }.build(filterPanel);
+        } else {
+            filterImage.getRenderer(ImageRenderer.class).setImage(nifty.createImage(filterImageName, false));
+            filterImage.show();
+        }
+    }
+
+    private void initPossessionAbilities(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-abilities");
+        if (contentPanel == null) {
+            return;
+        }
+
+        String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
+        if (ability != null) {
+            createCreatureAbilityIcon(ability, 1).build(contentPanel);
+        }
+
+        ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
+        if (ability != null) {
+            createCreatureAbilityIcon(ability, 2).build(contentPanel);
+        }
+    }
+
+    private void initPossessionAttacks(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-attacks");
+        if (contentPanel == null) {
+            return;
+        }
+
+        for (Element element : contentPanel.getChildren()) {
+            element.markForRemoval();
+        }
+
+        createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
+
+        // TODO: creature spells, check creature level availiablity
+        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
     }
 
     @Override
