@@ -130,6 +130,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private Spatial hiddenSpatial;
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -229,6 +230,47 @@ public class PlayerEntityViewState extends AbstractAppState {
      */
     public Node getRoot() {
         return root;
+    }
+
+    /**
+     * Gets the model of an entity
+     *
+     * @param entityId the entity
+     * @return the model, or {@code null} if the entity has no model (yet)
+     */
+    public Spatial getEntitySpatial(EntityId entityId) {
+        IEntityViewControl control = entityViewControls.get(entityId);
+        return control != null ? control.getSpatial() : null;
+    }
+
+    /**
+     * Gets the view control of an entity, already holding the locally
+     * resolved game data for the entity (e.g. the {@link Creature} for a
+     * creature entity), so callers don't need to query the server for it
+     *
+     * @param entityId the entity
+     * @return the view control, or {@code null} if the entity has no view
+     * (yet)
+     */
+    public IEntityViewControl getEntityViewControl(EntityId entityId) {
+        return entityViewControls.get(entityId);
+    }
+
+    /**
+     * Hides the model of an entity regardless of fog of war, i.e. the creature
+     * we are looking out of while possessing it
+     *
+     * @param entityId the entity to hide, {@code null} to show the previously
+     * hidden one again
+     */
+    public void setHiddenEntity(EntityId entityId) {
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Inherit);
+        }
+        hiddenSpatial = entityId != null ? getEntitySpatial(entityId) : null;
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Always);
+        }
     }
 
     private Spatial createObjectModel(Entity e) {
@@ -387,6 +429,10 @@ public class PlayerEntityViewState extends AbstractAppState {
      * with no exceptions.
      */
     private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
+        if (object == hiddenSpatial) {
+            object.setCullHint(Spatial.CullHint.Always);
+            return;
+        }
         boolean visible = baseVisible;
         if (visible) {
             visible = fogOfWarInformation.isVisible(tile);

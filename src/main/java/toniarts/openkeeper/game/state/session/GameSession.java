@@ -154,6 +154,33 @@ public interface GameSession {
     public void triggerCheat(CheatState.CheatType cheat);
 
     /**
+     * Trigger a cheat that spawns creatures at the player's dungeon heart
+     *
+     * @param creatureId the creature to spawn
+     * @param level the creature level
+     * @param amount how many creatures to spawn
+     */
+    @Asynchronous
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount);
+
+    /**
+     * Steer the currently possessed creature
+     *
+     * @param direction normalized movement direction on the map plane, zero
+     * vector to stand still
+     * @param rotation the facing of the creature
+     * @param speedMode one of the {@code PossessedMovement.SPEED_*} constants
+     */
+    @Asynchronous
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+
+    /**
+     * Stop possessing the currently possessed creature
+     */
+    @Asynchronous
+    public void endPossession();
+
+    /**
      * Cast a keeper spell
      *
      * @param keeperSpellId the spell to cast

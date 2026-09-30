@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
@@ -39,11 +41,15 @@ public final class PossessedSystem extends GameTimeCounter {
 
     private final EntitySet possessedEntities;
     private final Map<Short, PlayerManaControl> manaControls;
+    private final Map<EntityId, Short> possessorsByEntity = new HashMap<>();
     private final EntityData entityData;
     private final IGameController gameController;
+    private final ICreaturesController creaturesController;
 
-    public PossessedSystem(Collection<IPlayerController> playerControllers, EntityData entityData, IGameController gameController) {
+    public PossessedSystem(Collection<IPlayerController> playerControllers, EntityData entityData, IGameController gameController,
+            ICreaturesController creaturesController) {
         this.gameController = gameController;
+        this.creaturesController = creaturesController;
         this.entityData = entityData;
         manaControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
@@ -72,12 +78,13 @@ public final class PossessedSystem extends GameTimeCounter {
             // See if the player is running out of mana
             Possessed possessed = entity.get(Possessed.class);
             Owner owner = entity.get(Owner.class);
-            if (possessed.manaCheckTime + 1 < timeElapsed) {
+            if (timeElapsed - possessed.manaCheckTime < 1) {
                 continue;
             }
 
-            if (!manaControls.get(owner.ownerId).hasEnoughMana(possessed.manaDrain)) {
-                entityData.removeComponent(entity.getId(), Possessed.class);
+            PlayerManaControl manaControl = manaControls.get(owner.ownerId);
+            if (manaControl == null || !manaControl.hasEnoughMana(possessed.manaDrain)) {
+                creaturesController.createController(entity.getId()).setPossession(false);
             } else {
                 entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed));
             }
@@ -96,13 +103,20 @@ public final class PossessedSystem extends GameTimeCounter {
 
     private void processAddedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            gameController.setPossession(entity.getId(), entity.get(Owner.class).ownerId);
+            short ownerId = entity.get(Owner.class).ownerId;
+            possessorsByEntity.put(entity.getId(), ownerId);
+            gameController.setPossession(entity.getId(), ownerId);
         }
     }
 
     private void processDeletedEntities(Set<Entity> entities) {
         for (Entity entity : entities) {
-            gameController.setPossession(null, entity.get(Owner.class).ownerId);
+            // A removed entity has lost its components (e.g. the creature died
+            // while possessed), so the owner is remembered from when it was added
+            Short ownerId = possessorsByEntity.remove(entity.getId());
+            if (ownerId != null) {
+                gameController.setPossession(null, ownerId);
+            }
         }
     }
 }

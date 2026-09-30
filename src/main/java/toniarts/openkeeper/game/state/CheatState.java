@@ -53,6 +53,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         UNLOCK_DOORS_TRAPS("fit the best"),
         REMOVE_FOW("now the rain has gone"),
         RESET_FOW("now the rain has come back"),
+        LOOSE_LEVEL("fear the reaper"),
         WIN_LEVEL("do not fear the reaper");
         private final String cheatMessage;
 
