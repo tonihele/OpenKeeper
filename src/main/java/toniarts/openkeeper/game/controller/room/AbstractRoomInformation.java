@@ -106,7 +106,7 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     public boolean isRemoved() {
         return getEntityComponent(RoomComponent.class) == null;
     }
-    
+
     @Override
     public final int hashCode() {
         int hash = 7;
@@ -114,9 +114,6 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
         return hash;
     }
 
-    /**
-     * @see #hashCode()
-     */
     @Override
     public final boolean equals(Object obj) {
         if (this == obj) {
