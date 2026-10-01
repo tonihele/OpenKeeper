@@ -375,6 +375,11 @@ public class PlayerEntityViewState extends AbstractAppState {
             }
             stateManager.getState(EffectManagerState.class).load(nodeCreatures, object.getWorldTranslation(), deathEffectId, true, control.getOwnerId());
         }
+
+        // Dead bodies are charred
+        if (viewState.state == Creature.AnimationType.DEATH_POSE) {
+            CharredOverlay.apply(object, assetManager);
+        }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
