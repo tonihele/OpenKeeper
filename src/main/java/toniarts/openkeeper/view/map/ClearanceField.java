@@ -58,12 +58,12 @@ public final class ClearanceField {
      * @param width map width, in tiles
      * @param height map height, in tiles
      * @param solid this map's solidity, one entry per tile, row-major
-     * ({@code y * width + x}) - not copied, the caller owns it
+     * ({@code y * width + x}) - copied defensively
      */
     public ClearanceField(int width, int height, boolean[] solid) {
         this.width = width;
         this.height = height;
-        this.solid = solid;
+        this.solid = solid.clone();
     }
 
     /**

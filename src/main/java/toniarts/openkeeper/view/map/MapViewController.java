@@ -318,53 +318,26 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         int width = mapData.getWidth();
         int height = mapData.getHeight();
 
-        // The field's window scan probes each tile's solidity up to 81 times;
-        // precompute it once per tile rather than re-resolving (fog-substituted)
-        // terrain that many times over
-        boolean[] solid = new boolean[width * height];
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                IMapTileInformation t = mapData.getTile(x, y);
-                solid[y * width + x] = t == null || getTerrain(t).getFlags().contains(Terrain.TerrainFlag.SOLID);
-            }
-        }
-
-        // A pillar has its own little ceiling cap - it needs to push the cave
-        // ceiling away and get no patch of its own, exactly like a solid tile
         Set<Point> pillarTiles = new HashSet<>();
         for (RoomInstance roomInstance : new HashSet<>(roomCoordinates.values())) {
             pillarTiles.addAll(PillarPlacement.getPillarTiles(roomInstance));
         }
-        for (Point p : pillarTiles) {
-            if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
-                solid[p.y * width + p.x] = true;
-            }
-        }
 
-        ClearanceField clearanceField = new ClearanceField(width, height, solid);
+        ClearanceField clearanceField = new ClearanceField(width, height,
+                createSolidGrid(mapData, pillarTiles));
 
         Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
         Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();
         Map<CeilingBatchKey, ArtResource> batchResource = new HashMap<>();
         for (IMapTileInformation tile : mapData) {
             Terrain terrain = getTerrain(tile);
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                continue;
-            }
             Point p = tile.getLocation();
-            if (pillarTiles.contains(p) || !fogOfWarInformation.isVisible(p)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                    || pillarTiles.contains(p) || !fogOfWarInformation.isVisible(p)) {
                 continue;
             }
 
-            ArtResource ceilingResource = null;
-            RoomInstance roomInstance = roomCoordinates.get(p);
-            if (roomInstance != null) {
-                ArtResource resource = roomInstance.getRoom().getCeilingResource();
-                if (resource != null && resource.getName() != null && !resource.getName().isEmpty()) {
-                    ceilingResource = resource;
-                }
-            }
-
+            ArtResource ceilingResource = getRoomCeilingResource(p);
             CeilingBatchKey key = new CeilingBatchKey(terrain.getTerrainId(),
                     ceilingResource != null ? ceilingResource.getName() : null);
             batchTiles.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
@@ -389,6 +362,44 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         ceilingSurface = surface;
         map.attachChild(ceilingSurface);
+    }
+
+    /**
+     * Per-tile solidity for the {@link ClearanceField}. The field's window scan
+     * probes each tile up to 81 times, so it is resolved once per tile rather
+     * than re-resolving (fog-substituted) terrain that many times over. A
+     * pillar has its own little ceiling cap - it needs to push the cave
+     * ceiling away and get no patch of its own, exactly like a solid tile.
+     */
+    private boolean[] createSolidGrid(IMapDataInformation<IMapTileInformation> mapData, Set<Point> pillarTiles) {
+        int width = mapData.getWidth();
+        int height = mapData.getHeight();
+        boolean[] solid = new boolean[width * height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                IMapTileInformation t = mapData.getTile(x, y);
+                solid[y * width + x] = t == null || getTerrain(t).getFlags().contains(Terrain.TerrainFlag.SOLID);
+            }
+        }
+        for (Point p : pillarTiles) {
+            if (p.x >= 0 && p.x < width && p.y >= 0 && p.y < height) {
+                solid[p.y * width + p.x] = true;
+            }
+        }
+        return solid;
+    }
+
+    /**
+     * @return the ceiling texture override of the room at the tile, or
+     * {@code null} if none
+     */
+    private ArtResource getRoomCeilingResource(Point p) {
+        RoomInstance roomInstance = roomCoordinates.get(p);
+        if (roomInstance == null) {
+            return null;
+        }
+        ArtResource resource = roomInstance.getRoom().getCeilingResource();
+        return (resource != null && resource.getName() != null && !resource.getName().isEmpty()) ? resource : null;
     }
 
     /**
