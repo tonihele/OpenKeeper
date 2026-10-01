@@ -110,9 +110,9 @@ public final class MainMenuState extends AbstractAppState {
     private boolean debriefingIsCampaign;
 
     private IKwdFile frontEndKwd;
-    protected final MainMenuInteraction listener;
+    final MainMenuInteraction listener;
     private Vector3f startLocation;
-    protected MapSelector mapSelector;
+    MapSelector mapSelector;
     private EntityData mainMenuEntityData;
     private MainMenuEntityViewState mainMenuEntityViewState;
     private GameController gameController;
