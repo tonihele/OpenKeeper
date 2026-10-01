@@ -42,8 +42,6 @@ import java.util.List;
  * domed by {@link ClearanceField} so it presses down to a fixed height at a
  * wall face and rises toward open ground, ending exactly at the fog boundary
  * because only visible tiles get a patch at all.
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class Ceiling {
 

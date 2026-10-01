@@ -31,8 +31,6 @@ import com.jme3.math.FastMath;
  * that touches it), and a bilinear blend of {@code 0, 0, 0, 0} is flat no
  * matter where in the tile you sample it - the corners simply never see the
  * half-tile of clearance that exists exactly between them.
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class ClearanceField {
 

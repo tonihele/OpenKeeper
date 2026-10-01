@@ -330,6 +330,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
+                        false,
                         () -> {
                             synchronized (mapDataLoadingObject) {
                                 mapDataLoaded = true;

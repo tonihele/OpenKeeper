@@ -72,7 +72,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        mapViewController = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
+        mapViewController = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true) {
 
             @Override
             protected void updateProgress(float progress) {
