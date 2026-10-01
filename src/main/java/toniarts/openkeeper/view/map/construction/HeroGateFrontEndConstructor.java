@@ -370,6 +370,10 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 // Always hide arrows here; show them only on selectCampaignLevel screen
                 child.setCullHint(Spatial.CullHint.Always);
 
+                // Avoid stacking duplicate/stale blink controls across repeated calls
+                // (re-entering selectCampaignLevel, campaign reset, progression advancing)
+                child.removeControl(ArrowBlinkControl.class);
+
                 if (isCurrentLevel) {
                     ArrowBlinkControl control = new ArrowBlinkControl(child);
                     child.addControl(control);
@@ -448,8 +452,10 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
      * Applies the static level textures to the campaign map: decayed
      * ({@code _D}) for completed levels, blue highlight ({@code _E}) for the
      * levels highlighted for the currently active level, base otherwise. Called
-     * when entering the {@code selectCampaignLevel} screen; the decay and
-     * highlight textures are only shown while level selection is possible.
+     * when entering the {@code selectCampaignLevel} screen; the blue highlight
+     * is only shown while level selection is possible, unlike the decayed
+     * texture which reflects saved progress and stays visible elsewhere too
+     * (see {@link #applyProgressTextures(Node, AssetManager)}).
      *
      * @param mapNode the map node containing the level children
      */
@@ -462,11 +468,35 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             }
             if (highlights.contains(control.getLevel().getLevel())) {
                 applyAlternativeTexture(child, "_E", assetManager);
-            } else if (Settings.getInstance().getLevelStatus(control.getLevel()) == Settings.LevelStatus.COMPLETED) {
-                applyAlternativeTexture(child, "_D", assetManager);
             } else {
-                applyAlternativeTexture(child, null, assetManager);
+                applyProgressTexture(child, control, assetManager);
             }
+        }
+    }
+
+    /**
+     * Applies the persistent campaign-progress texture to the campaign map:
+     * decayed ({@code _D}) for completed levels, base otherwise. Unlike the
+     * transient blue highlight ({@code _E}), this reflects saved progress and
+     * should be visible as soon as the menu scene exists, on every main menu
+     * screen, not just while {@code selectCampaignLevel} is active.
+     *
+     * @param mapNode the map node containing the level children
+     */
+    public static void applyProgressTextures(Node mapNode, AssetManager assetManager) {
+        for (Spatial child : mapNode.getChildren()) {
+            FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
+            if (control != null) {
+                applyProgressTexture(child, control, assetManager);
+            }
+        }
+    }
+
+    private static void applyProgressTexture(Spatial child, FrontEndLevelControl control, AssetManager assetManager) {
+        if (Settings.getInstance().getLevelStatus(control.getLevel()) == Settings.LevelStatus.COMPLETED) {
+            applyAlternativeTexture(child, "_D", assetManager);
+        } else {
+            applyAlternativeTexture(child, null, assetManager);
         }
     }
 
@@ -497,10 +527,10 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
     }
 
     /**
-     * Stops the highlight blink animations and restores the base level
-     * textures. Called when leaving the {@code selectCampaignLevel} screen, as
-     * the decay and highlight textures are only shown while level selection is
-     * possible.
+     * Stops the highlight blink animations and restores the persistent
+     * campaign-progress textures (decayed markers for completed levels stay
+     * visible). Called when leaving the {@code selectCampaignLevel} screen, as
+     * the blue highlight is only shown while level selection is possible.
      *
      * @param mapNode the map node containing the level children
      */
@@ -512,22 +542,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             }
             child.removeControl(HighlightBlinkControl.class);
         }
-        resetLevelTextures(mapNode, assetManager);
-    }
-
-    /**
-     * Restores all level textures on the campaign map back to their base
-     * (non-decayed, non-highlighted) look.
-     *
-     * @param mapNode the map node containing the level children
-     */
-    private static void resetLevelTextures(Node mapNode, AssetManager assetManager) {
-        for (Spatial child : mapNode.getChildren()) {
-            FrontEndLevelControl control = child.getControl(FrontEndLevelControl.class);
-            if (control != null) {
-                applyAlternativeTexture(child, null, assetManager);
-            }
-        }
+        applyProgressTextures(mapNode, assetManager);
     }
 
     /**

@@ -681,53 +681,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         // Player creatures, the controller
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
+                creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
-//        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
-//            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
-//        }
-//        state.getCreatureControl().addCreatureListener(new CreatureListener() {
-//
-//            @Override
-//            public void onSpawn(CreatureControl creature) {
-//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                        CreatureCardControl.class);
-//                if (card == null) {
-//                    card = createPlayerCreatureIcon(creature.getCreature(), hud, creaturePanel);// Create
-//                }
-//                card.setTotal(total);
-//            }
-//
-//            @Override
-//            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-//                if (newState == CreatureState.PICKED_UP || oldState == CreatureState.PICKED_UP) {
-//                    int total = 0;
-//                    Set<CreatureControl> c = state.getCreatureControl().getCreatures().get(creature.getCreature());
-//                    for (CreatureControl creatureControl : c) {
-//                        if (creatureControl.getStateMachine().getCurrentState() != CreatureState.PICKED_UP) {
-//                            total++;
-//                        }
-//                    }
-//                    CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                            CreatureCardControl.class);
-//                    card.setTotal(total);
-//                }
-//            }
-//
-//            @Override
-//            public void onDie(CreatureControl creature) {
-//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                        CreatureCardControl.class);
-//                card.setTotal(total);
-//                if (total == 0) {
-//                    card.getElement().markForRemoval(); // Remove
-//                }
-//            }
-//        });
-//        state.getCreatureControl().addWorkerListener(creatureTab.findControl("tab-workers",
-//                WorkerAmountControl.class));
-
         // Rooms
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
@@ -1178,6 +1133,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private final EntityData entityData;
         private final EntitySet playerCreatureEntities;
         private final Element creaturePanel;
+        private final CreaturePortraitScrollControl portraitScroll;
         private final WorkerAmountControl workerAmountControl;
         private final Screen hud;
         private final short impId;
@@ -1185,14 +1141,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private final Map<EntityId, WatchedEntity> creatureEntities = new LinkedHashMap<>();
         private final Map<EntityId, Short> creatureIdsByEntityIds = new HashMap<>();
         private final Map<Short, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
-        private final Map<Short, CreatureCardControl> creatureCardControls = new HashMap<>();
+        private final Map<Short, CreatureCardControl> creatureCardControls = new LinkedHashMap<>();
         private final CreatureCardEventListener creatureCardEventListener = new EventListener();
 
-        public CreatureCardManager(IPlayerScreenController playerScreenController, IKwdFile kwdFile, EntityData entityData, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
+        public CreatureCardManager(IPlayerScreenController playerScreenController, IKwdFile kwdFile, EntityData entityData, Element creaturePanel, CreaturePortraitScrollControl portraitScroll, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
             this.playerScreenController = playerScreenController;
             this.kwdFile = kwdFile;
             this.entityData = entityData;
             this.creaturePanel = creaturePanel;
+            this.portraitScroll = portraitScroll;
             this.workerAmountControl = workerAmountControl;
             this.hud = hud;
 
@@ -1290,6 +1247,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     card.setTotal(calculateTotal(creatureId));
                 }
             }
+            if (!creatureTypes.isEmpty()) {
+                List<Element> portraits = new ArrayList<>(creatureCardControls.size());
+                for (CreatureCardControl card : creatureCardControls.values()) {
+                    portraits.add(card.getElement());
+                }
+                portraitScroll.setPortraits(portraits);
+            }
         }
 
         private void processChangedPlayerCreatureEntities(Set<Entity> entities) {
@@ -1354,6 +1318,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                             + File.separator + creature.getPortraitResource().getName() + ".png"));
                     parameter("creatureId", Integer.toString(creature.getCreatureId()));
+                    parameter("creatureName", Utils.getMainTextResourceBundle().getString(
+                            Integer.toString(creature.getNameStringId())));
                     id("creature_" + creature.getCreatureId());
                 }
             };

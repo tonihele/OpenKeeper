@@ -377,6 +377,7 @@ public class Variable {
             CREATURES_SUPPORTED_BY_FIRST_PORTAL(73), // value=15
             MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND(75), // value=100
             MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND(76), // value=-550
+            MODIFY_CREATURE_STATS(77), // used in level1 for the hero to bump up his stats (damage 200, threat 125)
             MODIFY_ANGER_IN_COMPANY_OF_HATED_CREATURES_PER_SECOND(78), // value=150
             FORCE_APPLIED_TO_SLAPPED_CREATURE(79), // value=1024
             CANNOT_SLEEP_MODIFY_CREATURE_HEALTH_PER_SECOND(82), // value=0
