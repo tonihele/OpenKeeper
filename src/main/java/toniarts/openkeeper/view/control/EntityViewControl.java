@@ -252,6 +252,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     @Override
+    public S getCurrentState() {
+        return currentState;
+    }
+
+    @Override
     public T getDataObject() {
         return data;
     }
