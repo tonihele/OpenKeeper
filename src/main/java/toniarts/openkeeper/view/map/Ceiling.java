@@ -57,7 +57,14 @@ public final class Ceiling {
      * Half the step, in tiles, used both between adjacent patch vertices and
      * for the central-difference normal samples.
      */
-    private static final float HALF_STEP = 0.5f;
+    private static final float STEP = 0.5f;
+
+    /**
+     * How far the true surface at a quad's centre may stray from the flat
+     * quad before that quad gets an extra centre vertex. The clearance field
+     * creases diagonally around corners, which a flat quad can't follow.
+     */
+    private static final float SPLIT_THRESHOLD = 0.12f;
 
     private Ceiling() {
         // Nope
@@ -106,32 +113,22 @@ public final class Ceiling {
 
         for (Point tile : tiles) {
             int base = vertices.size();
+            float[] heights = new float[9];
 
             // The 3x3 grid of vertices over the tile: the 4 corners, 4 edge
             // midpoints and the centre
             for (int j = 0; j < 3; j++) {
-                float v = j * HALF_STEP;
                 for (int i = 0; i < 3; i++) {
-                    float u = i * HALF_STEP;
-
-                    // Tile-space position, i.e. the same unit ClearanceField
-                    // indexes its solidity grid in
-                    float px = tile.x - HALF_STEP + u;
-                    float py = tile.y - HALF_STEP + v;
-
-                    float height = heightAt(clearanceField, px, py);
-                    // The height curve's "0" is the floor plane, but WorldUtils.FLOOR_HEIGHT
-                    // is already 1 tile above this engine's ground reference (it's where
-                    // creatures stand) - adding it on top double-counts that tile
-                    vertices.add(new Vector3f(px * WorldUtils.TILE_WIDTH,
-                            WorldUtils.UNDERFLOOR_HEIGHT + height,
-                            py * WorldUtils.TILE_WIDTH));
-                    textureCoordinates.add(new Vector2f(u, v));
-                    normals.add(normalAt(clearanceField, px, py));
+                    float height = heightAt(clearanceField, tile.x - 0.5f + i * STEP, tile.y - 0.5f + j * STEP);
+                    heights[patchVertexIndex(i, j)] = height;
+                    addVertex(vertices, textureCoordinates, normals, clearanceField, tile,
+                            i * STEP, j * STEP, height);
                 }
             }
 
-            // 2x2 quads over the 3x3 vertex grid, wound to face down
+            // 2x2 quads over the 3x3 vertex grid, wound to face down. A quad
+            // the surface bends away from gets a centre vertex and is fanned
+            // into 4 triangles - its edges stay put, so no cracks to neighbours
             for (int cj = 0; cj < 2; cj++) {
                 for (int ci = 0; ci < 2; ci++) {
                     int topLeft = base + patchVertexIndex(ci, cj);
@@ -139,13 +136,40 @@ public final class Ceiling {
                     int bottomLeft = base + patchVertexIndex(ci, cj + 1);
                     int bottomRight = base + patchVertexIndex(ci + 1, cj + 1);
 
-                    indexes.add(topLeft);
-                    indexes.add(topRight);
-                    indexes.add(bottomLeft);
+                    float u = (ci + 0.5f) * STEP;
+                    float v = (cj + 0.5f) * STEP;
+                    float centerHeight = heightAt(clearanceField, tile.x - 0.5f + u, tile.y - 0.5f + v);
+                    float flatHeight = (heights[patchVertexIndex(ci, cj)] + heights[patchVertexIndex(ci + 1, cj)]
+                            + heights[patchVertexIndex(ci, cj + 1)] + heights[patchVertexIndex(ci + 1, cj + 1)]) / 4f;
 
-                    indexes.add(topRight);
-                    indexes.add(bottomRight);
-                    indexes.add(bottomLeft);
+                    if (Math.abs(centerHeight - flatHeight) > SPLIT_THRESHOLD) {
+                        int center = vertices.size();
+                        addVertex(vertices, textureCoordinates, normals, clearanceField, tile, u, v, centerHeight);
+
+                        indexes.add(topLeft);
+                        indexes.add(topRight);
+                        indexes.add(center);
+
+                        indexes.add(topRight);
+                        indexes.add(bottomRight);
+                        indexes.add(center);
+
+                        indexes.add(bottomRight);
+                        indexes.add(bottomLeft);
+                        indexes.add(center);
+
+                        indexes.add(bottomLeft);
+                        indexes.add(topLeft);
+                        indexes.add(center);
+                    } else {
+                        indexes.add(topLeft);
+                        indexes.add(topRight);
+                        indexes.add(bottomLeft);
+
+                        indexes.add(topRight);
+                        indexes.add(bottomRight);
+                        indexes.add(bottomLeft);
+                    }
                 }
             }
         }
@@ -157,6 +181,27 @@ public final class Ceiling {
         mesh.updateBound();
 
         return mesh;
+    }
+
+    /**
+     * Adds one vertex at the tile-local offset (u, v), both 0..1 across the tile.
+     */
+    private static void addVertex(List<Vector3f> vertices, List<Vector2f> textureCoordinates,
+            List<Vector3f> normals, ClearanceField clearanceField, Point tile, float u, float v, float height) {
+
+        // Tile-space position, i.e. the same unit ClearanceField indexes its
+        // solidity grid in
+        float px = tile.x - 0.5f + u;
+        float py = tile.y - 0.5f + v;
+
+        // The height curve's "0" is the floor plane, but WorldUtils.FLOOR_HEIGHT
+        // is already 1 tile above this engine's ground reference (it's where
+        // creatures stand) - adding it on top double-counts that tile
+        vertices.add(new Vector3f(px * WorldUtils.TILE_WIDTH,
+                WorldUtils.UNDERFLOOR_HEIGHT + height,
+                py * WorldUtils.TILE_WIDTH));
+        textureCoordinates.add(new Vector2f(u, v));
+        normals.add(normalAt(clearanceField, px, py));
     }
 
     private static int patchVertexIndex(int i, int j) {
@@ -185,13 +230,13 @@ public final class Ceiling {
      * the terrain lighting model every other surface uses.
      */
     private static Vector3f normalAt(ClearanceField clearanceField, float px, float py) {
-        float hu0 = heightAt(clearanceField, px - HALF_STEP, py);
-        float hu1 = heightAt(clearanceField, px + HALF_STEP, py);
-        float hv0 = heightAt(clearanceField, px, py - HALF_STEP);
-        float hv1 = heightAt(clearanceField, px, py + HALF_STEP);
+        float hu0 = heightAt(clearanceField, px - STEP, py);
+        float hu1 = heightAt(clearanceField, px + STEP, py);
+        float hv0 = heightAt(clearanceField, px, py - STEP);
+        float hv1 = heightAt(clearanceField, px, py + STEP);
 
-        float slopeU = (hu1 - hu0) / (2 * HALF_STEP);
-        float slopeV = (hv1 - hv0) / (2 * HALF_STEP);
+        float slopeU = (hu1 - hu0) / (2 * STEP);
+        float slopeV = (hv1 - hv0) / (2 * STEP);
 
         return new Vector3f(slopeU, -1, slopeV).normalizeLocal();
     }
