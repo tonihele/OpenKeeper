@@ -51,6 +51,7 @@ public final class MapLoaderAppState extends AbstractAppState {
     private EntityData mapEntityData;
     private MapLoaderAppState.MapEntityViewState mainMenuEntityViewState;
     private GameController gameController;
+    private MapViewController mapViewController;
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -71,7 +72,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
+        mapViewController = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -79,7 +80,7 @@ public final class MapLoaderAppState extends AbstractAppState {
             }
 
         };
-        mapNode.attachChild(mapLoader.load(assetManager, kwdFile));
+        mapNode.attachChild(mapViewController.load(assetManager, kwdFile));
 
         mainMenuEntityViewState = new MapLoaderAppState.MapEntityViewState(kwdFile, assetManager, mapEntityData, Player.KEEPER1_ID, null, mapNode);
         stateManager.attach(mainMenuEntityViewState);
@@ -99,6 +100,19 @@ public final class MapLoaderAppState extends AbstractAppState {
         if (mapEntityData != null) {
             mapEntityData.close();
             mapEntityData = null;
+        }
+        mapViewController = null;
+    }
+
+    /**
+     * Shows or hides the currently loaded map's ceiling, if any map is
+     * loaded.
+     *
+     * @param visible show the ceiling
+     */
+    public void setCeilingVisible(boolean visible) {
+        if (mapViewController != null) {
+            mapViewController.setCeilingVisible(visible);
         }
     }
 

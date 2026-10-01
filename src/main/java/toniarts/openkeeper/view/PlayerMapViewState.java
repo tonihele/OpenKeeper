@@ -78,12 +78,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private volatile boolean mapLoaded = false;
     private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
 
-    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
-        this(app, kwdFile, assetManager, players, entityData, playerId, loadCompleteNotifier, (entityId) -> {
+    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier) {
+        this(app, kwdFile, assetManager, players, entityData, playerId, ceilingEnabled, loadCompleteNotifier, (entityId) -> {
         });
     }
 
-    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
+    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -145,7 +145,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // Create the actual map
-        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId) {
+        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId, true, ceilingEnabled) {
 
             @Override
             protected void updateProgress(float progress) {

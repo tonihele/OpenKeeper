@@ -116,9 +116,9 @@ public final class MainMenuState extends AbstractAppState {
     private CampaignLevel pendingCutsceneLevel;
 
     private IKwdFile frontEndKwd;
-    protected final MainMenuInteraction listener;
+    final MainMenuInteraction listener;
     private Vector3f startLocation;
-    protected MapSelector mapSelector;
+    MapSelector mapSelector;
     private EntityData mainMenuEntityData;
     private MainMenuEntityViewState mainMenuEntityViewState;
     private GameController gameController;
@@ -178,9 +178,11 @@ public final class MainMenuState extends AbstractAppState {
 
         // Create the actual map
         // DKII applies different decoration rules to the front end than to playable level maps.
-        // Front-end effects are handled separately, so do not generate automatic wall torches here.
+        // Front-end effects are handled separately, so do not generate automatic wall torches
+        // here, and the cave ceiling stays off - this scene is a fixed camera looking at a
+        // hand-placed diorama, not a dungeon being explored under fog of war.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
-                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false) {
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false, false) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -369,7 +371,7 @@ public final class MainMenuState extends AbstractAppState {
                 rootNode.detachChild(menuNode);
             }
 
-            screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
+            screen.goToScreen(IMainMenuScreenController.SCREEN_EMPTY_ID);
         }
     }
 
@@ -538,7 +540,7 @@ public final class MainMenuState extends AbstractAppState {
     protected void doTransitionAndGoToScreen(final String transition, final String screen, final String transitionStatic) {
 
         // Remove the current screen
-        this.screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
+        this.screen.goToScreen(IMainMenuScreenController.SCREEN_EMPTY_ID);
 
         // Do cinematic transition
         Cinematic c = new Cinematic(assetManager, app.getCamera(), app.getListener(), startLocation, transition, menuNode, stateManager);
@@ -685,7 +687,7 @@ public final class MainMenuState extends AbstractAppState {
         // The debriefing screen is shown (instead of the start screen) once the
         // menu has been initialized, see initializeMainMenu()
         if (!pendingDebriefing) {
-            screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            screen.goToScreen(IMainMenuScreenController.SCREEN_START_ID);
         }
     }
 
