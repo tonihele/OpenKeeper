@@ -94,7 +94,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private enum PauseMenuState {
 
-        MAIN, OBJECTIVE, GAME, LOAD, SAVE, GRAPHICS, SOUND, CONTROLS, CAMERAS, QUIT, CONFIRMATION;
+        MAIN, OBJECTIVE, GAME, LOAD, SAVE, GRAPHICS, SOUND, CONTROLS, CAMERAS, CAMERA_EDIT, QUIT, CONFIRMATION;
     }
 
     private PauseMenuSettings pauseMenuSettings;
@@ -345,7 +345,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
                 pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
                 pauseMenuSettings.buildGraphics(optionsColumnOne, optionsColumnTwo);
-                items.add(new GameMenu("i-accept", "Apply", "applyGraphicsSettings()", optionsColumnTwo));
+                items.add(new GameMenu("i-accept", "${menu.201}", "applyGraphicsSettings()", optionsColumnTwo));
                 addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
@@ -354,7 +354,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
                 pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
                 pauseMenuSettings.buildSound(optionsColumnOne);
-                items.add(new GameMenu("i-accept", "Apply", "applySoundSettings()", optionsColumnTwo));
+                items.add(new GameMenu("i-accept", "${menu.201}", "applySoundSettings()", optionsColumnTwo));
                 addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
@@ -369,8 +369,22 @@ public final class PlayerScreenController implements IPlayerScreenController {
             case CAMERAS:
                 optionsMenuTitle.setText("${menu.1490}");
 
-                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                for (int cameraNumber = 1; cameraNumber <= 3; cameraNumber++) {
+                    // The user camera texts are in order: 1486, 1487, 1488
+                    items.add(new GameMenu("i-camera", "${menu." + (1485 + cameraNumber) + "}",
+                            String.format("pauseMenuNavigate(%s,%s,${menu.%d},null)", PauseMenuState.CAMERA_EDIT.name(),
+                                    PauseMenuState.CAMERAS.name(), 1485 + cameraNumber), optionsColumnOne));
+                }
                 addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case CAMERA_EDIT:
+                optionsMenuTitle.setText(confirmationTitle);
+
+                buildTextLabel("${menu.1686}", "textNormal", optionsColumnOne);
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                items.add(new GameMenu("i-accept", "${menu.1489}", navigateAction(PauseMenuState.CAMERAS), optionsColumnOne));
+                addContinueAndBack(items, PauseMenuState.CAMERAS, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
             case QUIT:
