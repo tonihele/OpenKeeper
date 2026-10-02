@@ -97,6 +97,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         MAIN, OBJECTIVE, GAME, LOAD, SAVE, GRAPHICS, SOUND, CONTROLS, CAMERAS, QUIT, CONFIRMATION;
     }
 
+    private PauseMenuSettings pauseMenuSettings;
+
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
     
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
@@ -271,6 +273,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
             element.markForRemoval();
         }
 
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.cleanup();
+            pauseMenuSettings = null;
+        }
+
         // TODO: @ArchDemon: I think we need to do modern (not original) game menu
         List<GameMenu> items = new ArrayList<>();
         switch (PauseMenuState.valueOf(menu)) {
@@ -336,21 +343,26 @@ public final class PlayerScreenController implements IPlayerScreenController {
             case GRAPHICS:
                 optionsMenuTitle.setText("${menu.96}");
 
-                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+                pauseMenuSettings.buildGraphics(optionsColumnOne, optionsColumnTwo);
+                items.add(new GameMenu("i-accept", "Apply", "applyGraphicsSettings()", optionsColumnTwo));
                 addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
             case SOUND:
                 optionsMenuTitle.setText("${menu.95}");
 
-                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+                pauseMenuSettings.buildSound(optionsColumnOne);
+                items.add(new GameMenu("i-accept", "Apply", "applySoundSettings()", optionsColumnTwo));
                 addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
             case CONTROLS:
                 optionsMenuTitle.setText("${menu.98}");
 
-                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+                pauseMenuSettings.buildControls(optionsColumnOne, optionsColumnTwo);
                 addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
@@ -443,6 +455,20 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 hideHorizontalScrollbar();
             }
         }.build(parent);
+    }
+
+    @Override
+    public void applyGraphicsSettings() {
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.applyGraphics();
+        }
+    }
+
+    @Override
+    public void applySoundSettings() {
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.applySound();
+        }
     }
 
     @Override
