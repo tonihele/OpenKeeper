@@ -38,6 +38,8 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Tab;
 import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
+import de.lessvoid.nifty.controls.listbox.builder.ListBoxBuilder;
+import de.lessvoid.nifty.controls.textfield.builder.TextFieldBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -92,8 +94,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private enum PauseMenuState {
 
-        MAIN, QUIT, CONFIRMATION;
+        MAIN, OBJECTIVE, GAME, LOAD, SAVE, GRAPHICS, SOUND, CONTROLS, CAMERAS, QUIT, CONFIRMATION;
     }
+
+    private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
     
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
@@ -273,15 +277,88 @@ public final class PlayerScreenController implements IPlayerScreenController {
             case MAIN:
                 optionsMenuTitle.setText("${menu.94}");
 
-                     items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-game", "${menu.97}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-load", "${menu.143}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-save", "${menu.201}", "pauseMenu()", optionsColumnOne));
+                items.add(new GameMenu("i-objective", "${menu.537}", navigateAction(PauseMenuState.OBJECTIVE), optionsColumnOne));
+                items.add(new GameMenu("i-game", "${menu.97}", navigateAction(PauseMenuState.GAME), optionsColumnOne));
+                items.add(new GameMenu("i-load", "${menu.143}", navigateAction(PauseMenuState.LOAD), optionsColumnOne));
+                items.add(new GameMenu("i-save", "${menu.201}", navigateAction(PauseMenuState.SAVE), optionsColumnOne));
                 items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
                         PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), optionsColumnTwo));
                 items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", optionsColumnTwo));
                 items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
 
+                break;
+
+            case OBJECTIVE:
+                optionsMenuTitle.setText("${menu.537}");
+
+                GameLevel gameLevel = state.stateManager.getState(GameClientState.class).getLevelData().getGameLevel();
+                buildTextLabel("${menu.1408}", "textGold", optionsColumnOne);
+                buildTextLabel(gameLevel.getMainObjective(), "text", optionsColumnOne);
+                buildTextLabel("${menu.1409}", "textGold", optionsColumnOne);
+                buildTextLabel(gameLevel.getSubObjective1(), "text", optionsColumnOne);
+                buildTextLabel(gameLevel.getSubObjective2(), "text", optionsColumnOne);
+                buildTextLabel(gameLevel.getSubObjective3(), "text", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.MAIN, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case GAME:
+                optionsMenuTitle.setText("${menu.97}");
+
+                items.add(new GameMenu("i-graphics", "${menu.96}", navigateAction(PauseMenuState.GRAPHICS), optionsColumnOne));
+                items.add(new GameMenu("i-audio", "${menu.95}", navigateAction(PauseMenuState.SOUND), optionsColumnOne));
+                items.add(new GameMenu("i-controls", "${menu.98}", navigateAction(PauseMenuState.CONTROLS), optionsColumnTwo));
+                items.add(new GameMenu("i-camera", "${menu.1490}", navigateAction(PauseMenuState.CAMERAS), optionsColumnTwo));
+                addContinueAndBack(items, PauseMenuState.MAIN, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case LOAD:
+                optionsMenuTitle.setText("${menu.143}");
+
+                buildSavedGamesList(optionsColumnOne);
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.MAIN, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case SAVE:
+                optionsMenuTitle.setText("${menu.201}");
+
+                buildSavedGamesList(optionsColumnOne);
+                buildTextLabel("${menu.1393}", "textNormal", optionsColumnOne);
+                new TextFieldBuilder("saveGameName", "") {
+                    {
+                        width("60%");
+                    }
+                }.build(optionsColumnOne);
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.MAIN, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case GRAPHICS:
+                optionsMenuTitle.setText("${menu.96}");
+
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case SOUND:
+                optionsMenuTitle.setText("${menu.95}");
+
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case CONTROLS:
+                optionsMenuTitle.setText("${menu.98}");
+
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
+                break;
+
+            case CAMERAS:
+                optionsMenuTitle.setText("${menu.1490}");
+
+                buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", optionsColumnOne);
+                addContinueAndBack(items, PauseMenuState.GAME, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
             case QUIT:
@@ -297,9 +374,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
                         String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
                                 PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", PauseMenuState.MAIN),
-                        optionsNavigationColumnTwo));
+                addContinueAndBack(items, PauseMenuState.MAIN, optionsNavigationColumnOne, optionsNavigationColumnTwo);
                 break;
 
             case CONFIRMATION:
@@ -331,6 +406,43 @@ public final class PlayerScreenController implements IPlayerScreenController {
         // Fix layout
         NiftyUtils.resetContraints(optionsMenuTitle);
         optionsMenu.layoutElements();
+    }
+
+    private static String navigateAction(PauseMenuState menu) {
+        return String.format("pauseMenuNavigate(%s,null,null,null)", menu.name());
+    }
+
+    /**
+     * Adds the continue (resume game) and back buttons shared by all pause sub menus
+     */
+    private static void addContinueAndBack(List<GameMenu> items, PauseMenuState backMenu, Element continueParent, Element backParent) {
+        items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", continueParent));
+        items.add(new GameMenu("i-back", "${menu.20}", navigateAction(backMenu), backParent));
+    }
+
+    private static void buildTextLabel(String text, String labelStyle, Element parent) {
+        new LabelBuilder("label-" + NiftyIdCreator.generate(), text) {
+            {
+                style(labelStyle);
+                wrap(true);
+                alignLeft();
+                textHAlignLeft();
+                width("90%");
+            }
+        }.build(parent);
+    }
+
+    private static void buildSavedGamesList(Element parent) {
+        // There is no saved games storage yet, so the list is always empty
+        new ListBoxBuilder("savedGames") {
+            {
+                width("60%");
+                displayItems(4);
+                selectionModeSingle();
+                optionalVerticalScrollbar();
+                hideHorizontalScrollbar();
+            }
+        }.build(parent);
     }
 
     @Override

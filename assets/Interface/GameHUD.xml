@@ -179,20 +179,20 @@
                 </panel>
 
                 <panel childLayout="vertical" id="optionsMenu" backgroundColor="#0008" height="100%" width="100%" paddingLeft="10px">
-                    <panel width="100%" align="left" valign="top" childLayout="vertical">
+                    <panel width="100%" height="50px" align="left" valign="top" childLayout="vertical">
                         <control name="label" id="#title" style="textNormal" text="${menu.94}" />
                     </panel>
 
                     <!--Two columns of options-->
-                    <panel width="100%" align="left" valign="top" childLayout="horizontal" padding="5px">
+                    <panel width="100%" height="*" align="left" valign="top" childLayout="horizontal" padding="5px" childClip="true">
                         <panel id="#columnOne" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
                         <panel id="#columnTwo" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
                     </panel>
 
                     <!--Menu navigation-->
-                    <panel width="100%" align="left" valign="bottom" childLayout="horizontal" padding="5px">
-                        <panel id="#navigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
-                        <panel id="#navigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
+                    <panel width="100%" height="90px" align="left" valign="bottom" childLayout="horizontal" padding="5px">
+                        <panel id="#navigationColumnOne" width="50%" height="100%" align="left" valign="top" childLayout="vertical" padding="5px" />
+                        <panel id="#navigationColumnTwo" width="50%" height="100%" align="left" valign="top" childLayout="vertical" padding="5px" />
                     </panel>
                 </panel>
 
