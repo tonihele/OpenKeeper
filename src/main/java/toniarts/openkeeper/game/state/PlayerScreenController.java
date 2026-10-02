@@ -38,6 +38,8 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Tab;
 import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
+import de.lessvoid.nifty.controls.listbox.builder.ListBoxBuilder;
+import de.lessvoid.nifty.controls.textfield.builder.TextFieldBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -92,8 +94,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private enum PauseMenuState {
 
-        MAIN, QUIT, CONFIRMATION;
+        MAIN, OBJECTIVE, GAME, LOAD, SAVE, GRAPHICS, SOUND, CONTROLS, CAMERAS, CAMERA_EDIT, QUIT, CONFIRMATION;
     }
+
+    private PauseMenuSettings pauseMenuSettings;
+
+    private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
     
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
@@ -217,6 +223,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             subObjective3.setText(gameLevel.getSubObjective3());
 
             element.layoutElements();
+            // skipcq: JAVA-W1062
             element.show();
         }
     }
@@ -238,7 +245,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
-
+        // skipcq: JAVA-W1062
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             this.playButtonSound("GUI_BUTTON_OPTIONS");
@@ -249,79 +256,35 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
         Element optionsMenu = nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu");
-        Label optionsMenuTitle = optionsMenu.findNiftyControl("#title", Label.class);
-        Element optionsColumnOne = optionsMenu.findElementById("#columnOne");
-        for (Element element : optionsColumnOne.getChildren()) {
-            element.markForRemoval();
-        }
-        Element optionsColumnTwo = optionsMenu.findElementById("#columnTwo");
-        for (Element element : optionsColumnTwo.getChildren()) {
-            element.markForRemoval();
-        }
-        Element optionsNavigationColumnOne = optionsMenu.findElementById("#navigationColumnOne");
-        for (Element element : optionsNavigationColumnOne.getChildren()) {
-            element.markForRemoval();
-        }
-        Element optionsNavigationColumnTwo = optionsMenu.findElementById("#navigationColumnTwo");
-        for (Element element : optionsNavigationColumnTwo.getChildren()) {
-            element.markForRemoval();
+        MenuPage page = new MenuPage(optionsMenu.findNiftyControl("#title", Label.class),
+                optionsMenu.findElementById("#columnOne"), optionsMenu.findElementById("#columnTwo"),
+                optionsMenu.findElementById("#navigationColumnOne"), optionsMenu.findElementById("#navigationColumnTwo"));
+        page.clear();
+
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.cleanup();
+            pauseMenuSettings = null;
         }
 
         // TODO: @ArchDemon: I think we need to do modern (not original) game menu
-        List<GameMenu> items = new ArrayList<>();
         switch (PauseMenuState.valueOf(menu)) {
-            case MAIN:
-                optionsMenuTitle.setText("${menu.94}");
-
-                     items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-game", "${menu.97}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-load", "${menu.143}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-save", "${menu.201}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
-                        PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), optionsColumnTwo));
-                items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", optionsColumnTwo));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-
-                break;
-
-            case QUIT:
-                optionsMenuTitle.setText("${menu.1266}");
-
-                if (state.stateManager.getState(EndGameState.class) != null) {
-                    items.add(new GameMenu("i-quit", "${menu.2913}", String.format("pauseMenuNavigate(%s,%s,${menu.2913},quitToDebriefing())",
-                            PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
-                } else {
-                    items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
-                            PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
-                }
-                items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
-                        String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
-                                PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", PauseMenuState.MAIN),
-                        optionsNavigationColumnTwo));
-                break;
-
-            case CONFIRMATION:
-                optionsMenuTitle.setText(confirmationTitle);
-                // Column one
-                new LabelBuilder("confirmLabel", "${menu.15}") {
-                    {
-                        style("textNormal");
-                    }
-                }.build(optionsColumnOne);
-
-                items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", backMenu),
-                        optionsNavigationColumnTwo));
-
-                break;
+            case MAIN -> buildMainPage(page);
+            case OBJECTIVE -> buildObjectivePage(page);
+            case GAME -> buildGamePage(page);
+            case LOAD -> buildLoadPage(page);
+            case SAVE -> buildSavePage(page);
+            case GRAPHICS -> buildGraphicsPage(page);
+            case SOUND -> buildSoundPage(page);
+            case CONTROLS -> buildControlsPage(page);
+            case CAMERAS -> buildCamerasPage(page);
+            case CAMERA_EDIT -> buildCameraEditPage(page, confirmationTitle);
+            case QUIT -> buildQuitPage(page);
+            case CONFIRMATION -> buildConfirmationPage(page, backMenu, confirmationTitle, confirmMethod);
         }
 
         // build menu items
         // FIXME id="#image" and "#text" already exist
-        for (GameMenu item : items) {
+        for (GameMenu item : page.items) {
             new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
                 {
                 }
@@ -329,8 +292,195 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         // Fix layout
-        NiftyUtils.resetContraints(optionsMenuTitle);
+        NiftyUtils.resetContraints(page.title);
         optionsMenu.layoutElements();
+    }
+
+    private void buildMainPage(MenuPage page) {
+        page.title.setText("${menu.94}");
+
+        page.items.add(new GameMenu("i-objective", "${menu.537}", navigateAction(PauseMenuState.OBJECTIVE), page.columnOne));
+        page.items.add(new GameMenu("i-game", "${menu.97}", navigateAction(PauseMenuState.GAME), page.columnOne));
+        page.items.add(new GameMenu("i-load", "${menu.143}", navigateAction(PauseMenuState.LOAD), page.columnOne));
+        page.items.add(new GameMenu("i-save", "${menu.201}", navigateAction(PauseMenuState.SAVE), page.columnOne));
+        page.items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
+                PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), page.columnTwo));
+        page.items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", page.columnTwo));
+        page.items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", page.navigationOne));
+    }
+
+    private void buildObjectivePage(MenuPage page) {
+        page.title.setText("${menu.537}");
+
+        GameLevel gameLevel = state.stateManager.getState(GameClientState.class).getLevelData().getGameLevel();
+        buildTextLabel("${menu.1408}", "textGold", page.columnOne);
+        buildTextLabel(gameLevel.getMainObjective(), "text", page.columnOne);
+        buildTextLabel("${menu.1409}", "textGold", page.columnOne);
+        buildTextLabel(gameLevel.getSubObjective1(), "text", page.columnOne);
+        buildTextLabel(gameLevel.getSubObjective2(), "text", page.columnOne);
+        buildTextLabel(gameLevel.getSubObjective3(), "text", page.columnOne);
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildGamePage(MenuPage page) {
+        page.title.setText("${menu.97}");
+
+        page.items.add(new GameMenu("i-graphics", "${menu.96}", navigateAction(PauseMenuState.GRAPHICS), page.columnOne));
+        page.items.add(new GameMenu("i-audio", "${menu.95}", navigateAction(PauseMenuState.SOUND), page.columnOne));
+        page.items.add(new GameMenu("i-controls", "${menu.98}", navigateAction(PauseMenuState.CONTROLS), page.columnTwo));
+        page.items.add(new GameMenu("i-camera", "${menu.1490}", navigateAction(PauseMenuState.CAMERAS), page.columnTwo));
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildLoadPage(MenuPage page) {
+        page.title.setText("${menu.143}");
+
+        buildSavedGamesList(page.columnOne);
+        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildSavePage(MenuPage page) {
+        page.title.setText("${menu.201}");
+
+        buildSavedGamesList(page.columnOne);
+        buildTextLabel("${menu.1393}", "textNormal", page.columnOne);
+        new TextFieldBuilder("saveGameName", "") {
+            {
+                width("60%");
+            }
+        }.build(page.columnOne);
+        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildGraphicsPage(MenuPage page) {
+        page.title.setText("${menu.96}");
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildGraphics(page.columnOne, page.columnTwo);
+        page.items.add(new GameMenu("i-accept", "${menu.201}", "applyGraphicsSettings()", page.columnTwo));
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildSoundPage(MenuPage page) {
+        page.title.setText("${menu.95}");
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildSound(page.columnOne);
+        page.items.add(new GameMenu("i-accept", "${menu.201}", "applySoundSettings()", page.columnTwo));
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildControlsPage(MenuPage page) {
+        page.title.setText("${menu.98}");
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildControls(page.columnOne, page.columnTwo);
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildCamerasPage(MenuPage page) {
+        page.title.setText("${menu.1490}");
+
+        for (int cameraNumber = 1; cameraNumber <= 3; cameraNumber++) {
+            // The user camera texts are in order: 1486, 1487, 1488
+            page.items.add(new GameMenu("i-camera", "${menu." + (1485 + cameraNumber) + "}",
+                    String.format("pauseMenuNavigate(%s,%s,${menu.%d},null)", PauseMenuState.CAMERA_EDIT.name(),
+                            PauseMenuState.CAMERAS.name(), 1485 + cameraNumber), page.columnOne));
+        }
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildCameraEditPage(MenuPage page, String confirmationTitle) {
+        page.title.setText(confirmationTitle);
+
+        buildTextLabel("${menu.1686}", "textNormal", page.columnOne);
+        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        page.items.add(new GameMenu("i-accept", "${menu.1489}", navigateAction(PauseMenuState.CAMERAS), page.columnOne));
+        addContinueAndBack(page, PauseMenuState.CAMERAS);
+    }
+
+    private void buildQuitPage(MenuPage page) {
+        page.title.setText("${menu.1266}");
+
+        if (state.stateManager.getState(EndGameState.class) != null) {
+            page.items.add(new GameMenu("i-quit", "${menu.2913}", String.format("pauseMenuNavigate(%s,%s,${menu.2913},quitToDebriefing())",
+                    PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), page.columnOne));
+        } else {
+            page.items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
+                    PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), page.columnOne));
+        }
+        page.items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
+                String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
+                        PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), page.columnOne));
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildConfirmationPage(MenuPage page, String backMenu, String confirmationTitle, String confirmMethod) {
+        page.title.setText(confirmationTitle);
+        // Column one
+        new LabelBuilder("confirmLabel", "${menu.15}") {
+            {
+                style("textNormal");
+            }
+        }.build(page.columnOne);
+
+        page.items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, page.columnOne));
+        page.items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", page.navigationOne));
+        page.items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", backMenu),
+                page.navigationTwo));
+    }
+
+    private static String navigateAction(PauseMenuState menu) {
+        return String.format("pauseMenuNavigate(%s,null,null,null)", menu.name());
+    }
+
+    /**
+     * Adds the continue (resume game) and back buttons shared by all pause sub menus
+     */
+    private static void addContinueAndBack(MenuPage page, PauseMenuState backMenu) {
+        page.items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", page.navigationOne));
+        page.items.add(new GameMenu("i-back", "${menu.20}", navigateAction(backMenu), page.navigationTwo));
+    }
+
+    private static void buildTextLabel(String text, String labelStyle, Element parent) {
+        new LabelBuilder("label-" + NiftyIdCreator.generate(), text) {
+            {
+                style(labelStyle);
+                wrap(true);
+                alignLeft();
+                textHAlignLeft();
+                width("90%");
+            }
+        }.build(parent);
+    }
+
+    private static void buildSavedGamesList(Element parent) {
+        // There is no saved games storage yet, so the list is always empty
+        new ListBoxBuilder("savedGames") {
+            {
+                width("60%");
+                displayItems(4);
+                selectionModeSingle();
+                optionalVerticalScrollbar();
+                hideHorizontalScrollbar();
+            }
+        }.build(parent);
+    }
+
+    @Override
+    public void applyGraphicsSettings() {
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.applyGraphics();
+        }
+    }
+
+    @Override
+    public void applySoundSettings() {
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.applySound();
+        }
     }
 
     @Override
@@ -1463,6 +1613,38 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         }
 
+    }
+
+    /**
+     * The elements and items of the pause menu page being built
+     */
+    private static final class MenuPage {
+
+        private final Label title;
+        private final Element columnOne;
+        private final Element columnTwo;
+        private final Element navigationOne;
+        private final Element navigationTwo;
+        private final List<GameMenu> items = new ArrayList<>();
+
+        private MenuPage(Label title, Element columnOne, Element columnTwo, Element navigationOne, Element navigationTwo) {
+            this.title = title;
+            this.columnOne = columnOne;
+            this.columnTwo = columnTwo;
+            this.navigationOne = navigationOne;
+            this.navigationTwo = navigationTwo;
+        }
+
+        /**
+         * Removes the content of the previously shown page
+         */
+        private void clear() {
+            for (Element column : List.of(columnOne, columnTwo, navigationOne, navigationTwo)) {
+                for (Element element : column.getChildren()) {
+                    element.markForRemoval();
+                }
+            }
+        }
     }
 
     private static final class GameMenu {
