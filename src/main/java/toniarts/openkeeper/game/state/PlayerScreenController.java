@@ -223,6 +223,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             subObjective3.setText(gameLevel.getSubObjective3());
 
             element.layoutElements();
+            // skipcq: JAVA-W1062
             element.show();
         }
     }
@@ -244,7 +245,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
-
+        // skipcq: JAVA-W1062
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             this.playButtonSound("GUI_BUTTON_OPTIONS");
