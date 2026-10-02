@@ -235,7 +235,7 @@ final class PauseMenuSettings {
         new ControlBuilder("keyboardSetup", "table") {
             {
                 parameter("vertical", "on");
-                parameter("displayItems", "4");
+                parameter("displayItems", "8");
                 parameter("selection", "Single");
                 parameter("colCount", "2");
                 parameter("col0", "${menu.2845};55;java.lang.String;#32050c30");
