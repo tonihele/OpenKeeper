@@ -28,10 +28,19 @@ public final class FootstepSounds {
 
     public static final int STEP_A = 0x314;
     public static final int STEP_B = 0x315;
+    public static final int WADING_A = 0x337;
+    public static final int WADING_B = 0x338;
     public static final int NO_STEP = -1;
 
     // The animation frames are 1/30 s apart
     private static final float FRAME_DURATION = 1f / 30f;
+
+    // A crowd of creatures must not flood the sound engine, so only a few steps may start per window
+    public static final long WINDOW_MS = 200;
+    public static final int MAX_STEPS_PER_WINDOW = 3;
+
+    private static long windowStart;
+    private static int windowSteps;
 
     private FootstepSounds() {
         // Nope
@@ -56,6 +65,8 @@ public final class FootstepSounds {
                 4;
             case ANGRY ->
                 9;
+            case BACK_OFF ->
+                38;
             default ->
                 -1;
         };
@@ -115,6 +126,34 @@ public final class FootstepSounds {
             return STEP_A;
         }
         return isCrossed(marks, currentTime, length) ? STEP_B : NO_STEP;
+    }
+
+    /**
+     * Asks for the permission to play a step, steps over the limit of the
+     * current window are dropped.
+     *
+     * @param nowMs current time, milliseconds
+     */
+    public static synchronized boolean tryAcquire(long nowMs) {
+        if (nowMs - windowStart >= WINDOW_MS) {
+            windowStart = nowMs;
+            windowSteps = 0;
+        }
+        if (windowSteps >= MAX_STEPS_PER_WINDOW) {
+            return false;
+        }
+        windowSteps++;
+        return true;
+    }
+
+    /**
+     * @return the event of a step, in the water it is the wading one
+     */
+    public static int getEvent(int step, boolean inWater) {
+        if (!inWater) {
+            return step;
+        }
+        return step == STEP_B ? WADING_B : WADING_A;
     }
 
     private static boolean isCrossed(int[] marks, float from, float to) {

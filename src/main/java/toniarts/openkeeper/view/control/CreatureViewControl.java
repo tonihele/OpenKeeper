@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.control;
 import com.jme3.anim.AnimComposer;
 import com.jme3.anim.tween.action.Action;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityComponent;
@@ -27,6 +28,7 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.sound.FootstepSounds;
@@ -55,6 +57,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
+    private Predicate<Vector3f> waterCheck = position -> false;
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -154,12 +157,21 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         float time = (float) animComposer.getTime(AnimComposer.DEFAULT_LAYER);
         if (previousStepTime >= 0) {
             int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength());
-            if (event != FootstepSounds.NO_STEP) {
+            if (event != FootstepSounds.NO_STEP && FootstepSounds.tryAcquire(System.currentTimeMillis())) {
                 LOGGER.log(Logger.Level.DEBUG, "Footstep {0} of {1} at {2}", Integer.toHexString(event), getDataObject().getName(), time);
-                ThingSounds.play(getDataObject().getSoundCategory(), event, spatial.getWorldTranslation());
+                Vector3f position = spatial.getWorldTranslation();
+                ThingSounds.play(getDataObject().getSoundCategory(),
+                        FootstepSounds.getEvent(event, waterCheck.test(position)), position);
             }
         }
         previousStepTime = time;
+    }
+
+    /**
+     * @param waterCheck tells if a world position is on a water tile, creatures wade there
+     */
+    public void setWaterCheck(Predicate<Vector3f> waterCheck) {
+        this.waterCheck = waterCheck;
     }
 
     private AnimComposer getAnimComposer() {
