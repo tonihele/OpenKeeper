@@ -177,6 +177,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void setSystemMessages(boolean enable, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onSetSystemMessages(enable);
+            }
+        }
+    }
+
+    @Override
     public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {

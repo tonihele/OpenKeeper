@@ -36,6 +36,14 @@ public interface PlayerService {
     public void setWidescreen(boolean enable, short playerId);
 
     /**
+     * Set the system messages (advisor notifications) on/off for the player
+     *
+     * @param enable set system messages on/off
+     * @param playerId the player to set to
+     */
+    public void setSystemMessages(boolean enable, short playerId);
+
+    /**
      * Play a speech on the player
      *
      * @param speechId the speech ID

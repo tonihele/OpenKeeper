@@ -54,6 +54,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.view.PlayerMessageType;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
@@ -503,6 +504,16 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onSetSystemMessages(boolean enable) {
+            app.enqueue(() -> {
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState != null) {
+                    systemMessageState.setSystemMessagesEnabled(enable);
+                }
+            });
+        }
+
+        @Override
         public void onGameEnded(boolean win) {
             app.enqueue(() -> playerState.endGame(win));
         }
@@ -512,7 +523,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                stateManager.getState(SystemMessageState.class).addMessage(PlayerMessageType.LEVEL_SPEECH, String.format("${level.%d}", speechId - 1));
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);
                 }

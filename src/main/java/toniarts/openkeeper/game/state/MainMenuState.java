@@ -781,6 +781,11 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         @Override
+        public void setSystemMessages(boolean enable, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
         public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }

@@ -37,6 +37,7 @@ public final class SystemMessageControl extends AbstractController {
     private String text = "";
     private final Long createdAt = System.currentTimeMillis();
     private Screen hud;
+    private long lifetime = 50000;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -96,6 +97,17 @@ public final class SystemMessageControl extends AbstractController {
                 child.startEffect(EffectEventId.onActive);
             }
         }
+    }
+
+    /**
+     * @return how long the tab is shown, in milliseconds
+     */
+    public long getLifetime() {
+        return this.lifetime;
+    }
+
+    public void setLifetime(long lifetime) {
+        this.lifetime = lifetime;
     }
 
     /**

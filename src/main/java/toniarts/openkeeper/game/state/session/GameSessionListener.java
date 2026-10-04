@@ -84,6 +84,14 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     public void onSetWidescreen(boolean enable);
 
     /**
+     * The client should set the system messages on/off
+     *
+     * @param enable on/off
+     */
+    @Asynchronous
+    public void onSetSystemMessages(boolean enable);
+
+    /**
      * The game has ended for the client
      *
      * @param win if true, the client won the game, if not, lost

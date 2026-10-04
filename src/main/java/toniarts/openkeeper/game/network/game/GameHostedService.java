@@ -216,6 +216,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void setSystemMessages(boolean enable, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onSetSystemMessages(enable);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void playSpeech(int speechId, boolean showText, boolean introduction, int pathId, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -685,6 +695,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onSetWidescreen(boolean enable) {
             getCallback().onSetWidescreen(enable);
+        }
+
+        @Override
+        public void onSetSystemMessages(boolean enable) {
+            getCallback().onSetSystemMessages(enable);
         }
 
         @Override

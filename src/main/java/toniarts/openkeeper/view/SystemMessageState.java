@@ -22,6 +22,8 @@ import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.spi.sound.SoundHandle;
+import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -37,10 +39,16 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public final class SystemMessageState extends AbstractPauseAwareState {
 
-    private static final float MESSAGE_LIFETIME = 60000f;
+    /**
+     * A tab is shown at most this long, whatever the type's timeout is
+     */
+    private static final int MAX_TAB_LIFETIME_SECONDS = 50;
 
     private Main app;
     private final Element systemMessagesQueue;
+    private float time = 0;
+    private boolean systemMessagesEnabled = true;
+    private final Map<Long, Float> liveMessages = new HashMap<>();
 
     public enum MessageType {
         INFO("info"),
@@ -83,28 +91,80 @@ public final class SystemMessageState extends AbstractPauseAwareState {
     /**
      * Adds a message to the message queue
      *
-     * @param type message type
+     * @param type message category (tab icon)
      * @param text message text
      */
     public void addMessage(MessageType type, String text) {
+        addMessage(PlayerMessageType.CUSTOM, type, 0, text);
+    }
+
+    /**
+     * Adds a message of a known type to the message queue
+     *
+     * @param type message type
+     * @param text message text
+     */
+    public void addMessage(PlayerMessageType type, String text) {
+        addMessage(type, type.getCategory(), 0, text);
+    }
+
+    /**
+     * Adds a message of a known type to the message queue
+     *
+     * @param type message type
+     * @param key variant of the type (e.g. the room or spell), a live message
+     * is only a duplicate if the key matches too
+     * @param text message text
+     */
+    public void addMessage(PlayerMessageType type, int key, String text) {
+        addMessage(type, type.getCategory(), key, text);
+    }
+
+    private void addMessage(PlayerMessageType type, MessageType category, int key, String text) {
         if (!this.isEnabled() || !isInitialized()) {
             return;
         }
+        if (!systemMessagesEnabled && !type.isAlwaysAllowed()) {
+            return;
+        }
+
+        // The timeout is also the repeat interval
+        if (type.isDeduplicated()) {
+            Long id = ((long) type.getId() << 32) | (key & 0xFFFFFFFFL);
+            Float expires = liveMessages.get(id);
+            if (expires != null && expires > time) {
+                return;
+            }
+            liveMessages.put(id, time + type.getTimeoutSeconds());
+        }
+
+        final long lifetimeMs = Math.min(type.getTimeoutSeconds(), MAX_TAB_LIFETIME_SECONDS) * 1000L;
         if (this.app != null) {
             SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
                         GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());
             this.app.enqueue(() -> {
-                this.addMessageIcon(type, text);
+                this.addMessageIcon(category, text, lifetimeMs);
                 if (soundHandler != null) {
                     soundHandler.play();
                 }
             });
         } else {
-            this.addMessageIcon(type, text);
+            this.addMessageIcon(category, text, lifetimeMs);
         }
     }
 
-    public void addMessageIcon(MessageType type, String text) {
+    /**
+     * Switches the advisor messages on or off, see the trigger action
+     * SET_SYSTEM_MESSAGES. When off, only the level's own speeches and the
+     * magic item and special notices get through.
+     *
+     * @param enabled true to show all messages
+     */
+    public void setSystemMessagesEnabled(boolean enabled) {
+        this.systemMessagesEnabled = enabled;
+    }
+
+    public void addMessageIcon(MessageType type, String text, long lifetimeMs) {
         final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.getIcon());
         final String normalIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
         final String hoverIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
@@ -118,18 +178,23 @@ public final class SystemMessageState extends AbstractPauseAwareState {
                 set("text", text);
             }
         }.build(systemMessagesQueue);
+        SystemMessageControl control = systemMessage.getControl(SystemMessageControl.class);
+        if (control != null) {
+            control.setLifetime(lifetimeMs);
+        }
         systemMessage.show();
     }
 
     @Override
     public void update(float tpf) {
+        time += tpf;
         if (systemMessagesQueue == null) {
             return;
         }
 
         for (Element child : systemMessagesQueue.getChildren()) {
             SystemMessageControl control = child.getControl(SystemMessageControl.class);
-            if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
+            if (control != null && System.currentTimeMillis() - control.getCreatedAt() > control.getLifetime()) {
                 child.markForRemoval();
             }
         }
@@ -155,5 +220,6 @@ public final class SystemMessageState extends AbstractPauseAwareState {
     public void cleanup() {
         super.cleanup();
         this.removeAllMessages();
+        liveMessages.clear();
     }
 }
