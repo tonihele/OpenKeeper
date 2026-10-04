@@ -45,6 +45,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private static final long IN_HAND_SOUND_INTERVAL_MS = 8000;
 
     private long nextInHandSound;
+    private int researchSound = SoundEngine.NO_HANDLE;
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -66,6 +67,12 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (spatial != null && currentState != null) {
             playAnimation(currentState);
         }
+    }
+
+    @Override
+    public void cleanup() {
+        playResearchSound(null);
+        super.cleanup();
     }
 
     @Override
@@ -111,6 +118,20 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
     }
 
+    /**
+     * The paper of the library rustles for as long as the creature researches
+     */
+    private void playResearchSound(Creature.AnimationType state) {
+        if (researchSound != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(researchSound);
+            researchSound = SoundEngine.NO_HANDLE;
+        }
+        if (state == Creature.AnimationType.RESEARCHING) {
+            researchSound = ThingSounds.play(ThingSounds.CATEGORY_LIBRARY, ThingSounds.ROOM_LIBRARY_PAPER,
+                    spatial.getWorldTranslation());
+        }
+    }
+
     @Override
     public void setTargetState(Creature.AnimationType state) {
         super.setTargetState(state);
@@ -120,6 +141,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             playAnimation(state);
             if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
                 ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
+                playResearchSound(state);
             }
         }
     }

@@ -67,6 +67,17 @@ public final class ThingSounds {
     public static final int AMBIENT_BED = 0x2EA;
     public static final int AMBIENT_BED_2 = 0x2EB;
 
+    // Rooms
+    public static final int ROOM_LAY_TILE = 0x2F8;
+    public static final int ROOM_SELL = 0xF5;
+    public static final int ROOM_WORKSHOP_AIR = 0x2E8;
+    public static final int ROOM_WORKSHOP_STEAM = 0x2E9;
+    public static final int ROOM_LIBRARY_PAPER = 0x2FD;
+    public static final int ROOM_HEART_BEAT = 0x150;
+    public static final String CATEGORY_WORKSHOP = "ROOM_WORKSHOP";
+    public static final String CATEGORY_LIBRARY = "ROOM_LIBRARY";
+    public static final String CATEGORY_DUNGEON_HEART = "ROOM_DUNGEON_HEART";
+
     // Doors
     public static final int DOOR_OPEN = 0xE7;
     public static final int DOOR_CLOSE = 0xE8;

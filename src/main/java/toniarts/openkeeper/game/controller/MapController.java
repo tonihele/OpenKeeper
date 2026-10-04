@@ -387,10 +387,6 @@ public final class MapController extends Container implements IMapController {
              * the building and selling by destroying rooms. But at least keep anyone who is listening intact
              */
             notifyOnSold(roomController.getRoomInstance().getOwnerId(), roomController);
-            if (!roomController.getRoomInstance().getCoordinates().isEmpty()) {
-                ThingSounds.play(roomController.getRoomInstance().getRoom().getSoundCategory(), ThingSounds.ROOM_EVENT,
-                        roomController.getRoomInstance().getCoordinates().get(0));
-            }
         }
     }
 

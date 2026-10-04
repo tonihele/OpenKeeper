@@ -375,7 +375,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Notify the build
         notifyOnBuild(playerId, buildTiles);
-        ThingSounds.play(room.getSoundCategory(), ThingSounds.OBJECT_CREATE, instancePlots.getFirst());
+        playBuildSounds(room, instancePlots, buildTiles);
+    }
+
+    /**
+     * One click for the whole placement, at its top left tile, and the sound of each tile that appears
+     */
+    private void playBuildSounds(Room room, List<Point> plots, List<Point> buildTiles) {
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        for (Point plot : plots) {
+            minX = Math.min(minX, plot.x);
+            minY = Math.min(minY, plot.y);
+        }
+        ThingSounds.play(room.getSoundCategory(), ThingSounds.ROOM_LAY_TILE, new Point(minX, minY));
+        for (Point tile : buildTiles) {
+            ThingSounds.play(room.getSoundCategory(), ThingSounds.OBJECT_CREATE, tile);
+        }
     }
 
     private Set<Point> getConstructionBlockingTiles() {
@@ -520,6 +536,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+        ThingSounds.play(room.getSoundCategory(), ThingSounds.ROOM_SELL, p);
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
         } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {

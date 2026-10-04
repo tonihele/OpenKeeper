@@ -42,8 +42,8 @@ public class SoundEngine {
     private static final Logger logger = System.getLogger(SoundEngine.class.getName());
 
     public static final int NO_HANDLE = 0;
-    public static final int MAX_VOICES = 12;
-    public static final int MAX_AUDIBLE_VOICES = 8;
+    public static final int MAX_VOICES = 32;
+    public static final int MAX_AUDIBLE_VOICES = 24;
 
     /**
      * Positional voices further away than this many tiles are not realised.
