@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.utils.Point;
 
@@ -46,6 +48,16 @@ public class SoundVoice {
 
     @Nullable
     private AudioBackend backend;
+
+    /**
+     * A chained voice (a repeater or a segmented loop) plays one clip after another, the clips that follow the
+     * first one are here.
+     */
+    private final List<Child> children = new ArrayList<>();
+    private boolean chained;
+    private boolean chainEnded;
+    private long chainNextAt;
+    private int chainDelay;
 
     public SoundVoice(int generation, int slot, SoundCategory category, SoundEvent event, SoundEventGroup group,
             SoundSample sample, int volume, float pitch, @Nullable Point position, float maxDistance,
@@ -208,6 +220,14 @@ public class SoundVoice {
         if (stopped) {
             return true;
         }
+        if (chained) {
+            // never ends by itself, unless the chain has been told to end
+            return chainEnded && children.isEmpty() && isBackendFinished();
+        }
+        return isBackendFinished();
+    }
+
+    private boolean isBackendFinished() {
         if (backend == null) {
             return false;
         }
@@ -222,6 +242,59 @@ public class SoundVoice {
             }
             default -> false;
         };
+    }
+
+    boolean isChained() {
+        return chained;
+    }
+
+    void setChained(boolean chained) {
+        this.chained = chained;
+    }
+
+    boolean isChainEnded() {
+        return chainEnded;
+    }
+
+    void setChainEnded(boolean chainEnded) {
+        this.chainEnded = chainEnded;
+    }
+
+    long getChainNextAt() {
+        return chainNextAt;
+    }
+
+    void setChainNextAt(long chainNextAt) {
+        this.chainNextAt = chainNextAt;
+    }
+
+    int getChainDelay() {
+        return chainDelay;
+    }
+
+    void setChainDelay(int chainDelay) {
+        this.chainDelay = chainDelay;
+    }
+
+    List<Child> getChildren() {
+        return children;
+    }
+
+    /**
+     * Stops the clips that follow the first clip of a chained voice.
+     */
+    void stopChildren() {
+        for (Child child : children) {
+            child.backend().stop();
+        }
+        children.clear();
+    }
+
+    /**
+     * A clip of a chained voice, with the volume of the group it came from.
+     */
+    record Child(AudioBackend backend, int volume) {
+
     }
 
     @Override

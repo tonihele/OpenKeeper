@@ -229,6 +229,7 @@ public class SoundEngine {
     public synchronized void stopAll() {
         for (SoundVoice voice : voices.values()) {
             voice.setStopped(true);
+            voice.stopChildren();
         }
         pending.clear();
         deferred.clear();
@@ -359,11 +360,17 @@ public class SoundEngine {
 
         if (backend.getStatus() == AudioBackend.Status.STOPPED && voice.isStopped()) {
             backend.stop();
+            voice.stopChildren();
             return false;
+        }
+
+        if (voice.isChained() && !voice.isStopped()) {
+            updateChain(voice, now);
         }
 
         if (voice.isFinished()) {
             backend.stop();
+            voice.stopChildren();
             return false;
         }
 
@@ -378,20 +385,100 @@ public class SoundEngine {
             fade *= Math.max(0.0f, 1.0f - (float) fadeOut / FADE_OUT_MS);
             if (fadeOut >= FADE_OUT_MS) {
                 backend.stop();
+                voice.stopChildren();
                 return false;
             }
         }
 
         voice.setGain(fade * effectiveGain(voice));
         backend.setGain(voice.getGain());
+        for (SoundVoice.Child child : voice.getChildren()) {
+            child.backend().setGain(fade * effectiveGain(voice, child.volume()));
+        }
         return true;
+    }
+
+    private enum Chain {
+        NONE,
+        REPEATER,
+        SEGMENTED_LOOP
+    }
+
+    /**
+     * Repeaters and segmented loops play a clip after another, they never end by themselves.
+     */
+    private static Chain chainOf(SoundEvent event) {
+        int flags = event.getFlags();
+        if (!SoundEventFlags.isSet(flags, SoundEventFlags.REPEATING)
+                || SoundEventFlags.isSet(flags, SoundEventFlags.PROPERTY_LINKS)
+                || SoundEventFlags.isSet(flags, SoundEventFlags.LOOP_EACH)
+                || SoundEventFlags.isSet(flags, SoundEventFlags.LINEAR_SEQUENCE)
+                || SoundEventFlags.isSet(flags, SoundEventFlags.BACKEND_EVENT)) {
+            return Chain.NONE;
+        }
+        return SoundEventFlags.isSet(flags, SoundEventFlags.SEGMENTED) ? Chain.SEGMENTED_LOOP : Chain.REPEATER;
+    }
+
+    /**
+     * A repeater starts its next clip 250 ms plus a random delay after the start of the previous one (and ends
+     * when that delay is 0), a segmented loop starts the next clip when the previous one ends.
+     */
+    private void updateChain(SoundVoice voice, long now) {
+        // Forget the clips that have ended
+        voice.getChildren().removeIf(child -> {
+            AudioBackend childBackend = child.backend();
+            float duration = childBackend.getDuration();
+            boolean ended = childBackend.getStatus() == AudioBackend.Status.STOPPED
+                    || (duration > 0.0f && childBackend.getPlaybackTime() >= duration);
+            if (ended) {
+                childBackend.stop();
+            }
+            return ended;
+        });
+
+        if (voice.isChainEnded() || now < voice.getChainNextAt()) {
+            return;
+        }
+        Chain chain = chainOf(voice.getEvent());
+        if (chain == Chain.REPEATER && voice.getChainDelay() == 0) {
+            voice.setChainEnded(true);
+            return;
+        }
+
+        List<SoundEventGroup> groups = voice.getEvent().getGroups();
+        SoundEventGroup group = groups.size() > 1
+                ? SoundRng.pick(groups, SoundEventGroup::getCumulativeWeight) : groups.get(0);
+        SoundSample sample = group.pickSample();
+        if (sample == null) {
+            voice.setChainEnded(true);
+            return;
+        }
+        AudioBackend childBackend = createBackend(voice, sample, SoundRng.pitch(group) / 100.0f);
+        if (childBackend != null) {
+            int volume = SoundRng.volume(group);
+            childBackend.setGain(effectiveGain(voice, volume));
+            childBackend.play();
+            voice.getChildren().add(new SoundVoice.Child(childBackend, volume));
+        }
+        scheduleNextChild(voice, chain, group, sample, now);
+    }
+
+    private static void scheduleNextChild(SoundVoice voice, Chain chain, SoundEventGroup group, SoundSample sample,
+            long now) {
+        int delay = SoundRng.delay(group);
+        voice.setChainDelay(delay);
+        voice.setChainNextAt(now + (chain == Chain.REPEATER ? 250L + delay : Math.max(1, sample.getDurationMs())));
     }
 
     /**
      * Volume of the voice as a 0..1 gain, after the channels that affect it.
      */
     public float effectiveGain(SoundVoice voice) {
-        float gain = voice.getVolume() / 100.0f * (masterVolume / 100.0f);
+        return effectiveGain(voice, voice.getVolume());
+    }
+
+    private float effectiveGain(SoundVoice voice, int volume) {
+        float gain = volume / 100.0f * (masterVolume / 100.0f);
         int mask = voice.getChannelMask();
         for (int channel = 0; channel < CHANNEL_COUNT; channel++) {
             if ((mask & (1 << channel)) == 0) {
@@ -463,13 +550,22 @@ public class SoundEngine {
         voice.setRealised(true);
         voice.setGain(effectiveGain(voice));
         backend.setGain(voice.getGain());
+        Chain chain = chainOf(voice.getEvent());
+        if (chain != Chain.NONE) {
+            voice.setChained(true);
+            scheduleNextChild(voice, chain, voice.getGroup(), voice.getSample(), now);
+        }
         voices.put(voice.getHandle(), voice);
         return true;
     }
 
     @Nullable
     private AudioBackend createBackend(SoundVoice voice) {
-        SoundSample sample = voice.getSample();
+        return createBackend(voice, voice.getSample(), voice.getPitch());
+    }
+
+    @Nullable
+    private AudioBackend createBackend(SoundVoice voice, SoundSample sample, float pitch) {
         String path = sample.getAssetPath();
         if (path == null) {
             return null;
@@ -478,7 +574,7 @@ public class SoundEngine {
         boolean looping = voice.getEvent().getBehaviour() == SoundVoiceBehaviour.REPEAT_LOOP_EACH;
         boolean streamed = looping || sample.getDurationMs() > 20_000;
         AudioSpec spec = AudioSpec.stereo(AssetsConverter.SOUNDS_FOLDER + '/' + path, 1.0f, looping, streamed)
-                .withPitch(voice.getPitch());
+                .withPitch(pitch);
         if (voice.isPositional()) {
             Point position = voice.getPosition();
             assert position != null;

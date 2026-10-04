@@ -26,6 +26,9 @@ public interface IMainMenuScreenController extends ScreenController {
 
     public final static String SOUND_BUTTON_ID = "buttonClick";
     public final static String SOUND_MENU_ID = "menuClick";
+    public final static String SOUND_MENU_HOVER_ID = "menuHover";
+    public final static String SOUND_MENU_BACK_ID = "menuBack";
+    public final static String SOUND_MENU_OK_ID = "menuOk";
     public final static String SCREEN_EMPTY_ID = "empty";
     public final static String SCREEN_START_ID = "start";
     public final static String SCREEN_DEBRIEFING_ID = "debriefing";

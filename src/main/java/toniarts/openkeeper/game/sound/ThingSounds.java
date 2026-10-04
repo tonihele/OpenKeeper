@@ -60,6 +60,13 @@ public final class ThingSounds {
     // Hand
     public static final int TAG = 0xEC;
 
+    // Front end
+    public static final int FRONT_END_HOVER = 0x30F;
+    public static final int FRONT_END_OK = 0x30D;
+    public static final int FRONT_END_BACK = 0x30E;
+    public static final int AMBIENT_BED = 0x2EA;
+    public static final int AMBIENT_BED_2 = 0x2EB;
+
     // Doors
     public static final int DOOR_OPEN = 0xE7;
     public static final int DOOR_CLOSE = 0xE8;

@@ -25,6 +25,7 @@
         <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
         <effect>
             <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
+            <onStartHover neverStopRendering="true" name="playSound" sound="menuHover"/>
             <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
         </effect>
     </style>

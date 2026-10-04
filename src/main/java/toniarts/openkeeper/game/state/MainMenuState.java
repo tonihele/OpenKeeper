@@ -60,6 +60,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.game.sound.FrontEndSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -96,6 +97,7 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
+    private final FrontEndSounds frontEndSounds = new FrontEndSounds();
     private int levelBriefing = SoundEngine.NO_HANDLE;
     private int levelDebriefing = SoundEngine.NO_HANDLE;
     private boolean pendingDebriefing;
@@ -260,6 +262,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         // Clear sound
+        frontEndSounds.stop();
         clearLevelBriefingNarration();
 
         // Detach our start menu
@@ -332,6 +335,7 @@ public final class MainMenuState extends AbstractAppState {
         stateManager.getState(SoundState.class).setEnabled(true);
 
         if (enabled) {
+            frontEndSounds.start();
 
             // If this is the first time, we might have to load the menu
             if (menuNode == null) {
@@ -358,6 +362,7 @@ public final class MainMenuState extends AbstractAppState {
                 initializeMainMenu();
             }
         } else {
+            frontEndSounds.stop();
 
             // Save the camera position so that we can restore it (e.g. for the debriefing screen) when re-enabling the menu
             storedCamera = app.getCamera().clone();
