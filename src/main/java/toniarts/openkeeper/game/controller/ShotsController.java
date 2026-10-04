@@ -22,6 +22,8 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.sound.CombatSounds;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -49,6 +51,7 @@ public final class ShotsController implements IShotsController {
     private final ILevelInfo levelInfo;
     private final IObjectsController objectsController;
     private final ICreaturesController creaturesController;
+    private final CombatSounds combatSounds;
 
     public ShotsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo, IObjectsController objectsController, ICreaturesController creaturesController) {
@@ -61,6 +64,7 @@ public final class ShotsController implements IShotsController {
         this.levelInfo = levelInfo;
         this.objectsController = objectsController;
         this.creaturesController = creaturesController;
+        this.combatSounds = new CombatSounds(entityData, kwdFile);
     }
 
     @Override
@@ -79,9 +83,17 @@ public final class ShotsController implements IShotsController {
             }
             case MODIFY_HEALTH -> {
                 EntityController.setDamage(entityData, target, -shotData1);
+                playShotHit(shot, target);
             }
             default ->
                 logger.log(Logger.Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
+        }
+    }
+
+    private void playShotHit(Shot shot, EntityId target) {
+        Position targetPosition = target != null ? entityData.getComponent(target, Position.class) : null;
+        if (targetPosition != null) {
+            combatSounds.playShotHit(shot, target, targetPosition.position);
         }
     }
 
