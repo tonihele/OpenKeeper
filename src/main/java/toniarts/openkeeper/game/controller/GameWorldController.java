@@ -74,6 +74,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.game.sound.EntitySounds;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
@@ -120,6 +121,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private ITrapsController trapsController;
     private IShotsController shotsController;
     private IEntityPositionLookup entityPositionLookup;
+    private final EntitySounds entitySounds;
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
@@ -138,6 +140,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.gameTimer = gameTimer;
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
+        this.entitySounds = new EntitySounds(entityData, kwdFile);
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -965,6 +968,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Lose the position component on the entity, do it here since we have the knowledge on locations etc. keep the "hand" simple
         // And also no need to create a system for this which saves resources
         Position position = entityData.getComponent(entity, Position.class);
+        entitySounds.play(entity, ThingSounds.PICK_UP, position.position);
         entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
@@ -1050,6 +1054,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (creatureComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             playSlapSound(entity);
+            entitySounds.play(entity, ThingSounds.SLAP);
             return;
         }
 
@@ -1058,6 +1063,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (objectComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             playSlapSound(entity);
+            entitySounds.play(entity, ThingSounds.SLAP);
             playSlappedThingSound(entity, objectComponent);
             return;
         }
@@ -1084,6 +1090,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
             playerHandControl.pop();
+            Vector3f dropPosition = new Vector3f(coordinates.x, 0, coordinates.y);
+            entitySounds.play(entity, ThingSounds.DROP, dropPosition);
+            if (entitySounds.isCreature(entity)) {
+                entitySounds.play(entity, ThingSounds.CREATURE_LAND, dropPosition);
+            }
 
             // Stuff drop differently
             IRoomController roomController = mapController.getRoomControllerByCoordinates(tile);

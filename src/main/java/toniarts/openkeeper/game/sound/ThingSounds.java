@@ -33,6 +33,7 @@ public final class ThingSounds {
     public static final int PICK_UP = 0xC3;
     public static final int DROP = 0xC4;
     public static final int SLAP = 0xC5;
+    public static final int IN_HAND = 0xC9;
 
     // Creatures, see the creature instance table
     public static final int CREATURE_HAPPY = 0xCA;
@@ -46,6 +47,8 @@ public final class ThingSounds {
     public static final int CREATURE_MELEE = 0xD7;
     public static final int CREATURE_CAST = 0xD8;
     public static final int CREATURE_HIT = 0xDB;
+    public static final int CREATURE_DIE = 0xDA;
+    public static final int CREATURE_LAND = 0xF6;
     public static final int CREATURE_SULK = 0xDE;
     public static final int CREATURE_ENTRANCE = 0xE0;
     public static final int CREATURE_DRINK = 0xE1;
@@ -137,8 +140,6 @@ public final class ThingSounds {
                 CREATURE_HIT;
             case FALLBACK ->
                 CREATURE_FALL;
-            case IN_HAND ->
-                PICK_UP;
             default ->
                 -1;
         };

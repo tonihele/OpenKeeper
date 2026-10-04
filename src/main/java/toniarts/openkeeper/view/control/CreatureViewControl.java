@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -39,6 +41,10 @@ import toniarts.openkeeper.view.text.EntityTextParser;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class CreatureViewControl extends EntityViewControl<Creature, Creature.AnimationType> {
+
+    private static final long IN_HAND_SOUND_INTERVAL_MS = 8000;
+
+    private long nextInHandSound;
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -84,6 +90,25 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
         isAnimationPlaying = true;
         currentState = animation;
+    }
+
+    @Override
+    protected void controlUpdate(float tpf) {
+        super.controlUpdate(tpf);
+
+        // A creature in the hand talks, one line every few seconds as long as it is held. It is heard at the hand
+        if (currentState == Creature.AnimationType.IN_HAND) {
+            long now = System.currentTimeMillis();
+            if (now >= nextInHandSound) {
+                nextInHandSound = now + IN_HAND_SOUND_INTERVAL_MS;
+                String category = getDataObject().getSoundCategory();
+                if (category != null && !category.isEmpty()) {
+                    SoundManager.playSound(category, ThingSounds.IN_HAND);
+                }
+            }
+        } else {
+            nextInHandSound = 0;
+        }
     }
 
     @Override
