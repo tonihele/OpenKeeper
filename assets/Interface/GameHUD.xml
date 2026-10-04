@@ -30,6 +30,7 @@
     <!-- custom effects -->
     <registerEffect name="simpleHintEx" class="toniarts.openkeeper.gui.nifty.effect.SimpleHintEx" />
     <registerEffect name="horizontalAutoScroll" class="toniarts.openkeeper.gui.nifty.effect.HorizontalAutoScroll" />
+    <registerEffect name="engineSound" class="toniarts.openkeeper.gui.nifty.effect.EngineSoundEffect" />
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->

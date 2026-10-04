@@ -57,7 +57,6 @@ import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
-import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -149,19 +148,9 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         if (menuSound != null) {
             this.nifty.registerSound(SOUND_MENU_ID, menuSound);
         }
-        registerSound(SOUND_MENU_HOVER_ID, GlobalCategory.FRONT_END, ThingSounds.FRONT_END_HOVER);
-        registerSound(SOUND_MENU_BACK_ID, GlobalCategory.OBJECT_FE_PARCHMENT, ThingSounds.FRONT_END_BACK);
-        registerSound(SOUND_MENU_OK_ID, GlobalCategory.OBJECT_FE_PARCHMENT, ThingSounds.FRONT_END_OK);
         String buttonSound = SoundManager.getSoundAssetPath(GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK);
         if (buttonSound != null) {
             this.nifty.registerSound(SOUND_BUTTON_ID, buttonSound);
-        }
-    }
-
-    private void registerSound(String id, String category, int eventId) {
-        String path = SoundManager.getSoundAssetPath(category, eventId);
-        if (path != null) {
-            nifty.registerSound(id, path);
         }
     }
 
