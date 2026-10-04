@@ -101,7 +101,7 @@ public class SoundEngine {
      *
      * @param property the property to match links against, {@code -1} for none
      */
-    public int play(SoundCategory category, int eventId, @Nullable Point position, int property) {
+    public synchronized int play(SoundCategory category, int eventId, @Nullable Point position, int property) {
         if (category == null || paused) {
             return NO_HANDLE;
         }
@@ -201,7 +201,7 @@ public class SoundEngine {
     /**
      * Stops the voice, fading it out.
      */
-    public void stop(int handle) {
+    public synchronized void stop(int handle) {
         SoundVoice voice = voices.get(handle);
         if (voice != null) {
             voice.setStopped(true);
@@ -211,7 +211,7 @@ public class SoundEngine {
     /**
      * Stops every voice of an event, fading them out.
      */
-    public void stopAll(SoundCategory category, int eventId) {
+    public synchronized void stopAll(SoundCategory category, int eventId) {
         for (SoundVoice voice : voices.values()) {
             if (voice.getCategory() == category && voice.getEvent().getId() == eventId) {
                 voice.setStopped(true);
@@ -226,7 +226,7 @@ public class SoundEngine {
         stopAll(category, eventId);
     }
 
-    public void stopAll() {
+    public synchronized void stopAll() {
         for (SoundVoice voice : voices.values()) {
             voice.setStopped(true);
         }
@@ -245,12 +245,14 @@ public class SoundEngine {
      * @return whether the voice of the handle exists and has not finished yet,
      * which includes voices that are still queued
      */
-    public boolean isPlaying(int handle) {
+    public synchronized boolean isPlaying(int handle) {
+        // Called from the game logic thread too, so this must not ask the audio device: voices that
+        // have played to their end are removed by the tick, which runs on the render thread
         SoundVoice voice = voices.get(handle);
-        return voice != null && !voice.isFinished();
+        return voice != null && !voice.isStopped();
     }
 
-    public int getActiveVoiceCount() {
+    public synchronized int getActiveVoiceCount() {
         return voices.size();
     }
 
@@ -259,8 +261,25 @@ public class SoundEngine {
      * (or no longer) valid
      */
     @Nullable
-    public SoundVoice getVoice(int handle) {
+    public synchronized SoundVoice getVoice(int handle) {
         return voices.get(handle);
+    }
+
+    /**
+     * Moves a positional voice.
+     *
+     * @return whether the voice still exists, i.e. {@code false} if the handle
+     * is stale and the caller has to start a new voice
+     */
+    public synchronized boolean move(int handle, Point position) {
+        SoundVoice voice = voices.get(handle);
+        if (voice == null || voice.isStopped()) {
+            return false;
+        }
+        if (voice.isPositional()) {
+            voice.setPosition(position);
+        }
+        return true;
     }
 
     public void setListener(Point position) {
@@ -314,7 +333,7 @@ public class SoundEngine {
     /**
      * Advances fades, starts deferred voices and reaps finished ones.
      */
-    public void tick() {
+    public synchronized void tick() {
         long now = now();
 
         throttle.tick(now);
@@ -517,7 +536,7 @@ public class SoundEngine {
     /**
      * Per event statistics, mainly useful for tests and debugging.
      */
-    public Map<Integer, Integer> getEventPlayCounts() {
+    public synchronized Map<Integer, Integer> getEventPlayCounts() {
         Map<Integer, Integer> counts = new HashMap<>();
         for (SoundVoice voice : voices.values()) {
             counts.merge(voice.getEvent().getId(), 1, Integer::sum);

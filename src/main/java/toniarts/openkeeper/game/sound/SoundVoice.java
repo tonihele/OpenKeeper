@@ -34,7 +34,7 @@ public class SoundVoice {
     private final float distanceToListener;
     private final int channelMask;
     @Nullable
-    private final Point position;
+    private Point position;
     private final float maxDistance;
 
     private int volume;
@@ -131,6 +131,16 @@ public class SoundVoice {
     @Nullable
     public Point getPosition() {
         return position;
+    }
+
+    /**
+     * Moves a positional voice, also while it is playing.
+     */
+    public void setPosition(Point position) {
+        this.position = position;
+        if (backend != null) {
+            backend.setPosition(position.x, 0.0f, position.y);
+        }
     }
 
     public boolean isPositional() {

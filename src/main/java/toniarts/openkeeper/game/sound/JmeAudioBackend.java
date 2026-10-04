@@ -36,6 +36,7 @@ public final class JmeAudioBackend implements AudioBackend {
     private static final float DEFAULT_REF_DISTANCE = 1.0f;
 
     private final AudioNode node;
+    private final Supplier<Float> sourceHeight;
 
     public JmeAudioBackend(Application app, AudioSpec spec) {
         this(app.getAssetManager(), spec);
@@ -51,6 +52,7 @@ public final class JmeAudioBackend implements AudioBackend {
      * of the listener makes the distance a ground distance
      */
     public JmeAudioBackend(AssetManager assetManager, AudioSpec spec, Supplier<Float> sourceHeight) {
+        this.sourceHeight = sourceHeight;
         String path = spec.assetPath();
         if (path == null) {
             throw new IllegalArgumentException("No asset path");
@@ -115,6 +117,12 @@ public final class JmeAudioBackend implements AudioBackend {
     @Override
     public void setPitch(float pitch) {
         node.setPitch(Math.max(0.01f, pitch));
+    }
+
+    @Override
+    public void setPosition(float x, float y, float z) {
+        node.setLocalTranslation(x, sourceHeight.get(), z);
+        node.updateGeometricState();
     }
 
     @Override

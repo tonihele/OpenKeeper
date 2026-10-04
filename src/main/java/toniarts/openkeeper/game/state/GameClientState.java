@@ -92,6 +92,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final CampaignLevel campaignLevel;
 
     private PlayerMapViewState playerMapViewState;
+    private AmbienceState ambienceState;
     private PlayerEntityViewState playerModelViewState;
     private TextParser textParser;
 
@@ -154,6 +155,10 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
+        if (ambienceState != null) {
+            stateManager.detach(ambienceState);
+            ambienceState = null;
+        }
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -418,6 +423,12 @@ public final class GameClientState extends AbstractPauseAwareState {
             app.enqueue(() -> {
                 playerState.setEnabled(true);
 
+                // The background sounds of the level
+                if (playerMapViewState != null) {
+                    ambienceState = new AmbienceState(kwdFile, playerMapViewState);
+                    stateManager.attach(ambienceState);
+                }
+
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {
                     gameStarted = true;
@@ -665,6 +676,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void setPossession(EntityId target) {
             playerState.setPossession(target);
             setPossessedCreature(target);
+            if (ambienceState != null) {
+                ambienceState.setPossessing(target != null);
+            }
         }
     }
 

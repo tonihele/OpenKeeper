@@ -43,6 +43,12 @@ public interface AudioBackend {
     float getPlaybackTime();
 
     /**
+     * Moves a positional sound. Backends that cannot move a sound ignore this.
+     */
+    default void setPosition(float x, float y, float z) {
+    }
+
+    /**
      * @return clip length in seconds, or {@code 0} if it is not known
      */
     float getDuration();
