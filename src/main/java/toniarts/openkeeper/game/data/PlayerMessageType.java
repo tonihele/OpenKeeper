@@ -27,6 +27,8 @@ public enum PlayerMessageType {
      */
     CUSTOM(-1, Category.INFO, 50, false, false, 0),
     HEART_UNDER_ATTACK(0x01, Category.FIGHT, 120, true, false, 345),
+    LORD_OF_THE_LAND_EVENT(0x04, Category.INFO, 20, true, false, 0),
+    KING_EVENT(0x05, Category.INFO, 20, true, false, 0),
     NEW_SPECIES(0x0D, Category.CREATURE, 50, false, false, 376),
     LEVEL_CREATURE_INTRO(0x0E, Category.INFO, 50, false, true, 0),
     PORTAL_FULL(0x0F, Category.INFO, 420, true, false, 374),
@@ -35,14 +37,40 @@ public enum PlayerMessageType {
     SPELL_RESEARCHED(0x16, Category.INFO, 10, true, false, 391),
     SPELL_UPGRADED(0x17, Category.INFO, 20, true, false, 0),
     NOTHING_TO_RESEARCH(0x18, Category.INFO, 30, false, false, 395),
+    WORKSHOP_ITEM_BUILT(0x1A, Category.INFO, 30, true, false, 0),
+    WORKERS_DISTURBED(0x1B, Category.INFO, 20, true, false, 0),
+    LORD_OF_THE_LAND_DEFEATED(0x1E, Category.INFO, 20, true, false, 0),
     ROOM_CAPTURED(0x20, Category.INFO, 20, true, false, 0),
     ROOM_CLAIMED(0x21, Category.INFO, 20, true, false, 0),
+    ROOM_UNDER_ATTACK(0x22, Category.INFO, 30, true, false, 0),
     ROOM_BEING_CAPTURED(0x23, Category.INFO, 20, false, false, 0),
+    ROOM_DESTROYED(0x24, Category.INFO, 20, true, false, 0),
+    ONE_OF_ROOMS_DESTROYED(0x25, Category.INFO, 20, true, false, 0),
+    NEED_ROOM(0x29, Category.INFO, 300, true, false, 0),
+    ROOM_TOO_SMALL(0x2A, Category.INFO, 300, true, false, 0),
+    ROOM_UNREACHABLE(0x2B, Category.INFO, 300, true, false, 0),
+    ROOM_NOT_USABLE(0x2C, Category.INFO, 240, true, false, 0),
+    ROOM_FULL(0x2D, Category.INFO, 120, true, false, 0),
     MAGIC_ITEM_FOUND(0x30, Category.INFO, 10, true, true, 486),
     SPECIAL_EFFECT(0x31, Category.INFO, 20, false, true, 0),
     REALM_CONQUERED(0x32, Category.INFO, 50, true, false, 1159),
     PLAYER_DEFEATED(0x33, Category.INFO, 50, true, false, 1160),
-    NOT_ENOUGH_GOLD(0x37, Category.INFO, 20, true, false, 0);
+    MANA_LOW(0x34, Category.INFO, 20, true, false, 0),
+    NOT_ENOUGH_MANA(0x35, Category.INFO, 20, true, false, 0),
+    GOLD_LOW(0x36, Category.INFO, 20, true, false, 0),
+    NOT_ENOUGH_GOLD(0x37, Category.INFO, 20, true, false, 0),
+    SACRIFICE_RESULT(0x47, Category.INFO, 5, false, false, 0),
+    /**
+     * Multiplayer, the texts have a {0} slot for the other player's name
+     */
+    ALLIANCE(0x52, Category.ALLY_MSG, 30, false, false, 0),
+    /**
+     * Multiplayer, the texts have a {2} slot for the player's name
+     */
+    PLAYER_DEFEATED_MULTIPLAYER(0x57, Category.FIGHT, 20, false, false, 0),
+    PRAISE(0x58, Category.INFO, 20, false, false, 0),
+    JOKE(0x59, Category.INFO, 20, false, false, 0),
+    IRON_MAIDENS_NEED_TORTURE_CHAMBER(0x63, Category.INFO, 300, true, false, 0);
 
     /**
      * Tab icon categories

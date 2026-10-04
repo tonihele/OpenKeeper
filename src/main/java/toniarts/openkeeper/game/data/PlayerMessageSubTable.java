@@ -40,7 +40,7 @@ public final class PlayerMessageSubTable {
     }
 
     private final Map<Integer, Entry> entries = new HashMap<>();
-    private final Entry defaultEntry;
+    private Entry defaultEntry;
 
     private PlayerMessageSubTable(Entry defaultEntry) {
         this.defaultEntry = defaultEntry;
@@ -65,6 +65,14 @@ public final class PlayerMessageSubTable {
      */
     PlayerMessageSubTable with(int key, int text, int seconds) {
         entries.put(key, new Entry(text, seconds));
+        return this;
+    }
+
+    /**
+     * Set the default record when it has a timeout of its own
+     */
+    PlayerMessageSubTable withDefault(int text, int seconds) {
+        defaultEntry = new Entry(text, seconds);
         return this;
     }
 
