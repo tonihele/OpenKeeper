@@ -94,7 +94,7 @@ public class SoundArchive {
         for (String part : new String[]{"HD.sdt", "HW.sdt"}) {
             try {
                 Path f = Paths.get(PathUtils.getRealFileName(PathUtils.getDKIIFolder(),
-                        PathUtils.DKII_SFX_FOLDER + archiveName + File.separator + part));
+                        PathUtils.DKII_SFX_FOLDER + archiveName + part));
                 if (Files.exists(f)) {
                     return f;
                 }
@@ -152,7 +152,7 @@ public class SoundArchive {
         if (clipName == null) {
             return null;
         }
-        return toAssetPath(name) + "/" + clipName;
+        return toAssetPath(getFolderName()) + "/" + clipName;
     }
 
     /**
@@ -166,7 +166,20 @@ public class SoundArchive {
         if (clipName == null) {
             return null;
         }
-        return name + File.separator + clipName;
+        return getFolderName() + File.separator + clipName;
+    }
+
+    /**
+     * The converted sounds live in a folder named after the {@code .sdt} file,
+     * i.e. the {@code BANK.map} name plus the quality suffix ({@code HD}/{@code HW}).
+     */
+    private String getFolderName() {
+        if (sdtFile == null || sdtFile.getFileName() == null) {
+            return name;
+        }
+        String file = sdtFile.getFileName().toString();
+        String stem = file.substring(0, file.length() - ".sdt".length());
+        return stem.length() >= 2 ? name + stem.substring(stem.length() - 2) : name;
     }
 
     private static String stripTrailingSeparator(String path) {
