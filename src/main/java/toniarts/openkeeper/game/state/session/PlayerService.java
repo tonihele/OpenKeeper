@@ -53,7 +53,7 @@ public interface PlayerService {
      * @param data2 type specific data
      * @param playerId the player to post to
      */
-    public void postMessage(PlayerMessageType type, int key, int data1, int data2, short playerId);
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId);
 
     /**
      * Play a speech on the player

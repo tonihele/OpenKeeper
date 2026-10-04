@@ -72,7 +72,7 @@ public interface IPlayerController {
      * @param data1 type specific data
      * @param data2 type specific data
      */
-    void postMessage(PlayerMessageType type, int key, int data1, int data2);
+    void postMessage(PlayerMessageType type, int key, long data1, long data2);
 
     /**
      * Set the receiver of the messages posted to this player

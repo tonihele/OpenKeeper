@@ -217,7 +217,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void postMessage(PlayerMessageType type, int key, int data1, int data2, short playerId) {
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
                 gameSession.getValue().onPlayerMessage(type.getId(), key, data1, data2);
@@ -714,7 +714,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onPlayerMessage(int typeId, int key, int data1, int data2) {
+        public void onPlayerMessage(int typeId, int key, long data1, long data2) {
             getCallback().onPlayerMessage(typeId, key, data1, data2);
         }
 

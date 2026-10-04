@@ -505,7 +505,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onPlayerMessage(int typeId, int key, int data1, int data2) {
+        public void onPlayerMessage(int typeId, int key, long data1, long data2) {
             PlayerMessageType type = PlayerMessageType.fromId(typeId);
 
             // A variant without a text is not said at all
@@ -520,7 +520,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                     : String.format("${speech.%d}", entry.speechTextId());
             SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
             if (systemMessageState != null) {
-                systemMessageState.addMessage(type, key, text, entry.timeoutSeconds());
+                // The new species message can focus on the creature
+                EntityId focusEntity = type == PlayerMessageType.NEW_SPECIES ? new EntityId(data2) : null;
+                systemMessageState.addMessage(type, key, text, entry.timeoutSeconds(), focusEntity);
             }
         }
 

@@ -18,6 +18,7 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.NiftyIdCreator;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.elements.Element;
@@ -97,7 +98,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(MessageType type, String text) {
-        addMessage(PlayerMessageType.CUSTOM, type, 0, text, PlayerMessageType.CUSTOM.getTimeoutSeconds());
+        addMessage(PlayerMessageType.CUSTOM, type, 0, text, PlayerMessageType.CUSTOM.getTimeoutSeconds(), null);
     }
 
     /**
@@ -131,10 +132,24 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param timeoutSeconds lifetime of the message, depends on the variant
      */
     public void addMessage(PlayerMessageType type, int key, String text, int timeoutSeconds) {
-        addMessage(type, MessageType.valueOf(type.getCategory().name()), key, text, timeoutSeconds);
+        addMessage(type, key, text, timeoutSeconds, null);
     }
 
-    private void addMessage(PlayerMessageType type, MessageType category, int key, String text, int timeoutSeconds) {
+    /**
+     * Adds a message of a known type to the message queue
+     *
+     * @param type message type
+     * @param key variant of the type
+     * @param text message text
+     * @param timeoutSeconds lifetime of the message, depends on the variant
+     * @param focusEntity the entity the message can focus the view on, may be
+     * {@code null}
+     */
+    public void addMessage(PlayerMessageType type, int key, String text, int timeoutSeconds, EntityId focusEntity) {
+        addMessage(type, MessageType.valueOf(type.getCategory().name()), key, text, timeoutSeconds, focusEntity);
+    }
+
+    private void addMessage(PlayerMessageType type, MessageType category, int key, String text, int timeoutSeconds, EntityId focusEntity) {
         if (!this.isEnabled() || !isInitialized()) {
             return;
         }
@@ -157,13 +172,13 @@ public final class SystemMessageState extends AbstractPauseAwareState {
             SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
                         GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());
             this.app.enqueue(() -> {
-                this.addMessageIcon(category, text, lifetimeMs);
+                this.addMessageIcon(category, text, lifetimeMs, focusEntity);
                 if (soundHandler != null) {
                     soundHandler.play();
                 }
             });
         } else {
-            this.addMessageIcon(category, text, lifetimeMs);
+            this.addMessageIcon(category, text, lifetimeMs, focusEntity);
         }
     }
 
@@ -178,7 +193,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
         this.systemMessagesEnabled = enabled;
     }
 
-    public void addMessageIcon(MessageType type, String text, long lifetimeMs) {
+    public void addMessageIcon(MessageType type, String text, long lifetimeMs, EntityId focusEntity) {
         final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.getIcon());
         final String normalIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
         final String hoverIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
@@ -195,6 +210,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
         SystemMessageControl control = systemMessage.getControl(SystemMessageControl.class);
         if (control != null) {
             control.setLifetime(lifetimeMs);
+            control.setFocusEntity(focusEntity);
         }
         systemMessage.show();
     }

@@ -187,7 +187,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void postMessage(PlayerMessageType type, int key, int data1, int data2, short playerId) {
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onPlayerMessage(type.getId(), key, data1, data2);

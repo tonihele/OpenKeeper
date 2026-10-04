@@ -163,7 +163,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
                 entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.ENTRANCE);
                 spawned = true;
-                notifyCreatureArrived(player, creatureId);
+                notifyCreatureArrived(player, creatureId, entityId);
             }
         }
 
@@ -191,9 +191,10 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
 
     /**
      * Tells the player about a creature type arriving for the first time. The
-     * level can have its own introduction text for the type.
+     * level can have its own introduction text for the type. The message of a
+     * new species points to the creature.
      */
-    private void notifyCreatureArrived(IPlayerController player, short creatureId) {
+    private void notifyCreatureArrived(IPlayerController player, short creatureId, EntityId entityId) {
         if (!arrivedCreatureTypes.computeIfAbsent(player.getKeeper().getId(), k -> new HashSet<>()).add(creatureId)) {
             return;
         }
@@ -201,7 +202,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         if (introductionTextId != null) {
             player.postMessage(PlayerMessageType.LEVEL_CREATURE_INTRO, 0, creatureId, introductionTextId);
         } else {
-            player.postMessage(PlayerMessageType.NEW_SPECIES, 0, creatureId, 0);
+            player.postMessage(PlayerMessageType.NEW_SPECIES, 0, creatureId, entityId.getId());
         }
     }
 

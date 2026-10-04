@@ -84,7 +84,7 @@ public final class PlayerController implements IPlayerController {
     }
 
     @Override
-    public void postMessage(PlayerMessageType type, int key, int data1, int data2) {
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2) {
         if (messageListener != null) {
             messageListener.onPlayerMessage(type, key, data1, data2);
         }

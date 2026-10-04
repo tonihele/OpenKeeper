@@ -100,7 +100,7 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      * @param data2 type specific data
      */
     @Asynchronous
-    public void onPlayerMessage(int typeId, int key, int data1, int data2);
+    public void onPlayerMessage(int typeId, int key, long data1, long data2);
 
     /**
      * The game has ended for the client

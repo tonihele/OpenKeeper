@@ -787,7 +787,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         @Override
-        public void postMessage(PlayerMessageType type, int key, int data1, int data2, short playerId) {
+        public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

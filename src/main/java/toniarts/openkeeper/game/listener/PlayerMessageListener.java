@@ -34,5 +34,5 @@ public interface PlayerMessageListener {
      * @param data1 type specific data
      * @param data2 type specific data
      */
-    void onPlayerMessage(PlayerMessageType type, int key, int data1, int data2);
+    void onPlayerMessage(PlayerMessageType type, int key, long data1, long data2);
 }
