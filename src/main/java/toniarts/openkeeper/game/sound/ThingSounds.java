@@ -68,6 +68,7 @@ public final class ThingSounds {
     // Objects, rooms, terrain
     public static final int OBJECT_CREATE = 0xF1;
     public static final int OBJECT_LOOP = 0xF2;
+    public static final int OBJECT_SLAPPED = 0x111; // chicken squawk
     public static final int DESTROYED = 0xF4;
     public static final int ROOM_EVENT = 0xF5;
     public static final int MANUFACTURED = 0x10F;

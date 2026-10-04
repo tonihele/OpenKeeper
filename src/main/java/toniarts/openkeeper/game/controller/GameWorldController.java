@@ -1058,7 +1058,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (objectComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             playSlapSound(entity);
+            playSlappedThingSound(entity, objectComponent);
             return;
+        }
+    }
+
+    /**
+     * The slapped object makes a sound of its own, e.g. a chicken squawks
+     */
+    private void playSlappedThingSound(EntityId entity, ObjectComponent objectComponent) {
+        Position position = entityData.getComponent(entity, Position.class);
+        GameObject object = kwdFile.getObject(objectComponent.objectId);
+        if (position != null && object != null) {
+            ThingSounds.play(object.getSoundCategory(), ThingSounds.OBJECT_SLAPPED, position.position);
         }
     }
 
