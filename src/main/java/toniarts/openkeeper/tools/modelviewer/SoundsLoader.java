@@ -62,14 +62,23 @@ public final class SoundsLoader {
 
         if (category == null || category.isEmpty()) {
             return null;
-        } else if (CACHE.containsKey(category)) {
-            return CACHE.get(category);
+        }
+
+        // the same category name may exist in the global and in a non global folder
+        String key = (useGlobal ? "global:" : "local:") + category.toUpperCase();
+        if (CACHE.containsKey(key)) {
+            return CACHE.get(key);
         }
 
         SoundCategory result = null;
         try {
             result = new SoundCategory(category, useGlobal);
-            CACHE.put(category, result);
+            if (result.getEvents().isEmpty()) {
+                logger.log(Level.WARNING, "Sound category {0} has no events", category);
+                result = null;
+            } else {
+                CACHE.put(key, result);
+            }
 //            temp(category, useGlobal);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Sound category {0} does not exist", category);

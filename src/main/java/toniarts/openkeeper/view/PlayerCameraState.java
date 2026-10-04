@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -284,6 +285,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+        SoundManager.setListener(WorldUtils.vectorToPoint(app.getCamera().getLocation()));
     }
 
     private void updateEdgeScroll(float tpf) {
