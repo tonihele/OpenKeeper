@@ -40,7 +40,8 @@ public final class SoundManager {
      * Creates the engine with a jME backed audio device.
      */
     public static void init(Application app) {
-        engine = new SoundEngine(spec -> new JmeAudioBackend(app.getAssetManager(), spec));
+        engine = new SoundEngine(spec -> new JmeAudioBackend(app.getAssetManager(), spec,
+                () -> app.getListener().getLocation().y));
     }
 
     /**

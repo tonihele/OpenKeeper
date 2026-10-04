@@ -22,6 +22,7 @@ import com.jme3.audio.AudioData;
 import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 /**
@@ -41,6 +42,15 @@ public final class JmeAudioBackend implements AudioBackend {
     }
 
     public JmeAudioBackend(AssetManager assetManager, AudioSpec spec) {
+        this(assetManager, spec, () -> spec.y());
+    }
+
+    /**
+     * @param sourceHeight height of the sound sources, the listener (camera) hovers high above the
+     * ground, so a source on the ground would be heard from far away. Placing the sources at the height
+     * of the listener makes the distance a ground distance
+     */
+    public JmeAudioBackend(AssetManager assetManager, AudioSpec spec, Supplier<Float> sourceHeight) {
         String path = spec.assetPath();
         if (path == null) {
             throw new IllegalArgumentException("No asset path");
@@ -58,7 +68,7 @@ public final class JmeAudioBackend implements AudioBackend {
         node.setPitch(spec.pitch());
         node.setVolume(clampVolume(spec.gain()));
         if (spec.positional()) {
-            node.setLocalTranslation(spec.x(), spec.y(), spec.z());
+            node.setLocalTranslation(spec.x(), sourceHeight.get(), spec.z());
             node.setRefDistance(spec.refDistance() > 0 ? spec.refDistance() : DEFAULT_REF_DISTANCE);
             node.setMaxDistance(spec.maxDistance() > 0 ? spec.maxDistance() : 1000.0f);
         }

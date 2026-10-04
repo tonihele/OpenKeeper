@@ -50,12 +50,12 @@ public class SoundEngine {
      * The paper states this as a squared game unit distance; here it is applied
      * to the tile distance that the game itself uses.
      */
-    public static final int MAX_ELIGIBLE_DISTANCE = 6;
+    public static final int MAX_ELIGIBLE_DISTANCE = 24;
     public static final int FADE_IN_MS = 250;
     public static final int FADE_OUT_MS = 250;
     public static final int CHANNEL_COUNT = 8;
-    // the camera hovers well above the ground, so a source on the ground must not start to fade right away
-    private static final float REF_DISTANCE = 8.0f;
+    // sounds are as loud as they get within this many tiles (on the ground) of the listener
+    private static final float REF_DISTANCE = 12.0f;
 
     private final AudioBackend.AudioBackendFactory factory;
     private final SoundThrottle throttle = new SoundThrottle();
@@ -350,9 +350,8 @@ public class SoundEngine {
 
         float fade = 1.0f;
         long age = now - voice.getStartTime();
-        // short one-shots such as clicks and slaps would be almost inaudible when faded in
-        if (age < FADE_IN_MS) {
-        //if (age < FADE_IN_MS && voice.getSample().getDurationMs() > 4 * FADE_IN_MS) {
+        // one-shots must start at once, only beds and music are faded in
+        if (age < FADE_IN_MS && voice.getEvent().getBehaviour() != SoundVoiceBehaviour.ONE_SHOT) {
             fade = Math.max(0.0f, (float) age / FADE_IN_MS);
         }
         if (voice.isStopped()) {
