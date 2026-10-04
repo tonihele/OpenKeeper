@@ -160,9 +160,11 @@ public final class SoundManager {
             return null;
         }
 
-        SoundCategory result = SoundsLoader.load(category, true);
+        // speech categories live in their own folders, do not even look into the global one
+        boolean local = category.toUpperCase(Locale.ROOT).startsWith(SoundCategory.SPEECH_PREFIX);
+        SoundCategory result = SoundsLoader.load(category, !local);
         if (result == null) {
-            result = SoundsLoader.load(category, false);
+            result = SoundsLoader.load(category, local);
         }
         return result;
     }

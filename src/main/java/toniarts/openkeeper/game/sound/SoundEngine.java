@@ -54,7 +54,8 @@ public class SoundEngine {
     public static final int FADE_IN_MS = 250;
     public static final int FADE_OUT_MS = 250;
     public static final int CHANNEL_COUNT = 8;
-    private static final float REF_DISTANCE = 1.0f;
+    // the camera hovers well above the ground, so a source on the ground must not start to fade right away
+    private static final float REF_DISTANCE = 8.0f;
 
     private final AudioBackend.AudioBackendFactory factory;
     private final SoundThrottle throttle = new SoundThrottle();
@@ -349,7 +350,9 @@ public class SoundEngine {
 
         float fade = 1.0f;
         long age = now - voice.getStartTime();
+        // short one-shots such as clicks and slaps would be almost inaudible when faded in
         if (age < FADE_IN_MS) {
+        //if (age < FADE_IN_MS && voice.getSample().getDurationMs() > 4 * FADE_IN_MS) {
             fade = Math.max(0.0f, (float) age / FADE_IN_MS);
         }
         if (voice.isStopped()) {
@@ -461,7 +464,7 @@ public class SoundEngine {
         if (voice.isPositional()) {
             Point position = voice.getPosition();
             assert position != null;
-            spec = spec.withPosition(position.x, position.y, 0.0f);
+            spec = spec.withPosition(position.x, 0.0f, position.y);
         }
         if (voice.getMaxDistance() > 0.0f) {
             spec = new AudioSpec(spec.assetPath(), spec.positional(), spec.looping(), spec.streamed(), spec.gain(),

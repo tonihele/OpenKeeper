@@ -21,6 +21,8 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.spi.sound.SoundHandle;
 import de.lessvoid.nifty.tools.SizeValue;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.sound.SoundManager;
 
@@ -30,6 +32,8 @@ import toniarts.openkeeper.game.sound.SoundManager;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class NiftyUtils {
+
+    private static final Set<String> REGISTERED_SOUNDS = new HashSet<>();
 
     private NiftyUtils() {
     }
@@ -53,11 +57,11 @@ public final class NiftyUtils {
             return null;
         }
 
-        SoundHandle soundHandler = nifty.getSoundSystem().getSound(assetPath);
-        if (soundHandler == null) {
-            if (nifty.getSoundSystem().addSound(assetPath, assetPath)) {
-                soundHandler = nifty.getSoundSystem().getSound(assetPath);
-            }
+        // Nifty logs a warning for every unknown sound, so remember what has been added
+        SoundHandle soundHandler = null;
+        if (REGISTERED_SOUNDS.contains(assetPath) || nifty.getSoundSystem().addSound(assetPath, assetPath)) {
+            REGISTERED_SOUNDS.add(assetPath);
+            soundHandler = nifty.getSoundSystem().getSound(assetPath);
         }
 
         return soundHandler;

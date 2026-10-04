@@ -32,6 +32,7 @@ public final class ThingSounds {
     // Hand
     public static final int PICK_UP = 0xC3;
     public static final int DROP = 0xC4;
+    public static final int SLAP = 0xC5;
 
     // Creatures, see the creature instance table
     public static final int CREATURE_HAPPY = 0xCA;

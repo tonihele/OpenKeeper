@@ -74,6 +74,8 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -1047,6 +1049,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
         if (creatureComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            playSlapSound(entity);
             return;
         }
 
@@ -1054,8 +1057,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
         if (objectComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            playSlapSound(entity);
             return;
         }
+    }
+
+    private void playSlapSound(EntityId entity) {
+        // The slap comes from the player's hand, so it is not positional
+        SoundManager.playSound(GlobalCategory.HAND, ThingSounds.SLAP);
     }
 
     @Override
