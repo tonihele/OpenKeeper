@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.sound;
 import com.jme3.app.Application;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioData;
-import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import java.util.function.Supplier;
@@ -58,9 +57,10 @@ public final class JmeAudioBackend implements AudioBackend {
             throw new IllegalArgumentException("No asset path");
         }
 
-        DataType dataType = spec.streamed() ? DataType.Stream : DataType.Buffer;
         try {
-            node = new AudioNode(assetManager, path, dataType);
+            // A cached stream is shared by every node of the clip and is not seekable, so a second
+            // voice of a clip that has already ended once would fail to rewind it. Streams are not cached.
+            node = new AudioNode(assetManager, path, spec.streamed(), false);
         } catch (RuntimeException ex) {
             throw new IllegalArgumentException("Failed to load " + path, ex);
         }
