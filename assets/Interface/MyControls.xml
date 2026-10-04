@@ -413,6 +413,7 @@
             <effect>
                 <onStartHover name="nop" onStartEffect="startHover()" />
                 <onEndHover name="nop" onStartEffect="endHover()" />
+                <onClick name="nop" onStartEffect="click()" neverStopRendering="true" />
             </effect>
         </panel>
     </controlDefinition>

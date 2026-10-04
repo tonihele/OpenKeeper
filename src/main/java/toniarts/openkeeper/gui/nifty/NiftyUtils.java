@@ -67,4 +67,14 @@ public final class NiftyUtils {
         return soundHandler;
     }
 
+    /**
+     * Plays a GUI sound right away
+     */
+    public static void playSound(Nifty nifty, String category, int id) {
+        SoundHandle soundHandler = getSoundHandler(nifty, category, id);
+        if (soundHandler != null) {
+            soundHandler.play();
+        }
+    }
+
 }

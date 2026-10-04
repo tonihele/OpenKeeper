@@ -170,7 +170,7 @@
                             happiness="100"
                             mapPercent="0" />-->
                         </panel>
-                        <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="">
+                        <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="" soundCategory="OPTIONS" soundEvent="781">
                             <effect>
                                 <onClick name="hide" targetElement="statistics" />
                             </effect>
