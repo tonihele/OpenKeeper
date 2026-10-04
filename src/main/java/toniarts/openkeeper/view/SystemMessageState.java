@@ -36,8 +36,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 /**
  * TODO separate screen
  * TODO:
- * - Events the game doesn't have yet: payday, heart damage and destruction, combat, torture and prison, casino, creature moods, and the single-player save/load messages.
- * - Imprisonment on/off (0x3E/0x3F): I didn't look for a hook, so I can't say whether one exists.
+ * - Events the game doesn't have yet: payday, heart damage and destruction, combat, torture and prison, casino, creature moods, and the single-player save/load messages, Imprisonment on/off (0x3E/0x3F)
  * @author ufdada
  */
 public final class SystemMessageState extends AbstractPauseAwareState {
@@ -98,7 +97,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(MessageType type, String text) {
-        addMessage(PlayerMessageType.CUSTOM, type, 0, text);
+        addMessage(PlayerMessageType.CUSTOM, type, 0, text, PlayerMessageType.CUSTOM.getTimeoutSeconds());
     }
 
     /**
@@ -108,7 +107,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(PlayerMessageType type, String text) {
-        addMessage(type, MessageType.valueOf(type.getCategory().name()), 0, text);
+        addMessage(type, 0, text, type.getTimeoutSeconds());
     }
 
     /**
@@ -120,10 +119,22 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(PlayerMessageType type, int key, String text) {
-        addMessage(type, MessageType.valueOf(type.getCategory().name()), key, text);
+        addMessage(type, key, text, type.getTimeoutSeconds());
     }
 
-    private void addMessage(PlayerMessageType type, MessageType category, int key, String text) {
+    /**
+     * Adds a message of a known type to the message queue
+     *
+     * @param type message type
+     * @param key variant of the type
+     * @param text message text
+     * @param timeoutSeconds lifetime of the message, depends on the variant
+     */
+    public void addMessage(PlayerMessageType type, int key, String text, int timeoutSeconds) {
+        addMessage(type, MessageType.valueOf(type.getCategory().name()), key, text, timeoutSeconds);
+    }
+
+    private void addMessage(PlayerMessageType type, MessageType category, int key, String text, int timeoutSeconds) {
         if (!this.isEnabled() || !isInitialized()) {
             return;
         }
@@ -138,10 +149,10 @@ public final class SystemMessageState extends AbstractPauseAwareState {
             if (expires != null && expires > time) {
                 return;
             }
-            liveMessages.put(id, time + type.getTimeoutSeconds());
+            liveMessages.put(id, time + timeoutSeconds);
         }
 
-        final long lifetimeMs = Math.min(type.getTimeoutSeconds(), MAX_TAB_LIFETIME_SECONDS) * 1000L;
+        final long lifetimeMs = Math.min(timeoutSeconds, MAX_TAB_LIFETIME_SECONDS) * 1000L;
         if (this.app != null) {
             SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
                         GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());

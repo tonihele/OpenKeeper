@@ -33,11 +33,16 @@ public enum PlayerMessageType {
     PORTALS_FULL(0x10, Category.INFO, 420, true, false, 375),
     LEVEL_SPEECH(0x15, Category.INFO, 50, false, true, 0),
     SPELL_RESEARCHED(0x16, Category.INFO, 10, true, false, 391),
+    SPELL_UPGRADED(0x17, Category.INFO, 20, true, false, 0),
     NOTHING_TO_RESEARCH(0x18, Category.INFO, 30, false, false, 395),
+    ROOM_CAPTURED(0x20, Category.INFO, 20, true, false, 0),
+    ROOM_CLAIMED(0x21, Category.INFO, 20, true, false, 0),
+    ROOM_BEING_CAPTURED(0x23, Category.INFO, 20, false, false, 0),
     MAGIC_ITEM_FOUND(0x30, Category.INFO, 10, true, true, 486),
     SPECIAL_EFFECT(0x31, Category.INFO, 20, false, true, 0),
     REALM_CONQUERED(0x32, Category.INFO, 50, true, false, 1159),
-    PLAYER_DEFEATED(0x33, Category.INFO, 50, true, false, 1160);
+    PLAYER_DEFEATED(0x33, Category.INFO, 50, true, false, 1160),
+    NOT_ENOUGH_GOLD(0x37, Category.INFO, 20, true, false, 0);
 
     /**
      * Tab icon categories
@@ -89,6 +94,21 @@ public enum PlayerMessageType {
             }
         }
         return CUSTOM;
+    }
+
+    /**
+     * Resolves the text and timeout of the message
+     *
+     * @param key the variant of the type, ignored by the types without variants
+     * @return the text and timeout, or {@code null} if the message is to be
+     * dropped (a variant that has no text)
+     */
+    public PlayerMessageSubTable.Entry resolve(int key) {
+        PlayerMessageSubTable subTable = PlayerMessageSubTables.get(this);
+        if (subTable != null) {
+            return subTable.get(key);
+        }
+        return new PlayerMessageSubTable.Entry(speechTextId, timeoutSeconds);
     }
 
     public int getId() {

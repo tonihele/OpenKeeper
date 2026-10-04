@@ -119,8 +119,12 @@ public final class PlayerResearchControl {
             setNextResearchTarget();
 
             // The spell upgrade has a message of its own that depends on the spell
-            if (researchableEntity.getResearchableType() == ResearchableType.SPELL && !upgrade) {
-                messageListener.onPlayerMessage(PlayerMessageType.SPELL_RESEARCHED, 0, researchableEntity.getId(), 0);
+            if (researchableEntity.getResearchableType() == ResearchableType.SPELL) {
+                if (upgrade) {
+                    messageListener.onPlayerMessage(PlayerMessageType.SPELL_UPGRADED, researchableEntity.getId(), 0, 0);
+                } else {
+                    messageListener.onPlayerMessage(PlayerMessageType.SPELL_RESEARCHED, 0, researchableEntity.getId(), 0);
+                }
             }
             if (!isAnythingToReaseach()) {
                 messageListener.onPlayerMessage(PlayerMessageType.NOTHING_TO_RESEARCH, 0, 0, 0);
