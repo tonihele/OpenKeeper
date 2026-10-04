@@ -41,6 +41,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 
 import java.util.ArrayList;
@@ -381,6 +382,10 @@ public final class MapController extends Container implements IMapController {
              * the building and selling by destroying rooms. But at least keep anyone who is listening intact
              */
             notifyOnSold(roomController.getRoomInstance().getOwnerId(), roomController);
+            if (!roomController.getRoomInstance().getCoordinates().isEmpty()) {
+                ThingSounds.play(roomController.getRoomInstance().getRoom().getSoundCategory(), ThingSounds.ROOM_EVENT,
+                        roomController.getRoomInstance().getCoordinates().get(0));
+            }
         }
     }
 
@@ -535,6 +540,7 @@ public final class MapController extends Container implements IMapController {
 //                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getDestroyedEffectId(), false);
 //            }
+            ThingSounds.play(terrain.getSoundCategory(), ThingSounds.DESTROYED, point);
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
 
 //            updateRoomWalls(tile);

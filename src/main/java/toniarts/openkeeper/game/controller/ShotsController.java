@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
@@ -65,6 +66,7 @@ public final class ShotsController implements IShotsController {
     @Override
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
         Shot shot = kwdFile.getShotById(shotTypeId);
+        ThingSounds.play(shot.getSoundCategory(), ThingSounds.SHOT_LAUNCH, position);
         switch (shot.getProcessType()) {
             case CREATE_CREATURE -> {
                 creaturesController.spawnCreature((short) shotData1, playerId, shotData2, WorldUtils.vector3fToVector2f(position), ICreaturesController.SpawnType.CONJURE);

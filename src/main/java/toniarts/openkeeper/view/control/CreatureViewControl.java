@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -92,6 +93,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         // Play immediately
         if (!Objects.equals(currentState, targetState)) {
             playAnimation(state);
+            if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
+                ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
+            }
         }
     }
 

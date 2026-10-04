@@ -74,6 +74,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -369,6 +370,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Notify the build
         notifyOnBuild(playerId, buildTiles);
+        ThingSounds.play(room.getSoundCategory(), ThingSounds.OBJECT_CREATE, instancePlots.getFirst());
     }
 
     private Set<Point> getConstructionBlockingTiles() {
@@ -1278,6 +1280,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
+        ThingSounds.play(keeperSpell.getSoundCategory(), ThingSounds.SHOT_LAUNCH, WorldUtils.vector2fToVector3(position));
         shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);
     }
 

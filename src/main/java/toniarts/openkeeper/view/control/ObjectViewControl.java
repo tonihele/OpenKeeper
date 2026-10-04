@@ -27,6 +27,9 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.EntityPickupValidator;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -44,6 +47,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
 public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
     private boolean initialized = false;
+    private int loopHandle = SoundEngine.NO_HANDLE;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
@@ -106,8 +110,32 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
             if (getDataObject().getObjectId() != 109 && getDataObject().getObjectId() != 116) {
                 playAnimation(currentState);
             }
+            startSounds();
             initialized = true;
         }
+    }
+
+    private void startSounds() {
+        if (spatial.getCullHint() == Spatial.CullHint.Always) {
+            return;
+        }
+        // The spatial is not yet positioned when the control is attached, use the entity position
+        Position position = getEntity().get(Position.class);
+        if (position == null) {
+            return;
+        }
+        String category = getDataObject().getSoundCategory();
+        loopHandle = ThingSounds.play(category, ThingSounds.OBJECT_LOOP, position.position);
+        ThingSounds.play(category, ThingSounds.OBJECT_CREATE, position.position);
+    }
+
+    @Override
+    public void cleanup() {
+        if (loopHandle != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(loopHandle);
+            loopHandle = SoundEngine.NO_HANDLE;
+        }
+        super.cleanup();
     }
 
     @Override
