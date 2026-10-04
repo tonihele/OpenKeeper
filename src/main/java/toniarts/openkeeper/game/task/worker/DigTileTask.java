@@ -17,11 +17,6 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
-import com.simsilica.es.EntityId;
-import java.util.HashMap;
-import java.util.Map;
-import toniarts.openkeeper.game.sound.SoundEngine;
-import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -37,11 +32,6 @@ import toniarts.openkeeper.game.task.TaskType;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public class DigTileTask extends AbstractTileTask {
-
-    /**
-     * The digging sound of each digger, it is restarted when it ends so that it lasts as long as the digging
-     */
-    private final Map<EntityId, Integer> digSounds = new HashMap<>();
 
     public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
         super(navigationService, mapController, p, playerId);
@@ -81,7 +71,7 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        playDigSound(creature);
+        playWorkSound(creature, ThingSounds.CREATURE_DIG);
 //        if (creature.getMeleeAttack().execute()) {
         // TODO: is this a general case or even smart to do this like this...?
         if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
@@ -90,14 +80,6 @@ public class DigTileTask extends AbstractTileTask {
             creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
         }
 //        }
-    }
-
-    private void playDigSound(ICreatureController creature) {
-        Integer handle = digSounds.get(creature.getEntityId());
-        if (handle == null || handle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(handle)) {
-            digSounds.put(creature.getEntityId(), ThingSounds.play(creature.getCreature().getSoundCategory(),
-                    ThingSounds.CREATURE_DIG, getTaskLocation()));
-        }
     }
 
     @Override

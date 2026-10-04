@@ -41,6 +41,8 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 
@@ -280,6 +282,9 @@ public final class MapController extends Container implements IMapController {
 
         // Notify
         notifyTileChange(updatableTiles);
+        if (!updatableTiles.isEmpty()) {
+            SoundManager.playSound(GlobalCategory.HAND, ThingSounds.TAG);
+        }
     }
 
     @Override

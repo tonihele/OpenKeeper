@@ -54,6 +54,11 @@ public final class ThingSounds {
     public static final int CREATURE_DRINK = 0xE1;
     public static final int CREATURE_FALL = 0xE6;
     public static final int CREATURE_DIG = 0x334;
+    public static final int CREATURE_CLAIM = 0x10A; // dk1claim, 0x109 is the same as digging
+    public static final int CREATURE_REINFORCE = 0x33D; // dk1reinf, 0x10C is the repair
+
+    // Hand
+    public static final int TAG = 0xEC;
 
     // Doors
     public static final int DOOR_OPEN = 0xE7;

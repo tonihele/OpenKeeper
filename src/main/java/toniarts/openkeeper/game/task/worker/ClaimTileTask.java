@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import toniarts.openkeeper.game.sound.ThingSounds;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -59,6 +60,11 @@ public class ClaimTileTask extends AbstractTileTask {
             setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
             mapController.applyClaimTile(getTaskLocation(), playerId);
+
+            // The work is done, let it be heard
+            if (!isValid(creature)) {
+                ThingSounds.play(creature.getCreature().getSoundCategory(), ThingSounds.CREATURE_CLAIM, getTaskLocation());
+            }
         }
     }
 
