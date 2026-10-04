@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.logic.*;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -177,6 +178,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 PlayerController playerController = new PlayerController(levelInfo.kwdFile, keeper, levelInfo.kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
+                // Messages go to the player's client
+                final short keeperId = entry.getKey();
+                playerController.setMessageListener((type, key, data1, data2) -> playerService.postMessage(type, key, data1, data2, keeperId));
+
                 // Spells are all available for research unless otherwise stated
                 for (KeeperSpell spell : levelInfo.kwdFile.getKeeperSpells()) {
                     if (spell.getBonusRTime() != 0) {
@@ -311,6 +316,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             } catch (IOException ex) {
                 logger.log(Level.ERROR, "Failed to save the level progress!", ex);
             }
+        }
+
+        IPlayerController playerController = playerControllers.get(playerId);
+        if (playerController != null) {
+            playerController.postMessage(win ? PlayerMessageType.REALM_CONQUERED : PlayerMessageType.PLAYER_DEFEATED, 0, 0, 0);
         }
 
         // Enable the end game state on the player (client)

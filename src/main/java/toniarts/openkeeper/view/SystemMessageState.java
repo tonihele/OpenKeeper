@@ -25,6 +25,7 @@ import de.lessvoid.nifty.spi.sound.SoundHandle;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
@@ -34,7 +35,9 @@ import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * TODO separate screen
- *
+ * TODO:
+ * - Events the game doesn't have yet: payday, heart damage and destruction, combat, torture and prison, casino, creature moods, and the single-player save/load messages.
+ * - Imprisonment on/off (0x3E/0x3F): I didn't look for a hook, so I can't say whether one exists.
  * @author ufdada
  */
 public final class SystemMessageState extends AbstractPauseAwareState {
@@ -105,7 +108,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(PlayerMessageType type, String text) {
-        addMessage(type, type.getCategory(), 0, text);
+        addMessage(type, MessageType.valueOf(type.getCategory().name()), 0, text);
     }
 
     /**
@@ -117,7 +120,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(PlayerMessageType type, int key, String text) {
-        addMessage(type, type.getCategory(), key, text);
+        addMessage(type, MessageType.valueOf(type.getCategory().name()), key, text);
     }
 
     private void addMessage(PlayerMessageType type, MessageType category, int key, String text) {

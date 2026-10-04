@@ -54,7 +54,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
-import toniarts.openkeeper.view.PlayerMessageType;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
@@ -501,6 +501,20 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onSetWidescreen(boolean enable) {
             playerState.setWideScreen(enable);
+        }
+
+        @Override
+        public void onPlayerMessage(int typeId, int key, int data1, int data2) {
+            PlayerMessageType type = PlayerMessageType.fromId(typeId);
+
+            // The level's own texts are given by the producer, others are in Speech.str
+            String text = type == PlayerMessageType.LEVEL_CREATURE_INTRO
+                    ? String.format("${level.%d}", data2 - 1)
+                    : String.format("${speech.%d}", type.getSpeechTextId());
+            SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+            if (systemMessageState != null) {
+                systemMessageState.addMessage(type, key, text);
+            }
         }
 
         @Override

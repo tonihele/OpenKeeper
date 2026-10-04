@@ -23,6 +23,7 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
@@ -55,6 +57,8 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class CreatureSpawnSystem extends GameTimeCounter {
 
+    private static final double LIMIT_MESSAGE_INTERVAL = 420;
+
     private final ICreaturesController creaturesController;
     private final int minimumImpCount;
     private final int entranceCooldownTime;
@@ -64,6 +68,8 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     private final Map<Short, IPlayerController> playerControllersById;
     private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final IKwdFile kwdFile;
+    private final Map<Short, Double> lastLimitMessageTimes = new HashMap<>();
+    private final Map<Short, Set<Short>> arrivedCreatureTypes = new HashMap<>();
 
     public CreatureSpawnSystem(ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
@@ -123,6 +129,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         IPlayerController player = playerControllersById.get(entrance.getOwnerId());
         boolean spawned = false;
         EntityId entityId = null;
+        boolean entranceReady = timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5);
         if (timeSinceLastSpawn >= freeImpCoolDownTime && entrance.isDungeonHeart()) {
             if (player.getCreatureControl().getImpCount() < minimumImpCount) {
 
@@ -131,8 +138,9 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.PLACE);
                 spawned = true;
             }
-        } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
-                && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
+        } else if (entranceReady && player.getRoomControl().isPortalsOpen() && isCreatureLimitReached(player)) {
+            notifyCreatureLimitReached(player);
+        } else if (entranceReady && player.getRoomControl().isPortalsOpen()) {
 
             // Evaluate what creature can we spawn
             Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getKeeper().getId());
@@ -155,6 +163,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
                 entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.ENTRANCE);
                 spawned = true;
+                notifyCreatureArrived(player, creatureId);
             }
         }
 
@@ -162,6 +171,37 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
 
             // Reset spawn time
             entrance.onSpawn(timeElapsed, entityId);
+        }
+    }
+
+    /**
+     * Tells the player that the portals can't attract more creatures, at most
+     * once per {@link #LIMIT_MESSAGE_INTERVAL} seconds
+     */
+    private void notifyCreatureLimitReached(IPlayerController player) {
+        short playerId = player.getKeeper().getId();
+        Double last = lastLimitMessageTimes.get(playerId);
+        if (last != null && timeElapsed - last < LIMIT_MESSAGE_INTERVAL) {
+            return;
+        }
+        lastLimitMessageTimes.put(playerId, timeElapsed);
+        player.postMessage(player.getRoomControl().getTypeCount(kwdFile.getPortal()) > 1
+                ? PlayerMessageType.PORTALS_FULL : PlayerMessageType.PORTAL_FULL, 0, 0, 0);
+    }
+
+    /**
+     * Tells the player about a creature type arriving for the first time. The
+     * level can have its own introduction text for the type.
+     */
+    private void notifyCreatureArrived(IPlayerController player, short creatureId) {
+        if (!arrivedCreatureTypes.computeIfAbsent(player.getKeeper().getId(), k -> new HashSet<>()).add(creatureId)) {
+            return;
+        }
+        Integer introductionTextId = kwdFile.getGameLevel().getIntroductionOverrideTextIds().get(creatureId);
+        if (introductionTextId != null) {
+            player.postMessage(PlayerMessageType.LEVEL_CREATURE_INTRO, 0, creatureId, introductionTextId);
+        } else {
+            player.postMessage(PlayerMessageType.NEW_SPECIES, 0, creatureId, 0);
         }
     }
 

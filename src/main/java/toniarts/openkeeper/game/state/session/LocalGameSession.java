@@ -14,6 +14,7 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.utils.Point;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -181,6 +182,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onSetSystemMessages(enable);
+            }
+        }
+    }
+
+    @Override
+    public void postMessage(PlayerMessageType type, int key, int data1, int data2, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onPlayerMessage(type.getId(), key, data1, data2);
             }
         }
     }
