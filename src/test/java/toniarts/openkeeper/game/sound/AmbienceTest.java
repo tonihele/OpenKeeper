@@ -33,7 +33,7 @@ class AmbienceTest {
     }
 
     @Test
-    void repeaterStartsANewClipAfterItsDelay() {
+    void repeaterIsLeftToTheEngineToChain() {
         SoundCategory category = category("ATMOS", AmbienceBeds.LAYER_ONE,
                 event(AmbienceBeds.LAYER_ONE, REPEATING_FLAGS, timed(1000, 1000, 5000)));
         AmbienceLayer layer = new AmbienceLayer(engine, category, AmbienceBeds.LAYER_ONE, null, 0);
@@ -41,25 +41,23 @@ class AmbienceTest {
         layer.tick(10_000);
         assertEquals(1, layer.getLiveCount(), "the first clip starts at once");
 
-        layer.tick(10_000 + 250 + 999);
-        assertEquals(1, layer.getLiveCount(), "nothing happens before the delay is over");
-
         layer.tick(10_000 + 250 + 1000);
-        assertEquals(2, layer.getLiveCount(), "the old clip plays out while the next one starts");
+        layer.tick(10_000 + 60_000);
+        assertEquals(1, layer.getLiveCount(),
+                "the engine plays the next clips of the voice, the layer must not start voices of its own");
     }
 
     @Test
-    void segmentedLayerStartsTheNextSegmentBeforeTheEnd() {
+    void segmentedLayerIsLeftToTheEngineToChain() {
         SoundCategory category = category("BED", AmbienceBeds.LAYER_ONE,
                 event(AmbienceBeds.LAYER_ONE, SEGMENTED_FLAGS, loud(100, 100, 4000)));
         AmbienceLayer layer = new AmbienceLayer(engine, category, AmbienceBeds.LAYER_ONE, null, 0);
 
         layer.tick(1_000);
-        layer.tick(1_000 + 4000 - SoundEngine.FADE_IN_MS - 1);
-        assertEquals(1, layer.getLiveCount());
-
         layer.tick(1_000 + 4000 - SoundEngine.FADE_IN_MS);
-        assertEquals(2, layer.getLiveCount(), "the next segment fades in under the end of the last one");
+        layer.tick(1_000 + 60_000);
+
+        assertEquals(1, layer.getLiveCount(), "the engine starts the next segment, not the layer");
     }
 
     @Test

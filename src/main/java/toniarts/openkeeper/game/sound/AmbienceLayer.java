@@ -158,6 +158,19 @@ final class AmbienceLayer {
 
         SoundEventGroup group = voice.getGroup();
         int delay = SoundRng.delay(group);
+        if (SoundEngine.chainsItself(event)) {
+            // The engine plays the following clips of the voice, drawing the groups and the delays itself. The
+            // layer must not start more voices, each of them would chain on its own and all would sound at once.
+            // It only has to start a new voice if the chain has ended.
+            if (event.getBehaviour() == SoundVoiceBehaviour.REPEAT && delay <= 0) {
+                // a repeater without a delay ends after its first clip
+                ended = true;
+                return;
+            }
+            scheduled = false;
+            nextAt = now;
+            return;
+        }
         switch (event.getBehaviour()) {
             case REPEAT -> {
                 if (delay <= 0) {

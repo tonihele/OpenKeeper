@@ -411,6 +411,14 @@ public class SoundEngine {
     }
 
     /**
+     * Whether the engine itself plays the clips of the event one after another once the event is started, see
+     * {@link #chainOf}.
+     */
+    static boolean chainsItself(SoundEvent event) {
+        return chainOf(event) != Chain.NONE;
+    }
+
+    /**
      * Repeaters and segmented loops play a clip after another, they never end by themselves.
      */
     private static Chain chainOf(SoundEvent event) {
