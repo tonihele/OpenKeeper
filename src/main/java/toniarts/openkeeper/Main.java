@@ -72,6 +72,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
  import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
@@ -353,7 +354,8 @@ public final class Main extends SimpleApplication {
     public void update() {
         super.update();
 
-        if (getCamera() != null) {
+        // The player camera sets the listener itself, it listens from where it looks at, not from where it hovers
+        if (getCamera() != null && stateManager.getState(PlayerCameraState.class) == null) {
             SoundManager.setListener(WorldUtils.vectorToPoint(getCamera().getLocation()));
         }
         SoundManager.tick();
