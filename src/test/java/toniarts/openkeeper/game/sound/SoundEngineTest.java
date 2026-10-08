@@ -192,19 +192,48 @@ class SoundEngineTest {
     }
 
     @Test
-    void distantPositionalSoundsWaitForTheListener() {
+    void distantPositionalOneShotsAreNotKeptForTheListener() {
         engine.setListener(new Point(0, 0));
 
-        int handle = engine.play(category, EVENT, distant());
-        engine.tick();
-
-        assertTrue(engine.isPlaying(handle), "the voice is queued, not finished");
-        assertEquals(0, backends.size(), "a distant sound is not realised");
+        assertEquals(SoundEngine.NO_HANDLE, engine.play(category, EVENT, distant()),
+                "a distant one-shot is not accepted");
 
         engine.setListener(distant());
         engine.tick();
 
-        assertEquals(1, backends.size(), "the sound starts once the listener is close enough");
+        assertEquals(0, backends.size(), "the sound must not turn up when the listener arrives later");
+    }
+
+    @Test
+    void queuedOneShotIsDroppedWhenTheListenerIsFarAway() {
+        engine.setListener(new Point(0, 0));
+
+        int handle = engine.play(category, EVENT, new Point(1, 0));
+        engine.setListener(distant());
+        engine.tick();
+
+        assertFalse(engine.isPlaying(handle), "the one-shot went out of earshot before it was realised");
+        assertEquals(0, backends.size());
+
+        engine.setListener(new Point(1, 0));
+        engine.tick();
+        assertEquals(0, backends.size(), "and it does not come back");
+    }
+
+    @Test
+    void distantLoopingBedsWaitForTheListener() {
+        engine.setListener(new Point(0, 0));
+
+        int handle = engine.play(category, LOOP_EVENT, distant());
+        engine.tick();
+
+        assertTrue(engine.isPlaying(handle), "the bed is queued, not finished");
+        assertEquals(0, backends.size());
+
+        engine.setListener(distant());
+        engine.tick();
+
+        assertEquals(1, backends.size(), "the bed starts once the listener is close enough");
         engine.stop(handle);
     }
 

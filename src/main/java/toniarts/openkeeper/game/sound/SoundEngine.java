@@ -51,9 +51,13 @@ public class SoundEngine {
      * to the tile distance that the game itself uses.
      */
     public static final int MAX_ELIGIBLE_DISTANCE = 12;
+    /**
+     * A one-shot that has not got a voice by then is dropped, it would only be late
+     */
+    private static final long MAX_PENDING_AGE_MS = 500;
     public static final int FADE_IN_MS = 250;
     public static final int FADE_OUT_MS = 250;
-    public static final int CHANNEL_COUNT = 8;
+    public static final int CHANNEL_COUNT = 16;
     // sounds are as loud as they get within this many tiles (on the ground) of the listener
     private static final float REF_DISTANCE = 12.0f;
 
@@ -114,8 +118,10 @@ public class SoundEngine {
         if (!throttle.allow(eventId)) {
             return NO_HANDLE;
         }
-        // a deferred sound beyond the audible distance is not accepted at all
-        if (position != null && event.isDeferred() && !isEligible(position)) {
+        // a sound beyond the audible distance is not accepted at all, only the repeating beds wait for the listener
+        boolean repeating = event.getBehaviour() == SoundVoiceBehaviour.REPEAT
+                || event.getBehaviour() == SoundVoiceBehaviour.REPEAT_LOOP_EACH;
+        if (position != null && (event.isDeferred() || !repeating) && !isEligible(position)) {
             return NO_HANDLE;
         }
 
@@ -493,6 +499,7 @@ public class SoundEngine {
     }
 
     private void realisePending(long now) {
+        dropStalePending(now);
         int audible = countAudible();
         if (audible >= MAX_AUDIBLE_VOICES || pending.isEmpty()) {
             return;
@@ -501,7 +508,7 @@ public class SoundEngine {
         List<SoundVoice> deferredBack = new ArrayList<>();
         while (audible < MAX_AUDIBLE_VOICES && !pending.isEmpty()) {
             SoundVoice voice = pending.remove(0);
-            // distant voices stay queued until the listener comes closer
+            // distant beds stay queued until the listener comes closer
             if (!isEligible(voice)) {
                 deferredBack.add(voice);
                 continue;
@@ -511,6 +518,31 @@ public class SoundEngine {
             }
         }
         pending.addAll(0, deferredBack);
+    }
+
+    /**
+     * One-shots are only worth playing at the moment they happen. If one is out of earshot, or has waited for a
+     * free voice for too long, it is gone, not kept around to play when the listener arrives later. Only the
+     * repeating beds, which are supposed to be there as long as the thing is, stay queued.
+     */
+    private void dropStalePending(long now) {
+        Iterator<SoundVoice> it = pending.iterator();
+        while (it.hasNext()) {
+            SoundVoice voice = it.next();
+            if (isRepeating(voice) || voice.isStopped()) {
+                continue;
+            }
+            if (!isEligible(voice) || now - voice.getStartTime() > MAX_PENDING_AGE_MS) {
+                it.remove();
+                voices.remove(voice.getHandle());
+                releaseSlot(voice.getSlot());
+            }
+        }
+    }
+
+    private static boolean isRepeating(SoundVoice voice) {
+        SoundVoiceBehaviour behaviour = voice.getEvent().getBehaviour();
+        return behaviour == SoundVoiceBehaviour.REPEAT || behaviour == SoundVoiceBehaviour.REPEAT_LOOP_EACH;
     }
 
     /**
