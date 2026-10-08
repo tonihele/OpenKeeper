@@ -50,7 +50,7 @@ public class SoundEngine {
      * The paper states this as a squared game unit distance; here it is applied
      * to the tile distance that the game itself uses.
      */
-    public static final int MAX_ELIGIBLE_DISTANCE = 24;
+    public static final int MAX_ELIGIBLE_DISTANCE = 12;
     public static final int FADE_IN_MS = 250;
     public static final int FADE_OUT_MS = 250;
     public static final int CHANNEL_COUNT = 8;
