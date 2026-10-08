@@ -29,6 +29,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_SINGLE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -72,7 +73,9 @@ public final class ShotsController implements IShotsController {
         Shot shot = kwdFile.getShotById(shotTypeId);
         ThingSounds.play(shot.getSoundCategory(), ThingSounds.SHOT_LAUNCH, position);
         switch (shot.getProcessType()) {
-            case CREATE_CREATURE -> {
+            case CREATE_CREATURE, CREATE_SINGLE_CREATURE -> {
+
+                // The data is the creature and its level, for the single creature variant that is the upgraded spell's level 4
                 creaturesController.spawnCreature((short) shotData1, playerId, shotData2, WorldUtils.vector3fToVector2f(position), ICreaturesController.SpawnType.CONJURE);
             }
             case CREATE_OBJECT -> {

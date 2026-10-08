@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.sound;
 import com.jme3.math.Vector3f;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -49,6 +51,7 @@ public final class ThingSounds {
     public static final int CREATURE_HIT = 0xDB;
     public static final int CREATURE_DIE = 0xDA;
     public static final int CREATURE_LAND = 0xF6;
+    public static final int CREATURE_LEVEL_UP = 0x349; // c_uplevel
     public static final int CREATURE_SULK = 0xDE;
     public static final int CREATURE_ENTRANCE = 0xE0;
     public static final int CREATURE_DRINK = 0xE1;
@@ -122,6 +125,21 @@ public final class ThingSounds {
             return SoundEngine.NO_HANDLE;
         }
         return SoundManager.playSound(category, eventId, position);
+    }
+
+    /**
+     * Plays the Create Imp spell's cast sound. Not tied to actually casting the spell, the free imps and the
+     * Receive Imps special make it too.
+     *
+     * @return the sound handle, {@link SoundEngine#NO_HANDLE} if nothing was played
+     */
+    public static int playCreateImp(IKwdFile kwdFile, Vector3f position) {
+        for (KeeperSpell keeperSpell : kwdFile.getKeeperSpells()) {
+            if (keeperSpell.getFlags().contains(KeeperSpell.KeeperSpellFlag.CREATE_WORKER)) {
+                return play(keeperSpell.getSoundCategory(), SHOT_LAUNCH, position);
+            }
+        }
+        return SoundEngine.NO_HANDLE;
     }
 
     /**
