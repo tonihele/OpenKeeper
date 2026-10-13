@@ -55,6 +55,7 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -93,6 +94,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
+    private MinimapPanelState minimapPanelState;
     private TextParser textParser;
 
     /**
@@ -154,6 +156,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
+        stateManager.detach(minimapPanelState);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -177,6 +180,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerState = null;
         playerMapViewState = null;
         playerModelViewState = null;
+        minimapPanelState = null;
     }
 
     @Override
@@ -363,11 +367,15 @@ public final class GameClientState extends AbstractPauseAwareState {
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
+                minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
+                        gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
+                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
 
                 // Attach the states
                 stateManager.attach(playerState);
                 stateManager.attach(playerMapViewState);
                 stateManager.attach(playerModelViewState);
+                stateManager.attach(minimapPanelState);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
@@ -674,6 +682,10 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     public IFogOfWarInformation getFogOfWarInformation() {
         return fogOfWarInformation;
+    }
+
+    public MinimapPanelState getMinimapPanelState() {
+        return minimapPanelState;
     }
 
     /**

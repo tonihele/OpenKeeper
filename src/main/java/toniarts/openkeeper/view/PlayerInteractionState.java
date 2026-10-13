@@ -258,6 +258,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return interactionState;
     }
 
+    /**
+     * The tile-drag selection box currently being dragged (left mouse
+     * button held, covering however many tiles the drag has crossed so
+     * far)
+     */
+    public SelectionArea getActiveSelectionArea() {
+        return selectionHandler.isActive() ? selectionHandler.getSelectionArea() : null;
+    }
+
     private boolean isCursorOnGUI() {
         int height = app.getContext().getSettings().getHeight();
 

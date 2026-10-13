@@ -52,6 +52,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -70,6 +71,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.DoorIconTextParser;
 import toniarts.openkeeper.view.text.RoomIconTextParser;
 import toniarts.openkeeper.view.text.SpellIconTextParser;
@@ -343,6 +345,27 @@ public final class PlayerScreenController implements IPlayerScreenController {
         state.zoomToDungeon();
     }
 
+    /**
+     * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
+     */
+    public void resizeMap() {
+        playButtonSound("GUI_BUTTON_ZOOM");
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomIn();
+        }
+    }
+
+    /**
+     * "Resize Map" button, right click: zoom out one level (or back to fit mode).
+     */
+    public void resizeMapDown() {
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomOut();
+        }
+    }
+
     @Override
     public String getTooltipText(String bundleId) {
         String result = Utils.getMainTextResourceBundle().getString(bundleId);
@@ -485,8 +508,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                         if (s.getCreatureSpellId() == 0) {
                             continue;
                         }
-                        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-                        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+                        CreatureSpell cs = state.stateManager.getState(GameClientState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+                        createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
                     }
                 }
                 updatePossessionSelectedItem(possessionAction);
@@ -857,6 +880,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 c = new Color(1f, 0, 0, 0.1f);
                 break;
 
+            case MARTINS_TEST_1:
+            case MARTINS_TEST_2:
+            case MARTINS_TEST_3:
+            case MARTINS_TEST_4:
             case DARK_ANGER_BRIGHT_BLUE:
             case DEATH_VIEW_HALF_RED:
             case FREEZE_VIEW_ONLY_BLUE:
@@ -895,6 +922,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 break;
             case DISGUISE_N_STEAL:
                 name = "GUI/Icons/1st-person/sneak-mode";
+                break;
+            case FLY:
+            case PICK_LOCKS:
+            case FEAR_ATTACK:
+            case GHOST_POSESSION:
+            case NONE:
                 break;
         }
         return name;
@@ -1467,10 +1500,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private static final class GameMenu {
 
-        protected String title;
-        protected String action;
-        protected String id;
-        protected Element parent;
+        private String title;
+        private String action;
+        private String id;
+        private Element parent;
 
         public GameMenu() {
         }
