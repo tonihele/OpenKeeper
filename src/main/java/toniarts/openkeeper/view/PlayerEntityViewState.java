@@ -35,12 +35,14 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.LairBed;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -245,7 +247,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser != null ? textParser.getObjectTextParser() : null, mapData);
+                LairBed lairBed = entityData.getComponent(e.getId(), LairBed.class);
+                Creature bedOwner = lairBed != null ? kwdFile.getCreature(lairBed.creatureId) : null;
+                boolean uniqueCreatureBed = bedOwner != null
+                        && bedOwner.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
+                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
+                        uniqueCreatureBed);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
