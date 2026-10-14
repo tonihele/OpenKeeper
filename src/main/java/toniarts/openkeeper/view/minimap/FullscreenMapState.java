@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.minimap;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.asset.AssetNotFoundException;
 import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.RawInputListener;
@@ -137,7 +138,14 @@ public final class FullscreenMapState extends AbstractAppState {
         }
 
         preview = new FullscreenMapPreview(app.getRenderManager(), app.getRootNode());
-        view = new FullscreenMapView(app.getAssetManager(), app.getGuiNode(), preview.getTexture());
+        try {
+            view = new FullscreenMapView(app.getAssetManager(), app.getGuiNode(), preview.getTexture());
+        } catch (AssetNotFoundException e) {
+            LOGGER.log(Level.ERROR, "Full-screen map images are missing, the full-screen map will not be available", e);
+            preview.dispose();
+            preview = null;
+            return;
+        }
         overlay = new FullscreenMapOverlay(app.getAssetManager(), view.getOverlayNode(), entityData, kwdFile, mapData,
                 fogOfWar, assets.getPalette(), keepers, playerName);
         inputListener = new MapInputListener();
@@ -247,7 +255,7 @@ public final class FullscreenMapState extends AbstractAppState {
         timeSinceLastRebuild = 0f;
         rotationPhase++;
         grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
-        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), assets.rockTextureBgr(), neutralPlayerNumber,
+        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), FullscreenMapView.ROCK_KEY_BGR, neutralPlayerNumber,
                 rotationPhase, rasterBgr);
         view.updateRaster(rasterBgr);
     }

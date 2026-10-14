@@ -17,7 +17,9 @@
 package toniarts.openkeeper.view.minimap;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.AssetNotFoundException;
 import com.jme3.material.Material;
+import com.jme3.material.RenderState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
@@ -33,46 +35,65 @@ import com.jme3.texture.image.ColorSpace;
 import java.nio.ByteBuffer;
 
 /**
- * The full-screen map's picture in the {@code guiNode}: a flat backdrop over
- * the whole screen, the tile raster, and the preview window with a frame.
+ * The full-screen map's picture in the {@code guiNode}, back to front: black
+ * bars over the whole screen (what is left of a widescreen next to the 4:3
+ * backdrop), the backdrop, the rock under the map, the tile raster, the
+ * preview window (the 3D render, or rock) and the preview's frame overlay.
  * Positions come from {@link MapLayout}.
- *
- * <p>
- * TODO the DK2 backdrop and frame art is not available, the backdrop and
- * frame are flat colours.
  */
 public final class FullscreenMapView {
 
-    private static final String ROCK_TEXTURE_PATH = "Textures/GUI/Map/Map-BG.png";
+    private static final String BACKDROP_PATH = "Textures/MapBack.PNG";
+    private static final String ROCK_PATH = "Textures/MapRock.png";
+    private static final String PREVIEW_FRAME_PATH = "Textures/MapOver.png";
+
+    /**
+     * Raster pixels of this colour are not painted, the rock shows through.
+     * Give {@link MinimapRasteriser#rebuildFitMode} this as the rock texture.
+     */
+    public static final byte[] ROCK_KEY_BGR = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
+
+    static {
+        for (int i = 0; i < ROCK_KEY_BGR.length; i += 3) {
+            ROCK_KEY_BGR[i] = 1;
+            ROCK_KEY_BGR[i + 1] = 2;
+            ROCK_KEY_BGR[i + 2] = 3;
+        }
+    }
 
     private final Node guiNode;
     private final Node rootNode = new Node("FullscreenMap");
+    private final Geometry bars;
     private final Geometry backdrop;
+    private final Geometry mapRock;
     private final Geometry raster;
-    private final Geometry previewFrame;
     private final Geometry previewRock;
     private final Geometry preview;
+    private final Geometry previewFrame;
     private final Node overlayNode = new Node("Overlay");
-    private final ByteBuffer rasterBuffer = ByteBuffer.allocateDirect(MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3);
+    private final ByteBuffer rasterBuffer = ByteBuffer.allocateDirect(MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 4);
     private final Texture2D rasterTexture;
 
     /**
      * @param previewTexture the texture the 3D preview is rendered into
+     * @throws AssetNotFoundException if one of the images is missing
      */
     public FullscreenMapView(AssetManager assetManager, Node guiNode, Texture2D previewTexture) {
         this.guiNode = guiNode;
 
-        backdrop = quad("Backdrop", solid(assetManager, new ColorRGBA(0.09f, 0.07f, 0.06f, 1f)), false);
+        bars = quad("Bars", solid(assetManager, ColorRGBA.Black), false);
+        backdrop = quad("Backdrop", textured(assetManager, assetManager.loadTexture(BACKDROP_PATH), false), false);
+        mapRock = quad("MapRock", textured(assetManager, assetManager.loadTexture(ROCK_PATH), false), false);
 
-        rasterTexture = new Texture2D(new Image(Image.Format.BGR8, MinimapRasteriser.RASTER_SIZE, MinimapRasteriser.RASTER_SIZE,
+        rasterTexture = new Texture2D(new Image(Image.Format.RGBA8, MinimapRasteriser.RASTER_SIZE, MinimapRasteriser.RASTER_SIZE,
                 rasterBuffer, ColorSpace.sRGB));
         rasterTexture.setMagFilter(MagFilter.Nearest);
         rasterTexture.setMinFilter(MinFilter.NearestNoMipMaps);
-        raster = quad("Raster", textured(assetManager, rasterTexture), true); // flipped: raster row 0 (north) on top
+        raster = quad("Raster", textured(assetManager, rasterTexture, true), true); // flipped: raster row 0 (north) on top
 
-        previewFrame = quad("PreviewFrame", solid(assetManager, new ColorRGBA(0.32f, 0.26f, 0.2f, 1f)), false);
-        previewRock = quad("PreviewRock", textured(assetManager, assetManager.loadTexture(ROCK_TEXTURE_PATH)), false);
-        preview = quad("Preview", textured(assetManager, previewTexture), false);
+        previewRock = quad("PreviewRock", textured(assetManager, assetManager.loadTexture(ROCK_PATH), false), false);
+        preview = quad("Preview", textured(assetManager, previewTexture, false), false);
+        previewFrame = quad("PreviewFrame", textured(assetManager, assetManager.loadTexture(PREVIEW_FRAME_PATH), true), false);
 
         overlayNode.setLocalTranslation(0, 0, rootNode.getQuantity()); // above all the quads
         rootNode.attachChild(overlayNode);
@@ -92,9 +113,12 @@ public final class FullscreenMapView {
         return material;
     }
 
-    private static Material textured(AssetManager assetManager, Texture texture) {
+    private static Material textured(AssetManager assetManager, Texture texture, boolean transparent) {
         Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         material.setTexture("ColorMap", texture);
+        if (transparent) {
+            material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
+        }
         return material;
     }
 
@@ -121,15 +145,13 @@ public final class FullscreenMapView {
 
     public void updateLayout(MapLayout layout) {
         int screenHeight = layout.getScreenHeight();
-        backdrop.setLocalScale(layout.getScreenWidth(), screenHeight, 1);
+        bars.setLocalScale(layout.getScreenWidth(), screenHeight, 1);
+        place(backdrop, layout.getBackdrop(), screenHeight);
+        place(mapRock, layout.getMap(), screenHeight);
         place(raster, layout.getMap(), screenHeight);
-
-        MapLayout.Rect window = layout.getPreview();
-        float border = window.w() / 32f;
-        place(previewFrame, new MapLayout.Rect(window.x() - border, window.y() - border,
-                window.w() + 2 * border, window.h() + 2 * border), screenHeight);
-        place(previewRock, window, screenHeight);
-        place(preview, window, screenHeight);
+        place(previewRock, layout.getPreview(), screenHeight);
+        place(preview, layout.getPreview(), screenHeight);
+        place(previewFrame, layout.getPreview(), screenHeight);
     }
 
     /**
@@ -150,11 +172,15 @@ public final class FullscreenMapView {
     }
 
     /**
-     * Uploads a 128x128x3 B,G,R raster
+     * Uploads a 128x128x3 B,G,R raster. Pixels of the {@link #ROCK_KEY_BGR}
+     * colour become transparent.
      */
     public void updateRaster(byte[] rasterBgr) {
         rasterBuffer.clear();
-        rasterBuffer.put(rasterBgr);
+        for (int i = 0; i < rasterBgr.length; i += 3) {
+            boolean rock = rasterBgr[i] == 1 && rasterBgr[i + 1] == 2 && rasterBgr[i + 2] == 3;
+            rasterBuffer.put(rasterBgr[i + 2]).put(rasterBgr[i + 1]).put(rasterBgr[i]).put((byte) (rock ? 0 : 255));
+        }
         rasterBuffer.flip();
         rasterTexture.getImage().setUpdateNeeded();
     }

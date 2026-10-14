@@ -129,4 +129,19 @@ class MapLayoutTest {
         assertTrue(small.getLegend().y() >= small.getPreview().y() + small.getPreview().h());
         assertEquals(2f * small.getScale(), large.getScale(), 1e-5f);
     }
+
+    @Test
+    void backdropIsCentredAndHoldsEverythingElse() {
+        for (int[] size : new int[][]{{1024, 768}, {1920, 1080}}) {
+            MapLayout layout = new MapLayout(size[0], size[1]);
+            MapLayout.Rect backdrop = layout.getBackdrop();
+            assertEquals(size[0] / 2f, backdrop.x() + backdrop.w() / 2f, 1e-2f);
+            assertEquals(size[1] / 2f, backdrop.y() + backdrop.h() / 2f, 1e-2f);
+            assertEquals(4f / 3f, backdrop.w() / backdrop.h(), 1e-4f);
+            for (MapLayout.Rect inner : new MapLayout.Rect[]{layout.getMap(), layout.getPreview(), layout.getLegend()}) {
+                assertTrue(inner.x() >= backdrop.x() && inner.x() + inner.w() <= backdrop.x() + backdrop.w() + 1e-3f);
+                assertTrue(inner.y() >= backdrop.y() && inner.y() + inner.h() <= backdrop.y() + backdrop.h() + 1e-3f);
+            }
+        }
+    }
 }

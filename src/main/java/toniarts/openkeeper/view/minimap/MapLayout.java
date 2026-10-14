@@ -41,6 +41,7 @@ public final class MapLayout {
     private final int screenWidth;
     private final int screenHeight;
     private final float scale;
+    private final Rect backdrop;
     private final Rect map;
     private final Rect preview;
     private final Rect legend;
@@ -49,6 +50,7 @@ public final class MapLayout {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         scale = Math.min(screenWidth / REFERENCE_WIDTH, screenHeight / REFERENCE_HEIGHT);
+        backdrop = fromReference(0, 0, REFERENCE_WIDTH, REFERENCE_HEIGHT);
         map = fromReference(41, 33, 384, 384);
         preview = fromReference(466, 33, 128, 192);
         legend = fromReference(466, 266, 106, 151);
@@ -65,6 +67,13 @@ public final class MapLayout {
 
     public int getScreenHeight() {
         return screenHeight;
+    }
+
+    /**
+     * The 4:3 backdrop picture, centred. On a widescreen there is room left on the sides.
+     */
+    public Rect getBackdrop() {
+        return backdrop;
     }
 
     public Rect getMap() {
