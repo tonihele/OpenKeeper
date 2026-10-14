@@ -52,6 +52,7 @@ public final class FullscreenMapView {
     private final Geometry previewFrame;
     private final Geometry previewRock;
     private final Geometry preview;
+    private final Node overlayNode = new Node("Overlay");
     private final ByteBuffer rasterBuffer = ByteBuffer.allocateDirect(MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3);
     private final Texture2D rasterTexture;
 
@@ -73,7 +74,16 @@ public final class FullscreenMapView {
         previewRock = quad("PreviewRock", textured(assetManager, assetManager.loadTexture(ROCK_TEXTURE_PATH)), false);
         preview = quad("Preview", textured(assetManager, previewTexture), false);
 
+        overlayNode.setLocalTranslation(0, 0, rootNode.getQuantity()); // above all the quads
+        rootNode.attachChild(overlayNode);
         rootNode.setLocalTranslation(0, 0, 10); // above the other gui content
+    }
+
+    /**
+     * Where the overlays (units, room icon, legend) go
+     */
+    public Node getOverlayNode() {
+        return overlayNode;
     }
 
     private static Material solid(AssetManager assetManager, ColorRGBA colour) {

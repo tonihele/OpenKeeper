@@ -112,4 +112,21 @@ class MapLayoutTest {
         assertEquals(10.25f, tile.x, 1e-3f);
         assertEquals(20.75f, tile.y, 1e-3f);
     }
+
+    @Test
+    void tileToScreenIsTheInverseOfScreenToTile() {
+        MapLayout layout = new MapLayout(1920, 1080);
+        com.jme3.math.Vector2f screen = layout.tileToScreen(12.5f, 60.25f, 85, 85);
+        com.jme3.math.Vector2f tile = layout.screenToTile(screen.x, screen.y, 85, 85);
+        assertEquals(12.5f, tile.x, 1e-3f);
+        assertEquals(60.25f, tile.y, 1e-3f);
+    }
+
+    @Test
+    void legendIsBelowThePreviewAndSizesGrowWithTheResolution() {
+        MapLayout small = new MapLayout(640, 480);
+        MapLayout large = new MapLayout(1280, 960);
+        assertTrue(small.getLegend().y() >= small.getPreview().y() + small.getPreview().h());
+        assertEquals(2f * small.getScale(), large.getScale(), 1e-5f);
+    }
 }

@@ -1,4 +1,4 @@
-mmm/*
+/*
  * Copyright (C) 2014-2026 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify

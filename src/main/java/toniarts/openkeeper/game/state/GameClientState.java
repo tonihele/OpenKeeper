@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -84,6 +85,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private final Short playerId;
     private final boolean multiplayer;
+    private final List<ClientInfo> clientInfos;
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
@@ -115,6 +117,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         this.playerId = playerId;
         this.app = (Main) app;
         this.campaignLevel = campaignLevel;
+        this.clientInfos = players;
 
         // Set multiplayer
         int humanPlayers = 0;
@@ -206,6 +209,22 @@ public final class GameClientState extends AbstractPauseAwareState {
     @Override
     public boolean isPauseable() {
         return true;
+    }
+
+    /**
+     * The name to show for a player: the network name in multiplayer,
+     * otherwise "Keeper n"
+     */
+    public String getPlayerName(Keeper keeper) {
+        if (multiplayer) {
+            for (ClientInfo clientInfo : clientInfos) {
+                if (clientInfo.getKeeper() != null && clientInfo.getKeeper().getId() == keeper.getId()
+                        && clientInfo.getName() != null && !clientInfo.getName().isBlank()) {
+                    return clientInfo.getName();
+                }
+            }
+        }
+        return "Keeper " + (keeper.getId() - Player.KEEPER1_ID + 1);
     }
 
     public boolean isMultiplayer() {
@@ -380,7 +399,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                 stateManager.attach(playerMapViewState);
                 stateManager.attach(playerModelViewState);
                 stateManager.attach(minimapPanelState);
-                fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation());
+                fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
+                        gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
 
                 // Wait until loaded

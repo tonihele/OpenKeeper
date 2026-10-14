@@ -43,6 +43,7 @@ public final class MapLayout {
     private final float scale;
     private final Rect map;
     private final Rect preview;
+    private final Rect legend;
 
     public MapLayout(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
@@ -50,6 +51,7 @@ public final class MapLayout {
         scale = Math.min(screenWidth / REFERENCE_WIDTH, screenHeight / REFERENCE_HEIGHT);
         map = fromReference(41, 33, 384, 384);
         preview = fromReference(466, 33, 128, 192);
+        legend = fromReference(466, 266, 106, 151);
     }
 
     private Rect fromReference(float x, float y, float w, float h) {
@@ -73,6 +75,17 @@ public final class MapLayout {
         return preview;
     }
 
+    public Rect getLegend() {
+        return legend;
+    }
+
+    /**
+     * Screen pixels per reference pixel, for sizes that grow with the resolution
+     */
+    public float getScale() {
+        return scale;
+    }
+
     /**
      * The fractional tile coordinates under a screen position, or {@code
      * null} if that is not on the map (outside the map area, or in the rock
@@ -86,6 +99,16 @@ public final class MapLayout {
             return null;
         }
         return new Vector2f(tileX, tileY);
+    }
+
+    /**
+     * The screen position of fractional tile coordinates, the inverse of
+     * {@link #screenToTile} (but not limited to the map)
+     */
+    public Vector2f tileToScreen(float tileX, float tileY, int mapWidth, int mapHeight) {
+        MinimapRasteriser.FitGeometry fit = MinimapRasteriser.FitGeometry.of(mapWidth, mapHeight);
+        return new Vector2f(map.x() + fit.pixelX(tileX) / MinimapRasteriser.RASTER_SIZE * map.w(),
+                map.y() + fit.pixelY(tileY) / MinimapRasteriser.RASTER_SIZE * map.h());
     }
 
     /**

@@ -29,17 +29,22 @@ import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityData;
 import com.jme3.math.Vector3f;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.TextField;
 import de.lessvoid.nifty.elements.Element;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.function.Function;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.data.Settings.Setting;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
@@ -50,6 +55,7 @@ import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.game.state.IPlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCameraState;
@@ -78,12 +84,19 @@ public final class FullscreenMapState extends AbstractAppState {
 
     private final Main app;
     private final MapColourGrid grid;
+    private final IMapDataInformation<? extends IMapTileInformation> mapData;
+    private final IFogOfWarInformation fogOfWar;
+    private final EntityData entityData;
+    private final IKwdFile kwdFile;
+    private final Collection<Keeper> keepers;
+    private final Function<Keeper, String> playerName;
     private final short neutralPlayerNumber;
 
     private AppStateManager stateManager;
     private MinimapAssets assets;
     private FullscreenMapView view;
     private FullscreenMapPreview preview;
+    private FullscreenMapOverlay overlay;
     private RawInputListener inputListener;
     private final byte[] rasterBgr = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
@@ -96,8 +109,15 @@ public final class FullscreenMapState extends AbstractAppState {
     private int rotationPhase;
 
     public FullscreenMapState(Main app, IMapInformation<? extends IMapTileInformation> mapInformation,
-            IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation) {
+            IFogOfWarInformation fogOfWarInformation, IRoomsInformation<? extends IRoomInformation> roomsInformation,
+            EntityData entityData, IKwdFile kwdFile, Collection<Keeper> keepers, Function<Keeper, String> playerName) {
         this.app = app;
+        this.mapData = mapInformation.getMapData();
+        this.fogOfWar = fogOfWarInformation;
+        this.entityData = entityData;
+        this.kwdFile = kwdFile;
+        this.keepers = keepers;
+        this.playerName = playerName;
         MapColourClassifier classifier = new MapColourClassifier(mapInformation, fogOfWarInformation, roomsInformation);
         this.grid = new MapColourGrid(mapInformation.getMapData().getWidth(), mapInformation.getMapData().getHeight(),
                 classifier, fogOfWarInformation);
@@ -118,6 +138,8 @@ public final class FullscreenMapState extends AbstractAppState {
 
         preview = new FullscreenMapPreview(app.getRenderManager(), app.getRootNode());
         view = new FullscreenMapView(app.getAssetManager(), app.getGuiNode(), preview.getTexture());
+        overlay = new FullscreenMapOverlay(app.getAssetManager(), view.getOverlayNode(), entityData, kwdFile, mapData,
+                fogOfWar, assets.getPalette(), keepers, playerName);
         inputListener = new MapInputListener();
         app.getInputManager().addRawInputListener(inputListener);
     }
@@ -193,7 +215,10 @@ public final class FullscreenMapState extends AbstractAppState {
         }
 
         updateLayout();
-        updatePreview();
+        Vector2f cursor = app.getInputManager().getCursorPosition();
+        Vector2f hoverTile = layout.screenToTile(cursor.x, layout.getScreenHeight() - cursor.y, grid.getWidth(), grid.getHeight());
+        updatePreview(hoverTile);
+        overlay.update(layout, hoverTile, rotationPhase);
         timeSinceLastRebuild += tpf;
         if (timeSinceLastRebuild >= REBUILD_INTERVAL) {
             rebuildRaster();
@@ -210,9 +235,7 @@ public final class FullscreenMapState extends AbstractAppState {
      * ground, or off the map, it is not shown at all (the rock is), so the
      * map can't be used to scout.
      */
-    private void updatePreview() {
-        Vector2f cursor = app.getInputManager().getCursorPosition();
-        Vector2f tile = layout.screenToTile(cursor.x, layout.getScreenHeight() - cursor.y, grid.getWidth(), grid.getHeight());
+    private void updatePreview(Vector2f tile) {
         if (tile != null && grid.get((int) tile.x, (int) tile.y) == MapColourClass.UNEXPLORED_OR_IMPENETRABLE) {
             tile = null;
         }
@@ -251,6 +274,9 @@ public final class FullscreenMapState extends AbstractAppState {
         }
         if (preview != null) {
             preview.dispose();
+        }
+        if (overlay != null) {
+            overlay.dispose();
         }
         if (inputListener != null) {
             app.getInputManager().removeRawInputListener(inputListener);
