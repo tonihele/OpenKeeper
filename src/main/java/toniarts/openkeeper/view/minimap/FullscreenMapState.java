@@ -50,7 +50,6 @@ import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
-import toniarts.openkeeper.game.map.MapColourClass;
 import toniarts.openkeeper.game.map.MapColourClassifier;
 import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
@@ -165,7 +164,6 @@ public final class FullscreenMapState extends AbstractAppState {
         stateManager.getState(PlayerState.class).getScreen().goToScreen(IPlayerScreenController.SCREEN_EMPTY_ID);
         setPlayerStatesEnabled(false);
         app.getViewPort().setEnabled(false);
-        preview.start();
 
         rebuildRaster();
         updateLayout();
@@ -225,7 +223,9 @@ public final class FullscreenMapState extends AbstractAppState {
         updateLayout();
         Vector2f cursor = app.getInputManager().getCursorPosition();
         Vector2f hoverTile = layout.screenToTile(cursor.x, layout.getScreenHeight() - cursor.y, grid.getWidth(), grid.getHeight());
-        updatePreview(hoverTile);
+        // Unlike the tile picture, the 3D preview shows any tile, explored or not (the world draws unexplored ground as plain rock)
+        preview.lookAt(hoverTile, grid.getWidth(), grid.getHeight());
+        view.setPreviewVisible(hoverTile != null);
         overlay.update(layout, hoverTile, rotationPhase);
         timeSinceLastRebuild += tpf;
         if (timeSinceLastRebuild >= REBUILD_INTERVAL) {
@@ -236,19 +236,6 @@ public final class FullscreenMapState extends AbstractAppState {
     private void updateLayout() {
         layout = new MapLayout(app.getCamera().getWidth(), app.getCamera().getHeight());
         view.updateLayout(layout);
-    }
-
-    /**
-     * Points the 3D preview at the tile under the cursor. Over unexplored
-     * ground, or off the map, it is not shown at all (the rock is), so the
-     * map can't be used to scout.
-     */
-    private void updatePreview(Vector2f tile) {
-        if (tile != null && grid.get((int) tile.x, (int) tile.y) == MapColourClass.UNEXPLORED_OR_IMPENETRABLE) {
-            tile = null;
-        }
-        preview.lookAt(tile, grid.getWidth(), grid.getHeight());
-        view.setPreviewVisible(tile != null);
     }
 
     private void rebuildRaster() {

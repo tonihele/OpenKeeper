@@ -164,8 +164,8 @@ public final class FullscreenMapView {
     }
 
     /**
-     * Shows the live 3D preview, or the rock instead of it (e.g. over
-     * unexplored ground, so the map can't be used to scout)
+     * Shows the live 3D preview, or the rock instead of it (when the cursor
+     * is not over the map)
      */
     public void setPreviewVisible(boolean visible) {
         preview.setCullHint(visible ? CullHint.Inherit : CullHint.Always);

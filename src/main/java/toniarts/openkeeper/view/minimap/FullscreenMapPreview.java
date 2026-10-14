@@ -24,13 +24,10 @@ import com.jme3.renderer.Camera;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
-import com.jme3.scene.Spatial;
 import com.jme3.texture.FrameBuffer;
 import com.jme3.texture.FrameBuffer.FrameBufferTarget;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture2D;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The map's live 3D preview: a second camera looking straight down at the
@@ -58,15 +55,12 @@ public final class FullscreenMapPreview {
     private static final float DRAW_DISTANCE = 10f;
 
     private final RenderManager renderManager;
-    private final Node scene;
     private final Camera camera = new Camera(WIDTH, HEIGHT);
     private final Texture2D texture = new Texture2D(WIDTH, HEIGHT, Image.Format.RGBA8);
     private final ViewPort viewPort;
-    private final List<Spatial> hiddenCeilings = new ArrayList<>();
 
     public FullscreenMapPreview(RenderManager renderManager, Node scene) {
         this.renderManager = renderManager;
-        this.scene = scene;
 
         camera.setFrustumPerspective(FIELD_OF_VIEW, WIDTH / (float) HEIGHT, 0.1f, DRAW_DISTANCE);
 
@@ -89,25 +83,8 @@ public final class FullscreenMapPreview {
         return texture;
     }
 
-    /**
-     * Hides the world's ceilings, they would cover everything. Only call
-     * while the main view is not rendered.
-     */
-    public void start() {
-        scene.depthFirstTraversal(spatial -> {
-            if ("ceiling".equals(spatial.getName()) && spatial.getCullHint() != Spatial.CullHint.Always) {
-                hiddenCeilings.add(spatial);
-                spatial.setCullHint(Spatial.CullHint.Always);
-            }
-        });
-    }
-
     public void stop() {
         viewPort.setEnabled(false);
-        for (Spatial ceiling : hiddenCeilings) {
-            ceiling.setCullHint(Spatial.CullHint.Inherit);
-        }
-        hiddenCeilings.clear();
     }
 
     /**
