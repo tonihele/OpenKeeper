@@ -55,6 +55,7 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
@@ -95,6 +96,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
+    private FullscreenMapState fullscreenMapState;
     private TextParser textParser;
 
     /**
@@ -157,6 +159,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private void detachRelatedAppStates() {
         stateManager.detach(minimapPanelState);
+        stateManager.detach(fullscreenMapState);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -181,6 +184,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerMapViewState = null;
         playerModelViewState = null;
         minimapPanelState = null;
+        fullscreenMapState = null;
     }
 
     @Override
@@ -376,6 +380,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                 stateManager.attach(playerMapViewState);
                 stateManager.attach(playerModelViewState);
                 stateManager.attach(minimapPanelState);
+                fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation());
+                stateManager.attach(fullscreenMapState);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
