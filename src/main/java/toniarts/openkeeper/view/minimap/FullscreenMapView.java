@@ -20,7 +20,6 @@ import com.jme3.asset.AssetManager;
 import com.jme3.asset.AssetNotFoundException;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
@@ -35,11 +34,10 @@ import com.jme3.texture.image.ColorSpace;
 import java.nio.ByteBuffer;
 
 /**
- * The full-screen map's picture in the {@code guiNode}, back to front: black
- * bars over the whole screen (what is left of a widescreen next to the 4:3
- * backdrop), the backdrop, the rock under the map, the tile raster, the
- * preview window (the 3D render, or rock) and the preview's frame overlay.
- * Positions come from {@link MapLayout}.
+ * The full-screen map's picture in the {@code guiNode}, back to front: the
+ * backdrop over the whole screen, the rock under the map, the tile raster,
+ * the preview window (the 3D render, or rock) and the preview's frame
+ * overlay. Positions come from {@link MapLayout}.
  */
 public final class FullscreenMapView {
 
@@ -63,7 +61,6 @@ public final class FullscreenMapView {
 
     private final Node guiNode;
     private final Node rootNode = new Node("FullscreenMap");
-    private final Geometry bars;
     private final Geometry backdrop;
     private final Geometry mapRock;
     private final Geometry raster;
@@ -81,7 +78,6 @@ public final class FullscreenMapView {
     public FullscreenMapView(AssetManager assetManager, Node guiNode, Texture2D previewTexture) {
         this.guiNode = guiNode;
 
-        bars = quad("Bars", solid(assetManager, ColorRGBA.Black), false);
         backdrop = quad("Backdrop", textured(assetManager, assetManager.loadTexture(BACKDROP_PATH), false), false);
         mapRock = quad("MapRock", textured(assetManager, assetManager.loadTexture(ROCK_PATH), false), false);
 
@@ -105,12 +101,6 @@ public final class FullscreenMapView {
      */
     public Node getOverlayNode() {
         return overlayNode;
-    }
-
-    private static Material solid(AssetManager assetManager, ColorRGBA colour) {
-        Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        material.setColor("Color", colour);
-        return material;
     }
 
     private static Material textured(AssetManager assetManager, Texture texture, boolean transparent) {
@@ -145,7 +135,6 @@ public final class FullscreenMapView {
 
     public void updateLayout(MapLayout layout) {
         int screenHeight = layout.getScreenHeight();
-        bars.setLocalScale(layout.getScreenWidth(), screenHeight, 1);
         place(backdrop, layout.getBackdrop(), screenHeight);
         place(mapRock, layout.getMap(), screenHeight);
         place(raster, layout.getMap(), screenHeight);

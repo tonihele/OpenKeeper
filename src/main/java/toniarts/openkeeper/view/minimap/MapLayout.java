@@ -23,8 +23,8 @@ import toniarts.openkeeper.utils.Point;
  * Where the full-screen map and its preview window sit on the screen, and
  * which tile is under a screen position. Drawing and picking both use this
  * class, so they cannot disagree. The layout is authored for 640x480 and
- * fitted (not stretched) into the real screen, centred. Coordinates are
- * top-left origin, Y down.
+ * scaled to the real screen on each axis separately, so it fills any screen
+ * shape. Coordinates are top-left origin, Y down.
  */
 public final class MapLayout {
 
@@ -40,7 +40,8 @@ public final class MapLayout {
 
     private final int screenWidth;
     private final int screenHeight;
-    private final float scale;
+    private final float scaleX;
+    private final float scaleY;
     private final Rect backdrop;
     private final Rect map;
     private final Rect preview;
@@ -49,7 +50,8 @@ public final class MapLayout {
     public MapLayout(int screenWidth, int screenHeight) {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
-        scale = Math.min(screenWidth / REFERENCE_WIDTH, screenHeight / REFERENCE_HEIGHT);
+        scaleX = screenWidth / REFERENCE_WIDTH;
+        scaleY = screenHeight / REFERENCE_HEIGHT;
         backdrop = fromReference(0, 0, REFERENCE_WIDTH, REFERENCE_HEIGHT);
         map = fromReference(41, 33, 384, 384);
         preview = fromReference(466, 33, 128, 192);
@@ -57,8 +59,7 @@ public final class MapLayout {
     }
 
     private Rect fromReference(float x, float y, float w, float h) {
-        return new Rect((screenWidth - REFERENCE_WIDTH * scale) / 2f + x * scale,
-                (screenHeight - REFERENCE_HEIGHT * scale) / 2f + y * scale, w * scale, h * scale);
+        return new Rect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
     }
 
     public int getScreenWidth() {
@@ -70,7 +71,7 @@ public final class MapLayout {
     }
 
     /**
-     * The 4:3 backdrop picture, centred. On a widescreen there is room left on the sides.
+     * The backdrop picture, which covers the whole screen
      */
     public Rect getBackdrop() {
         return backdrop;
@@ -89,10 +90,11 @@ public final class MapLayout {
     }
 
     /**
-     * Screen pixels per reference pixel, for sizes that grow with the resolution
+     * Screen pixels per reference pixel, for sizes that must stay square
+     * (text, dots, icons) and grow with the resolution
      */
     public float getScale() {
-        return scale;
+        return Math.min(scaleX, scaleY);
     }
 
     /**

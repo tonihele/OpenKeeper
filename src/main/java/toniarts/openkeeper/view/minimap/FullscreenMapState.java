@@ -236,6 +236,7 @@ public final class FullscreenMapState extends AbstractAppState {
     private void updateLayout() {
         layout = new MapLayout(app.getCamera().getWidth(), app.getCamera().getHeight());
         view.updateLayout(layout);
+        preview.setAspect(layout.getPreview().w() / layout.getPreview().h());
     }
 
     private void rebuildRaster() {

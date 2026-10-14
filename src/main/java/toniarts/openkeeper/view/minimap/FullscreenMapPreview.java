@@ -58,11 +58,12 @@ public final class FullscreenMapPreview {
     private final Camera camera = new Camera(WIDTH, HEIGHT);
     private final Texture2D texture = new Texture2D(WIDTH, HEIGHT, Image.Format.RGBA8);
     private final ViewPort viewPort;
+    private float aspect = WIDTH / (float) HEIGHT;
 
     public FullscreenMapPreview(RenderManager renderManager, Node scene) {
         this.renderManager = renderManager;
 
-        camera.setFrustumPerspective(FIELD_OF_VIEW, WIDTH / (float) HEIGHT, 0.1f, DRAW_DISTANCE);
+        camera.setFrustumPerspective(FIELD_OF_VIEW, aspect, 0.1f, DRAW_DISTANCE);
 
         FrameBuffer frameBuffer = new FrameBuffer(WIDTH, HEIGHT, 1);
         frameBuffer.setDepthTarget(FrameBufferTarget.newTarget(Image.Format.Depth));
@@ -81,6 +82,17 @@ public final class FullscreenMapPreview {
      */
     public Texture2D getTexture() {
         return texture;
+    }
+
+    /**
+     * Sets the shape of the window the picture is shown in, so it is not
+     * distorted when the window is stretched to the screen
+     */
+    public void setAspect(float aspect) {
+        if (aspect != this.aspect) {
+            this.aspect = aspect;
+            camera.setFrustumPerspective(FIELD_OF_VIEW, aspect, 0.1f, DRAW_DISTANCE);
+        }
     }
 
     public void stop() {
