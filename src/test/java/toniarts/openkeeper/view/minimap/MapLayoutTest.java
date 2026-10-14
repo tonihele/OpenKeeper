@@ -22,6 +22,7 @@ import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MapLayoutTest {
 
@@ -30,8 +31,8 @@ class MapLayoutTest {
      */
     private static Point pickCentreOf(MapLayout layout, int mapW, int mapH, int x, int y) {
         MinimapRasteriser.FitGeometry fit = MinimapRasteriser.FitGeometry.of(mapW, mapH);
-        float screenX = layout.getMapX() + fit.pixelX(x + 0.5f) / MinimapRasteriser.RASTER_SIZE * layout.getMapSize();
-        float screenY = layout.getMapY() + fit.pixelY(y + 0.5f) / MinimapRasteriser.RASTER_SIZE * layout.getMapSize();
+        float screenX = layout.getMap().x() + fit.pixelX(x + 0.5f) / MinimapRasteriser.RASTER_SIZE * layout.getMap().w();
+        float screenY = layout.getMap().y() + fit.pixelY(y + 0.5f) / MinimapRasteriser.RASTER_SIZE * layout.getMap().w();
         return layout.pickTile(screenX, screenY, mapW, mapH);
     }
 
@@ -60,28 +61,55 @@ class MapLayoutTest {
     @Test
     void borderOfNonSquareMapAndOutsideAreNotPickable() {
         MapLayout layout = new MapLayout(640, 480);
-        float middleX = layout.getMapX() + layout.getMapSize() / 2;
+        float middleX = layout.getMap().x() + layout.getMap().w() / 2;
         // 3x1 map: the top and bottom thirds of the map area are rock border
-        assertNull(layout.pickTile(middleX, layout.getMapY() + 2, 90, 30));
-        assertNull(layout.pickTile(middleX, layout.getMapY() + layout.getMapSize() - 2, 90, 30));
-        assertNotNull(layout.pickTile(middleX, layout.getMapY() + layout.getMapSize() / 2, 90, 30));
+        assertNull(layout.pickTile(middleX, layout.getMap().y() + 2, 90, 30));
+        assertNull(layout.pickTile(middleX, layout.getMap().y() + layout.getMap().w() - 2, 90, 30));
+        assertNotNull(layout.pickTile(middleX, layout.getMap().y() + layout.getMap().w() / 2, 90, 30));
         assertNull(layout.pickTile(5, 5, 50, 50));
     }
 
     @Test
     void referenceSizeIsUnscaled() {
         MapLayout layout = new MapLayout(640, 480);
-        assertEquals(41f, layout.getMapX(), 1e-4f);
-        assertEquals(33f, layout.getMapY(), 1e-4f);
-        assertEquals(384f, layout.getMapSize(), 1e-4f);
+        assertEquals(41f, layout.getMap().x(), 1e-4f);
+        assertEquals(33f, layout.getMap().y(), 1e-4f);
+        assertEquals(384f, layout.getMap().w(), 1e-4f);
     }
 
     @Test
     void widescreenIsCentredNotStretched() {
         MapLayout layout = new MapLayout(1920, 1080);
         // 640x480 scaled by 2.25 is 1440 wide, 240 px bars on each side
-        assertEquals(240f + 41f * 2.25f, layout.getMapX(), 1e-3f);
-        assertEquals(33f * 2.25f, layout.getMapY(), 1e-3f);
-        assertEquals(384f * 2.25f, layout.getMapSize(), 1e-3f);
+        assertEquals(240f + 41f * 2.25f, layout.getMap().x(), 1e-3f);
+        assertEquals(33f * 2.25f, layout.getMap().y(), 1e-3f);
+        assertEquals(384f * 2.25f, layout.getMap().w(), 1e-3f);
+    }
+
+    @Test
+    void previewWindowKeepsItsAspectAndStaysOnScreen() {
+        for (int[] size : new int[][]{{1024, 768}, {1280, 1024}, {1920, 1080}}) {
+            MapLayout.Rect preview = new MapLayout(size[0], size[1]).getPreview();
+            assertEquals(192f / 128f, preview.h() / preview.w(), 1e-4f);
+            assertTrue(preview.x() >= 0 && preview.x() + preview.w() <= size[0]);
+            assertTrue(preview.y() >= 0 && preview.y() + preview.h() <= size[1]);
+        }
+    }
+
+    @Test
+    void previewWindowDoesNotOverlapTheMap() {
+        MapLayout layout = new MapLayout(1920, 1080);
+        assertTrue(layout.getPreview().x() >= layout.getMap().x() + layout.getMap().w());
+    }
+
+    @Test
+    void screenToTileGivesFractionalCoordinates() {
+        MapLayout layout = new MapLayout(640, 480);
+        MinimapRasteriser.FitGeometry fit = MinimapRasteriser.FitGeometry.of(40, 40);
+        float screenX = layout.getMap().x() + fit.pixelX(10.25f) / MinimapRasteriser.RASTER_SIZE * layout.getMap().w();
+        float screenY = layout.getMap().y() + fit.pixelY(20.75f) / MinimapRasteriser.RASTER_SIZE * layout.getMap().w();
+        com.jme3.math.Vector2f tile = layout.screenToTile(screenX, screenY, 40, 40);
+        assertEquals(10.25f, tile.x, 1e-3f);
+        assertEquals(20.75f, tile.y, 1e-3f);
     }
 }

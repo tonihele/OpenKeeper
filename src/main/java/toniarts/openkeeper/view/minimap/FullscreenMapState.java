@@ -28,6 +28,7 @@ import com.jme3.input.event.KeyInputEvent;
 import com.jme3.input.event.MouseButtonEvent;
 import com.jme3.input.event.MouseMotionEvent;
 import com.jme3.input.event.TouchEvent;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Console;
@@ -43,6 +44,7 @@ import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.game.map.MapColourClass;
 import toniarts.openkeeper.game.map.MapColourClassifier;
 import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
@@ -81,6 +83,7 @@ public final class FullscreenMapState extends AbstractAppState {
     private AppStateManager stateManager;
     private MinimapAssets assets;
     private FullscreenMapView view;
+    private FullscreenMapPreview preview;
     private RawInputListener inputListener;
     private final byte[] rasterBgr = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
@@ -113,7 +116,8 @@ public final class FullscreenMapState extends AbstractAppState {
             return;
         }
 
-        view = new FullscreenMapView(app.getAssetManager(), app.getGuiNode());
+        preview = new FullscreenMapPreview(app.getRenderManager(), app.getRootNode());
+        view = new FullscreenMapView(app.getAssetManager(), app.getGuiNode(), preview.getTexture());
         inputListener = new MapInputListener();
         app.getInputManager().addRawInputListener(inputListener);
     }
@@ -131,6 +135,7 @@ public final class FullscreenMapState extends AbstractAppState {
         stateManager.getState(PlayerState.class).getScreen().goToScreen(IPlayerScreenController.SCREEN_EMPTY_ID);
         setPlayerStatesEnabled(false);
         app.getViewPort().setEnabled(false);
+        preview.start();
 
         rebuildRaster();
         updateLayout();
@@ -151,6 +156,7 @@ public final class FullscreenMapState extends AbstractAppState {
         changedThisFrame = true;
 
         view.detach();
+        preview.stop();
         app.getViewPort().setEnabled(true);
         setPlayerStatesEnabled(true);
 
@@ -187,6 +193,7 @@ public final class FullscreenMapState extends AbstractAppState {
         }
 
         updateLayout();
+        updatePreview();
         timeSinceLastRebuild += tpf;
         if (timeSinceLastRebuild >= REBUILD_INTERVAL) {
             rebuildRaster();
@@ -196,6 +203,21 @@ public final class FullscreenMapState extends AbstractAppState {
     private void updateLayout() {
         layout = new MapLayout(app.getCamera().getWidth(), app.getCamera().getHeight());
         view.updateLayout(layout);
+    }
+
+    /**
+     * Points the 3D preview at the tile under the cursor. Over unexplored
+     * ground, or off the map, it is not shown at all (the rock is), so the
+     * map can't be used to scout.
+     */
+    private void updatePreview() {
+        Vector2f cursor = app.getInputManager().getCursorPosition();
+        Vector2f tile = layout.screenToTile(cursor.x, layout.getScreenHeight() - cursor.y, grid.getWidth(), grid.getHeight());
+        if (tile != null && grid.get((int) tile.x, (int) tile.y) == MapColourClass.UNEXPLORED_OR_IMPENETRABLE) {
+            tile = null;
+        }
+        preview.lookAt(tile, grid.getWidth(), grid.getHeight());
+        view.setPreviewVisible(tile != null);
     }
 
     private void rebuildRaster() {
@@ -226,6 +248,9 @@ public final class FullscreenMapState extends AbstractAppState {
             open = false;
             view.detach();
             app.getViewPort().setEnabled(true);
+        }
+        if (preview != null) {
+            preview.dispose();
         }
         if (inputListener != null) {
             app.getInputManager().removeRawInputListener(inputListener);
