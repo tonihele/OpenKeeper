@@ -117,7 +117,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         this.playerId = playerId;
         this.app = (Main) app;
         this.campaignLevel = campaignLevel;
-        this.clientInfos = players;
+        this.clientInfos = List.copyOf(players);
 
         // Set multiplayer
         int humanPlayers = 0;
