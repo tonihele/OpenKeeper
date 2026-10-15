@@ -251,18 +251,21 @@ public class PlayerTriggerControl extends TriggerControl {
                 // (userdata targetType / targetId). The HUD buttons do not report their clicks to
                 // the game logic, and the map's button IDs would need a mapping to our own buttons.
                 // The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)
+                logStub(trigger, "The HUD buttons do not report their clicks to the game logic, and the map's button IDs would need a mapping to our own buttons. The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)");
                 return false;
 
             case PLAYER_DUNGEON_BREACHED:
             case PLAYER_ENEMY_BREACHED:
                 // STUB, events: an enemy broke into this dungeon / this player broke into one. Nothing
                 // in the game logic detects a dungeon breach, so there is nothing to raise these from
+                logStub(trigger, "Nothing in the game logic detects a dungeon breach, so there is nothing to raise these from");
                 return false;
 
             case PLAYER_CREATURE_SACKED:
             case LEVEL_PAY_DAY:
                 // STUB, events: a creature left the player / the player was paid. Nothing in the game
                 // logic announces either, there is no pay day processing to hook into
+                logStub(trigger, "Nothing in the game logic announces either, there is no pay day processing to hook into");
                 return false;
 
             case PLAYER_HAPPY_CREATURES:
@@ -270,12 +273,14 @@ public class PlayerTriggerControl extends TriggerControl {
                 // STUB: non-worker creatures that are happy / angry. Creatures only have anger counters
                 // per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original
                 // and the thresholds that turn the counters into them are not known
+                logStub(trigger, "Creatures only have anger counters per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original and the thresholds that turn the counters into them are not known");
                 return false;
 
             case PLAYER_CREATURES_KILLED:
             case PLAYER_KILLS_CREATURES:
                 // STUB: creatures lost / killed, optionally by a certain opponent. A creature's death
                 // is not attributed to anybody, so there is nothing to count
+                logStub(trigger, "A creature's death is not attributed to anybody, so there is nothing to count");
                 return false;
 
             case PLAYER_DOORS:
@@ -283,6 +288,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 // STUB: owned doors / traps by type, blueprints and built ones separately (with the
                 // availability check when there is no comparison). The door and trap controls only know
                 // the availability, their count is a constant 0 and nothing tells blueprints from built
+                logStub(trigger, "The door and trap controls only know the availability, their count is a constant 0 and nothing tells blueprints from built");
                 return false;
 
             case PLAYER_CREATURES_AT_LEVEL:
@@ -291,6 +297,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 // STUB: creatures by level / in the dying state / the size of the current creature
                 // group. The player creature control only keeps the creature IDs by type, going through
                 // them for these needs the creature controller of every one of them
+                logStub(trigger, "The player creature control only keeps the creature IDs by type, going through them for these needs the creature controller of every one of them");
                 return false;
 
             case PLAYER_DESTROYS:
@@ -299,6 +306,7 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_KILLED:
                 // STUB: has this player been defeated, by a certain player (userdata playerId). The
                 // game does not record who defeated a player
+                logStub(trigger, "The game does not record who defeated a player");
                 return false;
 
             default:
@@ -361,9 +369,9 @@ public class PlayerTriggerControl extends TriggerControl {
     private void makeObjective(TriggerActionData trigger) { // Game part
         short targetId = trigger.getUserData("targetId", short.class);
         if (targetId == 0) { // 0 = Off
-            makeObjectiveOff();
+            makeObjectiveOff(trigger);
         } else {
-            logger.log(Level.WARNING, "Unsupported MAKE_OBJECTIVE target {0}", targetId);
+            logStub(trigger, "unsupported MAKE_OBJECTIVE target " + targetId);
         }
     }
 
@@ -405,7 +413,7 @@ public class PlayerTriggerControl extends TriggerControl {
     private void setSlapsLimit(TriggerActionData trigger) {
         // STUB: limit the number of slaps of the player (value 0 = off). The slap system does not
         // have a limit to set, the player can slap without any restrictions
-        logStub(trigger, "the slap system has no limit");
+        logStub(trigger, "The slap system does not have a limit to set, the player can slap without any restrictions");
     }
 
     protected Keeper getPlayer() {
@@ -466,9 +474,10 @@ public class PlayerTriggerControl extends TriggerControl {
         }
     }
 
-    protected void makeObjectiveOff() {
+    protected void makeObjectiveOff(TriggerActionData trigger) {
         // STUB: remove the objective marker of the player. There are no objective markers to
         // remove, the creatures' MAKE_OBJECTIVE only flags the creature (see the creature scope)
+        logStub(trigger, "There are no objective markers to remove, the creatures' MAKE_OBJECTIVE only flags the creature (see the creature scope)");
     }
 
     protected PlayerService getPlayerService() {

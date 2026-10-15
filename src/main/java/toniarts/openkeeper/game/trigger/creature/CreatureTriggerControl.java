@@ -200,17 +200,20 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 // STUB, events: the creature became angry / afraid. The state changes can not be told
                 // from the outside: the anger is a set of counters (CreatureMood) with no "became
                 // angry" threshold, and the fear of the creature is a state of its AI
+                logStub(trigger, "The state changes can not be told from the outside: the anger is a set of counters (CreatureMood) with no 'became angry' threshold, and the fear of the creature is a state of its AI");
                 return false;
 
             case CREATURE_STEALS:
                 // STUB, event: the creature stole gold / a spell / a crate. The stealing job does not
                 // report to anybody
+                logStub(trigger, "The stealing job does not report to anybody");
                 return false;
 
             case CREATURE_LEAVES:
             case CREATURE_SACKED:
                 // STUB, events: the creature left the dungeon (leaves has no producer in the original
                 // either) / was sacked. A creature leaving is not announced in the game logic
+                logStub(trigger, "A creature leaving is not announced in the game logic");
                 return false;
 
             default:
@@ -246,19 +249,19 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
             case ALTER_SPEED:
                 // STUB: 0 = walk, otherwise run. The creature controller has no movement speed to
                 // set, the speed comes from the creature's state and its attributes
-                logStub(trigger, "the creature has no settable movement speed");
+                logStub(trigger, "The creature controller has no movement speed to set, the speed comes from the creature's state and its attributes");
                 return true;
 
             case REMOVE_FROM_MAP:
                 // STUB: mode 0 removes the creature silently, 1 kills it. The creature controller
                 // has no way to remove or kill a creature from the outside, it dies by its health
-                logStub(trigger, "the creature can not be removed or killed from a trigger");
+                logStub(trigger, "The creature controller has no way to remove or kill a creature from the outside, it dies by its health");
                 return true;
 
             case SET_FIGHT_FLAG:
                 // STUB: 0 = don't fight, otherwise fight. Whether to fight is decided by the
                 // creature's AI, there is no flag to override it
-                logStub(trigger, "the creature's AI has no fight flag");
+                logStub(trigger, "Whether to fight is decided by the creature's AI, there is no flag to override it");
                 return true;
 
             case ZOOM_TO:
@@ -284,7 +287,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
             case MAKE_OBJECTIVE: // Game part
                 short targetId = trigger.getUserData("targetId", short.class);
                 if (targetId == 0) {
-                    super.makeObjectiveOff();
+                    super.makeObjectiveOff(trigger);
                 }
 
                 //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;

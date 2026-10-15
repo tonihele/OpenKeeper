@@ -302,17 +302,21 @@ public class TriggerControl extends Control {
                         trigger.getUserData("value", int.class) * TICKS_PER_SECOND);
 
             case LEVEL_PAY_DAY:
-                return false; // Event, nobody raises it yet. See PlayerTriggerControl
+                // STUB, event: the player was paid. Nothing in the game logic announces a pay day
+                logStub(trigger, "pay day is not raised by anybody");
+                return false;
 
             case LEVEL_CREATURES:
                 // STUB: creatures of any owner in the world, compared with the value. There is no
                 // way to ask the creature controller for a world wide count (only per player), and
                 // no shipped level uses this condition.
+                logStub(trigger, "no world wide creature count");
                 return false;
 
             case LEVEL_PLAYED:
                 // STUB: the number of attempts at this level. The game does not keep any attempt
                 // statistics (nothing persists between sessions), so there is nothing to compare to.
+                logStub(trigger, "no level attempt statistics");
                 return false;
 
             default:
@@ -344,6 +348,9 @@ public class TriggerControl extends Control {
                 // lair, free friends on jailbreak, act as dropped, start dying). ICreaturesController
                 // hands back only an entity ID and the creature controller has no setters for these
                 // behaviours yet, so they can not be applied after the spawn.
+                if (!flags.isEmpty()) {
+                    logStub(trigger, "creature flags " + flags + " are not applied");
+                }
                 creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
                 return true;
 
@@ -357,6 +364,7 @@ public class TriggerControl extends Control {
             case DISPLAY_OBJECTIVE:
                 // STUB (partly): the objective text of the local player is not shown, the game has no
                 // service for the objective panel text. Only the "zoom to action point" part works.
+                logStub(trigger, "the objective text is not shown");
                 zoomToAP(getLocalPlayerId(), trigger.getUserData("actionPointId", short.class));
                 return true;
 
@@ -681,17 +689,47 @@ public class TriggerControl extends Control {
      */
     protected final void reportUnhandled(String kind, TriggerData trigger) {
         if (reportedUnhandled.add(trigger.getId())) {
-            logger.log(Level.WARNING, "Unhandled Trigger {0} {1}", kind, trigger);
+            logger.log(Level.WARNING, "Unhandled Trigger {0}: {1}", kind, describe(trigger));
         }
     }
 
     /**
-     * Log, once per trigger, that the action is a stub
+     * Log, once per trigger, that the trigger is (partly) a stub, with all of
+     * its data. Collecting these tells what the maps really use of the
+     * unfinished features.
+     *
+     * @param trigger the condition or action
+     * @param reason what is missing
      */
-    protected final void logStub(TriggerActionData trigger, String reason) {
+    protected final void logStub(TriggerData trigger, String reason) {
         if (reportedUnhandled.add(trigger.getId())) {
-            logger.log(Level.WARNING, "Trigger Action {0} is not implemented: {1}", trigger, reason);
+            logger.log(Level.WARNING, "Stub {0}: {1}. Data: {2}", trigger.getClass().getSimpleName().replace("Data", ""), reason, describe(trigger));
         }
+    }
+
+    /**
+     * Everything the map says about the trigger: ID, type, comparison, repeat,
+     * the parsed fields and the owner of the tree
+     */
+    private String describe(TriggerData trigger) {
+        StringBuilder sb = new StringBuilder("#").append(trigger.getId()).append(' ');
+        if (trigger instanceof TriggerGenericData generic) {
+            sb.append(generic.getType()).append(" comparison=").append(generic.getComparison() == null ? null : generic.getComparison().name());
+        } else if (trigger instanceof TriggerActionData action) {
+            sb.append(action.getType());
+        }
+        sb.append(" repeat=").append(trigger.getRepeatTimes()).append(" enabled=").append(trigger.isEnabled());
+        sb.append(" tree=").append(getClass().getSimpleName());
+        sb.append(" payload=[");
+        for (short b : trigger.getPayload()) {
+            sb.append(String.format("%02X", b));
+        }
+        sb.append(']');
+        for (String key : new java.util.TreeSet<>(trigger.getUserDataKeys())) {
+            Number value = trigger.getUserData(key);
+            sb.append(' ').append(key).append('=').append(value);
+        }
+        return sb.toString();
     }
 
     protected Keeper getPlayer(short playerId) {

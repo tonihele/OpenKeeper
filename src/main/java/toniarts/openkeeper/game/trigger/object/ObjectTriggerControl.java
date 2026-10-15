@@ -49,6 +49,7 @@ public final class ObjectTriggerControl extends AbstractThingTriggerControl<IObj
                 // object controller does not tell its owner changes to anybody, so there is nothing
                 // to detect a claim from. The original raises it, but nothing in a shipped level
                 // listens to it either
+                logStub(trigger, "The object controller does not tell its owner changes to anybody, so there is nothing to detect a claim from. The original raises it, but nothing in a shipped level listens to it either");
                 return false;
             default:
                 return super.isActive(trigger);

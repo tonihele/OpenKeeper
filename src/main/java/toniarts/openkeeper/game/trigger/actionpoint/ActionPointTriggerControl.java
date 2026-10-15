@@ -84,9 +84,10 @@ public final class ActionPointTriggerControl extends TriggerControl {
                         // STUB: count the objects (by object type, e.g. a chicken) on the AP. The
                         // object controllers do not know their object type ID, only the room
                         // function they serve, so they can not be filtered by the ID in the map
+                        logStub(trigger, "Objects on the AP can not be counted: the object controllers do not know their object type ID, only the room function they serve, so they can not be filtered by the ID in the map");
                         return false;
                     default:
-                        logger.log(Level.WARNING, "AP_CONGREGATE_IN unknown targetType {0}", type);
+                        logStub(trigger, "unknown targetType " + type);
                         return false;
                 }
                 break;
@@ -96,6 +97,7 @@ public final class ActionPointTriggerControl extends TriggerControl {
                 // AP. Whether a creature is possessed is a component of the entity (Possessed), and
                 // this scope has no access to the entity data. Nothing in it either tells that the
                 // creature just entered
+                logStub(trigger, "Whether a creature is possessed is a component of the entity (Possessed), and this scope has no access to the entity data. Nothing in it either tells that the creature just entered");
                 return false;
 
             case AP_CLAIM_PART_OF:

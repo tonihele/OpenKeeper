@@ -54,6 +54,7 @@ public abstract class TriggerData {
      * skipped by the walker, disabled actions are the way "run once" works.
      */
     private boolean enabled = true;
+    private short[] payload = new short[0];
 
     public TriggerData() {
         id = 0; // FIXME
@@ -74,6 +75,19 @@ public abstract class TriggerData {
 
     protected void setRepeatTimes(short repeatTimes) {
         this.repeatTimes = repeatTimes;
+    }
+
+    /**
+     * The raw payload bytes of the trigger record, for diagnostics
+     *
+     * @return the 8 payload bytes (unsigned values), empty if not known
+     */
+    public short[] getPayload() {
+        return payload;
+    }
+
+    protected void setPayload(short[] payload) {
+        this.payload = payload;
     }
 
     public boolean isEnabled() {

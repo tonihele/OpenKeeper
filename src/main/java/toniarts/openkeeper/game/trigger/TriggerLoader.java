@@ -87,6 +87,8 @@ public final class TriggerLoader {
                     ((TriggerGenericData) trigger).setType(triggerGeneric.getType());
                     ((TriggerGenericData) trigger).setComparison(triggerGeneric.getTargetValueComparison());
 
+                    trigger.setPayload(temp.getPayload());
+
                     // A condition with repeat 0 starts dormant, only arming a tree can wake it up
                     trigger.setEnabled(temp.getRepeatTimes() > 0);
 
@@ -105,6 +107,7 @@ public final class TriggerLoader {
                     trigger = new TriggerActionData(id);
                     ((TriggerActionData) trigger).setType(triggerAction.getType());
                     trigger.setRepeatTimes(temp.getRepeatTimes());
+                    trigger.setPayload(temp.getPayload());
 
                     for (String key : temp.getUserDataKeys()) {
                         trigger.setUserData(key, temp.getUserData(key));

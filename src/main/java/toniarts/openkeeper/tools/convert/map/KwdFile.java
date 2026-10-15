@@ -2381,6 +2381,14 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     ((TriggerGeneric) trigger).setType(reader.readByteAsEnum(TriggerGeneric.TargetType.class));
                     trigger.setRepeatTimes(reader.readUnsignedByte());
 
+                    // Keep the raw payload for the diagnostics, not all of it is parsed to the fields
+                    reader.reset();
+                    reader.mark();
+                    short[] payload = new short[8];
+                    for (int p = 0; p < payload.length; p++) {
+                        payload[p] = reader.readUnsignedByte();
+                    }
+                    trigger.setPayload(payload);
                     reader.reset();
                     switch (((TriggerGeneric) trigger).getType()) {
                         case AP_CONGREGATE_IN:
@@ -2596,6 +2604,14 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     ((TriggerAction) trigger).setType(reader.readByteAsEnum(TriggerAction.ActionType.class));
                     trigger.setRepeatTimes(reader.readUnsignedByte());
 
+                    // Keep the raw payload for the diagnostics, not all of it is parsed to the fields
+                    reader.reset();
+                    reader.mark();
+                    short[] payload = new short[8];
+                    for (int p = 0; p < payload.length; p++) {
+                        payload[p] = reader.readUnsignedByte();
+                    }
+                    trigger.setPayload(payload);
                     reader.reset();
                     switch (((TriggerAction) trigger).getType()) {
                         // in levels triggers
