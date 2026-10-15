@@ -243,7 +243,7 @@ public final class FullscreenMapState extends AbstractAppState {
         timeSinceLastRebuild = 0f;
         rotationPhase++;
         grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
-        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), FullscreenMapView.ROCK_KEY_BGR, neutralPlayerNumber,
+        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), FullscreenMapView.rockKeyBgr(), neutralPlayerNumber,
                 rotationPhase, rasterBgr);
         view.updateRaster(rasterBgr);
     }

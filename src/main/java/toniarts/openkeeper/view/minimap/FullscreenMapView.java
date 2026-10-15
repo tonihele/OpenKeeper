@@ -49,7 +49,7 @@ public final class FullscreenMapView {
      * Raster pixels of this colour are not painted, the rock shows through.
      * Give {@link MinimapRasteriser#rebuildFitMode} this as the rock texture.
      */
-    public static final byte[] ROCK_KEY_BGR = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
+    private static final byte[] ROCK_KEY_BGR = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
     static {
         for (int i = 0; i < ROCK_KEY_BGR.length; i += 3) {
@@ -57,6 +57,14 @@ public final class FullscreenMapView {
             ROCK_KEY_BGR[i + 1] = 2;
             ROCK_KEY_BGR[i + 2] = 3;
         }
+    }
+
+    /**
+     * The shared rock key texture; package-private and must be treated as
+     * read-only.
+     */
+    static byte[] rockKeyBgr() {
+        return ROCK_KEY_BGR;
     }
 
     private final Node guiNode;
