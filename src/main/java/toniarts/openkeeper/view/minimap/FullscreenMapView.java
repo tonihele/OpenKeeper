@@ -60,11 +60,11 @@ public final class FullscreenMapView {
     }
 
     /**
-     * The shared rock key texture; package-private and must be treated as
-     * read-only.
+     * A fresh copy of the rock key texture. Callers that need it repeatedly
+     * should keep the copy rather than call this each time.
      */
     static byte[] rockKeyBgr() {
-        return ROCK_KEY_BGR;
+        return ROCK_KEY_BGR.clone();
     }
 
     private final Node guiNode;

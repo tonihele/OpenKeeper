@@ -98,7 +98,8 @@ public final class FullscreenMapState extends AbstractAppState {
     private FullscreenMapPreview preview;
     private FullscreenMapOverlay overlay;
     private RawInputListener inputListener;
-    private final byte[] rasterBgr = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
+    private final byte[] rockKeyBgr = FullscreenMapView.rockKeyBgr();
+    private final byte[] rasterBgr =new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
 
     private MapLayout layout;
     private boolean open;
@@ -243,7 +244,7 @@ public final class FullscreenMapState extends AbstractAppState {
         timeSinceLastRebuild = 0f;
         rotationPhase++;
         grid.recomputeRect(0, 0, grid.getWidth(), grid.getHeight());
-        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), FullscreenMapView.rockKeyBgr(), neutralPlayerNumber,
+        MinimapRasteriser.rebuildFitMode(grid, assets.getPalette(), rockKeyBgr, neutralPlayerNumber,
                 rotationPhase, rasterBgr);
         view.updateRaster(rasterBgr);
     }
