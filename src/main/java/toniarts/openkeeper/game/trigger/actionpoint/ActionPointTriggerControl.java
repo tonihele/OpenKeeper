@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
@@ -46,8 +47,8 @@ public final class ActionPointTriggerControl extends TriggerControl {
 
     public ActionPointTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId, ActionPoint ap,
-            final IEntityPositionLookup entityPositionLookup) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
+            final PlayerService playerService, final IEntityPositionLookup entityPositionLookup) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, playerService, triggerId);
         this.ap = ap;
         this.entityPositionLookup = entityPositionLookup;
     }
@@ -80,28 +81,21 @@ public final class ActionPointTriggerControl extends TriggerControl {
                         }
                         break;
                     case 6: // Object
-                        break;
+                        // STUB: count the objects (by object type, e.g. a chicken) on the AP. The
+                        // object controllers do not know their object type ID, only the room
+                        // function they serve, so they can not be filtered by the ID in the map
+                        return false;
                     default:
                         logger.log(Level.WARNING, "AP_CONGREGATE_IN unknown targetType {0}", type);
-                        break;
+                        return false;
                 }
-                return false;
+                break;
 
             case AP_POSESSED_CREATURE_ENTERS:
-                playerId = trigger.getUserData("playerId", short.class);
-                targetId = trigger.getUserData("targetId", short.class);
-                value = trigger.getUserData("value", int.class);
-                type = trigger.getUserData("targetType", short.class);
-                switch (type) {
-                    //case 0:
-                    case 3: // Creature
-                        break;
-                    case 6: // Object. Chicken
-                        break;
-                    default:
-                        logger.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS unknown targetType");
-                        break;
-                }
+                // STUB: a possessed creature (or object, kind 6) of the given player and type is on the
+                // AP. Whether a creature is possessed is a component of the entity (Possessed), and
+                // this scope has no access to the entity data. Nothing in it either tells that the
+                // creature just entered
                 return false;
 
             case AP_CLAIM_PART_OF:

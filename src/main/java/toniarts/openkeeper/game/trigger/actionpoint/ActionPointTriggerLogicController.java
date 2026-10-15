@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.state.session.PlayerService;
 
 /**
  *
@@ -35,12 +36,12 @@ public final class ActionPointTriggerLogicController implements IGameLogicUpdata
     private final SafeArrayList<ActionPointTriggerControl> triggers = new SafeArrayList<>(ActionPointTriggerControl.class);
 
     public ActionPointTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final IEntityPositionLookup entityPositionLookup) {
+            final ICreaturesController creaturesController, final PlayerService playerService, final IEntityPositionLookup entityPositionLookup) {
 
         // Create the triggers
         for (ActionPoint actionPoint : levelInfo.getActionPoints()) {
             if (actionPoint.getTriggerId() != 0) {
-                triggers.add(new ActionPointTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, actionPoint.getTriggerId(), actionPoint, entityPositionLookup));
+                triggers.add(new ActionPointTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, actionPoint.getTriggerId(), actionPoint, playerService, entityPositionLookup));
             }
         }
     }

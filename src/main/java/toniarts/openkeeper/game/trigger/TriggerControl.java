@@ -16,10 +16,11 @@
  */
 package toniarts.openkeeper.game.trigger;
 
-import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
@@ -27,9 +28,14 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -37,9 +43,28 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerAction.FlagTargetValueActionType;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
+ * The level scope of the trigger system and the base of all the other scopes.
+ * <p>
+ * A trigger tree is a forest of conditions and actions. The conditions are
+ * evaluated, and the actions run, by walking the tree depth first on every
+ * tick, see {@link #walk(TriggerGenericData, short)}. Nesting means AND,
+ * siblings are independent of each other and see each other's side effects
+ * right away. The scopes (level, player, creature, ...) are the subclasses,
+ * each one handles what it knows and forwards the rest to its super class:
+ * creature -&gt; player -&gt; level. What nobody handles is logged and is not
+ * considered done.
+ * <p>
+ * Events (killed, slapped, created...) are not evaluated by the walk, they are
+ * always false there. The scopes raise them with
+ * {@link #fire(TriggerGeneric.TargetType, int, int)} when they notice the
+ * thing happening.
+ * <p>
+ * Based on the Dungeon Keeper II v1.70 behaviour described in
+ * trigger_system_design_paper.md.
  *
  * @author ArchDemon
  */
@@ -49,8 +74,16 @@ public class TriggerControl extends Control {
 
     private static final short LEVEL_SCORE_FLAG_ID = 128;
     private static final short TIME_LIMIT_TIMER_ID = 16;
+    private static final int FLAG_COUNT = 128;
+    private static final int TIMER_COUNT = 16;
 
-    protected TriggerGenericData trigger;
+    /**
+     * The trigger times are in seconds, but the original compares them on its
+     * game ticks. All the shipped levels run 4 ticks per second, and the
+     * quantization matters when "equals" is used, it can only hit one tick.
+     */
+    private static final int TICKS_PER_SECOND = 4;
+
     protected final TriggerGenericData root;
 
     protected final ILevelInfo levelInfo;
@@ -58,132 +91,245 @@ public class TriggerControl extends Control {
     protected final IGameController gameController;
     protected final IMapController mapController;
     protected final ICreaturesController creaturesController;
+    protected final PlayerService playerService;
+
+    private boolean armed = true;
+    private final Set<Integer> reportedUnhandled = new HashSet<>();
 
     public TriggerControl(final IGameController gameController, final ILevelInfo levelInfo,
             final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final int triggerId) {
+            final ICreaturesController creaturesController, final PlayerService playerService,
+            final int triggerId) {
 
         this.gameController = gameController;
         this.levelInfo = levelInfo;
         this.gameTimer = gameTimer;
         this.mapController = mapController;
         this.creaturesController = creaturesController;
+        this.playerService = playerService;
 
         root = new TriggerLoader(levelInfo.getLevelData()).load(triggerId);
         if (root == null) {
             throw new IllegalArgumentException("trigger can not be null");
         }
-        trigger = root;
     }
 
     @Override
     protected void updateControl(float tpf) {
-        TriggerGenericData next = null;
-        trigger.subRepeatTimes();
+        if (!isArmed()) {
+            return;
+        }
+        pollEvents();
+        walk(root, getRootRepeat());
+    }
 
-        for (int i = trigger.getLastTriggerIndex() + 1; i < trigger.getQuantity(); i++) {
-            TriggerData value = trigger.getChild(i);
+    /**
+     * Walk a chain of siblings, depth first. A condition that holds opens its
+     * children, a false one skips its subtree but not its siblings. An action
+     * that has been handled disables itself if the repeat passed down is 1.
+     * <p>
+     * The repeat is the one of the parent condition (or of the root chain for
+     * the top level). Any value but 1 (0, 2, 10, 255...) means that the actions
+     * run on every walk during which the parent holds. The original has a
+     * routine that was meant to count the repeat down and disable the
+     * condition, but nothing ever calls it, so "do it 10 times" in a map is
+     * really "do it all the time". We do what the original does.
+     *
+     * @param container the parent whose children are walked
+     * @param repeat the repeat for the actions directly under the container
+     */
+    protected void walk(TriggerGenericData container, short repeat) {
+        for (TriggerData node : container.getChildren().getArray()) {
+            if (!node.isEnabled()) {
+                continue;
+            }
 
-            switch (value) {
-                case null ->
-                    logger.log(Level.WARNING, "Trigger is null!");
-                case TriggerGenericData triggerGenericData -> {
-
-                    if (next == null && isActive(triggerGenericData)) {
-                        trigger.setLastTrigger((TriggerGenericData) value);
-                        next = (TriggerGenericData) value;
-                    }
+            if (node instanceof TriggerGenericData condition) {
+                if (isActive(condition)) {
+                    walk(condition, condition.getRepeatTimes());
                 }
-                case TriggerActionData triggerActionData -> {
-
-                    //System.out.println(String.format("%s: %d %s", this.getClass().getSimpleName(), trigger.getId(), trigger.getType()));
-                    doAction(triggerActionData);
-                    if (!trigger.isRepeateable()) {
-                        trigger.detachChild(value);
-                        i--;
-                    }
-                }
-                default -> {
+            } else if (node instanceof TriggerActionData action) {
+                if (doAction(action) && repeat == 1) {
+                    action.setEnabled(false);
                 }
             }
         }
+    }
 
-        if (trigger.getQuantity() == 0 && trigger.getParent() != null) {
-            next = trigger.getParent();
-            trigger.detachFromParent();
+    /**
+     * Raise an event. Only the top level chain of the tree is searched, an
+     * event condition nested under another condition never triggers (this is
+     * how the original does it as well). The search also stops at the first
+     * action of the chain.
+     *
+     * @param type the event
+     * @param arg1 first event argument, see {@link #eventMatches}
+     * @param arg2 second event argument
+     */
+    protected void fire(TriggerGeneric.TargetType type, int arg1, int arg2) {
+        if (!isArmed()) {
+            return;
         }
-
-        if (next == null) {
-            trigger.setLastTrigger(null);
-            trigger = (trigger.getParent() != null) ? trigger.getParent() : root;
-        } else {
-            trigger = next;
+        for (TriggerData node : root.getChildren().getArray()) {
+            if (!(node instanceof TriggerGenericData condition)) {
+                break;
+            }
+            if (condition.getType() == type && condition.isEnabled() && eventMatches(condition, arg1, arg2)) {
+                walk(condition, condition.getRepeatTimes());
+            }
         }
     }
 
-    protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
+    protected final void fire(TriggerGeneric.TargetType type) {
+        fire(type, 0, 0);
+    }
 
-        int value;
+    /**
+     * Does the event condition match the raised event. Most events carry no
+     * data at all and match always.
+     *
+     * @param condition the event condition
+     * @param arg1 first event argument
+     * @param arg2 second event argument
+     * @return true if the event condition applies
+     */
+    protected boolean eventMatches(TriggerGenericData condition, int arg1, int arg2) {
+        return true;
+    }
+
+    /**
+     * Called before each walk. The scopes that have to notice events from
+     * state changes (the game does not announce them) do that here and call
+     * {@link #fire(TriggerGeneric.TargetType, int, int)}.
+     */
+    protected void pollEvents() {
+    }
+
+    /**
+     * Is the tree live. A disarmed tree is not walked and does not get events.
+     *
+     * @return true if live
+     */
+    protected boolean isArmed() {
+        return armed;
+    }
+
+    /**
+     * The repeat of the actions sitting directly in the root chain
+     *
+     * @return the repeat
+     */
+    protected short getRootRepeat() {
+        return root.getRepeatTimes();
+    }
+
+    /**
+     * Arm or disarm the whole tree. Used for the hero parties, whose trees
+     * are dormant until the party is created. Arming also forces the repeat of
+     * every condition to 1, so all of the actions in a party tree are
+     * one-shot, no matter what the map says. Disarming zeroes the repeats and
+     * disables everything.
+     *
+     * @param on true to arm
+     */
+    protected void setTreeArmed(boolean on) {
+        armed = on;
+        setTreeArmed(root, on);
+    }
+
+    private void setTreeArmed(TriggerGenericData container, boolean on) {
+        for (TriggerData node : container.getChildren().getArray()) {
+            node.setEnabled(on);
+            if (node instanceof TriggerGenericData condition) {
+                condition.setRepeatTimes((short) (on ? 1 : 0));
+                setTreeArmed(condition, on);
+            }
+        }
+    }
+
+    /**
+     * Evaluate a condition in this scope. Event conditions are false here, see
+     * {@link #fire(TriggerGeneric.TargetType, int, int)}.
+     *
+     * @param trigger the condition
+     * @return true if the condition holds
+     */
+    protected boolean isActive(TriggerGenericData trigger) {
         int target;
+        int value;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
-            case FLAG:
-                short targetId = (Short) trigger.getUserData("targetId");
-                if (targetId == LEVEL_SCORE_FLAG_ID) {
-
-                    // A special value, level score
-                    target = levelInfo.getLevelScore();
+            case FLAG: {
+                short targetId = trigger.getUserData("targetId", short.class);
+                target = (targetId == LEVEL_SCORE_FLAG_ID) ? levelInfo.getLevelScore() : getFlag(targetId);
+                if ((trigger.getUserData("flag", short.class) & 1) != 0) {
+                    value = trigger.getUserData("value", int.class);
                 } else {
-                    target = levelInfo.getFlag(targetId);
+                    value = getFlag(trigger.getUserData("flagId", short.class));
                 }
-                if ((Short) trigger.getUserData("flag") == 1) {
-                    value = (Integer) trigger.getUserData("value");
-                } else {
-                    value = levelInfo.getFlag((Short) trigger.getUserData("flagId"));
-                }
-                break;
+                return compare(trigger, target, value);
+            }
 
-            case TIMER:
-                targetId = (short) trigger.getUserData("targetId");
+            case TIMER: {
+                short targetId = trigger.getUserData("targetId", short.class);
                 if (targetId == TIME_LIMIT_TIMER_ID) {
-                    target = (levelInfo.getTimeLimit() != null ? levelInfo.getTimeLimit().intValue() : 0);
-                } else {
-                    target = (int) levelInfo.getTimer(targetId).getTime();
+                    Float timeLimit = levelInfo.getTimeLimit();
+                    target = (timeLimit != null) ? (int) Math.ceil(timeLimit * TICKS_PER_SECOND) : 0;
+                    return compare(trigger, target, trigger.getUserData("value", int.class) * TICKS_PER_SECOND);
                 }
 
-                if ((Short) trigger.getUserData("flag") == 1) {
-                    value = (Integer) trigger.getUserData("value");
-                } else {
-                    value = (int) Math.floor(levelInfo.getTimer((Short) trigger.getUserData("timerId")).getTime());
+                // A timer that has never been started is never true, not even for "elapsed >= 0"
+                GameTimer timer = getTimer(targetId);
+                if (timer == null || !timer.isActive()) {
+                    return false;
                 }
-                break;
+                target = toTicks(timer.getTime());
+                if ((trigger.getUserData("flag", short.class) & 1) != 0) {
+                    value = trigger.getUserData("value", int.class) * TICKS_PER_SECOND;
+                } else {
+                    GameTimer other = getTimer(trigger.getUserData("timerId", short.class));
+                    if (other == null || !other.isActive()) {
+                        return false;
+                    }
+                    value = toTicks(other.getTime());
+                }
+                return compare(trigger, target, value);
+            }
 
             case LEVEL_TIME:
-                target = (int) Math.floor(gameTimer.getGameTime());
-                value = (Integer) trigger.getUserData("value");
-                break;
-            case LEVEL_CREATURES:
-                return false;
+                return compare(trigger, toTicks((float) gameTimer.getGameTime()),
+                        trigger.getUserData("value", int.class) * TICKS_PER_SECOND);
+
             case LEVEL_PAY_DAY:
+                return false; // Event, nobody raises it yet. See PlayerTriggerControl
+
+            case LEVEL_CREATURES:
+                // STUB: creatures of any owner in the world, compared with the value. There is no
+                // way to ask the creature controller for a world wide count (only per player), and
+                // no shipped level uses this condition.
                 return false;
+
             case LEVEL_PLAYED:
+                // STUB: the number of attempts at this level. The game does not keep any attempt
+                // statistics (nothing persists between sessions), so there is nothing to compare to.
                 return false;
+
             default:
-                logger.log(Level.WARNING, "Target Type not supported {0}!", targetType);
+                reportUnhandled("condition", trigger);
                 return false;
         }
-
-        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-            result = compare(target, comparisonType, value);
-        }
-
-        return result;
     }
 
-    protected void doAction(TriggerActionData trigger) {
+    /**
+     * Run an action in this scope.
+     *
+     * @param trigger the action
+     * @return true if the action was handled, false if no scope knows it. An
+     * action that is not handled stays enabled and is retried on the next
+     * walk, this is also what the original does
+     */
+    protected boolean doAction(TriggerActionData trigger) {
         TriggerAction.ActionType type = trigger.getType();
         switch (type) {
 
@@ -194,135 +340,280 @@ public class TriggerControl extends Control {
                 EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
                 Point p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
-                // TODO: flags!
+                // STUB: the creature flags (will fight, dies instantly, will be attacked, return to
+                // lair, free friends on jailbreak, act as dropped, start dying). ICreaturesController
+                // hands back only an entity ID and the creature controller has no setters for these
+                // behaviours yet, so they can not be applied after the spawn.
                 creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
-                break;
+                return true;
+
+            case CREATE_PORTAL_GEM:
+                // STUB: needs to create a Portal Gem object (object 28 for player 1 in every shipped
+                // record) on a tile. The trigger controls do not have access to the objects
+                // controller, only the creature and the map controllers
+                logStub(trigger, "the objects controller is not available to the triggers");
+                return true;
+
+            case DISPLAY_OBJECTIVE:
+                // STUB (partly): the objective text of the local player is not shown, the game has no
+                // service for the objective panel text. Only the "zoom to action point" part works.
+                zoomToAP(getLocalPlayerId(), trigger.getUserData("actionPointId", short.class));
+                return true;
+
+            case INFORMATION:
+                return true; // No-op in the original game as well
 
             case MAKE:
-                TriggerAction.MakeType flag = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
-                        TriggerAction.MakeType.class);
-                boolean available = trigger.getUserData("available", short.class) != 0;
-                playerId = trigger.getUserData("playerId", short.class);
-                IKwdFile kwdFile = levelInfo.getLevelData();
-                short targetId = trigger.getUserData("targetId", short.class);
-                // TODO this
-                switch (flag) {
-                    case CREATURE:
-                        getPlayerController(playerId).getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
-                        break;
-                    case DOOR:
-                        break;
-                    case KEEPER_SPELL:
-                        getPlayerController(playerId).getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
-                        break;
-                    case ROOM:
-                        getPlayerController(playerId).getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
-                        break;
-                    case TRAP:
-                        break;
-                }
-                break;
+                makeAvailable(trigger);
+                return true;
 
             case FLAG:
-                short flagId = trigger.getUserData("flagId", short.class);
-                EnumSet<FlagTargetValueActionType> flagType = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class),
-                        FlagTargetValueActionType.class);
-                int value = trigger.getUserData("value", int.class);
-                if (flagType.contains(FlagTargetValueActionType.TARGET)) {
-                    value = levelInfo.getFlag(value);
-                }
-
-                if (flagId == LEVEL_SCORE_FLAG_ID) {
-                    levelInfo.setLevelScore(getTargetValue(levelInfo.getLevelScore(), value, flagType));
-                } else {
-                    int base = levelInfo.getFlag(flagId);
-                    levelInfo.setFlag(flagId, getTargetValue(base, value, flagType));
-                }
-                break;
+                setFlag(trigger);
+                return true;
 
             case INITIALIZE_TIMER:
-                short timerId = trigger.getUserData("timerId", short.class);
-                if (timerId == TIME_LIMIT_TIMER_ID) {
-                    value = trigger.getUserData("value", int.class);
-                    levelInfo.setTimeLimit(value);
-                } else {
-                    levelInfo.getTimer(timerId).initialize();
+                GameTimer timer = getTimer(trigger.getUserData("timerId", short.class));
+                if (timer != null) {
+                    timer.initialize();
                 }
-                break;
+                return true;
 
             case SET_TIME_LIMIT:
-                timerId = trigger.getUserData("timerId", short.class);
-                if (timerId == TIME_LIMIT_TIMER_ID) {
-                    value = trigger.getUserData("value", int.class);
-                    levelInfo.setTimeLimit(value);
-                } else {
-                    logger.log(Level.WARNING, "Only level time limit supported!");
-                }
-                break;
+                // The editor always writes 16 for the timer ID, the time limit is the only target
+                levelInfo.setTimeLimit(trigger.getUserData("value", int.class));
+                return true;
+
+            case FLASH_BUTTON:
+                flashButton(trigger, getLocalPlayerId());
+                return true;
+
+            case FLASH_ACTION_POINT:
+                flashActionPoint(trigger, getLocalPlayerId());
+                return true;
+
+            case REVEAL_ACTION_POINT:
+                revealActionPoint(trigger, getLocalPlayerId());
+                return true;
 
             case CREATE_HERO_PARTY:
-                ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
-                short partyId = trigger.getUserData("partyId", short.class);
-                PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
-                creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
-                break;
+                createHeroParty(trigger);
+                return true;
 
             case SET_ALLIANCE:
                 short playerOneId = trigger.getUserData("playerOneId", short.class);
                 short playerTwoId = trigger.getUserData("playerTwoId", short.class);
-                available = trigger.getUserData("available", short.class) == 0; // 0 = Create, !0 = Break
-                if (available) {
+                if (trigger.getUserData("available", short.class) == 0) { // 0 = Create, !0 = Break
                     gameController.createAlliance(playerOneId, playerTwoId);
                 } else {
                     gameController.breakAlliance(playerOneId, playerTwoId);
                 }
-                break;
+                return true;
 
             case ALTER_TERRAIN_TYPE:
                 p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
-                short terrainId = trigger.getUserData("terrainId", short.class);
-                playerId = trigger.getUserData("playerId", short.class);
-                mapController.alterTerrain(p, terrainId, playerId);
-                break;
+                mapController.alterTerrain(p, trigger.getUserData("terrainId", short.class),
+                        trigger.getUserData("playerId", short.class));
+                return true;
 
             case COLLAPSE_HERO_GATE:
-                // TODO this
-                p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
-                break;
+                // STUB: collapse the hero gate room on the tile (1-based). Rooms can be captured
+                // (IRoomController.captured) and destroyed, but there is no "collapse" that plays
+                // the gate's own collapse sequence and removes the gate for good
+                logStub(trigger, "there is no hero gate collapse sequence");
+                return true;
 
             case SET_CREATURE_MOODS:
-                // TODO this
-                available = trigger.getUserData("available", short.class) != 0;
-                break;
+                levelInfo.setCreatureMoodsEnabled(trigger.getUserData("available", short.class) == 1);
+                return true;
 
             case SET_SYSTEM_MESSAGES:
-                // TODO this
-                available = trigger.getUserData("available", short.class) != 0;
-                break;
-
-            case CHANGE_ROOM_OWNER:
-                // TODO this
-                playerId = trigger.getUserData("playerId", short.class);
-                p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
-                break;
-
-            case SET_SLAPS_LIMIT:
-                // TODO this
-                value = trigger.getUserData("value", int.class); // 0 = Off
-                break;
+                levelInfo.setSystemMessagesEnabled(trigger.getUserData("available", short.class) == 1);
+                return true;
 
             case SET_TIMER_SPEECH:
-                // TODO this
-                available = trigger.getUserData("available", short.class) != 0;
-                break;
+                levelInfo.setTimerSpeechEnabled(trigger.getUserData("available", short.class) == 1);
+                return true;
+
+            case CHANGE_ROOM_OWNER:
+                p = new Point(trigger.getUserData("posX", int.class) - 1,
+                        trigger.getUserData("posY", int.class) - 1);
+                IRoomController room = mapController.getRoomControllerByCoordinates(p);
+                if (room != null) {
+                    room.captured(trigger.getUserData("playerId", short.class));
+                }
+                return true;
+
+            case DISPLAY_SLAB_OWNER:
+                // STUB: highlight the owner of a tile (or switch it off). There is no such
+                // highlight in the game's view
+                logStub(trigger, "the view has no tile owner highlight");
+                return true;
+
+            case DISPLAY_NEXT_ROOM_TYPE:
+                // STUB: GUI hint for the next room to build, the HUD has no such hint
+                logStub(trigger, "the HUD has no next room hint");
+                return true;
+
+            case TOGGLE_EFFECT_GENERATOR:
+                // STUB: switch a placed effect generator on/off by its ID. The effect generators are
+                // not addressable by their map ID after the level has been loaded
+                logStub(trigger, "effect generators can not be looked up by their map ID");
+                return true;
 
             default:
-                logger.log(Level.WARNING, "Trigger Action not supported!");
-                break;
+                // Send to action point, win/lose subobjective and modify creature pool are
+                // unhandled in the original as well
+                reportUnhandled("action", trigger);
+                return false;
         }
+    }
+
+    /**
+     * The player that the level scope actions (the ones that show something
+     * to somebody) are for. The level does not have a subject, the original
+     * addresses the local human player.
+     *
+     * @return the player ID
+     */
+    protected short getLocalPlayerId() {
+        return Player.KEEPER1_ID;
+    }
+
+    private void flashButton(TriggerActionData trigger, short playerId) {
+        TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
+                TriggerAction.MakeType.class);
+        short targetId = trigger.getUserData("targetId", short.class);
+        TriggerAction.ButtonType targetButtonType = null;
+        if (buttonType == TriggerAction.MakeType.MISC_BUTTON) {
+            targetButtonType = ConversionUtils.parseEnum(targetId, TriggerAction.ButtonType.class);
+        }
+        boolean available = trigger.getUserData("available", short.class) != 0;
+        int time = trigger.getUserData("value", int.class);
+        playerService.flashButton(buttonType, targetId, targetButtonType, available, time, playerId);
+    }
+
+    private void flashActionPoint(TriggerActionData trigger, short playerId) {
+        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
+        int time = trigger.getUserData("value", int.class);
+        boolean available = trigger.getUserData("available", short.class) != 0;
+        if (available) {
+            mapController.flashTiles(ap.getPoints(), playerId, time);
+        } else {
+            mapController.unFlashTiles(ap.getPoints(), playerId);
+        }
+    }
+
+    private void revealActionPoint(TriggerActionData trigger, short playerId) {
+        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
+        boolean conceal = trigger.getUserData("available", short.class) != 0;
+        if (conceal) {
+            mapController.concealTiles(ap.getPoints(), playerId);
+        } else {
+            mapController.revealTiles(ap.getPoints(), playerId);
+        }
+    }
+
+    protected void zoomToAP(short playerId, short actionPointId) {
+        ActionPoint ap = levelInfo.getActionPoint(actionPointId);
+        if (ap != null) {
+            playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
+        }
+    }
+
+    private void makeAvailable(TriggerActionData trigger) {
+        TriggerAction.MakeType flag = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
+                TriggerAction.MakeType.class);
+        boolean available = trigger.getUserData("available", short.class) != 0;
+        short playerId = trigger.getUserData("playerId", short.class);
+        short targetId = trigger.getUserData("targetId", short.class);
+        IKwdFile kwdFile = levelInfo.getLevelData();
+        IPlayerController playerController = getPlayerController(playerId);
+        switch (flag) {
+            case CREATURE ->
+                playerController.getCreatureControl().setTypeAvailable(kwdFile.getCreature(targetId), available);
+            case DOOR ->
+                playerController.getDoorControl().setTypeAvailable(kwdFile.getDoorById(targetId), available);
+            case KEEPER_SPELL ->
+                playerController.getSpellControl().setTypeAvailable(kwdFile.getKeeperSpellById(targetId), available);
+            case ROOM ->
+                playerController.getRoomControl().setTypeAvailable(kwdFile.getRoomById(targetId), available);
+            case TRAP ->
+                playerController.getTrapControl().setTypeAvailable(kwdFile.getTrapById(targetId), available);
+            default ->
+                logger.log(Level.WARNING, "Availability of {0} can not be set!", flag);
+        }
+    }
+
+    private void setFlag(TriggerActionData trigger) {
+        short flagId = trigger.getUserData("flagId", short.class);
+        EnumSet<FlagTargetValueActionType> flagType = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class),
+                FlagTargetValueActionType.class);
+        int value = trigger.getUserData("value", int.class);
+        if (flagType.contains(FlagTargetValueActionType.TARGET)) {
+
+            // The editor's "Level Score" source is the flag 128. The original reads past its flag
+            // array there (the low byte of the first timer), we read the score the editor means
+            value = (value == LEVEL_SCORE_FLAG_ID) ? levelInfo.getLevelScore() : getFlag(value);
+        }
+
+        if (flagId == LEVEL_SCORE_FLAG_ID) {
+            levelInfo.setLevelScore(getTargetValue(levelInfo.getLevelScore(), value, flagType));
+        } else if (flagId >= 0 && flagId < FLAG_COUNT) {
+
+            // The flags are bytes, the arithmetic wraps around
+            levelInfo.setFlag(flagId, getTargetValue(levelInfo.getFlag(flagId), value, flagType) & 0xFF);
+        }
+    }
+
+    /**
+     * Spawn a hero party. If the action is for an invasion party, and the
+     * party of that kind is still out there, nothing happens.
+     */
+    private void createHeroParty(TriggerActionData trigger) {
+        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        short partyId = trigger.getUserData("partyId", short.class);
+        PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
+        if (partyType != PartyType.NONE && isPartyOut(partyId)) {
+            return;
+        }
+        creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
+    }
+
+    private boolean isPartyOut(short partyId) {
+        IPartyController party = creaturesController.getParty(partyId);
+        if (party == null || !party.isCreated()) {
+            return false;
+        }
+        for (ICreatureController member : party.getActualMembers()) {
+            if (!member.isDead() && !member.isImprisoned() && !member.isUnconscious()
+                    && member.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Compare the value with the comparison type of the condition
+     *
+     * @param trigger the condition
+     * @param target the measured value
+     * @param value the value to compare to
+     * @return the result of the comparison, false if the condition has none
+     */
+    protected final boolean compare(TriggerGenericData trigger, float target, float value) {
+        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
+        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
+            return compare(target, comparisonType, value);
+        }
+        return false;
     }
 
     protected boolean compare(float target, TriggerGeneric.ComparisonType compare, float value) {
@@ -364,7 +655,43 @@ public class TriggerControl extends Control {
         }
 
         logger.log(Level.WARNING, "Unsupported target flag type {0}!", flagType);
-        return 0;
+        return base;
+    }
+
+    /**
+     * Read a flag. An index that is out of range reads 0 (the original reads
+     * whatever memory is next to the flags).
+     */
+    private int getFlag(int flagId) {
+        return (flagId >= 0 && flagId < FLAG_COUNT) ? levelInfo.getFlag(flagId) : 0;
+    }
+
+    private GameTimer getTimer(int timerId) {
+        return (timerId >= 0 && timerId < TIMER_COUNT) ? levelInfo.getTimer(timerId) : null;
+    }
+
+    private static int toTicks(float seconds) {
+
+        // Epsilon so that the float sums of 0.25s steps do not drop a tick
+        return (int) Math.floor(seconds * TICKS_PER_SECOND + 0.0001f);
+    }
+
+    /**
+     * Log, once per trigger, that no scope can handle the trigger
+     */
+    protected final void reportUnhandled(String kind, TriggerData trigger) {
+        if (reportedUnhandled.add(trigger.getId())) {
+            logger.log(Level.WARNING, "Unhandled Trigger {0} {1}", kind, trigger);
+        }
+    }
+
+    /**
+     * Log, once per trigger, that the action is a stub
+     */
+    protected final void logStub(TriggerActionData trigger, String reason) {
+        if (reportedUnhandled.add(trigger.getId())) {
+            logger.log(Level.WARNING, "Trigger Action {0} is not implemented: {1}", trigger, reason);
+        }
     }
 
     protected Keeper getPlayer(short playerId) {

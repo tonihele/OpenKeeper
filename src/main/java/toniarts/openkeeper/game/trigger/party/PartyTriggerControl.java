@@ -23,72 +23,107 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.creature.IPartyController;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
+/**
+ * The party scope. The tree of a hero party is dormant until the party is
+ * created, and then everything in it is one-shot. Forwards what it does not
+ * know to the level.
+ */
 public final class PartyTriggerControl extends TriggerControl {
 
     private final IPartyController partyController;
 
     public PartyTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId,
-            final IPartyController partyController) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
+            final IPartyController partyController, final PlayerService playerService) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, playerService, triggerId);
         this.partyController = partyController;
+
+        // Dormant until the party exists
+        setTreeArmed(false);
+    }
+
+    @Override
+    protected void updateControl(float tpf) {
+
+        // TODO: a party that is spawned again should arm the tree again so that it runs from the
+        // start. There is no notification about that, the party controller just stays created
+        if (!isArmed() && partyController.isCreated()) {
+            setTreeArmed(true);
+        }
+        super.updateControl(tpf);
+    }
+
+    /**
+     * The party trees are always walked with the repeat 1
+     */
+    @Override
+    protected short getRootRepeat() {
+        return 1;
     }
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        float target = 0;
-        int value = 0;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case PARTY_CREATED:
                 return partyController.isCreated();
 
             case PARTY_MEMBERS_KILLED:
-                short unknown = (short) trigger.getUserData("unknown");
-                value = (int) trigger.getUserData("value");
-                if (partyController.isCreated()) {
-                    for (ICreatureController creature : partyController.getActualMembers()) {
-                        if (creature.isDead()) {
-                            target++;
-                        }
-                    }
-                    break;
-                }
-                return false;
+                return compare(trigger, getDefinedCount() - countMembers(false), trigger.getUserData("value", int.class));
 
             case PARTY_MEMBERS_CAPTURED:
-                value = (int) trigger.getUserData("value");
-                break;
+
+                // A member that is dead, or that is no more with the good, is captured
+                return compare(trigger, getDefinedCount() - countMembers(true), trigger.getUserData("value", int.class));
 
             case PARTY_MEMBERS_INCAPACITATED:
-                unknown = (short) trigger.getUserData("unknown");
-                value = (int) trigger.getUserData("value");
-                if (partyController.isCreated()) {
-                    for (ICreatureController creature : partyController.getActualMembers()) {
-                        if (creature.isIncapacitated()) {
-                            target++;
-                        }
-                    }
-                    break;
-                }
-                return false;
+                return compare(trigger, getDefinedCount() - countAbleMembers(), trigger.getUserData("value", int.class));
 
             default:
                 return super.isActive(trigger);
         }
+    }
 
-        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-            result = compare(target, comparisonType, value);
+    /**
+     * How many members the party is defined with. Counts also the members
+     * that have not been spawned yet.
+     */
+    private int getDefinedCount() {
+        return partyController.getMembers().size();
+    }
+
+    /**
+     * Count the members that are alive
+     *
+     * @param onlyGood count only the ones that are still on the good side
+     */
+    private int countMembers(boolean onlyGood) {
+        int count = 0;
+        if (partyController.isCreated()) {
+            for (ICreatureController creature : partyController.getActualMembers()) {
+                if (!creature.isDead() && (!onlyGood || creature.getOwnerId() == Player.GOOD_PLAYER_ID)) {
+                    count++;
+                }
+            }
         }
+        return count;
+    }
 
-        return result;
+    private int countAbleMembers() {
+        int count = 0;
+        if (partyController.isCreated()) {
+            for (ICreatureController creature : partyController.getActualMembers()) {
+                if (!creature.isDead() && !creature.isIncapacitated()) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }
