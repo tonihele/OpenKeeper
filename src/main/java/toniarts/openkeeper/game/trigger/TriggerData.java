@@ -83,11 +83,11 @@ public abstract class TriggerData {
      * @return the 8 payload bytes (unsigned values), empty if not known
      */
     public short[] getPayload() {
-        return payload;
+        return payload.clone();
     }
 
     protected void setPayload(short[] payload) {
-        this.payload = payload;
+        this.payload = payload.clone();
     }
 
     public boolean isEnabled() {

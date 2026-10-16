@@ -255,47 +255,13 @@ public class TriggerControl extends Control {
      * @return true if the condition holds
      */
     protected boolean isActive(TriggerGenericData trigger) {
-        int target;
-        int value;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
-            case FLAG: {
-                short targetId = trigger.getUserData("targetId", short.class);
-                target = (targetId == LEVEL_SCORE_FLAG_ID) ? levelInfo.getLevelScore() : getFlag(targetId);
-                if ((trigger.getUserData("flag", short.class) & 1) != 0) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    value = getFlag(trigger.getUserData("flagId", short.class));
-                }
-                return compare(trigger, target, value);
-            }
+            case FLAG:
+                return isFlagActive(trigger);
 
-            case TIMER: {
-                short targetId = trigger.getUserData("targetId", short.class);
-                if (targetId == TIME_LIMIT_TIMER_ID) {
-                    Float timeLimit = levelInfo.getTimeLimit();
-                    target = (timeLimit != null) ? (int) Math.ceil(timeLimit * TICKS_PER_SECOND) : 0;
-                    return compare(trigger, target, trigger.getUserData("value", int.class) * TICKS_PER_SECOND);
-                }
-
-                // A timer that has never been started is never true, not even for "elapsed >= 0"
-                GameTimer timer = getTimer(targetId);
-                if (timer == null || !timer.isActive()) {
-                    return false;
-                }
-                target = toTicks(timer.getTime());
-                if ((trigger.getUserData("flag", short.class) & 1) != 0) {
-                    value = trigger.getUserData("value", int.class) * TICKS_PER_SECOND;
-                } else {
-                    GameTimer other = getTimer(trigger.getUserData("timerId", short.class));
-                    if (other == null || !other.isActive()) {
-                        return false;
-                    }
-                    value = toTicks(other.getTime());
-                }
-                return compare(trigger, target, value);
-            }
+            case TIMER:
+                return isTimerActive(trigger);
 
             case LEVEL_TIME:
                 return compare(trigger, toTicks((float) gameTimer.getGameTime()),
@@ -325,6 +291,45 @@ public class TriggerControl extends Control {
         }
     }
 
+    private boolean isFlagActive(TriggerGenericData trigger) {
+        short targetId = trigger.getUserData("targetId", short.class);
+        int target = (targetId == LEVEL_SCORE_FLAG_ID) ? levelInfo.getLevelScore() : getFlag(targetId);
+        int value;
+        if ((trigger.getUserData("flag", short.class) & 1) != 0) {
+            value = trigger.getUserData("value", int.class);
+        } else {
+            value = getFlag(trigger.getUserData("flagId", short.class));
+        }
+        return compare(trigger, target, value);
+    }
+
+    private boolean isTimerActive(TriggerGenericData trigger) {
+        short targetId = trigger.getUserData("targetId", short.class);
+        if (targetId == TIME_LIMIT_TIMER_ID) {
+            Float timeLimit = levelInfo.getTimeLimit();
+            int limit = (timeLimit != null) ? (int) Math.ceil(timeLimit * TICKS_PER_SECOND) : 0;
+            return compare(trigger, limit, trigger.getUserData("value", int.class) * TICKS_PER_SECOND);
+        }
+
+        // A timer that has never been started is never true, not even for "elapsed >= 0"
+        GameTimer timer = getTimer(targetId);
+        if (timer == null || !timer.isActive()) {
+            return false;
+        }
+        int target = toTicks(timer.getTime());
+        int value;
+        if ((trigger.getUserData("flag", short.class) & 1) != 0) {
+            value = trigger.getUserData("value", int.class) * TICKS_PER_SECOND;
+        } else {
+            GameTimer other = getTimer(trigger.getUserData("timerId", short.class));
+            if (other == null || !other.isActive()) {
+                return false;
+            }
+            value = toTicks(other.getTime());
+        }
+        return compare(trigger, target, value);
+    }
+
     /**
      * Run an action in this scope.
      *
@@ -334,38 +339,9 @@ public class TriggerControl extends Control {
      * walk, this is also what the original does
      */
     protected boolean doAction(TriggerActionData trigger) {
-        TriggerAction.ActionType type = trigger.getType();
-        switch (type) {
-
+        switch (trigger.getType()) {
             case CREATE_CREATURE:
-                short creatureId = trigger.getUserData("creatureId", short.class);
-                short playerId = trigger.getUserData("playerId", short.class);
-                short level = trigger.getUserData("level", short.class);
-                EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
-                Point p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
-                // STUB: the creature flags (will fight, dies instantly, will be attacked, return to
-                // lair, free friends on jailbreak, act as dropped, start dying). ICreaturesController
-                // hands back only an entity ID and the creature controller has no setters for these
-                // behaviours yet, so they can not be applied after the spawn.
-                if (!flags.isEmpty()) {
-                    logStub(trigger, "creature flags " + flags + " are not applied");
-                }
-                creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
-                return true;
-
-            case CREATE_PORTAL_GEM:
-                // STUB: needs to create a Portal Gem object (object 28 for player 1 in every shipped
-                // record) on a tile. The trigger controls do not have access to the objects
-                // controller, only the creature and the map controllers
-                logStub(trigger, "the objects controller is not available to the triggers");
-                return true;
-
-            case DISPLAY_OBJECTIVE:
-                // STUB (partly): the objective text of the local player is not shown, the game has no
-                // service for the objective panel text. Only the "zoom to action point" part works.
-                logStub(trigger, "the objective text is not shown");
-                zoomToAP(getLocalPlayerId(), trigger.getUserData("actionPointId", short.class));
+                createCreature(trigger);
                 return true;
 
             case INFORMATION:
@@ -391,6 +367,43 @@ public class TriggerControl extends Control {
                 levelInfo.setTimeLimit(trigger.getUserData("value", int.class));
                 return true;
 
+            case CREATE_HERO_PARTY:
+                createHeroParty(trigger);
+                return true;
+
+            case SET_ALLIANCE:
+                setAlliance(trigger);
+                return true;
+
+            case ALTER_TERRAIN_TYPE:
+                Point p = new Point(trigger.getUserData("posX", int.class) - 1,
+                        trigger.getUserData("posY", int.class) - 1);
+                mapController.alterTerrain(p, trigger.getUserData("terrainId", short.class),
+                        trigger.getUserData("playerId", short.class));
+                return true;
+
+            case CHANGE_ROOM_OWNER:
+                changeRoomOwner(trigger);
+                return true;
+
+            default:
+                return doPresentationAction(trigger);
+        }
+    }
+
+    /**
+     * The actions that show something to somebody, or switch a setting of the
+     * level
+     */
+    private boolean doPresentationAction(TriggerActionData trigger) {
+        switch (trigger.getType()) {
+            case DISPLAY_OBJECTIVE:
+                // STUB (partly): the objective text of the local player is not shown, the game has no
+                // service for the objective panel text. Only the "zoom to action point" part works.
+                logStub(trigger, "the objective text is not shown");
+                zoomToAP(getLocalPlayerId(), trigger.getUserData("actionPointId", short.class));
+                return true;
+
             case FLASH_BUTTON:
                 flashButton(trigger, getLocalPlayerId());
                 return true;
@@ -401,34 +414,6 @@ public class TriggerControl extends Control {
 
             case REVEAL_ACTION_POINT:
                 revealActionPoint(trigger, getLocalPlayerId());
-                return true;
-
-            case CREATE_HERO_PARTY:
-                createHeroParty(trigger);
-                return true;
-
-            case SET_ALLIANCE:
-                short playerOneId = trigger.getUserData("playerOneId", short.class);
-                short playerTwoId = trigger.getUserData("playerTwoId", short.class);
-                if (trigger.getUserData("available", short.class) == 0) { // 0 = Create, !0 = Break
-                    gameController.createAlliance(playerOneId, playerTwoId);
-                } else {
-                    gameController.breakAlliance(playerOneId, playerTwoId);
-                }
-                return true;
-
-            case ALTER_TERRAIN_TYPE:
-                p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
-                mapController.alterTerrain(p, trigger.getUserData("terrainId", short.class),
-                        trigger.getUserData("playerId", short.class));
-                return true;
-
-            case COLLAPSE_HERO_GATE:
-                // STUB: collapse the hero gate room on the tile (1-based). Rooms can be captured
-                // (IRoomController.captured) and destroyed, but there is no "collapse" that plays
-                // the gate's own collapse sequence and removes the gate for good
-                logStub(trigger, "there is no hero gate collapse sequence");
                 return true;
 
             case SET_CREATURE_MOODS:
@@ -443,37 +428,85 @@ public class TriggerControl extends Control {
                 levelInfo.setTimerSpeechEnabled(trigger.getUserData("available", short.class) == 1);
                 return true;
 
-            case CHANGE_ROOM_OWNER:
-                p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
-                IRoomController room = mapController.getRoomControllerByCoordinates(p);
-                if (room != null) {
-                    room.captured(trigger.getUserData("playerId", short.class));
-                }
-                return true;
-
-            case DISPLAY_SLAB_OWNER:
-                // STUB: highlight the owner of a tile (or switch it off). There is no such
-                // highlight in the game's view
-                logStub(trigger, "the view has no tile owner highlight");
-                return true;
-
-            case DISPLAY_NEXT_ROOM_TYPE:
-                // STUB: GUI hint for the next room to build, the HUD has no such hint
-                logStub(trigger, "the HUD has no next room hint");
-                return true;
-
-            case TOGGLE_EFFECT_GENERATOR:
-                // STUB: switch a placed effect generator on/off by its ID. The effect generators are
-                // not addressable by their map ID after the level has been loaded
-                logStub(trigger, "effect generators can not be looked up by their map ID");
-                return true;
-
             default:
-                // Send to action point, win/lose subobjective and modify creature pool are
-                // unhandled in the original as well
-                reportUnhandled("action", trigger);
-                return false;
+                return doStubAction(trigger);
+        }
+    }
+
+    /**
+     * The actions that are not implemented. They count as handled, so they do
+     * not get retried. What nobody handles is reported.
+     */
+    private boolean doStubAction(TriggerActionData trigger) {
+        String reason = switch (trigger.getType()) {
+            // STUB: needs to create a Portal Gem object (object 28 for player 1 in every shipped
+            // record) on a tile. The trigger controls do not have access to the objects
+            // controller, only the creature and the map controllers
+            case CREATE_PORTAL_GEM ->
+                "the objects controller is not available to the triggers";
+            // STUB: collapse the hero gate room on the tile (1-based). Rooms can be captured
+            // (IRoomController.captured) and destroyed, but there is no "collapse" that plays
+            // the gate's own collapse sequence and removes the gate for good
+            case COLLAPSE_HERO_GATE ->
+                "there is no hero gate collapse sequence";
+            // STUB: highlight the owner of a tile (or switch it off). There is no such
+            // highlight in the game's view
+            case DISPLAY_SLAB_OWNER ->
+                "the view has no tile owner highlight";
+            // STUB: GUI hint for the next room to build, the HUD has no such hint
+            case DISPLAY_NEXT_ROOM_TYPE ->
+                "the HUD has no next room hint";
+            // STUB: switch a placed effect generator on/off by its ID. The effect generators are
+            // not addressable by their map ID after the level has been loaded
+            case TOGGLE_EFFECT_GENERATOR ->
+                "effect generators can not be looked up by their map ID";
+            default ->
+                null;
+        };
+        if (reason == null) {
+
+            // Send to action point, win/lose subobjective and modify creature pool are
+            // unhandled in the original as well
+            reportUnhandled("action", trigger);
+            return false;
+        }
+        logStub(trigger, reason);
+        return true;
+    }
+
+    private void createCreature(TriggerActionData trigger) {
+        short creatureId = trigger.getUserData("creatureId", short.class);
+        short playerId = trigger.getUserData("playerId", short.class);
+        short level = trigger.getUserData("level", short.class);
+        EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
+        Point p = new Point(trigger.getUserData("posX", int.class) - 1,
+                trigger.getUserData("posY", int.class) - 1);
+        // STUB: the creature flags (will fight, dies instantly, will be attacked, return to
+        // lair, free friends on jailbreak, act as dropped, start dying). ICreaturesController
+        // hands back only an entity ID and the creature controller has no setters for these
+        // behaviours yet, so they can not be applied after the spawn.
+        if (!flags.isEmpty()) {
+            logStub(trigger, "creature flags " + flags + " are not applied");
+        }
+        creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
+    }
+
+    private void setAlliance(TriggerActionData trigger) {
+        short playerOneId = trigger.getUserData("playerOneId", short.class);
+        short playerTwoId = trigger.getUserData("playerTwoId", short.class);
+        if (trigger.getUserData("available", short.class) == 0) { // 0 = Create, !0 = Break
+            gameController.createAlliance(playerOneId, playerTwoId);
+        } else {
+            gameController.breakAlliance(playerOneId, playerTwoId);
+        }
+    }
+
+    private void changeRoomOwner(TriggerActionData trigger) {
+        Point p = new Point(trigger.getUserData("posX", int.class) - 1,
+                trigger.getUserData("posY", int.class) - 1);
+        IRoomController room = mapController.getRoomControllerByCoordinates(p);
+        if (room != null) {
+            room.captured(trigger.getUserData("playerId", short.class));
         }
     }
 

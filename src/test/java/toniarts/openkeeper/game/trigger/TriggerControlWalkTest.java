@@ -38,7 +38,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  * side effects, repeat 1 = once and anything else = always, events only match
  * at the top level, unhandled actions are retried.
  */
-public class TriggerControlWalkTest {
+class TriggerControlWalkTest {
 
     private static final short VALUE_EQUAL = 0x02 | 0x08; // Constant value, "="
     private static final short VALUE_PLUS = 0x02 | 0x10; // Constant value, "+="
@@ -153,7 +153,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void siblingsSeeEachOthersSideEffectsInTheSameWalk() {
+    void siblingsSeeEachOthersSideEffectsInTheSameWalk() {
 
         // [Set flag 5 = 1], [Flag 5 == 1 -> Set flag 6 = 1]
         setFlag(1, 2, 5, VALUE_EQUAL, 1);
@@ -167,7 +167,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void repeatOneRunsTheActionsOnlyOnce() {
+    void repeatOneRunsTheActionsOnlyOnce() {
 
         // Flag 0 == 0 (repeat 1) -> flag 1 += 1
         flagIs(1, 0, 2, 1, 0, 0);
@@ -182,7 +182,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void otherRepeatsRunOnEveryWalk() {
+    void otherRepeatsRunOnEveryWalk() {
 
         // 255 is "always", and so are 0 and 2 (the original never counts the repeat down)
         flagIs(1, 0, 2, 255, 0, 0);
@@ -205,7 +205,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void conditionWithRepeatZeroIsDormant() {
+    void conditionWithRepeatZeroIsDormant() {
         flagIs(1, 0, 2, 0, 0, 0);
         setFlag(2, 0, 1, VALUE_EQUAL, 1);
 
@@ -215,7 +215,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void flagsWrapAroundLikeBytes() {
+    void flagsWrapAroundLikeBytes() {
         flags[1] = 255;
         setFlag(1, 0, 1, VALUE_PLUS, 1);
 
@@ -225,7 +225,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void timerThatHasNeverBeenStartedIsNeverTrue() {
+    void timerThatHasNeverBeenStartedIsNeverTrue() {
 
         // Timer 3 >= 0 seconds -> flag 1 = 1
         timerAtLeast(1, 0, 2, 255, 3, 0);
@@ -241,7 +241,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void timerComparesOnTicks() {
+    void timerComparesOnTicks() {
 
         // Timer 3 >= 10 seconds: false at 9.75 s, true at 10 s
         timerAtLeast(1, 0, 2, 255, 3, 10);
@@ -261,7 +261,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void eventsMatchOnlyAtTheTopLevelOfTheTree() {
+    void eventsMatchOnlyAtTheTopLevelOfTheTree() {
 
         // Top level: [Killed -> flag 1 = 1], nested: [Flag 0 == 0 -> [Killed -> flag 2 = 1]]
         event(1, 3, 2, 1, TriggerGeneric.TargetType.CREATURE_KILLED);
@@ -282,7 +282,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void eventSearchStopsAtTheFirstAction() {
+    void eventSearchStopsAtTheFirstAction() {
 
         // [Set flag 3 = 1], [Killed -> flag 1 = 1]
         setFlag(1, 2, 3, VALUE_EQUAL, 1);
@@ -296,7 +296,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void unhandledActionStaysEnabledForRetry() {
+    void unhandledActionStaysEnabledForRetry() {
 
         // Flag 0 == 0 (repeat 1) -> [Send to action point]. Nobody handles that
         flagIs(1, 0, 2, 1, 0, 0);
@@ -310,7 +310,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void handledOneShotActionDisablesItself() {
+    void handledOneShotActionDisablesItself() {
         flagIs(1, 0, 2, 1, 0, 0);
         setFlag(2, 0, 1, VALUE_EQUAL, 1);
         TriggerControl control = control(1);
@@ -322,7 +322,7 @@ public class TriggerControlWalkTest {
     }
 
     @Test
-    public void armedTreeRunsEverythingOnce() {
+    void armedTreeRunsEverythingOnce() {
 
         // A party tree: dormant, and when armed all the repeats are 1 whatever the map says
         flagIs(1, 0, 2, 255, 0, 0);

@@ -61,6 +61,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -2345,6 +2346,39 @@ public final class KwdFile implements IKwdFile, IKwdMap {
         }
     }
 
+    private static final Set<TriggerGeneric.TargetType> NO_PARAMETER_CONDITIONS = EnumSet.of(
+            TriggerGeneric.TargetType.LEVEL_PAY_DAY,
+            TriggerGeneric.TargetType.CREATURE_KILLED,
+            TriggerGeneric.TargetType.CREATURE_SLAPPED,
+            TriggerGeneric.TargetType.CREATURE_ATTACKED,
+            TriggerGeneric.TargetType.CREATURE_IMPRISONED,
+            TriggerGeneric.TargetType.CREATURE_TORTURED,
+            TriggerGeneric.TargetType.CREATURE_CONVERTED,
+            TriggerGeneric.TargetType.CREATURE_CLAIMED,
+            TriggerGeneric.TargetType.CREATURE_ANGRY,
+            TriggerGeneric.TargetType.CREATURE_AFRAID,
+            TriggerGeneric.TargetType.CREATURE_STEALS,
+            TriggerGeneric.TargetType.CREATURE_LEAVES,
+            TriggerGeneric.TargetType.CREATURE_STUNNED,
+            TriggerGeneric.TargetType.CREATURE_DYING,
+            TriggerGeneric.TargetType.GUI_TRANSITION_ENDS,
+            TriggerGeneric.TargetType.CREATURE_PICKED_UP,
+            TriggerGeneric.TargetType.CREATURE_SACKED,
+            TriggerGeneric.TargetType.CREATURE_PICKS_UP_PORTAL_GEM,
+            TriggerGeneric.TargetType.CREATURE_HUNGER_SATED,
+            TriggerGeneric.TargetType.PARTY_CREATED);
+
+    private static final Set<TriggerAction.ActionType> NO_PARAMETER_ACTIONS = EnumSet.of(
+            TriggerAction.ActionType.ATTACH_PORTAL_GEM,
+            TriggerAction.ActionType.MAKE_HUNGRY,
+            TriggerAction.ActionType.REMOVE_FROM_MAP,
+            TriggerAction.ActionType.ZOOM_TO,
+            TriggerAction.ActionType.WIN_GAME,
+            TriggerAction.ActionType.LOSE_GAME,
+            TriggerAction.ActionType.FORCE_FIRST_PERSON,
+            TriggerAction.ActionType.LOSE_SUBOBJECTIVE,
+            TriggerAction.ActionType.WIN_SUBOBJECTIVE);
+
     /**
      * Reads the *Triggers.kld
      *
@@ -2373,477 +2407,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
             // Figure out the type
             switch (triggerTag[0]) {
-                case TRIGGER_GENERIC: {
-                    reader.mark();
-                    reader.skipBytes(triggerTag[1] - 2);
-
-                    trigger = new TriggerGeneric(this);
-                    ((TriggerGeneric) trigger).setType(reader.readByteAsEnum(TriggerGeneric.TargetType.class));
-                    trigger.setRepeatTimes(reader.readUnsignedByte());
-
-                    // Keep the raw payload for the diagnostics, not all of it is parsed to the fields
-                    reader.reset();
-                    reader.mark();
-                    short[] payload = new short[8];
-                    for (int p = 0; p < payload.length; p++) {
-                        payload[p] = reader.readUnsignedByte();
-                    }
-                    trigger.setPayload(payload);
-                    reader.reset();
-                    switch (((TriggerGeneric) trigger).getType()) {
-                        case AP_CONGREGATE_IN:
-                        case AP_POSESSED_CREATURE_ENTERS:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // creatureId, objectId
-                            trigger.setUserData("targetType", reader.readUnsignedByte()); // 3 = Creature, 6 = Object
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case AP_SLAB_TYPES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("terrainId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(1); // reader.skipBytes(1); // 0 = None
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case AP_TAG_PART_OF:
-                        case AP_TAG_ALL_OF:
-                        case AP_CLAIM_PART_OF:
-                        case AP_CLAIM_ALL_OF:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            // trigger.setUserData("targetId", reader.readUnsignedByte()); // 0 = None
-                            // trigger.setUserData("targetType", reader.readUnsignedByte()); // 0 = None
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PLAYER_DUNGEON_BREACHED:
-                        case PLAYER_ENEMY_BREACHED:
-                            trigger.setUserData("playerId", reader.readUnsignedByte()); // 0 = Any
-                            reader.readAndCheckNull(7); // reader.skipBytes(7);
-                            break;
-
-                        case PLAYER_KILLED:
-                            trigger.setUserData("playerId", reader.readUnsignedByte()); // 0 = Any
-                            reader.readAndCheckNull(3); // reader.skipBytes(7);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
-                            break;
-
-                        case PLAYER_CREATURE_PICKED_UP:
-                        case PLAYER_CREATURE_SLAPPED:
-                        case PLAYER_CREATURE_SACKED:
-                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
-                            reader.readAndCheckNull(7); // reader.skipBytes(7);
-                            break;
-
-                        case PLAYER_CREATURE_DROPPED:
-                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
-                            trigger.setUserData("roomId", reader.readUnsignedByte()); // 0 = Any
-                            reader.readAndCheckNull(6); // reader.skipBytes(6);
-                            break;
-
-                        case PLAYER_CREATURES:
-                        case PLAYER_HAPPY_CREATURES:
-                        case PLAYER_ANGRY_CREATURES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("creatureId", reader.readUnsignedByte());
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PLAYER_CREATURES_KILLED:
-                        case PLAYER_KILLS_CREATURES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // playerId
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PLAYER_ROOMS:
-                        case PLAYER_ROOM_SLABS:
-                        case PLAYER_ROOM_SIZE:
-                        case PLAYER_ROOM_FURNITURE:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("roomId", reader.readUnsignedByte());
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PLAYER_DOORS:
-                        case PLAYER_TRAPS:
-                        case PLAYER_KEEPER_SPELL:
-                        case PLAYER_DESTROYS:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // doorId, trapId, keeperSpellId,
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PLAYER_SLAPS:
-                        case PLAYER_GOLD:
-                        case PLAYER_GOLD_MINED:
-                        case PLAYER_MANA:
-                        case PLAYER_CREATURES_GROUPED:
-                        case PLAYER_CREATURES_DYING:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            reader.readAndCheckNull(1); // reader.skipBytes(1);
-                            // trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PLAYER_CREATURES_AT_LEVEL:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            // FIXME some bug in editor
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0, must be a level
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte()); // level also
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case LEVEL_PAY_DAY:
-                        case CREATURE_KILLED:
-                        case CREATURE_SLAPPED:
-                        case CREATURE_ATTACKED:
-                        case CREATURE_IMPRISONED:
-                        case CREATURE_TORTURED:
-                        case CREATURE_CONVERTED:
-                        case CREATURE_CLAIMED:
-                        case CREATURE_ANGRY:
-                        case CREATURE_AFRAID:
-                        case CREATURE_STEALS:
-                        case CREATURE_LEAVES:
-                        case CREATURE_STUNNED:
-                        case CREATURE_DYING:
-                        case GUI_TRANSITION_ENDS:
-                        case CREATURE_PICKED_UP:
-                        case CREATURE_SACKED:
-                        case CREATURE_PICKS_UP_PORTAL_GEM:
-                        case CREATURE_HUNGER_SATED:
-                        case PARTY_CREATED:
-                            reader.readAndCheckNull(8); // reader.skipBytes(8);
-                            break;
-
-                        case CREATURE_CREATED:
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
-                            break;
-
-                        case LEVEL_PLAYED:
-                        case PARTY_MEMBERS_CAPTURED:
-                        case CREATURE_EXPERIENCE_LEVEL:
-                        case CREATURE_GOLD_HELD:
-                        case CREATURE_HEALTH:
-                        case LEVEL_TIME:
-                        case LEVEL_CREATURES:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case PARTY_MEMBERS_KILLED:
-                        case PARTY_MEMBERS_INCAPACITATED:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("unknown", reader.readUnsignedByte()); // FIXME unknown value
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case GUI_BUTTON_PRESSED:
-                            // Misc Button = 0, Room = 1, Creature = 2, Door = 3, Trap = 4, Keeper Spell = 5
-                            trigger.setUserData("targetType", reader.readUnsignedByte());
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // buttonId, roomId, creatureId ...
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
-                            break;
-
-                        case FLAG:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // flagId
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
-                            trigger.setUserData("flagId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        case TIMER:
-                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // timerId
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
-                            trigger.setUserData("timerId", reader.readUnsignedByte());
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            break;
-
-                        default:
-                            reader.readAndCheckNull(8); // reader.skipBytes(8);
-                            logger.log(Level.WARNING, "Unsupported Type of TriggerGeneric");
-                            break;
-
-                    }
-
-                    trigger.setId(reader.readUnsignedShort());
-                    trigger.setIdNext(reader.readUnsignedShort()); // SiblingID
-                    trigger.setIdChild(reader.readUnsignedShort()); // ChildID
-
-                    reader.skipBytes(2);
-                    break;
-                }
-                case TRIGGER_ACTION: {
-
-                    reader.mark();
-                    reader.skipBytes(triggerTag[1] - 2);
-
-                    trigger = new TriggerAction(this);
-                    ((TriggerAction) trigger).setType(reader.readByteAsEnum(TriggerAction.ActionType.class));
-                    trigger.setRepeatTimes(reader.readUnsignedByte());
-
-                    // Keep the raw payload for the diagnostics, not all of it is parsed to the fields
-                    reader.reset();
-                    reader.mark();
-                    short[] payload = new short[8];
-                    for (int p = 0; p < payload.length; p++) {
-                        payload[p] = reader.readUnsignedByte();
-                    }
-                    trigger.setPayload(payload);
-                    reader.reset();
-                    switch (((TriggerAction) trigger).getType()) {
-                        // in levels triggers
-                        case ALTER_TERRAIN_TYPE:
-                            trigger.setUserData("terrainId", reader.readUnsignedByte());
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("posX", reader.readUnsignedShort());
-                            trigger.setUserData("posY", reader.readUnsignedShort());
-                            break;
-
-                        case COLLAPSE_HERO_GATE:
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            trigger.setUserData("posX", reader.readUnsignedShort());
-                            trigger.setUserData("posY", reader.readUnsignedShort());
-                            break;
-
-                        case CHANGE_ROOM_OWNER:
-                            reader.readAndCheckNull(1); // reader.skipBytes(1);
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("posX", reader.readUnsignedShort());
-                            trigger.setUserData("posY", reader.readUnsignedShort());
-                            break;
-
-                        case SET_ALLIANCE:
-                            trigger.setUserData("playerOneId", reader.readUnsignedByte());
-                            trigger.setUserData("playerTwoId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Create, !0 = Break
-                            reader.readAndCheckNull(5); // reader.skipBytes(5);
-                            break;
-
-                        case SET_CREATURE_MOODS:
-                        case SET_SYSTEM_MESSAGES:
-                        case SET_TIMER_SPEECH:
-                        case SET_WIDESCREEN_MODE:
-                        case ALTER_SPEED:  // 0 = Walk, !0 = Run
-                        case SET_FIGHT_FLAG: // 0 = Don`t Fight, !0 = Fight
-                        case SET_PORTAL_STATUS: // 0 = Closed, !0 = Open
-                            trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
-                            reader.readAndCheckNull(7); // reader.skipBytes(7);
-                            break;
-
-                        case SET_SLAPS_LIMIT:
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes, 0 = Off
-                            break;
-
-                        case INITIALIZE_TIMER:
-                            trigger.setUserData("timerId", reader.readUnsignedByte()); // timerId + 1, 16 - Time Limit
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes, only for Time limit (max 100 s)
-                            break;
-
-                        case FLAG:
-                            trigger.setUserData("flagId", reader.readUnsignedByte()); // flagId + 1, 128 - level score
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // flag = Equal = 12 | Plus = 20 | Minus = 36
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes
-                            break;
-
-                        case MAKE:
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("type", reader.readUnsignedByte()); // type = TriggerAction.MakeType.
-                            trigger.setUserData("targetId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Unavailable, !0 = Available
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            break;
-                        // in player triggers
-                        case DISPLAY_SLAB_OWNER:
-                            // FIXME Show wrong values in editor
-                            trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
-                            //((TriggerAction) trigger).setActionTargetValue1(ConversionUtils.toUnsignedInteger(reader)); // limit 4 bytes
-                            // 1635984
-                            reader.readAndCheckNull(7); // reader.skipBytes(7);
-                            break;
-
-                        case DISPLAY_NEXT_ROOM_TYPE: // 0 = Off or roomId
-                        case MAKE_OBJECTIVE: // 0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert
-                        case ZOOM_TO_ACTION_POINT: // actionPointId
-                            trigger.setUserData("targetId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(7); // reader.skipBytes(7);
-                            break;
-
-                        case DISPLAY_OBJECTIVE:
-                            trigger.setUserData("objectiveId", reader.readUnsignedInteger()); // objectiveId, limit 32767
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte()); // if != 0 => Zoom To AP = this
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            break;
-
-                        case PLAY_SPEECH:
-                            trigger.setUserData("speechId", reader.readUnsignedInteger()); // speechId, limit 32767
-                            trigger.setUserData("text", reader.readUnsignedByte()); // 0 = Show Text, !0 = Without text
-                            trigger.setUserData("introduction", reader.readUnsignedByte()); // 0 = No Introduction, !0 = Introduction
-                            trigger.setUserData("pathId", reader.readUnsignedShort()); // pathId
-                            break;
-
-                        case DISPLAY_TEXT_STRING:
-                            trigger.setUserData("textId", reader.readUnsignedInteger()); // textId, limit 32767
-                            // FIXME Maybe Zoom to AP X
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            break;
-                        // creature triggers
-                        case ATTACH_PORTAL_GEM:
-                        case MAKE_HUNGRY:
-                        case REMOVE_FROM_MAP:
-                        case ZOOM_TO:
-                        case WIN_GAME:
-                        case LOSE_GAME:
-                        case FORCE_FIRST_PERSON:
-                        case LOSE_SUBOBJECTIVE:
-                        case WIN_SUBOBJECTIVE:
-                            reader.readAndCheckNull(8); // reader.skipBytes(8); // no other parameters
-                            break;
-
-                        case SET_MUSIC_LEVEL: // level
-                        case SHOW_HEALTH_FLOWER: // limit Seconds
-                            trigger.setUserData("value", reader.readUnsignedInteger());
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            break;
-
-                        case SET_TIME_LIMIT:
-                            trigger.setUserData("timerId", reader.readUnsignedByte()); // timerId + 1, 16 - Time Limit
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
-                            break;
-
-                        case FOLLOW_CAMERA_PATH:
-                            trigger.setUserData("pathId", reader.readUnsignedByte());
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Show Ceiling, !0 = Hide Ceiling
-                            reader.readAndCheckNull(5); // reader.skipBytes(5);
-                            break;
-
-                        case FLASH_BUTTON:
-                            trigger.setUserData("type", reader.readUnsignedByte()); // TriggerAction.MakeType.
-                            trigger.setUserData("targetId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 & !time = Until selected
-                            reader.readAndCheckNull(1); // reader.skipBytes(1);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
-                            break;
-
-                        case FLASH_ACTION_POINT:
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 & !time = Until switched off
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
-                            break;
-
-                        case REVEAL_ACTION_POINT:
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Reveal, !0 = Conceal
-                            reader.readAndCheckNull(6); // reader.skipBytes(6);
-                            break;
-
-                        case ROTATE_AROUND_ACTION_POINT:
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Relative, !0 = Absolute
-                            trigger.setUserData("angle", reader.readUnsignedShort()); // degrees
-                            trigger.setUserData("time", reader.readUnsignedInteger()); // seconds
-                            break;
-
-                        case CREATE_CREATURE:
-                            trigger.setUserData("creatureId", reader.readUnsignedByte());
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("level", reader.readUnsignedByte());
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // TriggerAction.CreatureFlag.
-                            trigger.setUserData("posX", reader.readUnsignedShort());
-                            trigger.setUserData("posY", reader.readUnsignedShort());
-                            break;
-
-                        case SET_OBJECTIVE:
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            trigger.setUserData("type", reader.readUnsignedByte()); // Creature.JobType
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("actionPointId", reader.readUnsignedInteger()); // for type = SEND_TO_ACTION_POINT
-                            break;
-
-                        case CREATE_HERO_PARTY:
-                            trigger.setUserData("partyId", reader.readUnsignedByte()); // partyId + 1
-                            trigger.setUserData("type", reader.readUnsignedByte()); // 0 = None, 1 = IP, 2 = IP Random
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte()); //
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            break;
-
-                        case TOGGLE_EFFECT_GENERATOR:
-                            trigger.setUserData("generatorId", reader.readUnsignedByte()); // generatorId + 1
-                            trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 = On
-                            reader.readAndCheckNull(6); // reader.skipBytes(6);
-                            break;
-
-                        case GENERATE_CREATURE:
-                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // creatureId + 1
-                            trigger.setUserData("level", reader.readUnsignedByte());
-                            reader.readAndCheckNull(6); // reader.skipBytes(6);
-                            break;
-
-                        case INFORMATION:
-                            trigger.setUserData("informationId", reader.readUnsignedInteger());
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            break;
-
-                        case SEND_TO_AP:
-                            reader.readAndCheckNull(4); // reader.skipBytes(4);
-                            trigger.setUserData("actionPointId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(3); // reader.skipBytes(3);
-                            break;
-
-                        case CREATE_PORTAL_GEM:
-                            trigger.setUserData("objectId", reader.readUnsignedByte());
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
-                            reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("posX", reader.readUnsignedShort()); // posX + 1
-                            trigger.setUserData("posY", reader.readUnsignedShort()); // posY + 1
-                            break;
-
-                        default:
-                            reader.readAndCheckNull(8); // reader.skipBytes(8);
-                            logger.log(Level.WARNING, "Unsupported Type of TriggerAction");
-                            break;
-                    }
-
-                    trigger.setId(reader.readUnsignedShort()); // ID
-                    trigger.setIdNext(reader.readUnsignedShort()); // SiblingID
-                    trigger.setIdChild(reader.readUnsignedShort()); // ChildID
-
-                    reader.skipBytes(2);
-                    break;
-                }
-                default: {
+                case TRIGGER_GENERIC -> trigger = readGenericTrigger(reader, triggerTag[1]);
+                case TRIGGER_ACTION -> trigger = readActionTrigger(reader, triggerTag[1]);
+                default -> {
 
                     // Just skip the bytes
                     reader.skipBytes(triggerTag[1]);
@@ -2860,6 +2426,524 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             checkOffset(triggerTag[1], reader, offset);
         }
     }
+
+    private TriggerGeneric readGenericTrigger(IResourceChunkReader reader, int size) throws IOException {
+        reader.mark();
+        reader.skipBytes(size - 2);
+
+        TriggerGeneric trigger = new TriggerGeneric(this);
+        trigger.setType(reader.readByteAsEnum(TriggerGeneric.TargetType.class));
+        trigger.setRepeatTimes(reader.readUnsignedByte());
+        readPayload(trigger, reader);
+
+        readGenericParameters(trigger, reader);
+
+        readTriggerIds(trigger, reader);
+        return trigger;
+    }
+
+    private TriggerAction readActionTrigger(IResourceChunkReader reader, int size) throws IOException {
+        reader.mark();
+        reader.skipBytes(size - 2);
+
+        TriggerAction trigger = new TriggerAction(this);
+        trigger.setType(reader.readByteAsEnum(TriggerAction.ActionType.class));
+        trigger.setRepeatTimes(reader.readUnsignedByte());
+        readPayload(trigger, reader);
+
+        readActionParameters(trigger, reader);
+
+        readTriggerIds(trigger, reader);
+        return trigger;
+    }
+
+    /**
+     * Keep the raw payload for the diagnostics, not all of it is parsed to the
+     * fields. Rewinds the reader to the mark, and leaves it at the mark.
+     */
+    private static void readPayload(Trigger trigger, IResourceChunkReader reader) throws IOException {
+        reader.reset();
+        reader.mark();
+        short[] payload = new short[8];
+        for (int p = 0; p < payload.length; p++) {
+            payload[p] = reader.readUnsignedByte();
+        }
+        trigger.setPayload(payload);
+        reader.reset();
+    }
+
+    private static void readTriggerIds(Trigger trigger, IResourceChunkReader reader) throws IOException {
+        trigger.setId(reader.readUnsignedShort());
+        trigger.setIdNext(reader.readUnsignedShort()); // SiblingID
+        trigger.setIdChild(reader.readUnsignedShort()); // ChildID
+
+        reader.skipBytes(2);
+    }
+
+    private void readGenericParameters(TriggerGeneric trigger, IResourceChunkReader reader) throws IOException {
+        if (NO_PARAMETER_CONDITIONS.contains(trigger.getType())) {
+            reader.readAndCheckNull(8); // reader.skipBytes(8);
+        } else if (!(readApCondition(trigger, reader) || readPlayerEventCondition(trigger, reader)
+                || readPlayerCountCondition(trigger, reader) || readPlayerValueCondition(trigger, reader)
+                || readLevelCondition(trigger, reader))) {
+            reader.readAndCheckNull(8); // reader.skipBytes(8);
+            logger.log(Level.WARNING, "Unsupported Type of TriggerGeneric");
+        }
+    }
+
+    private void readActionParameters(TriggerAction trigger, IResourceChunkReader reader) throws IOException {
+        if (NO_PARAMETER_ACTIONS.contains(trigger.getType())) {
+            reader.readAndCheckNull(8); // reader.skipBytes(8); // no other parameters
+        } else if (!(readTerrainAndSettingAction(trigger, reader) || readDisplayAction(trigger, reader)
+                || readCameraAndEffectAction(trigger, reader) || readCreatureAndObjectAction(trigger, reader))) {
+            reader.readAndCheckNull(8); // reader.skipBytes(8);
+            logger.log(Level.WARNING, "Unsupported Type of TriggerAction");
+        }
+    }
+
+
+    private boolean readApCondition(TriggerGeneric trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case AP_CONGREGATE_IN:
+            case AP_POSESSED_CREATURE_ENTERS:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // creatureId, objectId
+                trigger.setUserData("targetType", reader.readUnsignedByte()); // 3 = Creature, 6 = Object
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case AP_SLAB_TYPES:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("terrainId", reader.readUnsignedByte());
+                reader.readAndCheckNull(1); // reader.skipBytes(1); // 0 = None
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case AP_TAG_PART_OF:
+            case AP_TAG_ALL_OF:
+            case AP_CLAIM_PART_OF:
+            case AP_CLAIM_ALL_OF:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                // trigger.setUserData("targetId", reader.readUnsignedByte()); // 0 = None
+                // trigger.setUserData("targetType", reader.readUnsignedByte()); // 0 = None
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readPlayerEventCondition(TriggerGeneric trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case PLAYER_DUNGEON_BREACHED:
+            case PLAYER_ENEMY_BREACHED:
+                trigger.setUserData("playerId", reader.readUnsignedByte()); // 0 = Any
+                reader.readAndCheckNull(7); // reader.skipBytes(7);
+                break;
+
+            case PLAYER_KILLED:
+                trigger.setUserData("playerId", reader.readUnsignedByte()); // 0 = Any
+                reader.readAndCheckNull(3); // reader.skipBytes(7);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
+                break;
+
+            case PLAYER_CREATURE_PICKED_UP:
+            case PLAYER_CREATURE_SLAPPED:
+            case PLAYER_CREATURE_SACKED:
+                trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                reader.readAndCheckNull(7); // reader.skipBytes(7);
+                break;
+
+            case PLAYER_CREATURE_DROPPED:
+                trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                trigger.setUserData("roomId", reader.readUnsignedByte()); // 0 = Any
+                reader.readAndCheckNull(6); // reader.skipBytes(6);
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readPlayerCountCondition(TriggerGeneric trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case PLAYER_CREATURES:
+            case PLAYER_HAPPY_CREATURES:
+            case PLAYER_ANGRY_CREATURES:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("creatureId", reader.readUnsignedByte());
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case PLAYER_CREATURES_KILLED:
+            case PLAYER_KILLS_CREATURES:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // playerId
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case PLAYER_ROOMS:
+            case PLAYER_ROOM_SLABS:
+            case PLAYER_ROOM_SIZE:
+            case PLAYER_ROOM_FURNITURE:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("roomId", reader.readUnsignedByte());
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case PLAYER_DOORS:
+            case PLAYER_TRAPS:
+            case PLAYER_KEEPER_SPELL:
+            case PLAYER_DESTROYS:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // doorId, trapId, keeperSpellId,
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readPlayerValueCondition(TriggerGeneric trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case PLAYER_SLAPS:
+            case PLAYER_GOLD:
+            case PLAYER_GOLD_MINED:
+            case PLAYER_MANA:
+            case PLAYER_CREATURES_GROUPED:
+            case PLAYER_CREATURES_DYING:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                reader.readAndCheckNull(1); // reader.skipBytes(1);
+                // trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case PLAYER_CREATURES_AT_LEVEL:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                // FIXME some bug in editor
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0, must be a level
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
+                trigger.setUserData("playerId", reader.readUnsignedByte()); // level also
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case CREATURE_CREATED:
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readLevelCondition(TriggerGeneric trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case LEVEL_PLAYED:
+            case PARTY_MEMBERS_CAPTURED:
+            case CREATURE_EXPERIENCE_LEVEL:
+            case CREATURE_GOLD_HELD:
+            case CREATURE_HEALTH:
+            case LEVEL_TIME:
+            case LEVEL_CREATURES:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case PARTY_MEMBERS_KILLED:
+            case PARTY_MEMBERS_INCAPACITATED:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("unknown", reader.readUnsignedByte()); // FIXME unknown value
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case GUI_BUTTON_PRESSED:
+                // Misc Button = 0, Room = 1, Creature = 2, Door = 3, Trap = 4, Keeper Spell = 5
+                trigger.setUserData("targetType", reader.readUnsignedByte());
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // buttonId, roomId, creatureId ...
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
+                break;
+
+            case FLAG:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // flagId
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
+                trigger.setUserData("flagId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            case TIMER:
+                trigger.setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                trigger.setUserData("targetId", reader.readUnsignedByte()); // timerId
+                trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Flag
+                trigger.setUserData("timerId", reader.readUnsignedByte());
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readTerrainAndSettingAction(TriggerAction trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case ALTER_TERRAIN_TYPE:
+                trigger.setUserData("terrainId", reader.readUnsignedByte());
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("posX", reader.readUnsignedShort());
+                trigger.setUserData("posY", reader.readUnsignedShort());
+                break;
+
+            case COLLAPSE_HERO_GATE:
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                trigger.setUserData("posX", reader.readUnsignedShort());
+                trigger.setUserData("posY", reader.readUnsignedShort());
+                break;
+
+            case CHANGE_ROOM_OWNER:
+                reader.readAndCheckNull(1); // reader.skipBytes(1);
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("posX", reader.readUnsignedShort());
+                trigger.setUserData("posY", reader.readUnsignedShort());
+                break;
+
+            case SET_ALLIANCE:
+                trigger.setUserData("playerOneId", reader.readUnsignedByte());
+                trigger.setUserData("playerTwoId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Create, !0 = Break
+                reader.readAndCheckNull(5); // reader.skipBytes(5);
+                break;
+
+            case SET_CREATURE_MOODS:
+            case SET_SYSTEM_MESSAGES:
+            case SET_TIMER_SPEECH:
+            case SET_WIDESCREEN_MODE:
+            case ALTER_SPEED:  // 0 = Walk, !0 = Run
+            case SET_FIGHT_FLAG: // 0 = Don`t Fight, !0 = Fight
+            case SET_PORTAL_STATUS: // 0 = Closed, !0 = Open
+                trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
+                reader.readAndCheckNull(7); // reader.skipBytes(7);
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readDisplayAction(TriggerAction trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case SET_SLAPS_LIMIT:
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes, 0 = Off
+                break;
+
+            case INITIALIZE_TIMER:
+                trigger.setUserData("timerId", reader.readUnsignedByte()); // timerId + 1, 16 - Time Limit
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes, only for Time limit (max 100 s)
+                break;
+
+            case FLAG:
+                trigger.setUserData("flagId", reader.readUnsignedByte()); // flagId + 1, 128 - level score
+                trigger.setUserData("flag", reader.readUnsignedByte()); // flag = Equal = 12 | Plus = 20 | Minus = 36
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // limit 4 bytes
+                break;
+
+            case MAKE:
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("type", reader.readUnsignedByte()); // type = TriggerAction.MakeType.
+                trigger.setUserData("targetId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Unavailable, !0 = Available
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                break;
+
+            case DISPLAY_SLAB_OWNER:
+                // FIXME Show wrong values in editor
+                trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
+                //trigger.setActionTargetValue1(ConversionUtils.toUnsignedInteger(reader)); // limit 4 bytes
+                // 1635984
+                reader.readAndCheckNull(7); // reader.skipBytes(7);
+                break;
+
+            case DISPLAY_NEXT_ROOM_TYPE: // 0 = Off or roomId
+            case MAKE_OBJECTIVE: // 0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert
+            case ZOOM_TO_ACTION_POINT: // actionPointId
+                trigger.setUserData("targetId", reader.readUnsignedByte());
+                reader.readAndCheckNull(7); // reader.skipBytes(7);
+                break;
+
+            case DISPLAY_OBJECTIVE:
+                trigger.setUserData("objectiveId", reader.readUnsignedInteger()); // objectiveId, limit 32767
+                trigger.setUserData("actionPointId", reader.readUnsignedByte()); // if != 0 => Zoom To AP = this
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                break;
+
+            case PLAY_SPEECH:
+                trigger.setUserData("speechId", reader.readUnsignedInteger()); // speechId, limit 32767
+                trigger.setUserData("text", reader.readUnsignedByte()); // 0 = Show Text, !0 = Without text
+                trigger.setUserData("introduction", reader.readUnsignedByte()); // 0 = No Introduction, !0 = Introduction
+                trigger.setUserData("pathId", reader.readUnsignedShort()); // pathId
+                break;
+
+            case DISPLAY_TEXT_STRING:
+                trigger.setUserData("textId", reader.readUnsignedInteger()); // textId, limit 32767
+                // FIXME Maybe Zoom to AP X
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readCameraAndEffectAction(TriggerAction trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case SET_MUSIC_LEVEL: // level
+            case SHOW_HEALTH_FLOWER: // limit Seconds
+                trigger.setUserData("value", reader.readUnsignedInteger());
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                break;
+
+            case SET_TIME_LIMIT:
+                trigger.setUserData("timerId", reader.readUnsignedByte()); // timerId + 1, 16 - Time Limit
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
+                break;
+
+            case FOLLOW_CAMERA_PATH:
+                trigger.setUserData("pathId", reader.readUnsignedByte());
+                trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Show Ceiling, !0 = Hide Ceiling
+                reader.readAndCheckNull(5); // reader.skipBytes(5);
+                break;
+
+            case FLASH_BUTTON:
+                trigger.setUserData("type", reader.readUnsignedByte()); // TriggerAction.MakeType.
+                trigger.setUserData("targetId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 & !time = Until selected
+                reader.readAndCheckNull(1); // reader.skipBytes(1);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
+                break;
+
+            case FLASH_ACTION_POINT:
+                trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 & !time = Until switched off
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("value", reader.readUnsignedInteger()); // Seconds
+                break;
+
+            case REVEAL_ACTION_POINT:
+                trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Reveal, !0 = Conceal
+                reader.readAndCheckNull(6); // reader.skipBytes(6);
+                break;
+
+            case ROTATE_AROUND_ACTION_POINT:
+                trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Relative, !0 = Absolute
+                trigger.setUserData("angle", reader.readUnsignedShort()); // degrees
+                trigger.setUserData("time", reader.readUnsignedInteger()); // seconds
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
+    private boolean readCreatureAndObjectAction(TriggerAction trigger, IResourceChunkReader reader) throws IOException {
+        switch (trigger.getType()) {
+            case CREATE_CREATURE:
+                trigger.setUserData("creatureId", reader.readUnsignedByte());
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("level", reader.readUnsignedByte());
+                trigger.setUserData("flag", reader.readUnsignedByte()); // TriggerAction.CreatureFlag.
+                trigger.setUserData("posX", reader.readUnsignedShort());
+                trigger.setUserData("posY", reader.readUnsignedShort());
+                break;
+
+            case SET_OBJECTIVE:
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                trigger.setUserData("type", reader.readUnsignedByte()); // Creature.JobType
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("actionPointId", reader.readUnsignedInteger()); // for type = SEND_TO_ACTION_POINT
+                break;
+
+            case CREATE_HERO_PARTY:
+                trigger.setUserData("partyId", reader.readUnsignedByte()); // partyId + 1
+                trigger.setUserData("type", reader.readUnsignedByte()); // 0 = None, 1 = IP, 2 = IP Random
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("actionPointId", reader.readUnsignedByte()); //
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                break;
+
+            case TOGGLE_EFFECT_GENERATOR:
+                trigger.setUserData("generatorId", reader.readUnsignedByte()); // generatorId + 1
+                trigger.setUserData("available", reader.readUnsignedByte()); // 0 = Off, !0 = On
+                reader.readAndCheckNull(6); // reader.skipBytes(6);
+                break;
+
+            case GENERATE_CREATURE:
+                trigger.setUserData("creatureId", reader.readUnsignedByte()); // creatureId + 1
+                trigger.setUserData("level", reader.readUnsignedByte());
+                reader.readAndCheckNull(6); // reader.skipBytes(6);
+                break;
+
+            case INFORMATION:
+                trigger.setUserData("informationId", reader.readUnsignedInteger());
+                trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                break;
+
+            case SEND_TO_AP:
+                reader.readAndCheckNull(4); // reader.skipBytes(4);
+                trigger.setUserData("actionPointId", reader.readUnsignedByte());
+                reader.readAndCheckNull(3); // reader.skipBytes(3);
+                break;
+
+            case CREATE_PORTAL_GEM:
+                trigger.setUserData("objectId", reader.readUnsignedByte());
+                trigger.setUserData("playerId", reader.readUnsignedByte());
+                reader.readAndCheckNull(2); // reader.skipBytes(2);
+                trigger.setUserData("posX", reader.readUnsignedShort()); // posX + 1
+                trigger.setUserData("posY", reader.readUnsignedShort()); // posY + 1
+                break;
+
+            default:
+                return false;
+        }
+        return true;
+    }
+
 
     /**
      * Reads the *Variables.kld

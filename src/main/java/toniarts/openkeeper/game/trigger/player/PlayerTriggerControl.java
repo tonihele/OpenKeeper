@@ -136,17 +136,16 @@ public class PlayerTriggerControl extends TriggerControl {
 
     @Override
     protected boolean eventMatches(TriggerGenericData condition, int arg1, int arg2) {
-        switch (condition.getType()) {
-            case PLAYER_CREATURE_PICKED_UP, PLAYER_CREATURE_DROPPED, PLAYER_CREATURE_SLAPPED -> {
+        TriggerGeneric.TargetType type = condition.getType();
+        if (type == TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP
+                || type == TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED
+                || type == TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED) {
 
-                // The creature type filter, 0 = any. The shipped maps all use 0 here
-                int creatureId = condition.hasUserDataKey("creatureId") ? condition.getUserData("creatureId", short.class) : 0;
-                return creatureId == 0 || creatureId == arg1;
-            }
-            default -> {
-                return super.eventMatches(condition, arg1, arg2);
-            }
+            // The creature type filter, 0 = any. The shipped maps all use 0 here
+            int creatureId = condition.hasUserDataKey("creatureId") ? condition.getUserData("creatureId", short.class) : 0;
+            return creatureId == 0 || creatureId == arg1;
         }
+        return super.eventMatches(condition, arg1, arg2);
     }
 
     @Override

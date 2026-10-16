@@ -17,8 +17,6 @@
 package toniarts.openkeeper.game.trigger.actionpoint;
 
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -39,8 +37,6 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  * @author ArchDemon
  */
 public final class ActionPointTriggerControl extends TriggerControl {
-
-    private static final Logger logger = System.getLogger(ActionPointTriggerControl.class.getName());
 
     private final ActionPoint ap;
     private final IEntityPositionLookup entityPositionLookup;
