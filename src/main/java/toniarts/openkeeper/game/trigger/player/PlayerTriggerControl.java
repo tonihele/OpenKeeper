@@ -20,11 +20,13 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.ToIntBiFunction;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -57,8 +59,14 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private static final Logger logger = System.getLogger(PlayerTriggerControl.class.getName());
 
+    private static final Set<TriggerGeneric.TargetType> EVENT_CONDITIONS = EnumSet.of(
+            TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP, TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED,
+            TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED);
+    private static final Map<TriggerGeneric.TargetType, String> STUB_REASONS = createStubReasons();
+
     private final short playerId;
     private final Map<TriggerAction.ActionType, Predicate<TriggerActionData>> actionHandlers = createActionHandlers();
+    private final Map<TriggerGeneric.TargetType, ToIntBiFunction<Short, TriggerGenericData>> measures = createMeasures();
 
     // The statistics seen on the previous poll, the difference is what has happened since
     private final Map<TriggerGeneric.TargetType, Map<Creature, Integer>> seenStats = new EnumMap<>(TriggerGeneric.TargetType.class);
@@ -150,44 +158,28 @@ public class PlayerTriggerControl extends TriggerControl {
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        int target;
-        int value;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
+
+        ToIntBiFunction<Short, TriggerGenericData> measure = measures.get(targetType);
+        if (measure != null) {
+            int target = measure.applyAsInt(playerId, trigger);
+            int value = isConstant(trigger) ? trigger.getUserData("value", int.class)
+                    : measure.applyAsInt(trigger.getUserData("playerId", short.class), trigger);
+            return compare(trigger, target, value);
+        }
+
+        // Events. They are always false when the tree is walked, see pollEvents() for the ones we notice
+        if (EVENT_CONDITIONS.contains(targetType)) {
+            return false;
+        }
+
+        String stubReason = STUB_REASONS.get(targetType);
+        if (stubReason != null) {
+            logStub(trigger, stubReason);
+            return false;
+        }
+
         switch (targetType) {
-            case PLAYER_CREATURES: {
-                short creatureId = trigger.getUserData("creatureId", short.class);
-                target = getCreaturesCount(playerId, creatureId);
-                if (isConstant(trigger)) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    value = getCreaturesCount(trigger.getUserData("playerId", short.class), creatureId);
-                }
-                return compare(trigger, target, value);
-            }
-
-            case PLAYER_ROOM_SLABS: {
-                short roomId = trigger.getUserData("roomId", short.class);
-                target = getRoomSlabsCount(playerId, roomId);
-                if (isConstant(trigger)) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    value = getRoomSlabsCount(trigger.getUserData("playerId", short.class), roomId);
-                }
-                return compare(trigger, target, value);
-            }
-
-            case PLAYER_ROOMS: {
-                short roomId = trigger.getUserData("roomId", short.class);
-                target = getRoomCount(playerId, roomId);
-                if (isConstant(trigger)) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    value = getRoomCount(trigger.getUserData("playerId", short.class), roomId);
-                }
-                return compare(trigger, target, value);
-            }
-
             case PLAYER_KEEPER_SPELL: {
 
                 // Is the spell available. Nothing is compared here, the original ignores the flag
@@ -196,120 +188,80 @@ public class PlayerTriggerControl extends TriggerControl {
                 return getPlayerController(playerId).getSpellControl().isAvailable(keeperSpell);
             }
 
-            case PLAYER_ROOM_SIZE: {
-                short roomId = trigger.getUserData("roomId", short.class);
-                target = getLargestRoomSize(playerId, roomId);
-                value = isConstant(trigger) ? trigger.getUserData("value", int.class)
-                        : getLargestRoomSize(trigger.getUserData("playerId", short.class), roomId);
-                return compare(trigger, target, value);
-            }
-
-            case PLAYER_ROOM_FURNITURE: {
-                short roomId = trigger.getUserData("roomId", short.class);
-                target = getFurnitureCount(playerId, roomId);
-                value = isConstant(trigger) ? trigger.getUserData("value", int.class)
-                        : getFurnitureCount(trigger.getUserData("playerId", short.class), roomId);
-                return compare(trigger, target, value);
-            }
-
-            case PLAYER_SLAPS:
-                target = getSlapCount(playerId);
-                value = isConstant(trigger) ? trigger.getUserData("value", int.class)
-                        : getSlapCount(trigger.getUserData("playerId", short.class));
-                return compare(trigger, target, value);
-
-            case PLAYER_GOLD:
-                target = getPlayer().getGold();
-                value = isConstant(trigger) ? trigger.getUserData("value", int.class)
-                        : getPlayer(trigger.getUserData("playerId", short.class)).getGold();
-                return compare(trigger, target, value);
-
-            case PLAYER_GOLD_MINED:
-                target = getPlayer().getGoldMined();
-                value = isConstant(trigger) ? trigger.getUserData("value", int.class)
-                        : getPlayer(trigger.getUserData("playerId", short.class)).getGoldMined();
-                return compare(trigger, target, value);
-
-            case PLAYER_MANA:
-                target = getPlayer().getMana();
-                value = isConstant(trigger) ? trigger.getUserData("value", int.class)
-                        : getPlayer(trigger.getUserData("playerId", short.class)).getMana();
-                return compare(trigger, target, value);
-
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
-
-            // Events. They are always false when the tree is walked, see pollEvents() for the ones we notice
-            case PLAYER_CREATURE_PICKED_UP:
-            case PLAYER_CREATURE_DROPPED:
-            case PLAYER_CREATURE_SLAPPED:
-                return false;
-
-            case GUI_BUTTON_PRESSED:
-                // STUB, event: a GUI button was clicked, matched by the button group and button
-                // (userdata targetType / targetId). The HUD buttons do not report their clicks to
-                // the game logic, and the map's button IDs would need a mapping to our own buttons.
-                // The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)
-                logStub(trigger, "The HUD buttons do not report their clicks to the game logic, and the map's button IDs would need a mapping to our own buttons. The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)");
-                return false;
-
-            case PLAYER_DUNGEON_BREACHED:
-            case PLAYER_ENEMY_BREACHED:
-                // STUB, events: an enemy broke into this dungeon / this player broke into one. Nothing
-                // in the game logic detects a dungeon breach, so there is nothing to raise these from
-                logStub(trigger, "Nothing in the game logic detects a dungeon breach, so there is nothing to raise these from");
-                return false;
-
-            case PLAYER_CREATURE_SACKED:
-            case LEVEL_PAY_DAY:
-                // STUB, events: a creature left the player / the player was paid. Nothing in the game
-                // logic announces either, there is no pay day processing to hook into
-                logStub(trigger, "Nothing in the game logic announces either, there is no pay day processing to hook into");
-                return false;
-
-            case PLAYER_HAPPY_CREATURES:
-            case PLAYER_ANGRY_CREATURES:
-                // STUB: non-worker creatures that are happy / angry. Creatures only have anger counters
-                // per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original
-                // and the thresholds that turn the counters into them are not known
-                logStub(trigger, "Creatures only have anger counters per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original and the thresholds that turn the counters into them are not known");
-                return false;
-
-            case PLAYER_CREATURES_KILLED:
-            case PLAYER_KILLS_CREATURES:
-                // STUB: creatures lost / killed, optionally by a certain opponent. A creature's death
-                // is not attributed to anybody, so there is nothing to count
-                logStub(trigger, "A creature's death is not attributed to anybody, so there is nothing to count");
-                return false;
-
-            case PLAYER_DOORS:
-            case PLAYER_TRAPS:
-                // STUB: owned doors / traps by type, blueprints and built ones separately (with the
-                // availability check when there is no comparison). The door and trap controls only know
-                // the availability, their count is a constant 0 and nothing tells blueprints from built
-                logStub(trigger, "The door and trap controls only know the availability, their count is a constant 0 and nothing tells blueprints from built");
-                return false;
-
-            case PLAYER_CREATURES_AT_LEVEL:
-            case PLAYER_CREATURES_DYING:
-            case PLAYER_CREATURES_GROUPED:
-                // STUB: creatures by level / in the dying state / the size of the current creature
-                // group. The player creature control only keeps the creature IDs by type, going through
-                // them for these needs the creature controller of every one of them
-                logStub(trigger, "The player creature control only keeps the creature IDs by type, going through them for these needs the creature controller of every one of them");
-                return false;
 
             case PLAYER_DESTROYS:
                 return true; // Always true in the original
 
-            case PLAYER_KILLED:
-                // STUB: has this player been defeated, by a certain player (userdata playerId). The
-                // game does not record who defeated a player
-                logStub(trigger, "The game does not record who defeated a player");
-                return false;
-
             default:
                 return super.isActive(trigger);
+        }
+    }
+
+    /**
+     * The measures that are compared to a constant, or to the same measure of
+     * another player.
+     */
+    private Map<TriggerGeneric.TargetType, ToIntBiFunction<Short, TriggerGenericData>> createMeasures() {
+        Map<TriggerGeneric.TargetType, ToIntBiFunction<Short, TriggerGenericData>> result = new EnumMap<>(TriggerGeneric.TargetType.class);
+        result.put(TriggerGeneric.TargetType.PLAYER_CREATURES,
+                (pid, trigger) -> getCreaturesCount(pid, trigger.getUserData("creatureId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_SLABS,
+                (pid, trigger) -> getRoomSlabsCount(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOMS,
+                (pid, trigger) -> getRoomCount(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_SIZE,
+                (pid, trigger) -> getLargestRoomSize(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_FURNITURE,
+                (pid, trigger) -> getFurnitureCount(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_SLAPS, (pid, trigger) -> getSlapCount(pid));
+        result.put(TriggerGeneric.TargetType.PLAYER_GOLD, (pid, trigger) -> getPlayer(pid).getGold());
+        result.put(TriggerGeneric.TargetType.PLAYER_GOLD_MINED, (pid, trigger) -> getPlayer(pid).getGoldMined());
+        result.put(TriggerGeneric.TargetType.PLAYER_MANA, (pid, trigger) -> getPlayer(pid).getMana());
+        return result;
+    }
+
+    private static Map<TriggerGeneric.TargetType, String> createStubReasons() {
+        Map<TriggerGeneric.TargetType, String> result = new EnumMap<>(TriggerGeneric.TargetType.class);
+
+        // STUB, event: a GUI button was clicked, matched by the button group and button
+        // (userdata targetType / targetId). The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)
+        result.put(TriggerGeneric.TargetType.GUI_BUTTON_PRESSED, "The HUD buttons do not report their clicks to the game logic, and the map's button IDs would need a mapping to our own buttons. The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)");
+
+        // STUB, events: an enemy broke into this dungeon / this player broke into one
+        putStub(result, "Nothing in the game logic detects a dungeon breach, so there is nothing to raise these from",
+                TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED, TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+
+        // STUB, events: a creature left the player / the player was paid
+        putStub(result, "Nothing in the game logic announces either, there is no pay day processing to hook into",
+                TriggerGeneric.TargetType.PLAYER_CREATURE_SACKED, TriggerGeneric.TargetType.LEVEL_PAY_DAY);
+
+        // STUB: non-worker creatures that are happy / angry
+        putStub(result, "Creatures only have anger counters per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original and the thresholds that turn the counters into them are not known",
+                TriggerGeneric.TargetType.PLAYER_HAPPY_CREATURES, TriggerGeneric.TargetType.PLAYER_ANGRY_CREATURES);
+
+        // STUB: creatures lost / killed, optionally by a certain opponent
+        putStub(result, "A creature's death is not attributed to anybody, so there is nothing to count",
+                TriggerGeneric.TargetType.PLAYER_CREATURES_KILLED, TriggerGeneric.TargetType.PLAYER_KILLS_CREATURES);
+
+        // STUB: owned doors / traps by type, blueprints and built ones separately
+        putStub(result, "The door and trap controls only know the availability, their count is a constant 0 and nothing tells blueprints from built",
+                TriggerGeneric.TargetType.PLAYER_DOORS, TriggerGeneric.TargetType.PLAYER_TRAPS);
+
+        // STUB: creatures by level / in the dying state / the size of the current creature group
+        putStub(result, "The player creature control only keeps the creature IDs by type, going through them for these needs the creature controller of every one of them",
+                TriggerGeneric.TargetType.PLAYER_CREATURES_AT_LEVEL, TriggerGeneric.TargetType.PLAYER_CREATURES_DYING,
+                TriggerGeneric.TargetType.PLAYER_CREATURES_GROUPED);
+
+        // STUB: has this player been defeated, by a certain player (userdata playerId)
+        result.put(TriggerGeneric.TargetType.PLAYER_KILLED, "The game does not record who defeated a player");
+        return result;
+    }
+
+    private static void putStub(Map<TriggerGeneric.TargetType, String> map, String reason, TriggerGeneric.TargetType... types) {
+        for (TriggerGeneric.TargetType type : types) {
+            map.put(type, reason);
         }
     }
 

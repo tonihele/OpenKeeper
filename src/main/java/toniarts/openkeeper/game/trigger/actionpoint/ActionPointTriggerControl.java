@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.actionpoint;
 
 
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -30,7 +31,6 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
-import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
  *
@@ -51,42 +51,9 @@ public final class ActionPointTriggerControl extends TriggerControl {
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        int target = 0;
-        int value = 0;
-
-        TriggerGeneric.TargetType targetType = trigger.getType();
-        switch (targetType) {
+        switch (trigger.getType()) {
             case AP_CONGREGATE_IN:
-                short playerId = trigger.getUserData("playerId", short.class);
-                short targetId = trigger.getUserData("targetId", short.class);
-                value = trigger.getUserData("value", int.class);
-                short type = trigger.getUserData("targetType", short.class);
-                switch (type) {
-                    case 0:
-                    case 3: // Creature
-                        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                                for (ICreatureController creature : entityPositionLookup.getEntityTypesInLocation(x, y, ICreatureController.class)) {
-                                    if ((playerId == 0 || creature.getOwnerId() == playerId) && (targetId == 0 || creature.getCreature().getCreatureId() == targetId)) {
-                                        target++;
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    case 6: // Object
-                        // STUB: count the objects (by object type, e.g. a chicken) on the AP. The
-                        // object controllers do not know their object type ID, only the room
-                        // function they serve, so they can not be filtered by the ID in the map
-                        logStub(trigger, "Objects on the AP can not be counted: the object controllers do not know their object type ID, only the room function they serve, so they can not be filtered by the ID in the map");
-                        return false;
-                    default:
-                        logStub(trigger, "unknown targetType " + type);
-                        return false;
-                }
-                break;
+                return isCongregateActive(trigger);
 
             case AP_POSESSED_CREATURE_ENTERS:
                 // STUB: a possessed creature (or object, kind 6) of the given player and type is on the
@@ -96,90 +63,96 @@ public final class ActionPointTriggerControl extends TriggerControl {
                 logStub(trigger, "Whether a creature is possessed is a component of the entity (Possessed), and this scope has no access to the entity data. Nothing in it either tells that the creature just entered");
                 return false;
 
-            case AP_CLAIM_PART_OF:
-                playerId = trigger.getUserData("playerId", short.class);
-                value = trigger.getUserData("value", int.class);
+            case AP_CLAIM_PART_OF: {
+                short playerId = trigger.getUserData("playerId", short.class);
+                return compare(trigger, countTiles(tile -> playerId == tile.getOwnerId()),
+                        trigger.getUserData("value", int.class));
+            }
 
-                IMapDataInformation map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        if (playerId == map.getTile(x, y).getOwnerId()) {
-                            target++;
-                        }
-                    }
-                }
-                break;
+            case AP_CLAIM_ALL_OF: {
+                short playerId = trigger.getUserData("playerId", short.class);
+                return allTiles(tile -> playerId == tile.getOwnerId());
+            }
 
-            case AP_CLAIM_ALL_OF:
-                playerId = trigger.getUserData("playerId", short.class);
-                // value = trigger.getUserData("value", int.class); // Unusefull ?
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        if (playerId != map.getTile(x, y).getOwnerId()) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+            case AP_SLAB_TYPES: {
+                short playerId = trigger.getUserData("playerId", short.class);
+                short terrainId = trigger.getUserData("terrainId", short.class);
+                return compare(trigger,
+                        countTiles(tile -> (playerId == 0 || playerId == tile.getOwnerId()) && terrainId == tile.getTerrainId()),
+                        trigger.getUserData("value", int.class));
+            }
 
-            case AP_SLAB_TYPES:
-                playerId = trigger.getUserData("playerId", short.class);
-                targetId = trigger.getUserData("terrainId", short.class);
-                value = trigger.getUserData("value", int.class);
+            case AP_TAG_PART_OF: {
+                short playerId = trigger.getUserData("playerId", short.class);
+                // TODO check who tagged tile
+                return compare(trigger, countTiles(tile -> tile.isSelected(playerId)),
+                        trigger.getUserData("value", int.class));
+            }
 
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        IMapTileInformation tile = map.getTile(x, y);
-
-                        if (playerId != 0 && playerId != tile.getOwnerId() || targetId != tile.getTerrainId()) {
-                            continue;
-                        }
-
-                        target++;
-                    }
-                }
-                break;
-
-            case AP_TAG_PART_OF:
-                playerId = trigger.getUserData("playerId", short.class);
-                value = trigger.getUserData("value", int.class);
-
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        // TODO check who tagged tile
-                        if (map.getTile(x, y).isSelected(playerId)) {
-                            target++;
-                        }
-                    }
-                }
-                break;
-
-            case AP_TAG_ALL_OF:
-                playerId = trigger.getUserData("playerId", short.class);
-                // value = trigger.getUserData("value", int.class); // Unusefull ?
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        // TODO check who tagged tile
-                        if (!map.getTile(x, y).isSelected(playerId)) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+            case AP_TAG_ALL_OF: {
+                short playerId = trigger.getUserData("playerId", short.class);
+                // TODO check who tagged tile
+                return allTiles(tile -> tile.isSelected(playerId));
+            }
 
             default:
                 return super.isActive(trigger);
         }
+    }
 
-        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-            result = compare(target, comparisonType, value);
+    private boolean isCongregateActive(TriggerGenericData trigger) {
+        short playerId = trigger.getUserData("playerId", short.class);
+        short targetId = trigger.getUserData("targetId", short.class);
+        int value = trigger.getUserData("value", int.class);
+        short type = trigger.getUserData("targetType", short.class);
+        switch (type) {
+            case 0:
+            case 3: // Creature
+                int target = 0;
+                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                        for (ICreatureController creature : entityPositionLookup.getEntityTypesInLocation(x, y, ICreatureController.class)) {
+                            if ((playerId == 0 || creature.getOwnerId() == playerId) && (targetId == 0 || creature.getCreature().getCreatureId() == targetId)) {
+                                target++;
+                            }
+                        }
+                    }
+                }
+                return compare(trigger, target, value);
+            case 6: // Object
+                // STUB: count the objects (by object type, e.g. a chicken) on the AP. The
+                // object controllers do not know their object type ID, only the room
+                // function they serve, so they can not be filtered by the ID in the map
+                logStub(trigger, "Objects on the AP can not be counted: the object controllers do not know their object type ID, only the room function they serve, so they can not be filtered by the ID in the map");
+                return false;
+            default:
+                logStub(trigger, "unknown targetType " + type);
+                return false;
         }
+    }
 
-        return result;
+    private int countTiles(Predicate<IMapTileInformation> filter) {
+        IMapDataInformation map = mapController.getMapData();
+        int count = 0;
+        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                if (filter.test(map.getTile(x, y))) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private boolean allTiles(Predicate<IMapTileInformation> filter) {
+        IMapDataInformation map = mapController.getMapData();
+        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                if (!filter.test(map.getTile(x, y))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
