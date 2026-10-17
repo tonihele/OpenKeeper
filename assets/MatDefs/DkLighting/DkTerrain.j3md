@@ -41,6 +41,11 @@ MaterialDef DK Terrain Lighting {
         // light), 2 = may shine on unexplored ground (claim scan, cursor),
         // 4 = override light (player-coloured creatures).
         Texture2D LightData
+
+        // Animated texture (water): DiffuseMap is a strip of NumberOfTiles
+        // equally wide frames, stepped Speed times a second. Unset = static.
+        Int NumberOfTiles
+        Int Speed
     }
 
     Technique {
@@ -51,9 +56,11 @@ MaterialDef DK Terrain Lighting {
             WorldViewProjectionMatrix
             WorldMatrix
             WorldNormalMatrix
+            Time
         }
 
         Defines {
+            ANIMATED_TILES : NumberOfTiles
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap
             LIGHT_DATA : LightData

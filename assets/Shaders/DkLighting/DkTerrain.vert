@@ -8,6 +8,11 @@
 uniform vec4 m_Ambient;
 uniform vec4 m_Tint;
 uniform vec4 m_TintOverlay;
+#ifdef ANIMATED_TILES
+uniform float g_Time;
+uniform int m_NumberOfTiles;
+uniform int m_Speed;
+#endif
 #ifdef AMBIENT_MAP
 uniform sampler2D m_AmbientMap;
 uniform vec2 m_AmbientMapSize;
@@ -37,6 +42,11 @@ void main() {
     vec4 modelSpacePos = vec4(inPosition, 1.0);
     gl_Position = TransformWorldViewProjection(modelSpacePos);
     texCoord = inTexCoord;
+#ifdef ANIMATED_TILES
+    float tiles = float(m_NumberOfTiles);
+    float selectedTile = floor(g_Time * float(m_Speed));
+    texCoord.x = (texCoord.x + mod(selectedTile, tiles)) / tiles;
+#endif
 
     vec3 worldPos = TransformWorld(modelSpacePos).xyz;
     vec3 worldNormal = normalize(TransformWorldNormal(inNormal));

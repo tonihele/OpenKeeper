@@ -244,6 +244,24 @@ public final class AssetUtils {
         return dkTerrain;
     }
 
+    /**
+     * A DkTerrain version of a water / lava surface material, so the surface
+     * is lit like the ground around it. Keeps the texture, the frame
+     * animation (water), the alpha handling and the blend mode of
+     * {@code original}.
+     */
+    public static Material createDkSurfaceMaterial(AssetManager assetManager, Material original) {
+        Material dkTerrain = createDkTerrainMaterial(assetManager, original, ColorRGBA.Black);
+        if (original.getParam("NumberOfTiles") != null) {
+            dkTerrain.setInt("NumberOfTiles", (Integer) original.getParam("NumberOfTiles").getValue());
+        }
+        if (original.getParam("Speed") != null) {
+            dkTerrain.setInt("Speed", (Integer) original.getParam("Speed").getValue());
+        }
+        dkTerrain.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
+        return dkTerrain;
+    }
+
     public static boolean isDkTerrainMaterial(Material material) {
         return DK_TERRAIN_MATDEF.equals(material.getMaterialDef().getAssetName());
     }

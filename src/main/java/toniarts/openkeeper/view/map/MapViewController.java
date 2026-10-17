@@ -374,6 +374,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
         Spatial surface = Water.construct(assetManager, batches);
+        if (surface instanceof Geometry geometry && AssetUtils.isDkTerrainMaterial(geometry.getMaterial())) {
+            lightRules.registerRegionMaterials(surface, Vector3f.ZERO, 0f, List.of(geometry.getMaterial()));
+        }
         map.attachChild(surface);
         return surface;
     }
