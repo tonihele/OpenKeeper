@@ -491,8 +491,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Vector2f pointed = selectionHandler.getActualPointedPosition();
         Vector3f position = new Vector3f(pointed.x + 0.5f, 0f, pointed.y + 0.5f);
 
-        // Border tiles: light stays on but black (design 7.3)
-        boolean explored = visible && !onBorder && lightRules.getFogOfWar().isExplored(p);
+        // Border tiles: light stays on but black (design 7.3). Over unexplored
+        // ground it stays white: the hand lights the fog it points at, which
+        // is otherwise completely black (a deviation from design 7.3).
+        boolean explored = visible && !onBorder;
         lightRules.updateCursorLight(visible, position, explored);
     }
 

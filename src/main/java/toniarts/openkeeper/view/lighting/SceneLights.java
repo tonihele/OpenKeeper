@@ -94,6 +94,7 @@ public final class SceneLights {
     private final Map<Point, List<Material>> terrainMaterialsByTile = new HashMap<>();
     private final Map<Object, Region> regionMaterials = new HashMap<>();
     private ColorRGBA globalAmbient = ColorRGBA.Black.clone();
+    private IFogOfWarQuery fogOfWar = new NoFogOfWarQuery();
     private volatile Texture2D ambientMap;
     private int ambientMapWidth;
     private int ambientMapHeight;
@@ -124,6 +125,16 @@ public final class SceneLights {
      * #computeFlatLight} to set on their own {@code DkFlat} materials
      * alongside the flat-light colour.
      */
+    /**
+     * The viewer's fog. The shader hides coloured light over unexplored
+     * ground (a tile's explored flag is in the ambient texture); this is only
+     * used to mark which lights are exempt: terrain lights owned by an
+     * unexplored tile, i.e. the claim-scan glow.
+     */
+    public void setFogOfWar(IFogOfWarQuery fogOfWar) {
+        this.fogOfWar = fogOfWar;
+    }
+
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
         this.globalAmbient = globalAmbient;
     }
@@ -308,6 +319,21 @@ public final class SceneLights {
         }
     }
 
+    /**
+     * Whether a light may shine on unexplored ground: the cursor light (the
+     * keeper's hand) and terrain lights owned by an unexplored tile (the
+     * claim-scan sweep). Coloured light from
+     * torches, creatures, effects and explored terrain must not reveal it.
+     */
+    private boolean lightsUnexploredTiles(LightSource light) {
+        if (light.getKind() == LightKind.CURSOR) {
+            return true; // the keeper's hand lights the fog it points at
+        }
+        return light.getKind() == LightKind.TERRAIN
+                && light.getOwner() instanceof Point owner
+                && !fogOfWar.isExplored(owner);
+    }
+
     private static float distanceSquared(LightSource light, float centerX, float centerZ) {
         Vector3f pos = light.getPosition();
         float dx = pos.x - centerX;
@@ -336,11 +362,11 @@ public final class SceneLights {
     }
 
     /**
-     * Sets one tile's vertex ambient in the ambient texture. Safe to call
+     * Sets one tile's vertex ambient and explored flag in the ambient texture. Safe to call
      * from the map loader thread: it only writes bytes and flags the image
      * for re-upload, which the render thread performs.
      */
-    public void setTileAmbient(int x, int y, ColorRGBA ambient) {
+    public void setTileAmbient(int x, int y, ColorRGBA ambient, boolean explored) {
         Texture2D texture = ambientMap;
         if (texture == null || x < 0 || y < 0 || x >= ambientMapWidth || y >= ambientMapHeight) {
             return;
@@ -350,7 +376,7 @@ public final class SceneLights {
         data.put(index, toByte(ambient.r / 2f));
         data.put(index + 1, toByte(ambient.g / 2f));
         data.put(index + 2, toByte(ambient.b / 2f));
-        data.put(index + 3, (byte) 255);
+        data.put(index + 3, (byte) (explored ? 255 : 0)); // explored flag, blended like the colour
         texture.getImage().setUpdateNeeded();
     }
 
@@ -377,7 +403,7 @@ public final class SceneLights {
             colorIntensity[i] = new Vector4f(
                     light.getRed() / 255f, light.getGreen() / 255f, light.getBlue() / 255f,
                     light.getEffectiveIntensity());
-            radial[i] = light.needsSmoothFalloff() ? 1 : 0;
+            radial[i] = (light.needsSmoothFalloff() ? 1 : 0) | (lightsUnexploredTiles(light) ? 2 : 0);
         }
         material.setParam("LightPosRadius", VarType.Vector4Array, posRadius);
         material.setParam("LightColorIntensity", VarType.Vector4Array, colorIntensity);

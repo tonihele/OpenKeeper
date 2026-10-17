@@ -14,8 +14,12 @@ uniform vec2 m_AmbientMapSize;
 #endif
 uniform vec4 m_LightPosRadius[DK_MAX_LIGHTS];
 uniform vec4 m_LightColorIntensity[DK_MAX_LIGHTS];
-// 1 = use the smooth monotonic falloff (the cursor light), 0 = the exact
-// D7 falloff. Must stay the same length as the pair above.
+// Per-light flags, same length as the pair above:
+//   bit 0 (1): use the smooth monotonic falloff (the cursor light), else the
+//              exact D7 falloff
+//   bit 1 (2): the light may shine on unexplored ground (the claim-scan
+//              glow and the cursor / "hand" light); every other light fades
+//              out over unexplored tiles
 uniform int m_LightRadial[DK_MAX_LIGHTS];
 uniform int m_NumLights;
 
@@ -36,23 +40,33 @@ void main() {
 
 #ifdef AMBIENT_MAP
     // Texel centres sit at tile + 0.5, so linear filtering blends the
-    // ambient of neighbouring tiles across each tile (stored halved)
-    vec3 tileAmbient = textureLod(m_AmbientMap, worldPos.xz / m_AmbientMapSize, 0.0).rgb * 2.0;
+    // ambient of neighbouring tiles across each tile (stored halved). The
+    // alpha channel holds the tile's explored flag, blended the same way: a
+    // vertex touching an unexplored tile is partly (or wholly) unexplored.
+    vec4 tileData = textureLod(m_AmbientMap, worldPos.xz / m_AmbientMapSize, 0.0);
+    vec3 tileAmbient = tileData.rgb * 2.0;
+    float explored = tileData.a;
 #else
     vec3 tileAmbient = m_Ambient.rgb;
+    float explored = 1.0;
 #endif
-    vec3 sum = tileAmbient + m_GlobalAmbient.rgb;
+    // Unexplored ground is completely black: no tile or global ambient, no floor
+    vec3 sum = (tileAmbient + m_GlobalAmbient.rgb) * explored;
     for (int i = 0; i < DK_MAX_LIGHTS; i++) {
         if (i >= m_NumLights) {
             break;
         }
         vec4 posRadius = m_LightPosRadius[i];
         vec4 colorIntensity = m_LightColorIntensity[i];
-        sum += dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
-                posRadius.w, colorIntensity.rgb, colorIntensity.w, m_LightRadial[i] == 1);
+        int flags = m_LightRadial[i];
+        // Coloured light (torches, creatures, effects, explored terrain) must
+        // not reveal unexplored ground; only the claim-scan glow does
+        float visibility = (flags & 2) != 0 ? 1.0 : explored;
+        sum += visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
+                posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
     }
 
-    vec3 lit = dkSoftClamp(sum);
+    vec3 lit = dkSoftClampFloor(sum, explored);
 
     // Tile highlight (tag = blue glow, flash = red glow). Applied AFTER the
     // clamp: added before it, a tile already lit near 1.0 swallowed the tint.

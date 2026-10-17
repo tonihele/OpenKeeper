@@ -107,8 +107,14 @@ float dkSoftClampValue(float x) {
 // further red light (a red keeper's imp) added nothing but green and blue
 // and made the floor look LESS red. Scaling keeps the ratios, so extra red
 // stays visible as a shift towards red.
-vec3 dkSoftClamp(vec3 sum) {
+// floorScale scales the minimum ambient floor: 1 = normal, 0 = none (fog of
+// war: unexplored ground is completely black unless a light reaches it).
+vec3 dkSoftClampFloor(vec3 sum, float floorScale) {
     float peak = max(max(sum.r, sum.g), sum.b);
     vec3 colour = peak > DK_SOFTCLAMP_KNEE ? sum * (dkSoftClampValue(peak) / peak) : sum;
-    return max(colour, vec3(DK_MIN_AMBIENT_FLOOR));
+    return max(colour, vec3(DK_MIN_AMBIENT_FLOOR * floorScale));
+}
+
+vec3 dkSoftClamp(vec3 sum) {
+    return dkSoftClampFloor(sum, 1.0);
 }

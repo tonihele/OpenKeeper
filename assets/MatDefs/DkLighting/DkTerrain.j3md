@@ -43,8 +43,9 @@ MaterialDef DK Terrain Lighting {
         Vector4Array LightColorIntensity
 
         // Per-light falloff selection, parallel to the two arrays above:
-        // 1 = smooth monotonic falloff (the cursor light, see
-        // LightSource.needsSmoothFalloff), 0 = the exact D7 falloff.
+        // Bit flags: 1 = smooth monotonic falloff (the cursor light, see
+        // LightSource.needsSmoothFalloff), 2 = may shine on unexplored
+        // ground (claim-scan lights).
         IntArray LightRadial
 
         // How many of the arrays above are actually populated this

@@ -794,8 +794,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         handleSlabLight(p, terrain, tile.getOwnerId());
 
-        // Per-tile ambient into the texture the shader blends across tile borders
-        lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()));
+        // Per-tile ambient and explored flag into the texture the shader blends across tile borders
+        lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()),
+                fogOfWarInformation.isExplored(p));
 
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
         if (torchesEnabled && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {

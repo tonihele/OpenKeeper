@@ -53,6 +53,7 @@ public final class LightRules {
 
     public LightRules(IFogOfWarQuery fogOfWar) {
         this.fogOfWar = fogOfWar;
+        this.sceneLights.setFogOfWar(fogOfWar);
     }
 
     public IFogOfWarQuery getFogOfWar() {
@@ -119,10 +120,10 @@ public final class LightRules {
     }
 
     /**
-     * @see SceneLights#setTileAmbient(int, int, ColorRGBA)
+     * @see SceneLights#setTileAmbient(int, int, ColorRGBA, boolean)
      */
-    public void setTileAmbient(int x, int y, ColorRGBA ambient) {
-        sceneLights.setTileAmbient(x, y, ambient);
+    public void setTileAmbient(int x, int y, ColorRGBA ambient, boolean explored) {
+        sceneLights.setTileAmbient(x, y, ambient, explored);
     }
 
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
