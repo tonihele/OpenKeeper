@@ -317,9 +317,17 @@ public final class SceneLights {
      * set the result as their material's {@code FlatLight} parameter.
      */
     public static ColorRGBA computeFlatLight(Vector3f worldPos, Iterable<LightSource> lights) {
+        return computeFlatLight(worldPos, lights, false);
+    }
+
+    /**
+     * @param ignoreObjectLights skip lights carried by game objects
+     */
+    public static ColorRGBA computeFlatLight(Vector3f worldPos, Iterable<LightSource> lights,
+            boolean ignoreObjectLights) {
         float r = 0, g = 0, b = 0;
         for (LightSource light : lights) {
-            if (!light.isEnabled()) {
+            if (!light.isEnabled() || (ignoreObjectLights && light.isObjectLight())) {
                 continue;
             }
             Vector3f pos = light.getPosition();

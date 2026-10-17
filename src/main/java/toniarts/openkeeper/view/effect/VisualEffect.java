@@ -402,8 +402,8 @@ public class VisualEffect {
                 effectLight.getFlags().contains(Light.LightFlag.COLOR_BLUE),
                 playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
                 effectLight.getRadius(), LightConstants.EFFECT_LIGHT_INTENSITY,
-                effectLight.getFlags().contains(Light.LightFlag.PULSE),
-                effectLight.getFlags().contains(Light.LightFlag.FLICKER));
+                LightConstants.OBJECT_LIGHTS_PULSE && effectLight.getFlags().contains(Light.LightFlag.PULSE),
+                LightConstants.OBJECT_LIGHTS_PULSE && effectLight.getFlags().contains(Light.LightFlag.FLICKER));
     }
 
     private LightRules getLightRules() {

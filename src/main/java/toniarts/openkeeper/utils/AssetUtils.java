@@ -278,7 +278,16 @@ public final class AssetUtils {
      * @param lightRules the owning map's lighting rules
      */
     public static void applyFlatLight(Spatial spatial, LightRules lightRules) {
-        ColorRGBA flatLight = lightRules.computeFlatLight(spatial.getWorldTranslation());
+        applyFlatLight(spatial, lightRules, false);
+    }
+
+    /**
+     * @param ignoreObjectLights true to leave out the lights carried by game
+     * objects
+     * @see #applyFlatLight(Spatial, LightRules)
+     */
+    public static void applyFlatLight(Spatial spatial, LightRules lightRules, boolean ignoreObjectLights) {
+        ColorRGBA flatLight = lightRules.computeFlatLight(spatial.getWorldTranslation(), ignoreObjectLights);
         ColorRGBA globalAmbient = lightRules.getGlobalAmbient();
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override

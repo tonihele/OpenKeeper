@@ -100,11 +100,13 @@ public final class Modulator {
     }
 
     private void applyPulse(int[] base, int[] outColour) {
-        outColour[0] = base[0] * phase / PULSE_PHASE_RANGE;
-        // sic: the original swaps the green and blue channels here (D6) -
-        // reproduced on purpose, do not "fix" these two lines.
-        outColour[1] = base[2] * phase / PULSE_PHASE_RANGE;
-        outColour[2] = base[1] * phase / PULSE_PHASE_RANGE;
+        // The original fades the colour towards black and swaps green and blue
+        // (D6); that reads as the colour disappearing, so here the pulse only
+        // brightens the base colour (up to about twice as vibrant)
+        int scale = PULSE_PHASE_RANGE + phase;
+        for (int i = 0; i < 3; i++) {
+            outColour[i] = Math.min(base[i] * scale / PULSE_PHASE_RANGE, 511);
+        }
 
         // Reflect off the turnaround points instead of clamping-and-repeating
         // for one extra tick -- clamping would output the boundary value

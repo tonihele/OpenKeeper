@@ -42,6 +42,7 @@ public final class LightSource {
     private float radius;
     private boolean flickers;
     private boolean flickerCapable;
+    private boolean objectLight;
     private final Modulator modulator = new Modulator();
     private int lifetimeTicks = -1;
     private float flickerScale = 1.0f;
@@ -104,6 +105,18 @@ public final class LightSource {
      * &sect;7.3 (build mode, off-map, not over the world) without needing
      * a sentinel position.
      */
+    /**
+     * Whether this light is carried by a game object (the dungeon heart glow,
+     * ...), as opposed to a creature, effect, torch or terrain
+     */
+    public boolean isObjectLight() {
+        return objectLight;
+    }
+
+    public void setObjectLight(boolean objectLight) {
+        this.objectLight = objectLight;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }

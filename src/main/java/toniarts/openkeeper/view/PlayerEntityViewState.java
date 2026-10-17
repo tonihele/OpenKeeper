@@ -71,6 +71,7 @@ import toniarts.openkeeper.view.loader.TrapLoader;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
@@ -140,13 +141,15 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
+    private static final int DUNGEON_HEART_PLUG_ID = 96;
+    private static final int DUNGEON_HEART_OBSTACLE_ID = 100;
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
 
     /**
      * A thing whose light is created and positioned every frame (see
      * {@link #update(float)}), not only when its entity changes.
      */
-    private record TrackedLight(Spatial spatial, Light light, float intensity) {
+    private record TrackedLight(Spatial spatial, Light light, float intensity, boolean honourPulse, boolean objectLight) {
     }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
@@ -231,10 +234,15 @@ public class PlayerEntityViewState extends AbstractAppState {
             // set, whereas the world one lags a frame behind
             for (Map.Entry<EntityId, TrackedLight> entry : new ArrayList<>(trackedLights.entrySet())) {
                 TrackedLight tracked = entry.getValue();
-                applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity());
+                applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity(), tracked.honourPulse(), tracked.objectLight());
             }
             for (Spatial object : objectModelContainer.getModels()) {
-                AssetUtils.applyFlatLight(object, lightRules);
+                // The heart plug and obstacle take no light from other objects
+                // (the heart's own glow), only from effects, the hand, etc.
+                ObjectViewControl control = object.getControl(ObjectViewControl.class);
+                int objectId = control != null ? control.getDataObject().getObjectId() : -1;
+                AssetUtils.applyFlatLight(object, lightRules,
+                        objectId == DUNGEON_HEART_PLUG_ID || objectId == DUNGEON_HEART_OBSTACLE_ID);
             }
             for (Spatial object : creatureModelContainer.getModels()) {
                 AssetUtils.applyFlatLight(object, lightRules);
@@ -431,7 +439,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         GameObject gameObject = kwdFile.getObject(viewState.objectId);
         if (LightConstants.OBJECT_LIGHTS_ENABLED) {
-            applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY);
+            applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY,
+                    LightConstants.OBJECT_LIGHTS_PULSE, true);
         }
     }
 
@@ -444,13 +453,21 @@ public class PlayerEntityViewState extends AbstractAppState {
      * {@code PLAYER_COLOURED} lights, radius scale and pulse/flicker.
      */
     private void applyThingLight(EntityId id, Spatial object, Light light, float intensity) {
+        applyThingLight(id, object, light, intensity, true, false);
+    }
+
+    /**
+     * @param honourPulse false drops the data's PULSE/FLICKER request, as the
+     * original does for object lights (the dungeon heart glow is constant)
+     */
+    private void applyThingLight(EntityId id, Spatial object, Light light, float intensity, boolean honourPulse, boolean objectLight) {
         LightRules lightRules = getLightRules();
         if (lightRules == null) {
             // Map still loading: remember the thing so update() creates the
             // light as soon as the map is ready, without waiting for the
             // entity to change again (an idle imp might never)
             if (LightConstants.isLightEnabled(light)) {
-                trackedLights.put(id, new TrackedLight(object, light, intensity));
+                trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
             }
             return;
         }
@@ -460,7 +477,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             trackedLights.remove(id);
             return;
         }
-        trackedLights.put(id, new TrackedLight(object, light, intensity));
+        trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
 
         // A PLAYER_COLOURED light takes the owner's colour, so a change of
         // owner (e.g. a converted creature) needs the light rebuilt
@@ -478,15 +495,16 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (playerColoured) {
                 lightOwners.put(id, ownerId);
             }
-            lightRules.addThingLight(id, object.getLocalTranslation(), offset,
+            LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), offset,
                     c.getRed(), c.getGreen(), c.getBlue(),
                     light.getFlags().contains(Light.LightFlag.COLOR_RED),
                     light.getFlags().contains(Light.LightFlag.COLOR_GREEN),
                     light.getFlags().contains(Light.LightFlag.COLOR_BLUE),
                     playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
                     light.getRadius(), intensity,
-                    light.getFlags().contains(Light.LightFlag.PULSE),
-                    light.getFlags().contains(Light.LightFlag.FLICKER));
+                    honourPulse && light.getFlags().contains(Light.LightFlag.PULSE),
+                    honourPulse && light.getFlags().contains(Light.LightFlag.FLICKER));
+            source.setObjectLight(objectLight);
         } else {
             lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
         }

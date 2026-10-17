@@ -54,11 +54,18 @@ public final class LightConstants {
     public static final boolean ROOM_LIGHTING_ENABLED = false;
 
     /**
-     * Lights carried by game objects (the pulsing dungeon heart glow, ...).
-     * Off: they pulse the object's own flat lighting from red to near black,
-     * and the scene is lit by torches, the hand and player-coloured creatures.
+     * Lights carried by game objects (the dungeon heart glow, ...). Off: the
+     * scene is lit by torches, the hand and player-coloured creatures.
      */
-    public static final boolean OBJECT_LIGHTS_ENABLED = false;
+    public static final boolean OBJECT_LIGHTS_ENABLED = true;
+
+    /**
+     * Whether the PULSE / FLICKER flags of object and effect lights are
+     * honoured. Off, as in the original: its object / effect light creation
+     * passes flags 0, so the dungeon heart glow (flagged PULSE in the data) is
+     * a constant light (lighting_design.md, dungeon heart).
+     */
+    public static final boolean OBJECT_LIGHTS_PULSE = false;
 
     /**
      * Terrain lights of explored non-room tiles (paths, lava, water, ...).

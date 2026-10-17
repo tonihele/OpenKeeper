@@ -158,6 +158,14 @@ public final class LightRules {
         return SceneLights.computeFlatLight(worldPos, modulators.getSources());
     }
 
+    /**
+     * As {@link #computeFlatLight(Vector3f)}, optionally leaving out the
+     * lights carried by game objects
+     */
+    public ColorRGBA computeFlatLight(Vector3f worldPos, boolean ignoreObjectLights) {
+        return SceneLights.computeFlatLight(worldPos, modulators.getSources(), ignoreObjectLights);
+    }
+
     // ------------------------------------------------------------------
     // Tile-owned lights: torches (design §6.2), terrain lights (§6.3)
     // ------------------------------------------------------------------
