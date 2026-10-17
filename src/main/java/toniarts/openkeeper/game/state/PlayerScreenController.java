@@ -52,6 +52,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -70,6 +71,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.DoorIconTextParser;
 import toniarts.openkeeper.view.text.RoomIconTextParser;
 import toniarts.openkeeper.view.text.SpellIconTextParser;
@@ -343,6 +345,27 @@ public final class PlayerScreenController implements IPlayerScreenController {
         state.zoomToDungeon();
     }
 
+    /**
+     * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
+     */
+    public void resizeMap() {
+        playButtonSound("GUI_BUTTON_ZOOM");
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomIn();
+        }
+    }
+
+    /**
+     * "Resize Map" button, right click: zoom out one level (or back to fit mode).
+     */
+    public void resizeMapDown() {
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomOut();
+        }
+    }
+
     @Override
     public String getTooltipText(String bundleId) {
         String result = Utils.getMainTextResourceBundle().getString(bundleId);
@@ -485,8 +508,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                         if (s.getCreatureSpellId() == 0) {
                             continue;
                         }
-                        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-                        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+                        CreatureSpell cs = state.stateManager.getState(GameClientState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+                        createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
                     }
                 }
                 updatePossessionSelectedItem(possessionAction);
@@ -681,53 +704,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         // Player creatures, the controller
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
+                creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
-//        for (final Map.Entry<Creature, Set<CreatureControl>> entry : state.getCreatureControl().getCreatures().entrySet()) {
-//            createPlayerCreatureIcon(entry.getKey(), hud, creaturePanel);
-//        }
-//        state.getCreatureControl().addCreatureListener(new CreatureListener() {
-//
-//            @Override
-//            public void onSpawn(CreatureControl creature) {
-//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                        CreatureCardControl.class);
-//                if (card == null) {
-//                    card = createPlayerCreatureIcon(creature.getCreature(), hud, creaturePanel);// Create
-//                }
-//                card.setTotal(total);
-//            }
-//
-//            @Override
-//            public void onStateChange(CreatureControl creature, CreatureState newState, CreatureState oldState) {
-//                if (newState == CreatureState.PICKED_UP || oldState == CreatureState.PICKED_UP) {
-//                    int total = 0;
-//                    Set<CreatureControl> c = state.getCreatureControl().getCreatures().get(creature.getCreature());
-//                    for (CreatureControl creatureControl : c) {
-//                        if (creatureControl.getStateMachine().getCurrentState() != CreatureState.PICKED_UP) {
-//                            total++;
-//                        }
-//                    }
-//                    CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                            CreatureCardControl.class);
-//                    card.setTotal(total);
-//                }
-//            }
-//
-//            @Override
-//            public void onDie(CreatureControl creature) {
-//                int total = state.getCreatureControl().getCreatures().get(creature.getCreature()).size();
-//                CreatureCardControl card = creaturePanel.findControl("creature_" + creature.getCreature().getCreatureId(),
-//                        CreatureCardControl.class);
-//                card.setTotal(total);
-//                if (total == 0) {
-//                    card.getElement().markForRemoval(); // Remove
-//                }
-//            }
-//        });
-//        state.getCreatureControl().addWorkerListener(creatureTab.findControl("tab-workers",
-//                WorkerAmountControl.class));
-
         // Rooms
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
@@ -902,6 +880,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 c = new Color(1f, 0, 0, 0.1f);
                 break;
 
+            case MARTINS_TEST_1:
+            case MARTINS_TEST_2:
+            case MARTINS_TEST_3:
+            case MARTINS_TEST_4:
             case DARK_ANGER_BRIGHT_BLUE:
             case DEATH_VIEW_HALF_RED:
             case FREEZE_VIEW_ONLY_BLUE:
@@ -940,6 +922,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 break;
             case DISGUISE_N_STEAL:
                 name = "GUI/Icons/1st-person/sneak-mode";
+                break;
+            case FLY:
+            case PICK_LOCKS:
+            case FEAR_ATTACK:
+            case GHOST_POSESSION:
+            case NONE:
                 break;
         }
         return name;
@@ -1178,6 +1166,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private final EntityData entityData;
         private final EntitySet playerCreatureEntities;
         private final Element creaturePanel;
+        private final CreaturePortraitScrollControl portraitScroll;
         private final WorkerAmountControl workerAmountControl;
         private final Screen hud;
         private final short impId;
@@ -1185,14 +1174,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private final Map<EntityId, WatchedEntity> creatureEntities = new LinkedHashMap<>();
         private final Map<EntityId, Short> creatureIdsByEntityIds = new HashMap<>();
         private final Map<Short, Set<EntityId>> creaturesByTypes = new LinkedHashMap<>();
-        private final Map<Short, CreatureCardControl> creatureCardControls = new HashMap<>();
+        private final Map<Short, CreatureCardControl> creatureCardControls = new LinkedHashMap<>();
         private final CreatureCardEventListener creatureCardEventListener = new EventListener();
 
-        public CreatureCardManager(IPlayerScreenController playerScreenController, IKwdFile kwdFile, EntityData entityData, Element creaturePanel, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
+        public CreatureCardManager(IPlayerScreenController playerScreenController, IKwdFile kwdFile, EntityData entityData, Element creaturePanel, CreaturePortraitScrollControl portraitScroll, WorkerAmountControl workerAmountControl, Screen hud, short playerId) {
             this.playerScreenController = playerScreenController;
             this.kwdFile = kwdFile;
             this.entityData = entityData;
             this.creaturePanel = creaturePanel;
+            this.portraitScroll = portraitScroll;
             this.workerAmountControl = workerAmountControl;
             this.hud = hud;
 
@@ -1290,6 +1280,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     card.setTotal(calculateTotal(creatureId));
                 }
             }
+            if (!creatureTypes.isEmpty()) {
+                List<Element> portraits = new ArrayList<>(creatureCardControls.size());
+                for (CreatureCardControl card : creatureCardControls.values()) {
+                    portraits.add(card.getElement());
+                }
+                portraitScroll.setPortraits(portraits);
+            }
         }
 
         private void processChangedPlayerCreatureEntities(Set<Entity> entities) {
@@ -1354,6 +1351,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
                             + File.separator + creature.getPortraitResource().getName() + ".png"));
                     parameter("creatureId", Integer.toString(creature.getCreatureId()));
+                    parameter("creatureName", Utils.getMainTextResourceBundle().getString(
+                            Integer.toString(creature.getNameStringId())));
                     id("creature_" + creature.getCreatureId());
                 }
             };
@@ -1501,10 +1500,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private static final class GameMenu {
 
-        protected String title;
-        protected String action;
-        protected String id;
-        protected Element parent;
+        private String title;
+        private String action;
+        private String id;
+        private Element parent;
 
         public GameMenu() {
         }

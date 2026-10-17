@@ -29,6 +29,7 @@ public interface IMainMenuScreenController extends ScreenController {
     public final static String SCREEN_EMPTY_ID = "empty";
     public final static String SCREEN_START_ID = "start";
     public final static String SCREEN_DEBRIEFING_ID = "debriefing";
+    public final static String SCREEN_CUTSCENE_ID = "cutscene";
     public final static String SCREEN_OPTIONS_MAIN_ID = "optionsMain";
     public final static String PLAYER_LIST_ID = "playersTable";
 
