@@ -29,6 +29,7 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
+import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
@@ -77,6 +78,8 @@ public final class AssetUtils {
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
     private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
     private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
+    private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
+    private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
@@ -271,6 +274,30 @@ public final class AssetUtils {
                 }
                 material.setColor("FlatLight", flatLight);
                 material.setColor("GlobalAmbient", globalAmbient);
+            }
+        });
+    }
+
+    /**
+     * Lights every {@code DkFlat}-materialled geometry under {@code spatial}
+     * to full brightness, ignoring the scene's lights. For things that are
+     * not in the world, such as creatures held in the hand.
+     *
+     * @param spatial the model to light
+     */
+    public static void applyFullLight(Spatial spatial) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial s) {
+                if (!(s instanceof Geometry geometry)) {
+                    return;
+                }
+                Material material = geometry.getMaterial();
+                if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                    return;
+                }
+                material.setColor("FlatLight", ColorRGBA.White);
+                material.setColor("GlobalAmbient", ColorRGBA.BlackNoAlpha);
             }
         });
     }
@@ -664,6 +691,12 @@ public final class AssetUtils {
 
                 try {
                     Material material = ((Geometry) spatial).getMaterial();
+                    if (material.getMaterialDef().getMaterialParam("TintOverlay") != null) {
+                        // Same look as a flashed tile (DkTerrain)
+                        material.setColor("Tint", enabled ? FLASH_BASE : ColorRGBA.BlackNoAlpha);
+                        material.setColor("TintOverlay", enabled ? FLASH_OVERLAY : ColorRGBA.BlackNoAlpha);
+                        return;
+                    }
                     if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
                         material.setColor("Ambient", highlightColor);
                     } else {

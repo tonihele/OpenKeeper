@@ -27,6 +27,12 @@ MaterialDef DK Flat Lighting {
         // can keep tinting geometries without special-casing this def.
         // Simply added on top of the lit colour, not a full override.
         Color Ambient : 0.0 0.0 0.0 0.0
+
+        // Highlight, same as DkTerrain's tile flash: Tint is added to the
+        // lit colour, TintOverlay is a flat additive pass scaled by it.
+        // Black = off.
+        Color Tint : 0.0 0.0 0.0 0.0
+        Color TintOverlay : 0.0 0.0 0.0 0.0
         Boolean UseMaterialColors
     }
 
