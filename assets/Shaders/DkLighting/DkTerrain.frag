@@ -9,6 +9,7 @@ uniform float m_AlphaDiscardThreshold;
 varying vec2 texCoord;
 varying vec3 vVertexColor;
 varying vec3 vOverlay;
+varying vec3 vGlow;
 
 void main() {
     vec4 diffuse = texture2D(m_DiffuseMap, texCoord);
@@ -24,5 +25,9 @@ void main() {
     // Highlight overlay (tag / flash): a second additive pass of a flat
     // colour over the same triangles, lit by the same vertex colour
     colour += vOverlay * vVertexColor;
-    gl_FragColor = vec4(colour, diffuse.a);
+
+    // Surface glow (water / lava): added on top, and opaque enough to show
+    colour += vGlow;
+    float alpha = max(diffuse.a, max(max(vGlow.r, vGlow.g), vGlow.b));
+    gl_FragColor = vec4(colour, alpha);
 }
