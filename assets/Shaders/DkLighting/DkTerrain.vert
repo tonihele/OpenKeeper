@@ -3,7 +3,7 @@
 #import "Shaders/DkLighting/DkFalloff.glsllib"
 
 // Must match SceneLights.MAX_LIGHTS_PER_MATERIAL.
-#define DK_MAX_LIGHTS 32
+#define DK_MAX_LIGHTS 96
 
 uniform vec4 m_Ambient;
 uniform vec4 m_GlobalAmbient;

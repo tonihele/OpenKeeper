@@ -75,7 +75,7 @@ public final class SceneLights {
      * Must match {@code DK_MAX_LIGHTS} in {@code DkTerrain.vert}. The GLSL
      * array is fixed-size, so a material genuinely can't take
      */
-    public static final int MAX_LIGHTS_PER_MATERIAL = 32;
+    public static final int MAX_LIGHTS_PER_MATERIAL = 96;
 
     /**
      * Extra distance added to a light's radius when deciding whether it
@@ -83,7 +83,7 @@ public final class SceneLights {
      * rather than by each vertex (wall geometry extends above the tile,
      * corners are up to ~0.71 tiles from centre).
      */
-    private static final float TILE_SELECTION_PADDING = 1.0f;
+    private static final float TILE_SELECTION_PADDING = 0.75f;
 
     /**
      * Culling margin of the per-frame update pass
