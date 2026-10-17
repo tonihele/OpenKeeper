@@ -1509,6 +1509,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private List<Material> applyTerrainLighting(Node node, Terrain terrain, short ownerId) {
         List<Material> materials = new ArrayList<>();
         ColorRGBA ambient = getVertexAmbient(terrain, ownerId);
+wawaa        boolean solid = terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
         node.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial spatial) {
@@ -1528,6 +1529,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     return;
                 }
                 Material dkTerrain = AssetUtils.createDkTerrainMaterial(assetManager, geometry.getMaterial(), ambient);
+                if (solid) {
+                    dkTerrain.setFloat("MinLight", 0f);
+                }
                 geometry.setMaterial(dkTerrain);
                 materials.add(dkTerrain);
             }

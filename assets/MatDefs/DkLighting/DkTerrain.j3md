@@ -42,6 +42,10 @@ MaterialDef DK Terrain Lighting {
         // 4 = override light (player-coloured creatures).
         Texture2D LightData
 
+        // Scale of the minimum light every explored vertex gets: 1 for
+        // walkable terrain, 0 for solid terrain (black where no light reaches)
+        Float MinLight : 1.0
+
         // Animated texture (water): DiffuseMap is a strip of NumberOfTiles
         // equally wide frames, stepped Speed times a second. Unset = static.
         Int NumberOfTiles

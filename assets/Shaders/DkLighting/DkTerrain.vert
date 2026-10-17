@@ -8,6 +8,7 @@
 uniform vec4 m_Ambient;
 uniform vec4 m_Tint;
 uniform vec4 m_TintOverlay;
+uniform float m_MinLight;
 #ifdef ANIMATED_TILES
 uniform float g_Time;
 uniform int m_NumberOfTiles;
@@ -93,7 +94,9 @@ void main() {
     }
 #endif
 
-    vec3 lit = dkSoftClampFloor(sum, explored);
+    // m_MinLight is 0 for solid terrain: explored rock and walls that no
+    // light reaches stay black, like fog of war
+    vec3 lit = dkSoftClampFloor(sum, explored * m_MinLight);
 
     // Tile highlight, as in the original game (tile_tagging.md section 4): the
     // mode colour is ADDED to every vertex (so a tagged block is at least
