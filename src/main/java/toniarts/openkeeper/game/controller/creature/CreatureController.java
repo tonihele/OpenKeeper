@@ -412,7 +412,12 @@ public final class CreatureController extends EntityController implements ICreat
     public void executeAssignedTask() {
         TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
         if (!taskComponent.taskStarted) {
-            entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration, true));
+            entityData.setComponent(entityId, 
+                    new TaskComponent(taskComponent.taskId, 
+                            taskComponent.targetEntity, 
+                            taskComponent.targetLocation, 
+                            taskComponent.taskType, 
+                            taskComponent.taskDuration, true));
         }
         if (isAssignedTaskValid()) {
             getAssignedTask().executeTask(this, taskComponent.taskDuration);

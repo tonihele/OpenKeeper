@@ -1059,7 +1059,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
             playerHandControl.pop();
 
             // Stuff drop differently
@@ -1167,7 +1169,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeEntity(entity);
     }
 
-    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile) {
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         if (tile == null) {
@@ -1188,10 +1190,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Own land rule
         if (!interaction.canBeDroppedOnAnyLand && tile.getOwnerId() != playerId) {
-            return false;
+            return DropValidator.canDrop(interaction, tile, terrain, playerId);
         }
 
         return true;
+        
     }
 
     @Override
