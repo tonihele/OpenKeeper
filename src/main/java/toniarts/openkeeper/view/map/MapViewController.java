@@ -1050,7 +1050,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             Point center = getRoomCenterTile(roomInstance);
             // Tile (x, y) is centred on (x, y) in world space, not (x + 0.5, y + 0.5)
             Vector3f position = new Vector3f(center.x, 0.49f, center.y);
-            lightRules.addPortalLight(roomInstance, position);
+            //lightRules.addPortalLight(roomInstance, position);
         }
 
         return roomInstance;

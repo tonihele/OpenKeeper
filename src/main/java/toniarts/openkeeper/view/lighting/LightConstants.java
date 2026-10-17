@@ -63,6 +63,13 @@ public final class LightConstants {
     public static final boolean ROOM_LIGHTING_ENABLED = false;
 
     /**
+     * Lights carried by game objects (the pulsing dungeon heart glow, ...).
+     * Off: they pulse the object's own flat lighting from red to near black,
+     * and the scene is lit by torches, the hand and player-coloured creatures.
+     */
+    public static final boolean OBJECT_LIGHTS_ENABLED = false;
+
+    /**
      * Terrain lights of explored non-room tiles (paths, lava, water, ...).
      * Off for the same reason as {@link #ROOM_LIGHTING_ENABLED}; the glow of
      * perceived-but-unexplored ground (claim scan, gold seams) stays.

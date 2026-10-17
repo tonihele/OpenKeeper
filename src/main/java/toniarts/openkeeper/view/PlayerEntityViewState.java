@@ -430,7 +430,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
 
         GameObject gameObject = kwdFile.getObject(viewState.objectId);
-        applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY);
+        if (LightConstants.OBJECT_LIGHTS_ENABLED) {
+            applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY);
+        }
     }
 
     /**
