@@ -792,7 +792,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         lightRules.clearTileLights(p);
         lightRules.unregisterTerrainTile(p);
 
-        handleSlabLight(p, terrain);
+        handleSlabLight(p, terrain, tile.getOwnerId());
 
         // Per-tile ambient into the texture the shader blends across tile borders
         lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()));
@@ -1374,15 +1374,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         Vector3f position = new Vector3f(p.x + 0.5f, lightingTerrain.getLightHeight(), p.y + 0.5f);
-        lightRules.addTerrainLight(p, position, red, green, blue);
+        boolean claimScan = useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID;
+        lightRules.addTerrainLight(p, position, red, green, blue,
+                claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
     }
 
     /**
      * Slab light (design &sect;6.7, D2): enabled when the terrain's own
      * {@code Light} block has a non-zero colour. Not used by stock terrain.
-     * PLAYER_COLOURED is not resolved here (no owner colour at this point).
+     * {@code PLAYER_COLOURED} uses the slab owner's colour (design &sect;6.1).
      */
-    private void handleSlabLight(Point p, Terrain terrain) {
+    private void handleSlabLight(Point p, Terrain terrain, short ownerId) {
         Light light = terrain.getSlabLight();
         if (light == null || light.getColor() == null) {
             return;
@@ -1395,6 +1397,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         int red = c.getRed() + (flags.contains(Light.LightFlag.COLOR_RED) ? LightConstants.OVER_BRIGHT_BONUS : 0);
         int green = c.getGreen() + (flags.contains(Light.LightFlag.COLOR_GREEN) ? LightConstants.OVER_BRIGHT_BONUS : 0);
         int blue = c.getBlue() + (flags.contains(Light.LightFlag.COLOR_BLUE) ? LightConstants.OVER_BRIGHT_BONUS : 0);
+        if (flags.contains(Light.LightFlag.PLAYER_COLOURED)) {
+            int[] player = LightConstants.getPlayerLightColour(ownerId);
+            red = Math.max(LightConstants.PLAYER_COLOURED_MIN, red * player[0] / 255);
+            green = Math.max(LightConstants.PLAYER_COLOURED_MIN, green * player[1] / 255);
+            blue = Math.max(LightConstants.PLAYER_COLOURED_MIN, blue * player[2] / 255);
+        }
         javax.vecmath.Vector3f offset = light.getmKPos();
         Vector3f position = new Vector3f(p.x + 0.5f + offset.x, offset.y, p.y + 0.5f + offset.z);
         lightRules.addSlabLight(p, position, red, green, blue, light.getRadius(),

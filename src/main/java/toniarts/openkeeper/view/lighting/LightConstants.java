@@ -52,7 +52,20 @@ public final class LightConstants {
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 1.0f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.1f;
+
+    /**
+     * Claim-scan terrain lights keep the full intensity: every other terrain
+     * light is dialled back (a light saturates to its full colour within about
+     * a tile, and a light on every tile summed to a fully lit map), so the
+     * claim-scan glow is what stands out on unexplored rock.
+     */
+    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.5f;
+
+    /**
+     * Slab lights (design &sect;6.7) use the design's intensity of 1.0
+     */
+    public static final float SLAB_LIGHT_INTENSITY = 1.0f;
 
     /**
      * Cursor light radius
@@ -120,6 +133,52 @@ public final class LightConstants {
     public static final int PLAYER_COLOURED_MIN = 32;
 
     /**
+     * Design &sect;6.1's fixed 8-slot player colour table, shade 0 (the
+     * shade lights use). The slot is the player number: 0 unowned, 1 good
+     * (also the fallback), 2 neutral, 3..7 the keepers. It is code in the
+     * original, not data.
+     */
+    private static final int[][] PLAYER_LIGHT_COLOURS = {
+        {0, 0, 0},
+        {191, 213, 224},
+        {255, 255, 255},
+        {230, 50, 50},
+        {50, 78, 230},
+        {50, 230, 51},
+        {226, 230, 50},
+        {230, 50, 212}
+    };
+    private static final int PLAYER_LIGHT_FALLBACK_SLOT = 1;
+
+    /**
+     * The player colour a {@code PLAYER_COLOURED} light is multiplied by.
+     * An absent or out-of-range player falls back to slot 1 (pale blue-grey),
+     * not to black.
+     *
+     * @param playerId the owner's player number, {@code null} if none
+     * @return {r, g, b}, 0..255
+     */
+    public static int[] getPlayerLightColour(Short playerId) {
+        int slot = playerId == null || playerId < 0 || playerId >= PLAYER_LIGHT_COLOURS.length
+                ? PLAYER_LIGHT_FALLBACK_SLOT : playerId;
+        return PLAYER_LIGHT_COLOURS[slot].clone();
+    }
+
+    /**
+     * Design &sect;6.1's thing-light enable rule: a light exists when its
+     * colour is non-zero. The file's enable bit is not what decides (the
+     * original ORs it with the colour test when loading), and most shipped
+     * glowing records have it clear.
+     */
+    public static boolean isLightEnabled(toniarts.openkeeper.tools.convert.map.Light light) {
+        if (light == null || light.getColor() == null) {
+            return false;
+        }
+        java.awt.Color c = light.getColor();
+        return c.getRed() != 0 || c.getGreen() != 0 || c.getBlue() != 0;
+    }
+
+    /**
      * The over-bright bit adds this to a colour channel
      */
     public static final int OVER_BRIGHT_BONUS = 256;
@@ -134,8 +193,8 @@ public final class LightConstants {
      * crushed to black and the terrain would read as a flat colour block
      * instead of a tinted texture. Tunable, not derived from game data.
      */
-    public static final float PLAYER_COLOURED_TERRAIN_BASE = 0.45f;
-    public static final float PLAYER_COLOURED_TERRAIN_TINT = 0.35f;
+    public static final float PLAYER_COLOURED_TERRAIN_BASE = 0.25f;
+    public static final float PLAYER_COLOURED_TERRAIN_TINT = 0.25f;
 
     /**
      * The rate {@link LightModulators#tick()} is expected to be driven at.

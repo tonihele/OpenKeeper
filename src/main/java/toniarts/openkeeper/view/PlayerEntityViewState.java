@@ -33,10 +33,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -136,6 +138,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -418,30 +421,43 @@ public class PlayerEntityViewState extends AbstractAppState {
      * Design &sect;6.1's thing-light formula, for objects/creatures. Shots
      * and slab lights aren't wired here -- see the lighting plan's
      * "Divergences" for why (no shot rendering, no slab-light data in this
-     * codebase's parser). Player-coloured lights are not yet resolved to
-     * an actual player colour here (a known simplification); everything
-     * else in &sect;6.1 (enable bit, over-bright bits, radius scale,
-     * pulse/flicker) is implemented.
+     * codebase's parser). Everything in &sect;6.1 is implemented: the
+     * colour-non-zero enable rule, over-bright bits, the player colour of
+     * {@code PLAYER_COLOURED} lights, radius scale and pulse/flicker.
      */
     private void applyThingLight(EntityId id, Spatial object, Light light, float intensity) {
         LightRules lightRules = getLightRules();
         if (lightRules == null) {
             return;
         }
-        if (light == null || !light.getFlags().contains(Light.LightFlag.UNKNOWN)) {
+        if (!LightConstants.isLightEnabled(light)) {
             lightRules.removeThingLight(id);
+            lightOwners.remove(id);
             return;
+        }
+
+        // A PLAYER_COLOURED light takes the owner's colour, so a change of
+        // owner (e.g. a converted creature) needs the light rebuilt
+        boolean playerColoured = light.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
+        Owner owner = playerColoured ? entityData.getComponent(id, Owner.class) : null;
+        Short ownerId = owner != null ? Short.valueOf(owner.ownerId) : null;
+        if (playerColoured && lightRules.getThingLight(id) != null
+                && !Objects.equals(lightOwners.get(id), ownerId)) {
+            lightRules.removeThingLight(id);
         }
 
         Vector3f offset = new Vector3f(light.getmKPos().x, light.getmKPos().y, light.getmKPos().z);
         if (lightRules.getThingLight(id) == null) {
             java.awt.Color c = light.getColor();
+            if (playerColoured) {
+                lightOwners.put(id, ownerId);
+            }
             lightRules.addThingLight(id, object.getWorldTranslation(), offset,
                     c.getRed(), c.getGreen(), c.getBlue(),
                     light.getFlags().contains(Light.LightFlag.COLOR_RED),
                     light.getFlags().contains(Light.LightFlag.COLOR_GREEN),
                     light.getFlags().contains(Light.LightFlag.COLOR_BLUE),
-                    false, null,
+                    playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
                     light.getRadius(), intensity,
                     light.getFlags().contains(Light.LightFlag.PULSE),
                     light.getFlags().contains(Light.LightFlag.FLICKER));
@@ -508,6 +524,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
             lightRules.removeThingLight(e.getId());
+            lightOwners.remove(e.getId());
         }
 
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());

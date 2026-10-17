@@ -197,8 +197,13 @@ public final class LightRules {
 
     public LightSource addTerrainLight(Point owner, Vector3f position,
             int red, int green, int blue) {
+        return addTerrainLight(owner, position, red, green, blue, LightConstants.TERRAIN_LIGHT_INTENSITY);
+    }
+
+    public LightSource addTerrainLight(Point owner, Vector3f position,
+            int red, int green, int blue, float intensity) {
         LightSource light = new LightSource(LightKind.TERRAIN, owner, true, position,
-                red, green, blue, LightConstants.TERRAIN_LIGHT_INTENSITY,
+                red, green, blue, intensity,
                 LightConstants.TERRAIN_LIGHT_RADIUS_TILES);
         addTileLight(owner, light);
         return light;
@@ -213,7 +218,7 @@ public final class LightRules {
     public LightSource addSlabLight(Point owner, Vector3f position,
             int red, int green, int blue, float fileRadius, boolean pulse, boolean flicker) {
         LightSource light = new LightSource(LightKind.SLAB, owner, true, position,
-                red, green, blue, LightConstants.TERRAIN_LIGHT_INTENSITY, fileRadius);
+                red, green, blue, LightConstants.SLAB_LIGHT_INTENSITY, fileRadius);
         if (pulse) {
             light.startPulse();
         }

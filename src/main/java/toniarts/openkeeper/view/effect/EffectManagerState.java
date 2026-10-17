@@ -107,12 +107,23 @@ public class EffectManagerState extends AbstractAppState {
      * effects...?)
      */
     public void load(Node node, Vector3f location, int effectId, boolean infinite) {
+        load(node, location, effectId, infinite, null);
+    }
+
+    /**
+     * Loads up an particle effect owned by a player
+     *
+     * @param ownerId the owning player, gives {@code PLAYER_COLOURED} effect
+     * lights their colour; {@code null} if none
+     * @see #load(Node, Vector3f, int, boolean)
+     */
+    public void load(Node node, Vector3f location, int effectId, boolean infinite, Short ownerId) {
 
         // Load the effect
         if (effectId == 0) {
             return;
         }
-        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite);
+        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite, ownerId);
         activeEffects.add(visualEffect);
     }
 

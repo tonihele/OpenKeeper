@@ -65,13 +65,24 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private boolean infinite;
     private Spatial lightTarget;
+    private final Short ownerId;
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Effect effect) {
         this(effectManagerState, node, null, effect, false);
     }
 
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite) {
+        this(effectManagerState, node, location, effect, infinite, null);
+    }
+
+    /**
+     * @param ownerId the player the effect belongs to, used for the colour of
+     * {@code PLAYER_COLOURED} effect lights; {@code null} if none (the
+     * light then takes the fallback player colour)
+     */
+    public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite, Short ownerId) {
         this.effect = effect;
+        this.ownerId = ownerId;
         this.kwdFile = effectManagerState.getKwdFile();
         this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
@@ -133,7 +144,7 @@ public class VisualEffect {
 
             } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
-                AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+                   AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
                 if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
@@ -369,18 +380,18 @@ public class VisualEffect {
      * the effect system to trigger via {@code LightSource.startFade} --
      * this only creates the entry point, per the lighting plan's Phase 7
      * scope note; nothing here decides which effects fade or for how long.
-     * Player-coloured lights are not yet resolved to an actual player
-     * colour (a known simplification).
+     * {@code PLAYER_COLOURED} lights take the colour of the effect's owner.
      */
     private void applyEffectLight(Light effectLight) {
         LightRules lightRules = getLightRules();
         if (lightRules == null) {
             return;
         }
-        if (effectLight == null || !effectLight.getFlags().contains(Light.LightFlag.UNKNOWN)) {
+        if (!LightConstants.isLightEnabled(effectLight)) {
             lightRules.removeThingLight(this);
             return;
         }
+        boolean playerColoured = effectLight.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
 
         java.awt.Color c = effectLight.getColor();
         Vector3f offset = new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z);
@@ -389,7 +400,7 @@ public class VisualEffect {
                 effectLight.getFlags().contains(Light.LightFlag.COLOR_RED),
                 effectLight.getFlags().contains(Light.LightFlag.COLOR_GREEN),
                 effectLight.getFlags().contains(Light.LightFlag.COLOR_BLUE),
-                false, null,
+                playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
                 effectLight.getRadius(), LightConstants.EFFECT_LIGHT_INTENSITY,
                 effectLight.getFlags().contains(Light.LightFlag.PULSE),
                 effectLight.getFlags().contains(Light.LightFlag.FLICKER));
