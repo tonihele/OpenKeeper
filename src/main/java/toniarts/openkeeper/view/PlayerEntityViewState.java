@@ -141,8 +141,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
-    private static final int DUNGEON_HEART_PLUG_ID = 96;
-    private static final int DUNGEON_HEART_OBSTACLE_ID = 100;
+    /** Arches, big steps, plug and obstacle */
+    private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
 
     /**
@@ -237,12 +237,13 @@ public class PlayerEntityViewState extends AbstractAppState {
                 applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity(), tracked.honourPulse(), tracked.objectLight());
             }
             for (Spatial object : objectModelContainer.getModels()) {
-                // The heart plug and obstacle take no light from other objects
-                // (the heart's own glow), only from effects, the hand, etc.
+                // The parts of the dungeon heart take no light from objects
+                // (the heart's own glow, the arches' light), only from
+                // effects, the hand, creatures, etc.
                 ObjectViewControl control = object.getControl(ObjectViewControl.class);
                 int objectId = control != null ? control.getDataObject().getObjectId() : -1;
                 AssetUtils.applyFlatLight(object, lightRules,
-                        objectId == DUNGEON_HEART_PLUG_ID || objectId == DUNGEON_HEART_OBSTACLE_ID);
+                        DUNGEON_HEART_PART_IDS.contains(objectId));
             }
             for (Spatial object : creatureModelContainer.getModels()) {
                 AssetUtils.applyFlatLight(object, lightRules);
