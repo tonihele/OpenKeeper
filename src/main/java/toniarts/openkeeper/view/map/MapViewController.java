@@ -901,6 +901,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         float intensity;
         float radius;
         float lightHeight;
+        float maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
 
         // Room wall torches are defined by the room type. Resolve the room directly from
         // terrain because ordinary RoomInstances are registered after torches are handled.
@@ -919,11 +920,20 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             if (torchColor == null || (torchColor.getRed() == 0 && torchColor.getGreen() == 0 && torchColor.getBlue() == 0)) {
                 return; // A room with torchColor == 0 has no torches (design §6.2)
             }
-            red = torchColor.getRed();
-            green = torchColor.getGreen();
-            blue = torchColor.getBlue();
-            intensity = room.getTorchIntensity() / 128f;
+            if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+                // Only an unowned room shows its own (mostly green) torch colour
+                red = torchColor.getRed();
+                green = torchColor.getGreen();
+                blue = torchColor.getBlue();
+                intensity = room.getTorchIntensity() / 128f;
+            } else {
+                red = LightConstants.getDefaultTorchLightRed(kwdFile);
+                green = LightConstants.getDefaultTorchLightGreen(kwdFile);
+                blue = LightConstants.getDefaultTorchLightBlue(kwdFile);
+                intensity = LightConstants.getDefaultTorchLightIntensity(kwdFile);
+            }
             radius = room.getTorchRadius();
+            maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
         } else {
             red = LightConstants.getDefaultTorchLightRed(kwdFile);
             green = LightConstants.getDefaultTorchLightGreen(kwdFile);
@@ -957,7 +967,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Design 6.2: the light sits inside the floor tile, hugging the wall face
         // (the model is placed separately above), and stays small
         lightRules.addTorchLight(tile.getLocation(), getTorchLightPosition(tile.getLocation(), direction, lightHeight),
-                red, green, blue, intensity, Math.min(radius, LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES));
+                red, green, blue, intensity, Math.min(radius, maxRadius));
     }
 
     /**

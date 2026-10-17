@@ -86,10 +86,8 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
 
 // No lighting_design.md source -- a deliberate deviation from "the mesh
 // base colour" (black) outside every light's reach: keeps torch-less
-// ground dim rather than a flat black void. Must match
-// LightConstants.MIN_AMBIENT_FLOOR. Applied as a floor (max), not an
-// addition, so it never washes out an already-lit point.
-#define DK_MIN_AMBIENT_FLOOR 0.12
+// ground dim rather than a flat black void.
+#define DK_MIN_AMBIENT_FLOOR 0.4
 
 // Compresses the brightest channel, as before.
 float dkSoftClampValue(float x) {

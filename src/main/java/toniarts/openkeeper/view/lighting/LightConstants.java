@@ -28,15 +28,6 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  */
 public final class LightConstants {
 
-    /**
-     * No lighting_design.md source -- a deliberate deviation from the
-     * design's own "the mesh base colour" (i.e. black) outside every
-     * light's reach: a fully unlit tile still gets this much ambient
-     * floor, so torch-less ground reads as a dim, murky dungeon rather
-     * than a flat black void. Applied as a per-channel floor (max), not
-     * an addition, so it never washes out an already-lit tile.
-     */
-    public static final float MIN_AMBIENT_FLOOR = 0.12f;
 
     /**
      * Loose tail stretched past every light's radius
@@ -80,7 +71,7 @@ public final class LightConstants {
      * Torch lights are small and local: at most this radius (tiles), however
      * large the room / default torch radius is.
      */
-    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 1f;
+    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 0.2f;
 
     /**
      * Claim-scan terrain lights keep the full intensity: every other terrain
@@ -98,7 +89,7 @@ public final class LightConstants {
     /**
      * Cursor light radius
      */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 1.5f;
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 0.75f;
 
     /**
      * Cursor light intensity, 255/128
@@ -120,7 +111,7 @@ public final class LightConstants {
     /**
      * Hard cap on any light source's radius
      */
-    public static final float MAX_LIGHT_RADIUS_TILES = 2f;
+    public static final float MAX_LIGHT_RADIUS_TILES = 1.5f;
     /**
      * Portal light colour/intensity DK2
      * hard-codes this for room ids 3 (Portal) and 25 (Hero Portal).
@@ -163,7 +154,7 @@ public final class LightConstants {
      * Player-coloured thing lights (a keeper's imps and dwarves) only tint the
      * ground right around them: their radius is capped here (tiles)
      */
-    public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.25f;
+    public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.1f;
 
     /**
      * Design &sect;6.1's fixed 8-slot player colour table, shade 0 (the
