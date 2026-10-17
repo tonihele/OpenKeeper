@@ -1403,7 +1403,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             green = Math.max(LightConstants.PLAYER_COLOURED_MIN, green * player[1] / 255);
             blue = Math.max(LightConstants.PLAYER_COLOURED_MIN, blue * player[2] / 255);
         }
-        javax.vecmath.Vector3f offset = light.getmKPos();
+        Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
         Vector3f position = new Vector3f(p.x + 0.5f + offset.x, offset.y, p.y + 0.5f + offset.z);
         lightRules.addSlabLight(p, position, red, green, blue, light.getRadius(),
                 flags.contains(Light.LightFlag.PULSE), flags.contains(Light.LightFlag.FLICKER));

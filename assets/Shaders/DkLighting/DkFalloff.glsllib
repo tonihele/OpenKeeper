@@ -91,15 +91,24 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
 // addition, so it never washes out an already-lit point.
 #define DK_MIN_AMBIENT_FLOOR 0.12
 
-float dkSoftClampChannel(float x) {
+// Compresses the brightest channel, as before.
+float dkSoftClampValue(float x) {
     if (x <= DK_SOFTCLAMP_KNEE) {
-        return max(x, DK_MIN_AMBIENT_FLOOR);
+        return x;
     }
     float span = DK_SOFTCLAMP_CEILING - DK_SOFTCLAMP_KNEE;
     float excess = x - DK_SOFTCLAMP_KNEE;
     return DK_SOFTCLAMP_CEILING - (span * span) / (excess + span);
 }
 
+// Hue-preserving: the whole colour is scaled by what the BRIGHTEST channel
+// needs, instead of clamping every channel on its own. Per-channel clamping
+// clipped an already-orange torch-lit floor to its saturated red, so a
+// further red light (a red keeper's imp) added nothing but green and blue
+// and made the floor look LESS red. Scaling keeps the ratios, so extra red
+// stays visible as a shift towards red.
 vec3 dkSoftClamp(vec3 sum) {
-    return vec3(dkSoftClampChannel(sum.r), dkSoftClampChannel(sum.g), dkSoftClampChannel(sum.b));
+    float peak = max(max(sum.r, sum.g), sum.b);
+    vec3 colour = peak > DK_SOFTCLAMP_KNEE ? sum * (dkSoftClampValue(peak) / peak) : sum;
+    return max(colour, vec3(DK_MIN_AMBIENT_FLOOR));
 }

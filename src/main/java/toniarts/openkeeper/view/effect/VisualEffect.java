@@ -144,7 +144,7 @@ public class VisualEffect {
 
             } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
 
-                   AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+                    AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
                 if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
@@ -394,7 +394,7 @@ public class VisualEffect {
         boolean playerColoured = effectLight.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
 
         java.awt.Color c = effectLight.getColor();
-        Vector3f offset = new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z);
+        Vector3f offset = LightConstants.toJmeOffset(effectLight.getmKPos());
         lightRules.addThingLight(this, effectNode.getWorldTranslation(), offset,
                 c.getRed(), c.getGreen(), c.getBlue(),
                 effectLight.getFlags().contains(Light.LightFlag.COLOR_RED),

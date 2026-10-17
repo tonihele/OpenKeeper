@@ -29,6 +29,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -139,6 +140,14 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
+    private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+
+    /**
+     * A thing whose light is created and positioned every frame (see
+     * {@link #update(float)}), not only when its entity changes.
+     */
+    private record TrackedLight(Spatial spatial, Light light, float intensity) {
+    }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -217,6 +226,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         // change-driven updateObject().
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
+            // Create missing thing lights and follow the (possibly moving)
+            // owners: the local translation is what updateModelPosition just
+            // set, whereas the world one lags a frame behind
+            for (Map.Entry<EntityId, TrackedLight> entry : new ArrayList<>(trackedLights.entrySet())) {
+                TrackedLight tracked = entry.getValue();
+                applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity());
+            }
             for (Spatial object : objectModelContainer.getModels()) {
                 AssetUtils.applyFlatLight(object, lightRules);
             }
@@ -428,13 +444,21 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void applyThingLight(EntityId id, Spatial object, Light light, float intensity) {
         LightRules lightRules = getLightRules();
         if (lightRules == null) {
+            // Map still loading: remember the thing so update() creates the
+            // light as soon as the map is ready, without waiting for the
+            // entity to change again (an idle imp might never)
+            if (LightConstants.isLightEnabled(light)) {
+                trackedLights.put(id, new TrackedLight(object, light, intensity));
+            }
             return;
         }
         if (!LightConstants.isLightEnabled(light)) {
             lightRules.removeThingLight(id);
             lightOwners.remove(id);
+            trackedLights.remove(id);
             return;
         }
+        trackedLights.put(id, new TrackedLight(object, light, intensity));
 
         // A PLAYER_COLOURED light takes the owner's colour, so a change of
         // owner (e.g. a converted creature) needs the light rebuilt
@@ -446,13 +470,13 @@ public class PlayerEntityViewState extends AbstractAppState {
             lightRules.removeThingLight(id);
         }
 
-        Vector3f offset = new Vector3f(light.getmKPos().x, light.getmKPos().y, light.getmKPos().z);
+        Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
         if (lightRules.getThingLight(id) == null) {
             java.awt.Color c = light.getColor();
             if (playerColoured) {
                 lightOwners.put(id, ownerId);
             }
-            lightRules.addThingLight(id, object.getWorldTranslation(), offset,
+            lightRules.addThingLight(id, object.getLocalTranslation(), offset,
                     c.getRed(), c.getGreen(), c.getBlue(),
                     light.getFlags().contains(Light.LightFlag.COLOR_RED),
                     light.getFlags().contains(Light.LightFlag.COLOR_GREEN),
@@ -462,7 +486,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                     light.getFlags().contains(Light.LightFlag.PULSE),
                     light.getFlags().contains(Light.LightFlag.FLICKER));
         } else {
-            lightRules.updateThingLightPosition(id, object.getWorldTranslation(), offset);
+            lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
         }
     }
 
@@ -521,10 +545,12 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
 
+        // Stop driving the light first, or update() would re-create it
+        trackedLights.remove(e.getId());
+        lightOwners.remove(e.getId());
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
             lightRules.removeThingLight(e.getId());
-            lightOwners.remove(e.getId());
         }
 
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());

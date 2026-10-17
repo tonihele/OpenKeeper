@@ -60,7 +60,10 @@ void main() {
     // bright tiles; the small additive part makes it show on dark ones too.
     vec3 tint = m_Tint.rgb;
     if (tint.r + tint.g + tint.b > 0.0) {
-        lit = lit * (vec3(0.35) + 1.4 * tint) + tint * 0.25;
+        // A selected / flashing tile is fully lit, whatever the scene lighting
+        // around it, so its highlight colour always reads the same
+        lit = vec3(1.0);
+        lit = lit *(vec3(0.35) + 1.4 * tint) + tint * 0.25;
     }
     vVertexColor = lit;
 }

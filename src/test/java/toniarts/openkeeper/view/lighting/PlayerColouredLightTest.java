@@ -73,6 +73,19 @@ public class PlayerColouredLightTest {
     }
 
     @Test
+    public void lightOffsetHeightLandsOnJmeUpAxis() {
+        // The imp's light block is (0, 0, 0.5): half a tile UP, not sideways
+        Vector3f offset = LightConstants.toJmeOffset(new javax.vecmath.Vector3f(0f, 0f, 0.5f));
+        assertEquals(0f, offset.x);
+        assertEquals(0.5f, offset.y);
+        assertEquals(0f, offset.z);
+
+        // And the map's y goes to jME's z
+        Vector3f other = LightConstants.toJmeOffset(new javax.vecmath.Vector3f(1f, 2f, 3f));
+        assertEquals(new Vector3f(1f, 3f, 2f), other);
+    }
+
+    @Test
     public void returnedColourIsACopy() {
         int[] colour = LightConstants.getPlayerLightColour((short) 3);
         colour[0] = 0;

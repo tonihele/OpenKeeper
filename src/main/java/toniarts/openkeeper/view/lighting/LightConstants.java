@@ -52,7 +52,7 @@ public final class LightConstants {
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.1f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
 
     /**
      * Claim-scan terrain lights keep the full intensity: every other terrain
@@ -87,7 +87,7 @@ public final class LightConstants {
      * Portal light radius: this is also the hard cap every light's radius
      * is clamped to
      */
-    public static final float PORTAL_LIGHT_RADIUS_TILES = 9.875f;
+    public static final float PORTAL_LIGHT_RADIUS_TILES = 2f;
 
     /**
      * Hard cap on any light source's radius
@@ -162,6 +162,17 @@ public final class LightConstants {
         int slot = playerId == null || playerId < 0 || playerId >= PLAYER_LIGHT_COLOURS.length
                 ? PLAYER_LIGHT_FALLBACK_SLOT : playerId;
         return PLAYER_LIGHT_COLOURS[slot].clone();
+    }
+
+    /**
+     * Converts a {@code Light} block's {@code mKPos} offset to a jME offset.
+     * The data is (x, y, z) with z the height above the floor (the imp's is
+     * (0, 0, 0.5)); jME has y up and the map's y on its z axis, so the
+     * height must land on jME's y -- copying the components across put the
+     * light at floor level, half a tile to the side.
+     */
+    public static com.jme3.math.Vector3f toJmeOffset(javax.vecmath.Vector3f mKPos) {
+        return new com.jme3.math.Vector3f(mKPos.x, mKPos.z, mKPos.y);
     }
 
     /**
