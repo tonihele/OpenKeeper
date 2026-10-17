@@ -41,18 +41,18 @@ public final class LightConstants {
     /**
      * Loose tail stretched past every light's radius
      */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 1.0f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.5f;
 
     /**
      * The original's terrain-light radius: the terrain
      * data has no radius field, the original reuses a fixed scratch value.
      */
-    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.5f;
+    public static final float TERRAIN_LIGHT_RADIUS_TILES = 0.75f;
 
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.8f;
 
     /**
      * Claim-scan terrain lights keep the full intensity: every other terrain
@@ -196,18 +196,6 @@ public final class LightConstants {
     public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
 
     /**
-     * Player-coloured reinforced walls/paths
-     * -- this is DK2's own claimed-terrain tinting, not part of the
-     * dynamic-light model). Since vertex ambient multiplies the diffuse
-     * texture, blend the owner's colour with a neutral grey rather than
-     * using it at full strength, or channels it doesn't cover would be
-     * crushed to black and the terrain would read as a flat colour block
-     * instead of a tinted texture. Tunable, not derived from game data.
-     */
-    public static final float PLAYER_COLOURED_TERRAIN_BASE = 0.25f;
-    public static final float PLAYER_COLOURED_TERRAIN_TINT = 0.25f;
-
-    /**
      * The rate {@link LightModulators#tick()} is expected to be driven at.
      */
     public static final int SIMULATION_TICKS_PER_SECOND = 4;
@@ -218,7 +206,7 @@ public final class LightConstants {
      */
     public static final int FLICKER_HZ = 30;
 
-    public static final float FLICKER_MIN = 0.5f;
+    public static final float FLICKER_MIN = 0.2f;
     public static final float FLICKER_MAX = 1.0f;
     public static final float FLICKER_STEP = 0.125f;
 

@@ -38,7 +38,6 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
-import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
@@ -1516,30 +1515,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
         }
 
-        // Player-coloured reinforced walls/paths (design isn't covered by
-        // lighting_design.md, which is only about dynamic point lights --
-        // this terrain has no AMBIENT_LIGHT of its own in the file data at
-        // all) default to a tint of the owner's colour instead of staying
-        // unlit, matching DK2's own look for claimed dungeon walls. Since
-        // this multiplies the diffuse texture (design §9), the raw player
-        // colour alone would crush whichever channels it doesn't cover
-        // (a pure red would zero out the texture's green/blue and read as
-        // a flat colour block) -- blend it with a neutral grey instead so
-        // the terrain's own texture still reads through, just tinted.
-        if ((terrain.getFlags().contains(Terrain.TerrainFlag.PLAYER_COLOURED_WALL)
-                || terrain.getFlags().contains(Terrain.TerrainFlag.PLAYER_COLOURED_PATH))
-                && ownerId != Player.NEUTRAL_PLAYER_ID) {
-            java.awt.Color playerColor = MapThumbnailGenerator.getPlayerColor(ownerId);
-            if (playerColor != null) {
-                float neutral = LightConstants.PLAYER_COLOURED_TERRAIN_BASE;
-                float tint = LightConstants.PLAYER_COLOURED_TERRAIN_TINT;
-                return new ColorRGBA(
-                        neutral + (playerColor.getRed() / 255f) * tint,
-                        neutral + (playerColor.getGreen() / 255f) * tint,
-                        neutral + (playerColor.getBlue() / 255f) * tint, 1f);
-            }
-        }
-
+        // Player-coloured (claimed) paths and walls get no owner tint here: they
+        // are lit by the torches and other lights only. The owner tint that used
+        // to be added as ambient made a red keeper's claimed tiles read red.
         return ColorRGBA.Black;
     }
 
