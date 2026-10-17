@@ -52,7 +52,7 @@ public final class LightConstants {
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.8f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.4f;
 
     /**
      * Terrain lights of room tiles (the interior-slab glow of design 6.3) and
@@ -74,7 +74,7 @@ public final class LightConstants {
      * Off for the same reason as {@link #ROOM_LIGHTING_ENABLED}; the glow of
      * perceived-but-unexplored ground (claim scan, gold seams) stays.
      */
-    public static final boolean EXPLORED_TERRAIN_LIGHTS_ENABLED = false;
+    public static final boolean EXPLORED_TERRAIN_LIGHTS_ENABLED = true;
 
     /**
      * Torch lights are small and local: at most this radius (tiles), however
@@ -121,7 +121,6 @@ public final class LightConstants {
      * Hard cap on any light source's radius
      */
     public static final float MAX_LIGHT_RADIUS_TILES = 2f;
-
     /**
      * Portal light colour/intensity DK2
      * hard-codes this for room ids 3 (Portal) and 25 (Hero Portal).
