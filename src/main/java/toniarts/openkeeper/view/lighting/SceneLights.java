@@ -21,25 +21,17 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Plane;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import com.jme3.math.Vector4f;
 import com.jme3.renderer.Camera;
-import com.jme3.shader.VarType;
 import com.jme3.texture.Image;
 import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.nio.FloatBuffer;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -47,17 +39,15 @@ import toniarts.openkeeper.utils.Point;
  * {@code DkLighting} material techniques (design &sect;9's two evaluation
  * modes) actually consume:
  * <ul>
- * <li><b>Per-vertex terrain</b> ({@code DkTerrain.j3md}): every tile's
- * geometry gets an array of its nearest in-range lights uploaded as
- * material parameters, refreshed every frame (lights flicker/pulse/fade,
- * so this can't be a one-time upload). Tile-vs-light selection is an
- * approximation by tile-centre distance (padded, see
- * {@link #TILE_SELECTION_PADDING}, and stretched past the light's radius
- * by {@link LightConstants#SOFT_FALLOFF_TAIL_TILES} -- the reach test
- * must also cover the shader's soft-falloff band, not just the radius) --
- * a renderer/culling detail per D9,
- * not a change to the lighting model itself, which is still evaluated
- * exactly, per vertex, in the shader.</li>
+ * <li><b>Per-vertex terrain</b> ({@code DkTerrain.j3md}): one shared list of
+ * every light near the camera, written once per frame into a data texture
+ * ({@code LightData}) that every terrain material reads. All materials see
+ * exactly the same lights, so neighbouring tiles, room meshes and page
+ * batches can never disagree about a light that reaches their shared edge
+ * (the earlier per-material light lists, chosen by distance from each
+ * material's own centre and capped, produced hard cuts at tile borders). The
+ * shader still evaluates the model exactly, per vertex; there is no cap on
+ * the number of lights beyond the texture size ({@link #MAX_LIGHTS}).</li>
  * <li><b>Flat things</b> ({@code DkFlat.j3md}): {@link #computeFlatLight}
  * is a pure function callers (entity containers, {@code VisualEffect})
  * invoke themselves each frame with the owner's current position, per
@@ -73,58 +63,45 @@ public final class SceneLights {
     private static final Logger logger = Logger.getLogger(SceneLights.class.getName());
 
     /**
-     * Must match {@code DK_MAX_LIGHTS} in {@code DkTerrain.vert}. The GLSL
-     * array is fixed-size, so a material genuinely can't take
+     * Most lights the data texture holds; must match {@code DK_MAX_LIGHTS} in
+     * {@code DkTerrain.vert}.
      */
-    public static final int MAX_LIGHTS_PER_MATERIAL = 96;
+    public static final int MAX_LIGHTS = 1024;
 
     /**
-     * Extra distance added to a light's radius when deciding whether it
-     * might reach a tile, to account for selecting by tile-centre distance
-     * rather than by each vertex (wall geometry extends above the tile,
-     * corners are up to ~0.71 tiles from centre).
+     * Layout of {@code LightData}: texel 0 is a header (x = light count,
+     * yzw = global ambient), then three texels per light: (x, y, z, radius),
+     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F.
      */
-    private static final float TILE_SELECTION_PADDING = 0.75f;
+    private static final int TEXELS_PER_LIGHT = 3;
 
     /**
-     * Culling margin of the per-frame update pass
+     * How far outside the camera's view a light is still uploaded, on top of
+     * its own reach, so lights just off-screen are already there when the
+     * camera swings round and tall walls near the edge are lit correctly.
      */
     private static final float FRUSTUM_MARGIN_TILES = 5f;
 
-    private final Map<Point, List<Material>> terrainMaterialsByTile = new HashMap<>();
-    private final Map<Object, Region> regionMaterials = new HashMap<>();
     private ColorRGBA globalAmbient = ColorRGBA.Black.clone();
     private IFogOfWarQuery fogOfWar = new NoFogOfWarQuery();
+    private final Texture2D lightData;
+    private final FloatBuffer lightFloats;
+    private boolean warnedAboutLightCount;
     private volatile Texture2D ambientMap;
     private int ambientMapWidth;
     private int ambientMapHeight;
 
-    /**
-     * A room's whole floor/wall is built (and batched) as one big mesh by
-     * {@code RoomConstructor}, spanning many tiles -- it can't be keyed by
-     * a single tile the way ordinary terrain geometry is, so it's
-     * registered against its own centre + a bounding radius instead (see
-     * {@link #registerRegionMaterials}).
-     */
-    private static final class Region {
-        final Vector3f center;
-        final float radius;
-        final List<Material> materials;
-
-        Region(Vector3f center, float radius, List<Material> materials) {
-            this.center = center;
-            this.radius = radius;
-            this.materials = materials;
-        }
+    public SceneLights() {
+        int width = 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
+        ByteBuffer data = BufferUtils.createByteBuffer(width * 4 * Float.BYTES);
+        lightFloats = data.asFloatBuffer();
+        Image image = new Image(Image.Format.RGBA32F, width, 1, data, ColorSpace.Linear);
+        lightData = new Texture2D(image);
+        lightData.setMagFilter(Texture.MagFilter.Nearest);
+        lightData.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
+        lightData.setWrap(Texture.WrapMode.EdgeClamp);
     }
 
-    /**
-     * The video "ambient light" setting (design &sect;8.2), pushed into
-     * every registered terrain material every frame (see {@link
-     * #update(List)}) and available for callers of {@link
-     * #computeFlatLight} to set on their own {@code DkFlat} materials
-     * alongside the flat-light colour.
-     */
     /**
      * The viewer's fog. The shader hides coloured light over unexplored
      * ground (a tile's explored flag is in the ambient texture); this is only
@@ -135,6 +112,11 @@ public final class SceneLights {
         this.fogOfWar = fogOfWar;
     }
 
+    /**
+     * The video "ambient light" setting (design &sect;8.2). It travels in the
+     * light data header, and is available to callers of {@link
+     * #computeFlatLight} for their own {@code DkFlat} materials.
+     */
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
         this.globalAmbient = globalAmbient;
     }
@@ -144,66 +126,50 @@ public final class SceneLights {
     }
 
     /**
-     * Registers (appending to any already-registered materials for this
-     * tile) the DkTerrain materials belonging to one piece of a tile's
-     * geometry (e.g. its floor, then separately its walls). Call {@link
-     * #unregisterTerrainTile} first on a rebuild so this doesn't grow
-     * unbounded.
+     * Hooks the DkTerrain materials belonging to one piece of a tile's
+     * geometry up to the shared light and ambient textures. Nothing else is
+     * needed: they are lit from then on by {@link #update}.
      */
     public void registerTerrainTile(Point tile, List<Material> materials) {
-        terrainMaterialsByTile.computeIfAbsent(tile, k -> new ArrayList<>()).addAll(materials);
+        for (Material material : materials) {
+            bind(material);
+        }
     }
 
     public void unregisterTerrainTile(Point tile) {
-        terrainMaterialsByTile.remove(tile);
+        // Nothing to undo: a dropped material is simply no longer rendered
     }
 
     /**
-     * Registers the materials belonging to a whole room's batched floor/
-     * wall mesh (design §8.1's per-room-type ambient still applies, it's
-     * just not keyed per-tile like ordinary terrain). Replaces any
-     * previous registration under the same key -- rooms are constructed
-     * once, not incrementally, so there's nothing to append to.
+     * Same as {@link #registerTerrainTile} for a whole room's / page's
+     * batched mesh. The centre and radius are not needed any more, since
+     * every material reads the same light list.
      */
     public void registerRegionMaterials(Object key, Vector3f center, float radius, List<Material> materials) {
-        regionMaterials.put(key, new Region(center, radius, materials));
+        for (Material material : materials) {
+            bind(material);
+        }
     }
 
     public void unregisterRegionMaterials(Object key) {
-        regionMaterials.remove(key);
+        // See unregisterTerrainTile
+    }
+
+    private void bind(Material material) {
+        if (material.getTextureParam("LightData") == null) {
+            material.setTexture("LightData", lightData);
+        }
+        bindAmbientMap(material);
     }
 
     /**
-     * Refreshes every registered terrain tile's light-array material
-     * parameters from the current state of {@code lights}. Meant to be
-     * called once per frame (see {@link LightRules#update(float, Camera)}) --
-     * flicker/pulse/fade mean this can't be a one-shot upload done only
-     * when lights are created or moved.
-     * <p>
-     * This is a per-frame pass over every registered tile/region that is
-     * within the camera frustum (plus {@link #FRUSTUM_MARGIN_TILES} on each
-     * side, so lights just off-screen are already correct when the camera
-     * swings round); anything further out isn't rendered, so it keeps its
-     * last uploaded array.
+     * Writes this frame's lights into the shared data texture. Call once per
+     * frame (see {@link LightRules#update(float, Camera)}) -- flicker, pulse,
+     * fade and moving creatures mean this can't be a one-shot upload.
+     * Lights well outside the camera's view are left out (an optimisation
+     * only: they cannot reach anything on screen).
      */
     public void update(List<LightSource> lights, Camera camera) {
-        if (terrainMaterialsByTile.isEmpty() && regionMaterials.isEmpty()) {
-            return;
-        }
-        if (lights.isEmpty()) {
-            for (List<Material> materials : terrainMaterialsByTile.values()) {
-                for (Material material : materials) {
-                    clearLights(material);
-                }
-            }
-            for (Region region : regionMaterials.values()) {
-                for (Material material : region.materials) {
-                    clearLights(material);
-                }
-            }
-            return;
-        }
-
         Plane[] frustum = null;
         if (camera != null) {
             // jME 3.9 Camera folded the classic Frustum's six world planes
@@ -215,59 +181,58 @@ public final class SceneLights {
                 frustum[i] = camera.getWorldPlane(i);
             }
         }
-        List<LightSource> nearby = new ArrayList<>(MAX_LIGHTS_PER_MATERIAL + 1);
-        for (Map.Entry<Point, List<Material>> entry : terrainMaterialsByTile.entrySet()) {
-            Point tile = entry.getKey();
-            if (frustum != null && !reachableFromCamera(frustum, FRUSTUM_MARGIN_TILES, tile.x + 0.5f, tile.y + 0.5f)) {
+
+        int count = 0;
+        for (LightSource light : lights) {
+            if (!light.isEnabled()) {
                 continue;
             }
-            updateGroup(entry.getValue(), tile.x + 0.5f, tile.y + 0.5f, TILE_SELECTION_PADDING, lights, nearby);
-        }
-        for (Region region : regionMaterials.values()) {
-            if (frustum != null && !reachableFromCamera(frustum, FRUSTUM_MARGIN_TILES, region.center.x, region.center.z)) {
+            Vector3f pos = light.getPosition();
+            float reach = light.getRadius() + LightConstants.SOFT_FALLOFF_TAIL_TILES + FRUSTUM_MARGIN_TILES;
+            if (frustum != null && !reachableFromCamera(frustum, reach, pos.x, pos.z)) {
                 continue;
             }
-            updateGroup(region.materials, region.center.x, region.center.z, region.radius, lights, nearby);
+            if (count >= MAX_LIGHTS) {
+                if (!warnedAboutLightCount) {
+                    warnedAboutLightCount = true;
+                    logger.log(Level.WARNING, "More than {0} lights near the camera, the rest are dropped", MAX_LIGHTS);
+                }
+                break;
+            }
+            int base = (1 + TEXELS_PER_LIGHT * count) * 4;
+            lightFloats.put(base, pos.x);
+            lightFloats.put(base + 1, pos.y);
+            lightFloats.put(base + 2, pos.z);
+            lightFloats.put(base + 3, light.getRadius());
+            lightFloats.put(base + 4, light.getRed() / 255f);
+            lightFloats.put(base + 5, light.getGreen() / 255f);
+            lightFloats.put(base + 6, light.getBlue() / 255f);
+            lightFloats.put(base + 7, light.getEffectiveIntensity());
+            lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
+                    | (lightsUnexploredTiles(light) ? 2 : 0));
+            count++;
         }
+        lightFloats.put(0, count);
+        lightFloats.put(1, globalAmbient.r);
+        lightFloats.put(2, globalAmbient.g);
+        lightFloats.put(3, globalAmbient.b);
+        lightData.getImage().setUpdateNeeded();
     }
 
     /**
-     * Immediately uploads the current lights to the given tiles' (freshly
-     * rebuilt) materials and to every region, without the frustum cull. A
-     * rebuilt tile gets a new Material with no lights; waiting for the next
-     * {@link #update} left it unlit for a frame, which showed as the
-     * surrounding tiles flickering darker whenever a tile was flashed or
-     * otherwise rebuilt.
-     */
-    public void refresh(Collection<Point> tiles, List<LightSource> lights) {
-        List<LightSource> nearby = new ArrayList<>(MAX_LIGHTS_PER_MATERIAL + 1);
-        for (Point tile : tiles) {
-            List<Material> materials = terrainMaterialsByTile.get(tile);
-            if (materials != null) {
-                updateGroup(materials, tile.x + 0.5f, tile.y + 0.5f, TILE_SELECTION_PADDING, lights, nearby);
-            }
-        }
-        for (Region region : regionMaterials.values()) {
-            updateGroup(region.materials, region.center.x, region.center.z, region.radius, lights, nearby);
-        }
-    }
-
-    /**
-     * Whether a tile/region centre (at ground height) is inside the camera
-     * frustum expanded by {@code margin} tiles on each side. The frustum
-     * planes' normals point inward, so {@code distance >= -margin} keeps a
-     * point up to {@code margin} outside a plane -- i.e. exactly "the
-     * frustum plus the margin strip around it".
+     * Whether a point (at ground height) is inside the camera frustum
+     * expanded by {@code margin} tiles on each side. The frustum planes'
+     * normals point inward, so {@code distance >= -margin} keeps a point up
+     * to {@code margin} outside a plane.
      */
     private static boolean reachableFromCamera(Plane[] planes, float margin, float x, float z) {
         // Only the four side planes (indices 0..3): near/far are meaningless
         // for a ground-level point seen at an oblique angle, and walls rise
-        // above the point being tested, so a tile can be on screen while its
-        // ground centre isn't.
+        // above the point being tested.
         for (int i = 0; i < 4; i++) {
             Plane plane = planes[i];
             // pseudoDistance = normal.Dot(point) - constant, computed without
-            // allocating a Vector3f per tile/region every frame
+            // allocating a Vector3f per light every frame
             Vector3f normal = plane.getNormal();
             float distance = normal.x * x + normal.z * z - plane.getConstant();
             if (distance < -margin) {
@@ -275,48 +240,6 @@ public final class SceneLights {
             }
         }
         return true;
-    }
-
-    private void updateGroup(List<Material> materials, float centerX, float centerZ, float padding,
-            List<LightSource> lights, List<LightSource> nearby) {
-        nearby.clear();
-        for (LightSource light : lights) {
-            if (!light.isEnabled()) {
-                continue;
-            }
-            Vector3f pos = light.getPosition();
-            float dx = pos.x - centerX;
-            float dz = pos.z - centerZ;
-            float reach = light.getRadius() + LightConstants.SOFT_FALLOFF_TAIL_TILES + padding;
-            if (dx * dx + dz * dz <= reach * reach) {
-                nearby.add(light);
-            }
-        }
-
-        if (nearby.size() > MAX_LIGHTS_PER_MATERIAL) {
-            // GLSL array is fixed-size; see MAX_LIGHTS_PER_MATERIAL
-            nearby.sort((a, b) -> {
-                int pa = a.getKind() == LightKind.TERRAIN ? 1 : 0;
-                int pb = b.getKind() == LightKind.TERRAIN ? 1 : 0;
-                if (pa != pb) {
-                    return Integer.compare(pa, pb);
-                }
-                return Float.compare(distanceSquared(a, centerX, centerZ), distanceSquared(b, centerX, centerZ));
-            });
-        }
-
-        int count = Math.min(nearby.size(), MAX_LIGHTS_PER_MATERIAL);
-        for (Material material : materials) {
-            if (count == 0) {
-                // jME's renderer throws ("Attempting to upload empty
-                // buffer") on a zero-length Vector4Array upload -- most
-                // tiles have no light in range most of the time, so this
-                // isn't an edge case, it's the common case.
-                clearLights(material);
-            } else {
-                applyLights(material, nearby, count);
-            }
-        }
     }
 
     /**
@@ -334,20 +257,13 @@ public final class SceneLights {
                 && !fogOfWar.isExplored(owner);
     }
 
-    private static float distanceSquared(LightSource light, float centerX, float centerZ) {
-        Vector3f pos = light.getPosition();
-        float dx = pos.x - centerX;
-        float dz = pos.z - centerZ;
-        return dx * dx + dz * dz;
-    }
-
     /**
      * Creates the map-sized ambient texture (one texel per tile, centre at
      * {@code tile + 0.5}). The vertex shader samples it with bilinear
      * filtering at the vertex's world position, so the per-terrain vertex
-     * ambient (design &sect;8.1) fades from one tile to the next instead of
-     * stepping at the tile border (e.g. owner-tinted next to unowned ground).
-     * Values are stored halved so over-bright ambient (up to 2.0) fits 8 bits.
+     * ambient (design &sect;8.1) and the explored flag fade from one tile to
+     * the next instead of stepping at the tile border. Values are stored
+     * halved so over-bright ambient (up to 2.0) fits 8 bits.
      */
     public void initAmbientMap(int width, int height) {
         ByteBuffer data = BufferUtils.createByteBuffer(width * height * 4);
@@ -389,33 +305,6 @@ public final class SceneLights {
             material.setTexture("AmbientMap", ambientMap);
             material.setVector2("AmbientMapSize", new Vector2f(ambientMapWidth, ambientMapHeight));
         }
-    }
-
-    private void applyLights(Material material, List<LightSource> nearby, int count) {
-        bindAmbientMap(material);
-        Vector4f[] posRadius = new Vector4f[count];
-        Vector4f[] colorIntensity = new Vector4f[count];
-        int[] radial = new int[count];
-        for (int i = 0; i < count; i++) {
-            LightSource light = nearby.get(i);
-            Vector3f pos = light.getPosition();
-            posRadius[i] = new Vector4f(pos.x, pos.y, pos.z, light.getRadius());
-            colorIntensity[i] = new Vector4f(
-                    light.getRed() / 255f, light.getGreen() / 255f, light.getBlue() / 255f,
-                    light.getEffectiveIntensity());
-            radial[i] = (light.needsSmoothFalloff() ? 1 : 0) | (lightsUnexploredTiles(light) ? 2 : 0);
-        }
-        material.setParam("LightPosRadius", VarType.Vector4Array, posRadius);
-        material.setParam("LightColorIntensity", VarType.Vector4Array, colorIntensity);
-        material.setParam("LightRadial", VarType.IntArray, radial);
-        material.setInt("NumLights", count);
-        material.setColor("GlobalAmbient", globalAmbient);
-    }
-
-    private void clearLights(Material material) {
-        bindAmbientMap(material);
-        material.setInt("NumLights", 0);
-        material.setColor("GlobalAmbient", globalAmbient);
     }
 
     /**

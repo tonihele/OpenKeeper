@@ -10,49 +10,33 @@ MaterialDef DK Terrain Lighting {
 
         // Vertex ambient (design §8.1): a per-terrain-type constant, 0..1,
         // already converted from the file's 0..511 channel + over-bright
-        // bits by the Java side. Defaulted to black -- an unset Color
-        // MaterialParameter is an uninitialized GPU uniform, not zero.
+        // bits by the Java side. Only used until the AmbientMap below is
+        // bound. Defaulted to black -- an unset Color MaterialParameter is an
+        // uninitialized GPU uniform, not zero.
         Color Ambient : 0.0 0.0 0.0 0.0
 
-        // Map-sized per-tile ambient (rgb = ambient / 2), sampled bilinearly
-        // at the vertex's world position so ambient fades between tiles
-        // instead of stepping at tile borders. When bound (by SceneLights)
-        // it replaces the constant Ambient above.
-        // Per-tile highlight added on top of ambient + lights (tile tag
-        // "blue glow", flash "red glow"). Deliberately NOT blended across
-        // tile borders: a selection must read as exactly that tile.
+        // Per-tile highlight (tile tag "blue glow", flash "red glow"): the
+        // tile is drawn fully lit and tinted with this. Deliberately NOT
+        // blended across tile borders: a selection must read as exactly that
+        // tile.
         Color Tint : 0.0 0.0 0.0 0.0
 
+        // Map-sized per-tile data (rgb = ambient / 2, a = explored flag),
+        // sampled bilinearly at the vertex's world position so ambient and
+        // fog fade between tiles instead of stepping at tile borders. When
+        // bound (by SceneLights) it replaces the constant Ambient above.
         Texture2D AmbientMap
         Vector2 AmbientMapSize
 
-        // Global ambient (design §8.2): the video "ambient light" setting,
-        // 0..0.5, added to every lit mesh's base colour. Defaulted to
-        // black for the same reason as Ambient above -- SceneLights only
-        // starts pushing a live value once this material is registered
-        // and the first per-frame update has run.
-        Color GlobalAmbient : 0.0 0.0 0.0 0.0
-
-        // Up to MAX_LIGHTS point lights affecting this geometry, packed by
-        // SceneLights (design §4/§11) -- xyz = world position (tile
-        // units), w = radius (tiles).
-        Vector4Array LightPosRadius
-
-        // rgb = colour (0..1, already flicker/pulse/fade-modulated), w =
-        // effective intensity (design §7.2's flicker included).
-        Vector4Array LightColorIntensity
-
-        // Per-light falloff selection, parallel to the two arrays above:
-        // Bit flags: 1 = smooth monotonic falloff (the cursor light, see
-        // LightSource.needsSmoothFalloff), 2 = may shine on unexplored
-        // ground (claim-scan lights).
-        IntArray LightRadial
-
-        // How many of the arrays above are actually populated this
-        // upload (unused slots are not evaluated, not just zeroed).
-        // Defaulted to 0 so a material never read by SceneLights (yet)
-        // doesn't evaluate an uninitialized light array.
-        Int NumLights : 0
+        // Every light near the camera plus the global ambient, shared by ALL
+        // terrain materials and rewritten each frame by SceneLights (design
+        // §4/§11), so no two materials can ever disagree about a light.
+        // Layout: texel 0 = (light count, global ambient rgb); then three
+        // texels per light: (position xyz, radius), (colour rgb, intensity),
+        // (flags, 0, 0, 0). Flags: 1 = smooth monotonic falloff (the cursor
+        // light), 2 = may shine on unexplored ground (claim scan, cursor),
+        // 4 = override light (player-coloured creatures).
+        Texture2D LightData
     }
 
     Technique {
@@ -68,6 +52,7 @@ MaterialDef DK Terrain Lighting {
         Defines {
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap
+            LIGHT_DATA : LightData
         }
     }
 }

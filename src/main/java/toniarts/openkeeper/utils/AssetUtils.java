@@ -238,7 +238,6 @@ public final class AssetUtils {
         }
         dkTerrain.setTransparent(original.isTransparent());
         dkTerrain.setColor("Ambient", ambient);
-        dkTerrain.setInt("NumLights", 0);
         return dkTerrain;
     }
 

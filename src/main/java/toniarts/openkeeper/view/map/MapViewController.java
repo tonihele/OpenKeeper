@@ -447,10 +447,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
 
-        // The rebuilt tiles got fresh, unlit materials: light them now, not on
-        // the next frame, or they (and the neighbours of a flashed tile) dip dark
-        lightRules.refreshTiles(pointsToUpdate);
-
         // A newly fog-revealed water/lava batch needs its merged surface rebuilt
         refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
                 lavaBatches.size() != lavaBatchesBefore);

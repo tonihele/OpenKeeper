@@ -2,26 +2,27 @@
 #import "Common/ShaderLib/Instancing.glsllib"
 #import "Shaders/DkLighting/DkFalloff.glsllib"
 
-// Must match SceneLights.MAX_LIGHTS_PER_MATERIAL.
-#define DK_MAX_LIGHTS 96
+// Must match SceneLights.MAX_LIGHTS.
+#define DK_MAX_LIGHTS 1024
 
 uniform vec4 m_Ambient;
-uniform vec4 m_GlobalAmbient;
 uniform vec4 m_Tint;
 #ifdef AMBIENT_MAP
 uniform sampler2D m_AmbientMap;
 uniform vec2 m_AmbientMapSize;
 #endif
-uniform vec4 m_LightPosRadius[DK_MAX_LIGHTS];
-uniform vec4 m_LightColorIntensity[DK_MAX_LIGHTS];
-// Per-light flags, same length as the pair above:
+// Every light near the camera, shared by all terrain materials (see
+// SceneLights): texel 0 = (light count, global ambient rgb); then three
+// texels per light: (position xyz, radius), (colour rgb, intensity),
+// (flags, 0, 0, 0). Flags:
 //   bit 0 (1): use the smooth monotonic falloff (the cursor light), else the
 //              exact D7 falloff
 //   bit 1 (2): the light may shine on unexplored ground (the claim-scan
 //              glow and the cursor / "hand" light); every other light fades
 //              out over unexplored tiles
-uniform int m_LightRadial[DK_MAX_LIGHTS];
-uniform int m_NumLights;
+#ifdef LIGHT_DATA
+uniform sampler2D m_LightData;
+#endif
 
 attribute vec3 inPosition;
 attribute vec3 inNormal;
@@ -50,21 +51,34 @@ void main() {
     vec3 tileAmbient = m_Ambient.rgb;
     float explored = 1.0;
 #endif
+
+    vec3 globalAmbient = vec3(0.0);
+    int numLights = 0;
+#ifdef LIGHT_DATA
+    vec4 header = texelFetch(m_LightData, ivec2(0, 0), 0);
+    numLights = int(header.x + 0.5);
+    globalAmbient = header.yzw;
+#endif
+
     // Unexplored ground is completely black: no tile or global ambient, no floor
-    vec3 sum = (tileAmbient + m_GlobalAmbient.rgb) * explored;
+    vec3 sum = (tileAmbient + globalAmbient) * explored;
+#ifdef LIGHT_DATA
     for (int i = 0; i < DK_MAX_LIGHTS; i++) {
-        if (i >= m_NumLights) {
+        if (i >= numLights) {
             break;
         }
-        vec4 posRadius = m_LightPosRadius[i];
-        vec4 colorIntensity = m_LightColorIntensity[i];
-        int flags = m_LightRadial[i];
+        int base = 1 + 3 * i;
+        vec4 posRadius = texelFetch(m_LightData, ivec2(base, 0), 0);
+        vec4 colorIntensity = texelFetch(m_LightData, ivec2(base + 1, 0), 0);
+        int flags = int(texelFetch(m_LightData, ivec2(base + 2, 0), 0).x + 0.5);
         // Coloured light (torches, creatures, effects, explored terrain) must
-        // not reveal unexplored ground; only the claim-scan glow does
+        // not reveal unexplored ground; only the claim-scan glow and the
+        // cursor do
         float visibility = (flags & 2) != 0 ? 1.0 : explored;
         sum += visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
                 posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
     }
+#endif
 
     vec3 lit = dkSoftClampFloor(sum, explored);
 
@@ -77,7 +91,7 @@ void main() {
         // A selected / flashing tile is fully lit, whatever the scene lighting
         // around it, so its highlight colour always reads the same
         lit = vec3(1.0);
-        lit = lit *(vec3(0.35) + 1.4 * tint) + tint * 0.25;
+        lit = lit * (vec3(0.35) + 1.4 * tint) + tint * 0.25;
     }
     vVertexColor = lit;
 }
