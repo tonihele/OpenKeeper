@@ -77,13 +77,20 @@ public final class LightRules {
      * from {@link #isCheapLighting()} at creation time.
      */
     public void setCheapLighting(boolean cheapLighting) {
+        if (this.cheapLighting == cheapLighting) {
+            return;
+        }
         this.cheapLighting = cheapLighting;
         for (List<LightSource> lights : tileLights.values()) {
             for (LightSource light : lights) {
-                if (light.getKind() == LightKind.TORCH) {
-                    light.setFlickers(!cheapLighting);
-                }
+                light.applyCheapLighting(cheapLighting);
             }
+        }
+        for (LightSource light : roomLights.values()) {
+            light.applyCheapLighting(cheapLighting);
+        }
+        for (LightSource light : thingLights.values()) {
+            light.applyCheapLighting(cheapLighting);
         }
     }
 
@@ -101,6 +108,20 @@ public final class LightRules {
     public void update(float tpf, Camera camera) {
         modulators.update(tpf);
         sceneLights.update(modulators.getSources(), camera);
+    }
+
+    /**
+     * @see SceneLights#initAmbientMap(int, int)
+     */
+    public void initAmbientMap(int width, int height) {
+        sceneLights.initAmbientMap(width, height);
+    }
+
+    /**
+     * @see SceneLights#setTileAmbient(int, int, ColorRGBA)
+     */
+    public void setTileAmbient(int x, int y, ColorRGBA ambient) {
+        sceneLights.setTileAmbient(x, y, ambient);
     }
 
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
@@ -158,7 +179,8 @@ public final class LightRules {
             int red, int green, int blue, float intensity, float radius) {
         LightSource light = new LightSource(LightKind.TORCH, owner, true, position,
                 red, green, blue, intensity, radius);
-        light.setFlickers(!cheapLighting);
+        light.setFlickerCapable(true);
+        light.applyCheapLighting(cheapLighting);
         addTileLight(owner, light);
         return light;
     }
@@ -168,6 +190,25 @@ public final class LightRules {
         LightSource light = new LightSource(LightKind.TERRAIN, owner, true, position,
                 red, green, blue, LightConstants.TERRAIN_LIGHT_INTENSITY,
                 LightConstants.TERRAIN_LIGHT_RADIUS_TILES);
+        addTileLight(owner, light);
+        return light;
+    }
+
+    /**
+     * Design &sect;6.7: the per-terrain {@code Light} block, one source per
+     * slab. Unlike thing lights the file radius is <em>not</em> scaled by 2/3;
+     * {@code PULSE}/{@code FLICKER} are honoured. {@code position} already
+     * includes the block's {@code mKPos} offset.
+     */
+    public LightSource addSlabLight(Point owner, Vector3f position,
+            int red, int green, int blue, float fileRadius, boolean pulse, boolean flicker) {
+        LightSource light = new LightSource(LightKind.SLAB, owner, true, position,
+                red, green, blue, LightConstants.TERRAIN_LIGHT_INTENSITY, fileRadius);
+        if (pulse) {
+            light.startPulse();
+        }
+        light.setFlickerCapable(flicker);
+        light.applyCheapLighting(cheapLighting);
         addTileLight(owner, light);
         return light;
     }
@@ -229,7 +270,8 @@ public final class LightRules {
         if (pulse) {
             light.startPulse();
         }
-        light.setFlickers(flicker && !cheapLighting);
+        light.setFlickerCapable(flicker);
+        light.applyCheapLighting(cheapLighting);
 
         LightSource previous = thingLights.put(owner, light);
         if (previous != null) {

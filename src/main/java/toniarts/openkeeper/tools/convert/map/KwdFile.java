@@ -683,7 +683,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             terrain.setSideResource(readArtResource(reader));
             terrain.setTopResource(readArtResource(reader));
             terrain.setTaggedTopResource(readArtResource(reader));
-            terrain.setStringIds(readStringId(reader));
+            terrain.setSlabLight(readLight(reader));
             terrain.setDepth(reader.readIntegerAsFloat());
             terrain.setLightHeight(reader.readIntegerAsFloat());
             terrain.setFlags(reader.readIntegerAsFlag(Terrain.TerrainFlag.class));

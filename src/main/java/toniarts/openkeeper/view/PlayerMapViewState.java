@@ -79,6 +79,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     // and flush them once the map actually exists, instead of crashing
     private volatile boolean mapLoaded = false;
     private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
+    private final Object tileUpdateLock = new Object();
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
         this(app, kwdFile, assetManager, players, entityData, playerId, loadCompleteNotifier, (entityId) -> {
@@ -117,21 +118,27 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                     // Apply any tile updates (fog reveals from the seeding above,
                     // or from creatures already ticking) that arrived too early to
                     // be applied directly, while the map wasn't attached yet
-                    if (!pendingTileUpdates.isEmpty()) {
-                        List<Point> pending = new ArrayList<>(pendingTileUpdates.size());
-                        Point p;
-                        while ((p = pendingTileUpdates.poll()) != null) {
-                            pending.add(p);
+                    // Loop until the queue is empty *while holding the lock that
+                    // updateTiles() also takes*, and flip the flag in that same
+                    // critical section: otherwise an update arriving between the
+                    // last drain and the flag would be queued and never applied.
+                    // Only after the flip is mapLoader done being mutated off the
+                    // render thread: update(tpf) reads its LightRules (registered
+                    // terrain materials) every frame and gates on this flag.
+                    while (true) {
+                        List<Point> pending = new ArrayList<>();
+                        synchronized (tileUpdateLock) {
+                            Point p;
+                            while ((p = pendingTileUpdates.poll()) != null) {
+                                pending.add(p);
+                            }
+                            if (pending.isEmpty()) {
+                                mapLoaded = true;
+                                break;
+                            }
                         }
                         mapLoader.updateTiles(pending.toArray(new Point[0]));
                     }
-
-                    // Only now is mapLoader done being mutated off the render
-                    // thread: update(tpf) reads its LightRules (registered
-                    // terrain materials) every frame and gates on this flag,
-                    // so flipping it any earlier would let that read race the
-                    // registerTerrainTile()/updateTiles() writes above.
-                    mapLoaded = true;
 
                     app.enqueue(() -> {
                         worldNode.attachChild(map);
@@ -325,9 +332,11 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     private void updateTiles(Point[] points) {
-        if (!mapLoaded) {
-            pendingTileUpdates.addAll(Arrays.asList(points));
-            return;
+        synchronized (tileUpdateLock) {
+            if (!mapLoaded) {
+                pendingTileUpdates.addAll(Arrays.asList(points));
+                return;
+            }
         }
         mapLoader.updateTiles(points);
     }

@@ -7,6 +7,10 @@
 
 uniform vec4 m_Ambient;
 uniform vec4 m_GlobalAmbient;
+#ifdef AMBIENT_MAP
+uniform sampler2D m_AmbientMap;
+uniform vec2 m_AmbientMapSize;
+#endif
 uniform vec4 m_LightPosRadius[DK_MAX_LIGHTS];
 uniform vec4 m_LightColorIntensity[DK_MAX_LIGHTS];
 // 1 = use the smooth monotonic falloff (the cursor light), 0 = the exact
@@ -29,7 +33,14 @@ void main() {
     vec3 worldPos = TransformWorld(modelSpacePos).xyz;
     vec3 worldNormal = normalize(TransformWorldNormal(inNormal));
 
-    vec3 sum = m_Ambient.rgb + m_GlobalAmbient.rgb;
+#ifdef AMBIENT_MAP
+    // Texel centres sit at tile + 0.5, so linear filtering blends the
+    // ambient of neighbouring tiles across each tile (stored halved)
+    vec3 tileAmbient = textureLod(m_AmbientMap, worldPos.xz / m_AmbientMapSize, 0.0).rgb * 2.0;
+#else
+    vec3 tileAmbient = m_Ambient.rgb;
+#endif
+    vec3 sum = tileAmbient + m_GlobalAmbient.rgb;
     for (int i = 0; i < DK_MAX_LIGHTS; i++) {
         if (i >= m_NumLights) {
             break;

@@ -14,6 +14,13 @@ MaterialDef DK Terrain Lighting {
         // MaterialParameter is an uninitialized GPU uniform, not zero.
         Color Ambient : 0.0 0.0 0.0 0.0
 
+        // Map-sized per-tile ambient (rgb = ambient / 2), sampled bilinearly
+        // at the vertex's world position so ambient fades between tiles
+        // instead of stepping at tile borders. When bound (by SceneLights)
+        // it replaces the constant Ambient above.
+        Texture2D AmbientMap
+        Vector2 AmbientMapSize
+
         // Global ambient (design §8.2): the video "ambient light" setting,
         // 0..0.5, added to every lit mesh's base colour. Defaulted to
         // black for the same reason as Ambient above -- SceneLights only
@@ -54,6 +61,7 @@ MaterialDef DK Terrain Lighting {
 
         Defines {
             DISCARD_ALPHA : AlphaDiscardThreshold
+            AMBIENT_MAP : AmbientMap
         }
     }
 }

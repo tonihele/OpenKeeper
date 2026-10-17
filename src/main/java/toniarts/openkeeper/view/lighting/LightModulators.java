@@ -16,10 +16,10 @@
  */
 package toniarts.openkeeper.view.lighting;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 /**
@@ -33,7 +33,9 @@ import java.util.function.Consumer;
  */
 public final class LightModulators {
 
-    private final List<LightSource> sources = new ArrayList<>();
+    // Copy-on-write: the map loader thread adds torch/terrain lights while the
+    // render thread may already be adding the cursor light or iterating.
+    private final List<LightSource> sources = new CopyOnWriteArrayList<>();
     private final Random random = new Random();
     private float tickAccumulator;
     private float flickerAccumulator;

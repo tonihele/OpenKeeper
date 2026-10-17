@@ -20,10 +20,8 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * The default {@link IFogOfWarQuery}: everything is explored and
- * perceived. This matches the game's actual current behaviour -- nothing
- * anywhere hides unexplored tiles today, so this is not a regression, just
- * an honest stand-in until a real fog-of-war system exists to plug in
- * here instead.
+ * perceived. Used where there is no fog (tests, previews); in the game
+ * {@code MapViewController} supplies a query backed by the real fog state.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */

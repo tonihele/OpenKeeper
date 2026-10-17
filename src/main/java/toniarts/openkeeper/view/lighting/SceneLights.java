@@ -19,10 +19,17 @@ package toniarts.openkeeper.view.lighting;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Plane;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.math.Vector4f;
 import com.jme3.renderer.Camera;
 import com.jme3.shader.VarType;
+import com.jme3.texture.Image;
+import com.jme3.texture.Texture;
+import com.jme3.texture.Texture2D;
+import com.jme3.texture.image.ColorSpace;
+import com.jme3.util.BufferUtils;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -86,6 +93,9 @@ public final class SceneLights {
     private final Map<Point, List<Material>> terrainMaterialsByTile = new HashMap<>();
     private final Map<Object, Region> regionMaterials = new HashMap<>();
     private ColorRGBA globalAmbient = ColorRGBA.Black.clone();
+    private volatile Texture2D ambientMap;
+    private int ambientMapWidth;
+    private int ambientMapHeight;
 
     /**
      * A room's whole floor/wall is built (and batched) as one big mesh by
@@ -278,7 +288,58 @@ public final class SceneLights {
         return dx * dx + dz * dz;
     }
 
+    /**
+     * Creates the map-sized ambient texture (one texel per tile, centre at
+     * {@code tile + 0.5}). The vertex shader samples it with bilinear
+     * filtering at the vertex's world position, so the per-terrain vertex
+     * ambient (design &sect;8.1) fades from one tile to the next instead of
+     * stepping at the tile border (e.g. owner-tinted next to unowned ground).
+     * Values are stored halved so over-bright ambient (up to 2.0) fits 8 bits.
+     */
+    public void initAmbientMap(int width, int height) {
+        ByteBuffer data = BufferUtils.createByteBuffer(width * height * 4);
+        Image image = new Image(Image.Format.RGBA8, width, height, data, ColorSpace.Linear);
+        Texture2D texture = new Texture2D(image);
+        texture.setMagFilter(Texture.MagFilter.Bilinear);
+        texture.setMinFilter(Texture.MinFilter.BilinearNoMipMaps);
+        texture.setWrap(Texture.WrapMode.EdgeClamp);
+        ambientMap = texture;
+        ambientMapWidth = width;
+        ambientMapHeight = height;
+    }
+
+    /**
+     * Sets one tile's vertex ambient in the ambient texture. Safe to call
+     * from the map loader thread: it only writes bytes and flags the image
+     * for re-upload, which the render thread performs.
+     */
+    public void setTileAmbient(int x, int y, ColorRGBA ambient) {
+        Texture2D texture = ambientMap;
+        if (texture == null || x < 0 || y < 0 || x >= ambientMapWidth || y >= ambientMapHeight) {
+            return;
+        }
+        ByteBuffer data = texture.getImage().getData(0);
+        int index = (y * ambientMapWidth + x) * 4;
+        data.put(index, toByte(ambient.r / 2f));
+        data.put(index + 1, toByte(ambient.g / 2f));
+        data.put(index + 2, toByte(ambient.b / 2f));
+        data.put(index + 3, (byte) 255);
+        texture.getImage().setUpdateNeeded();
+    }
+
+    private static byte toByte(float value) {
+        return (byte) Math.round(Math.max(0f, Math.min(1f, value)) * 255f);
+    }
+
+    private void bindAmbientMap(Material material) {
+        if (ambientMap != null && material.getTextureParam("AmbientMap") == null) {
+            material.setTexture("AmbientMap", ambientMap);
+            material.setVector2("AmbientMapSize", new Vector2f(ambientMapWidth, ambientMapHeight));
+        }
+    }
+
     private void applyLights(Material material, List<LightSource> nearby, int count) {
+        bindAmbientMap(material);
         Vector4f[] posRadius = new Vector4f[count];
         Vector4f[] colorIntensity = new Vector4f[count];
         int[] radial = new int[count];
@@ -299,6 +360,7 @@ public final class SceneLights {
     }
 
     private void clearLights(Material material) {
+        bindAmbientMap(material);
         material.setInt("NumLights", 0);
         material.setColor("GlobalAmbient", globalAmbient);
     }

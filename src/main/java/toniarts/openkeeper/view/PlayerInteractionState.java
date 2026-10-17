@@ -473,25 +473,26 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     private void updateCursorLight() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
-        if (mapViewState == null) {
+        // The map loader thread mutates the light list until the map is loaded
+        if (mapViewState == null || !mapViewState.isMapLoaded()) {
             return;
         }
         LightRules lightRules = mapViewState.getMapLoader().getLightRules();
 
         boolean visible = isOnMap && !isOnGui && interactionState.getType() != Type.ROOM;
         Point p = selectionHandler.getPointedTileIndex();
+        boolean onBorder = false;
         if (visible) {
             int width = mapInformation.getMapData().getWidth();
             int height = mapInformation.getMapData().getHeight();
-            if (p.x < 1 || p.y < 1 || p.x >= width - 1 || p.y >= height - 1) {
-                visible = false;
-            }
+            onBorder = p.x < 1 || p.y < 1 || p.x >= width - 1 || p.y >= height - 1;
         }
 
         Vector2f pointed = selectionHandler.getActualPointedPosition();
         Vector3f position = new Vector3f(pointed.x + 0.5f, 0f, pointed.y + 0.5f);
 
-        boolean explored = visible && lightRules.getFogOfWar().isExplored(p);
+        // Border tiles: light stays on but black (design 7.3)
+        boolean explored = visible && !onBorder && lightRules.getFogOfWar().isExplored(p);
         lightRules.updateCursorLight(visible, position, explored);
     }
 

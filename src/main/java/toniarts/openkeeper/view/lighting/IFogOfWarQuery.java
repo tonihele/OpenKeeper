@@ -23,13 +23,10 @@ import toniarts.openkeeper.utils.Point;
  * terrain-light selection, &sect;7.3's cursor colour), for the local
  * viewer.
  * <p>
- * This repository has no fog-of-war implementation at all yet (checked:
- * there is no {@code view/fogofwar} package, no exploration tracking
- * anywhere in {@code view/}) -- {@code lighting_jmonkey.md}'s audit
- * assumed one already existed and was wrong. This interface is the seam a
- * real fog-of-war system can be wired in through later without touching
- * any lighting code again; {@link NoFogOfWarQuery} is the only
- * implementation for now.
+ * This is the seam between lighting and the fog-of-war system
+ * ({@code view/fogofwar}): {@code MapViewController} adapts its
+ * {@code IFogOfWarInformation} to it. {@link NoFogOfWarQuery} remains the
+ * default for lighting set-ups without fog (tests, previews).
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */

@@ -41,6 +41,7 @@ public final class LightSource {
     private float intensity;
     private float radius;
     private boolean flickers;
+    private boolean flickerCapable;
     private final Modulator modulator = new Modulator();
     private int lifetimeTicks = -1;
     private float flickerScale = 1.0f;
@@ -173,8 +174,29 @@ public final class LightSource {
         return flickers;
     }
 
+    /**
+     * Sets whether this source flickers right now and remembers it as
+     * flicker-capable, so a later cheap-lighting toggle can re-evaluate it.
+     */
     public void setFlickers(boolean flickers) {
         this.flickers = flickers;
+        this.flickerCapable |= flickers;
+    }
+
+    /**
+     * Marks the source as flicker-capable (torch or {@code FLICKER}-flagged
+     * light) independent of the current cheap-lighting state.
+     */
+    public void setFlickerCapable(boolean flickerCapable) {
+        this.flickerCapable = flickerCapable;
+    }
+
+    /**
+     * Design &sect;10: cheap lighting turns flicker off for every capable
+     * source; turning it back off restores it.
+     */
+    public void applyCheapLighting(boolean cheap) {
+        this.flickers = flickerCapable && !cheap;
     }
 
     public void setLifetime(int ticks) {

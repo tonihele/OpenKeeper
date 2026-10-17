@@ -43,6 +43,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.lighting.IFogOfWarQuery;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -147,7 +148,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
     private final Map<Node, List<Object>> pageBatchRegionKeys = new IdentityHashMap<>(); // Region keys registered per page, removed on re-batch
-    private final LightRules lightRules = new LightRules();
+    private final LightRules lightRules;
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
@@ -171,6 +172,20 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this.fogOfWarInformation = fogOfWarInformation;
         this.playerId = playerId;
         this.torchesEnabled = torchesEnabled;
+
+        // Lighting consults the same local-viewer fog as the renderer
+        // (cursor colour, design 7.3; terrain-light selection, 6.3)
+        this.lightRules = new LightRules(new IFogOfWarQuery() {
+            @Override
+            public boolean isExplored(Point tile) {
+                return fogOfWarInformation.isExplored(tile);
+            }
+
+            @Override
+            public boolean isPerceived(Point tile) {
+                return fogOfWarInformation.isPerceived(tile);
+            }
+        });
     }
 
     public LightRules getLightRules() {
@@ -182,6 +197,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         long startTime = System.nanoTime();
         
+        lightRules.initAmbientMap(getMapData().getWidth(), getMapData().getHeight());
+
         //Create a root
         map = new Node(MAP_NODE);
         Node terrain = new Node(TERRAIN_NODE);
@@ -764,6 +781,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         lightRules.clearTileLights(p);
         lightRules.unregisterTerrainTile(p);
 
+        handleSlabLight(p, terrain);
+
+        // Per-tile ambient into the texture the shader blends across tile borders
+        lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()));
+
         // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
         if (torchesEnabled && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleTorch(tile, pageNode);
@@ -862,11 +884,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // terrain because ordinary RoomInstances are registered after torches are handled.
         if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+            // A room without its own torch art falls back to the default mesh
+            // (design §6.2); only torchColor == 0 (below) removes torches
             ArtResource torch = room.getTorch();
-            if (torch == null) {
-                return;
+            if (torch != null && torch.getName() != null && !torch.getName().isEmpty()) {
+                name = torch.getName();
             }
-            name = torch.getName();
             position.y = room.getTorchHeight();
 
             Color torchColor = room.getTorchColor();
@@ -925,7 +948,27 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
         Terrain terrain = getTerrain(tile);
-        return terrain.getFlags().contains(Terrain.TerrainFlag.TORCH) ? terrain : null;
+        return hasTorches(terrain) ? terrain : null;
+    }
+
+    /**
+     * Design §6.2: a {@code TORCH} terrain still opts out when it declares
+     * both a side and a top resource, unless it is impenetrable (no torches on
+     * an ordinary diggable wall with full artwork). Invisible on stock data.
+     */
+    static boolean hasTorches(Terrain terrain) {
+        EnumSet<Terrain.TerrainFlag> flags = terrain.getFlags();
+        if (!flags.contains(Terrain.TerrainFlag.TORCH)) {
+            return false;
+        }
+        if (flags.contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+            return true;
+        }
+        return !(hasResource(terrain.getSideResource()) && hasResource(terrain.getTopResource()));
+    }
+
+    private static boolean hasResource(ArtResource resource) {
+        return resource != null && resource.getName() != null && !resource.getName().isEmpty();
     }
 
     private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
@@ -948,7 +991,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Portal light (lighting_design.md §6.5)
         if (room.getRoomId() == ROOM_PORTAL_ID || room.getRoomId() == ROOM_HERO_PORTAL_ID) {
-            Point center = getRoomCenter(roomInstance);
+            Point center = getRoomCenterTile(roomInstance);
             Vector3f position = new Vector3f(center.x + 0.5f, 0.49f, center.y + 0.5f);
             lightRules.addPortalLight(roomInstance, position);
         }
@@ -960,6 +1003,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * The centroid of a room's coordinates, used as its "centre tile"
      * (lighting_design.md §6.5).
      */
+    /**
+     * The room tile closest to the centroid: for a non-convex room the plain
+     * centroid can fall outside the room, but the portal light belongs on a
+     * real room tile.
+     */
+    static Point getRoomCenterTile(RoomInstance roomInstance) {
+        Point centroid = getRoomCenter(roomInstance);
+        Point best = centroid;
+        double bestDistance = Double.MAX_VALUE;
+        for (Point coordinate : roomInstance.getCoordinates()) {
+            double distance = centroid.distance(coordinate);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = coordinate;
+            }
+        }
+        return best;
+    }
+
     private static Point getRoomCenter(RoomInstance roomInstance) {
         long sumX = 0;
         long sumY = 0;
@@ -1264,6 +1326,21 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Terrain lightingTerrain = isRoomTile
                 ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
                 : terrain;
+        boolean useClaimScanColour = false;
+
+        // Perceived-but-unexplored, non-room tile (design §6.3): terrains that
+        // reveal through fog keep their own light, everything else glows as
+        // Claim Scan. The mesh keeps its rock stand-in (see getTerrain()); only
+        // the light looks at the real terrain.
+        if (!isRoomTile && !fogOfWarInformation.isVisible(p) && fogOfWarInformation.isPerceived(p)) {
+            Terrain real = kwdFile.getTerrain(tile.getTerrainId());
+            lightingTerrain = real.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR)
+                    ? real
+                    : getClaimScanPlaceholderTerrain();
+            // Gold/gems (goldValue != 0) keep their own colour through the rock;
+            // the rest take the CLAIM_SCAN_LIGHT_* colour.
+            useClaimScanColour = lightingTerrain != null && lightingTerrain.getGoldValue() == 0;
+        }
 
         if (lightingTerrain == null || !lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)) {
             return;
@@ -1272,7 +1349,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         int red;
         int green;
         int blue;
-        if (lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID) {
+        if (useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID) {
             // claim_scan_terrain.md §5: the stand-in's own baked colour is
             // always overridden by these level variables.
             red = LightConstants.getClaimScanLightRed(kwdFile);
@@ -1287,6 +1364,30 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         Vector3f position = new Vector3f(p.x + 0.5f, lightingTerrain.getLightHeight(), p.y + 0.5f);
         lightRules.addTerrainLight(p, position, red, green, blue);
+    }
+
+    /**
+     * Slab light (design &sect;6.7, D2): enabled when the terrain's own
+     * {@code Light} block has a non-zero colour. Not used by stock terrain.
+     * PLAYER_COLOURED is not resolved here (no owner colour at this point).
+     */
+    private void handleSlabLight(Point p, Terrain terrain) {
+        Light light = terrain.getSlabLight();
+        if (light == null || light.getColor() == null) {
+            return;
+        }
+        java.awt.Color c = light.getColor(); // Light uses AWT's colour, unlike Terrain
+        if (c.getRed() == 0 && c.getGreen() == 0 && c.getBlue() == 0) {
+            return;
+        }
+        EnumSet<Light.LightFlag> flags = light.getFlags();
+        int red = c.getRed() + (flags.contains(Light.LightFlag.COLOR_RED) ? LightConstants.OVER_BRIGHT_BONUS : 0);
+        int green = c.getGreen() + (flags.contains(Light.LightFlag.COLOR_GREEN) ? LightConstants.OVER_BRIGHT_BONUS : 0);
+        int blue = c.getBlue() + (flags.contains(Light.LightFlag.COLOR_BLUE) ? LightConstants.OVER_BRIGHT_BONUS : 0);
+        javax.vecmath.Vector3f offset = light.getmKPos();
+        Vector3f position = new Vector3f(p.x + 0.5f + offset.x, offset.y, p.y + 0.5f + offset.z);
+        lightRules.addSlabLight(p, position, red, green, blue, light.getRadius(),
+                flags.contains(Light.LightFlag.PULSE), flags.contains(Light.LightFlag.FLICKER));
     }
 
     /**
