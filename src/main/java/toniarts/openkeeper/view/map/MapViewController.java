@@ -98,7 +98,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     };
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
-    private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.6f, 0.6f, 1, 1);
+    private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.1f, 0.2f, 0.9f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
@@ -448,6 +448,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
 
+        // The rebuilt tiles got fresh, unlit materials: light them now, not on
+        // the next frame, or they (and the neighbours of a flashed tile) dip dark
+        lightRules.refreshTiles(pointsToUpdate);
+
         // A newly fog-revealed water/lava batch needs its merged surface rebuilt
         refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
                 lavaBatches.size() != lavaBatchesBefore);
@@ -518,7 +522,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                         }
                     }
                 }
-                if (isFlashing(tile)) {
+                // DkTerrain's Ambient is replaced by the per-tile ambient map,
+                // so the highlight goes through its own additive Tint instead
+                boolean dkTerrain = AssetUtils.isDkTerrainMaterial(material);
+                if (isFlashing(tile) && dkTerrain) {
+                    material.setColor("Tint", COLOR_FLASH);
+                } else if (isFlashing(tile)) {
                     material.setColor("Ambient", COLOR_FLASH);
                     // DkTerrain (jME's CommonMat-parameter-free def) has no
                     // UseMaterialColors; guard like AssetUtils does so the flag
@@ -527,7 +536,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                         material.setBoolean("UseMaterialColors", true);
                     }
                 }
-                if (tagged) {
+                if (tagged && dkTerrain) {
+                    material.setColor("Tint", COLOR_TAG);
+                } else if (tagged) {
                     material.setColor("Ambient", COLOR_TAG);
                     if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
                         material.setBoolean("UseMaterialColors", true);

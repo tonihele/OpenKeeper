@@ -31,6 +31,7 @@ import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -88,7 +89,7 @@ public final class SceneLights {
     /**
      * Culling margin of the per-frame update pass
      */
-    private static final float FRUSTUM_MARGIN_TILES = 2f;
+    private static final float FRUSTUM_MARGIN_TILES = 5f;
 
     private final Map<Point, List<Material>> terrainMaterialsByTile = new HashMap<>();
     private final Map<Object, Region> regionMaterials = new HashMap<>();
@@ -220,6 +221,27 @@ public final class SceneLights {
     }
 
     /**
+     * Immediately uploads the current lights to the given tiles' (freshly
+     * rebuilt) materials and to every region, without the frustum cull. A
+     * rebuilt tile gets a new Material with no lights; waiting for the next
+     * {@link #update} left it unlit for a frame, which showed as the
+     * surrounding tiles flickering darker whenever a tile was flashed or
+     * otherwise rebuilt.
+     */
+    public void refresh(Collection<Point> tiles, List<LightSource> lights) {
+        List<LightSource> nearby = new ArrayList<>(MAX_LIGHTS_PER_MATERIAL + 1);
+        for (Point tile : tiles) {
+            List<Material> materials = terrainMaterialsByTile.get(tile);
+            if (materials != null) {
+                updateGroup(materials, tile.x + 0.5f, tile.y + 0.5f, TILE_SELECTION_PADDING, lights, nearby);
+            }
+        }
+        for (Region region : regionMaterials.values()) {
+            updateGroup(region.materials, region.center.x, region.center.z, region.radius, lights, nearby);
+        }
+    }
+
+    /**
      * Whether a tile/region centre (at ground height) is inside the camera
      * frustum expanded by {@code margin} tiles on each side. The frustum
      * planes' normals point inward, so {@code distance >= -margin} keeps a
@@ -227,7 +249,12 @@ public final class SceneLights {
      * frustum plus the margin strip around it".
      */
     private static boolean reachableFromCamera(Plane[] planes, float margin, float x, float z) {
-        for (Plane plane : planes) {
+        // Only the four side planes (indices 0..3): near/far are meaningless
+        // for a ground-level point seen at an oblique angle, and walls rise
+        // above the point being tested, so a tile can be on screen while its
+        // ground centre isn't.
+        for (int i = 0; i < 4; i++) {
+            Plane plane = planes[i];
             // pseudoDistance = normal.Dot(point) - constant, computed without
             // allocating a Vector3f per tile/region every frame
             Vector3f normal = plane.getNormal();

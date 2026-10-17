@@ -7,6 +7,7 @@
 
 uniform vec4 m_Ambient;
 uniform vec4 m_GlobalAmbient;
+uniform vec4 m_Tint;
 #ifdef AMBIENT_MAP
 uniform sampler2D m_AmbientMap;
 uniform vec2 m_AmbientMapSize;
@@ -51,5 +52,15 @@ void main() {
                 posRadius.w, colorIntensity.rgb, colorIntensity.w, m_LightRadial[i] == 1);
     }
 
-    vVertexColor = dkSoftClamp(sum);
+    vec3 lit = dkSoftClamp(sum);
+
+    // Tile highlight (tag = blue glow, flash = red glow). Applied AFTER the
+    // clamp: added before it, a tile already lit near 1.0 swallowed the tint.
+    // Multiplying keeps the diffuse texture visible and the colour reads on
+    // bright tiles; the small additive part makes it show on dark ones too.
+    vec3 tint = m_Tint.rgb;
+    if (tint.r + tint.g + tint.b > 0.0) {
+        lit = lit * (vec3(0.35) + 1.4 * tint) + tint * 0.25;
+    }
+    vVertexColor = lit;
 }

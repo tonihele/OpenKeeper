@@ -18,6 +18,11 @@ MaterialDef DK Terrain Lighting {
         // at the vertex's world position so ambient fades between tiles
         // instead of stepping at tile borders. When bound (by SceneLights)
         // it replaces the constant Ambient above.
+        // Per-tile highlight added on top of ambient + lights (tile tag
+        // "blue glow", flash "red glow"). Deliberately NOT blended across
+        // tile borders: a selection must read as exactly that tile.
+        Color Tint : 0.0 0.0 0.0 0.0
+
         Texture2D AmbientMap
         Vector2 AmbientMapSize
 

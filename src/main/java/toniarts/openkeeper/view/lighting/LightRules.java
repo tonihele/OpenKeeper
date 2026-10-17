@@ -21,6 +21,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +131,15 @@ public final class LightRules {
 
     public ColorRGBA getGlobalAmbient() {
         return sceneLights.getGlobalAmbient();
+    }
+
+    /**
+     * Call once after a batch of tiles has been rebuilt (all their lights
+     * and materials registered): pushes the current lights to their new
+     * materials straight away instead of on the next frame.
+     */
+    public void refreshTiles(Collection<Point> tiles) {
+        sceneLights.refresh(tiles, modulators.getSources());
     }
 
     public void registerTerrainTile(Point tile, List<Material> materials) {
