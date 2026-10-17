@@ -55,6 +55,27 @@ public final class LightConstants {
     public static final float TERRAIN_LIGHT_INTENSITY = 0.8f;
 
     /**
+     * Terrain lights of room tiles (the interior-slab glow of design 6.3) and
+     * the per-room-type vertex ambient (design 8.1). Off: tiles are lit
+     * mostly by torches, the hand (cursor) and player-coloured creatures.
+     * Claim-scan lights are not room lighting and are unaffected.
+     */
+    public static final boolean ROOM_LIGHTING_ENABLED = false;
+
+    /**
+     * Terrain lights of explored non-room tiles (paths, lava, water, ...).
+     * Off for the same reason as {@link #ROOM_LIGHTING_ENABLED}; the glow of
+     * perceived-but-unexplored ground (claim scan, gold seams) stays.
+     */
+    public static final boolean EXPLORED_TERRAIN_LIGHTS_ENABLED = false;
+
+    /**
+     * Torch lights are small and local: at most this radius (tiles), however
+     * large the room / default torch radius is.
+     */
+    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 1f;
+
+    /**
      * Claim-scan terrain lights keep the full intensity: every other terrain
      * light is dialled back (a light saturates to its full colour within about
      * a tile, and a light on every tile summed to a fully lit map), so the
@@ -131,6 +152,12 @@ public final class LightConstants {
      * {@code colour = max(32, colour * playerColour / 255)}.
      */
     public static final int PLAYER_COLOURED_MIN = 32;
+
+    /**
+     * Player-coloured thing lights (a keeper's imps and dwarves) only tint the
+     * ground right around them: their radius is capped here (tiles)
+     */
+    public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.25f;
 
     /**
      * Design &sect;6.1's fixed 8-slot player colour table, shade 0 (the

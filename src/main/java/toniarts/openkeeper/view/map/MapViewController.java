@@ -97,7 +97,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     };
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
-    private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.1f, 0.2f, 0.9f, 1);
+    /**
+     * The original's tile highlight (tile_tagging.md section 4): a base colour
+     * added to the tile's lighting, plus a flat additive overlay pass. Tagged =
+     * (128, 128, 200) and the BlueTexture (63, 64, 255); flashing = pure red
+     * and the RedTexture (255, 64, 65).
+     */
+    private final static ColorRGBA TAG_BASE = new ColorRGBA(128 / 255f, 128 / 255f, 200 / 255f, 1);
+    private final static ColorRGBA TAG_OVERLAY = new ColorRGBA(63 / 255f, 64 / 255f, 1f, 1);
+    private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
+    private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
@@ -520,8 +529,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 // DkTerrain's Ambient is replaced by the per-tile ambient map,
                 // so the highlight goes through its own additive Tint instead
                 boolean dkTerrain = AssetUtils.isDkTerrainMaterial(material);
-                if (isFlashing(tile) && dkTerrain) {
-                    material.setColor("Tint", COLOR_FLASH);
+                if (dkTerrain) {
+                    // A flashing tile overrides a tagged one (as in the original)
+                    if (isFlashing(tile)) {
+                        material.setColor("Tint", FLASH_BASE);
+                        material.setColor("TintOverlay", FLASH_OVERLAY);
+                    } else if (tagged) {
+                        material.setColor("Tint", TAG_BASE);
+                        material.setColor("TintOverlay", TAG_OVERLAY);
+                    }
                 } else if (isFlashing(tile)) {
                     material.setColor("Ambient", COLOR_FLASH);
                     // DkTerrain (jME's CommonMat-parameter-free def) has no
@@ -531,10 +547,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                         material.setBoolean("UseMaterialColors", true);
                     }
                 }
-                if (tagged && dkTerrain) {
-                    material.setColor("Tint", COLOR_TAG);
-                } else if (tagged) {
-                    material.setColor("Ambient", COLOR_TAG);
+                if (!dkTerrain && tagged) {
+                    material.setColor("Ambient", TAG_BASE);
                     if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
                         material.setBoolean("UseMaterialColors", true);
                     }
@@ -886,6 +900,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         int blue;
         float intensity;
         float radius;
+        float lightHeight;
 
         // Room wall torches are defined by the room type. Resolve the room directly from
         // terrain because ordinary RoomInstances are registered after torches are handled.
@@ -898,6 +913,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 name = torch.getName();
             }
             position.y = room.getTorchHeight();
+            lightHeight = room.getTorchHeight();
 
             Color torchColor = room.getTorchColor();
             if (torchColor == null || (torchColor.getRed() == 0 && torchColor.getGreen() == 0 && torchColor.getBlue() == 0)) {
@@ -914,6 +930,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             blue = LightConstants.getDefaultTorchLightBlue(kwdFile);
             intensity = LightConstants.getDefaultTorchLightIntensity(kwdFile);
             radius = LightConstants.getDefaultTorchLightRadiusTiles(kwdFile);
+            lightHeight = LightConstants.getDefaultTorchLightHeightTiles(kwdFile);
         }
 
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
@@ -937,16 +954,48 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         parent.setLocalTranslation(Vector3f.ZERO);
         parent.attachChild(spatial);
 
-        float lightY = WorldUtils.TOP_HEIGHT + WorldUtils.TILE_HEIGHT * 0.25f;
-        Vector3f torchLightPosition = WorldUtils.pointToVector3f(tile.getLocation())
-                .addLocal(WorldUtils.TILE_WIDTH / 2f, lightY, WorldUtils.TILE_WIDTH / 2f);
+        // Design 6.2: the light sits inside the floor tile, hugging the wall face
+        // (the model is placed separately above), and stays small
+        lightRules.addTorchLight(tile.getLocation(), getTorchLightPosition(tile.getLocation(), direction, lightHeight),
+                red, green, blue, intensity, Math.min(radius, LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES));
+    }
+
+    /**
+     * Where a torch light goes (lighting_design.md &sect;6.2): inside the floor
+     * tile {@code floor}, next to the wall face it hangs on. The design gives
+     * the offsets in the floor tile's own space (origin in its north-west
+     * corner, y growing south): wall to the north (0.5, 0.125), east
+     * (0.875, 0.5), south (0.5, 0.875), west (0.125, 0.5). A tile is centred
+     * on whole world coordinates here, so the corner is half a tile back.
+     *
+     * @param floor the floor tile the torch stands in
+     * @param direction which side of {@code floor} the wall is on
+     * @param height the light height
+     * @return the light position in world space
+     */
+    static Vector3f getTorchLightPosition(Point floor, WallDirection direction, float height) {
+        float u;
+        float v;
         switch (direction) {
-            case EAST -> torchLightPosition.x -= WorldUtils.TILE_WIDTH / 2f;
-            case SOUTH -> torchLightPosition.z -= WorldUtils.TILE_WIDTH / 2f;
-            default -> {
+            case NORTH -> {
+                u = 0.5f;
+                v = 0.125f;
             }
+            case EAST -> {
+                u = 0.875f;
+                v = 0.5f;
+            }
+            case SOUTH -> {
+                u = 0.5f;
+                v = 0.875f;
+            }
+            case WEST -> {
+                u = 0.125f;
+                v = 0.5f;
+            }
+            default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
-        lightRules.addTorchLight(tile.getLocation(), torchLightPosition, red, green, blue, intensity, radius);
+        return new Vector3f(floor.x - 0.5f + u, height, floor.y - 0.5f + v);
     }
 
     private Terrain getTorchTerrain(int x, int y) {
@@ -999,7 +1048,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Portal light (lighting_design.md §6.5)
         if (room.getRoomId() == ROOM_PORTAL_ID || room.getRoomId() == ROOM_HERO_PORTAL_ID) {
             Point center = getRoomCenterTile(roomInstance);
-            Vector3f position = new Vector3f(center.x + 0.5f, 0.49f, center.y + 0.5f);
+            // Tile (x, y) is centred on (x, y) in world space, not (x + 0.5, y + 0.5)
+            Vector3f position = new Vector3f(center.x, 0.49f, center.y);
             lightRules.addPortalLight(roomInstance, position);
         }
 
@@ -1334,12 +1384,14 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
                 : terrain;
         boolean useClaimScanColour = false;
+        boolean perceivedUnexplored = false;
 
         // Perceived-but-unexplored, non-room tile (design §6.3): terrains that
         // reveal through fog keep their own light, everything else glows as
         // Claim Scan. The mesh keeps its rock stand-in (see getTerrain()); only
         // the light looks at the real terrain.
         if (!isRoomTile && !fogOfWarInformation.isVisible(p) && fogOfWarInformation.isPerceived(p)) {
+            perceivedUnexplored = true;
             Terrain real = kwdFile.getTerrain(tile.getTerrainId());
             lightingTerrain = real.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR)
                     ? real
@@ -1350,6 +1402,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         if (lightingTerrain == null || !lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)) {
+            return;
+        }
+
+        // Only the claim-scan / perceived glow is kept; room and ordinary
+        // terrain lights are switched off (see LightConstants)
+        if (isRoomTile && !LightConstants.ROOM_LIGHTING_ENABLED) {
+            return;
+        }
+        if (!isRoomTile && !perceivedUnexplored && !LightConstants.EXPLORED_TERRAIN_LIGHTS_ENABLED) {
             return;
         }
 
@@ -1369,7 +1430,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             blue = c.getBlue() + (lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
         }
 
-        Vector3f position = new Vector3f(p.x + 0.5f, lightingTerrain.getLightHeight(), p.y + 0.5f);
+        // Tile (x, y) is centred on (x, y) in world space
+        Vector3f position = new Vector3f(p.x, lightingTerrain.getLightHeight(), p.y);
         boolean claimScan = useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID;
         lightRules.addTerrainLight(p, position, red, green, blue,
                 claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
@@ -1400,7 +1462,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             blue = Math.max(LightConstants.PLAYER_COLOURED_MIN, blue * player[2] / 255);
         }
         Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
-        Vector3f position = new Vector3f(p.x + 0.5f + offset.x, offset.y, p.y + 0.5f + offset.z);
+        Vector3f position = new Vector3f(p.x + offset.x, offset.y, p.y + offset.z);
         lightRules.addSlabLight(p, position, red, green, blue, light.getRadius(),
                 flags.contains(Light.LightFlag.PULSE), flags.contains(Light.LightFlag.FLICKER));
     }
@@ -1503,6 +1565,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     private ColorRGBA getVertexAmbient(Terrain terrain, short ownerId) {
+        if (!LightConstants.ROOM_LIGHTING_ENABLED && terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return ColorRGBA.Black; // no per-room ambient, see LightConstants.ROOM_LIGHTING_ENABLED
+        }
         if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
             Color c = terrain.getAmbientLight();
             int r = c.getRed() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);

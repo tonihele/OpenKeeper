@@ -86,6 +86,22 @@ public class PlayerColouredLightTest {
     }
 
     @Test
+    public void playerColouredLightsHaveASmallRadius() {
+        // The imp's data radius is 2 tiles (x 2/3 = 1.33): capped for player-coloured lights
+        LightRules rules = new LightRules();
+        LightSource coloured = rules.addThingLight(new Object(), Vector3f.ZERO, Vector3f.ZERO,
+                255, 255, 255, false, false, false,
+                true, LightConstants.getPlayerLightColour((short) 3), 2f, 1.0f, false, false);
+        assertEquals(LightConstants.PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES, coloured.getRadius());
+
+        // Other thing lights are untouched
+        LightSource plain = rules.addThingLight(new Object(), Vector3f.ZERO, Vector3f.ZERO,
+                255, 200, 100, false, false, false,
+                false, null, 2f, 1.0f, false, false);
+        assertEquals(2f * LightConstants.THING_LIGHT_RADIUS_SCALE, plain.getRadius());
+    }
+
+    @Test
     public void returnedColourIsACopy() {
         int[] colour = LightConstants.getPlayerLightColour((short) 3);
         colour[0] = 0;

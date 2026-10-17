@@ -8,7 +8,9 @@
  */
 package toniarts.openkeeper.view.map;
 
+import com.jme3.math.Vector3f;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 
 import java.util.List;
@@ -38,5 +40,15 @@ class MapViewControllerTest {
     void oddXAndEvenYAllowAllWallsInPriorityOrder() {
         assertEquals(List.of(WallDirection.NORTH, WallDirection.WEST, WallDirection.SOUTH, WallDirection.EAST),
                 MapViewController.getTorchDirections(3, 4));
+    }
+
+    @Test
+    void torchLightHugsTheWallFaceInsideTheFloorTile() {
+        // Design 6.2, in the floor tile's own space (a tile (x, y) is centred on world (x, y))
+        Point tile = new Point(10, 20);
+        assertEquals(new Vector3f(10f, 1.5f, 19.625f), MapViewController.getTorchLightPosition(tile, WallDirection.NORTH, 1.5f));
+        assertEquals(new Vector3f(10.375f, 1.5f, 20f), MapViewController.getTorchLightPosition(tile, WallDirection.EAST, 1.5f));
+        assertEquals(new Vector3f(10f, 1.5f, 20.375f), MapViewController.getTorchLightPosition(tile, WallDirection.SOUTH, 1.5f));
+        assertEquals(new Vector3f(9.625f, 1.5f, 20f), MapViewController.getTorchLightPosition(tile, WallDirection.WEST, 1.5f));
     }
 }

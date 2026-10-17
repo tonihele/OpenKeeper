@@ -7,6 +7,7 @@
 
 uniform vec4 m_Ambient;
 uniform vec4 m_Tint;
+uniform vec4 m_TintOverlay;
 #ifdef AMBIENT_MAP
 uniform sampler2D m_AmbientMap;
 uniform vec2 m_AmbientMapSize;
@@ -30,6 +31,7 @@ attribute vec2 inTexCoord;
 
 varying vec2 texCoord;
 varying vec3 vVertexColor;
+varying vec3 vOverlay;
 
 void main() {
     vec4 modelSpacePos = vec4(inPosition, 1.0);
@@ -44,7 +46,8 @@ void main() {
     // ambient of neighbouring tiles across each tile (stored halved). The
     // alpha channel holds the tile's explored flag, blended the same way: a
     // vertex touching an unexplored tile is partly (or wholly) unexplored.
-    vec4 tileData = textureLod(m_AmbientMap, worldPos.xz / m_AmbientMapSize, 0.0);
+    // Tile i is centred on world coordinate i (not i + 0.5), hence the shift
+    vec4 tileData = textureLod(m_AmbientMap, (worldPos.xz + 0.5) / m_AmbientMapSize, 0.0);
     vec3 tileAmbient = tileData.rgb * 2.0;
     float explored = tileData.a;
 #else
@@ -82,16 +85,15 @@ void main() {
 
     vec3 lit = dkSoftClampFloor(sum, explored);
 
-    // Tile highlight (tag = blue glow, flash = red glow). Applied AFTER the
-    // clamp: added before it, a tile already lit near 1.0 swallowed the tint.
-    // Multiplying keeps the diffuse texture visible and the colour reads on
-    // bright tiles; the small additive part makes it show on dark ones too.
+    // Tile highlight, as in the original game (tile_tagging.md section 4): the
+    // mode colour is ADDED to every vertex (so a tagged block is at least
+    // half bright even in the dark, with a blue bias), clamped to the display
+    // range; the fragment shader then adds the overlay colour, scaled by this
+    // same vertex colour, on top of the texture.
     vec3 tint = m_Tint.rgb;
     if (tint.r + tint.g + tint.b > 0.0) {
-        // A selected / flashing tile is fully lit, whatever the scene lighting
-        // around it, so its highlight colour always reads the same
-        lit = vec3(1.0);
-        lit = lit * (vec3(0.35) + 1.4 * tint) + tint * 0.25;
+        lit = min(lit + tint, vec3(1.0));
     }
+    vOverlay = m_TintOverlay.rgb;
     vVertexColor = lit;
 }

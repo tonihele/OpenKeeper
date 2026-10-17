@@ -269,6 +269,9 @@ public final class LightRules {
             b = Math.max(LightConstants.PLAYER_COLOURED_MIN, b * playerColour[2] / 255);
         }
         float radius = fileRadius * LightConstants.THING_LIGHT_RADIUS_SCALE;
+        if (playerColoured && playerColour != null) {
+            radius = Math.min(radius, LightConstants.PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES);
+        }
         Vector3f position = ownerPosition.add(offset);
 
         LightSource light = new LightSource(LightKind.THING, owner, false, position,

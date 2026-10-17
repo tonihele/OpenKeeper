@@ -8,6 +8,7 @@ uniform float m_AlphaDiscardThreshold;
 
 varying vec2 texCoord;
 varying vec3 vVertexColor;
+varying vec3 vOverlay;
 
 void main() {
     vec4 diffuse = texture2D(m_DiffuseMap, texCoord);
@@ -18,5 +19,10 @@ void main() {
         }
     #endif
 
-    gl_FragColor = vec4(vVertexColor * diffuse.rgb, diffuse.a);
+    vec3 colour = vVertexColor * diffuse.rgb;
+
+    // Highlight overlay (tag / flash): a second additive pass of a flat
+    // colour over the same triangles, lit by the same vertex colour
+    colour += vOverlay * vVertexColor;
+    gl_FragColor = vec4(colour, diffuse.a);
 }

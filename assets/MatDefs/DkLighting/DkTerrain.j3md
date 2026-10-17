@@ -15,11 +15,15 @@ MaterialDef DK Terrain Lighting {
         // uninitialized GPU uniform, not zero.
         Color Ambient : 0.0 0.0 0.0 0.0
 
-        // Per-tile highlight (tile tag "blue glow", flash "red glow"): the
-        // tile is drawn fully lit and tinted with this. Deliberately NOT
-        // blended across tile borders: a selection must read as exactly that
-        // tile.
+        // Tile highlight, as in the original (tile_tagging.md section 4):
+        // Tint is ADDED to the tile's lighting at every vertex (tag = (128,
+        // 128, 200)/255, flash = (1, 0, 0)), and TintOverlay is the colour of
+        // a second, additive pass over the same triangles, scaled by that
+        // same lit vertex colour (tag = (63, 64, 255)/255 "BlueTexture",
+        // flash = (255, 64, 65)/255 "RedTexture"). Per tile, not blended
+        // across tile borders: a selection must read as exactly that tile.
         Color Tint : 0.0 0.0 0.0 0.0
+        Color TintOverlay : 0.0 0.0 0.0 0.0
 
         // Map-sized per-tile data (rgb = ambient / 2, a = explored flag),
         // sampled bilinearly at the vertex's world position so ambient and

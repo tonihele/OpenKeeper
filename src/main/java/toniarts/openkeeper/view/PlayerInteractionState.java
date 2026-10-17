@@ -489,7 +489,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         Vector2f pointed = selectionHandler.getActualPointedPosition();
-        Vector3f position = new Vector3f(pointed.x + 0.5f, 0f, pointed.y + 0.5f);
+        // The pointed position is the real floor point (tile centres are on whole numbers)
+        Vector3f position = new Vector3f(pointed.x, 0f, pointed.y);
 
         // Border tiles: light stays on but black (design 7.3). Over unexplored
         // ground it stays white: the hand lights the fog it points at, which
