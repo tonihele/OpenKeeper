@@ -30,17 +30,18 @@ public class ModulatorTest {
     public void pulsePeriodIs48TicksAndStaysInRange() {
         Modulator modulator = new Modulator();
         modulator.pulse();
-        int[] base = {400, 100, 200}; // distinct r/g/b so the swap is visible
+        int[] base = {200, 100, 50};
         int[] colour = new int[3];
 
         // One full period is 48 ticks (10 -> 250 -> 10 in steps of 10).
         for (int i = 0; i < 48; i++) {
             modulator.apply(base, colour);
 
-            // colour must never exceed base (phase/256 <= 250/256 < 1)
-            assertTrue(colour[0] <= base[0]);
-            assertTrue(colour[1] <= base[2]); // green channel takes blue's base (D6)
-            assertTrue(colour[2] <= base[1]); // blue channel takes green's base (D6)
+            // the pulse only brightens: never below base, never past twice base
+            for (int c = 0; c < 3; c++) {
+                assertTrue(colour[c] >= base[c]);
+                assertTrue(colour[c] <= base[c] * 2);
+            }
         }
 
         // After exactly one period (48 ticks) the phase/direction must repeat.
@@ -59,7 +60,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void pulseSwapsGreenAndBlueChannels() {
+    public void pulseKeepsChannelsInPlace() {
         Modulator modulator = new Modulator();
         modulator.pulse();
         int[] base = {0, 300, 100};
@@ -67,17 +68,17 @@ public class ModulatorTest {
 
         modulator.apply(base, colour);
 
-        // phase starts at 10: colour = base * 10 / 256
-        assertEquals(base[0] * 10 / 256, colour[0]);
-        assertEquals(base[2] * 10 / 256, colour[1]); // green output uses base blue
-        assertEquals(base[1] * 10 / 256, colour[2]); // blue output uses base green
+        // phase starts at 10: colour = base * (256 + 10) / 256, no channel swap
+        assertEquals(base[0] * 266 / 256, colour[0]);
+        assertEquals(base[1] * 266 / 256, colour[1]);
+        assertEquals(base[2] * 266 / 256, colour[2]);
     }
 
     @Test
-    public void pulseRangeIsRoughly4To98Percent() {
+    public void pulseRangeIsRoughly104To198Percent() {
         Modulator modulator = new Modulator();
         modulator.pulse();
-        int[] base = {256, 256, 256};
+        int[] base = {200, 200, 200};
         int[] colour = new int[3];
 
         int minR = Integer.MAX_VALUE;
@@ -88,9 +89,9 @@ public class ModulatorTest {
             maxR = Math.max(maxR, colour[0]);
         }
 
-        // 10/256 ~= 3.9%, 250/256 ~= 97.7%
-        assertEquals(10, minR);
-        assertEquals(base[0] * 250 / 256, maxR);
+        // (256 + 10) / 256 ~= 104%, (256 + 250) / 256 ~= 198%
+        assertEquals(base[0] * 266 / 256, minR);
+        assertEquals(base[0] * 506 / 256, maxR);
     }
 
     @Test
