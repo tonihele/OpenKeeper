@@ -77,10 +77,16 @@ public final class LightConstants {
     public static final boolean EXPLORED_TERRAIN_LIGHTS_ENABLED = true;
 
     /**
+     * The per-terrain vertex ambient (KWD AMBIENT_LIGHT) of non-room tiles.
+     * Off: such tiles get no baseline glow and are lit only by lights.
+     */
+    public static final boolean TERRAIN_AMBIENT_ENABLED = true;
+
+    /**
      * Torch lights are small and local: at most this radius (tiles), however
      * large the room / default torch radius is.
      */
-    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 4f;
+    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 2f;
 
     /**
      * Claim-scan terrain lights keep the full intensity: every other terrain

@@ -153,6 +153,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
     private final LightRules lightRules;
     private final boolean litSolidTerrain;
+    private boolean terrainAmbientEnabled = LightConstants.TERRAIN_AMBIENT_ENABLED;
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
@@ -1498,9 +1499,20 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         return materials;
     }
 
+    /**
+     * Overrides {@link LightConstants#TERRAIN_AMBIENT_ENABLED}; call before
+     * the map is loaded (the ambient is baked into the materials).
+     */
+    public void setTerrainAmbientEnabled(boolean terrainAmbientEnabled) {
+        this.terrainAmbientEnabled = terrainAmbientEnabled;
+    }
+
     private ColorRGBA getVertexAmbient(Terrain terrain, short ownerId) {
         if (!LightConstants.ROOM_LIGHTING_ENABLED && terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             return ColorRGBA.Black; // no per-room ambient, see LightConstants.ROOM_LIGHTING_ENABLED
+        }
+        if (!terrainAmbientEnabled) {
+            return ColorRGBA.Black; // see LightConstants.TERRAIN_AMBIENT_ENABLED
         }
         if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
             Color c = terrain.getAmbientLight();

@@ -31,6 +31,7 @@ uniform vec2 m_AmbientMapSize;
 //              overrules it in proportion to how strongly the torch lights
 //              the vertex
 //   bit 3 (8): the light is a torch
+//   bit 5 (32): the light is carried by a game object
 #ifdef LIGHT_DATA
 uniform sampler2D m_LightData;
 #endif
@@ -91,6 +92,11 @@ void main() {
         vec4 posRadius = texelFetch(m_LightData, ivec2(base, 0), 0);
         vec4 colorIntensity = texelFetch(m_LightData, ivec2(base + 1, 0), 0);
         int flags = int(texelFetch(m_LightData, ivec2(base + 2, 0), 0).x + 0.5);
+#ifdef IGNORE_OBJECT_LIGHTS
+        if ((flags & 32) != 0) {
+            continue;
+        }
+#endif
         // Coloured light (torches, creatures, effects, explored terrain) must
         // not reveal unexplored ground; only the claim-scan glow and the
         // cursor do

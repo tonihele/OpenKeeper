@@ -79,6 +79,7 @@ import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightGroup;
 
 import java.io.ByteArrayInputStream;
@@ -158,6 +159,7 @@ public final class ModelViewer extends SimpleApplication {
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
     private boolean litSolidRock = true;
+    private boolean terrainAmbient = LightConstants.TERRAIN_AMBIENT_ENABLED;
 
     private final ActionListener actionListener = new ActionListener() {
         @Override
@@ -322,7 +324,7 @@ public final class ModelViewer extends SimpleApplication {
         // Add ambient light
         AmbientLight al = new AmbientLight();
         al.setColor(ColorRGBA.White.multLocal(0.4f));
-        rootNode.addLight(al);
+        //rootNode.addLight(al);
 
         /* Drop shadows */
         final int SHADOWMAP_SIZE = 1024;
@@ -455,6 +457,23 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    boolean isTerrainAmbient() {
+        return terrainAmbient;
+    }
+
+    /**
+     * Whether the per-terrain vertex ambient is applied. It is baked into the
+     * map's materials, so the selected map is reloaded.
+     */
+    void setTerrainAmbient(boolean terrainAmbient) {
+        this.terrainAmbient = terrainAmbient;
+
+        List<Object> selection = screen.getItemsControl().getSelection();
+        if (selection.size() == 1 && screen.getTypeControl().getSelection() == Types.MAPS) {
+            enqueue(() -> onSelectionChanged(selection.get(0)));
+        }
+    }
+
     boolean isLightGroupEnabled(LightGroup group) {
         return mapLoaderAppState.isLightGroupEnabled(group);
     }
@@ -489,7 +508,7 @@ public final class ModelViewer extends SimpleApplication {
             case MAPS: {
                 // Load the selected map
                 IKwdFile kwd = getKwdFile((String) selection);
-                Node spat = mapLoaderAppState.loadMap(kwd, litSolidRock);
+                Node spat = mapLoaderAppState.loadMap(kwd, litSolidRock, terrainAmbient);
 
                 GameLevel gameLevel = kwd.getGameLevel();
                 screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));

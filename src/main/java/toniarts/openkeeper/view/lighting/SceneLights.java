@@ -216,7 +216,8 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
                 | (lightsUnexploredTiles(light) ? 2 : 0)
                 | (light.yieldsToTorches() ? 4 : 0)
                 | (light.getKind() == LightKind.TORCH ? 8 : 0)
-                | (LightGroup.of(light) == LightGroup.CREATURE ? 16 : 0));
+                | (LightGroup.of(light) == LightGroup.CREATURE ? 16 : 0)
+                | (light.isObjectLight() ? 32 : 0));
     }
 
     /**

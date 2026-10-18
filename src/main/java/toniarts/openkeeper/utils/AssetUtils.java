@@ -305,6 +305,45 @@ public final class AssetUtils {
     }
 
     /**
+     * Lights a model per vertex, like the floor it stands on, instead of with
+     * the single {@link #applyFlatLight flat} sample: swaps its
+     * {@code DkFlat} materials for {@code DkTerrain} ones (once) and hooks them
+     * up to the shared light data. For big static pieces where one sample at
+     * the model origin lights the far end wrongly (arches, steps). Call once
+     * per frame, as the ambient map may only exist after the first call.
+     *
+     * @param ignoreObjectLights true to leave out the lights carried by game
+     * objects
+     */
+    public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
+            boolean ignoreObjectLights) {
+        List<Material> materials = new ArrayList<>();
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial s) {
+                if (!(s instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                Material material = geometry.getMaterial();
+                if (!isDkTerrainMaterial(material)) {
+                    if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                        return;
+                    }
+                    Material dkTerrain = createDkTerrainMaterial(assetManager, material, ColorRGBA.Black);
+                    dkTerrain.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
+                    dkTerrain.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
+                    dkTerrain.setFloat("MinLight", 0f);
+                    dkTerrain.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                    geometry.setMaterial(dkTerrain);
+                    material = dkTerrain;
+                }
+                materials.add(material);
+            }
+        });
+        lightRules.bindMaterials(materials);
+    }
+
+    /**
      * Lights every {@code DkFlat}-materialled geometry under {@code spatial}
      * to full brightness, ignoring the scene's lights. For things that are
      * not in the world, such as creatures held in the hand.

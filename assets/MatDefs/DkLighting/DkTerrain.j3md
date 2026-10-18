@@ -45,6 +45,11 @@ MaterialDef DK Terrain Lighting {
         // walkable terrain, 0 for solid terrain (black where no light reaches)
         Float MinLight : 1.0
 
+        // Leave out the lights carried by game objects (flag 32 of the light
+        // data): for the parts of the dungeon heart, which take no light from
+        // the heart's own glow. Models only, terrain never sets it.
+        Boolean IgnoreObjectLights
+
         // Animated texture (water): DiffuseMap is a strip of NumberOfTiles
         // equally wide frames, stepped Speed times a second. Unset = static.
         Int NumberOfTiles
@@ -67,6 +72,7 @@ MaterialDef DK Terrain Lighting {
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap
             LIGHT_DATA : LightData
+            IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
         }
     }
 }

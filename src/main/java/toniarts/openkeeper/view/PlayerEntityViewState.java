@@ -242,16 +242,29 @@ public class PlayerEntityViewState extends AbstractAppState {
                 // effects, the hand, creatures, etc.
                 ObjectViewControl control = object.getControl(ObjectViewControl.class);
                 int objectId = control != null ? control.getDataObject().getObjectId() : -1;
-                AssetUtils.applyFlatLight(object, lightRules,
-                        DUNGEON_HEART_PART_IDS.contains(objectId));
+
+                // TODO: maybe there is a hint where flat lightning is okay
+                // Workarround, otherwise the dungeon heart does not react to light (keeper, torches, imps etc.)
+                if (DUNGEON_HEART_PART_IDS.contains(objectId)) {
+                    // Big pieces: lit per vertex like the floor, not by one sample
+                    AssetUtils.applyVertexLight(assetManager, object, lightRules, true);
+                } else {
+                    AssetUtils.applyFlatLight(object, lightRules);
+                }
             }
             for (Spatial object : creatureModelContainer.getModels()) {
+                AssetUtils.applyFlatLight(object, lightRules);
+            }
+            for (Spatial object : doorModelContainer.getModels()) {
+                AssetUtils.applyFlatLight(object, lightRules);
+            }
+            for (Spatial object : trapModelContainer.getModels()) {
                 AssetUtils.applyFlatLight(object, lightRules);
             }
         }
     }
 
-    private LightRules getLightRules() {
+    protected LightRules getLightRules() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
         // Guard against racing the map loader thread's LightRules writes
         // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
@@ -682,6 +695,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
         }
+
+        Spatial[] getModels() {
+            return getArray();
+        }
     }
 
     /**
@@ -712,6 +729,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
+        }
+
+        Spatial[] getModels() {
+            return getArray();
         }
     }
 }

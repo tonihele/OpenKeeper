@@ -30,6 +30,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.function.Supplier;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.data.Settings;
@@ -39,6 +40,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.lighting.LightGroup;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -71,7 +73,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         inputManager = app.getInputManager();
     }
 
-    public Node loadMap(IKwdFile kwdFile, boolean litSolidRock) {
+    public Node loadMap(IKwdFile kwdFile, boolean litSolidRock, boolean terrainAmbient) {
         unloadMap();
 
         mapEntityData = new DefaultEntityData();
@@ -89,6 +91,7 @@ public final class MapLoaderAppState extends AbstractAppState {
             }
 
         };
+        mapLoader.setTerrainAmbientEnabled(terrainAmbient);
         mapNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
         // No fog of war here (MapViewController's ALWAYS_VISIBLE), so the whole
@@ -96,7 +99,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         // load is done, like PlayerMapViewState's mapLoaded gate.
         mapViewController = mapLoader;
 
-        mainMenuEntityViewState = new MapLoaderAppState.MapEntityViewState(kwdFile, assetManager, mapEntityData, Player.KEEPER1_ID, null, mapNode);
+        mainMenuEntityViewState = new MapLoaderAppState.MapEntityViewState(kwdFile, assetManager, mapEntityData, Player.KEEPER1_ID, null, mapNode, () -> mapViewController);
         stateManager.attach(mainMenuEntityViewState);
 
         return mapNode;
@@ -161,10 +164,22 @@ public final class MapLoaderAppState extends AbstractAppState {
 
     private static final class MapEntityViewState extends PlayerEntityViewState {
 
-        public MapEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
+        private final Supplier<MapViewController> mapViewController;
+
+        public MapEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode, Supplier<MapViewController> mapViewController) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
+            this.mapViewController = mapViewController;
 
             setId("Map: " + kwdFile.getGameLevel().getName());
+        }
+
+        /**
+         * The viewer has no PlayerMapViewState, the light rules are the loaded map's own
+         */
+        @Override
+        protected LightRules getLightRules() {
+            MapViewController controller = mapViewController.get();
+            return controller != null ? controller.getLightRules() : null;
         }
     }
 
