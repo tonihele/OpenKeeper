@@ -77,7 +77,8 @@ public final class LightConstants {
     public static final boolean EXPLORED_TERRAIN_LIGHTS_ENABLED = true;
 
     /**
-     * The per-terrain vertex ambient (KWD AMBIENT_LIGHT) of non-room tiles.
+     * The per-terrain vertex ambient (KWD AMBIENT_LIGHT) of non-solid,
+     * non-room tiles; solid tiles (rock, walls) never get it.
      * Off: such tiles get no baseline glow and are lit only by lights.
      */
     public static final boolean TERRAIN_AMBIENT_ENABLED = true;

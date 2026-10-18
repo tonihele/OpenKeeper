@@ -9,6 +9,7 @@ uniform vec4 m_Ambient;
 uniform vec4 m_Tint;
 uniform vec4 m_TintOverlay;
 uniform float m_MinLight;
+uniform float m_AmbientScale;
 #ifdef ANIMATED_TILES
 uniform float g_Time;
 uniform int m_NumberOfTiles;
@@ -64,7 +65,7 @@ void main() {
     // vertex touching an unexplored tile is partly (or wholly) unexplored.
     // Tile i is centred on world coordinate i (not i + 0.5), hence the shift
     vec4 tileData = textureLod(m_AmbientMap, (worldPos.xz + 0.5) / m_AmbientMapSize, 0.0);
-    vec3 tileAmbient = tileData.rgb * 2.0;
+    vec3 tileAmbient = tileData.rgb * 2.0 * m_AmbientScale;
     float explored = tileData.a;
 #else
     vec3 tileAmbient = m_Ambient.rgb;

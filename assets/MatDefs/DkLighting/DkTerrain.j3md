@@ -45,6 +45,12 @@ MaterialDef DK Terrain Lighting {
         // walkable terrain, 0 for solid terrain (black where no light reaches)
         Float MinLight : 1.0
 
+        // Scale of the per-tile ambient sampled from AmbientMap. 0 for solid
+        // terrain: the map is sampled bilinearly, so without this a wall's
+        // vertices on the border to a floor tile take half of the floor's
+        // ambient.
+        Float AmbientScale : 1.0
+
         // Leave out the lights carried by game objects (flag 32 of the light
         // data): for the parts of the dungeon heart, which take no light from
         // the heart's own glow. Models only, terrain never sets it.
