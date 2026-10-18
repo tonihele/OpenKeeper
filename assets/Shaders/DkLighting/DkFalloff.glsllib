@@ -64,7 +64,12 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
         return vec3(0.0);
     }
 
-    float lam = abs(dot(worldNormal, d)) * intensity;
+    // Side faces turned away from the light stay dark. Upward-facing surfaces
+    // (floors and the tops of walls / rock) are lit from either side: a wall
+    // top sits above the light's height, so a signed dot would leave it black
+    // instead of inheriting the colour of the torches and terrain lights.
+    float facing = dot(worldNormal, d);
+    float lam = (worldNormal.y > 0.5 ? abs(facing) : max(facing, 0.0)) * intensity;
 
     float n = floor(16.0 * d2);
     float f = smoothFalloff ? dkFalloffMonotonic(n) : dkFalloff(n);
