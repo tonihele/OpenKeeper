@@ -87,7 +87,7 @@ public final class LightConstants {
      * a tile, and a light on every tile summed to a fully lit map), so the
      * claim-scan glow is what stands out on unexplored rock.
      */
-    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.5f;
+    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.3f;
 
     /**
      * Slab lights (design &sect;6.7) use the design's intensity of 1.0

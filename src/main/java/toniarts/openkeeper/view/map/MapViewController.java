@@ -1402,8 +1402,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Perceived-but-unexplored, non-room tile (design §6.3): terrains that
         // reveal through fog keep their own light, everything else glows as
         // Claim Scan. The mesh keeps its rock stand-in (see getTerrain()); only
-        // the light looks at the real terrain.
-        if (!isRoomTile && !fogOfWarInformation.isVisible(p) && fogOfWarInformation.isPerceived(p)) {
+        // the light looks at the real terrain. Tests explored, not isVisible():
+        // isVisible() is already true for a perceived reveal-through-fog tile
+        // (Impenetrable Rock, water, lava), which must glow like any other.
+        if (!isRoomTile && !fogOfWarInformation.isExplored(p) && fogOfWarInformation.isPerceived(p)) {
             perceivedUnexplored = true;
             Terrain real = kwdFile.getTerrain(tile.getTerrainId());
             lightingTerrain = real.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR)
