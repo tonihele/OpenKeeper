@@ -317,6 +317,16 @@ public final class AssetUtils {
      */
     public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
             boolean ignoreObjectLights) {
+        applyVertexLight(assetManager, spatial, lightRules, ignoreObjectLights, true);
+    }
+
+    /**
+     * @param useTileAmbient false to ignore the per-tile (room / terrain)
+     * ambient under the thing, e.g. for creatures
+     * @see #applyVertexLight(AssetManager, Spatial, LightRules, boolean)
+     */
+    public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
+            boolean ignoreObjectLights, boolean useTileAmbient) {
         List<Material> materials = new ArrayList<>();
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
@@ -334,6 +344,9 @@ public final class AssetUtils {
                     dkTerrain.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
                     dkTerrain.setFloat("MinLight", 0f);
                     dkTerrain.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                    if (!useTileAmbient) {
+                        dkTerrain.setFloat("AmbientScale", 0f);
+                    }
                     geometry.setMaterial(dkTerrain);
                     material = dkTerrain;
                 }

@@ -253,7 +253,8 @@ public class PlayerEntityViewState extends AbstractAppState {
                 }
             }
             for (Spatial object : creatureModelContainer.getModels()) {
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+                // Creatures take no room / terrain ambient colour, only lights
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false, false);
             }
             for (Spatial object : doorModelContainer.getModels()) {
                 AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
