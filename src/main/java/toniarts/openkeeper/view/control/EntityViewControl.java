@@ -163,8 +163,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
         Interaction interaction = entity.get(Interaction.class);
         boolean result = DropValidator.canDrop(interaction, tile, terrain, playerId);
-        System.out.println("Drop-Debug terrain=" + terrain.getName() + " result" + result);
-                return result ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
+        return result ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
      //   return (tile.getOwnerId() == playerId
      //           && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
