@@ -1647,79 +1647,62 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     private List<Point> getRoomWalls(Point p, RoomInstance roomInstance, WallDirection wallDirection) {
 
+        // A missing direction is treated as WEST
+        WallDirection direction = wallDirection != null ? wallDirection : WallDirection.WEST;
+
         // See if the starting point has a wall to the given direction
-        IMapTileInformation tile;
-        if (null == wallDirection) {
-            tile = getMapData().getTile(p.x + 1, p.y); // West
-        } else
-            tile = switch (wallDirection) {
-                case NORTH ->
-                    getMapData().getTile(p.x, p.y + 1);
-                case EAST ->
-                    getMapData().getTile(p.x - 1, p.y);
-                case SOUTH ->
-                    getMapData().getTile(p.x, p.y - 1);
-                default ->
-                    getMapData().getTile(p.x + 1, p.y); // West
-            };
-
+        Point wallPoint = getWallNeighbour(p, direction);
+        IMapTileInformation tile = getMapData().getTile(wallPoint.x, wallPoint.y);
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || !terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+            return null;
+        }
 
-            // Found wallable
-            List<Point> wallPoints = new ArrayList<>();
-            wallPoints.add(p);
+        // Found wallable
+        List<Point> wallPoints = new ArrayList<>();
+        wallPoints.add(p);
 
-            // Traverse possible directions, well one direction, "to the right"
-            List<Point> adjacentWallPoints = null;
-            if (null == wallDirection) {
-                Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else
-                switch (wallDirection) {
-                    case NORTH -> {
-                        Point nextPoint = new Point(p.x + 1, p.y); // East
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                    case EAST -> {
-                        Point nextPoint = new Point(p.x, p.y + 1); // South
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                    case SOUTH -> {
-                        Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                    default -> {
-                        Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                }
-
-            // Add the point(s)
+        // Traverse possible directions, well one direction, "to the right"
+        Point nextPoint = getNextWallPoint(p, direction);
+        RoomInstance instance = roomCoordinates.get(nextPoint);
+        if (instance != null && instance.equals(roomInstance)) {
+            List<Point> adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
             if (adjacentWallPoints != null) {
                 wallPoints.addAll(adjacentWallPoints);
             }
-
-            return wallPoints;
         }
 
-        return null;
+        return wallPoints;
+    }
+
+    /**
+     * The tile on the wall side of the room tile
+     */
+    private static Point getWallNeighbour(Point p, WallDirection direction) {
+        return switch (direction) {
+            case NORTH ->
+                new Point(p.x, p.y + 1);
+            case EAST ->
+                new Point(p.x - 1, p.y);
+            case SOUTH ->
+                new Point(p.x, p.y - 1);
+            default ->
+                new Point(p.x + 1, p.y); // West
+        };
+    }
+
+    /**
+     * The next tile along the wall ("to the right", sorting forces the
+     * directions to be what they are)
+     */
+    private static Point getNextWallPoint(Point p, WallDirection direction) {
+        return switch (direction) {
+            case NORTH, SOUTH ->
+                new Point(p.x + 1, p.y); // East
+            default ->
+                new Point(p.x, p.y + 1); // South
+        };
     }
 
     /**
