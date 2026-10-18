@@ -194,6 +194,16 @@ public final class CreatureController extends EntityController implements ICreat
             }
         }
     }
+    
+    @Override
+    public boolean equals(Object obj) {
+        return super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 
     /**
      * Checks if we should fear death
