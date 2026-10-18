@@ -778,8 +778,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()),
                 fogOfWarInformation.isExplored(p));
 
-        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
-        if (torchesEnabled && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
+        // explored ground: a tile that is merely perceived (claim scan) shows no torches
+        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleTorch(tile, pageNode);
         }
 
