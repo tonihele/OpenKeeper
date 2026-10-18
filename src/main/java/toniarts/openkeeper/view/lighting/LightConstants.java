@@ -38,14 +38,22 @@ public final class LightConstants {
     /**
      * The original's terrain-light radius: the terrain data has no radius
      * field, the original reuses the scratch CLight at CBridge+0x35B with a
-     * fixed radius of 4.5 tiles. Not subject to {@link #MAX_LIGHT_RADIUS_TILES}.
+     * fixed radius of 1.125 tiles (small enough to light raised geometry such
+     * as rims and wall faces, but not the floor: the "edge glow"). Not subject
+     * to {@link #MAX_LIGHT_RADIUS_TILES}.
      */
-    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.5f;
+    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.125f;
 
     /**
      * The original's terrain-light intensity
      */
     public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
+
+    /**
+     * Intensity of the interior-slab terrain light of room tiles. Higher than
+     * {@link #TERRAIN_LIGHT_INTENSITY}, which stays for paths, water, lava, ...
+     */
+    public static final float ROOM_TERRAIN_LIGHT_INTENSITY = 1f;
 
     /**
      * Terrain lights of room tiles (the interior-slab glow) and

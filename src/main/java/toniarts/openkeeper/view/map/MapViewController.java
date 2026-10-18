@@ -804,10 +804,14 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             roomInstance = handleRoom(p, room, null);
 
             // Swap the terrain if this is a bridge
-            terrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
-            if (terrain == null) {
+            Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
+            if (bridgeTerrain == null) {
+                // Ordinary room on land: the room constructor builds the geometry,
+                // but the tile still carries the room terrain's own light
+                handleTerrainLight(tile, terrain, true, roomInstance);
                 return;
             }
+            terrain = bridgeTerrain;
         }
 
         handleTerrainLight(tile, terrain, isRoomTile, roomInstance);
@@ -1333,7 +1337,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Tile (x, y) is centred on (x, y) in world space
         Vector3f position = new Vector3f(p.x, lightingTerrain.getLightHeight(), p.y);
         LightSource light = lightRules.addTerrainLight(p, position, rgb[0], rgb[1], rgb[2],
-                claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
+                claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY
+                        : isRoomTile ? LightConstants.ROOM_TERRAIN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
         // Water and lava must not tint the colour of a torch that lights the same ground
         EnumSet<Terrain.TerrainFlag> flags = lightingTerrain.getFlags();
         light.setYieldsToTorches(flags.contains(Terrain.TerrainFlag.WATER) || flags.contains(Terrain.TerrainFlag.LAVA));
