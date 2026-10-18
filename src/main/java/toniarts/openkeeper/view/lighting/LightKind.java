@@ -29,5 +29,13 @@ public enum LightKind {
     TERRAIN,
     SLAB,
     PORTAL,
-    CURSOR
+    CURSOR;
+
+    /**
+     * Whether lights of this kind belong to a map tile (and so follow that
+     * tile's fog of war), as opposed to a thing, a room or the cursor.
+     */
+    public boolean isTileOwned() {
+        return this == TORCH || this == TERRAIN || this == SLAB;
+    }
 }

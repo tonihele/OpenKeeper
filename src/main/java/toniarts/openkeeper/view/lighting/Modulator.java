@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.view.lighting;
 
+import java.util.Arrays;
+
 /**
  * A time-varying multiplier/override on a {@link LightSource}'s current
  * colour, advanced once per simulation tick.
@@ -82,9 +84,8 @@ public final class Modulator {
     public void apply(int[] base, int[] outColour) {
         switch (type) {
             case PULSE -> applyPulse(base, outColour);
-            case FADE_IN -> applyFade(base, outColour, true, false);
-            case FLASH -> applyFade(base, outColour, true, true);
-            case FADE_OUT -> applyFade(base, outColour, false, false);
+            case FADE_IN, FLASH -> applyFadeIn(base, outColour);
+            case FADE_OUT -> applyFadeOut(base, outColour);
             default -> {
                 outColour[0] = base[0];
                 outColour[1] = base[1];
@@ -118,34 +119,40 @@ public final class Modulator {
         phase = raw;
     }
 
-    private void applyFade(int[] base, int[] outColour, boolean fadingIn, boolean isFlash) {
+    private void applyFadeIn(int[] base, int[] outColour) {
         if (duration <= 0) {
-            for (int i = 0; i < 3; i++) {
-                outColour[i] = fadingIn ? base[i] : 0;
-            }
+            System.arraycopy(base, 0, outColour, 0, 3);
             type = Type.NONE;
             return;
         }
+        scaleColour(base, outColour);
+        if (counter < duration) {
+            counter++;
+        } else if (type == Type.FLASH) {
+            type = Type.FADE_OUT;
+            counter = duration;
+        } else {
+            type = Type.NONE;
+        }
+    }
 
+    private void applyFadeOut(int[] base, int[] outColour) {
+        if (duration <= 0) {
+            Arrays.fill(outColour, 0);
+            type = Type.NONE;
+            return;
+        }
+        scaleColour(base, outColour);
+        if (counter > 0) {
+            counter--;
+        } else {
+            type = Type.NONE;
+        }
+    }
+
+    private void scaleColour(int[] base, int[] outColour) {
         for (int i = 0; i < 3; i++) {
             outColour[i] = base[i] * counter / duration;
-        }
-
-        if (fadingIn) {
-            if (counter < duration) {
-                counter++;
-            } else if (isFlash) {
-                type = Type.FADE_OUT;
-                counter = duration;
-            } else {
-                type = Type.NONE;
-            }
-        } else {
-            if (counter > 0) {
-                counter--;
-            } else {
-                type = Type.NONE;
-            }
         }
     }
 }

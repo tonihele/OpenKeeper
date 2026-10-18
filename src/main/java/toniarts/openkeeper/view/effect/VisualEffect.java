@@ -391,19 +391,8 @@ public class VisualEffect {
             lightRules.removeThingLight(this);
             return;
         }
-        boolean playerColoured = effectLight.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
-
-        java.awt.Color c = effectLight.getColor();
-        Vector3f offset = LightConstants.toJmeOffset(effectLight.getmKPos());
-        lightRules.addThingLight(this, effectNode.getWorldTranslation(), offset,
-                c.getRed(), c.getGreen(), c.getBlue(),
-                effectLight.getFlags().contains(Light.LightFlag.COLOR_RED),
-                effectLight.getFlags().contains(Light.LightFlag.COLOR_GREEN),
-                effectLight.getFlags().contains(Light.LightFlag.COLOR_BLUE),
-                playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
-                effectLight.getRadius(), LightConstants.EFFECT_LIGHT_INTENSITY,
-                LightConstants.OBJECT_LIGHTS_PULSE && effectLight.getFlags().contains(Light.LightFlag.PULSE),
-                LightConstants.OBJECT_LIGHTS_PULSE && effectLight.getFlags().contains(Light.LightFlag.FLICKER));
+        lightRules.addThingLight(this, effectNode.getWorldTranslation(), effectLight, ownerId,
+                LightConstants.EFFECT_LIGHT_INTENSITY, LightConstants.OBJECT_LIGHTS_PULSE);
     }
 
     private LightRules getLightRules() {

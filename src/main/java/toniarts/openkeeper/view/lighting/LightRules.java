@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -247,6 +249,32 @@ public final class LightRules {
     // ------------------------------------------------------------------
     // Thing-owned lights: objects/creatures/shots/effects
     // ------------------------------------------------------------------
+
+    /**
+     * Creates the light of an object, creature or effect from its data
+     * {@code Light} block.
+     *
+     * @param ownerId the owning player, used when the light is
+     * {@code PLAYER_COLOURED}; may be {@code null}
+     * @param honourPulse whether the block's {@code PULSE}/{@code FLICKER}
+     * flags are honoured
+     * @see #addThingLight(Object, Vector3f, Vector3f, int, int, int, boolean, boolean, boolean, boolean, int[], float, float, boolean, boolean)
+     */
+    public LightSource addThingLight(Object owner, Vector3f ownerPosition, Light light, Short ownerId,
+            float intensity, boolean honourPulse) {
+        java.awt.Color c = light.getColor();
+        Set<Light.LightFlag> flags = light.getFlags();
+        boolean playerColoured = flags.contains(Light.LightFlag.PLAYER_COLOURED);
+        return addThingLight(owner, ownerPosition, LightConstants.toJmeOffset(light.getmKPos()),
+                c.getRed(), c.getGreen(), c.getBlue(),
+                flags.contains(Light.LightFlag.COLOR_RED),
+                flags.contains(Light.LightFlag.COLOR_GREEN),
+                flags.contains(Light.LightFlag.COLOR_BLUE),
+                playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
+                light.getRadius(), intensity,
+                honourPulse && flags.contains(Light.LightFlag.PULSE),
+                honourPulse && flags.contains(Light.LightFlag.FLICKER));
+    }
 
     /**
      * The thing-light formula. {@code offset} is the

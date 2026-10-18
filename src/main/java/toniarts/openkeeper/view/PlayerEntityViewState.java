@@ -491,19 +491,11 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
         if (lightRules.getThingLight(id) == null) {
-            java.awt.Color c = light.getColor();
             if (playerColoured) {
                 lightOwners.put(id, ownerId);
             }
-            LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), offset,
-                    c.getRed(), c.getGreen(), c.getBlue(),
-                    light.getFlags().contains(Light.LightFlag.COLOR_RED),
-                    light.getFlags().contains(Light.LightFlag.COLOR_GREEN),
-                    light.getFlags().contains(Light.LightFlag.COLOR_BLUE),
-                    playerColoured, playerColoured ? LightConstants.getPlayerLightColour(ownerId) : null,
-                    light.getRadius(), intensity,
-                    honourPulse && light.getFlags().contains(Light.LightFlag.PULSE),
-                    honourPulse && light.getFlags().contains(Light.LightFlag.FLICKER));
+            LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
+                    intensity, honourPulse);
             source.setObjectLight(objectLight);
         } else {
             lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);

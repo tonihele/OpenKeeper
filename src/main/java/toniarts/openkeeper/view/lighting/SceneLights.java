@@ -146,17 +146,7 @@ public final class SceneLights {
      * only: they cannot reach anything on screen).
      */
     public void update(List<LightSource> lights, Camera camera) {
-        Plane[] frustum = null;
-        if (camera != null) {
-            // jME 3.9 Camera folded the classic Frustum's six world planes
-            // into getWorldPlane(int); the plane index constants are private
-            // there, but indices 0..5 are fixed as LEFT, RIGHT, BOTTOM, TOP,
-            // FAR, NEAR -- a cull test doesn't care about their order.
-            frustum = new Plane[6];
-            for (int i = 0; i < 6; i++) {
-                frustum[i] = camera.getWorldPlane(i);
-            }
-        }
+        Plane[] frustum = camera != null ? getFrustumPlanes(camera) : null;
 
         int count = 0;
         for (LightSource light : lights) {
@@ -175,17 +165,7 @@ public final class SceneLights {
                 }
                 break;
             }
-            int base = (1 + TEXELS_PER_LIGHT * count) * 4;
-            lightFloats.put(base, pos.x);
-            lightFloats.put(base + 1, pos.y);
-            lightFloats.put(base + 2, pos.z);
-            lightFloats.put(base + 3, light.getRadius());
-            lightFloats.put(base + 4, light.getRed() / LightConstants.COLOUR_SCALE);
-            lightFloats.put(base + 5, light.getGreen() / LightConstants.COLOUR_SCALE);
-            lightFloats.put(base + 6, light.getBlue() / LightConstants.COLOUR_SCALE);
-            lightFloats.put(base + 7, light.getEffectiveIntensity());
-            lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
-                    | (lightsUnexploredTiles(light) ? 2 : 0));
+            writeLight(count, light);
             count++;
         }
         lightFloats.put(0, count);
@@ -193,6 +173,37 @@ public final class SceneLights {
         lightFloats.put(2, globalAmbient.g);
         lightFloats.put(3, globalAmbient.b);
         lightData.getImage().setUpdateNeeded();
+    }
+
+    private static Plane[] getFrustumPlanes(Camera camera) {
+        // jME 3.9 Camera folded the classic Frustum's six world planes
+        // into getWorldPlane(int); the plane index constants are private
+        // there, but indices 0..5 are fixed as LEFT, RIGHT, BOTTOM, TOP,
+        // FAR, NEAR -- a cull test doesn't care about their order.
+        Plane[] planes = new Plane[6];
+        for (int i = 0; i < planes.length; i++) {
+            planes[i] = camera.getWorldPlane(i);
+        }
+        return planes;
+    }
+
+    /**
+     * Writes one light into its three texels of the data texture, see
+     * {@link #TEXELS_PER_LIGHT}.
+     */
+    private void writeLight(int index, LightSource light) {
+        Vector3f pos = light.getPosition();
+        int base = (1 + TEXELS_PER_LIGHT * index) * 4;
+        lightFloats.put(base, pos.x);
+        lightFloats.put(base + 1, pos.y);
+        lightFloats.put(base + 2, pos.z);
+        lightFloats.put(base + 3, light.getRadius());
+        lightFloats.put(base + 4, light.getRed() / LightConstants.COLOUR_SCALE);
+        lightFloats.put(base + 5, light.getGreen() / LightConstants.COLOUR_SCALE);
+        lightFloats.put(base + 6, light.getBlue() / LightConstants.COLOUR_SCALE);
+        lightFloats.put(base + 7, light.getEffectiveIntensity());
+        lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
+                | (lightsUnexploredTiles(light) ? 2 : 0));
     }
 
     /**
@@ -226,11 +237,8 @@ public final class SceneLights {
      * Thing, portal and cursor lights are not tile-gated.
      */
     private boolean hiddenByFog(LightSource light) {
-        LightKind kind = light.getKind();
-        if (kind != LightKind.TORCH && kind != LightKind.TERRAIN && kind != LightKind.SLAB) {
-            return false;
-        }
-        return light.getOwner() instanceof Point owner
+        return light.getKind().isTileOwned()
+                && light.getOwner() instanceof Point owner
                 && !fogOfWar.isExplored(owner)
                 && !fogOfWar.isPerceived(owner);
     }
