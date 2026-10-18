@@ -189,6 +189,15 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     }
 
     /**
+     * The intensity a light is rendered with: its own, scaled down for creature
+     * and effect lights
+     */
+    private static float litIntensity(LightSource light) {
+        float intensity = light.getEffectiveIntensity();
+        return LightGroup.of(light) == LightGroup.CREATURE ? intensity * LightConstants.CREATURE_LIGHT_STRENGTH : intensity;
+    }
+
+    /**
      * Writes one light into its three texels of the data texture, see
      * {@link #TEXELS_PER_LIGHT}.
      */
@@ -202,11 +211,12 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         lightFloats.put(base + 4, light.getRed() / LightConstants.COLOUR_SCALE);
         lightFloats.put(base + 5, light.getGreen() / LightConstants.COLOUR_SCALE);
         lightFloats.put(base + 6, light.getBlue() / LightConstants.COLOUR_SCALE);
-        lightFloats.put(base + 7, light.getEffectiveIntensity());
+        lightFloats.put(base + 7, litIntensity(light));
         lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
                 | (lightsUnexploredTiles(light) ? 2 : 0)
                 | (light.yieldsToTorches() ? 4 : 0)
-                | (light.getKind() == LightKind.TORCH ? 8 : 0));
+                | (light.getKind() == LightKind.TORCH ? 8 : 0)
+                | (LightGroup.of(light) == LightGroup.CREATURE ? 16 : 0));
     }
 
     /**
@@ -347,7 +357,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
 
             float n = (float) Math.floor(16.0 * d2);
             float f = light.needsSmoothFalloff() ? dkFalloffMonotonic(n) : dkFalloff(n);
-            float k = (r2 - d2) * f * (1f / r2) * light.getEffectiveIntensity();
+            float k = (r2 - d2) * f * (1f / r2) * litIntensity(light);
             k = Math.min(k, 1f);
             if (k <= 0f) {
                 continue;

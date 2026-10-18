@@ -96,9 +96,15 @@ public final class LightConstants {
     public static final float SLAB_LIGHT_INTENSITY = 1.0f;
 
     /**
+     * Share of its own intensity a creature / effect light shines with, on
+     * terrain and on other things
+     */
+    public static final float CREATURE_LIGHT_STRENGTH = 0.5f;
+
+    /**
      * Cursor light radius
      */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 0.5f;
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 0.75f;
 
     /**
      * Cursor light intensity, 255/128
@@ -126,7 +132,7 @@ public final class LightConstants {
      * floor, low enough to reach the creatures and objects standing under the
      * hand
      */
-    public static final float CURSOR_LIGHT_HEIGHT_OPEN = WorldUtils.FLOOR_HEIGHT + 0.01f;
+    public static final float CURSOR_LIGHT_HEIGHT_OPEN = WorldUtils.FLOOR_HEIGHT + 0.1f;
 
     /**
      * Portal light radius: this is also the hard cap every light's radius
