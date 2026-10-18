@@ -27,6 +27,10 @@ uniform vec2 m_AmbientMapSize;
 //   bit 1 (2): the light may shine on unexplored ground (the claim-scan
 //              glow and the cursor / "hand" light); every other light fades
 //              out over unexplored tiles
+//   bit 2 (4): the light yields to torches (water / lava glow): a torch
+//              overrules it in proportion to how strongly the torch lights
+//              the vertex
+//   bit 3 (8): the light is a torch
 #ifdef LIGHT_DATA
 uniform sampler2D m_LightData;
 #endif
@@ -77,6 +81,8 @@ void main() {
     // Unexplored ground is completely black: no tile or global ambient, no floor
     vec3 sum = (tileAmbient + globalAmbient) * explored;
 #ifdef LIGHT_DATA
+    vec3 yieldingSum = vec3(0.0);
+    float torchStrength = 0.0;
     for (int i = 0; i < DK_MAX_LIGHTS; i++) {
         if (i >= numLights) {
             break;
@@ -89,9 +95,23 @@ void main() {
         // not reveal unexplored ground; only the claim-scan glow and the
         // cursor do
         float visibility = (flags & 2) != 0 ? 1.0 : explored;
-        sum += visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
+        vec3 contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
                 posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
+        if ((flags & 4) != 0) {
+            yieldingSum += contribution;
+        } else {
+            sum += contribution;
+        }
+        if ((flags & 8) != 0) {
+            // How far into its own colour this torch lights the vertex, 0..1
+            float peak = max(colorIntensity.r, max(colorIntensity.g, colorIntensity.b));
+            float lit = max(contribution.r, max(contribution.g, contribution.b));
+            torchStrength = max(torchStrength, peak > 0.0 ? lit / peak : 0.0);
+        }
     }
+    // A torch overrules water and lava glow, so its colour stays pure where
+    // it is strong and the glow fades back in towards the edge of its reach
+    sum += yieldingSum * (1.0 - clamp(torchStrength, 0.0, 1.0));
 #endif
 
     // m_MinLight is 0 for solid terrain: explored rock and walls that no

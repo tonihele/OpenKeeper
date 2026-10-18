@@ -45,6 +45,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.IFogOfWarQuery;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
@@ -1339,8 +1340,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Tile (x, y) is centred on (x, y) in world space
         Vector3f position = new Vector3f(p.x, lightingTerrain.getLightHeight(), p.y);
         boolean claimScan = useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID;
-        lightRules.addTerrainLight(p, position, red, green, blue,
+        LightSource light = lightRules.addTerrainLight(p, position, red, green, blue,
                 claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
+        // Water and lava must not tint the colour of a torch that lights the same ground
+        EnumSet<Terrain.TerrainFlag> flags = lightingTerrain.getFlags();
+        light.setYieldsToTorches(flags.contains(Terrain.TerrainFlag.WATER) || flags.contains(Terrain.TerrainFlag.LAVA));
     }
 
     /**

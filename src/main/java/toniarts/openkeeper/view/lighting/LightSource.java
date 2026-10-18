@@ -42,6 +42,7 @@ public final class LightSource {
     private boolean flickers;
     private boolean flickerCapable;
     private boolean objectLight;
+    private boolean yieldsToTorches;
     private final Modulator modulator = new Modulator();
     private int lifetimeTicks = -1;
     private float flickerScale = 1.0f;
@@ -104,6 +105,19 @@ public final class LightSource {
 
     public void setObjectLight(boolean objectLight) {
         this.objectLight = objectLight;
+    }
+
+    /**
+     * Whether torches overrule this light: the more strongly a torch lights a
+     * point, the less this light adds there. For the glow of water and lava,
+     * which would otherwise tint a torch's colour.
+     */
+    public boolean yieldsToTorches() {
+        return yieldsToTorches;
+    }
+
+    public void setYieldsToTorches(boolean yieldsToTorches) {
+        this.yieldsToTorches = yieldsToTorches;
     }
 
     /**

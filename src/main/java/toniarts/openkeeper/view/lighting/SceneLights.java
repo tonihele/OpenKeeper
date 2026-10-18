@@ -69,7 +69,8 @@ public final class SceneLights {
     /**
      * Layout of {@code LightData}: texel 0 is a header (x = light count,
      * yzw = global ambient), then three texels per light: (x, y, z, radius),
-     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F.
+w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
+     * are described in {@code DkTerrain.vert}.
      */
     private static final int TEXELS_PER_LIGHT = 3;
 
@@ -203,7 +204,9 @@ public final class SceneLights {
         lightFloats.put(base + 6, light.getBlue() / LightConstants.COLOUR_SCALE);
         lightFloats.put(base + 7, light.getEffectiveIntensity());
         lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
-                | (lightsUnexploredTiles(light) ? 2 : 0));
+                | (lightsUnexploredTiles(light) ? 2 : 0)
+                | (light.yieldsToTorches() ? 4 : 0)
+                | (light.getKind() == LightKind.TORCH ? 8 : 0));
     }
 
     /**
