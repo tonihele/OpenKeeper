@@ -251,6 +251,14 @@ public final class LightConstants {
     public static final int TORCH_OVER_BRIGHT_BONUS = 255;
 
     /**
+     * Brightest a room torch channel gets once the over-bright bonus is
+     * added. The usual room torch (a base of 44 plus the bonus) lands at
+     * about 300; the dungeon heart's base red of 244 would reach 499 and
+     * turn its walls deep red, so channels are held to the usual flame.
+     */
+    public static final int TORCH_MAX_CHANNEL = 300;
+
+    /**
      * The rate {@link LightModulators#tick()} is expected to be driven at.
      */
     public static final int SIMULATION_TICKS_PER_SECOND = 4;

@@ -889,6 +889,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
                 return; // A room with torchColor == 0 has no torches
             }
+            torchRed = Math.min(torchRed, LightConstants.TORCH_MAX_CHANNEL);
+            torchGreen = Math.min(torchGreen, LightConstants.TORCH_MAX_CHANNEL);
+            torchBlue = Math.min(torchBlue, LightConstants.TORCH_MAX_CHANNEL);
             // Only an unowned room shows its own (mostly green) torch colour
             red = torchRed;
             green = torchGreen;
