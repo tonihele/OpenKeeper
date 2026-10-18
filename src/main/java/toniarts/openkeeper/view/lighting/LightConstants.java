@@ -45,7 +45,7 @@ public final class LightConstants {
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.2f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
 
     /**
      * Terrain lights of room tiles (the interior-slab glow) and
@@ -88,7 +88,7 @@ public final class LightConstants {
      * a tile, and a light on every tile summed to a fully lit map), so the
      * claim-scan glow is what stands out on unexplored rock.
      */
-    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.3f;
+    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.4f;
 
     /**
      * Slab lights use an intensity of 1.0
@@ -143,7 +143,7 @@ public final class LightConstants {
     /**
      * Hard cap on any light source's radius
      */
-    public static final float MAX_LIGHT_RADIUS_TILES = 1.5f;
+    public static final float MAX_LIGHT_RADIUS_TILES = 4.5f;
     /**
      * Portal light colour/intensity DK2
      * hard-codes this for room ids 3 (Portal) and 25 (Hero Portal).
