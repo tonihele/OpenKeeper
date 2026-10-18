@@ -111,7 +111,7 @@ public final class LightConstants {
     /**
      * Cursor light radius
      */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 0.75f;
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 1.5f;
 
     /**
      * Cursor light intensity, 255/128
