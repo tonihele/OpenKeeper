@@ -920,21 +920,21 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             lightHeight = room.getTorchHeight();
 
             Color torchColor = room.getTorchColor();
-            if (torchColor == null || (torchColor.getRed() == 0 && torchColor.getGreen() == 0 && torchColor.getBlue() == 0)) {
+            if (torchColor == null) {
+                return;
+            }
+            // Each TORCH_COLOR_* room flag adds its channel's full value on top of the stored colour
+            int torchRed = torchColor.getRed() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_RED) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
+            int torchGreen = torchColor.getGreen() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
+            int torchBlue = torchColor.getBlue() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
+            if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
                 return; // A room with torchColor == 0 has no torches (design §6.2)
             }
-            if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
-                // Only an unowned room shows its own (mostly green) torch colour
-                red = torchColor.getRed();
-                green = torchColor.getGreen();
-                blue = torchColor.getBlue();
-                intensity = room.getTorchIntensity() / 128f;
-            } else {
-                red = LightConstants.getDefaultTorchLightRed(kwdFile);
-                green = LightConstants.getDefaultTorchLightGreen(kwdFile);
-                blue = LightConstants.getDefaultTorchLightBlue(kwdFile);
-                intensity = LightConstants.getDefaultTorchLightIntensity(kwdFile);
-            }
+            // Only an unowned room shows its own (mostly green) torch colour
+            red = torchRed;
+            green = torchGreen;
+            blue = torchBlue;
+            intensity = room.getTorchIntensity() / 128f;
             radius = room.getTorchRadius();
             maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
         } else {

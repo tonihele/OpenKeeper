@@ -227,6 +227,11 @@ public final class LightConstants {
     public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
 
     /**
+     * A {@code TORCH_COLOR_*} room flag adds this to its torch colour channel
+     */
+    public static final int TORCH_OVER_BRIGHT_BONUS = 255;
+
+    /**
      * The rate {@link LightModulators#tick()} is expected to be driven at.
      */
     public static final int SIMULATION_TICKS_PER_SECOND = 4;
