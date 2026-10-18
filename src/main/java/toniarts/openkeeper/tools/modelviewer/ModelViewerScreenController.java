@@ -48,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.lighting.LightGroup;
 
 /**
  *
@@ -62,6 +63,7 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_ITEM = "item";
     private final static String ID_SOUNDS = "sounds";
     private final static String ID_LIT_SOLID_ROCK = "litSolidRock";
+    private final static String ID_LIGHT_PREFIX = "light";
 
     private final ModelViewer app;
     private final Nifty nifty;
@@ -122,6 +124,14 @@ public final class ModelViewerScreenController implements ScreenController {
     public void onLitSolidRockChanged(final String id, final CheckBoxStateChangedEvent event) {
         if (event.isChecked() != app.isLitSolidRock()) {
             app.setLitSolidRock(event.isChecked());
+        }
+    }
+
+    @NiftyEventSubscriber(pattern = ID_LIGHT_PREFIX + ".*")
+    public void onLightGroupChanged(final String id, final CheckBoxStateChangedEvent event) {
+        LightGroup group = LightGroup.valueOf(id.substring(ID_LIGHT_PREFIX.length()));
+        if (event.isChecked() != app.isLightGroupEnabled(group)) {
+            app.setLightGroupEnabled(group, event.isChecked());
         }
     }
 
@@ -334,6 +344,10 @@ public final class ModelViewerScreenController implements ScreenController {
                 parameter("titlestring", item.getTitle());
                 // Initial state of the solid rock lighting checkbox
                 parameter("litSolidRock", String.valueOf(app.isLitSolidRock()));
+                // Initial state of the per-group light checkboxes
+                for (LightGroup group : LightGroup.values()) {
+                    parameter(ID_LIGHT_PREFIX + group.name(), String.valueOf(app.isLightGroupEnabled(group)));
+                }
             }
         };
 

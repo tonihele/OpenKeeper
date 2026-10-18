@@ -21,6 +21,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,8 @@ public final class LightRules {
     private final SceneLights sceneLights;
     private final IFogOfWarQuery fogOfWar;
     private boolean cheapLighting;
+    // Replaced, never mutated: read on the render thread, set from the UI
+    private volatile EnumSet<LightGroup> disabledGroups = EnumSet.noneOf(LightGroup.class);
 
     /**
      * Torch and terrain lights, keyed by their owner tile -- a tile
@@ -110,7 +113,37 @@ public final class LightRules {
      */
     public void update(float tpf, Camera camera) {
         modulators.update(tpf);
-        sceneLights.update(modulators.getSources(), camera);
+        sceneLights.update(activeSources(), camera);
+    }
+
+    /**
+     * Switches a whole group of lights on or off, e.g. for debugging. The
+     * lights keep being simulated, they just stop contributing.
+     */
+    public void setGroupEnabled(LightGroup group, boolean enabled) {
+        EnumSet<LightGroup> copy = EnumSet.copyOf(disabledGroups);
+        if (enabled ? copy.remove(group) : copy.add(group)) {
+            disabledGroups = copy;
+        }
+    }
+
+    public boolean isGroupEnabled(LightGroup group) {
+        return !disabledGroups.contains(group);
+    }
+
+    private List<LightSource> activeSources() {
+        List<LightSource> sources = modulators.getSources();
+        Set<LightGroup> disabled = disabledGroups;
+        if (disabled.isEmpty()) {
+            return sources;
+        }
+        List<LightSource> result = new ArrayList<>(sources.size());
+        for (LightSource light : sources) {
+            if (!disabled.contains(LightGroup.of(light))) {
+                result.add(light);
+            }
+        }
+        return result;
     }
 
     /**
@@ -147,7 +180,7 @@ public final class LightRules {
      * from the owner's current position + light offset.
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos) {
-        return SceneLights.computeFlatLight(worldPos, modulators.getSources());
+        return SceneLights.computeFlatLight(worldPos, activeSources());
     }
 
     /**
@@ -155,7 +188,7 @@ public final class LightRules {
      * lights carried by game objects
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos, boolean ignoreObjectLights) {
-        return SceneLights.computeFlatLight(worldPos, modulators.getSources(), ignoreObjectLights);
+        return SceneLights.computeFlatLight(worldPos, activeSources(), ignoreObjectLights);
     }
 
     // ------------------------------------------------------------------

@@ -79,6 +79,7 @@ import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.lighting.LightGroup;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -452,6 +453,14 @@ public final class ModelViewer extends SimpleApplication {
             // panel that checkbox lives in
             enqueue(() -> onSelectionChanged(selection.get(0)));
         }
+    }
+
+    boolean isLightGroupEnabled(LightGroup group) {
+        return mapLoaderAppState.isLightGroupEnabled(group);
+    }
+
+    void setLightGroupEnabled(LightGroup group, boolean enabled) {
+        mapLoaderAppState.setLightGroupEnabled(group, enabled);
     }
 
     public void onSelectionChanged(Object selection) {
