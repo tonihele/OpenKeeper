@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -373,15 +374,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     private Set<Point> getConstructionBlockingTiles() {
         Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingPositions(blockedTiles, ObjectComponent.class);
-        addConstructionBlockingPositions(blockedTiles, DoorComponent.class);
-        addConstructionBlockingPositions(blockedTiles, TrapComponent.class);
+        addConstructionBlockingPositions(blockedTiles, ObjectComponent.class, this::isConstructionBlockingObject);
+        addConstructionBlockingPositions(blockedTiles, DoorComponent.class, entityId -> true);
+        addConstructionBlockingPositions(blockedTiles, TrapComponent.class, entityId -> true);
         return blockedTiles;
     }
 
+    private boolean isConstructionBlockingObject(EntityId entityId) {
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
+    }
+
     private void addConstructionBlockingPositions(Set<Point> blockedTiles,
-            Class<? extends EntityComponent> componentType) {
+            Class<? extends EntityComponent> componentType, Predicate<EntityId> isBlocking) {
         for (EntityId entityId : entityData.findEntities(null, componentType, Position.class)) {
+            if (!isBlocking.test(entityId)) {
+                continue;
+            }
             Position position = entityData.getComponent(entityId, Position.class);
             if (position != null) {
                 blockedTiles.add(WorldUtils.vectorToPoint(position.position));
