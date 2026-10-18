@@ -79,6 +79,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger.Level;
 import java.util.AbstractMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -340,15 +341,24 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        List<Point> instancePlots = new ArrayList<>(placement.plots());
         Room room = kwdFile.getRoomById(roomId);
-
-        if (!payForRoom(instancePlots.size(), room, playerId)) {
+        if (!payForRoom(placement.plots().size(), room, playerId)) {
             return;
         }
 
+        // Skipped tiles may split the selection, build each connected part as its own room
+        List<Point> buildTiles = new ArrayList<>(placement.plots().size());
+        for (List<Point> instancePlots : getConnectedPlots(placement.plots())) {
+            buildRoomInstance(instancePlots, room, playerId, buildTiles);
+        }
+
+        // Notify the build
+        notifyOnBuild(playerId, buildTiles);
+    }
+
+    private void buildRoomInstance(List<Point> instancePlots, Room room, short playerId, List<Point> buildTiles) {
+
         // Build & mark
-        List<Point> buildTiles = new ArrayList<>(instancePlots.size());
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
         buildRoomTiles(instancePlots, room, playerId, buildTiles, buildPlots, updatableTiles);
@@ -366,9 +376,37 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             addGoldCapacityToPlayer(instance.getEntityId());
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
+    }
 
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
+    /**
+     * Splits the plots into parts that are connected to each other, rooms are
+     * never diagonally attached
+     *
+     * @param plots the plots
+     * @return the connected parts
+     */
+    static List<List<Point>> getConnectedPlots(Collection<Point> plots) {
+        Set<Point> remaining = new LinkedHashSet<>(plots);
+        List<List<Point>> parts = new ArrayList<>();
+        while (!remaining.isEmpty()) {
+            Point start = remaining.iterator().next();
+            remaining.remove(start);
+            List<Point> part = new ArrayList<>();
+            ArrayDeque<Point> open = new ArrayDeque<>();
+            open.add(start);
+            while (!open.isEmpty()) {
+                Point p = open.removeFirst();
+                part.add(p);
+                for (Point neighbour : List.of(new Point(p.x, p.y - 1), new Point(p.x + 1, p.y),
+                        new Point(p.x, p.y + 1), new Point(p.x - 1, p.y))) {
+                    if (remaining.remove(neighbour)) {
+                        open.addLast(neighbour);
+                    }
+                }
+            }
+            parts.add(part);
+        }
+        return parts;
     }
 
     private Set<Point> getConstructionBlockingTiles() {
