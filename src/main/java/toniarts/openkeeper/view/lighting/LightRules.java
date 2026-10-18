@@ -286,9 +286,9 @@ public final class LightRules {
             int red, int green, int blue, boolean colorRed, boolean colorGreen, boolean colorBlue,
             boolean playerColoured, int[] playerColour, float fileRadius, float intensity,
             boolean pulse, boolean flicker) {
-        int r = red + (colorRed ? LightConstants.OVER_BRIGHT_BONUS : 0);
-        int g = green + (colorGreen ? LightConstants.OVER_BRIGHT_BONUS : 0);
-        int b = blue + (colorBlue ? LightConstants.OVER_BRIGHT_BONUS : 0);
+        int r = LightConstants.withBonus(red, colorRed, LightConstants.OVER_BRIGHT_BONUS);
+        int g = LightConstants.withBonus(green, colorGreen, LightConstants.OVER_BRIGHT_BONUS);
+        int b = LightConstants.withBonus(blue, colorBlue, LightConstants.OVER_BRIGHT_BONUS);
         if (playerColoured && playerColour != null) {
             r = Math.max(LightConstants.PLAYER_COLOURED_MIN, r * playerColour[0] / 255);
             g = Math.max(LightConstants.PLAYER_COLOURED_MIN, g * playerColour[1] / 255);

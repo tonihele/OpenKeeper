@@ -114,11 +114,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final static String MAP_NODE = "Map";
     private final static String TERRAIN_NODE = "Terrain";
     private final static String ROOM_NODE = "Rooms";
-    private static final List<WallDirection> NO_TORCH_DIRECTIONS = List.of();
-    private static final List<WallDirection> HORIZONTAL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.SOUTH);
-    private static final List<WallDirection> VERTICAL_TORCH_DIRECTIONS = List.of(WallDirection.WEST, WallDirection.EAST);
-    private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
-            WallDirection.SOUTH, WallDirection.EAST);
     /**
      * Terrain type 38, "Claim Scan" -- the stand-in for a tile the local
      * player has perceived but not yet explored, when the tile is owned or
@@ -817,7 +812,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // and sometimes even null and there is still a torch. So I don't think they are used
         // DKII places at most one torch per tile. At corners, the direction order makes the
         // perpendicular wall skip this tile and resume on the next eligible tile in its run.
-        for (WallDirection direction : getTorchDirections(tile.getX(), tile.getY())) {
+        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY())) {
             Point neighbor = switch (direction) {
                 case NORTH -> new Point(tile.getX(), tile.getY() - 1);
                 case WEST -> new Point(tile.getX() - 1, tile.getY());
@@ -830,16 +825,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 return;
             }
         }
-    }
-
-    static List<WallDirection> getTorchDirections(int x, int y) {
-        boolean horizontal = x % 2 != 0;
-        boolean vertical = y % 2 == 0;
-
-        if (horizontal) {
-            return vertical ? ALL_TORCH_DIRECTIONS : HORIZONTAL_TORCH_DIRECTIONS;
-        }
-        return vertical ? VERTICAL_TORCH_DIRECTIONS : NO_TORCH_DIRECTIONS;
     }
 
     private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction, Terrain wallTerrain) {
@@ -896,9 +881,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 return;
             }
             // Each TORCH_COLOR_* room flag adds its channel's full value on top of the stored colour
-            int torchRed = torchColor.getRed() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_RED) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
-            int torchGreen = torchColor.getGreen() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
-            int torchBlue = torchColor.getBlue() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
+            int torchRed = LightConstants.withBonus(torchColor.getRed(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_RED), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            int torchGreen = LightConstants.withBonus(torchColor.getGreen(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            int torchBlue = LightConstants.withBonus(torchColor.getBlue(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE), LightConstants.TORCH_OVER_BRIGHT_BONUS);
             if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
                 return; // A room with torchColor == 0 has no torches
             }
@@ -941,45 +926,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // The light sits inside the floor tile, hugging the wall face
         // (the model is placed separately above), and stays small
-        lightRules.addTorchLight(tile.getLocation(), getTorchLightPosition(tile.getLocation(), direction, lightHeight),
+        lightRules.addTorchLight(tile.getLocation(), TorchPlacement.getTorchLightPosition(tile.getLocation(), direction, lightHeight),
                 red, green, blue, intensity, Math.min(radius, maxRadius));
-    }
-
-    /**
-     * Where a torch light goes: inside the floor
-     * tile {@code floor}, next to the wall face it hangs on. The offsets are given in the floor tile's own space (origin in its north-west
-     * corner, y growing south): wall to the north (0.5, 0.125), east
-     * (0.875, 0.5), south (0.5, 0.875), west (0.125, 0.5). A tile is centred
-     * on whole world coordinates here, so the corner is half a tile back.
-     *
-     * @param floor the floor tile the torch stands in
-     * @param direction which side of {@code floor} the wall is on
-     * @param height the light height
-     * @return the light position in world space
-     */
-    static Vector3f getTorchLightPosition(Point floor, WallDirection direction, float height) {
-        float u;
-        float v;
-        switch (direction) {
-            case NORTH -> {
-                u = 0.5f;
-                v = 0.125f;
-            }
-            case EAST -> {
-                u = 0.875f;
-                v = 0.5f;
-            }
-            case SOUTH -> {
-                u = 0.5f;
-                v = 0.875f;
-            }
-            case WEST -> {
-                u = 0.125f;
-                v = 0.5f;
-            }
-            default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
-        }
-        return new Vector3f(floor.x - 0.5f + u, height, floor.y - 0.5f + v);
     }
 
     private Terrain getTorchTerrain(int x, int y) {
@@ -988,27 +936,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
         Terrain terrain = getTerrain(tile);
-        return hasTorches(terrain) ? terrain : null;
-    }
-
-    /**
-     * A {@code TORCH} terrain still opts out when it declares
-     * both a side and a top resource, unless it is impenetrable (no torches on
-     * an ordinary diggable wall with full artwork). Invisible on stock data.
-     */
-    static boolean hasTorches(Terrain terrain) {
-        EnumSet<Terrain.TerrainFlag> flags = terrain.getFlags();
-        if (!flags.contains(Terrain.TerrainFlag.TORCH)) {
-            return false;
-        }
-        if (flags.contains(Terrain.TerrainFlag.IMPENETRABLE)) {
-            return true;
-        }
-        return !(hasResource(terrain.getSideResource()) && hasResource(terrain.getTopResource()));
-    }
-
-    private static boolean hasResource(ArtResource resource) {
-        return resource != null && resource.getName() != null && !resource.getName().isEmpty();
+        return TorchPlacement.hasTorches(terrain) ? terrain : null;
     }
 
     private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
@@ -1403,9 +1331,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             blue = LightConstants.getClaimScanLightBlue(kwdFile);
         } else {
             Color c = lightingTerrain.getTerrainLight();
-            red = c.getRed() + (lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_RED) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-            green = c.getGreen() + (lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_GREEN) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-            blue = c.getBlue() + (lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
+            red = LightConstants.withBonus(c.getRed(), lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            green = LightConstants.withBonus(c.getGreen(), lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            blue = LightConstants.withBonus(c.getBlue(), lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
         }
 
         // Tile (x, y) is centred on (x, y) in world space
@@ -1430,9 +1358,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return;
         }
         EnumSet<Light.LightFlag> flags = light.getFlags();
-        int red = c.getRed() + (flags.contains(Light.LightFlag.COLOR_RED) ? LightConstants.OVER_BRIGHT_BONUS : 0);
-        int green = c.getGreen() + (flags.contains(Light.LightFlag.COLOR_GREEN) ? LightConstants.OVER_BRIGHT_BONUS : 0);
-        int blue = c.getBlue() + (flags.contains(Light.LightFlag.COLOR_BLUE) ? LightConstants.OVER_BRIGHT_BONUS : 0);
+        int red = LightConstants.withBonus(c.getRed(), flags.contains(Light.LightFlag.COLOR_RED), LightConstants.OVER_BRIGHT_BONUS);
+        int green = LightConstants.withBonus(c.getGreen(), flags.contains(Light.LightFlag.COLOR_GREEN), LightConstants.OVER_BRIGHT_BONUS);
+        int blue = LightConstants.withBonus(c.getBlue(), flags.contains(Light.LightFlag.COLOR_BLUE), LightConstants.OVER_BRIGHT_BONUS);
         if (flags.contains(Light.LightFlag.PLAYER_COLOURED)) {
             int[] player = LightConstants.getPlayerLightColour(ownerId);
             red = Math.max(LightConstants.PLAYER_COLOURED_MIN, red * player[0] / 255);
@@ -1552,9 +1480,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
             Color c = terrain.getAmbientLight();
-            int r = c.getRed() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-            int g = c.getGreen() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
-            int b = c.getBlue() + (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE) ? LightConstants.TERRAIN_OVER_BRIGHT_BONUS : 0);
+            int r = LightConstants.withBonus(c.getRed(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            int g = LightConstants.withBonus(c.getGreen(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            int b = LightConstants.withBonus(c.getBlue(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
             return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
         }
 

@@ -235,6 +235,14 @@ public final class LightConstants {
      * The over-bright bit adds this to a colour channel
      */
     public static final int OVER_BRIGHT_BONUS = 256;
+
+    /**
+     * A colour channel with its over-bright flag applied: when the flag is
+     * set, {@code bonus} is added on top of the stored value.
+     */
+    public static int withBonus(int channel, boolean flagSet, int bonus) {
+        return flagSet ? channel + bonus : channel;
+    }
     public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
 
     /**
