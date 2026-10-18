@@ -45,6 +45,11 @@ MaterialDef DK Terrain Lighting {
         // walkable terrain, 0 for solid terrain (black where no light reaches)
         Float MinLight : 1.0
 
+        // Absolute minimum light of explored vertices, independent of the
+        // global DK_MIN_AMBIENT_FLOOR (which is 0): the model viewer's "lit
+        // solid rock" sets it so rock is visible where no light reaches.
+        Float RockFloor : 0.0
+
         // Scale of the per-tile ambient sampled from AmbientMap. 0 for solid
         // terrain: the map is sampled bilinearly, so without this a wall's
         // vertices on the border to a floor tile take half of the floor's

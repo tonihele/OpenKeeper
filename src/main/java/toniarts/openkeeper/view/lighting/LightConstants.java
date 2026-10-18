@@ -87,7 +87,7 @@ public final class LightConstants {
      * Torch lights are small and local: at most this radius (tiles), however
      * large the room / default torch radius is.
      */
-    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 2f;
+    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 4f;
 
     /**
      * Claim-scan terrain lights keep the full intensity: every other terrain
@@ -125,6 +125,12 @@ public final class LightConstants {
      * Divisor turning a 0..255 colour channel into 0..1.
      */
     public static final float COLOUR_SCALE = 255f;
+
+    /**
+     * Minimum light of solid rock when the model viewer's "lit solid rock" is
+     * on, so it shows where no light reaches
+     */
+    public static final float LIT_SOLID_ROCK_MIN_LIGHT = 0.3f;
 
     public static final float CURSOR_LIGHT_INTENSITY = 255f / 128f;
 

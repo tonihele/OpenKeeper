@@ -1449,8 +1449,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 Material dkTerrain = AssetUtils.createDkTerrainMaterial(assetManager, geometry.getMaterial(), ambient);
                 if (solid && !litSolidTerrain) {
                     dkTerrain.setFloat("MinLight", 0f);
+                } else if (solid) {
+                    dkTerrain.setFloat("RockFloor", LightConstants.LIT_SOLID_ROCK_MIN_LIGHT);
                 }
-                if (solid) {
+                if (solid && !litSolidTerrain) {
                     // The ambient map is sampled bilinearly: keep the neighbouring floor's ambient off the wall
                     dkTerrain.setFloat("AmbientScale", 0f);
                 }
@@ -1515,8 +1517,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (!LightConstants.ROOM_LIGHTING_ENABLED && terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             return ColorRGBA.Black; // no per-room ambient, see LightConstants.ROOM_LIGHTING_ENABLED
         }
-        if (!terrainAmbientEnabled || terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            // see LightConstants.TERRAIN_AMBIENT_ENABLED; solid tiles (rock, walls) never get it
+        if (!terrainAmbientEnabled
+                || (!litSolidTerrain && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID))) {
+            // see LightConstants.TERRAIN_AMBIENT_ENABLED; solid tiles (rock, walls) get none unless lit solid rock is on
             return ColorRGBA.Black;
         }
         if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {

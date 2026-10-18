@@ -9,6 +9,7 @@ uniform vec4 m_Ambient;
 uniform vec4 m_Tint;
 uniform vec4 m_TintOverlay;
 uniform float m_MinLight;
+uniform float m_RockFloor;
 uniform float m_AmbientScale;
 #ifdef ANIMATED_TILES
 uniform float g_Time;
@@ -124,6 +125,7 @@ void main() {
     // m_MinLight is 0 for solid terrain: explored rock and walls that no
     // light reaches stay black, like fog of war
     vec3 lit = dkSoftClampFloor(sum, explored * m_MinLight);
+    lit = max(lit, vec3(m_RockFloor * explored));
 
     // Tile highlight, as in the original game: the
     // mode colour is ADDED to every vertex (so a tagged block is at least
