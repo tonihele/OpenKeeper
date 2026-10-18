@@ -107,6 +107,10 @@ public final class LightSource {
         this.objectLight = objectLight;
     }
 
+    public void setRadius(float radius) {
+        this.radius = radius;
+    }
+
     /**
      * Whether torches overrule this light: the more strongly a torch lights a
      * point, the less this light adds there. For the glow of water and lava,

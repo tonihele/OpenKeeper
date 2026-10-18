@@ -45,7 +45,7 @@ float dkFalloffMonotonic(float n) {
 // grades into the adjacent tiles so they mix in their lit neighbours'
 // light. Must match LightConstants.SOFT_FALLOFF_TAIL_TILES and SceneLights'
 // reach test / computeFlatLight.
-#define DK_SOFT_FALLOFF_TAIL_TILES 1.0
+#define DK_SOFT_FALLOFF_TAIL_TILES 0.1
 
 // One point light's additive per-vertex contribution
 // (per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and

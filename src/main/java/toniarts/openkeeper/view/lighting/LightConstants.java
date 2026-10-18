@@ -67,7 +67,7 @@ public final class LightConstants {
      * passes flags 0, so the dungeon heart glow (flagged PULSE in the data) is
      * a constant light (dungeon heart).
      */
-    public static final boolean OBJECT_LIGHTS_PULSE = false;
+    public static final boolean OBJECT_LIGHTS_PULSE = true;
 
     /**
      * Terrain lights of explored non-room tiles (paths, lava, water, ...).
@@ -80,7 +80,7 @@ public final class LightConstants {
      * Torch lights are small and local: at most this radius (tiles), however
      * large the room / default torch radius is.
      */
-    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 0.5f;
+    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 4f;
 
     /**
      * Claim-scan terrain lights keep the full intensity: every other terrain
@@ -99,7 +99,7 @@ public final class LightConstants {
      * Share of its own intensity a creature / effect light shines with, on
      * terrain and on other things
      */
-    public static final float CREATURE_LIGHT_STRENGTH = 0.5f;
+    public static final float CREATURE_LIGHT_STRENGTH = 1f;
 
     /**
      * Cursor light radius
@@ -186,7 +186,7 @@ public final class LightConstants {
      * Player-coloured thing lights (a keeper's imps and dwarves) only tint the
      * ground right around them: their radius is capped here (tiles)
      */
-    public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.1f;
+    public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.8f;
 
     /**
      * The fixed 8-slot player colour table, shade 0 (the
