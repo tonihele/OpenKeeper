@@ -67,7 +67,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         inputManager = app.getInputManager();
     }
 
-    public Node loadMap(IKwdFile kwdFile) {
+    public Node loadMap(IKwdFile kwdFile, boolean litSolidRock) {
         unloadMap();
 
         mapEntityData = new DefaultEntityData();
@@ -77,7 +77,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true) {
+        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, litSolidRock) {
 
             @Override
             protected void updateProgress(float progress) {

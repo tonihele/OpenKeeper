@@ -178,6 +178,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled, false);
     }
 
+    /**
+     * Map viewer set-up: no fog of war, and solid rock lit like any other tile
+     * (minimum ambient floor) instead of staying black where no light reaches.
+     */
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            short playerId, boolean torchesEnabled, boolean litSolidTerrain) {
+        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled, litSolidTerrain);
+    }
+
     private MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled,
             boolean litSolidTerrain) {

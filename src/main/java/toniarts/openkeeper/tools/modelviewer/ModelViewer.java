@@ -156,6 +156,7 @@ public final class ModelViewer extends SimpleApplication {
 
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
+    private boolean litSolidRock = true;
 
     private final ActionListener actionListener = new ActionListener() {
         @Override
@@ -434,6 +435,25 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    boolean isLitSolidRock() {
+        return litSolidRock;
+    }
+
+    /**
+     * Whether solid rock of a loaded map is lit like any other tile. It is
+     * baked into the map's materials, so the selected map is reloaded.
+     */
+    void setLitSolidRock(boolean litSolidRock) {
+        this.litSolidRock = litSolidRock;
+
+        List<Object> selection = screen.getItemsControl().getSelection();
+        if (selection.size() == 1 && screen.getTypeControl().getSelection() == Types.MAPS) {
+            // Not from inside the checkbox's own event: the reload rebuilds the
+            // panel that checkbox lives in
+            enqueue(() -> onSelectionChanged(selection.get(0)));
+        }
+    }
+
     public void onSelectionChanged(Object selection) {
         effectManagerState.setEnabled(false);
 
@@ -460,7 +480,7 @@ public final class ModelViewer extends SimpleApplication {
             case MAPS: {
                 // Load the selected map
                 IKwdFile kwd = getKwdFile((String) selection);
-                Node spat = mapLoaderAppState.loadMap(kwd);
+                Node spat = mapLoaderAppState.loadMap(kwd, litSolidRock);
 
                 GameLevel gameLevel = kwd.getGameLevel();
                 screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));

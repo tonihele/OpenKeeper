@@ -21,6 +21,7 @@ import com.jme3.asset.TextureKey;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.ListBox;
@@ -60,6 +61,7 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_TYPES = "types";
     private final static String ID_ITEM = "item";
     private final static String ID_SOUNDS = "sounds";
+    private final static String ID_LIT_SOLID_ROCK = "litSolidRock";
 
     private final ModelViewer app;
     private final Nifty nifty;
@@ -114,6 +116,13 @@ public final class ModelViewerScreenController implements ScreenController {
     @NiftyEventSubscriber(id = ID_SOUNDS)
     public void onSoundSelectionChanged(final String id, final DropDownSelectionChangedEvent<SoundFile> event) {
         app.onSoundChanged(event.getSelection());
+    }
+
+    @NiftyEventSubscriber(id = ID_LIT_SOLID_ROCK)
+    public void onLitSolidRockChanged(final String id, final CheckBoxStateChangedEvent event) {
+        if (event.isChecked() != app.isLitSolidRock()) {
+            app.setLitSolidRock(event.isChecked());
+        }
     }
 
     /**
@@ -184,6 +193,7 @@ public final class ModelViewerScreenController implements ScreenController {
                 dropDown.clear();
                 dropDown.addAllItems(audio);
             }
+
         }
         //panel.addChild(el);
         panel.layoutElements();
@@ -322,6 +332,8 @@ public final class ModelViewerScreenController implements ScreenController {
                 parameter("description", item.getDescription());
                 parameter("email", item.getEmail());
                 parameter("titlestring", item.getTitle());
+                // Initial state of the solid rock lighting checkbox
+                parameter("litSolidRock", String.valueOf(app.isLitSolidRock()));
             }
         };
 
