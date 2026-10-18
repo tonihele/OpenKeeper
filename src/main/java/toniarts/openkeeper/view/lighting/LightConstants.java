@@ -32,7 +32,7 @@ public final class LightConstants {
     /**
      * Loose tail stretched past every light's radius
      */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 0.5f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.2f;
 
     /**
      * The original's terrain-light radius: the terrain data has no radius
@@ -44,7 +44,7 @@ public final class LightConstants {
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.4f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
 
     /**
      * Terrain lights of room tiles (the interior-slab glow of design 6.3) and
@@ -52,7 +52,7 @@ public final class LightConstants {
      * mostly by torches, the hand (cursor) and player-coloured creatures.
      * Claim-scan lights are not room lighting and are unaffected.
      */
-    public static final boolean ROOM_LIGHTING_ENABLED = false;
+    public static final boolean ROOM_LIGHTING_ENABLED = true;
 
     /**
      * Lights carried by game objects (the dungeon heart glow, ...). Off: the
@@ -87,7 +87,7 @@ public final class LightConstants {
      * a tile, and a light on every tile summed to a fully lit map), so the
      * claim-scan glow is what stands out on unexplored rock.
      */
-    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.3f;
+    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.2f;
 
     /**
      * Slab lights (design &sect;6.7) use the design's intensity of 1.0
