@@ -517,61 +517,70 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 Material material = geometry.getMaterial().clone();
                 geometry.setMaterial(material);
 
-                // Decay
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
-
-                    List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
-                    if (textures != null) {
-
-                        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
-                        // Now we have a random starting texture...
-                        int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
-                        String diffuseTexture = textures.get(textureIndex);
-                        String diffuseTextureKey = AssetUtils.getCanonicalAssetKey(diffuseTexture);
-                        String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
-                        if(!diffuseTextureKey.equals(currentTexture)) {
-                            try {
-                                Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
-                                material.setTexture("DiffuseMap", texture);
-
-                                AssetUtils.assignMapsToMaterial(assetManager, material);
-                            } catch (Exception e) {
-                                logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
-                            }
-                        }
-                    }
+                    applyDecayTexture(material, spatial, tile, terrain);
                 }
-                // DkTerrain's Ambient is replaced by the per-tile ambient map,
-                // so the highlight goes through its own additive Tint instead
-                boolean dkTerrain = AssetUtils.isDkTerrainMaterial(material);
-                if (dkTerrain) {
-                    // A flashing tile overrides a tagged one (as in the original)
-                    if (isFlashing(tile)) {
-                        material.setColor("Tint", FLASH_BASE);
-                        material.setColor("TintOverlay", FLASH_OVERLAY);
-                    } else if (tagged) {
-                        material.setColor("Tint", TAG_BASE);
-                        material.setColor("TintOverlay", TAG_OVERLAY);
-                    }
-                } else if (isFlashing(tile)) {
-                    material.setColor("Ambient", COLOR_FLASH);
-                    // DkTerrain (jME's CommonMat-parameter-free def) has no
-                    // UseMaterialColors; guard like AssetUtils does so the flag
-                    // is only flipped on defs that declare it
-                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
-                        material.setBoolean("UseMaterialColors", true);
-                    }
-                }
-                if (!dkTerrain && tagged) {
-                    material.setColor("Ambient", TAG_BASE);
-                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
-                        material.setBoolean("UseMaterialColors", true);
-                    }
-                }
-
+                applyHighlight(material, isFlashing(tile), tagged);
             }
 
         });
+    }
+
+    private void applyDecayTexture(Material material, Spatial spatial, IMapTileInformation tile, Terrain terrain) {
+        List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
+        if (textures == null) {
+            return;
+        }
+
+        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
+        // Now we have a random starting texture...
+        int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
+        String diffuseTexture = textures.get(textureIndex);
+        String diffuseTextureKey = AssetUtils.getCanonicalAssetKey(diffuseTexture);
+        String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
+        if (diffuseTextureKey.equals(currentTexture)) {
+            return;
+        }
+        try {
+            Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
+            material.setTexture("DiffuseMap", texture);
+
+            AssetUtils.assignMapsToMaterial(assetManager, material);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+        }
+    }
+
+    private static void applyHighlight(Material material, boolean flashing, boolean tagged) {
+        // DkTerrain's Ambient is replaced by the per-tile ambient map,
+        // so the highlight goes through its own additive Tint instead
+        if (AssetUtils.isDkTerrainMaterial(material)) {
+            // A flashing tile overrides a tagged one (as in the original)
+            if (flashing) {
+                material.setColor("Tint", FLASH_BASE);
+                material.setColor("TintOverlay", FLASH_OVERLAY);
+            } else if (tagged) {
+                material.setColor("Tint", TAG_BASE);
+                material.setColor("TintOverlay", TAG_OVERLAY);
+            }
+            return;
+        }
+        if (flashing) {
+            setAmbientColour(material, COLOR_FLASH);
+        }
+        if (tagged) {
+            setAmbientColour(material, TAG_BASE);
+        }
+    }
+
+    private static void setAmbientColour(Material material, ColorRGBA colour) {
+        material.setColor("Ambient", colour);
+        // DkTerrain (jME's CommonMat-parameter-free def) has no
+        // UseMaterialColors; guard like AssetUtils does so the flag
+        // is only flipped on defs that declare it
+        if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+            material.setBoolean("UseMaterialColors", true);
+        }
     }
 
     private boolean isFlashing(final IMapTileInformation tile) {
@@ -1312,43 +1321,50 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             useClaimScanColour = lightingTerrain != null && lightingTerrain.getGoldValue() == 0;
         }
 
-        if (lightingTerrain == null || !lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)) {
+        if (lightingTerrain == null || !lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)
+                || !isTerrainLightEnabled(isRoomTile, perceivedUnexplored)) {
             return;
         }
 
-        // Only the claim-scan / perceived glow is kept; room and ordinary
-        // terrain lights are switched off (see LightConstants)
-        if (isRoomTile && !LightConstants.ROOM_LIGHTING_ENABLED) {
-            return;
-        }
-        if (!isRoomTile && !perceivedUnexplored && !LightConstants.EXPLORED_TERRAIN_LIGHTS_ENABLED) {
-            return;
-        }
-
-        int red;
-        int green;
-        int blue;
-        if (useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID) {
-            // The stand-in's own baked colour is
-            // always overridden by these level variables.
-            red = LightConstants.getClaimScanLightRed(kwdFile);
-            green = LightConstants.getClaimScanLightGreen(kwdFile);
-            blue = LightConstants.getClaimScanLightBlue(kwdFile);
-        } else {
-            Color c = lightingTerrain.getTerrainLight();
-            red = LightConstants.withBonus(c.getRed(), lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
-            green = LightConstants.withBonus(c.getGreen(), lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
-            blue = LightConstants.withBonus(c.getBlue(), lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
-        }
+        boolean claimScan = useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID;
+        int[] rgb = claimScan ? getClaimScanLightColour() : getTerrainLightColour(lightingTerrain);
 
         // Tile (x, y) is centred on (x, y) in world space
         Vector3f position = new Vector3f(p.x, lightingTerrain.getLightHeight(), p.y);
-        boolean claimScan = useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID;
-        LightSource light = lightRules.addTerrainLight(p, position, red, green, blue,
+        LightSource light = lightRules.addTerrainLight(p, position, rgb[0], rgb[1], rgb[2],
                 claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
         // Water and lava must not tint the colour of a torch that lights the same ground
         EnumSet<Terrain.TerrainFlag> flags = lightingTerrain.getFlags();
         light.setYieldsToTorches(flags.contains(Terrain.TerrainFlag.WATER) || flags.contains(Terrain.TerrainFlag.LAVA));
+    }
+
+    /**
+     * Only the claim-scan / perceived glow is kept; room and ordinary
+     * terrain lights are switched off (see LightConstants)
+     */
+    private static boolean isTerrainLightEnabled(boolean isRoomTile, boolean perceivedUnexplored) {
+        if (isRoomTile) {
+            return LightConstants.ROOM_LIGHTING_ENABLED;
+        }
+        return perceivedUnexplored || LightConstants.EXPLORED_TERRAIN_LIGHTS_ENABLED;
+    }
+
+    /**
+     * The stand-in's own baked colour is always overridden by these level variables.
+     */
+    private int[] getClaimScanLightColour() {
+        return new int[]{LightConstants.getClaimScanLightRed(kwdFile),
+            LightConstants.getClaimScanLightGreen(kwdFile),
+            LightConstants.getClaimScanLightBlue(kwdFile)};
+    }
+
+    private static int[] getTerrainLightColour(Terrain terrain) {
+        Color c = terrain.getTerrainLight();
+        EnumSet<Terrain.TerrainFlag> flags = terrain.getFlags();
+        return new int[]{
+            LightConstants.withBonus(c.getRed(), flags.contains(Terrain.TerrainFlag.TERRAIN_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS),
+            LightConstants.withBonus(c.getGreen(), flags.contains(Terrain.TerrainFlag.TERRAIN_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS),
+            LightConstants.withBonus(c.getBlue(), flags.contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS)};
     }
 
     /**
