@@ -1155,16 +1155,66 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (roomController != null && roomController.canStoreGold()) {
             int leftOverGold = addGold(playerId, tile, gold.gold);
 
-            // TODO: if I remember correctly... DK II drops left overs as loose gold next to the treasury
+            // The treasury is filled first, the rest forms a loose pile in the treasury
             if (leftOverGold > 0) {
-                objectsController.addLooseGold(playerId, tile.x, tile.y, leftOverGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                dropLooseGold(playerId, tile, null, leftOverGold);
             }
         } else {
-            EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, gold.gold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+            dropLooseGold(playerId, tile, coordinates, gold.gold);
+        }
+        entityData.removeEntity(entity);
+    }
+
+    /**
+     * Drops loose gold from the hand. Like in DK II, the gold is added to a
+     * loose gold pile already lying on the tile, there is no limit to the pile
+     * size. Gold can only be dropped on own land, and in DK II loose gold
+     * belongs to the owner of the land, so the pile becomes ours
+     *
+     * @param playerId the player dropping the gold
+     * @param tile the tile to drop the gold to
+     * @param coordinates exact coordinates for a new pile, {@code null} for
+     * anywhere on the tile
+     * @param amount the amount of gold
+     */
+    private void dropLooseGold(short playerId, Point tile, Vector2f coordinates, int amount) {
+        synchronized (GOLD_LOCK) {
+            EntityId goldPile = findLooseGoldPile(entityData, tile);
+            if (goldPile != null) {
+                Gold gold = entityData.getComponent(goldPile, Gold.class);
+                entityData.setComponent(goldPile, new Gold(gold.gold + amount, gold.maxGold));
+                entityData.setComponent(goldPile, new Owner(playerId, playerId));
+                return;
+            }
+        }
+
+        EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        if (coordinates != null) {
             Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
             entityData.setComponent(newGold, new Position(0, pos));
         }
-        entityData.removeEntity(entity);
+    }
+
+    /**
+     * Finds a loose gold pile lying on the given tile. Gold stored in rooms
+     * and gold carried by creatures don't count
+     *
+     * @param entityData the entity data
+     * @param tile the tile to search
+     * @return the gold pile, {@code null} if there is none
+     */
+    static EntityId findLooseGoldPile(EntityData entityData, Point tile) {
+        for (EntityId entityId : entityData.findEntities(null, ObjectComponent.class, Gold.class, Position.class)) {
+            ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+            if (objectComponent.objectType != ObjectType.GOLD || entityData.getComponent(entityId, Stored.class) != null) {
+                continue;
+            }
+            Position position = entityData.getComponent(entityId, Position.class);
+            if (tile.equals(WorldUtils.vectorToPoint(position.position))) {
+                return entityId;
+            }
+        }
+        return null;
     }
 
     private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile) {
