@@ -223,7 +223,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
 
         // Lighting: re-derive attached-light positions and the flat-light
-        // sample every frame (design §7.4/§9) -- lights on other things
+        // sample every frame -- lights on other things
         // (a nearby flickering torch) change even for a thing that hasn't
         // itself moved, so this can't rely on EntityContainer's own
         // change-driven updateObject().
@@ -446,10 +446,9 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
-     * Design &sect;6.1's thing-light formula, for objects/creatures. Shots
-     * and slab lights aren't wired here -- see the lighting plan's
-     * "Divergences" for why (no shot rendering, no slab-light data in this
-     * codebase's parser). Everything in &sect;6.1 is implemented: the
+     * The thing-light formula, for objects/creatures. Shots
+     * and slab lights aren't wired here: there is no shot rendering and no slab-light data in this
+     * codebase's parser. Everything else is implemented: the
      * colour-non-zero enable rule, over-bright bits, the player colour of
      * {@code PLAYER_COLOURED} lights, radius scale and pulse/flicker.
      */
@@ -512,7 +511,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
-     * Hides things standing on non-visible tiles (fog-of-war design §8.2).
+     * Hides things standing on non-visible tiles.
      * There is no "visible through fog" per-thing flag anywhere in this
      * codebase's creature/object/door/trap data, so this applies uniformly,
      * with no exceptions.

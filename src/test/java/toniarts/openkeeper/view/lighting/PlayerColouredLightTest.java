@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Tests for the {@code PLAYER_COLOURED} rule of lighting_design.md &sect;6.1.
+ * Tests for the {@code PLAYER_COLOURED} rule.
  */
 public class PlayerColouredLightTest {
 
@@ -65,7 +65,7 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void tableMatchesTheDesign() {
+    public void tableHasTheExpectedColours() {
         assertArrayEquals(new int[]{0, 0, 0}, LightConstants.getPlayerLightColour((short) 0));
         assertArrayEquals(new int[]{255, 255, 255}, LightConstants.getPlayerLightColour((short) 2));
         assertArrayEquals(new int[]{50, 78, 230}, LightConstants.getPlayerLightColour((short) 4));

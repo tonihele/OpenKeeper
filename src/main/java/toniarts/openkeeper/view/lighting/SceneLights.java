@@ -36,7 +36,7 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * Turns the current set of {@link LightSource}s into what the two
- * {@code DkLighting} material techniques (design &sect;9's two evaluation
+ * {@code DkLighting} material techniques (the two evaluation
  * modes) actually consume:
  * <ul>
  * <li><b>Per-vertex terrain</b> ({@code DkTerrain.j3md}): one shared list of
@@ -50,11 +50,9 @@ import toniarts.openkeeper.utils.Point;
  * the number of lights beyond the texture size ({@link #MAX_LIGHTS}).</li>
  * <li><b>Flat things</b> ({@code DkFlat.j3md}): {@link #computeFlatLight}
  * is a pure function callers (entity containers, {@code VisualEffect})
- * invoke themselves each frame with the owner's current position, per
- * design &sect;7.4 -- this class does not track thing positions.</li>
+ * invoke themselves each frame with the owner's current position -- this class does not track thing positions.</li>
  * </ul>
- * This is the {@code SceneLights} of {@code lighting_design.md} &sect;4/
- * &sect;11: the only place that knows how sources get turned into pixels.
+ * This is the only place that knows how sources get turned into pixels.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
@@ -113,7 +111,7 @@ public final class SceneLights {
     }
 
     /**
-     * The video "ambient light" setting (design &sect;8.2). It travels in the
+     * The video "ambient light" setting. It travels in the
      * light data header, and is available to callers of {@link
      * #computeFlatLight} for their own {@code DkFlat} materials.
      */
@@ -278,7 +276,7 @@ public final class SceneLights {
      * Creates the map-sized ambient texture (one texel per tile, centre at
      * {@code tile + 0.5}). The vertex shader samples it with bilinear
      * filtering at the vertex's world position, so the per-terrain vertex
-     * ambient (design &sect;8.1) and the explored flag fade from one tile to
+     * ambient and the explored flag fade from one tile to
      * the next instead of stepping at the tile border. Values are stored
      * halved so over-bright ambient (up to 2.0) fits 8 bits.
      */
@@ -325,12 +323,12 @@ public final class SceneLights {
     }
 
     /**
-     * The "flat" evaluation from design &sect;9: one sample at
+     * The "flat" evaluation: one sample at
      * {@code worldPos}, normal term dropped, summed over every light
      * (there is no per-material cap here -- this is a single CPU-side
      * point sample, not a per-vertex GPU loop). Pure function; callers
      * (entity containers, {@code VisualEffect}) invoke this themselves
-     * each frame with the owner's current position (design &sect;7.4) and
+     * each frame with the owner's current position and
      * set the result as their material's {@code FlatLight} parameter.
      */
     public static ColorRGBA computeFlatLight(Vector3f worldPos, Iterable<LightSource> lights) {
@@ -375,8 +373,7 @@ public final class SceneLights {
 
     /**
      * Java-side twin of {@code DkFalloff.glsllib}'s {@code dkFalloff} --
-     * keep the two in sync, see that file for the design rationale
-     * (&sect;9, decision D7).
+     * keep the two in sync, see that file for the rationale.
      */
     private static float dkFalloff(float n) {
         if (n < 0.5f) {

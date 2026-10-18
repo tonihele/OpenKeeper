@@ -1,5 +1,5 @@
-// Dungeon Keeper II lighting model (lighting_design.md §9), reproduced
-// exactly, including its out-of-range behaviour (design decision D7).
+// Dungeon Keeper II lighting model, reproduced
+// exactly, including its out-of-range behaviour.
 //
 // F(n) = 0.25 + 16/n     for n in 0..255   (F(0) = +infinity)
 // F(n) = n - 256         for n >= 256       (the original runs off the end
@@ -10,7 +10,7 @@ float dkFalloff(float n) {
     if (n < 0.5) {
         // n == 0: the table is +infinity here. Any sufficiently large value
         // works, since the caller immediately clamps the contribution to
-        // the light colour (design's "(k > 1) ? C : C*k" saturation).
+        // the light colour ("(k > 1) ? C : C*k" saturation).
         return 1e6;
     }
     if (n < 256.0) {
@@ -24,8 +24,8 @@ float dkFalloff(float n) {
 // contribution can never re-saturate beyond the 4-tile regime -- the
 // cursor glow fades out as one smooth circle instead of forming the
 // dark-gap + second full-brightness band that large-radius lights pick
-// up from the out-of-range table. Deliberate deviation from design
-// decision D7 for this light only; keep in sync with
+// up from the out-of-range table. Deliberate deviation from the
+// exact falloff for this light only; keep in sync with
 // SceneLights.dkFalloffMonotonic.
 float dkFalloffMonotonic(float n) {
     if (n < 0.5) {
@@ -35,22 +35,22 @@ float dkFalloffMonotonic(float n) {
 }
 
 // Loose tail stretched past every light's radius (a deliberate deviation
-// from design decision D7, requested in-game). D7 cuts the contribution
+// from the exact falloff, requested in-game). The exact falloff cuts the contribution
 // to exactly 0 at the radius surface, so a small radius pool (torches
 // and terrain lights sit at 1.5 tiles) saturates up to its edge and then
 // stops dead -- the neighbouring tiles read as flat, harsh unlit blocks.
 // Instead of that hard surface, dkPointLightContribution fades across
 // [radius, radius + DK_SOFT_FALLOFF_TAIL_TILES]: the near-field k is
-// still > 1, so the saturated core keeps its D7 look, but the tail
+// still > 1, so the saturated core keeps its exact-falloff look, but the tail
 // grades into the adjacent tiles so they mix in their lit neighbours'
 // light. Must match LightConstants.SOFT_FALLOFF_TAIL_TILES and SceneLights'
 // reach test / computeFlatLight.
 #define DK_SOFT_FALLOFF_TAIL_TILES 1.0
 
-// One point light's additive per-vertex contribution (design §9's
-// per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and
+// One point light's additive per-vertex contribution
+// (per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and
 // `intensity` is the source's effective (flicker-scaled) intensity --
-// note the design deliberately dots the surface normal against the
+// note the surface normal is deliberately dotted the surface normal against the
 // UN-normalized light vector `d` (not its normalized direction): this is
 // how the original's falloff and "1 tile from a torch is full colour"
 // behaviour actually combine, not a mistake to "fix" into a normalized
@@ -80,7 +80,7 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
 // Soft-knee compression of the FINAL summed colour (ambient + every
 // light's contribution), applied once per channel right before the
 // diffuse multiply -- NOT per-light. Each light's own saturation
-// ("(k > 1) ? C : C*k") is left exactly as design §9 specifies; this only
+// ("(k > 1) ? C : C*k") is left exactly as the original does; this only
 // stops several already-saturated overlapping lights (e.g. a
 // torch-lined corridor) from stacking straight to flat white. Below
 // DK_SOFTCLAMP_KNEE the value passes through unchanged; above it, the
@@ -89,7 +89,7 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
 #define DK_SOFTCLAMP_KNEE 0.85
 #define DK_SOFTCLAMP_CEILING 1.0
 
-// No lighting_design.md source -- a deliberate deviation from "the mesh
+// Not part of the original model -- a deliberate deviation from "the mesh
 // base colour" (black) outside every light's reach: keeps torch-less
 // ground dim rather than a flat black void.
 #define DK_MIN_AMBIENT_FLOOR 0.4

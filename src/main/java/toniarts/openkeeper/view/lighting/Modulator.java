@@ -18,8 +18,7 @@ package toniarts.openkeeper.view.lighting;
 
 /**
  * A time-varying multiplier/override on a {@link LightSource}'s current
- * colour, advanced once per simulation tick. See {@code lighting_design.md}
- * &sect;5/&sect;7.1.
+ * colour, advanced once per simulation tick.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
@@ -72,7 +71,7 @@ public final class Modulator {
 
     /**
      * Fades in over {@code ticks / 2}, then out over {@code ticks / 2}
-     * (design &sect;6.6).
+     *.
      */
     public void flash(int ticks) {
         type = Type.FLASH;
@@ -100,8 +99,8 @@ public final class Modulator {
     }
 
     private void applyPulse(int[] base, int[] outColour) {
-        // The original fades the colour towards black and swaps green and blue
-        // (D6); that reads as the colour disappearing, so here the pulse only
+        // The original fades the colour towards black and swaps green and blue;
+        // that reads as the colour disappearing, so here the pulse only
         // brightens the base colour (up to about twice as vibrant)
         int scale = PULSE_PHASE_RANGE + phase;
         for (int i = 0; i < 3; i++) {
@@ -112,7 +111,7 @@ public final class Modulator {
         // for one extra tick -- clamping would output the boundary value
         // twice in a row and stretch the period to 49 ticks; reflecting is
         // what actually yields the documented 4%..98% range over an exact
-        // 48-tick period (design &sect;7.1).
+        // 48-tick period.
         int raw = phase + (rising ? PULSE_STEP : -PULSE_STEP);
         if (raw > PULSE_MAX_PHASE) {
             raw = PULSE_MAX_PHASE - (raw - PULSE_MAX_PHASE);

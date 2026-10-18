@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link LightRules} against {@code lighting_design.md} &sect;6/&sect;10.
+ * Tests for {@link LightRules}.
  */
 public class LightRulesTest {
 

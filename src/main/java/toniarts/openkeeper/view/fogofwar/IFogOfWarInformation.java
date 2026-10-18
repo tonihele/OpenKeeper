@@ -44,7 +44,7 @@ public interface IFogOfWarInformation {
     boolean isPerceived(Point p);
 
     /**
-     * The drag-box highlight rule (§8.4): unexplored, or explored and
+     * The drag-box highlight rule: unexplored, or explored and
      * taggable, or perceived, taggable and revealed-through-fog terrain.
      */
     boolean isHighlightable(Point p);

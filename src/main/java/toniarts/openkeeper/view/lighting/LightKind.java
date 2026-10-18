@@ -17,9 +17,8 @@
 package toniarts.openkeeper.view.lighting;
 
 /**
- * The kinds of light source the lighting system creates. See
- * {@code lighting_design.md} &sect;2/&sect;5.
- * {@link #SLAB} is the per-terrain {@code Light} block (design &sect;6.7, D2);
+ * The kinds of light source the lighting system creates.
+ * {@link #SLAB} is the per-terrain {@code Light} block;
  * no stock terrain uses it, it exists for custom terrain.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;

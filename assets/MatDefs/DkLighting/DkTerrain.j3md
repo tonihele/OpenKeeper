@@ -8,14 +8,14 @@ MaterialDef DK Terrain Lighting {
         // must be declared here or that call throws.
         Float AlphaDiscardThreshold
 
-        // Vertex ambient (design §8.1): a per-terrain-type constant, 0..1,
+        // Vertex ambient: a per-terrain-type constant, 0..1,
         // already converted from the file's 0..511 channel + over-bright
         // bits by the Java side. Only used until the AmbientMap below is
         // bound. Defaulted to black -- an unset Color MaterialParameter is an
         // uninitialized GPU uniform, not zero.
         Color Ambient : 0.0 0.0 0.0 0.0
 
-        // Tile highlight, as in the original (tile_tagging.md section 4):
+        // Tile highlight, as in the original:
         // Tint is ADDED to the tile's lighting at every vertex (tag = (128,
         // 128, 200)/255, flash = (1, 0, 0)), and TintOverlay is the colour of
         // a second, additive pass over the same triangles, scaled by that
@@ -33,8 +33,7 @@ MaterialDef DK Terrain Lighting {
         Vector2 AmbientMapSize
 
         // Every light near the camera plus the global ambient, shared by ALL
-        // terrain materials and rewritten each frame by SceneLights (design
-        // §4/§11), so no two materials can ever disagree about a light.
+        // terrain materials and rewritten each frame by SceneLights, so no two materials can ever disagree about a light.
         // Layout: texel 0 = (light count, global ambient rgb); then three
         // texels per light: (position xyz, radius), (colour rgb, intensity),
         // (flags, 0, 0, 0). Flags: 1 = smooth monotonic falloff (the cursor

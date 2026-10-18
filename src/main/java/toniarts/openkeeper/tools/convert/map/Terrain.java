@@ -456,7 +456,7 @@ public final class Terrain implements Comparable<Terrain>, ISoundable, IFpsSound
     }
 
     /**
-     * The per-terrain light block (lighting_design.md &sect;6.7). The community
+     * The per-terrain light block. The community
      * template mislabels it as {@code StringIds}; it has the same 24-byte
      * size as {@link Light}. All zero in stock data.
      */

@@ -23,7 +23,7 @@ uniform vec2 m_AmbientMapSize;
 // texels per light: (position xyz, radius), (colour rgb, intensity),
 // (flags, 0, 0, 0). Flags:
 //   bit 0 (1): use the smooth monotonic falloff (the cursor light), else the
-//              exact D7 falloff
+//              exact falloff
 //   bit 1 (2): the light may shine on unexplored ground (the claim-scan
 //              glow and the cursor / "hand" light); every other light fades
 //              out over unexplored tiles
@@ -98,7 +98,7 @@ void main() {
     // light reaches stay black, like fog of war
     vec3 lit = dkSoftClampFloor(sum, explored * m_MinLight);
 
-    // Tile highlight, as in the original game (tile_tagging.md section 4): the
+    // Tile highlight, as in the original game: the
     // mode colour is ADDED to every vertex (so a tagged block is at least
     // half bright even in the dark, with a blue bias), clamped to the display
     // range; the fragment shader then adds the overlay colour, scaled by this

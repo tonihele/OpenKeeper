@@ -474,7 +474,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     /**
-     * The cursor light (lighting_design.md &sect;6.4/&sect;7.3): follows
+     * The cursor light: follows
      * the point on the world directly under the mouse (continuous, not
      * snapped to tile centres -- see LightRules.updateCursorLight for the
      * deviation), hidden in build mode / off the world / off the map,
@@ -501,9 +501,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         // The pointed position is the real floor point (tile centres are on whole numbers)
         Vector3f position = new Vector3f(pointed.x, 0f, pointed.y);
 
-        // Border tiles: light stays on but black (design 7.3). Over unexplored
+        // Border tiles: light stays on but black. Over unexplored
         // ground it stays white: the hand lights the fog it points at, which
-        // is otherwise completely black (a deviation from design 7.3).
+        // is otherwise completely black (a deviation from the original).
         boolean explored = visible && !onBorder;
         lightRules.updateCursorLight(visible, position, explored);
     }
@@ -663,7 +663,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // The server only marks a tile selected if its real, hidden terrain is
                 // actually taggable - fog can't reach it to know any better. Locally,
                 // still-unexplored tiles in this drag should look tagged regardless,
-                // until exploration reveals whether that's really true (§8.5).
+                // until exploration reveals whether that's really true.
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
             } else if (interactionState.getType() == Type.ROOM
                     && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),

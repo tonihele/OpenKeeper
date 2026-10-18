@@ -193,7 +193,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
 
-        // Lighting: the cursor light lives as long as the world does (design §6.4)
+        // Lighting: the cursor light lives as long as the world does
         mapLoader.getLightRules().createCursorLight();
     }
 
@@ -233,7 +233,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Lighting: pick up live settings changes, advance modulators
         // (pulse/fade/flicker) and re-upload the terrain materials they
-        // touched (lighting_design.md §4/§7/§10). Skipped until the map is
+        // touched. Skipped until the map is
         // done loading - the loader thread is still registering terrain
         // materials into the same LightRules up to that point, and reading
         // it here concurrently with that would race (ConcurrentModificationException).

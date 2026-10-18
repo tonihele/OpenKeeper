@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link Modulator} against {@code lighting_design.md} &sect;7.1.
+ * Tests for {@link Modulator}.
  */
 public class ModulatorTest {
 
@@ -140,8 +140,7 @@ public class ModulatorTest {
 
     @Test
     public void flashRampsUpThenDownOverHalvesOfDuration() {
-        // flash(8) fades in over 4 ticks, then out over 4 ticks (design
-        // §6.6): duration+1 calls to ramp up to full and flip to FADE_OUT,
+        // flash(8) fades in over 4 ticks, then out over 4 ticks: duration+1 calls to ramp up to full and flip to FADE_OUT,
         // then duration+1 more to ramp back down to 0.
         Modulator modulator = new Modulator();
         int half = 4;

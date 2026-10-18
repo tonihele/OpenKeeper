@@ -98,7 +98,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     /**
-     * The original's tile highlight (tile_tagging.md section 4): a base colour
+     * The original's tile highlight: a base colour
      * added to the tile's lighting, plus a flat additive overlay pass. Tagged =
      * (128, 128, 200) and the BlueTexture (63, 64, 255); flashing = pure red
      * and the RedTexture (255, 64, 65).
@@ -122,11 +122,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     /**
      * Terrain type 38, "Claim Scan" -- the stand-in for a tile the local
      * player has perceived but not yet explored, when the tile is owned or
-     * a room (lighting_design.md §6.3, claim_scan_terrain.md).
+     * a room.
      */
     private static final short CLAIM_SCAN_TERRAIN_ID = 38;
     /**
-     * Room ids the portal light (lighting_design.md §6.5) is hard-coded
+     * Room ids the portal light is hard-coded
      * to -- {@code KwdFile.ROOM_PORTAL_ID} is private, so this is its own
      * copy rather than reaching into that class.
      */
@@ -199,7 +199,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this.torchesEnabled = torchesEnabled;
 
         // Lighting consults the same local-viewer fog as the renderer
-        // (cursor colour, design 7.3; terrain-light selection, 6.3)
+        // (cursor colour, terrain-light selection)
         this.lightRules = new LightRules(new IFogOfWarQuery() {
             @Override
             public boolean isExplored(Point tile) {
@@ -304,7 +304,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * claim_scan_terrain.md §4/§6.3: a tile the local player has perceived
+     * A tile the local player has perceived
      * (but not explored) shows the Claim Scan stand-in instead of plain rock
      * when it's owned by someone, or its real terrain is a room - i.e. when
      * the rock placeholder would otherwise be hiding a claimed area.
@@ -816,7 +816,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // This tile is about to be rebuilt -- drop its old torch/terrain
         // lights and material registrations before (re)creating them below
-        // (lighting_design.md §6.2); registerTerrainTile appends, so this
+        //; registerTerrainTile appends, so this
         // also prevents the registry from growing unbounded across rebuilds.
         lightRules.clearTileLights(p);
         lightRules.unregisterTerrainTile(p);
@@ -913,7 +913,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
 
-        // Torch colour/intensity/radius (lighting_design.md §6.2): the room's
+        // Torch colour/intensity/radius: the room's
         // own values if this tile is in a room, else the global defaults.
         int red;
         int green;
@@ -928,7 +928,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
             // A room without its own torch art falls back to the default mesh
-            // (design §6.2); only torchColor == 0 (below) removes torches
+            //; only torchColor == 0 (below) removes torches
             ArtResource torch = room.getTorch();
             if (torch != null && torch.getName() != null && !torch.getName().isEmpty()) {
                 name = torch.getName();
@@ -945,7 +945,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             int torchGreen = torchColor.getGreen() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
             int torchBlue = torchColor.getBlue() + (room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE) ? LightConstants.TORCH_OVER_BRIGHT_BONUS : 0);
             if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
-                return; // A room with torchColor == 0 has no torches (design §6.2)
+                return; // A room with torchColor == 0 has no torches
             }
             // Only an unowned room shows its own (mostly green) torch colour
             red = torchRed;
@@ -984,16 +984,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         parent.setLocalTranslation(Vector3f.ZERO);
         parent.attachChild(spatial);
 
-        // Design 6.2: the light sits inside the floor tile, hugging the wall face
+        // The light sits inside the floor tile, hugging the wall face
         // (the model is placed separately above), and stays small
         lightRules.addTorchLight(tile.getLocation(), getTorchLightPosition(tile.getLocation(), direction, lightHeight),
                 red, green, blue, intensity, Math.min(radius, maxRadius));
     }
 
     /**
-     * Where a torch light goes (lighting_design.md &sect;6.2): inside the floor
-     * tile {@code floor}, next to the wall face it hangs on. The design gives
-     * the offsets in the floor tile's own space (origin in its north-west
+     * Where a torch light goes: inside the floor
+     * tile {@code floor}, next to the wall face it hangs on. The offsets are given in the floor tile's own space (origin in its north-west
      * corner, y growing south): wall to the north (0.5, 0.125), east
      * (0.875, 0.5), south (0.5, 0.875), west (0.125, 0.5). A tile is centred
      * on whole world coordinates here, so the corner is half a tile back.
@@ -1038,7 +1037,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Design §6.2: a {@code TORCH} terrain still opts out when it declares
+     * A {@code TORCH} terrain still opts out when it declares
      * both a side and a top resource, unless it is impenetrable (no torches on
      * an ordinary diggable wall with full artwork). Invisible on stock data.
      */
@@ -1075,7 +1074,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Add to registry
         roomNodes.put(roomInstance, roomNode);
 
-        // Portal light (lighting_design.md §6.5)
+        // Portal light
         if (room.getRoomId() == ROOM_PORTAL_ID || room.getRoomId() == ROOM_HERO_PORTAL_ID) {
             Point center = getRoomCenterTile(roomInstance);
             // Tile (x, y) is centred on (x, y) in world space, not (x + 0.5, y + 0.5)
@@ -1088,7 +1087,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     /**
      * The centroid of a room's coordinates, used as its "centre tile"
-     * (lighting_design.md §6.5).
+     *.
      */
     /**
      * The room tile closest to the centroid: for a non-convex room the plain
@@ -1374,7 +1373,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
 
-        // Vertex ambient (design §8.1): the room's own terrain type, used
+        // Vertex ambient: the room's own terrain type, used
         // by RoomConstructor to pre-swap its floor/wall materials to
         // DkTerrain BEFORE it batches them (jME forbids re-materialling
         // after batching).
@@ -1396,12 +1395,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Handle the terrain-light source for a tile (lighting_design.md
-     * &sect;6.3): a positioned {@code LightSource}, not a material
+     * Handle the terrain-light source for a tile: a positioned {@code LightSource}, not a material
      * constant, so it illuminates its surroundings like a torch does. The
-     * interior-slab rule (D3) is unverified in the reference design and
-     * should be checked in game against a 3x3/5x5 room per the design's
-     * own test description.
+     * interior-slab rule is unverified and should be checked in game
+     * against a 3x3/5x5 room.
      * <p>
      * {@code terrain} is whatever {@link #getTerrain(IMapTileInformation)}
      * already resolved for this tile's mesh (real terrain, the Claim Scan
@@ -1416,7 +1413,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         boolean useClaimScanColour = false;
         boolean perceivedUnexplored = false;
 
-        // Perceived-but-unexplored, non-room tile (design §6.3): terrains that
+        // Perceived-but-unexplored, non-room tile: terrains that
         // reveal through fog keep their own light, everything else glows as
         // Claim Scan. The mesh keeps its rock stand-in (see getTerrain()); only
         // the light looks at the real terrain. Tests explored, not isVisible():
@@ -1450,7 +1447,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         int green;
         int blue;
         if (useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID) {
-            // claim_scan_terrain.md §5: the stand-in's own baked colour is
+            // The stand-in's own baked colour is
             // always overridden by these level variables.
             red = LightConstants.getClaimScanLightRed(kwdFile);
             green = LightConstants.getClaimScanLightGreen(kwdFile);
@@ -1470,9 +1467,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Slab light (design &sect;6.7, D2): enabled when the terrain's own
+     * Slab light: enabled when the terrain's own
      * {@code Light} block has a non-zero colour. Not used by stock terrain.
-     * {@code PLAYER_COLOURED} uses the slab owner's colour (design &sect;6.1).
+     * {@code PLAYER_COLOURED} uses the slab owner's colour.
      */
     private void handleSlabLight(Point p, Terrain terrain, short ownerId) {
         Light light = terrain.getSlabLight();
@@ -1500,7 +1497,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * D3: all 8 neighbours belong to the same room instance.
+     * All 8 neighbours belong to the same room instance.
      */
     private boolean isInteriorRoomSlab(Point p, RoomInstance roomInstance) {
         for (int dy = -1; dy <= 1; dy++) {
@@ -1519,9 +1516,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     /**
      * Swaps every geometry under {@code node}'s DkFlat material (created by
      * KmfModelLoader) for a DkTerrain material carrying this tile's
-     * per-terrain-type vertex ambient (design &sect;8.1), and returns them
+     * per-terrain-type vertex ambient, and returns them
      * so the caller can register them with {@link LightRules} -- terrain
-     * lights (design &sect;6.3) and global ambient (&sect;8.2) are pushed
+     * lights and global ambient are pushed
      * into these materials continuously by {@link SceneLights}, since they
      * change with flicker/pulse/settings.
      */

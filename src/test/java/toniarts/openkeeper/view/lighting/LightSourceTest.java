@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link LightSource} against {@code lighting_design.md} &sect;5/&sect;7.
+ * Tests for {@link LightSource}.
  */
 public class LightSourceTest {
 

@@ -52,7 +52,7 @@ class MapViewControllerTest {
 
     @Test
     void torchLightHugsTheWallFaceInsideTheFloorTile() {
-        // Design 6.2, in the floor tile's own space (a tile (x, y) is centred on world (x, y))
+        // In the floor tile's own space (a tile (x, y) is centred on world (x, y))
         Point tile = new Point(10, 20);
         assertEquals(new Vector3f(10f, 1.5f, 19.625f), MapViewController.getTorchLightPosition(tile, WallDirection.NORTH, 1.5f));
         assertEquals(new Vector3f(10.375f, 1.5f, 20f), MapViewController.getTorchLightPosition(tile, WallDirection.EAST, 1.5f));

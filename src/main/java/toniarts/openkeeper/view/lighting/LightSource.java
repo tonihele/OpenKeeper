@@ -21,8 +21,8 @@ import java.util.Random;
 
 /**
  * A presentation-only point light source. Never saved, checksummed or read
- * by the simulation (design goal 3) -- {@link LightRules} is the only
- * creator/destroyer of these. See {@code lighting_design.md} &sect;5.
+ * by the simulation -- {@link LightRules} is the only
+ * creator/destroyer of these.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
@@ -71,7 +71,7 @@ public final class LightSource {
 
     /**
      * Whether this light's falloff may not use the original's out-of-range
-     * distance table (design decision D7) and must stay monotonic instead.
+     * distance table and must stay monotonic instead.
      * Only the cursor light needs this: its 7-tile radius would otherwise
      * re-saturate into the dark-gap + second full-brightness band beyond 4
      * tiles. Mirrors the {@code smoothFalloff} selection in
@@ -102,8 +102,8 @@ public final class LightSource {
 
     /**
      * When {@code false}, this source contributes nothing regardless of
-     * position/radius -- used by the cursor light to "hide" per design
-     * &sect;7.3 (build mode, off-map, not over the world) without needing
+     * position/radius -- used by the cursor light to "hide" it
+     * (build mode, off-map, not over the world) without needing
      * a sentinel position.
      */
     /**
@@ -131,7 +131,7 @@ public final class LightSource {
      * immediately, since a source with no active modulator otherwise only
      * refreshes it on the next {@link #tick()}). Used by the cursor light,
      * whose colour depends on the tile under the mouse rather than any
-     * modulator (design &sect;7.3).
+     * modulator.
      */
     public void setBaseColour(int red, int green, int blue) {
         baseColour[0] = red;
@@ -174,7 +174,7 @@ public final class LightSource {
 
     /**
      * Intensity scaled by the current flicker step, if this source
-     * flickers (design &sect;7.2).
+     * flickers.
      */
     public float getEffectiveIntensity() {
         return flickers ? intensity * flickerScale : intensity;
@@ -206,7 +206,7 @@ public final class LightSource {
     }
 
     /**
-     * Design &sect;10: cheap lighting turns flicker off for every capable
+     * Cheap lighting turns flicker off for every capable
      * source; turning it back off restores it.
      */
     public void applyCheapLighting(boolean cheap) {
@@ -231,7 +231,7 @@ public final class LightSource {
 
     /**
      * Advances lifetime and the colour modulator by one simulation tick
-     * (design &sect;7.1).
+     *.
      *
      * @return {@code false} once this source's lifetime has expired and it
      * should be destroyed; {@code true} otherwise
@@ -248,7 +248,7 @@ public final class LightSource {
     }
 
     /**
-     * One random-walk step of the flicker clock (design &sect;7.2), meant
+     * One random-walk step of the flicker clock, meant
      * to be called once per 1/{@link LightConstants#FLICKER_HZ} second of
      * presentation time by {@link LightModulators}. No-op if this source
      * doesn't flicker.

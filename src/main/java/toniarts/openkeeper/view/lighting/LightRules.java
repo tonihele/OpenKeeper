@@ -27,15 +27,14 @@ import java.util.Map;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * The single creator/destroyer of {@link LightSource}s (design &sect;4/
- * &sect;11). Callers (the mesh-building code that already knows the
+ * The single creator/destroyer of {@link LightSource}s. Callers (the mesh-building code that already knows the
  * resolved position/colour/radius for a torch, terrain tile, thing or
  * room) ask this class to create or drop a light; this class owns the
  * owner-keyed registries needed to find and remove them again, and drives
  * both {@link LightModulators} and {@link SceneLights} once per frame.
  * <p>
  * Deliberately presentation-only: nothing here is read by the simulation
- * (design goal 3).
+ * state.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
@@ -74,7 +73,7 @@ public final class LightRules {
 
     /**
      * Flips {@code flickers} on every currently-live flicker-capable
-     * source (design &sect;10/&sect;11's {@code onCheapLightingChanged}).
+     * source when the cheap-lighting setting changes.
      * Newly-created torches/things pick up the current setting directly
      * from {@link #isCheapLighting()} at creation time.
      */
@@ -151,8 +150,7 @@ public final class LightRules {
     }
 
     /**
-     * The "flat" sample for a thing/effect's material, per design
-     * &sect;7.4 -- callers own re-deriving {@code worldPos} each frame
+     * The "flat" sample for a thing/effect's material, -- callers own re-deriving {@code worldPos} each frame
      * from the owner's current position + light offset.
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos) {
@@ -168,7 +166,7 @@ public final class LightRules {
     }
 
     // ------------------------------------------------------------------
-    // Tile-owned lights: torches (design §6.2), terrain lights (§6.3)
+    // Tile-owned lights: torches, terrain lights
     // ------------------------------------------------------------------
 
     /**
@@ -210,7 +208,7 @@ public final class LightRules {
     }
 
     /**
-     * Design &sect;6.7: the per-terrain {@code Light} block, one source per
+     * The per-terrain {@code Light} block, one source per
      * slab. Unlike thing lights the file radius is <em>not</em> scaled by 2/3;
      * {@code PULSE}/{@code FLICKER} are honoured. {@code position} already
      * includes the block's {@code mKPos} offset.
@@ -234,7 +232,7 @@ public final class LightRules {
     }
 
     // ------------------------------------------------------------------
-    // Room-owned lights: the portal light (design §6.5)
+    // Room-owned lights: the portal light
     // ------------------------------------------------------------------
 
     public LightSource addPortalLight(Object room, Vector3f position) {
@@ -256,14 +254,14 @@ public final class LightRules {
     }
 
     // ------------------------------------------------------------------
-    // Thing-owned lights: objects/creatures/shots/effects (design §6.1)
+    // Thing-owned lights: objects/creatures/shots/effects
     // ------------------------------------------------------------------
 
     /**
-     * Design &sect;6.1's thing-light formula. {@code offset} is the
+     * The thing-light formula. {@code offset} is the
      * {@code Light} struct's {@code mKPos}; the caller re-derives
      * {@code ownerPosition} each frame and calls this again (or moves the
-     * returned source directly) -- see design &sect;7.4.
+     * returned source directly).
      */
     public LightSource addThingLight(Object owner, Vector3f ownerPosition, Vector3f offset,
             int red, int green, int blue, boolean colorRed, boolean colorGreen, boolean colorBlue,
@@ -301,7 +299,7 @@ public final class LightRules {
 
     /**
      * Re-derives an already-created thing light's position from the
-     * owner's current position + light offset (design &sect;7.4), without
+     * owner's current position + light offset, without
      * touching its modulator/flicker state. No-op if {@code owner} has no
      * light.
      */
@@ -324,7 +322,7 @@ public final class LightRules {
     }
 
     // ------------------------------------------------------------------
-    // The cursor light (design §6.4/§7.3)
+    // The cursor light
     // ------------------------------------------------------------------
 
     public void createCursorLight() {
@@ -342,11 +340,11 @@ public final class LightRules {
     }
 
     /**
-     * Design &sect;7.3: {@code visible = false} hides the light entirely
+     * {@code visible = false} hides the light entirely
      * (build mode, cursor not over the world, off-map); otherwise it moves
      * to {@code position} and is white if {@code explored}, else black
-     * (still lit, not hidden -- design is explicit this differs from
-     * "invisible"). Deviation from the design's tile-centred
+     * (still lit, not hidden, which differs from
+     * "invisible"). Deviation from the original's tile-centred
      * {@code cursorTile.x + 0.5}: the caller passes the continuous cursor
      * floor point (plus the half-tile offset), so the glow glides instead
      * of snapping between tiles.

@@ -24,10 +24,10 @@ import java.util.function.Consumer;
 
 /**
  * Drives every live {@link LightSource}'s modulators on the two clocks
- * design &sect;4/&sect;7 calls for: simulation ticks (pulse/fade/lifetime)
- * and a fixed 30&nbsp;Hz presentation clock (flicker, D4). Owns its own
+ * the lighting needs: simulation ticks (pulse/fade/lifetime)
+ * and a fixed 30&nbsp;Hz presentation clock (flicker). Owns its own
  * {@link Random} stream -- this must never share the simulation's RNG
- * (design goal 3).
+ * state.
  *
  * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */

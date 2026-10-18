@@ -19,8 +19,8 @@ package toniarts.openkeeper.view.lighting;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * The two fog-of-war queries the lighting rules need (design &sect;6.3's
- * terrain-light selection, &sect;7.3's cursor colour), for the local
+ * The two fog-of-war queries the lighting rules need (terrain-light selection and
+ * cursor colour), for the local
  * viewer.
  * <p>
  * This is the seam between lighting and the fog-of-war system

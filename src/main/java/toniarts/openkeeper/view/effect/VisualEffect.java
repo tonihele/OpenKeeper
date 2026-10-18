@@ -193,7 +193,7 @@ public class VisualEffect {
             effectNode.attachChild(model);
         }
 
-        // Light (lighting_design.md §6.1/§6.6)
+        // Light
         lightTarget = model;
         applyEffectLight(effect.getLight());
 
@@ -375,11 +375,11 @@ public class VisualEffect {
     }
 
     /**
-     * Design &sect;6.1's thing-light formula, applied to this effect
-     * (owner = the effect itself). Fade modulators (&sect;6.6) are left to
+     * The thing-light formula, applied to this effect
+     * (owner = the effect itself). Fade modulators are left to
      * the effect system to trigger via {@code LightSource.startFade} --
-     * this only creates the entry point, per the lighting plan's Phase 7
-     * scope note; nothing here decides which effects fade or for how long.
+     * this only creates the entry point;
+     * nothing here decides which effects fade or for how long.
      * {@code PLAYER_COLOURED} lights take the colour of the effect's owner.
      */
     private void applyEffectLight(Light effectLight) {
@@ -422,8 +422,7 @@ public class VisualEffect {
      */
     public boolean update(float tpf) {
 
-        // Lighting: refresh the flat-light sample every frame (design
-        // §7.4/§9) -- nearby lights flicker/pulse even though effectNode's
+        // Lighting: refresh the flat-light sample every frame -- nearby lights flicker/pulse even though effectNode's
         // own position is set once at construction and never moves.
         LightRules lightRules = getLightRules();
         if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {

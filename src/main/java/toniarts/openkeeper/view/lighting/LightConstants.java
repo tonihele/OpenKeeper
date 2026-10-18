@@ -47,8 +47,8 @@ public final class LightConstants {
     public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
 
     /**
-     * Terrain lights of room tiles (the interior-slab glow of design 6.3) and
-     * the per-room-type vertex ambient (design 8.1). Off: tiles are lit
+     * Terrain lights of room tiles (the interior-slab glow) and
+     * the per-room-type vertex ambient. Off: tiles are lit
      * mostly by torches, the hand (cursor) and player-coloured creatures.
      * Claim-scan lights are not room lighting and are unaffected.
      */
@@ -64,7 +64,7 @@ public final class LightConstants {
      * Whether the PULSE / FLICKER flags of object and effect lights are
      * honoured. Off, as in the original: its object / effect light creation
      * passes flags 0, so the dungeon heart glow (flagged PULSE in the data) is
-     * a constant light (lighting_design.md, dungeon heart).
+     * a constant light (dungeon heart).
      */
     public static final boolean OBJECT_LIGHTS_PULSE = false;
 
@@ -90,7 +90,7 @@ public final class LightConstants {
     public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.2f;
 
     /**
-     * Slab lights (design &sect;6.7) use the design's intensity of 1.0
+     * Slab lights use an intensity of 1.0
      */
     public static final float SLAB_LIGHT_INTENSITY = 1.0f;
 
@@ -140,7 +140,7 @@ public final class LightConstants {
     public static final float DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK = 1.5f;
 
     /**
-     * Thing-light intensity by owner type (design &sect;6.1).
+     * Thing-light intensity by owner type.
      */
     public static final float OBJECT_LIGHT_INTENSITY = 180f / 128f;
     public static final float CREATURE_LIGHT_INTENSITY = 1.0f;
@@ -165,7 +165,7 @@ public final class LightConstants {
     public static final float PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES = 0.1f;
 
     /**
-     * Design &sect;6.1's fixed 8-slot player colour table, shade 0 (the
+     * The fixed 8-slot player colour table, shade 0 (the
      * shade lights use). The slot is the player number: 0 unowned, 1 good
      * (also the fallback), 2 neutral, 3..7 the keepers. It is code in the
      * original, not data.
@@ -208,7 +208,7 @@ public final class LightConstants {
     }
 
     /**
-     * Design &sect;6.1's thing-light enable rule: a light exists when its
+     * The thing-light enable rule: a light exists when its
      * colour is non-zero. The file's enable bit is not what decides (the
      * original ORs it with the colour test when loading), and most shipped
      * glowing records have it clear.
@@ -239,7 +239,7 @@ public final class LightConstants {
 
     /**
      * The fixed presentation clock {@link LightModulators#flickerStep()} is
-     * driven at (design &sect;7.2, D4).
+     * driven at.
      */
     public static final int FLICKER_HZ = 30;
 
@@ -266,7 +266,7 @@ public final class LightConstants {
     }
 
     /**
-     * The file value is a byte where 128 = 1.0 (design &sect;3).
+     * The file value is a byte where 128 = 1.0.
      */
     public static float getDefaultTorchLightIntensity(IKwdFile kwdFile) {
         float intensity = getMisc(kwdFile, MiscType.DEFAULT_TORCH_LIGHT_INTENSITY) / 128f;

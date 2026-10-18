@@ -43,7 +43,7 @@ public abstract class RoomConstructor {
     protected final Point start;
 
     /**
-     * This room's vertex ambient (lighting_design.md &sect;8.1), set by
+     * This room's vertex ambient, set by
      * the caller (see {@code MapViewController.handleRoom}) before
      * {@link #construct()}/{@link #getWallSpatial} run, since it's needed
      * to build the DkTerrain materials this class pre-swaps its geometry
@@ -76,8 +76,7 @@ public abstract class RoomConstructor {
 
     /**
      * The DkTerrain materials {@link #construct()} swapped its floor/wall
-     * geometry onto, for the caller to register with {@code LightRules}
-     * (design &sect;4/&sect;11). Only populated after {@link #construct()}
+     * geometry onto, for the caller to register with {@code LightRules}. Only populated after {@link #construct()}
      * has run.
      */
     public List<Material> getLightingMaterials() {
@@ -119,8 +118,8 @@ public abstract class RoomConstructor {
     }
 
     /**
-     * Swaps every geometry under {@code node} to a DkTerrain material
-     * (design &sect;8.1/&sect;9) -- must run before {@code node.batch()},
+     * Swaps every geometry under {@code node} to a DkTerrain material.
+     * Must run before {@code node.batch()},
      * see the class-level note on {@link #ambient}. {@code outMaterials}
      * is a separate list per call site (not always {@link
      * #lightingMaterials}) so a single per-tile wall corner piece (see

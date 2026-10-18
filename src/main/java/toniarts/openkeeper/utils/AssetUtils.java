@@ -224,7 +224,7 @@ public final class AssetUtils {
     /**
      * Builds a {@code DkTerrain} material carrying {@code original}'s
      * DiffuseMap/AlphaDiscardThreshold/transparency and this terrain
-     * type's vertex ambient (design &sect;8.1). Must be called BEFORE the
+     * type's vertex ambient. Must be called BEFORE the
      * geometry it's applied to is batched (jME refuses to re-material an
      * already-batched {@code Geometry}, and {@code BatchNode.setMaterial}
      * throws post-batch too -- "please set the material on the geoms
@@ -267,11 +267,10 @@ public final class AssetUtils {
     }
 
     /**
-     * Refreshes the "flat" light sample (lighting_design.md &sect;9) on
+     * Refreshes the "flat" light sample on
      * every {@code DkFlat}-materialled geometry under {@code spatial},
      * using {@code spatial}'s current world position. Meant to be called
-     * once per frame for anything with an attached thing light (design
-     * &sect;7.4) -- position changes and modulator/flicker changes on
+     * once per frame for anything with an attached thing light -- position changes and modulator/flicker changes on
      * nearby lights both need this, not just the former.
      *
      * @param spatial the model to refresh (a creature, object, effect...)
@@ -348,7 +347,7 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        // DkFlat/DkTerrain (design's "no specular term" model) don't declare
+        // DkFlat/DkTerrain (no specular term) don't declare
         // Normal/Specular/ParallaxMap at all -- nothing to assign there.
         if (material.getMaterialDef().getMaterialParam(paramName) == null) {
             return;
