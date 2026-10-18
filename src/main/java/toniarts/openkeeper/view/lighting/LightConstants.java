@@ -35,10 +35,11 @@ public final class LightConstants {
     public static final float SOFT_FALLOFF_TAIL_TILES = 0.5f;
 
     /**
-     * The original's terrain-light radius: the terrain
-     * data has no radius field, the original reuses a fixed scratch value.
+     * The original's terrain-light radius: the terrain data has no radius
+     * field, the original reuses the scratch CLight at CBridge+0x35B with a
+     * fixed radius of 4.5 tiles. Not subject to {@link #MAX_LIGHT_RADIUS_TILES}.
      */
-    public static final float TERRAIN_LIGHT_RADIUS_TILES = 0.75f;
+    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.5f;
 
     /**
      * The original's terrain-light intensity
