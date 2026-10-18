@@ -75,6 +75,7 @@ import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
@@ -497,15 +498,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             onBorder = p.x < 1 || p.y < 1 || p.x >= width - 1 || p.y >= height - 1;
         }
 
-        Vector2f pointed = selectionHandler.getActualPointedPosition();
-        // The pointed position is the real floor point (tile centres are on whole numbers)
-        Vector3f position = new Vector3f(pointed.x, 0f, pointed.y);
+        // Over open ground the light is lowered to reach the things standing
+        // there. The mouse ray is cast to the light's own height, else the
+        // light sits off towards the camera, under the pointer
+        boolean overSolid = !visible || mapInformation.isSolid(p);
+        float height = overSolid ? LightConstants.CURSOR_LIGHT_HEIGHT : LightConstants.CURSOR_LIGHT_HEIGHT_OPEN;
+        Vector2f pointed = selectionHandler.getPointedPositionAtHeight(height);
+        Vector3f position = new Vector3f(pointed.x, height, pointed.y);
 
         // Border tiles: light stays on but black. Over unexplored
         // ground it stays white: the hand lights the fog it points at, which
         // is otherwise completely black (a deviation from the original).
         boolean explored = visible && !onBorder;
-        lightRules.updateCursorLight(visible, position, explored);
+         lightRules.updateCursorLight(visible, position, explored);
     }
 
     private boolean isOnMap() {

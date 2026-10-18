@@ -20,6 +20,7 @@ import java.util.Map;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Lighting-related constants. Values with a file field are read from
@@ -97,7 +98,7 @@ public final class LightConstants {
     /**
      * Cursor light radius
      */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 0.75f;
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 0.5f;
 
     /**
      * Cursor light intensity, 255/128
@@ -115,10 +116,17 @@ public final class LightConstants {
     public static final float CURSOR_LIGHT_INTENSITY = 255f / 128f;
 
     /**
-     * Cursor light height above the floor
-     * field.
+     * Cursor light height above the floor, over solid rock (whose top is
+     * higher up)
      */
     public static final float CURSOR_LIGHT_HEIGHT = 2.125f;
+
+    /**
+     * Cursor light height over open ground, in world space: just above the
+     * floor, low enough to reach the creatures and objects standing under the
+     * hand
+     */
+    public static final float CURSOR_LIGHT_HEIGHT_OPEN = WorldUtils.FLOOR_HEIGHT + 0.01f;
 
     /**
      * Portal light radius: this is also the hard cap every light's radius

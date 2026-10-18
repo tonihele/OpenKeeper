@@ -398,8 +398,9 @@ public final class LightRules {
      * (still lit, not hidden, which differs from
      * "invisible"). Deviation from the original's tile-centred
      * {@code cursorTile.x + 0.5}: the caller passes the continuous cursor
-     * floor point (plus the half-tile offset), so the glow glides instead
-     * of snapping between tiles.
+     * point, so the glow glides instead of snapping between tiles. The
+     * caller also picks the height, and so must cast the mouse ray to that
+     * height or the light lands off-centre of the pointer.
      */
     public void updateCursorLight(boolean visible, Vector3f position, boolean explored) {
         if (cursorLight == null) {
@@ -409,7 +410,7 @@ public final class LightRules {
         if (!visible) {
             return;
         }
-        cursorLight.setPosition(new Vector3f(position.x, LightConstants.CURSOR_LIGHT_HEIGHT, position.z));
+        cursorLight.setPosition(position);
         int value = explored ? LightConstants.MAX_COLOUR : 0;
         cursorLight.setBaseColour(value, value, value);
     }
