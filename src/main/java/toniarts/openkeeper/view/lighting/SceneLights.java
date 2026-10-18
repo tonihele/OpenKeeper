@@ -184,7 +184,7 @@ public final class SceneLights {
 
         int count = 0;
         for (LightSource light : lights) {
-            if (!light.isEnabled()) {
+            if (!light.isEnabled() || hiddenByFog(light)) {
                 continue;
             }
             Vector3f pos = light.getPosition();
@@ -240,6 +240,23 @@ public final class SceneLights {
             }
         }
         return true;
+    }
+
+    /**
+     * Fog gates the whole lighting pass: a tile-owned torch, terrain or slab
+     * light on a tile the viewer has neither explored nor perceived is not
+     * submitted at all (rather than being submitted and hidden by the shader).
+     * Perceived tiles stay, which keeps the claim-scan / gold-seam glow.
+     * Thing, portal and cursor lights are not tile-gated.
+     */
+    private boolean hiddenByFog(LightSource light) {
+        LightKind kind = light.getKind();
+        if (kind != LightKind.TORCH && kind != LightKind.TERRAIN && kind != LightKind.SLAB) {
+            return false;
+        }
+        return light.getOwner() instanceof Point owner
+                && !fogOfWar.isExplored(owner)
+                && !fogOfWar.isPerceived(owner);
     }
 
     /**
