@@ -157,6 +157,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
     private final Map<Node, List<Object>> pageBatchRegionKeys = new IdentityHashMap<>(); // Region keys registered per page, removed on re-batch
     private final LightRules lightRules;
+    private final boolean litSolidTerrain;
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService, short playerId) {
         this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, true);
@@ -174,6 +175,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled, false);
+    }
+
+    private MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled,
+            boolean litSolidTerrain) {
+        this.litSolidTerrain = litSolidTerrain;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
@@ -1531,7 +1539,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                     return;
                 }
                 Material dkTerrain = AssetUtils.createDkTerrainMaterial(assetManager, geometry.getMaterial(), ambient);
-                if (solid) {
+                if (solid && !litSolidTerrain) {
                     dkTerrain.setFloat("MinLight", 0f);
                 }
                 geometry.setMaterial(dkTerrain);

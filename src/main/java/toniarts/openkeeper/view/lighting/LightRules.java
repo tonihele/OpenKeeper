@@ -42,7 +42,7 @@ import toniarts.openkeeper.utils.Point;
 public final class LightRules {
 
     private final LightModulators modulators = new LightModulators();
-    private final SceneLights sceneLights = new SceneLights();
+    private final SceneLights sceneLights;
     private final IFogOfWarQuery fogOfWar;
     private boolean cheapLighting;
 
@@ -51,6 +51,7 @@ public final class LightRules {
     }
 
     public LightRules(IFogOfWarQuery fogOfWar) {
+        this.sceneLights = new SceneLights();
         this.fogOfWar = fogOfWar;
         this.sceneLights.setFogOfWar(fogOfWar);
     }

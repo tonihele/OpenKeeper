@@ -66,7 +66,7 @@ public final class SceneLights {
      * Most lights the data texture holds; must match {@code DK_MAX_LIGHTS} in
      * {@code DkTerrain.vert}.
      */
-    public static final int MAX_LIGHTS = 1024;
+    public static final int MAX_LIGHTS = 3084;
 
     /**
      * Layout of {@code LightData}: texel 0 is a header (x = light count,

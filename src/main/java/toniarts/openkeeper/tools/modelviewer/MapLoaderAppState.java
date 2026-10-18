@@ -21,13 +21,16 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.InputManager;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.util.Collections;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.GameController;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -51,11 +54,14 @@ public final class MapLoaderAppState extends AbstractAppState {
     private EntityData mapEntityData;
     private MapLoaderAppState.MapEntityViewState mainMenuEntityViewState;
     private GameController gameController;
+    private volatile MapViewController mapViewController;
+    private Application app;
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
 
+        this.app = app;
         this.stateManager = stateManager;
         assetManager = app.getAssetManager();
         inputManager = app.getInputManager();
@@ -71,7 +77,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID) {
+        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -81,13 +87,35 @@ public final class MapLoaderAppState extends AbstractAppState {
         };
         mapNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
+        // No fog of war here (MapViewController's ALWAYS_VISIBLE), so the whole
+        // map is lit; update() below drives the lights. Published only once the
+        // load is done, like PlayerMapViewState's mapLoaded gate.
+        mapViewController = mapLoader;
+
         mainMenuEntityViewState = new MapLoaderAppState.MapEntityViewState(kwdFile, assetManager, mapEntityData, Player.KEEPER1_ID, null, mapNode);
         stateManager.attach(mainMenuEntityViewState);
 
         return mapNode;
     }
 
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+
+        // Lighting: the terrain materials are only lit once the light data is
+        // uploaded every frame (flicker, pulse, ...), as PlayerMapViewState does
+        MapViewController controller = mapViewController;
+        if (controller != null) {
+            Settings settings = Main.getUserSettings();
+            float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
+            controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            controller.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+            controller.getLightRules().update(tpf, app.getCamera());
+        }
+    }
+
     private void unloadMap() {
+        mapViewController = null;
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
