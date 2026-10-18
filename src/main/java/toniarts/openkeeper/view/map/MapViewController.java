@@ -155,7 +155,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
-    private final Map<Node, List<Object>> pageBatchRegionKeys = new IdentityHashMap<>(); // Region keys registered per page, removed on re-batch
     private final LightRules lightRules;
     private final boolean litSolidTerrain;
 
@@ -259,7 +258,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             ((BatchNode) page.getChild(FLOOR_INDEX)).batch();
             ((BatchNode) page.getChild(WALL_INDEX)).batch();
             ((BatchNode) page.getChild(TOP_INDEX)).batch();
-            registerPageBatchRegions(page);
+            bindPageBatchMaterials(page);
         }
         map.attachChild(terrain);
 
@@ -392,7 +391,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         Spatial surface = Water.construct(assetManager, batches);
         if (surface instanceof Geometry geometry && AssetUtils.isDkTerrainMaterial(geometry.getMaterial())) {
-            lightRules.registerRegionMaterials(surface, Vector3f.ZERO, 0f, List.of(geometry.getMaterial()));
+            lightRules.bindMaterials(List.of(geometry.getMaterial()));
         }
         map.attachChild(surface);
         return surface;
@@ -472,7 +471,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             // Re-batching creates new batched geometries/materials in place,
             // so the page's region registration must be refreshed
             if (batchNode.getParent() instanceof Node page) {
-                registerPageBatchRegions(page);
+                bindPageBatchMaterials(page);
             }
         }
 
@@ -631,70 +630,29 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Registers the batched geometry of a whole page as lighting regions
+     * Hooks the DkTerrain materials of a page's batched geometry up to the lighting
      */
-    private void registerPageBatchRegions(Node page) {
+    private void bindPageBatchMaterials(Node page) {
         if (page == null) {
             return;
         }
-        List<Object> keys = pageBatchRegionKeys.get(page);
-        if (keys != null) {
-            for (Object key : keys) {
-                lightRules.unregisterRegionMaterials(key);
-            }
-        }
-        keys = new ArrayList<>();
-
-        String[] pageCoords = page.getName().split("_");
-        if (pageCoords.length < 2) {
-            return;
-        }
-        int pageX;
-        int pageY;
-        try {
-            pageX = Integer.parseInt(pageCoords[0]);
-            pageY = Integer.parseInt(pageCoords[1]);
-        } catch (NumberFormatException e) {
-            return;
-        }
-        float minX = pageX * PAGE_SQUARE_SIZE - 0.5f;
-        float minZ = pageY * PAGE_SQUARE_SIZE - 0.5f;
-        float maxX = (pageX + 1) * PAGE_SQUARE_SIZE + 0.5f;
-        float maxZ = (pageY + 1) * PAGE_SQUARE_SIZE + 0.5f;
-        Vector3f[] pageBounds = new com.jme3.math.Vector3f[]{
-            new com.jme3.math.Vector3f(minX, 1f, minZ),
-            new com.jme3.math.Vector3f(maxX, 2f, maxZ)
-        };
+        List<Material> materials = new ArrayList<>();
         // The merged batch geometries are the batch node's direct Geometry
-        Map<Material, Vector3f[]> materialBounds = new IdentityHashMap<>();
         for (int i = 0; i <= TOP_INDEX; i++) {
-            Spatial batch = page.getChild(i);
-            if (!(batch instanceof BatchNode batchNode)) {
+            if (!(page.getChild(i) instanceof BatchNode batchNode)) {
                 continue;
             }
             for (Spatial child : batchNode.getChildren()) {
-                if (!(child instanceof Geometry geometry) || geometry.getMesh() == null) {
-                    continue;
+                // Only DkTerrain materials take the shared light data;
+                // DkFlat things are lit CPU-side per thing
+                if (child instanceof Geometry geometry && geometry.getMesh() != null
+                        && geometry.getMaterial() != null
+                        && AssetUtils.isDkTerrainMaterial(geometry.getMaterial())) {
+                    materials.add(geometry.getMaterial());
                 }
-                Material material = geometry.getMaterial();
-                // Only DkTerrain materials take a per-vertex light array
-                // (NumLights etc.); DkFlat things are lit CPU-side per thing
-                if (material == null || !AssetUtils.isDkTerrainMaterial(material)) {
-                    continue;
-                }
-                materialBounds.putIfAbsent(material, pageBounds);
             }
         }
-        int regionIndex = 0;
-        for (Map.Entry<Material, Vector3f[]> entry : materialBounds.entrySet()) {
-            Vector3f center = entry.getValue()[0].add(entry.getValue()[1]).multLocal(0.5f);
-            float radius = center.distance(entry.getValue()[0]);
-            Object key = page.getName() + ":batch:" + regionIndex;
-            lightRules.registerRegionMaterials(key, center, radius, List.of(entry.getKey()));
-            keys.add(key);
-            regionIndex++;
-        }
-        pageBatchRegionKeys.put(page, keys);
+        lightRules.bindMaterials(materials);
     }
 
     private Spatial getWallSpatial(IMapTileInformation tile, WallDirection direction) {
@@ -815,11 +773,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Node pageNode = getPageNode(p, root);
 
         // This tile is about to be rebuilt -- drop its old torch/terrain
-        // lights and material registrations before (re)creating them below
-        //; registerTerrainTile appends, so this
-        // also prevents the registry from growing unbounded across rebuilds.
+        // lights before (re)creating them below
         lightRules.clearTileLights(p);
-        lightRules.unregisterTerrainTile(p);
 
         handleSlabLight(p, terrain, tile.getOwnerId());
 
@@ -1181,7 +1136,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // stale list, or LightRules would keep pushing light updates onto an
         // orphaned Material no longer attached to anything on screen.
         setTileMaterialToGeometries(tile, topTileNode);
-        lightRules.registerTerrainTile(p, collectMaterials(topTileNode));
+        lightRules.bindMaterials(collectMaterials(topTileNode));
         AssetUtils.translateToTile(topTileNode, p);
     }
 
@@ -1199,7 +1154,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         applyTerrainLighting(sideTileNode, terrain, tile.getOwnerId());
         setTileMaterialToGeometries(tile, sideTileNode);
-        lightRules.registerTerrainTile(p, collectMaterials(sideTileNode));
+        lightRules.bindMaterials(collectMaterials(sideTileNode));
         AssetUtils.translateToTile(sideTileNode, p);
     }
 
@@ -1383,13 +1338,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Spatial roomNode = roomConstructor.construct(fogOfWarInformation);
         List<Material> materials = roomConstructor.getLightingMaterials();
         if (!materials.isEmpty()) {
-            Point center = getRoomCenter(roomInstance);
-            float radius = 0.5f;
-            for (Point coordinate : roomInstance.getCoordinates()) {
-                radius = Math.max(radius, (float) center.distance(coordinate) + 1f);
-            }
-            lightRules.registerRegionMaterials(roomInstance,
-                    new Vector3f(center.x + 0.5f, 0, center.y + 0.5f), radius, materials);
+            lightRules.bindMaterials(materials);
         }
         return roomNode;
     }
@@ -1685,7 +1634,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
 
             lightRules.removeRoomLight(instance);
-            lightRules.unregisterRegionMaterials(instance);
         }
     }
 

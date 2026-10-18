@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
 /**
  * Drives every live {@link LightSource}'s modulators on the two clocks
@@ -39,7 +38,6 @@ public final class LightModulators {
     private final Random random = new Random();
     private float tickAccumulator;
     private float flickerAccumulator;
-    private Consumer<LightSource> onExpired;
 
     public void add(LightSource source) {
         sources.add(source);
@@ -55,15 +53,6 @@ public final class LightModulators {
      */
     public List<LightSource> getSources() {
         return Collections.unmodifiableList(sources);
-    }
-
-    /**
-     * Called when a source's lifetime expires during {@link #update(float)}
-     * so the owner (normally {@link LightRules}) can drop it from its own
-     * registries and tell {@link SceneLights} to release it.
-     */
-    public void setOnExpired(Consumer<LightSource> onExpired) {
-        this.onExpired = onExpired;
     }
 
     /**
@@ -90,9 +79,6 @@ public final class LightModulators {
             LightSource source = sources.get(i);
             if (!source.tick()) {
                 sources.remove(i);
-                if (onExpired != null) {
-                    onExpired.accept(source);
-                }
             }
         }
     }

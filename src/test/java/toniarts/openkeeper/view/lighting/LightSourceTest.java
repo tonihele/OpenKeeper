@@ -31,7 +31,7 @@ public class LightSourceTest {
 
     @Test
     public void radiusIsCappedAtNineAndSevenEighthsTiles() {
-        LightSource source = new LightSource(LightKind.PORTAL, null, true, Vector3f.ZERO,
+        LightSource source = new LightSource(LightKind.PORTAL, null, Vector3f.ZERO,
                 255, 33, 26, 1.0f, 50f);
 
         assertEquals(LightConstants.MAX_LIGHT_RADIUS_TILES, source.getRadius());
@@ -39,7 +39,7 @@ public class LightSourceTest {
 
     @Test
     public void flickerScaleStaysClampedBetweenHalfAndOne() {
-        LightSource source = new LightSource(LightKind.TORCH, null, true, Vector3f.ZERO,
+        LightSource source = new LightSource(LightKind.TORCH, null, Vector3f.ZERO,
                 300, 200, 100, 1.41f, 1.5f);
         source.setFlickers(true);
         Random random = new Random(42);
@@ -54,7 +54,7 @@ public class LightSourceTest {
 
     @Test
     public void nonFlickeringSourceIgnoresFlickerStep() {
-        LightSource source = new LightSource(LightKind.TERRAIN, null, true, Vector3f.ZERO,
+        LightSource source = new LightSource(LightKind.TERRAIN, null, Vector3f.ZERO,
                 200, 80, 35, 1.0f, 4.5f);
         Random random = new Random(1);
 
@@ -65,7 +65,7 @@ public class LightSourceTest {
 
     @Test
     public void tickCountsLifetimeDownAndSignalsExpiry() {
-        LightSource source = new LightSource(LightKind.THING, null, false, Vector3f.ZERO,
+        LightSource source = new LightSource(LightKind.THING, null, Vector3f.ZERO,
                 255, 255, 255, 1.0f, 5f);
         source.setLifetime(3);
 
@@ -76,7 +76,7 @@ public class LightSourceTest {
 
     @Test
     public void infiniteLifetimeNeverExpires() {
-        LightSource source = new LightSource(LightKind.CURSOR, null, true, Vector3f.ZERO,
+        LightSource source = new LightSource(LightKind.CURSOR, null, Vector3f.ZERO,
                 511, 511, 511, 2.0f, 7f);
 
         for (int i = 0; i < 1000; i++) {

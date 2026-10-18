@@ -34,7 +34,6 @@ public final class LightSource {
 
     private final LightKind kind;
     private final Object owner;
-    private final boolean isStatic;
     private Vector3f position;
     private final int[] baseColour = new int[3];
     private final int[] colour = new int[3];
@@ -48,11 +47,10 @@ public final class LightSource {
     private float flickerScale = 1.0f;
     private boolean enabled = true;
 
-    public LightSource(LightKind kind, Object owner, boolean isStatic, Vector3f position,
+    public LightSource(LightKind kind, Object owner, Vector3f position,
             int red, int green, int blue, float intensity, float radius) {
         this.kind = kind;
         this.owner = owner;
-        this.isStatic = isStatic;
         this.position = position;
         this.baseColour[0] = red;
         this.baseColour[1] = green;
@@ -88,10 +86,6 @@ public final class LightSource {
         return owner;
     }
 
-    public boolean isStatic() {
-        return isStatic;
-    }
-
     public Vector3f getPosition() {
         return position;
     }
@@ -100,12 +94,6 @@ public final class LightSource {
         this.position = position;
     }
 
-    /**
-     * When {@code false}, this source contributes nothing regardless of
-     * position/radius -- used by the cursor light to "hide" it
-     * (build mode, off-map, not over the world) without needing
-     * a sentinel position.
-     */
     /**
      * Whether this light is carried by a game object (the dungeon heart glow,
      * ...), as opposed to a creature, effect, torch or terrain
@@ -118,6 +106,12 @@ public final class LightSource {
         this.objectLight = objectLight;
     }
 
+    /**
+     * When {@code false}, this source contributes nothing regardless of
+     * position/radius -- used by the cursor light to "hide" it
+     * (build mode, off-map, not over the world) without needing
+     * a sentinel position.
+     */
     public boolean isEnabled() {
         return enabled;
     }
@@ -142,18 +136,6 @@ public final class LightSource {
             colour[1] = green;
             colour[2] = blue;
         }
-    }
-
-    public int getBaseRed() {
-        return baseColour[0];
-    }
-
-    public int getBaseGreen() {
-        return baseColour[1];
-    }
-
-    public int getBaseBlue() {
-        return baseColour[2];
     }
 
     public int getRed() {
@@ -230,8 +212,7 @@ public final class LightSource {
     }
 
     /**
-     * Advances lifetime and the colour modulator by one simulation tick
-     *.
+     * Advances lifetime and the colour modulator by one simulation tick.
      *
      * @return {@code false} once this source's lifetime has expired and it
      * should be destroyed; {@code true} otherwise

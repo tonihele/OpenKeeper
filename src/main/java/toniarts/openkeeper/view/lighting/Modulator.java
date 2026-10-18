@@ -47,10 +47,6 @@ public final class Modulator {
         return type;
     }
 
-    public void none() {
-        type = Type.NONE;
-    }
-
     public void pulse() {
         type = Type.PULSE;
         phase = PULSE_MIN_PHASE;
@@ -70,8 +66,7 @@ public final class Modulator {
     }
 
     /**
-     * Fades in over {@code ticks / 2}, then out over {@code ticks / 2}
-     *.
+     * Fades in over {@code ticks / 2}, then out over {@code ticks / 2}.
      */
     public void flash(int ticks) {
         type = Type.FLASH;
@@ -82,7 +77,7 @@ public final class Modulator {
     /**
      * Advances the modulator by one simulation tick and writes the current
      * colour into {@code outColour}, reading the base colour from
-     * {@code base}. Both arrays are {@code [r, g, b]}, 0..511.
+     * {@code base}. Both arrays are {@code [r, g, b]}, 0..{@link LightConstants#MAX_COLOUR}.
      */
     public void apply(int[] base, int[] outColour) {
         switch (type) {
@@ -104,7 +99,7 @@ public final class Modulator {
         // brightens the base colour (up to about twice as vibrant)
         int scale = PULSE_PHASE_RANGE + phase;
         for (int i = 0; i < 3; i++) {
-            outColour[i] = Math.min(base[i] * scale / PULSE_PHASE_RANGE, 511);
+            outColour[i] = Math.min(base[i] * scale / PULSE_PHASE_RANGE, LightConstants.MAX_COLOUR);
         }
 
         // Reflect off the turnaround points instead of clamping-and-repeating

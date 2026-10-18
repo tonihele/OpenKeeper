@@ -45,6 +45,18 @@ public final class LightRules {
     private final IFogOfWarQuery fogOfWar;
     private boolean cheapLighting;
 
+    /**
+     * Torch and terrain lights, keyed by their owner tile -- a tile
+     * rebuild removes and recreates both together, mirroring how the mesh
+     * builder already replaces the whole tile subtree.
+     */
+    private final Map<Point, List<LightSource>> tileLights = new HashMap<>();
+
+    private final Map<Object, LightSource> roomLights = new HashMap<>();
+    private final Map<Object, LightSource> thingLights = new HashMap<>();
+
+    private LightSource cursorLight;
+
     public LightRules() {
         this(new NoFogOfWarQuery());
     }
@@ -60,22 +72,10 @@ public final class LightRules {
     }
 
     /**
-     * Torch and terrain lights, keyed by their owner tile -- a tile
-     * rebuild removes and recreates both together, mirroring how the mesh
-     * builder already replaces the whole tile subtree.
-     */
-    private final Map<Point, List<LightSource>> tileLights = new HashMap<>();
-
-    private final Map<Object, LightSource> roomLights = new HashMap<>();
-    private final Map<Object, LightSource> thingLights = new HashMap<>();
-
-    private LightSource cursorLight;
-
-    /**
      * Flips {@code flickers} on every currently-live flicker-capable
      * source when the cheap-lighting setting changes.
      * Newly-created torches/things pick up the current setting directly
-     * from {@link #isCheapLighting()} at creation time.
+     * from the current setting at creation time.
      */
     public void setCheapLighting(boolean cheapLighting) {
         if (this.cheapLighting == cheapLighting) {
@@ -133,24 +133,15 @@ public final class LightRules {
         return sceneLights.getGlobalAmbient();
     }
 
-    public void registerTerrainTile(Point tile, List<Material> materials) {
-        sceneLights.registerTerrainTile(tile, materials);
-    }
-
-    public void unregisterTerrainTile(Point tile) {
-        sceneLights.unregisterTerrainTile(tile);
-    }
-
-    public void registerRegionMaterials(Object key, Vector3f center, float radius, List<Material> materials) {
-        sceneLights.registerRegionMaterials(key, center, radius, materials);
-    }
-
-    public void unregisterRegionMaterials(Object key) {
-        sceneLights.unregisterRegionMaterials(key);
+    /**
+     * @see SceneLights#bindMaterials(List)
+     */
+    public void bindMaterials(List<Material> materials) {
+        sceneLights.bindMaterials(materials);
     }
 
     /**
-     * The "flat" sample for a thing/effect's material, -- callers own re-deriving {@code worldPos} each frame
+     * The "flat" sample for a thing/effect's material. Callers own re-deriving {@code worldPos} each frame
      * from the owner's current position + light offset.
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos) {
@@ -185,7 +176,7 @@ public final class LightRules {
 
     public LightSource addTorchLight(Point owner, Vector3f position,
             int red, int green, int blue, float intensity, float radius) {
-        LightSource light = new LightSource(LightKind.TORCH, owner, true, position,
+        LightSource light = new LightSource(LightKind.TORCH, owner, position,
                 red, green, blue, intensity, radius);
         light.setFlickerCapable(true);
         light.applyCheapLighting(cheapLighting);
@@ -200,7 +191,7 @@ public final class LightRules {
 
     public LightSource addTerrainLight(Point owner, Vector3f position,
             int red, int green, int blue, float intensity) {
-        LightSource light = new LightSource(LightKind.TERRAIN, owner, true, position,
+        LightSource light = new LightSource(LightKind.TERRAIN, owner, position,
                 red, green, blue, intensity,
                 LightConstants.TERRAIN_LIGHT_RADIUS_TILES);
         addTileLight(owner, light);
@@ -215,7 +206,7 @@ public final class LightRules {
      */
     public LightSource addSlabLight(Point owner, Vector3f position,
             int red, int green, int blue, float fileRadius, boolean pulse, boolean flicker) {
-        LightSource light = new LightSource(LightKind.SLAB, owner, true, position,
+        LightSource light = new LightSource(LightKind.SLAB, owner, position,
                 red, green, blue, LightConstants.SLAB_LIGHT_INTENSITY, fileRadius);
         if (pulse) {
             light.startPulse();
@@ -236,7 +227,7 @@ public final class LightRules {
     // ------------------------------------------------------------------
 
     public LightSource addPortalLight(Object room, Vector3f position) {
-        LightSource light = new LightSource(LightKind.PORTAL, room, true, position,
+        LightSource light = new LightSource(LightKind.PORTAL, room, position,
                 LightConstants.PORTAL_LIGHT_RED, LightConstants.PORTAL_LIGHT_GREEN,
                 LightConstants.PORTAL_LIGHT_BLUE, LightConstants.PORTAL_LIGHT_INTENSITY,
                 LightConstants.PORTAL_LIGHT_RADIUS_TILES);
@@ -281,7 +272,7 @@ public final class LightRules {
         }
         Vector3f position = ownerPosition.add(offset);
 
-        LightSource light = new LightSource(LightKind.THING, owner, false, position,
+        LightSource light = new LightSource(LightKind.THING, owner, position,
                 r, g, b, intensity, radius);
         if (pulse) {
             light.startPulse();
@@ -326,8 +317,8 @@ public final class LightRules {
     // ------------------------------------------------------------------
 
     public void createCursorLight() {
-        cursorLight = new LightSource(LightKind.CURSOR, null, false, Vector3f.ZERO,
-                511, 511, 511, LightConstants.CURSOR_LIGHT_INTENSITY,
+        cursorLight = new LightSource(LightKind.CURSOR, null, Vector3f.ZERO,
+                LightConstants.MAX_COLOUR, LightConstants.MAX_COLOUR, LightConstants.MAX_COLOUR, LightConstants.CURSOR_LIGHT_INTENSITY,
                 LightConstants.CURSOR_LIGHT_RADIUS_TILES);
         modulators.add(cursorLight);
     }
@@ -358,7 +349,7 @@ public final class LightRules {
             return;
         }
         cursorLight.setPosition(new Vector3f(position.x, LightConstants.CURSOR_LIGHT_HEIGHT, position.z));
-        int value = explored ? 511 : 0;
+        int value = explored ? LightConstants.MAX_COLOUR : 0;
         cursorLight.setBaseColour(value, value, value);
     }
 }

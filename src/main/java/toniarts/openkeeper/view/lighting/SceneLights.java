@@ -124,40 +124,18 @@ public final class SceneLights {
     }
 
     /**
-     * Hooks the DkTerrain materials belonging to one piece of a tile's
-     * geometry up to the shared light and ambient textures. Nothing else is
-     * needed: they are lit from then on by {@link #update}.
+     * Hooks DkTerrain materials up to the shared light and ambient textures.
+     * Nothing else is needed: they are lit from then on by {@link #update}, and
+     * a dropped material is simply no longer rendered, so there is nothing to
+     * undo. Binding the same material again is harmless.
      */
-    public void registerTerrainTile(Point tile, List<Material> materials) {
+    public void bindMaterials(List<Material> materials) {
         for (Material material : materials) {
-            bind(material);
+            if (material.getTextureParam("LightData") == null) {
+                material.setTexture("LightData", lightData);
+            }
+            bindAmbientMap(material);
         }
-    }
-
-    public void unregisterTerrainTile(Point tile) {
-        // Nothing to undo: a dropped material is simply no longer rendered
-    }
-
-    /**
-     * Same as {@link #registerTerrainTile} for a whole room's / page's
-     * batched mesh. The centre and radius are not needed any more, since
-     * every material reads the same light list.
-     */
-    public void registerRegionMaterials(Object key, Vector3f center, float radius, List<Material> materials) {
-        for (Material material : materials) {
-            bind(material);
-        }
-    }
-
-    public void unregisterRegionMaterials(Object key) {
-        // See unregisterTerrainTile
-    }
-
-    private void bind(Material material) {
-        if (material.getTextureParam("LightData") == null) {
-            material.setTexture("LightData", lightData);
-        }
-        bindAmbientMap(material);
     }
 
     /**
@@ -202,9 +180,9 @@ public final class SceneLights {
             lightFloats.put(base + 1, pos.y);
             lightFloats.put(base + 2, pos.z);
             lightFloats.put(base + 3, light.getRadius());
-            lightFloats.put(base + 4, light.getRed() / 255f);
-            lightFloats.put(base + 5, light.getGreen() / 255f);
-            lightFloats.put(base + 6, light.getBlue() / 255f);
+            lightFloats.put(base + 4, light.getRed() / LightConstants.COLOUR_SCALE);
+            lightFloats.put(base + 5, light.getGreen() / LightConstants.COLOUR_SCALE);
+            lightFloats.put(base + 6, light.getBlue() / LightConstants.COLOUR_SCALE);
             lightFloats.put(base + 7, light.getEffectiveIntensity());
             lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
                     | (lightsUnexploredTiles(light) ? 2 : 0));
@@ -364,9 +342,9 @@ public final class SceneLights {
                 continue;
             }
 
-            r += (light.getRed() / 255f) * k;
-            g += (light.getGreen() / 255f) * k;
-            b += (light.getBlue() / 255f) * k;
+            r += (light.getRed() / LightConstants.COLOUR_SCALE) * k;
+            g += (light.getGreen() / LightConstants.COLOUR_SCALE) * k;
+            b += (light.getBlue() / LightConstants.COLOUR_SCALE) * k;
         }
         return new ColorRGBA(r, g, b, 1f);
     }
