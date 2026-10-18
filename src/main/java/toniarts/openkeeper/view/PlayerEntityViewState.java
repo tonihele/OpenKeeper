@@ -249,17 +249,17 @@ public class PlayerEntityViewState extends AbstractAppState {
                     // Big pieces: lit per vertex like the floor, not by one sample
                     AssetUtils.applyVertexLight(assetManager, object, lightRules, true);
                 } else {
-                    AssetUtils.applyFlatLight(object, lightRules);
+                    AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
                 }
             }
             for (Spatial object : creatureModelContainer.getModels()) {
-                AssetUtils.applyFlatLight(object, lightRules);
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
             for (Spatial object : doorModelContainer.getModels()) {
-                AssetUtils.applyFlatLight(object, lightRules);
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
             for (Spatial object : trapModelContainer.getModels()) {
-                AssetUtils.applyFlatLight(object, lightRules);
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
         }
     }
