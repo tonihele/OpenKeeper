@@ -620,6 +620,9 @@ public final class ModelViewer extends SimpleApplication {
             RotatorControl rotator = new RotatorControl();
             rotator.setEnabled(rotate);
             spat.addControl(rotator);
+
+            // There is no map to light these, show them fully lit
+            AssetUtils.applyFullLight(spat);
         }
 
         // Hide the floor on maps
