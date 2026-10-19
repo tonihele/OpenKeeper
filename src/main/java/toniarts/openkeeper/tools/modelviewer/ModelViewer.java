@@ -140,6 +140,7 @@ public final class ModelViewer extends SimpleApplication {
     private boolean wireframe = false;
     private boolean rotate = true;
     private boolean showNormals = false;
+    private boolean ceilingVisible = true;
     private List<String> models;
     private List<String> maps;
     private IKwdFile kwdFile;
@@ -154,6 +155,7 @@ public final class ModelViewer extends SimpleApplication {
     private static final String KEY_MAPPING_SHOW_NORMALS = "show normals";
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
+    private static final String KEY_MAPPING_TOGGLE_CEILING = "toggle ceiling";
 
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
@@ -174,6 +176,10 @@ public final class ModelViewer extends SimpleApplication {
             else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
                 showNormals = !showNormals;
                 toggleShowNormals();
+            } // Ceiling
+            else if (KEY_MAPPING_TOGGLE_CEILING.equals(name) && !pressed) {
+                ceilingVisible = !ceilingVisible;
+                mapLoaderAppState.setCeilingVisible(ceilingVisible);
             }
         }
     };
@@ -265,6 +271,10 @@ public final class ModelViewer extends SimpleApplication {
         // Normals
         inputManager.addMapping(KEY_MAPPING_SHOW_NORMALS, new KeyTrigger(KeyInput.KEY_N));
         inputManager.addListener(actionListener, KEY_MAPPING_SHOW_NORMALS);
+
+        // Ceiling
+        inputManager.addMapping(KEY_MAPPING_TOGGLE_CEILING, new KeyTrigger(KeyInput.KEY_C));
+        inputManager.addListener(actionListener, KEY_MAPPING_TOGGLE_CEILING);
 
         setupLighting();
         setupFloor();
