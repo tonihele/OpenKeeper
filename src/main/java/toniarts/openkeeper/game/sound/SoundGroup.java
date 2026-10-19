@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
+import toniarts.openkeeper.tools.convert.sound.sfx.SfxData;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxEEEntry;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxGroupEntry;
 import toniarts.openkeeper.tools.convert.sound.sfx.SfxSoundEntry;
@@ -42,6 +43,7 @@ public final class SoundGroup {
     private final SoundCategory category;
     private final SfxGroupEntry entry;
     private final List<SoundFile> files = new ArrayList<>();
+    private final List<SoundEntry> entries = new ArrayList<>();
 
     public SoundGroup(SoundCategory category, SfxGroupEntry entry) {
         this.category = category;
@@ -66,6 +68,38 @@ public final class SoundGroup {
         files.add(file);
     }
 
+    /**
+     * The entries in their original order, each with its sounds and links
+     *
+     * @return the entries
+     */
+    public List<SoundEntry> getEntries() {
+        return entries;
+    }
+
+    /**
+     * Tells whether this group is played as a sequence that follows the entry
+     * links (music, ambience) instead of picking a random file
+     *
+     * @return true if any entry links to another one
+     */
+    public boolean isLinked() {
+        for (SoundEntry soundEntry : entries) {
+            if (!soundEntry.getLinks().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return playback flags of the group
+     * @see SfxGroupEntry#getFlags()
+     */
+    public int getFlags() {
+        return entry.getFlags();
+    }
+
     private void parseFiles() {
         BankMapFile bank = category.getBankMapFile();
         Path sfxFolder;
@@ -77,6 +111,16 @@ public final class SoundGroup {
         }
 
         for (SfxEEEntry eEEntry : entry.getEntries()) {
+            SoundEntry soundEntry = new SoundEntry(eEEntry.getMinVolume(), eEEntry.getMaxVolume(),
+                    eEEntry.getMinDelay(), eEEntry.getMaxDelay());
+            entries.add(soundEntry);
+            if (eEEntry.getData() != null) {
+                for (SfxData link : eEEntry.getData()) {
+                    soundEntry.getLinks().add(new SoundEntry.Link(link.getIndex() - 1,
+                            link.getMinIntensity(), link.getMaxIntensity()));
+                }
+            }
+
             for (SfxSoundEntry eEEEntry : eEEntry.getSounds()) {
                 int archiveId = eEEEntry.getArchiveId() - 1;
                 int soundId = eEEEntry.getIndex() - 1;
@@ -93,8 +137,10 @@ public final class SoundGroup {
                     String soundFilename = relative.substring(0, relative.length() - 4) + File.separator
                             + SdtFile.fixFileExtension(sdt.getEntries()[soundId]);
 
-                    SoundFile sf = new SoundFile(this, soundId, soundFilename);
+                    SoundFile sf = new SoundFile(this, soundId, soundFilename,
+                            sdt.getEntries()[soundId].getnSamples(), eEEEntry.getWeight());
                     files.add(sf);
+                    soundEntry.getFiles().add(sf);
                 } catch (Exception ex) {
                     logger.log(Level.ERROR, () -> {
                         return "Error in file " + sdt.getFile().toString() + " with id " + soundId;

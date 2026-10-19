@@ -54,6 +54,17 @@ public final class SfxGroupEntry {
         return typeId;
     }
 
+    /**
+     * Playback flags, these select how the group is played. E.g. MUSIC and
+     * AMBIENCE (0x0606) are sequences that follow the entry links, the one
+     * shot atmosphere (0x0204) is a sequence of randomly delayed sounds.
+     *
+     * @return the flags
+     */
+    public int getFlags() {
+        return unknown_3 & 0xffff;
+    }
+
     @Override
     public String toString() {
         return "SfxGroupEntry{" + "index=" + typeId
