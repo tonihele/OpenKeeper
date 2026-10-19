@@ -65,6 +65,7 @@ import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
@@ -121,6 +122,7 @@ public final class MainMenuState extends AbstractAppState {
     protected MapSelector mapSelector;
     private EntityData mainMenuEntityData;
     private MainMenuEntityViewState mainMenuEntityViewState;
+    private EffectManagerState effectManagerState;
     private GameController gameController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
@@ -203,6 +205,12 @@ public final class MainMenuState extends AbstractAppState {
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
 
+        // Effects (currently just the hero gate's gem holder swirl, spawned
+        // by PlayerEntityViewState/MainMenuEntityViewState's RoomEffectContainer
+        // once HeroGateFrontEndController's RoomEffect component appears)
+        effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        app.getStateManager().attach(effectManagerState);
+
         // Init the skirmish and multiplayer maps selector
         mapSelector = new MapSelector();
     }
@@ -257,6 +265,11 @@ public final class MainMenuState extends AbstractAppState {
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
+        }
+
+        if (effectManagerState != null) {
+            stateManager.detach(effectManagerState);
+            effectManagerState = null;
         }
 
         // Clear sound
