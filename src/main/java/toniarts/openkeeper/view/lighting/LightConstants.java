@@ -262,7 +262,7 @@ public final class LightConstants {
         if (light == null || light.getColor() == null) {
             return false;
         }
-        java.awt.Color c = light.getColor();
+        toniarts.openkeeper.utils.Color c = light.getColor();
         return c.getRed() != 0 || c.getGreen() != 0 || c.getBlue() != 0;
     }
 

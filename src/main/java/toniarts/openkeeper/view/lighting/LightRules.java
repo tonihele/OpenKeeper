@@ -295,7 +295,7 @@ public final class LightRules {
      */
     public LightSource addThingLight(Object owner, Vector3f ownerPosition, Light light, Short ownerId,
             float intensity, boolean honourPulse) {
-        java.awt.Color c = light.getColor();
+        toniarts.openkeeper.utils.Color c = light.getColor();
         Set<Light.LightFlag> flags = light.getFlags();
         boolean playerColoured = flags.contains(Light.LightFlag.PLAYER_COLOURED);
         return addThingLight(owner, ownerPosition, LightConstants.toJmeOffset(light.getmKPos()),

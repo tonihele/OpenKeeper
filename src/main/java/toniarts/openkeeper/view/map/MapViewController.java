@@ -1383,7 +1383,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (light == null || light.getColor() == null) {
             return;
         }
-        java.awt.Color c = light.getColor(); // Light uses AWT's colour, unlike Terrain
+        Color c = light.getColor();
         if (c.getRed() == 0 && c.getGreen() == 0 && c.getBlue() == 0) {
             return;
         }
