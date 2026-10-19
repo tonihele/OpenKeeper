@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -64,6 +65,7 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -1115,6 +1117,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+        }
+
+        // Show the fall animation right away, before the position brings the model back to the map
+        if (!tortureOrImprisonment) {
+            CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
+            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
         }
 
         // Add position
