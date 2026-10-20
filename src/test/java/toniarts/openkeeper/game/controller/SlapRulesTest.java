@@ -47,8 +47,12 @@ class SlapRulesTest {
     }
 
     @Test
-    void enemyCreatureInSomeoneElsesPrisonCannotBeSlapped() {
+    void nothingInSomeoneElsesPrisonCanBeSlapped() {
         assertFalse(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, ENEMY));
+        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.KEEPER3_ID, ENEMY));
+
+        // Not even our own creature held there
+        assertFalse(SlapRules.canSlapCreature(PLAYER, PLAYER, ENEMY));
     }
 
 }

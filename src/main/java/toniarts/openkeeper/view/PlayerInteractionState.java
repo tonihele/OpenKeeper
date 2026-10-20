@@ -795,8 +795,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @return true if spell can be cast
      */
     /**
-     * Whether a right click on the thing is a slap. Others' creatures only
-     * when they sit in our prison, the same rule the server applies
+     * Whether a right click on the thing is a slap. Prisoners only in our own
+     * prison, the same rule the server applies
      *
      * @param control the thing under the cursor
      * @return can it be slapped
@@ -806,11 +806,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (!control.isSlappable(playerId)) {
             return false;
         }
-        if (control.getOwnerId() == playerId) {
-            return true;
-        }
+
+        // Things other than creatures, only our own
         if (entityData.getComponent(control.getEntityId(), CreatureComponent.class) == null) {
-            return false;
+            return control.getOwnerId() == playerId;
         }
 
         // A prisoner is controlled by the keeper holding it

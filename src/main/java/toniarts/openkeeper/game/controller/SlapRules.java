@@ -28,9 +28,11 @@ public final class SlapRules {
     }
 
     /**
-     * A keeper slaps their own creatures. Other creatures only once they sit
-     * in the keeper's prison, an enemy walking on the keeper's land cannot be
-     * slapped.
+     * A prisoner can only be slapped by the keeper holding it, whoever it
+     * belongs to: heroes and creatures of other keepers in the keeper's own
+     * prison, but nothing in someone else's prison, not even the keeper's own
+     * creatures. A free creature only by its owner, an enemy walking on the
+     * keeper's land cannot be slapped.
      *
      * @param playerId the slapping keeper
      * @param creatureOwnerId the owner of the creature
@@ -39,7 +41,10 @@ public final class SlapRules {
      * @return whether the keeper may slap the creature
      */
     public static boolean canSlapCreature(short playerId, short creatureOwnerId, Short prisonerOf) {
-        return creatureOwnerId == playerId || (prisonerOf != null && prisonerOf == playerId);
+        if (prisonerOf != null) {
+            return prisonerOf == playerId;
+        }
+        return creatureOwnerId == playerId;
     }
 
 }
