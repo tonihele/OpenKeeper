@@ -30,9 +30,9 @@ public final class SlapRules {
     /**
      * A prisoner can only be slapped by the keeper holding it, whoever it
      * belongs to: heroes and creatures of other keepers in the keeper's own
-     * prison, but nothing in someone else's prison, not even the keeper's own
-     * creatures. A free creature only by its owner, an enemy walking on the
-     * keeper's land cannot be slapped.
+     * prison. A creature taken prisoner by someone else can be slapped by its
+     * jailer, but no longer by its owner. A free creature only by its owner,
+     * an enemy walking on the keeper's land cannot be slapped.
      *
      * @param playerId the slapping keeper
      * @param creatureOwnerId the owner of the creature

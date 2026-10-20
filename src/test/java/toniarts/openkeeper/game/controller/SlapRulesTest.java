@@ -55,4 +55,9 @@ class SlapRulesTest {
         assertFalse(SlapRules.canSlapCreature(PLAYER, PLAYER, ENEMY));
     }
 
+    @Test
+    void ourCreatureInSomeoneElsesPrisonCanBeSlappedByTheJailer() {
+        assertTrue(SlapRules.canSlapCreature(ENEMY, PLAYER, ENEMY));
+    }
+
 }
