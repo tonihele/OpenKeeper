@@ -134,7 +134,8 @@ public class EffectManagerState extends AbstractAppState {
     }
 
     public PlayerMapViewState getPlayerMapViewState() {
-        return stateManager.getState(PlayerMapViewState.class);
+        // Effects may be loaded before this state has been initialized (or after cleanup)
+        return stateManager != null ? stateManager.getState(PlayerMapViewState.class) : null;
     }
 
     public AssetManager getAssetManger() {

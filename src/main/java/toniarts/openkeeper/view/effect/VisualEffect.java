@@ -250,7 +250,11 @@ public class VisualEffect {
     }
 
     private void handleEffectHit(Vector3f location) {
-        IMapTileInformation tile = effectManagerState.getPlayerMapViewState().getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        if (mapViewState == null) {
+            return;
+        }
+        IMapTileInformation tile = mapViewState.getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
         if (tile == null) {
             logger.log(Level.WARNING, "Effect hit error");
             return;
@@ -572,7 +576,11 @@ public class VisualEffect {
     }
 
     private void handleElementHit(EffectElement element, Vector3f location) {
-        IMapTileInformation tile = effectManagerState.getPlayerMapViewState().getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        if (mapViewState == null) {
+            return;
+        }
+        IMapTileInformation tile = mapViewState.getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
         if (tile == null) {
             logger.log(Level.WARNING, "Effect hit error");
             return;
