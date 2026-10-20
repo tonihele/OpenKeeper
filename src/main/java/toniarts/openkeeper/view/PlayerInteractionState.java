@@ -124,7 +124,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * is slapped, so the cursor can revert to normal once it has finished
      * instead of staying on the slap cursor.
      */
-    private float slapCursorTimeRemaining = 0f;
+    /**
+     * A cursor animation the hand plays once as a reaction, a slap or a drop,
+     * before the normal cursor comes back
+     */
+    private CursorFactory.CursorType reactionCursor;
+    private float reactionCursorTimeRemaining = 0f;
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
@@ -229,10 +234,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             updateInteractiveObjectOnCursor();
         }
 
-        if (slapCursorTimeRemaining > 0) {
-            slapCursorTimeRemaining -= tpf;
-            if (slapCursorTimeRemaining <= 0) {
-                slapCursorTimeRemaining = 0;
+        if (reactionCursorTimeRemaining > 0) {
+            reactionCursorTimeRemaining -= tpf;
+            if (reactionCursorTimeRemaining <= 0) {
+                reactionCursorTimeRemaining = 0;
+                reactionCursor = null;
                 updateCursor();
             }
         }
@@ -499,10 +505,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     protected void updateCursor() {
         keeperHandState.setVisible(false);
         if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
-            if (slapCursorTimeRemaining > 0) {
+            if (reactionCursor != null) {
 
-                // Play the slap reaction once, then fall through to normal cursor logic
-                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.SLAP, assetManager));
+                // Play the reaction once, then fall through to normal cursor logic
+                inputManager.setMouseCursor(CursorFactory.getCursor(reactionCursor, assetManager));
             } else if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
             } else if (selectionHandler.isActive() && isTaggable) {
@@ -520,6 +526,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         } else if (keeperHandState.getItem() != null) {
             keeperHandState.setVisible(true);
         }
+    }
+
+    /**
+     * Plays a cursor animation once, the normal cursor comes back after it.
+     * Takes effect with the next cursor update
+     *
+     * @param cursor the animation to play
+     */
+    private void playReactionCursor(CursorFactory.CursorType cursor) {
+        reactionCursor = cursor;
+        reactionCursorTimeRemaining = CursorFactory.getAnimationDuration(cursor, assetManager);
     }
 
     private void initializeInput() {
@@ -673,6 +690,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
                     if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
+
+                        // Show the hand letting go of it, the updateCursor() call below picks it up
+                        if (entityViewControl.getDropCursor() != null) {
+                            playReactionCursor(entityViewControl.getDropCursor());
+                        }
                     }
                     //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
 //                    IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
@@ -693,7 +715,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                     // Flash the slap cursor once; the updateCursor() call below
                     // picks it up, and update(tpf) reverts it once it elapses
-                    slapCursorTimeRemaining = CursorFactory.getAnimationDuration(CursorFactory.CursorType.SLAP, assetManager);
+                    playReactionCursor(CursorFactory.CursorType.SLAP);
                 } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                     interactiveControl.interact(player.getPlayerId());

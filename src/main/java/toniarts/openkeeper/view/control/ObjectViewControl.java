@@ -151,6 +151,14 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     }
 
     @Override
+    public CursorFactory.CursorType getDropCursor() {
+        if (getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+            return CursorFactory.CursorType.DROP_GOLD;
+        }
+        return super.getDropCursor();
+    }
+
+    @Override
     public void setTargetState(ObjectViewState state) {
         super.setTargetState(state);
 

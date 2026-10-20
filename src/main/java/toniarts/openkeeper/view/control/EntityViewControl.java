@@ -149,6 +149,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     @Override
+    public CursorFactory.CursorType getDropCursor() {
+        return null;
+    }
+
+    @Override
     public ArtResource getInHandMesh() {
         return null;
     }
