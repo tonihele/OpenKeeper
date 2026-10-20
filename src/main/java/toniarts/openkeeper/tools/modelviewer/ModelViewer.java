@@ -205,6 +205,7 @@ public final class ModelViewer extends SimpleApplication {
         settings.setResizable(true);
         settings.setWidth(1280);
         settings.setHeight(720);
+        settings.setGammaCorrection(false);
 
         app.setSettings(settings);
 
