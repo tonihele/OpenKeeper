@@ -397,16 +397,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             while (!open.isEmpty()) {
                 Point p = open.removeFirst();
                 part.add(p);
-                for (Point neighbour : List.of(new Point(p.x, p.y - 1), new Point(p.x + 1, p.y),
-                        new Point(p.x, p.y + 1), new Point(p.x - 1, p.y))) {
-                    if (remaining.remove(neighbour)) {
-                        open.addLast(neighbour);
-                    }
-                }
+                addConnectedPlot(p.x, p.y - 1, remaining, open); // North
+                addConnectedPlot(p.x + 1, p.y, remaining, open); // East
+                addConnectedPlot(p.x, p.y + 1, remaining, open); // South
+                addConnectedPlot(p.x - 1, p.y, remaining, open); // West
             }
             parts.add(part);
         }
         return parts;
+    }
+
+    private static void addConnectedPlot(int x, int y, Set<Point> remaining, ArrayDeque<Point> open) {
+        Point plot = new Point(x, y);
+        if (remaining.remove(plot)) {
+            open.addLast(plot);
+        }
     }
 
     private Set<Point> getConstructionBlockingTiles() {
