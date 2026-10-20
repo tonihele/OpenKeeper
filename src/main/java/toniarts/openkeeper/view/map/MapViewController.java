@@ -1217,7 +1217,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         AssetUtils.translateToTile(topTileNode, p);
     }
 
-    private void handleSide(IMapTileInformation tile, Node pageNode) {
+    private void handleSide(IMapTileInformation tile, Node pageNode, Terrain terrain) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
 

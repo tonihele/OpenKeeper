@@ -20,6 +20,7 @@ import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
+import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -80,7 +81,6 @@ public class VisualEffect {
     private final short ownerId;
     private boolean infinite;
     private Spatial lightTarget;
-    private final Short ownerId;
     private PointLight light;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
@@ -111,7 +111,6 @@ public class VisualEffect {
         this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
         this.infinite = infinite;
-        this.ownerId = ownerId;
 
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
@@ -148,10 +147,10 @@ public class VisualEffect {
         }
 
         // Light
-        light = getLight(effect.getLight());
-        if (light != null) {
-            model.addLight(light);
-        }
+        //light = getLight(effect.getLight());
+        //if (light != null) {
+        //    model.addLight(light);
+        //}
 
         // Light
         lightTarget = model;
@@ -717,6 +716,7 @@ public class VisualEffect {
      */
     private boolean handleEffectCompletion() {
         if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
+            LightRules lightRules = getLightRules();
             // If infitine, just restart
             if (infinite) {
                 if (lightRules != null) {
