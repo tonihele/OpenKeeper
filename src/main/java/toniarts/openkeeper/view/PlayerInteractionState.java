@@ -48,12 +48,15 @@ import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
+import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -682,7 +685,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                        keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
 //                        updateCursor();
 //                    }
-                } else if (interactiveControl != null && interactiveControl.isSlappable(player.getPlayerId())) {
+                } else if (interactiveControl != null && canSlap(interactiveControl)) {
 //                    getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                     interactiveControl.slap(player.getPlayerId());
@@ -791,6 +794,30 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @param position the actual cursor position
      * @return true if spell can be cast
      */
+    /**
+     * Whether a right click on the thing is a slap. Others' creatures only
+     * when they sit in our prison, the same rule the server applies
+     *
+     * @param control the thing under the cursor
+     * @return can it be slapped
+     */
+    private boolean canSlap(IEntityViewControl control) {
+        short playerId = player.getPlayerId();
+        if (!control.isSlappable(playerId)) {
+            return false;
+        }
+        if (control.getOwnerId() == playerId) {
+            return true;
+        }
+        if (entityData.getComponent(control.getEntityId(), CreatureComponent.class) == null) {
+            return false;
+        }
+
+        // A prisoner is controlled by the keeper holding it
+        Short prisonerOf = entityData.getComponent(control.getEntityId(), CreatureImprisoned.class) != null ? control.getControlId() : null;
+        return SlapRules.canSlapCreature(playerId, control.getOwnerId(), prisonerOf);
+    }
+
     private boolean castSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile, Vector2f position) {
         if (!canCastSpell(keeperSpell, object, tile)) {
             return false;
