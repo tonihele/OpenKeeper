@@ -31,16 +31,22 @@ public final class ObjectViewState implements EntityComponent {
     public GameObject.State state;
     public GameObjectAnimState animState = GameObjectAnimState.MESH_RESOURCE;
     public boolean visible;
+    public short creatureId;
 
     public ObjectViewState() {
         // For serialization
     }
 
     public ObjectViewState(short objectId, GameObject.State state, GameObjectAnimState animState, boolean visible) {
+        this(objectId, state, animState, visible, (short) 0);
+    }
+
+    public ObjectViewState(short objectId, GameObject.State state, GameObjectAnimState animState, boolean visible, short creatureId) {
         this.objectId = objectId;
         this.state = state;
         this.animState = animState;
         this.visible = visible;
+        this.creatureId = creatureId;
     }
 
     @Override

@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.LairBed;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -63,7 +63,9 @@ public abstract class RoomLairControl extends AbstractRoomObjectControl<EntityId
             return null;
         }
         EntityId object = objectsController.loadObject(creatureDefinition.getLairObjectId(), owner.ownerId, p.x, p.y);
-        entityData.setComponent(object, new LairBed(creatureComponent.creatureId));
+        ObjectViewState viewState = entityData.getComponent(object, ObjectViewState.class);
+        entityData.setComponent(object, new ObjectViewState(viewState.objectId, viewState.state,
+                viewState.animState, viewState.visible, creatureComponent.creatureId));
         if (objects == null) {
             objects = new ArrayList<>(1);
         }

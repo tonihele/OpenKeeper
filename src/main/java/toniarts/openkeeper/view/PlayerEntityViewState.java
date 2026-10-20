@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
-import toniarts.openkeeper.game.component.LairBed;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
@@ -255,8 +254,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                LairBed lairBed = entityData.getComponent(e.getId(), LairBed.class);
-                Creature bedOwner = lairBed != null ? kwdFile.getCreature(lairBed.creatureId) : null;
+                Creature bedOwner = objectViewState.creatureId != 0
+                        ? kwdFile.getCreature(objectViewState.creatureId) : null;
                 boolean uniqueCreatureBed = bedOwner != null
                         && bedOwner.getFlags().contains(CreatureFlag.IS_UNIQUE);
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
