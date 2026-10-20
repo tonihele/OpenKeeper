@@ -536,6 +536,10 @@ public class PlayerEntityViewState extends AbstractAppState {
             LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
                     intensity, honourPulse);
             source.setObjectLight(objectLight);
+            if (objectLight) {
+                source.setRadius(Math.min(source.getRadius() * LightConstants.OBJECT_LIGHT_RADIUS_SCALE,
+                        LightConstants.MAX_LIGHT_RADIUS_TILES));
+            }
         } else {
             lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
         }

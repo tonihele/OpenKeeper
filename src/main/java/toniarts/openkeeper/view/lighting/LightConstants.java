@@ -198,6 +198,13 @@ public final class LightConstants {
     public static final float THING_LIGHT_RADIUS_SCALE = 2f / 3f;
 
     /**
+     * Extra radius factor for object lights only (dungeon heart glow, ...),
+     * applied on top of {@link #THING_LIGHT_RADIUS_SCALE} and still capped by
+     * {@link #MAX_LIGHT_RADIUS_TILES}. Creatures and effects are unaffected.
+     */
+    public static final float OBJECT_LIGHT_RADIUS_SCALE = 1.5f;
+
+    /**
      * {@code flags.PLAYER_COLOURED} clamp floor
      * {@code colour = max(32, colour * playerColour / 255)}.
      */
