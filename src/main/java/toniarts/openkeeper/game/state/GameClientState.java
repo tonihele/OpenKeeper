@@ -28,6 +28,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -86,6 +87,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final Short playerId;
     private final boolean multiplayer;
     private final List<ClientInfo> clientInfos;
+    private final Map<Short, String> networkPlayerNames;
     private IPlayerLoadingProgress loadingState;
     private final GameSessionClientService gameClientService;
     private final GameSessionListenerImpl gameSessionListener = new GameSessionListenerImpl();
@@ -130,6 +132,17 @@ public final class GameClientState extends AbstractPauseAwareState {
             }
         }
         multiplayer = (humanPlayers > 1);
+
+        // Cache the network names, only used in multiplayer
+        Map<Short, String> names = new HashMap<>();
+        if (multiplayer) {
+            for (ClientInfo clientInfo : players) {
+                if (clientInfo.getKeeper() != null && clientInfo.getName() != null && !clientInfo.getName().isBlank()) {
+                    names.putIfAbsent(clientInfo.getKeeper().getId(), clientInfo.getName());
+                }
+            }
+        }
+        this.networkPlayerNames = Map.copyOf(names);
 
         // Create the loading state
         loadingState = createLoadingState(app);
@@ -216,15 +229,7 @@ public final class GameClientState extends AbstractPauseAwareState {
      * otherwise "Keeper n"
      */
     public String getPlayerName(Keeper keeper) {
-        if (multiplayer) {
-            for (ClientInfo clientInfo : clientInfos) {
-                if (clientInfo.getKeeper() != null && clientInfo.getKeeper().getId() == keeper.getId()
-                        && clientInfo.getName() != null && !clientInfo.getName().isBlank()) {
-                    return clientInfo.getName();
-                }
-            }
-        }
-        return "Keeper " + (keeper.getId() - Player.KEEPER1_ID + 1);
+        return networkPlayerNames.getOrDefault(keeper.getId(), "Keeper " + (keeper.getId() - Player.KEEPER1_ID + 1));
     }
 
     public boolean isMultiplayer() {
