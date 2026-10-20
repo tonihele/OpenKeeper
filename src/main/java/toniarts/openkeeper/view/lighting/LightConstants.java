@@ -47,7 +47,7 @@ public final class LightConstants {
     /**
      * The original's terrain-light intensity
      */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.3f;
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.5f;
 
     /**
      * Intensity of the interior-slab terrain light of room tiles. Higher than
