@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerMapViewState;
 
 import java.lang.System.Logger;
@@ -107,17 +108,22 @@ public class EffectManagerState extends AbstractAppState {
      * effects...?)
      */
     public void load(Node node, Vector3f location, int effectId, boolean infinite) {
-        load(node, location, effectId, infinite, null);
+        load(node, location, effectId, infinite, Player.NEUTRAL_PLAYER_ID);
     }
 
     /**
-     * Loads up an particle effect owned by a player
+     * Loads up an particle effect owned by a specific player, so that any
+     * effect elements using the player color table get tinted with the
+     * owner's color instead of their literal authored color
      *
-     * @param ownerId the owning player, gives {@code PLAYER_COLOURED} effect
-     * lights their colour; {@code null} if none
-     * @see #load(Node, Vector3f, int, boolean)
+     * @param node the node to attach the effect to
+     * @param location particle effect node location, maybe {@code null}
+     * @param effectId the effect ID to load
+     * @param infinite the effect should restart always, infinite effect (room
+     * effects...?)
+     * @param ownerId the player who owns the effect
      */
-    public void load(Node node, Vector3f location, int effectId, boolean infinite, Short ownerId) {
+    public void load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
 
         // Load the effect
         if (effectId == 0) {

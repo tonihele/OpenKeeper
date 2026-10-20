@@ -153,6 +153,19 @@ public final class MapLoaderAppState extends AbstractAppState {
             mapEntityData.close();
             mapEntityData = null;
         }
+        mapViewController = null;
+    }
+
+    /**
+     * Shows or hides the currently loaded map's ceiling, if any map is
+     * loaded.
+     *
+     * @param visible show the ceiling
+     */
+    public void setCeilingVisible(boolean visible) {
+        if (mapViewController != null) {
+            mapViewController.setCeilingVisible(visible);
+        }
     }
 
     @Override

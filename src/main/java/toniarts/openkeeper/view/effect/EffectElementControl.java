@@ -23,6 +23,7 @@ import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 
@@ -33,35 +34,65 @@ import static toniarts.openkeeper.view.effect.EffectControl.calculateVelocity;
  * @author ArchDemon
  */
 public abstract class EffectElementControl extends AbstractControl {
-    
+
     private static final Logger log = System.getLogger(EffectElementControl.class.getName());
-    
-    private EffectElement effect;
+
+    /**
+     * Conversion from the file's mass unit (float32, 4096 = 1.0) to
+     * tiles/s^2, derived from the effect clock (20 Hz) and the position vs.
+     * velocity fixed-point precision difference (16x)
+     */
+    private static final float GRAVITY_FACTOR = 25f;
+
+    private final EffectElement effect;
+    private final int whirlpoolRate;
 
     private float hpCurrent;
     private float hp;
-    private float height;
     private FloatLimit scale;
     private float scaleRatio;
     private Vector3f velocity;
+    private float spinX;
+    private float spinY;
+    private float spinZ;
+    private boolean landed;
+    private boolean whirled;
 
     /**
      * For serialization only. Do not use.
      */
     public EffectElementControl() {
         super();
+        effect = null;
+        whirlpoolRate = 0;
     }
 
-    public EffectElementControl(EffectElement effect) {
+    protected EffectElementControl(EffectElement effect, int spinRateRange, int whirlpoolRate) {
         this.effect = effect;
-        initiazize();
+        this.whirlpoolRate = whirlpoolRate;
+        initialize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
+                EffectControl.randomSpinRate(spinRateRange));
     }
 
-    private void initiazize() {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMaxHp(), effect.getMaxHp());
+    /**
+     * Re-initializes a single burst element with a spin already rolled
+     * elsewhere - used for an in-place {@code deathElementId == self}
+     * respawn
+     */
+    protected EffectElementControl(EffectElement effect, float spinX, float spinY, float spinZ, int whirlpoolRate) {
+        this.effect = effect;
+        this.whirlpoolRate = whirlpoolRate;
+        initialize(spinX, spinY, spinZ);
+    }
+
+    private void initialize(float spinX, float spinY, float spinZ) {
+        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
 
         velocity = calculateVelocity(effect);
-        //height = FastMath.nextRandomInt(effect.getLowerHeightLimit(), effect.getUpperHeightLimit());
+
+        this.spinX = spinX;
+        this.spinY = spinY;
+        this.spinZ = spinZ;
 
         if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
             scale = new FloatLimit(effect.getMaxScale());
@@ -73,6 +104,18 @@ public abstract class EffectElementControl extends AbstractControl {
             scale = new FloatLimit(effect.getMinScale() + FastMath.nextRandomFloat() * (effect.getMaxScale() - effect.getMinScale()));
             scaleRatio = 0;
         }
+    }
+
+    public float getSpinX() {
+        return spinX;
+    }
+
+    public float getSpinY() {
+        return spinY;
+    }
+
+    public float getSpinZ() {
+        return spinZ;
     }
 
     @Override
@@ -90,39 +133,100 @@ public abstract class EffectElementControl extends AbstractControl {
             return;
         }
 
+        updateScale(tpf);
+        updateSpin(tpf);
+        updateMovement(tpf);
+        updateLifetime(tpf);
+    }
+
+    private void updateScale(float tpf) {
         if (effect.getFlags().contains(EffectElement.EffectElementFlag.SHRINK)) {
-            scale.sub(scaleRatio);
+            scale.sub(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         } else if (effect.getFlags().contains(EffectElement.EffectElementFlag.EXPAND)) {
-            scale.add(scaleRatio);
+            scale.add(scaleRatio * tpf);
             spatial.setLocalScale(scale.getValue());
         }
+    }
 
-        if (velocity != Vector3f.ZERO) {
-            Vector3f location = spatial.getLocalTranslation().clone().addLocal(velocity);
-            if (location.y > height) {
-                location.y = height;
-            }
-            spatial.setLocalTranslation(location);
-            //System.out.println(location);
+    private void updateSpin(float tpf) {
+        if (spinX != 0 || spinY != 0 || spinZ != 0) {
+            spatial.rotate(spinX * tpf, spinY * tpf, spinZ * tpf);
+        }
+    }
+
+    private void updateMovement(float tpf) {
+        if (landed || velocity == Vector3f.ZERO) {
+            return;
         }
 
+        // The parent chain's world Y offset, read before this frame's own
+        // translation change so it reflects the last fully-updated scene
+        // graph state (valid from the frame after the spatial is attached).
+        float floorHeightLocal = WorldUtils.FLOOR_HEIGHT
+                - (spatial.getWorldTranslation().y - spatial.getLocalTranslation().y);
+        Vector3f preTickLocation = spatial.getLocalTranslation();
+        Vector3f location = preTickLocation.clone().addLocal(velocity.mult(tpf));
+
+        applyWhirlpool(location, preTickLocation, tpf);
+
+        if (location.y < floorHeightLocal) {
+            applyFloorCollision(location, floorHeightLocal);
+        }
+
+        spatial.setLocalTranslation(location);
+
         if (effect.getAirFriction() != 0) {
-            velocity.x -= effect.getAirFriction() * tpf;
-            velocity.y -= effect.getAirFriction() * tpf;
-            velocity.z -= effect.getAirFriction() * tpf;
+            velocity.multLocal(FastMath.pow(1f - 16f * effect.getAirFriction(), tpf * 20f));
         }
 
         if (effect.getMass() != 0) {
-            velocity.y -= effect.getMass() * tpf;
+            velocity.y -= effect.getMass() * GRAVITY_FACTOR * tpf;
+        }
+    }
+
+    private void applyWhirlpool(Vector3f location, Vector3f preTickLocation, float tpf) {
+        if (whirlpoolRate == 0) {
+            return;
         }
 
+        // Not whirled on the spawn tick - the first rotation is the tick
+        // after spawn, using the annulus radius (plus this tick's own
+        // velocity move) as d.
+        if (whirled) {
+            Vector3f base = (spatial.getParent() != null) ? spatial.getParent().getLocalTranslation() : Vector3f.ZERO;
+            location.addLocal(EffectControl.whirlpoolDelta(whirlpoolRate,
+                    base.x + preTickLocation.x, base.z + preTickLocation.z, tpf));
+        }
+        whirled = true;
+    }
+
+    private void applyFloorCollision(Vector3f location, float floorHeightLocal) {
+        boolean directionalFriction = effect.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION);
+        if (directionalFriction) {
+            // Sticks where it lands instead of bouncing - elasticity is
+            // ignored here, and unlike the bounce below the spin rates are
+            // left untouched so it keeps tumbling in place until hp runs out.
+            location.y = floorHeightLocal;
+            velocity.set(Vector3f.ZERO);
+            landed = true;
+        } else {
+            float e = effect.getElasticity();
+            location.y = floorHeightLocal + (floorHeightLocal - location.y) * e;
+            velocity.x *= e;
+            velocity.z *= e;
+            velocity.y = -velocity.y * e;
+            spinX = spinY = spinZ = 0f;
+        }
+    }
+
+    private void updateLifetime(float tpf) {
         if (isHit()) {
             hpCurrent = 0;
             onHit(null);
         }
 
-        hpCurrent-= tpf;
+        hpCurrent -= tpf;
         if (hpCurrent <= 0) {
             onDie(spatial.getLocalTranslation());
             spatial.removeFromParent();
