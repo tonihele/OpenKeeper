@@ -958,8 +958,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     private void handleTorch(IMapTileInformation tile, Node pageNode) {
 
-        // The rooms actually contain the torch model resource, but it is always the same,
-        // and sometimes even null and there is still a torch. So I don't think they are used
         // DKII places at most one torch per tile. At corners, the direction order makes the
         // perpendicular wall skip this tile and resume on the next eligible tile in its run.
         for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY())) {
@@ -978,7 +976,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction, Terrain wallTerrain) {
-        String name = "Torch1";
+        String name = "Torch1"; // null: no model, the light is still added (Hero gate frontend)
         float height = wallTerrain.getLightHeight();
         float angleY;
         Vector3f position;
@@ -1017,11 +1015,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // terrain because ordinary RoomInstances are registered after torches are handled.
         if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-            // A room without its own torch art falls back to the default mesh
-            //; only torchColor == 0 (below) removes torches
+            // A room only has a torch model if it names one; otherwise it gets
+            // the light but no model. torchColor == 0 (below) removes the torch entirely
             ArtResource torch = room.getTorch();
             if (torch != null && torch.getName() != null && !torch.getName().isEmpty()) {
                 name = torch.getName();
+            } else {
+                name = null;
             }
             position.y = room.getTorchHeight();
             lightHeight = room.getTorchHeight();
@@ -1056,6 +1056,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             lightHeight = LightConstants.getDefaultTorchLightHeightTiles(kwdFile);
         }
 
+        if (name != null) {
+            attachTorchModel(tile, pageNode, name, angleY, position);
+        }
+
+        // The light sits inside the floor tile, hugging the wall face
+        // (the model is placed separately above), and stays small
+        lightRules.addTorchLight(tile.getLocation(), TorchPlacement.getTorchLightPosition(tile.getLocation(), direction, lightHeight),
+                red, green, blue, intensity, Math.min(radius, maxRadius));
+    }
+
+    private void attachTorchModel(IMapTileInformation tile, Node pageNode, String name, float angleY, Vector3f position) {
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
         spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
         spatial.rotate(0, angleY, 0);
@@ -1076,11 +1087,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // terms here, or the tile's own offset ends up applied twice.
         parent.setLocalTranslation(Vector3f.ZERO);
         parent.attachChild(spatial);
-
-        // The light sits inside the floor tile, hugging the wall face
-        // (the model is placed separately above), and stays small
-        lightRules.addTorchLight(tile.getLocation(), TorchPlacement.getTorchLightPosition(tile.getLocation(), direction, lightHeight),
-                red, green, blue, intensity, Math.min(radius, maxRadius));
     }
 
     private Terrain getTorchTerrain(int x, int y) {
