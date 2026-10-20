@@ -119,12 +119,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable = false;
 
     /**
-     * Counts down while the one-shot slap cursor animation
-     * ({@link CursorFactory.CursorType#SLAP}) plays after a creature/chicken
-     * is slapped, so the cursor can revert to normal once it has finished
-     * instead of staying on the slap cursor.
-     */
-    /**
      * A cursor animation the hand plays once as a reaction, a slap or a drop,
      * before the normal cursor comes back
      */
@@ -692,8 +686,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
                         // Show the hand letting go of it, the updateCursor() call below picks it up
-                        if (entityViewControl.getDropCursor() != null) {
-                            playReactionCursor(entityViewControl.getDropCursor());
+                        CursorFactory.CursorType dropCursor = entityViewControl.getDropCursor();
+                        if (dropCursor != null) {
+                            playReactionCursor(dropCursor);
                         }
                     }
                     //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
