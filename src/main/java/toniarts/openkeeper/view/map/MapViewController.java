@@ -455,11 +455,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         Node surface = new Node("Ceiling");
+        List<Material> ceilingMaterials = new ArrayList<>();
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
-            surface.attachChild(Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue()));
+            Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue());
+            surface.attachChild(ceilingGeometry);
+            ceilingMaterials.add(ceilingGeometry.getMaterial());
         }
+        lightRules.bindMaterials(ceilingMaterials);
         if (!ceilingVisible) {
             surface.setCullHint(Spatial.CullHint.Always);
         }
