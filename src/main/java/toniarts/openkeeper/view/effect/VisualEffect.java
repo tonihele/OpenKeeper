@@ -650,6 +650,7 @@ public class VisualEffect {
         if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
             AssetUtils.applyFlatLight(lightTarget, lightRules);
         }
+        lightMeshElements(lightRules);
 
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
@@ -665,6 +666,24 @@ public class VisualEffect {
         }
 
         return handleEffectCompletion();
+    }
+
+    /**
+     * Lights the spawned mesh elements (dig rock / gold debris...). They move
+     * on their own, so each one samples the flat light at its own position
+     * every frame; they need no thing light of their own to be lit.
+     */
+    private void lightMeshElements(LightRules lightRules) {
+        if (lightRules == null) {
+            return;
+        }
+        for (Spatial element : effectElements.keySet()) {
+            if (element instanceof EffectEmitter emitter) {
+                for (Spatial instance : emitter.getChildren()) {
+                    AssetUtils.applyFlatLight(instance, lightRules);
+                }
+            }
+        }
     }
 
     private void updateCircularPath(float tpf) {
