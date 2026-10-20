@@ -47,8 +47,6 @@ public abstract class SelectionHandler {
     /* The selected Area */
     private final SelectionArea selectionArea;
     private boolean active = false;
-    private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
-    private final Vector3f cameraPosition = new Vector3f(Vector3f.NAN);
     private Point pointedTileIndex = new Point(); // Could be just point...
     private Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
     private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
@@ -60,25 +58,31 @@ public abstract class SelectionHandler {
         setupVisualsForSelection();
     }
 
+    /**
+     * Updates the pointed tile. Runs every frame, also when neither the mouse
+     * nor the camera moved, since digging or the fog lifting changes what is
+     * under the cursor.
+     *
+     * @param mousePosition the cursor on the screen
+     * @return true if the pointed tile changed
+     */
     public boolean update(Vector2f mousePosition) {
         Camera cam = app.getCamera();
-        Vector3f pos = cam.getLocation();
+        Vector3f near = cam.getWorldCoordinates(mousePosition, 0f);
+        Vector3f direction = cam.getWorldCoordinates(mousePosition, 1f).subtractLocal(near);
 
-        if (cameraPosition.equals(pos) && this.mousePosition.equals(mousePosition)) {
+        TilePicker.Pick pick = TilePicker.pick(cam.getLocation(), direction, this::isBlock);
+        if (pick == null) {
             return false;
         }
 
-        cameraPosition.set(pos);
-        this.mousePosition.set(mousePosition);
+        pointedPosition.set(pick.position());
+        if (pick.tile().equals(pointedTileIndex)) {
+            return false;
+        }
 
-        Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
-        Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
-        dir.multLocal((WorldUtils.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
-        
-        pointedPosition.set(dir.getX(), dir.getZ());
-        pointedTileIndex = WorldUtils.vectorToPoint(pointedPosition);
+        pointedTileIndex = pick.tile();
         pointedTilePosition = WorldUtils.pointToVector2f(pointedTileIndex);
-        
         setPos(pointedTilePosition);
 
         return true;
@@ -212,4 +216,13 @@ public abstract class SelectionHandler {
      * @return is visible
      */
     abstract public boolean isVisible();
+
+    /**
+     * Whether a tile is drawn as a block up to wall height, the cursor stops
+     * at its top or its side instead of going through to the floor
+     *
+     * @param tile the tile, may be outside the map
+     * @return is the tile a block
+     */
+    abstract protected boolean isBlock(Point tile);
 }
