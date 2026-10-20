@@ -43,6 +43,7 @@ public final class CreatureComponent implements EntityComponent {
     public float stunDuration;
     public boolean worker;
     public short creatureId;
+    public boolean diesInstantly;
 
     public CreatureComponent() {
 
@@ -67,6 +68,7 @@ public final class CreatureComponent implements EntityComponent {
         this.stunDuration = creatureComponent.stunDuration;
         this.worker = creatureComponent.worker;
         this.creatureId = creatureComponent.creatureId;
+        this.diesInstantly = creatureComponent.diesInstantly;
     }
 
 }

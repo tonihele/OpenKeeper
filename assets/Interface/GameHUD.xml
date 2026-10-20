@@ -5,8 +5,12 @@
     <useStyles filename="Interface/ConsoleStyle.xml" />
     <useStyles filename="Interface/CustomTabStyle.xml" />
     <useStyles filename="Interface/HintStyle.xml" />
-    <useStyles filename="Interface/ScrollbarSmallStyle.xml" />
+    <useStyles filename="Interface/DropDownStyle.xml" />
+    <useStyles filename="Interface/ScrollbarStyle.xml" />
     <useStyles filename="Interface/ScrollpanelStyle.xml" />
+    <useStyles filename="Interface/SliderStyle.xml" />
+    <useStyles filename="Interface/CheckBoxStyle.xml" />
+    <useStyles filename="Interface/TextFieldStyle.xml" />
     <!-- controls -->
     <useControls filename="nifty-default-controls.xml" />
     <useControls filename="Interface/CustomTabControl.xml" />
@@ -179,20 +183,20 @@
                 </panel>
 
                 <panel childLayout="vertical" id="optionsMenu" backgroundColor="#0008" height="100%" width="100%" paddingLeft="10px">
-                    <panel width="100%" align="left" valign="top" childLayout="vertical">
+                    <panel width="100%" height="50px" align="left" valign="top" childLayout="vertical">
                         <control name="label" id="#title" style="textNormal" text="${menu.94}" />
                     </panel>
 
                     <!--Two columns of options-->
-                    <panel width="100%" align="left" valign="top" childLayout="horizontal" padding="5px">
+                    <panel width="100%" height="*" align="left" valign="top" childLayout="horizontal" padding="5px" childClip="true">
                         <panel id="#columnOne" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
                         <panel id="#columnTwo" width="50%" align="left" valign="top" childLayout="vertical" padding="5px" />
                     </panel>
 
                     <!--Menu navigation-->
-                    <panel width="100%" align="left" valign="bottom" childLayout="horizontal" padding="5px">
-                        <panel id="#navigationColumnOne" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
-                        <panel id="#navigationColumnTwo" width="50%" align="left" valign="bottom" childLayout="vertical" padding="5px" />
+                    <panel width="100%" height="90px" align="left" valign="bottom" childLayout="horizontal" padding="5px">
+                        <panel id="#navigationColumnOne" width="50%" height="100%" align="left" valign="top" childLayout="vertical" padding="5px" />
+                        <panel id="#navigationColumnTwo" width="50%" height="100%" align="left" valign="top" childLayout="vertical" padding="5px" />
                     </panel>
                 </panel>
 
@@ -219,10 +223,11 @@
                     <!--The map-->
                     <panel height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
                         <panel padding="10px" childLayout="center">
+                            <panel id="minimapImage" valign="center" width="180px" height="180px"/>
                             <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
                         </panel>
                         <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
-                               imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
+                                   imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
                             <!-- Query pointer -->
                             <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
                                 <interact onClick="playButtonSound(GUI_BUTTON_DEFAULT)"/>
@@ -259,9 +264,9 @@
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
                             </panel>
-                            <!-- mag magnifier -->
+                            <!-- Resize Map left click zooms in, right click zooms out. -->
                             <panel x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
-                                <interact onClick="playButtonSound(GUI_BUTTON_ZOOM)"/>
+                                <interact onClick="resizeMap()" onSecondaryClick="resizeMapDown()"/>
                                 <effect>
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->
@@ -322,10 +327,14 @@
                                     <!--The worker amount & status-->
                                     <!--                                    <control name="workerAmount" id="tab-workers" />-->
                                     <!--The tab contents scroll-->
-                                    <control name="tabScroll" />
+                                    <control name="tabScroll" id="tab-creature-scroll" />
                                     <!--The =, shown for creatures-->
                                     <control name="workerEqual" id="tab-workers-equal" />
-                                    <panel width="*" childLayout="horizontal" id="tab-creature-content" />
+                                    <panel width="*" height="100%" childLayout="absolute" childClip="true" id="tab-creature-viewport">
+                                        <panel x="0" y="0" width="100%" height="100%" childLayout="absolute" childClip="true" id="tab-creature-visible">
+                                            <panel x="0" y="0" width="100%" height="100%" childLayout="horizontal" id="tab-creature-content" />
+                                        </panel>
+                                    </panel>
                                 </panel>
                             </control>
 

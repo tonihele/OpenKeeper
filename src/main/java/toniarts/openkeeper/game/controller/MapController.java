@@ -583,22 +583,12 @@ public final class MapController extends Container implements IMapController {
         // Apply
         if (applyHealing(tile, healing)) {
 
-            // TODO: effect & checks
-            // The tile is upgraded
-//            if (terrain.getMaxHealthEffectId() != 0) {
-//                effectManager.load(worldNode,
-//                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                        terrain.getMaxHealthEffectId(), false);
-//            }
+            // TODO: checks
+            // The tile is upgraded; the claim effect (terrain.getMaxHealthEffectId()) is
+            // triggered client-side, see PlayerMapViewState.updateTiles()
             if (terrain.getMaxHealthTypeTerrainId() != 0) {
                 changeTerrain(tile, terrain.getMaxHealthTypeTerrainId());
                 tile.setOwnerId(playerId);
-//                terrain = tile.getTerrain();
-//                if (tile.isAtFullHealth()) {
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            terrain.getMaxHealthEffectId(), false);
-//                }
             }
 
 //            updateRoomWalls(tile);
