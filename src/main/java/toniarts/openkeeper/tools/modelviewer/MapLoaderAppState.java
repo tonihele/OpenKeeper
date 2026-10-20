@@ -73,7 +73,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         inputManager = app.getInputManager();
     }
 
-    public Node loadMap(IKwdFile kwdFile, boolean litSolidRock, boolean terrainAmbient) {
+    public Node loadMap(IKwdFile kwdFile, boolean litSolidRock, boolean terrainAmbient, boolean ceilingVisible) {
         unloadMap();
 
         mapEntityData = new DefaultEntityData();
@@ -83,7 +83,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, litSolidRock) {
+        MapViewController mapLoader = new MapViewController(assetManager, kwdFile, gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, litSolidRock, true) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -92,6 +92,7 @@ public final class MapLoaderAppState extends AbstractAppState {
 
         };
         mapLoader.setTerrainAmbientEnabled(terrainAmbient);
+        mapLoader.setCeilingVisible(ceilingVisible);
         mapNode.attachChild(mapLoader.load(assetManager, kwdFile));
 
         // No fog of war here (MapViewController's ALWAYS_VISIBLE), so the whole

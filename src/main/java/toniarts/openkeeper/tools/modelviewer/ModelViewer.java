@@ -182,8 +182,7 @@ public final class ModelViewer extends SimpleApplication {
                 toggleShowNormals();
             } // Ceiling
             else if (KEY_MAPPING_TOGGLE_CEILING.equals(name) && !pressed) {
-                ceilingVisible = !ceilingVisible;
-                mapLoaderAppState.setCeilingVisible(ceilingVisible);
+                setCeilingVisible(!ceilingVisible);
             }
         }
     };
@@ -468,6 +467,19 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    boolean isCeilingVisible() {
+        return ceilingVisible;
+    }
+
+    /**
+     * Shows or hides the ceiling of the loaded map (and of maps loaded later),
+     * independent of the solid rock lighting. No reload needed.
+     */
+    void setCeilingVisible(boolean ceilingVisible) {
+        this.ceilingVisible = ceilingVisible;
+        mapLoaderAppState.setCeilingVisible(ceilingVisible);
+    }
+
     boolean isTerrainAmbient() {
         return terrainAmbient;
     }
@@ -519,7 +531,7 @@ public final class ModelViewer extends SimpleApplication {
             case MAPS: {
                 // Load the selected map
                 IKwdFile kwd = getKwdFile((String) selection);
-                Node spat = mapLoaderAppState.loadMap(kwd, litSolidRock, terrainAmbient);
+                Node spat = mapLoaderAppState.loadMap(kwd, litSolidRock, terrainAmbient, ceilingVisible);
 
                 GameLevel gameLevel = kwd.getGameLevel();
                 screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));

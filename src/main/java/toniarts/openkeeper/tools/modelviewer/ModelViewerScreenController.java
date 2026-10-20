@@ -64,6 +64,7 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_SOUNDS = "sounds";
     private final static String ID_LIT_SOLID_ROCK = "litSolidRock";
     private final static String ID_TERRAIN_AMBIENT = "terrainAmbient";
+    private final static String ID_CEILING = "ceiling";
     private final static String ID_LIGHT_PREFIX = "light";
 
     private final ModelViewer app;
@@ -125,6 +126,13 @@ public final class ModelViewerScreenController implements ScreenController {
     public void onLitSolidRockChanged(final String id, final CheckBoxStateChangedEvent event) {
         if (event.isChecked() != app.isLitSolidRock()) {
             app.setLitSolidRock(event.isChecked());
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_CEILING)
+    public void onCeilingChanged(final String id, final CheckBoxStateChangedEvent event) {
+        if (event.isChecked() != app.isCeilingVisible()) {
+            app.setCeilingVisible(event.isChecked());
         }
     }
 
@@ -353,6 +361,7 @@ public final class ModelViewerScreenController implements ScreenController {
                 // Initial state of the solid rock lighting checkbox
                 parameter("litSolidRock", String.valueOf(app.isLitSolidRock()));
                 parameter("terrainAmbient", String.valueOf(app.isTerrainAmbient()));
+                parameter("ceiling", String.valueOf(app.isCeilingVisible()));
                 // Initial state of the per-group light checkboxes
                 for (LightGroup group : LightGroup.values()) {
                     parameter(ID_LIGHT_PREFIX + group.name(), String.valueOf(app.isLightGroupEnabled(group)));
