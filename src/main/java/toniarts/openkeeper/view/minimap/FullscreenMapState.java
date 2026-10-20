@@ -87,6 +87,7 @@ public final class FullscreenMapState extends AbstractAppState {
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
     private final IFogOfWarInformation fogOfWar;
     private final EntityData entityData;
+    private final IRoomsInformation<? extends IRoomInformation> roomsInformation;
     private final IKwdFile kwdFile;
     private final Collection<Keeper> keepers;
     private final Function<Keeper, String> playerName;
@@ -116,6 +117,7 @@ public final class FullscreenMapState extends AbstractAppState {
         this.mapData = mapInformation.getMapData();
         this.fogOfWar = fogOfWarInformation;
         this.entityData = entityData;
+        this.roomsInformation = roomsInformation;
         this.kwdFile = kwdFile;
         this.keepers = keepers;
         this.playerName = playerName;
@@ -147,7 +149,7 @@ public final class FullscreenMapState extends AbstractAppState {
             return;
         }
         overlay = new FullscreenMapOverlay(app.getAssetManager(), view.getOverlayNode(), entityData, kwdFile, mapData,
-                fogOfWar, assets.getPalette(), keepers, playerName);
+                fogOfWar, roomsInformation, assets.getPalette(), keepers, playerName);
         inputListener = new MapInputListener();
         app.getInputManager().addRawInputListener(inputListener);
     }

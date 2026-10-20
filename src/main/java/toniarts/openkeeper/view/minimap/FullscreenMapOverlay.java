@@ -46,10 +46,11 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.map.IRoomInformation;
+import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapColourClass;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
@@ -82,7 +83,7 @@ public final class FullscreenMapOverlay {
     private static final float LEGEND_LINE_HEIGHT = 16;
 
     private final AssetManager assetManager;
-    private final EntityData entityData;
+    private final IRoomsInformation<? extends IRoomInformation> roomsInformation;
     private final IKwdFile kwdFile;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
     private final IFogOfWarInformation fogOfWar;
@@ -104,9 +105,10 @@ public final class FullscreenMapOverlay {
      */
     public FullscreenMapOverlay(AssetManager assetManager, Node parent, EntityData entityData, IKwdFile kwdFile,
             IMapDataInformation<? extends IMapTileInformation> mapData, IFogOfWarInformation fogOfWar,
+            IRoomsInformation<? extends IRoomInformation> roomsInformation,
             MinimapPalette palette, Collection<Keeper> keepers, Function<Keeper, String> playerName) {
         this.assetManager = assetManager;
-        this.entityData = entityData;
+        this.roomsInformation = roomsInformation;
         this.kwdFile = kwdFile;
         this.mapData = mapData;
         this.fogOfWar = fogOfWar;
@@ -242,17 +244,18 @@ public final class FullscreenMapOverlay {
             return;
         }
         EntityId roomEntity = mapData.getTile((int) hoverTile.x, (int) hoverTile.y).getRoomId();
-        RoomComponent room = roomEntity != null ? entityData.getComponent(roomEntity, RoomComponent.class) : null;
-        if (room == null || !fogOfWar.isExplored(room.location)) {
+        IRoomInformation room = roomEntity != null ? roomsInformation.getRoomInformation(roomEntity) : null;
+        if (room == null || room.isRemoved() || !fogOfWar.isExplored(room.getLocation())) {
             return;
         }
-        Material material = getRoomIconMaterial(room.roomId);
+        Point location = room.getLocation();
+        Material material = getRoomIconMaterial(room.getRoomId());
         if (material == null) {
             return;
         }
 
         float size = ROOM_ICON_SIZE * layout.getScale();
-        Vector2f screen = layout.tileToScreen(room.location.x + 0.5f, room.location.y + 0.5f, mapData.getWidth(), mapData.getHeight());
+        Vector2f screen = layout.tileToScreen(location.x + 0.5f, location.y + 0.5f, mapData.getWidth(), mapData.getHeight());
         roomIcon.setMaterial(material);
         roomIcon.setLocalScale(size, size, 1);
         roomIcon.setLocalTranslation(screen.x - size / 2f, layout.getScreenHeight() - screen.y - size / 2f, 1);
