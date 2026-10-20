@@ -10,6 +10,7 @@ import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.debug.WireBox;
+import java.util.function.Predicate;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -50,6 +51,9 @@ public abstract class SelectionHandler {
     private Point pointedTileIndex = new Point(); // Could be just point...
     private Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
     private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
+    private final Vector3f rayNear = new Vector3f();
+    private final Vector3f rayDirection = new Vector3f();
+    private final Predicate<Point> blocks = this::isBlock;
 
     public SelectionHandler(Main app) {
         this.app = app;
@@ -68,10 +72,10 @@ public abstract class SelectionHandler {
      */
     public boolean update(Vector2f mousePosition) {
         Camera cam = app.getCamera();
-        Vector3f near = cam.getWorldCoordinates(mousePosition, 0f);
-        Vector3f direction = cam.getWorldCoordinates(mousePosition, 1f).subtractLocal(near);
+        cam.getWorldCoordinates(mousePosition, 0f, rayNear);
+        cam.getWorldCoordinates(mousePosition, 1f, rayDirection).subtractLocal(rayNear);
 
-        TilePicker.Pick pick = TilePicker.pick(cam.getLocation(), direction, this::isBlock);
+        TilePicker.Pick pick = TilePicker.pick(cam.getLocation(), rayDirection, blocks);
         if (pick == null) {
             return false;
         }

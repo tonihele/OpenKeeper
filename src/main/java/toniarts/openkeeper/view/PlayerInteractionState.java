@@ -895,7 +895,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         protected boolean isBlock(Point tile) {
 
             // Beyond the edge there is nothing to see through to
-            if (mapInformation.getMapData().getTile(tile) == null) {
+            IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
+            if (mapTile == null) {
                 return true;
             }
 
@@ -905,7 +906,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 return true;
             }
 
-            return mapInformation.isSolid(tile);
+            return mapInformation.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID);
         }
 
         @Override
