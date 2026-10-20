@@ -19,13 +19,6 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.utils.Point;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
@@ -35,6 +28,14 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.utils.Point;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Base class for all rooms
@@ -306,6 +307,11 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         return getRoomComponent().destroyed;
     }
 
+    @Override
+    public boolean isDungeonHeart() {
+        return getEntityComponent(DungeonHeart.class) != null;
+    }
+
     private RoomComponent getRoomComponent() {
         return getEntityComponent(RoomComponent.class);
     }
@@ -363,16 +369,6 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     @Override
     public Room getRoom() {
         return roomInstance.getRoom();
-    }
-
-    /**
-     * Are we the dungeon heart?
-     *
-     * @return are we?
-     */
-    @Override
-    public boolean isDungeonHeart() {
-        return getEntityComponent(DungeonHeart.class) != null;
     }
 
     @Override
