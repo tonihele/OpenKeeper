@@ -24,6 +24,9 @@ import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -48,7 +51,20 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
+        components.add(CreatureImprisoned.class);
         return components;
+    }
+
+    @Override
+    public boolean isSlappable(short playerId) {
+        Interaction interaction = getEntity().get(Interaction.class);
+        if (interaction == null || !interaction.slappable) {
+            return false;
+        }
+
+        // A prisoner is controlled by the keeper holding it
+        Short prisonerOf = getEntity().get(CreatureImprisoned.class) != null ? getControlId() : null;
+        return SlapRules.canSlapCreature(playerId, getOwnerId(), prisonerOf);
     }
 
     @Override
