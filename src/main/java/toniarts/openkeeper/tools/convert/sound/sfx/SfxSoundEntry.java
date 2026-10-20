@@ -56,6 +56,25 @@ public final class SfxSoundEntry {
         return archiveId;
     }
 
+    /**
+     * Cumulative selection weight (0-65535) when an entry has several sounds
+     *
+     * @return weight
+     */
+    public int getWeight() {
+        return unknown_1 & 0xffff;
+    }
+
+    /**
+     * Playing time of the sound in milliseconds. Sequenced sounds (music)
+     * advance after this time.
+     *
+     * @return duration in milliseconds
+     */
+    public int getDuration() {
+        return unknown_2;
+    }
+
     @Override
     public String toString() {
         return "SfxSoundEntry{" + "index=" + index+ ", archiveId=" + archiveId + "}";
