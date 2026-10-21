@@ -22,6 +22,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IRoomInformation;
+import toniarts.openkeeper.utils.Point;
 
 import java.util.Objects;
 
@@ -80,6 +81,11 @@ public abstract class AbstractRoomInformation implements IRoomInformation {
     @Override
     public short getRoomId() {
         return getEntityComponent(RoomComponent.class).roomId;
+    }
+
+    @Override
+    public Point getLocation() {
+        return getEntityComponent(RoomComponent.class).location;
     }
 
     @Override

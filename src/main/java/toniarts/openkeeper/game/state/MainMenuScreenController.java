@@ -85,7 +85,9 @@ import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
@@ -107,6 +109,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private static final List<Cutscene> CUTSCENES = new ArrayList<>();
     private ChatSessionListener chatSessionListener;
     private LobbySessionListener lobbySessionListener;
+    private String cutsceneMovieName;
+    private final Map<String, Runnable> screenStartHandlers = createScreenStartHandlers();
 
     /**
      * A popup instance if some screen should need one
@@ -114,27 +118,27 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private Element popupElement;
 
     static {
-        CUTSCENES.add(new Cutscene("Intro", "INTRO", "${menu.77}"));
-        CUTSCENES.add(new Cutscene("000", "CutSceneLevel1", "${speech.1417}"));
-        CUTSCENES.add(new Cutscene("001", "CutSceneLevel2", "${speech.1439}"));
-        CUTSCENES.add(new Cutscene("002", "CutSceneLevel3", "${speech.1435}"));
-        CUTSCENES.add(new Cutscene("003", "CutSceneLevel4", "${speech.1445}"));
-        CUTSCENES.add(new Cutscene("004", "CutSceneLevel5", "${speech.1428}"));
-        CUTSCENES.add(new Cutscene("005", "CutSceneLevel6", "${speech.1426}"));
-        CUTSCENES.add(new Cutscene("006", "CutSceneLevel7", "${speech.1430}"));
-        CUTSCENES.add(new Cutscene("007", "CutSceneLevel8", "${speech.1432}"));
-        CUTSCENES.add(new Cutscene("008", "CutSceneLevel9", "${speech.1441}"));
-        CUTSCENES.add(new Cutscene("009", "CutSceneLevel10", "${speech.1431}"));
-        CUTSCENES.add(new Cutscene("010", "CutSceneLevel11", "${speech.1433}"));
-        CUTSCENES.add(new Cutscene("011", "CutSceneLevel12", "${speech.1419}"));
-        CUTSCENES.add(new Cutscene("012", "CutSceneLevel13", "${speech.1414}"));
-        CUTSCENES.add(new Cutscene("013", "CutSceneLevel14", "${speech.1437}"));
-        CUTSCENES.add(new Cutscene("014", "CutSceneLevel15", "${speech.1416}"));
-        CUTSCENES.add(new Cutscene("015", "CutSceneLevel16", "${speech.1420}"));
-        CUTSCENES.add(new Cutscene("016", "CutSceneLevel17", "${speech.1421}"));
-        CUTSCENES.add(new Cutscene("017", "CutSceneLevel18", "${speech.1443}"));
-        CUTSCENES.add(new Cutscene("018", "CutSceneLevel19", "${speech.1422}"));
-        CUTSCENES.add(new Cutscene("Outro", "Outro", "${menu.2843}"));
+        CUTSCENES.add(new Cutscene( 0,"Intro", "INTRO", "${menu.77}", ""));
+        CUTSCENES.add(new Cutscene( 1,"000", "CutSceneLevel1", "${speech.1417}", "149"));
+        CUTSCENES.add(new Cutscene( 2,"001", "CutSceneLevel2", "${speech.1439}", "171"));
+        CUTSCENES.add(new Cutscene( 3,"002", "CutSceneLevel3", "${speech.1435}", "165"));
+        CUTSCENES.add(new Cutscene( 4,"003", "CutSceneLevel4", "${speech.1445}", "177"));
+        CUTSCENES.add(new Cutscene( 5,"004", "CutSceneLevel5", "${speech.1428}", "160"));
+        CUTSCENES.add(new Cutscene( 6,"005", "CutSceneLevel6", "${speech.1426}", "158"));
+        CUTSCENES.add(new Cutscene( 7,"006", "CutSceneLevel7", "${speech.1430}", "162"));
+        CUTSCENES.add(new Cutscene( 8,"007", "CutSceneLevel8", "${speech.1432}", "164"));
+        CUTSCENES.add(new Cutscene( 9,"008", "CutSceneLevel9", "${speech.1441}", "173"));
+        CUTSCENES.add(new Cutscene(10,"009", "CutSceneLevel10", "${speech.1431}", "163"));
+        CUTSCENES.add(new Cutscene(11,"010", "CutSceneLevel11", "${speech.1433}", "167"));
+        CUTSCENES.add(new Cutscene(12,"011", "CutSceneLevel12", "${speech.1419}", "151"));
+        CUTSCENES.add(new Cutscene(13,"012", "CutSceneLevel13", "${speech.1414}", "146"));
+        CUTSCENES.add(new Cutscene(14,"013", "CutSceneLevel14", "${speech.1437}", "169"));
+        CUTSCENES.add(new Cutscene(15,"014", "CutSceneLevel15", "${speech.1416}", "148"));
+        CUTSCENES.add(new Cutscene(16,"015", "CutSceneLevel16", "${speech.1420}", "152"));
+        CUTSCENES.add(new Cutscene(17,"016", "CutSceneLevel17", "${speech.1421}", "153"));
+        CUTSCENES.add(new Cutscene(18,"017", "CutSceneLevel18", "${speech.1443}", "175"));
+        CUTSCENES.add(new Cutscene(19,"018", "CutSceneLevel19", "${speech.1422}", "154"));
+        CUTSCENES.add(new Cutscene(20,"Outro", "Outro", "${menu.2843}",""));
     }
 
     public MainMenuScreenController(MainMenuState state, Nifty nifty) {
@@ -361,132 +365,118 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     public void onStartScreen() {
         setScreen(nifty.getCurrentScreen());
 
-        switch (screen.getScreenId()) {
-            case "selectCampaignLevel":
-                state.inputManager.addRawInputListener(state.listener);
-                state.refreshCampaignMap();
-                state.showArrows();
-                break;
+        Runnable handler = screenStartHandlers.get(screen.getScreenId());
+        if (handler != null) {
+            handler.run();
+        }
+    }
 
-            case "briefing":
-                showBriefing();
-                break;
+    /**
+     * Maps a screen id to the action that sets it up, so that {@link #onStartScreen()} stays a
+     * simple dispatch instead of one big branching switch
+     */
+    private Map<String, Runnable> createScreenStartHandlers() {
+        Map<String, Runnable> handlers = new HashMap<>();
+        handlers.put("selectCampaignLevel", this::showSelectCampaignLevelScreen);
+        handlers.put("briefing", this::showBriefing);
+        handlers.put("hiscores", this::generateHiscoreList);
+        handlers.put("optionsGraphics", this::setGraphicsSettingsToGUI);
+        handlers.put("optionsControl", this::setControlSettingsToGUI);
+        handlers.put("optionsSound", this::setSoundSettingsToGUI);
+        handlers.put("movies", this::generateMovieList);
+        handlers.put("cutscene", this::showCutsceneScreen);
+        handlers.put("multiplayer", () -> state.mapSelector.reset());
+        handlers.put("multiplayerWatch", this::showMultiplayerWatchScreen);
+        handlers.put("skirmishLobby", this::showSkirmishLobbyScreen);
+        handlers.put("multiplayerLocal", this::showMultiplayerLocalScreen);
+        handlers.put("skirmishMapSelect", () -> populateMapSelection(true));
+        handlers.put("myPetDungeon", this::unlockMPDMaps);
+        handlers.put("myPetDungeonMapSelect", this::showMyPetDungeonMapSelectScreen);
+        return handlers;
+    }
 
-            case "hiscores":
-                generateHiscoreList();
-                break;
+    private void showSelectCampaignLevelScreen() {
+        state.inputManager.addRawInputListener(state.listener);
+        state.refreshCampaignMap();
+        state.showArrows();
+    }
 
-            case "optionsGraphics":
-                // Populate settings screen
-                setGraphicsSettingsToGUI();
-                break;
+    private void showCutsceneScreen() {
+        screen.findNiftyControl("cutsceneMovieName", Label.class).setText(cutsceneMovieName);
+    }
 
-            case "optionsControl":
-                setControlSettingsToGUI();
-                break;
+    private void showMyPetDungeonMapSelectScreen() {
+        state.mapSelector.setMPD(true);
+        populateMapSelection(false);
+    }
 
-            case "optionsSound":
-                setSoundSettingsToGUI();
-                break;
+    private void showMultiplayerWatchScreen() {
+        TextField player = screen.findNiftyControl("playerName", TextField.class);
+        TextField hostAddress = screen.findNiftyControl("hostAddress", TextField.class);
+        player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
+        hostAddress.setText(Main.getUserSettings().getSetting(Settings.Setting.MULTIPLAYER_LAST_IP).toString());
+    }
 
-            case "movies":
-                generateMovieList();
-                break;
+    private void showMultiplayerLocalScreen() {
+        state.mapSelector.reset();
 
-            case "multiplayer":
-                state.mapSelector.reset();
-                break;
+        // Set the game & user name
+        TextField player = screen.findNiftyControl("playerName", TextField.class);
+        TextField game = screen.findNiftyControl("gameName", TextField.class);
+        player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
+        game.setText(Main.getUserSettings().getSetting(Settings.Setting.GAME_NAME).toString());
+    }
 
-            case "multiplayerWatch":
-                TextField player = screen.findNiftyControl("playerName", TextField.class);
-                TextField hostAddress = screen.findNiftyControl("hostAddress", TextField.class);
-                player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
-                hostAddress.setText(Main.getUserSettings().getSetting(Settings.Setting.MULTIPLAYER_LAST_IP).toString());
-                break;
+    private void showSkirmishLobbyScreen() {
+        LobbyState lobbyState = state.getLobbyState();
 
-            case "skirmishLobby":
+        // Set up the players table
+        setupPlayersTable(lobbyState);
 
-                LobbyState lobbyState = state.getLobbyState();
+        // Add chat listener
+        if (lobbyState.isOnline() && chatSessionListener == null) {
+            Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
+            chat.clear();
+            state.getChatService().addChatSessionListener(getChatSessionListener());
+        }
+        screen.findElementById("chatPanel").setVisible(lobbyState.isOnline());
 
-                // Set up the players table
-                setupPlayersTable(lobbyState);
+        // Add player listener
+        lobbyState.addLobbySessionListener(getLobbySessionListener());
 
-                // Add chat listener
-                if (lobbyState.isOnline() && chatSessionListener == null) {
-                    Chat chat = screen.findNiftyControl("multiplayerChat", Chat.class);
-                    chat.clear();
-                    state.getChatService().addChatSessionListener(getChatSessionListener());
-                }
-                screen.findElementById("chatPanel").setVisible(lobbyState.isOnline());
+        // Ask for players and map
+        refreshPlayerList(lobbyState.getLobbySession().getPlayers());
+        populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()));
 
-                // Add player listener
-                lobbyState.addLobbySessionListener(getLobbySessionListener());
+        Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
+        if (title != null) {
+            title.setText(lobbyState.getGameName());
+        }
+        setSkirmishLobbyControlVisibility("multiplayerMapControl", lobbyState.isHosting());
+        setSkirmishLobbyControlVisibility("multiplayerPlayerControl", lobbyState.isHosting());
 
-                // Ask for players and map
-                refreshPlayerList(lobbyState.getLobbySession().getPlayers());
-                populateSelectedMap(state.mapSelector.getMap(lobbyState.getLobbySession().getMap()));
+        // Set the IP, is is really always our IP, not the servers?
+        Label ip = screen.findNiftyControl("ip", Label.class);
+        if (lobbyState.isOnline()) {
+            ip.setText("IP: " + Utils.getLocalIPAddress());
+        } else {
+            ip.setText(null);
+        }
+        TextRenderer renderer = ip.getElement().getRenderer(TextRenderer.class);
+        ip.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
 
-                Label title = screen.findNiftyControl("multiplayerTitle", Label.class);
-                if (title != null) {
-                    title.setText(lobbyState.getGameName());
-                }
-                Element element = screen.findElementById("multiplayerMapControl");
-                if (element != null) {
-                    if (!lobbyState.isHosting()) {
-                        element.hide();
-                    } else {
-                        element.show();
-                    }
-                }
-                element = screen.findElementById("multiplayerPlayerControl");
-                if (element != null) {
-                    if (!lobbyState.isHosting()) {
-                        element.hide();
-                    } else {
-                        element.show();
-                    }
-                }
+        screen.layoutLayers();
+    }
 
-                // Set the IP, is is really always our IP, not the servers?
-                Label ip = screen.findNiftyControl("ip", Label.class);
-                if (lobbyState.isOnline()) {
-                    ip.setText("IP: " + Utils.getLocalIPAddress());
-                } else {
-                    ip.setText(null);
-                }
-                TextRenderer renderer = ip.getElement().getRenderer(TextRenderer.class);
-                ip.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
-
-                screen.layoutLayers();
-
-                break;
-
-            case "multiplayerLocal":
-                state.mapSelector.reset();
-
-                // Set the game & user name
-                player = screen.findNiftyControl("playerName", TextField.class);
-                TextField game = screen.findNiftyControl("gameName", TextField.class);
-                player.setText(Main.getUserSettings().getSetting(Settings.Setting.PLAYER_NAME).toString());
-                game.setText(Main.getUserSettings().getSetting(Settings.Setting.GAME_NAME).toString());
-                // multiplayerRefresh();
-                break;
-
-            case "skirmishMapSelect":
-                // Populate the maps
-                populateMapSelection(true);
-                break;
-
-            case "myPetDungeon":
-                // check unlocked levels
-                unlockMPDMaps();
-                break;
-
-            case "myPetDungeonMapSelect":
-                // Populate the maps
-                state.mapSelector.setMPD(true);
-                populateMapSelection(false);
-                break;
+    private void setSkirmishLobbyControlVisibility(String elementId, boolean visible) {
+        Element element = screen.findElementById(elementId);
+        if (element == null) {
+            return;
+        }
+        if (visible) {
+            element.show();
+        } else {
+            element.hide();
         }
     }
 
@@ -667,6 +657,32 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 hiscoreControl.build(hiscoreList);
             }
         }
+    }
+
+    /**
+     * Finds the cutscene registered for the given campaign level
+     *
+     * @param level the campaign level number
+     * @return the cutscene, or {@code null} if the level has none
+     */
+    public static Cutscene getCutscene(int level) {
+        for (Cutscene cutscene : CUTSCENES) {
+            if (cutscene.level == level) {
+                return cutscene;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Shows the cutscene screen, a black screen with the movie name centered on it. The actual
+     * speech and movie playback is driven by {@link CutsceneState}.
+     *
+     * @param movieName the movie name to display
+     */
+    public void showCutscene(String movieName) {
+        this.cutsceneMovieName = movieName;
+        nifty.gotoScreen(SCREEN_CUTSCENE_ID);
     }
 
     /**
@@ -1187,11 +1203,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         protected String image;
         protected String click;
         protected String moviename;
+        private String speechId;
+        private int level;
 
-        public Cutscene(String image, String click, String moviename) {
+        public Cutscene(final int level, final String image,final String click,final String moviename, final String speechId) {
+            this.level = level;
             this.image = image;
             this.click = click;
             this.moviename = moviename;
+            this.speechId = speechId;
         }
 
         /**
@@ -1235,6 +1255,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         private boolean isLevelCompleted(CampaignLevel level) {
             return Settings.getInstance().getLevelStatus(level).equals(LevelStatus.COMPLETED);
+        }
+
+        public String getSpeechId() {
+            return speechId;
         }
     }
 

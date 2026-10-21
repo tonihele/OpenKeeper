@@ -1,0 +1,106 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.view.minimap;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+/**
+ * {@link MinimapAssets#load()} against the real, shipped, converted assets
+ * this repository checks out (run against the
+ * actual files rather than hand-transcribed values - see
+ * {@link #shippedPaletteMatchesWhatIsActuallyInTheFile()}).
+ */
+class MinimapAssetsTest {
+
+    @Test
+    void loadsTheRealShippedFilesWithoutError() throws IOException {
+        assumeShippedAssetsExist();
+        MinimapAssets assets = MinimapAssets.load();
+
+        assertEquals(MinimapAssets.ROCK_TEXTURE_SIZE * MinimapAssets.ROCK_TEXTURE_SIZE * 3,
+                assets.rockTextureBgr().length);
+    }
+
+    @Test
+    void rockTextureBytesAreBgrOrderedMatchingTheSourcePixels() throws IOException {
+        assumeShippedAssetsExist();
+        MinimapAssets assets = MinimapAssets.load();
+
+        BufferedImage rockImage = readShippedImage("Map-BG.png");
+        for (int y = 0; y < MinimapAssets.ROCK_TEXTURE_SIZE; y += 31) { // sample, not every pixel
+            for (int x = 0; x < MinimapAssets.ROCK_TEXTURE_SIZE; x += 31) {
+                int rgb = rockImage.getRGB(x, y);
+                int i = (y * MinimapAssets.ROCK_TEXTURE_SIZE + x) * 3;
+                byte[] bgr = assets.rockTextureBgr();
+                assertEquals((byte) rgb, bgr[i], "blue at (" + x + "," + y + ")");
+                assertEquals((byte) (rgb >> 8), bgr[i + 1], "green at (" + x + "," + y + ")");
+                assertEquals((byte) (rgb >> 16), bgr[i + 2], "red at (" + x + "," + y + ")");
+            }
+        }
+    }
+
+    @Test
+    void rejectsARockTextureThatIsNotExactly128x128() throws IOException {
+        assumeShippedAssetsExist();
+        BufferedImage paletteImage = readShippedImage("MapColours.png");
+        BufferedImage wrongSizeRock = new BufferedImage(64, 64, BufferedImage.TYPE_INT_RGB);
+
+        assertThrows(IllegalArgumentException.class, () -> MinimapAssets.fromImages(paletteImage, wrongSizeRock));
+    }
+
+    @Test
+    void shippedPaletteMatchesWhatIsActuallyInTheFile() throws IOException {
+        assumeShippedAssetsExist();
+        MinimapAssets assets = MinimapAssets.load();
+        int[] argb = assets.getPalette().rawArgb();
+
+        assertEquals(0xFFFC01FD, argb[0]);
+        assertEquals(0xFF766456, argb[2]); // px1
+        assertEquals(0xFF02FB9C, argb[13]); // px12
+        // Walls (0x11+1..7): px16..22
+        assertEquals(0xFF7F8380, argb[0x12]);
+        assertEquals(0xFF780167, argb[0x18]);
+        // Floors (0x1A+1..7): px23..29
+        assertEquals(0xFFAEADAC, argb[0x1B]);
+        assertEquals(0xFFA1008D, argb[0x21]);
+        // Hearts (0x23+1..7): px30..36
+        assertEquals(0xFFCACBC8, argb[0x24]);
+        assertEquals(0xFFE433D3, argb[0x2A]);
+    }
+
+    private static void assumeShippedAssetsExist() {
+        assumeTrue(shippedAssetFile("MapColours.png").isFile() && shippedAssetFile("Map-BG.png").isFile(),
+                "assets/Converted/** isn't present in this checkout (generated, not committed) - "
+                + "skipping tests that read the real shipped files");
+    }
+
+    private static File shippedAssetFile(String fileName) {
+        return new File("assets/Converted/Textures/GUI/Map/" + fileName);
+    }
+
+    private static BufferedImage readShippedImage(String fileName) throws IOException {
+        return javax.imageio.ImageIO.read(shippedAssetFile(fileName));
+    }
+
+}

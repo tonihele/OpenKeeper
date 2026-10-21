@@ -77,6 +77,11 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     }
 
     @Override
+    public int getSlapEffectId(short playerId) {
+        return getDataObject().getSlapEffectId();
+    }
+
+    @Override
     public int hashCode() {
         int hash = 7;
         hash = 41 * hash + Objects.hashCode(getEntityId());
