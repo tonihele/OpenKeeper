@@ -898,10 +898,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
     }
 
-    private int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
+    static int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
+
+        // Walls are only reinforced once there is nothing else to do, the floor is claimed first
+        int result = Boolean.compare(isClaimWall(o1.task), isClaimWall(o2.task));
+        if (result != 0) {
+            return result;
+        }
 
         // Fill in jobs that have no workers first
-        int result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
+        result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
         if (result != 0) {
             return result;
         }
@@ -916,7 +922,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
     }
 
-    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+    private static boolean isClaimWall(Task task) {
+        return task.getTaskType() == TaskType.CLAIM_WALL;
+    }
+
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
 
     }
 
