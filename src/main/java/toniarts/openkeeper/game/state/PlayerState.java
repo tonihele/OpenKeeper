@@ -25,7 +25,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
-import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.*;
 import toniarts.openkeeper.game.data.GameResult;
@@ -415,9 +414,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @param animate whether to animate the transition
      */
     public void zoomToEntity(EntityId entityId, boolean animate) {
-        Position position = entityData.getComponent(entityId, Position.class);
+        Vector3f position = stateManager.getState(PlayerEntityViewState.class).getPosition(entityId);
         if (position != null) {
-            zoomToPosition(position.position, animate);
+            zoomToPosition(position, animate);
         }
     }
 

@@ -21,6 +21,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
@@ -53,6 +54,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.ClientEntityData;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
@@ -352,16 +354,19 @@ public final class GameClientState extends AbstractPauseAwareState {
             // This might take awhile, don't block
             Thread loadingThread = new Thread(() -> {
                 AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
+
+                // Also in a local game, so that the client never waits for the server
+                EntityData entityData = new ClientEntityData(gameClientService.getEntityData());
                 for (Keeper keeper : players) {
                     keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
                     GameClientState.this.players.put(keeper.getId(), keeper);
-                    GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
+                    GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), entityData, kwdFile.getVariables()));
                 }
 
                 // Create player state
-                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
+                playerState = new PlayerState(playerId, kwdFile, entityData, false, app, campaignLevel);
 
-                playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
+                playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, entityData, playerId,
                         false,
                         () -> {
                             synchronized (mapDataLoadingObject) {
@@ -394,10 +399,10 @@ public final class GameClientState extends AbstractPauseAwareState {
                 mapInformation = playerMapViewState.getMapInformation();
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), entityData, playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
-                        gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
+                        entityData, GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
 
                 // Attach the states
@@ -406,7 +411,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 stateManager.attach(playerModelViewState);
                 stateManager.attach(minimapPanelState);
                 fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
-                        gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
+                        entityData, kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
 
                 // Wait until loaded
