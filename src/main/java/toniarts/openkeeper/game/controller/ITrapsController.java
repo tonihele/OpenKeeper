@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Handles traps
@@ -24,5 +26,16 @@ import toniarts.openkeeper.game.controller.trap.ITrapController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface ITrapsController extends IEntityWrapper<ITrapController> {
+
+    /**
+     * Places a trap blueprint. The trap isn't armed, it waits for its crate
+     * from the workshop
+     *
+     * @param trapId the trap
+     * @param tile the tile to place it on
+     * @param ownerId the owning keeper
+     * @return the trap entity
+     */
+    public EntityId addTrapBlueprint(short trapId, Point tile, short ownerId);
 
 }
