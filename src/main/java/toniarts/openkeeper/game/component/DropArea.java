@@ -20,8 +20,9 @@ import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * Where the keeper dropped a worker. The worker claims the floor around it
- * before anything else, until there is nothing left to claim there.
+ * Where the keeper dropped a worker. The worker digs the tiles right next to
+ * it and claims the floor around it before anything else, until there is
+ * nothing left to do there.
  */
 public final class DropArea implements EntityComponent {
 

@@ -1082,13 +1082,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             final Point currentLocation = creature.getCreatureCoordinates();
             Set<Point> reachableArea = getReachableArea(creature, currentLocation);
             DropArea dropArea = entityData.getComponent(creature.getEntityId(), DropArea.class);
-            boolean claimLeftInDropArea = false;
+            boolean workLeftInDropArea = false;
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
             for (Task task : taskQueue) {
+                boolean digNextToDrop = dropArea != null && isDigNextToDrop(task, dropArea.center);
                 boolean inDropArea = dropArea != null && isClaimInDropArea(task, dropArea.center);
-                claimLeftInDropArea |= inDropArea;
+                workLeftInDropArea |= digNextToDrop || inDropArea;
 
                 // A task is worked on its tile or next to it. One out of the worker's reach would cost a path search that
                 // goes through all of the worker's land before it fails
@@ -1098,11 +1099,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, inDropArea, workResult));
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, digNextToDrop, inDropArea, workResult));
             }
 
-            // The floor around the drop is claimed, back to normal work
-            if (dropArea != null && !claimLeftInDropArea) {
+            // The area around the drop is dug and claimed, back to normal work
+            if (dropArea != null && !workLeftInDropArea) {
                 entityData.removeComponent(creature.getEntityId(), DropArea.class);
             }
         }
@@ -1188,10 +1189,29 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
+     * Whether the task digs a tile right next to the spot a worker was
+     * dropped on, one of the eight tiles around it
+     *
+     * @param task the task
+     * @param dropCenter the tile the worker was dropped on
+     * @return true if the dropped worker digs it before anything else
+     */
+    static boolean isDigNextToDrop(Task task, Point dropCenter) {
+        if (task.getTaskType() != TaskType.DIG_TILE) {
+            return false;
+        }
+        Point tile = task.getTaskLocation();
+        return Math.abs(tile.x - dropCenter.x) <= 1 && Math.abs(tile.y - dropCenter.y) <= 1;
+    }
+
+    /**
+     * @param digNextToDrop the task digs a tile right next to the spot this
+     * worker was dropped on
      * @param inDropArea the task claims floor around the spot this worker was
      * dropped on
      */
-    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean inDropArea, Consumer<Boolean> workResult) {
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean digNextToDrop, boolean inDropArea,
+            Consumer<Boolean> workResult) {
 
     }
 
