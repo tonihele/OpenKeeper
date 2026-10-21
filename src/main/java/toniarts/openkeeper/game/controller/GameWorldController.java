@@ -1179,7 +1179,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      */
     private void dropLooseGold(short playerId, Point tile, Vector2f coordinates, int amount) {
         synchronized (GOLD_LOCK) {
-            EntityId goldPile = findLooseGoldPile(entityData, tile);
+            EntityId goldPile = findLooseGoldPile(entityData, entityPositionLookup, tile);
             if (goldPile != null) {
                 Gold gold = entityData.getComponent(goldPile, Gold.class);
                 entityData.setComponent(goldPile, new Gold(gold.gold + amount, gold.maxGold));
@@ -1197,20 +1197,20 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     /**
      * Finds a loose gold pile lying on the given tile. Gold stored in rooms
-     * and gold carried by creatures don't count
+     * and gold carried by creatures don't count. Only the entities on the
+     * tile are looked at, not all the gold on the map
      *
      * @param entityData the entity data
+     * @param entityPositionLookup the entities by tile
      * @param tile the tile to search
      * @return the gold pile, {@code null} if there is none
      */
-    static EntityId findLooseGoldPile(EntityData entityData, Point tile) {
-        for (EntityId entityId : entityData.findEntities(null, ObjectComponent.class, Gold.class, Position.class)) {
+    static EntityId findLooseGoldPile(EntityData entityData, IEntityPositionLookup entityPositionLookup, Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
             ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
-            if (objectComponent.objectType != ObjectType.GOLD || entityData.getComponent(entityId, Stored.class) != null) {
-                continue;
-            }
-            Position position = entityData.getComponent(entityId, Position.class);
-            if (tile.equals(WorldUtils.vectorToPoint(position.position))) {
+            if (objectComponent != null && objectComponent.objectType == ObjectType.GOLD
+                    && entityData.getComponent(entityId, Gold.class) != null
+                    && entityData.getComponent(entityId, Stored.class) == null) {
                 return entityId;
             }
         }
