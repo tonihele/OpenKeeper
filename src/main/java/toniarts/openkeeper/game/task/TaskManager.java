@@ -987,14 +987,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return result;
         }
 
-        // Fill in jobs that have no workers first
-        result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
+        // Closest creature gets the job, weighed by the task's priority. A worker doesn't walk across the map
+        // to a task nobody works on while there is work right next to it
+        result = Integer.compare(o1.points, o2.points);
         if (result != 0) {
             return result;
         }
 
-        // Closest creature gets the job
-        result = Integer.compare(o1.points, o2.points);
+        // Then fill in jobs that have no workers first
+        result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
         if (result != 0) {
             return result;
         }

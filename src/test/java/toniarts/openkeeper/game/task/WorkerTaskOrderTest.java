@@ -44,7 +44,7 @@ class WorkerTaskOrderTest {
         TaskManager.TaskWorkerPriority wall = pair(TaskType.CLAIM_WALL, 0, 177);
         TaskManager.TaskWorkerPriority farFloor = pair(TaskType.CLAIM_TILE, 0, 106);
 
-        assertEquals(List.of(farFloor, takenFloor, wall), sorted(wall, takenFloor, farFloor));
+        assertEquals(List.of(takenFloor, farFloor, wall), sorted(wall, takenFloor, farFloor));
     }
 
     @Test
@@ -90,14 +90,40 @@ class WorkerTaskOrderTest {
     }
 
     @Test
-    void otherTasksKeepTheirOrder() {
+    void freeImpDigsBeforeClaimingNextToIt() {
 
-        // Free tasks first, then the points (distance and priority)
+        // An imp with nothing started stands 3 tiles from unclaimed floor, other imps already dig 20 tiles away.
+        // Digging is worth the walk: 10 + 20 points against 100 + 3
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 2, 30);
+        TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 103);
+
+        assertEquals(List.of(dig, claim), sorted(claim, dig));
+    }
+
+    @Test
+    void impDoesNotCrossTheMapToDig() {
+
+        // Digging 100 tiles away loses to claiming right next to the imp: 10 + 100 points against 100 + 3
+        TaskManager.TaskWorkerPriority farDig = pair(TaskType.DIG_TILE, 0, 110);
+        TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 103);
+
+        assertEquals(List.of(claim, farDig), sorted(farDig, claim));
+    }
+
+    @Test
+    void nearbyTaskBeforeFreeTaskFarAway() {
         TaskManager.TaskWorkerPriority takenNearDig = pair(TaskType.DIG_TILE, 1, 11);
         TaskManager.TaskWorkerPriority freeFarFloor = pair(TaskType.CLAIM_TILE, 0, 130);
-        TaskManager.TaskWorkerPriority freeNearFloor = pair(TaskType.CLAIM_TILE, 0, 102);
 
-        assertEquals(List.of(freeNearFloor, freeFarFloor, takenNearDig), sorted(takenNearDig, freeFarFloor, freeNearFloor));
+        assertEquals(List.of(takenNearDig, freeFarFloor), sorted(freeFarFloor, takenNearDig));
+    }
+
+    @Test
+    void freeTaskWinsOnEqualPoints() {
+        TaskManager.TaskWorkerPriority taken = pair(TaskType.DIG_TILE, 1, 15);
+        TaskManager.TaskWorkerPriority free = pair(TaskType.DIG_TILE, 0, 15);
+
+        assertEquals(List.of(free, taken), sorted(taken, free));
     }
 
     @Test
