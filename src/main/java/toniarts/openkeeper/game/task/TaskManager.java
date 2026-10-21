@@ -975,6 +975,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return result;
         }
 
+        // Of the usual work, damaged walls are repaired first
+        result = Boolean.compare(isRepairWall(o2.task), isRepairWall(o1.task));
+        if (result != 0) {
+            return result;
+        }
+
         // Walls are only reinforced once there is nothing else to do, the floor is claimed first
         result = Boolean.compare(isClaimWall(o1.task), isClaimWall(o2.task));
         if (result != 0) {
@@ -999,6 +1005,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static boolean isClaimWall(Task task) {
         return task.getTaskType() == TaskType.CLAIM_WALL;
+    }
+
+    private static boolean isRepairWall(Task task) {
+        return task.getTaskType() == TaskType.REPAIR_WALL;
     }
 
     /**
