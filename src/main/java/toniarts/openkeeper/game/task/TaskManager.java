@@ -880,9 +880,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                     continue;
                 }
 
-                boolean carriesOn = (claiming && isNextClaim(task, currentLocation)) || (digging && isNextDig(task, currentLocation));
+                boolean digsOn = digging && isNextDig(task, currentLocation);
+                boolean claimsOn = claiming && isNextClaim(task, currentLocation);
                 int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, digNextToDrop, inDropArea, carriesOn, workResult));
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, digNextToDrop, digsOn, inDropArea, claimsOn, workResult));
             }
 
             // The area around the drop is dug and claimed, back to normal work
@@ -956,14 +957,20 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return result;
         }
 
+        // A digging worker stays at it, it digs on around it
+        result = Boolean.compare(o2.digsOn, o1.digsOn);
+        if (result != 0) {
+            return result;
+        }
+
         // Then a dropped worker claims the floor around the drop before anything else
         result = Boolean.compare(o2.inDropArea, o1.inDropArea);
         if (result != 0) {
             return result;
         }
 
-        // A worker carries on with the work it started: claiming the floor right next to it, digging around it
-        result = Boolean.compare(o2.carriesOn, o1.carriesOn);
+        // A claiming worker carries on with the floor right next to it
+        result = Boolean.compare(o2.claimsOn, o1.claimsOn);
         if (result != 0) {
             return result;
         }
@@ -1066,14 +1073,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     /**
      * @param digNextToDrop the task digs a tile right next to the spot this
      * worker was dropped on
+     * @param digsOn the worker is digging and the task digs a tile around it
      * @param inDropArea the task claims floor around the spot this worker was
      * dropped on
-     * @param carriesOn the task carries on with the work the worker started,
-     * the floor right next to it when claiming, the tiles around it when
-     * digging
+     * @param claimsOn the worker is claiming and the task claims the floor
+     * right next to it
      */
-    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean digNextToDrop, boolean inDropArea,
-            boolean carriesOn, Consumer<Boolean> workResult) {
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean digNextToDrop, boolean digsOn,
+            boolean inDropArea, boolean claimsOn, Consumer<Boolean> workResult) {
 
     }
 

@@ -160,6 +160,17 @@ class WorkerTaskOrderTest {
     }
 
     @Test
+    void diggingImpDoesNotStopToClaimTheDugOutFloor() {
+
+        // A dropped imp started digging next to the drop. The dug out floor in the drop area becomes
+        // claimable, but it digs on
+        TaskManager.TaskWorkerPriority nextDig = carriesOnPair(TaskType.DIG_TILE, 0, 13);
+        TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 101, true);
+
+        assertEquals(List.of(nextDig, claimInDropArea), sorted(claimInDropArea, nextDig));
+    }
+
+    @Test
     void nextDigIsWithinTenTilesAsTheCrowFlies() {
         Point imp = new Point(20, 20);
 
@@ -196,16 +207,22 @@ class WorkerTaskOrderTest {
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean digNextToDrop, boolean inDropArea) {
-        return pair(taskType, assignees, points, digNextToDrop, inDropArea, false);
+        return pair(taskType, assignees, points, digNextToDrop, false, inDropArea, false);
     }
 
+    /**
+     * A task that carries on with the worker's work: digging on, or claiming
+     * the floor next to it
+     */
     private static TaskManager.TaskWorkerPriority carriesOnPair(TaskType taskType, int assignees, int points) {
-        return pair(taskType, assignees, points, false, false, true);
+        boolean digging = taskType == TaskType.DIG_TILE;
+        return pair(taskType, assignees, points, false, digging, false, !digging);
     }
 
-    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean digNextToDrop, boolean inDropArea,
-            boolean carriesOn) {
-        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, digNextToDrop, inDropArea, carriesOn, null);
+    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean digNextToDrop, boolean digsOn,
+            boolean inDropArea, boolean claimsOn) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, digNextToDrop, digsOn, inDropArea,
+                claimsOn, null);
     }
 
     private static Task task(TaskType taskType, Point location) {

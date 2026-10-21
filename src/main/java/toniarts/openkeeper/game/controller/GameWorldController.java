@@ -24,6 +24,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.ClaimingFloor;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -31,6 +32,7 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.DiggingTiles;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.DropArea;
@@ -1134,6 +1136,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (!tortureOrImprisonment && creatureComponent.worker) {
             entityData.setComponent(entity, new DropArea(tile));
         }
+
+        // What it was doing before it was picked up doesn't carry over to where it lands
+        entityData.removeComponent(entity, ClaimingFloor.class);
+        entityData.removeComponent(entity, DiggingTiles.class);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
