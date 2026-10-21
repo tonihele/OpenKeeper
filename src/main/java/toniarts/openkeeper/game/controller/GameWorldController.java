@@ -476,6 +476,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
+        // A trap is sold on its own, one at a time and never together with rooms
+        Point startTile = new Point((int) start.x, (int) start.y);
+        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+            return;
+        }
+
         Sale sale = sellTiles(start, end, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
@@ -487,6 +493,24 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         restoreGoldCapacity(sale.roomCoordinates);
         returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
         notifyOnSold(playerId, sale.soldTiles);
+    }
+
+    private boolean sellTrap(Point tile, short playerId) {
+        for (EntityId entityId : entityData.findEntities(null, TrapComponent.class, Position.class, Owner.class)) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            if (!TrapSellRules.isSellable(owner.ownerId, playerId)
+                    || !WorldUtils.vectorToPoint(entityData.getComponent(entityId, Position.class).position).equals(tile)) {
+                continue;
+            }
+
+            Trap trap = kwdFile.getTrapById(entityData.getComponent(entityId, TrapComponent.class).trapId);
+            int saleValue = TrapSellRules.getSellValue(trap.getGoldCost(),
+                    gameSettings.get(Variable.MiscVariable.MiscType.TRAP_SELL_VALUE_PERCENTAGE_OF_COST).getValue());
+            trapsController.createController(entityId).remove();
+            returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue)));
+            return true;
+        }
+        return false;
     }
 
     private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
