@@ -62,9 +62,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             return false;
         }
 
-        // A prisoner is controlled by the keeper holding it
-        Short prisonerOf = getEntity().get(CreatureImprisoned.class) != null ? getControlId() : null;
-        return SlapRules.canSlapCreature(playerId, getOwnerId(), prisonerOf);
+        boolean imprisoned = getEntity().get(CreatureImprisoned.class) != null;
+        return SlapRules.canSlapCreature(playerId, getOwnerId(), getControlId(), imprisoned);
     }
 
     @Override

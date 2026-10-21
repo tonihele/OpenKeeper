@@ -1023,10 +1023,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public void interact(EntityId entity, short playerId) {
 
-        // Creatures (slapping), also enemies held in our prison
+        // Creatures can only be slapped, also enemies held in our prison
         // TODO: Slap limit
-        if (canSlapCreature(entity, playerId)) {
-            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+        if (entityData.getComponent(entity, CreatureComponent.class) != null) {
+            if (canSlapCreature(entity, playerId)) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            }
             return;
         }
 
@@ -1229,20 +1231,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private boolean canSlapCreature(EntityId entityId, short playerId) {
-        if (entityData.getComponent(entityId, CreatureComponent.class) == null) {
-            return false;
-        }
-
         Owner owner = entityData.getComponent(entityId, Owner.class);
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
         if (owner == null || interaction == null || !interaction.slappable || isEntityIncapacitated(entityId, entityData)) {
             return false;
         }
 
-        // A prisoner is controlled by the keeper holding it
-        Short prisonerOf = entityData.getComponent(entityId, CreatureImprisoned.class) != null ? owner.controlId : null;
-
-        return SlapRules.canSlapCreature(playerId, owner.ownerId, prisonerOf);
+        boolean imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class) != null;
+        return SlapRules.canSlapCreature(playerId, owner.ownerId, owner.controlId, imprisoned);
     }
 
     private static boolean isEntityIncapacitated(EntityId entityId, EntityData entityData) {

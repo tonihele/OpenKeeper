@@ -35,16 +35,17 @@ public final class SlapRules {
      * an enemy walking on the keeper's land cannot be slapped.
      *
      * @param playerId the slapping keeper
-     * @param creatureOwnerId the owner of the creature
-     * @param prisonerOf the keeper holding the creature prisoner,
-     * {@code null} if it is free
+     * @param ownerId the owner of the creature
+     * @param controlId the keeper in control of the creature, for a prisoner
+     * the keeper holding it
+     * @param imprisoned whether the creature is held prisoner
      * @return whether the keeper may slap the creature
      */
-    public static boolean canSlapCreature(short playerId, short creatureOwnerId, Short prisonerOf) {
-        if (prisonerOf != null) {
-            return prisonerOf == playerId;
+    public static boolean canSlapCreature(short playerId, short ownerId, short controlId, boolean imprisoned) {
+        if (imprisoned) {
+            return controlId == playerId;
         }
-        return creatureOwnerId == playerId;
+        return ownerId == playerId;
     }
 
 }

@@ -29,35 +29,35 @@ class SlapRulesTest {
 
     @Test
     void ownCreatureCanBeSlapped() {
-        assertTrue(SlapRules.canSlapCreature(PLAYER, PLAYER, null));
+        assertTrue(SlapRules.canSlapCreature(PLAYER, PLAYER, PLAYER, false));
     }
 
     @Test
     void freeEnemyCreatureCannotBeSlapped() {
 
         // Wherever it stands, also on our own land
-        assertFalse(SlapRules.canSlapCreature(PLAYER, ENEMY, null));
-        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, null));
+        assertFalse(SlapRules.canSlapCreature(PLAYER, ENEMY, ENEMY, false));
+        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, Player.GOOD_PLAYER_ID, false));
     }
 
     @Test
     void enemyCreatureInOurPrisonCanBeSlapped() {
-        assertTrue(SlapRules.canSlapCreature(PLAYER, ENEMY, PLAYER));
-        assertTrue(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, PLAYER));
+        assertTrue(SlapRules.canSlapCreature(PLAYER, ENEMY, PLAYER, true));
+        assertTrue(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, PLAYER, true));
     }
 
     @Test
     void nothingInSomeoneElsesPrisonCanBeSlapped() {
-        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, ENEMY));
-        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.KEEPER3_ID, ENEMY));
+        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.GOOD_PLAYER_ID, ENEMY, true));
+        assertFalse(SlapRules.canSlapCreature(PLAYER, Player.KEEPER3_ID, ENEMY, true));
 
         // Not even our own creature held there
-        assertFalse(SlapRules.canSlapCreature(PLAYER, PLAYER, ENEMY));
+        assertFalse(SlapRules.canSlapCreature(PLAYER, PLAYER, ENEMY, true));
     }
 
     @Test
     void ourCreatureInSomeoneElsesPrisonCanBeSlappedByTheJailer() {
-        assertTrue(SlapRules.canSlapCreature(ENEMY, PLAYER, ENEMY));
+        assertTrue(SlapRules.canSlapCreature(ENEMY, PLAYER, ENEMY, true));
     }
 
 }
