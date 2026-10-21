@@ -26,8 +26,8 @@ public final class SfxSoundEntry {
 
     private final SfxEEEntry parent;
     protected int index;
-    protected int unknown_1;
-    protected int unknown_2;
+    protected int weight;
+    protected int duration;
     protected int archiveId;
 
     public SfxSoundEntry(SfxEEEntry parent) {
@@ -62,7 +62,7 @@ public final class SfxSoundEntry {
      * @return weight
      */
     public int getWeight() {
-        return unknown_1 & 0xffff;
+        return weight;
     }
 
     /**
@@ -72,7 +72,7 @@ public final class SfxSoundEntry {
      * @return duration in milliseconds
      */
     public int getDuration() {
-        return unknown_2;
+        return duration;
     }
 
     @Override

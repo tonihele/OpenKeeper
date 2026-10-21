@@ -31,7 +31,21 @@ public final class SfxEEEntry {
 
     private final SfxGroupEntry parent;
     protected int end_pointer_position; // I think not needed
-    protected byte[] unknown = new byte[26];
+    protected short minVolume;
+    protected short maxVolume;
+    protected byte minPan; // probably
+    protected byte maxPan;
+    protected int minDelay;
+    protected int maxDelay;
+    protected byte[] unknown = new byte[2]; // always 50, 50
+    // Two instance parameters (ids) can drive the volume or pan (flags bit 0 / 1), unused by the background groups
+    protected int parameter1Id;
+    protected int parameter1Flags;
+    protected int parameter2Id;
+    protected int parameter2Flags;
+    protected int weight; // cumulative, used when picking a random entry
+    protected int unknown2; // always 0
+    protected float unknown3; // 20.0, 100.0 or 0.1
     protected int data_pointer_next; // I think not needed
     protected SfxSoundEntry[] sounds;
     protected SfxData[] data;
@@ -57,14 +71,14 @@ public final class SfxEEEntry {
      * from the min-max range
      */
     public int getMinVolume() {
-        return Byte.toUnsignedInt(unknown[0]);
+        return minVolume;
     }
 
     /**
      * @return maximum volume in percent
      */
     public int getMaxVolume() {
-        return Byte.toUnsignedInt(unknown[1]);
+        return maxVolume;
     }
 
     /**
@@ -74,7 +88,7 @@ public final class SfxEEEntry {
      * @return minimum delay in milliseconds
      */
     public int getMinDelay() {
-        return Byte.toUnsignedInt(unknown[4]) | Byte.toUnsignedInt(unknown[5]) << 8;
+        return minDelay;
     }
 
     /**
@@ -82,7 +96,7 @@ public final class SfxEEEntry {
      * @see #getMinDelay()
      */
     public int getMaxDelay() {
-        return Byte.toUnsignedInt(unknown[6]) | Byte.toUnsignedInt(unknown[7]) << 8;
+        return maxDelay;
     }
 
     @Override

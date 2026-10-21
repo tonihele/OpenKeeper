@@ -30,7 +30,9 @@ public final class SfxData {
     // private final static byte SIZE = 8; // 8 bytes
 
     protected int index;
-    protected byte[] unknown2 = new byte[4];
+    protected byte[] unknown2 = new byte[2]; // always 0, 0
+    protected short minIntensity;
+    protected short maxIntensity;
 
     /**
      * A link to the entry that may follow the one owning this link. Used by the
@@ -47,19 +49,20 @@ public final class SfxData {
      * @return lowest intensity (0-100, inclusive) at which this link applies
      */
     public int getMinIntensity() {
-        return Byte.toUnsignedInt(unknown2[2]);
+        return minIntensity;
     }
 
     /**
      * @return highest intensity (0-100, inclusive) at which this link applies
      */
     public int getMaxIntensity() {
-        return Byte.toUnsignedInt(unknown2[3]);
+        return maxIntensity;
     }
 
     @Override
     public String toString() {
         return "SfxData{" + "index=" + index
+                + ", minIntensity=" + minIntensity + ", maxIntensity=" + maxIntensity
                 + ", unknown2=" + Arrays.toString(unknown2) + '}';
     }
 }
