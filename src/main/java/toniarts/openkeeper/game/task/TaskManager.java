@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.ClaimingFloor;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DiggingTiles;
 import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
@@ -117,6 +118,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * tiles as the crow flies
      */
     static final int DROP_AREA_RADIUS = 3;
+
+    /**
+     * How far around it a digging worker carries on digging, in tiles as the
+     * crow flies
+     */
+    static final int DIG_ON_RADIUS = 10;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -859,6 +866,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             DropArea dropArea = entityData.getComponent(creature.getEntityId(), DropArea.class);
             boolean workLeftInDropArea = false;
             boolean claiming = entityData.getComponent(creature.getEntityId(), ClaimingFloor.class) != null;
+            boolean digging = entityData.getComponent(creature.getEntityId(), DiggingTiles.class) != null;
 
             // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
             for (Task task : taskQueue) {
@@ -872,9 +880,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                     continue;
                 }
 
-                boolean nextClaim = claiming && isNextClaim(task, currentLocation);
+                boolean carriesOn = (claiming && isNextClaim(task, currentLocation)) || (digging && isNextDig(task, currentLocation));
                 int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, digNextToDrop, inDropArea, nextClaim, workResult));
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, digNextToDrop, inDropArea, carriesOn, workResult));
             }
 
             // The area around the drop is dug and claimed, back to normal work
@@ -903,7 +911,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                 // Assign task
                 taskWorkerPriority.task.assign(taskWorkerPriority.creature, true);
-                setClaimingFloor(taskWorkerPriority.creature, taskWorkerPriority.task.getTaskType() == TaskType.CLAIM_TILE);
+                setCurrentWork(taskWorkerPriority.creature, taskWorkerPriority.task.getTaskType());
                 taskWorkerPriority.workResult.accept(Boolean.TRUE);
 
                 // Prune list and re-sort tasks
@@ -915,16 +923,28 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Finally anybody without assigment will get feedback
         unemployedWorkers.forEach((t, u) -> {
-            setClaimingFloor(t, false);
+            setCurrentWork(t, null);
             u.accept(Boolean.FALSE);
         });
     }
 
-    private void setClaimingFloor(ICreatureController creature, boolean claiming) {
-        if (claiming) {
+    /**
+     * Remembers whether the worker is claiming or digging, so that it carries
+     * on with it
+     *
+     * @param creature the worker
+     * @param taskType the task it got, {@code null} for none
+     */
+    private void setCurrentWork(ICreatureController creature, TaskType taskType) {
+        if (taskType == TaskType.CLAIM_TILE) {
             entityData.setComponent(creature.getEntityId(), new ClaimingFloor());
         } else {
             entityData.removeComponent(creature.getEntityId(), ClaimingFloor.class);
+        }
+        if (taskType == TaskType.DIG_TILE) {
+            entityData.setComponent(creature.getEntityId(), new DiggingTiles());
+        } else {
+            entityData.removeComponent(creature.getEntityId(), DiggingTiles.class);
         }
     }
 
@@ -942,8 +962,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return result;
         }
 
-        // A worker that is claiming carries on with the floor right next to it
-        result = Boolean.compare(o2.nextClaim, o1.nextClaim);
+        // A worker carries on with the work it started: claiming the floor right next to it, digging around it
+        result = Boolean.compare(o2.carriesOn, o1.carriesOn);
         if (result != 0) {
             return result;
         }
@@ -1026,15 +1046,34 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
+     * Whether the task digs a tile around the worker, within
+     * {@link #DIG_ON_RADIUS} tiles as the crow flies
+     *
+     * @param task the task
+     * @param workerLocation the tile the worker stands on
+     * @return true if a digging worker carries on with it
+     */
+    static boolean isNextDig(Task task, Point workerLocation) {
+        if (task.getTaskType() != TaskType.DIG_TILE) {
+            return false;
+        }
+        Point tile = task.getTaskLocation();
+        int dx = tile.x - workerLocation.x;
+        int dy = tile.y - workerLocation.y;
+        return dx * dx + dy * dy <= DIG_ON_RADIUS * DIG_ON_RADIUS;
+    }
+
+    /**
      * @param digNextToDrop the task digs a tile right next to the spot this
      * worker was dropped on
      * @param inDropArea the task claims floor around the spot this worker was
      * dropped on
-     * @param nextClaim the worker is claiming and the task claims the floor
-     * right next to it
+     * @param carriesOn the task carries on with the work the worker started,
+     * the floor right next to it when claiming, the tiles around it when
+     * digging
      */
     static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean digNextToDrop, boolean inDropArea,
-            boolean nextClaim, Consumer<Boolean> workResult) {
+            boolean carriesOn, Consumer<Boolean> workResult) {
 
     }
 

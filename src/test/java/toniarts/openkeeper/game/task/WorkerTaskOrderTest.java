@@ -132,7 +132,7 @@ class WorkerTaskOrderTest {
 
         // The imp just claimed a tile, the next floor is right next to it: it carries on, although
         // digging is close and there is free floor elsewhere
-        TaskManager.TaskWorkerPriority nextClaim = nextClaimPair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority nextClaim = carriesOnPair(TaskType.CLAIM_TILE, 0, 101);
         TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 12);
         TaskManager.TaskWorkerPriority freeClaimElsewhere = pair(TaskType.CLAIM_TILE, 0, 100);
 
@@ -141,10 +141,33 @@ class WorkerTaskOrderTest {
 
     @Test
     void dropAreaStillComesFirst() {
-        TaskManager.TaskWorkerPriority nextClaim = nextClaimPair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority nextClaim = carriesOnPair(TaskType.CLAIM_TILE, 0, 101);
         TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 103, true);
 
         assertEquals(List.of(claimInDropArea, nextClaim), sorted(nextClaim, claimInDropArea));
+    }
+
+    @Test
+    void diggingImpCarriesOnDigging() {
+
+        // The imp just dug a tile, another marked tile is 8 tiles away: it digs on, although there is
+        // floor to claim right next to it
+        TaskManager.TaskWorkerPriority nextDig = carriesOnPair(TaskType.DIG_TILE, 0, 18);
+        TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 0, 5);
+
+        assertEquals(nextDig, sorted(claim, gold, nextDig).getFirst());
+    }
+
+    @Test
+    void nextDigIsWithinTenTilesAsTheCrowFlies() {
+        Point imp = new Point(20, 20);
+
+        assertTrue(TaskManager.isNextDig(task(TaskType.DIG_TILE, new Point(30, 20)), imp));
+        assertTrue(TaskManager.isNextDig(task(TaskType.DIG_TILE, new Point(26, 28)), imp));
+        assertFalse(TaskManager.isNextDig(task(TaskType.DIG_TILE, new Point(27, 28)), imp));
+        assertFalse(TaskManager.isNextDig(task(TaskType.DIG_TILE, new Point(31, 20)), imp));
+        assertFalse(TaskManager.isNextDig(task(TaskType.CLAIM_TILE, new Point(21, 20)), imp));
     }
 
     @Test
@@ -176,13 +199,13 @@ class WorkerTaskOrderTest {
         return pair(taskType, assignees, points, digNextToDrop, inDropArea, false);
     }
 
-    private static TaskManager.TaskWorkerPriority nextClaimPair(TaskType taskType, int assignees, int points) {
+    private static TaskManager.TaskWorkerPriority carriesOnPair(TaskType taskType, int assignees, int points) {
         return pair(taskType, assignees, points, false, false, true);
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean digNextToDrop, boolean inDropArea,
-            boolean nextClaim) {
-        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, digNextToDrop, inDropArea, nextClaim, null);
+            boolean carriesOn) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, digNextToDrop, inDropArea, carriesOn, null);
     }
 
     private static Task task(TaskType taskType, Point location) {
