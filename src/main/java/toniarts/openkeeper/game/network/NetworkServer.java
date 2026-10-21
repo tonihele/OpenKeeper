@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Food;
@@ -178,6 +179,7 @@ public final class NetworkServer {
             Serializer.registerClass(Decay.class, new FieldSerializer());
             Serializer.registerClass(DoorComponent.class, new FieldSerializer());
             Serializer.registerClass(DoorViewState.class, new FieldSerializer());
+            Serializer.registerClass(DropArea.class, new FieldSerializer());
             Serializer.registerClass(Fearless.class, new FieldSerializer());
             Serializer.registerClass(FollowTarget.class, new FieldSerializer());
             Serializer.registerClass(Food.class, new FieldSerializer());

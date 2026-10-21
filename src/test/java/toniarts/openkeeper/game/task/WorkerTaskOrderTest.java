@@ -21,8 +21,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The order in which unemployed workers take tasks
@@ -73,6 +76,37 @@ class WorkerTaskOrderTest {
         assertEquals(List.of(freeNearFloor, freeFarFloor, takenNearDig), sorted(takenNearDig, freeFarFloor, freeNearFloor));
     }
 
+    @Test
+    void droppedImpClaimsAroundTheDropFirst() {
+
+        // Dropped 3 tiles from unclaimed floor: it claims, although digging is closer and worth more
+        TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 103, true);
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 11);
+        TaskManager.TaskWorkerPriority freeClaimElsewhere = pair(TaskType.CLAIM_TILE, 0, 101);
+
+        assertEquals(claimInDropArea, sorted(dig, freeClaimElsewhere, claimInDropArea).getFirst());
+    }
+
+    @Test
+    void dropAreaIsTheFloorWithinThreeTilesAsTheCrowFlies() {
+        Point drop = new Point(10, 10);
+
+        assertTrue(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(13, 10)), drop));
+        assertTrue(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(8, 12)), drop));
+        assertTrue(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(10, 10)), drop));
+        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(13, 11)), drop));
+        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(10, 14)), drop));
+    }
+
+    @Test
+    void onlyFloorCountsInTheDropArea() {
+        Point drop = new Point(10, 10);
+
+        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_WALL, new Point(11, 10)), drop));
+        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.DIG_TILE, new Point(11, 10)), drop));
+        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.REPAIR_WALL, new Point(11, 10)), drop));
+    }
+
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
         List<TaskManager.TaskWorkerPriority> result = new ArrayList<>(List.of(pairs));
         result.sort(TaskManager::sortByTaskStatusAndDistance);
@@ -80,12 +114,26 @@ class WorkerTaskOrderTest {
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points) {
-        Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+        return pair(taskType, assignees, points, false);
+    }
+
+    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean inDropArea) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, inDropArea, null);
+    }
+
+    private static Task task(TaskType taskType, Point location) {
+        return task(taskType, 0, 0, location);
+    }
+
+    private static Task task(TaskType taskType, int assignees, int points, Point location) {
+        return (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getTaskType" ->
                 taskType;
             case "getAssigneeCount" ->
                 assignees;
+            case "getTaskLocation" ->
+                location;
             case "getTaskCreated" ->
                 CREATED;
             case "toString" ->
@@ -97,7 +145,6 @@ class WorkerTaskOrderTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        return new TaskManager.TaskWorkerPriority(task, null, points, null);
     }
 
 }
