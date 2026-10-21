@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -132,6 +133,12 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+
+    /**
+     * How far around the drop a dropped worker claims the floor first, in
+     * tiles as the crow flies
+     */
+    static final int DROP_AREA_RADIUS = 3;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -1074,10 +1081,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
             Set<Point> reachableArea = getReachableArea(creature, currentLocation);
+            DropArea dropArea = entityData.getComponent(creature.getEntityId(), DropArea.class);
+            boolean claimLeftInDropArea = false;
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
             for (Task task : taskQueue) {
+                boolean inDropArea = dropArea != null && isClaimInDropArea(task, dropArea.center);
+                claimLeftInDropArea |= inDropArea;
 
                 // A task is worked on its tile or next to it. One out of the worker's reach would cost a path search that
                 // goes through all of the worker's land before it fails
@@ -1087,7 +1098,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, inDropArea, workResult));
+            }
+
+            // The floor around the drop is claimed, back to normal work
+            if (dropArea != null && !claimLeftInDropArea) {
+                entityData.removeComponent(creature.getEntityId(), DropArea.class);
             }
         }
 
@@ -1152,7 +1168,30 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return area;
     }
 
-    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+    /**
+     * Whether the task claims a floor tile around the spot a worker was
+     * dropped on, within {@link #DROP_AREA_RADIUS} tiles as the crow flies.
+     * Walls don't count, only the floor.
+     *
+     * @param task the task
+     * @param dropCenter the tile the worker was dropped on
+     * @return true if the dropped worker claims it before anything else
+     */
+    static boolean isClaimInDropArea(Task task, Point dropCenter) {
+        if (task.getTaskType() != TaskType.CLAIM_TILE) {
+            return false;
+        }
+        Point tile = task.getTaskLocation();
+        int dx = tile.x - dropCenter.x;
+        int dy = tile.y - dropCenter.y;
+        return dx * dx + dy * dy <= DROP_AREA_RADIUS * DROP_AREA_RADIUS;
+    }
+
+    /**
+     * @param inDropArea the task claims floor around the spot this worker was
+     * dropped on
+     */
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean inDropArea, Consumer<Boolean> workResult) {
 
     }
 

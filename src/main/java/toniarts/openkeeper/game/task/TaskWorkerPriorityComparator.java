@@ -26,9 +26,15 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
     @Override
     public int compare(TaskManager.TaskWorkerPriority o1, TaskManager.TaskWorkerPriority o2) {
 
+        // A dropped worker claims the floor around the drop before anything else
+        int result = Boolean.compare(o2.inDropArea(), o1.inDropArea());
+        if (result != 0) {
+            return result;
+        }
+
         // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
         // work order (DKII.EXE 0x463DF0)
-        int result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
+        result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
         if (result != 0) {
             return result;
         }
