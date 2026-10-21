@@ -14,7 +14,6 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
 class CreatureSleepSystemTest {
 
@@ -38,7 +37,7 @@ class CreatureSleepSystemTest {
         CreatureSleep updated = CreatureSleepSystem.updateSleep(
                 sleep, CreatureState.SLEEPING, 100, 20, 9);
 
-        assertEquals(10, updated.lastSleepTime);
+        assertEquals(100, updated.lastSleepTime);
         assertEquals(12, updated.sleepStartTime);
         assertEquals(35, updated.sleepNeed);
     }
@@ -50,7 +49,8 @@ class CreatureSleepSystemTest {
         CreatureSleep updated = CreatureSleepSystem.updateSleep(
                 sleep, CreatureState.SLEEPING, 100, 20, 9);
 
-        assertSame(sleep, updated);
+        assertEquals(0, updated.sleepNeed);
+        assertEquals(100, updated.lastSleepTime);
     }
 
     @Test
@@ -60,7 +60,7 @@ class CreatureSleepSystemTest {
         CreatureSleep updated = CreatureSleepSystem.updateSleep(
                 sleep, CreatureState.SLEEPING, 100, 20, 9);
 
-        assertEquals(10, updated.lastSleepTime);
+        assertEquals(100, updated.lastSleepTime);
         assertEquals(4, updated.sleepNeed);
     }
 }

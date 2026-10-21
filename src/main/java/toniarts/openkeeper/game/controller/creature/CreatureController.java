@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureLairPlacement;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -118,6 +119,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
     private float motionless = 0;
+    private double lastSleepAttemptTime = Double.NEGATIVE_INFINITY;
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -337,21 +339,48 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isNeedForSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        float healthThreshold = gameSettings.get(
-                Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue();
+        // Native autonomous attempts still require debt, even below the health threshold.
         return needsLair() && isNeedForSleep(creatureSleep,
-                creature.getAttributes().getTimeSleep(), getHealthPercentage(),
-                healthThreshold);
+                creature.getAttributes().getTimeSleep());
     }
 
-    static boolean isNeedForSleep(CreatureSleep sleep, int timeSleep,
-            int healthPercentage, float sleepHealthThreshold) {
-        return sleep != null && timeSleep != 0
-                && (sleep.sleepNeed != 0 || healthPercentage < sleepHealthThreshold);
+    static boolean isNeedForSleep(CreatureSleep sleep, int timeSleep) {
+        return sleep != null && timeSleep > 0 && sleep.sleepNeed > 0;
+    }
+
+    @Override
+    public boolean goToSleepAfterLairDrop() {
+        CreatureLairPlacement placement = entityData.getComponent(entityId, CreatureLairPlacement.class);
+        if (placement == null) {
+            return false;
+        }
+        // This is a one-shot room assignment, consumed only after landing/getting up.
+        entityData.removeComponent(entityId, CreatureLairPlacement.class);
+        if (!needsLair() || creature.getAttributes().getTimeSleep() <= 0 || !hasLair()) {
+            return false;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+        CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+        Stored bed = entityData.getComponent(sleep.lairObjectId, Stored.class);
+        if (room == null || room.isDestroyed() || room.isRemoved()
+                || room.getOwnerId() != getOwnerId()
+                || !placement.roomId.equals(room.getEntityId())
+                || bed == null || bed.objectType != AbstractRoomController.ObjectType.LAIR
+                || !placement.roomId.equals(bed.room)) {
+            return false;
+        }
+        // Native manual placement bypasses the autonomous debt/retry gates.
+        return taskManager.assignSleepTask(this);
     }
 
     @Override
     public boolean goToSleep() {
+        double gameTime = gameTimer.getGameTime();
+        if (gameTime - lastSleepAttemptTime < 1) {
+            return false;
+        }
+        // Native autonomous attempts are throttled to one per four native ticks.
+        lastSleepAttemptTime = gameTime;
         return taskManager.assignSleepTask(this);
     }
 
@@ -1167,10 +1196,12 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void sleep() {
         double gameTime = gameTimer.getGameTime();
-        entityData.setComponent(entityId, new CreatureRecuperating(gameTime, gameTime, gameTime));
+        // Native lair recovery uses global second boundaries, not a full second after entry.
+        double recoveryTime = Math.floor(gameTime);
+        entityData.setComponent(entityId, new CreatureRecuperating(gameTime, recoveryTime, recoveryTime));
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId,
-                creatureSleep.lastSleepTime, gameTime, creatureSleep.sleepNeed));
+                gameTime, gameTime, creatureSleep.sleepNeed));
         stateMachine.changeState(CreatureState.SLEEPING);
     }
 

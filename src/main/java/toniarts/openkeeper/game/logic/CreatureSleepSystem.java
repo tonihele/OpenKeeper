@@ -14,8 +14,10 @@ import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
@@ -54,6 +56,12 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
                 continue;
             }
 
+            TaskComponent task = entityData.getComponent(entity.getId(), TaskComponent.class);
+            if (ai.getCreatureState() == CreatureState.WORK && task != null
+                    && task.taskType == TaskType.CLAIM_LAIR && task.taskStarted) {
+                // Native lair activity skips needs accumulation (also applies to no-bed sleepers).
+                continue;
+            }
             CreatureSleep updated = updateSleep(sleep, ai.getCreatureState(), gameTime,
                     creature.getAttributes().getTimeAwake(),
                     creature.getAttributes().getTimeSleep());
@@ -67,12 +75,18 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
             double gameTime, int timeAwake, int timeSleep) {
         double lastSleepTime = sleep.lastSleepTime;
         int sleepNeed = sleep.sleepNeed;
-        if (state != CreatureState.SLEEPING
-                && gameTime - lastSleepTime >= timeAwake) {
+        if (timeSleep <= 0) {
+            return sleep;
+        }
+        if (state == CreatureState.SLEEPING || state == CreatureState.RECUPERATING) {
+            // Native 0x46fa60 refreshes this even after debt is zero, until health recovers.
+            lastSleepTime = gameTime;
+            sleepNeed = Math.max(0, sleepNeed - 1);
+        } else if (state != CreatureState.EATING && state != CreatureState.IMPRISONED
+                && state != CreatureState.TORTURED && state != CreatureState.UNCONSCIOUS
+                && state != CreatureState.DEAD && gameTime - lastSleepTime >= timeAwake) {
             lastSleepTime = gameTime;
             sleepNeed = CreatureSleep.toRuntimeSleepNeed(timeSleep);
-        } else if (state == CreatureState.SLEEPING && sleepNeed != 0) {
-            sleepNeed--;
         }
 
         if (lastSleepTime == sleep.lastSleepTime && sleepNeed == sleep.sleepNeed) {

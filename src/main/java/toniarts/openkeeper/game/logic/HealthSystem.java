@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -64,6 +65,7 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class HealthSystem extends GameTimeCounter {
 
     private final EntityData entityData;
+    private final IGameTimer gameTimer;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
@@ -84,9 +86,10 @@ public final class HealthSystem extends GameTimeCounter {
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, ILevelInfo levelInfo,
-            Collection<IPlayerController> playerControllers, IMapController mapController) {
+            Collection<IPlayerController> playerControllers, IMapController mapController, IGameTimer gameTimer) {
 
         this.entityData = entityData;
+        this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
         this.levelInfo = levelInfo;
@@ -330,7 +333,9 @@ public final class HealthSystem extends GameTimeCounter {
         entity = recuperatingEntities.getEntity(entityId);
         if (entity != null) {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
-            if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
+            // Use the same authoritative clock as lair mood recovery. This system's
+            // own counter can be one update ahead of GameController in the loop.
+            if (gameTimer.getGameTime() - creatureRecuperating.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureRecuperating(
                         creatureRecuperating.startTime,
                         creatureRecuperating.healthCheckTime + 1,

@@ -29,7 +29,7 @@ public final class CreatureSleep implements EntityComponent {
     private static final int RUNTIME_SLEEP_SCALE = 4;
 
     public EntityId lairObjectId;
-    /** Time at which DKII last latched a new sleep debt. */
+    /** Last fatigue latch or sleeping update; the awake interval starts after rest. */
     public double lastSleepTime;
     public double sleepStartTime;
     /** Remaining native sleep updates. */
