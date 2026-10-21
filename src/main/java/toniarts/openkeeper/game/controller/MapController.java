@@ -514,11 +514,12 @@ public final class MapController extends Container implements IMapController {
         boolean tileDestroyed;
         damage = Math.abs(damage);
         if (tile.getGold() > 0) { // Mine
+            int freeCapacity = getFreeGoldCapacity(creature);
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
-                returnedGold = damage;
+                returnedGold = Math.min(damage, freeCapacity);
                 tileDestroyed = false;
             } else {
-                returnedGold = mineGold(tile, damage);
+                returnedGold = mineGold(tile, damage, freeCapacity);
                 tileDestroyed = (tile.getGold() < 1);
             }
         } else { // Apply damage
@@ -663,10 +664,33 @@ public final class MapController extends Container implements IMapController {
         room.setHealth(currentHealth);
     }
 
-    public int mineGold(IMapTileController tile, int amount) {
-        int minedAmount = Math.min(amount, tile.getGold());
+    /**
+     * Mines gold from a seam. The miner only takes what it can still carry,
+     * the rest stays in the seam for the next swing instead of falling to the
+     * floor
+     *
+     * @param tile the seam
+     * @param amount the gold one swing mines
+     * @param freeCapacity how much more gold the miner can carry
+     * @return the gold the miner takes
+     */
+    static int mineGold(IMapTileController tile, int amount, int freeCapacity) {
+        int minedAmount = Math.min(Math.min(amount, freeCapacity), tile.getGold());
         tile.setGold(tile.getGold() - minedAmount);
         return minedAmount;
+    }
+
+    /**
+     * How much more gold a miner can carry
+     *
+     * @param creature the miner, may be {@code null}
+     * @return the free capacity, unlimited without a miner
+     */
+    static int getFreeGoldCapacity(ICreatureController creature) {
+        if (creature == null) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.max(0, creature.getMaxGold() - creature.getGold());
     }
 
     private boolean applyDamage(IMapTileController tile, int damage) {
