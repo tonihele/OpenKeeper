@@ -107,6 +107,26 @@ class WorkerTaskOrderTest {
         assertFalse(TaskManager.isClaimInDropArea(task(TaskType.REPAIR_WALL, new Point(11, 10)), drop));
     }
 
+    @Test
+    void droppedNextToDiggingDigsFirst() {
+
+        // Dropped right next to a tile to dig, with floor to claim around it: it digs first
+        TaskManager.TaskWorkerPriority digNextToDrop = pair(TaskType.DIG_TILE, 0, 11, true, false);
+        TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 101, false, true);
+
+        assertEquals(List.of(digNextToDrop, claimInDropArea), sorted(claimInDropArea, digNextToDrop));
+    }
+
+    @Test
+    void digNextToDropIsOneOfTheEightTilesAround() {
+        Point drop = new Point(10, 10);
+
+        assertTrue(TaskManager.isDigNextToDrop(task(TaskType.DIG_TILE, new Point(11, 10)), drop));
+        assertTrue(TaskManager.isDigNextToDrop(task(TaskType.DIG_TILE, new Point(9, 11)), drop));
+        assertFalse(TaskManager.isDigNextToDrop(task(TaskType.DIG_TILE, new Point(12, 10)), drop));
+        assertFalse(TaskManager.isDigNextToDrop(task(TaskType.CLAIM_TILE, new Point(11, 10)), drop));
+    }
+
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
         List<TaskManager.TaskWorkerPriority> result = new ArrayList<>(List.of(pairs));
         result.sort(TaskManager::sortByTaskStatusAndDistance);
@@ -118,7 +138,11 @@ class WorkerTaskOrderTest {
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean inDropArea) {
-        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, inDropArea, null);
+        return pair(taskType, assignees, points, false, inDropArea);
+    }
+
+    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean digNextToDrop, boolean inDropArea) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, digNextToDrop, inDropArea, null);
     }
 
     private static Task task(TaskType taskType, Point location) {
