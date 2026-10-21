@@ -1331,7 +1331,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
-        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(), tile, playerId, trap, player.getGold())
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
                 != TrapPlacementValidator.Failure.NONE) {
             return;
         }
@@ -1357,11 +1357,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
-    private Set<Point> getTrapBlockingTiles() {
-        Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingPositions(blockedTiles, DoorComponent.class);
-        addConstructionBlockingPositions(blockedTiles, TrapComponent.class);
-        return blockedTiles;
+    /**
+     * The tile if a trap or a door already stands on it. Only the entities on
+     * the tile are looked at, not every trap and door on the map
+     *
+     * @param tile the tile to place a trap on
+     * @return the tile if it is taken, otherwise nothing
+     */
+    private Set<Point> getTrapBlockingTiles(Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            if (entityData.getComponent(entityId, TrapComponent.class) != null
+                    || entityData.getComponent(entityId, DoorComponent.class) != null) {
+                return Set.of(tile);
+            }
+        }
+        return Set.of();
     }
 
     @Override
