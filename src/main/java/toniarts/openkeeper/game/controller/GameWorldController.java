@@ -496,14 +496,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private boolean sellTrap(Point tile, short playerId) {
-        for (EntityId entityId : entityData.findEntities(null, TrapComponent.class, Position.class, Owner.class)) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every trap on the map
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
             Owner owner = entityData.getComponent(entityId, Owner.class);
-            if (!TrapSellRules.isSellable(owner.ownerId, playerId)
-                    || !WorldUtils.vectorToPoint(entityData.getComponent(entityId, Position.class).position).equals(tile)) {
+            if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
                 continue;
             }
 
-            Trap trap = kwdFile.getTrapById(entityData.getComponent(entityId, TrapComponent.class).trapId);
+            Trap trap = kwdFile.getTrapById(trapComponent.trapId);
             int saleValue = TrapSellRules.getSellValue(trap.getGoldCost(),
                     gameSettings.get(Variable.MiscVariable.MiscType.TRAP_SELL_VALUE_PERCENTAGE_OF_COST).getValue());
             trapsController.createController(entityId).remove();
