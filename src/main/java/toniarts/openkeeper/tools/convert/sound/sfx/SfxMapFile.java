@@ -93,7 +93,9 @@ public final class SfxMapFile {
                     entry.entries = new SfxEEEntry[count];
                     entry.unknown_1 = rawMapReader.readUnsignedInteger();
                     entry.unknown_2 = rawMapReader.readUnsignedInteger();
-                    entry.unknown_3 = rawMapReader.readUnsignedInteger();
+                    entry.flags = rawMapReader.readUnsignedShort();
+                    entry.parameterId = rawMapReader.readUnsignedByte();
+                    entry.unknown_3 = rawMapReader.readUnsignedByte();
                     entrie.groups[i] = entry;
                 }
             }
@@ -114,7 +116,20 @@ public final class SfxMapFile {
                         }
 
                         entry.end_pointer_position = rawMapReader.readInteger();
+                        entry.minVolume = rawMapReader.readUnsignedByte();
+                        entry.maxVolume = rawMapReader.readUnsignedByte();
+                        entry.minPan = rawMapReader.readByte();
+                        entry.maxPan = rawMapReader.readByte();
+                        entry.minDelay = rawMapReader.readUnsignedShort();
+                        entry.maxDelay = rawMapReader.readUnsignedShort();
                         entry.unknown = rawMapReader.read(entry.unknown.length);
+                        entry.parameter1Id = rawMapReader.readUnsignedShort();
+                        entry.parameter1Flags = rawMapReader.readUnsignedShort();
+                        entry.parameter2Id = rawMapReader.readUnsignedShort();
+                        entry.parameter2Flags = rawMapReader.readUnsignedShort();
+                        entry.weight = rawMapReader.readUnsignedShort();
+                        entry.unknown2 = rawMapReader.readUnsignedShort();
+                        entry.unknown3 = rawMapReader.readFloat();
                         entry.data_pointer_next = rawMapReader.readInteger(); // readUnsignedInteger
 
                         eEntrie.entries[i] = entry;
@@ -124,8 +139,8 @@ public final class SfxMapFile {
                         for (int i = 0; i < eeEntrie.sounds.length; i++) {
                             SfxSoundEntry entry = new SfxSoundEntry(eeEntrie);
                             entry.index = rawMapReader.readUnsignedInteger();
-                            entry.unknown_1 = rawMapReader.readUnsignedInteger();
-                            entry.unknown_2 = rawMapReader.readUnsignedInteger();
+                            entry.weight = rawMapReader.readUnsignedInteger();
+                            entry.duration = rawMapReader.readUnsignedInteger();
                             entry.archiveId = rawMapReader.readUnsignedInteger();
 
                             eeEntrie.sounds[i] = entry;
@@ -136,6 +151,8 @@ public final class SfxMapFile {
                                 SfxData data = new SfxData();
                                 data.index = rawMapReader.readUnsignedInteger();
                                 data.unknown2 = rawMapReader.read(data.unknown2.length);
+                                data.minIntensity = rawMapReader.readUnsignedByte();
+                                data.maxIntensity = rawMapReader.readUnsignedByte();
 
                                 eeEntrie.data[j] = data;
                             }
