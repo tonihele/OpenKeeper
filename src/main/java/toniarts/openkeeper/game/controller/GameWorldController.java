@@ -1170,11 +1170,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
-        // TODO: Somewhere common shared static, can share the rules with the UI client
-
-        if (tile == null) {
-            return false;
-        }
 
         // Check if picked up in the first place
         InHand inHand = entityData.getComponent(entityId, InHand.class);
@@ -1182,19 +1177,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        // Is it iteractable?
+        // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        if (interaction == null) {
-            return false;
-        }
-
-        // Own land rule
-        if (!interaction.canBeDroppedOnAnyLand && tile.getOwnerId() != playerId) {
-            return DropValidator.canDrop(interaction, tile, terrain, playerId);
-        }
-
-        return true;
-        
+        return DropValidator.canDrop(interaction, tile, terrain, playerId);
     }
 
     @Override

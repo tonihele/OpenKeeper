@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -42,7 +43,6 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.animation.AnimationControl;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
 import toniarts.openkeeper.view.text.EntityTextParser;
-import toniarts.openkeeper.game.controller.DropValidator;
 
 /**
  * General entity controller, a bridge between entities and view
@@ -162,13 +162,8 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     @Override
     public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
         Interaction interaction = entity.get(Interaction.class);
-        boolean result = DropValidator.canDrop(interaction, tile, terrain, playerId);
-        return result ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
+        return DropValidator.canDrop(interaction, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
-     //   return (tile.getOwnerId() == playerId
-     //           && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
-     //           && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
-     //}
 
     @Override
     public void drop(IMapTileInformation tile, Vector2f coordinates, IEntityViewControl control) {

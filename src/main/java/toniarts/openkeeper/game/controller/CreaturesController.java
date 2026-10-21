@@ -406,9 +406,9 @@ public final class CreaturesController implements ICreaturesController {
 
         // Add some interaction properties
         if (creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) || creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)) {
-            entityData.setComponent(entity, new Interaction(true, 
-                    creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED), 
-                    creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP), 
+            entityData.setComponent(entity, new Interaction(true,
+                    creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED),
+                    creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP),
                     creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER),
                     false));
         }
