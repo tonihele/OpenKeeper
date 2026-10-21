@@ -124,21 +124,18 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
-                    mapLoaded = true;
 
                     // Apply any tile updates (fog reveals from the seeding above,
                     // or from creatures already ticking) that arrived too early to
                     // be applied directly, while the map wasn't attached yet
-                    if (!pendingTileUpdates.isEmpty()) {
-                        List<Point> pending = new ArrayList<>(pendingTileUpdates.size());
-                        Point p;
-                        while ((p = pendingTileUpdates.poll()) != null) {
-                            pending.add(p);
-                        }
-                        mapLoader.updateTiles(pending.toArray(new Point[0]));
-                    }
+                    applyPendingTileUpdates();
 
                     app.enqueue(() -> {
+
+                        // Only from now on the render thread updates the map itself. Doing it while this thread
+                        // still applies the pending updates, both rebuild the same rooms at once
+                        mapLoaded = true;
+                        applyPendingTileUpdates();
                         worldNode.attachChild(map);
 
                         loadCompleteNotifier.onLoadComplete();
@@ -289,6 +286,18 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     public void addFogOfWarTilesDirtyListener(Consumer<Point[]> listener) {
         fogOfWarController.addTilesDirtyListener(listener);
+    }
+
+    private void applyPendingTileUpdates() {
+        if (pendingTileUpdates.isEmpty()) {
+            return;
+        }
+        List<Point> pending = new ArrayList<>(pendingTileUpdates.size());
+        Point p;
+        while ((p = pendingTileUpdates.poll()) != null) {
+            pending.add(p);
+        }
+        mapLoader.updateTiles(pending.toArray(new Point[0]));
     }
 
     private void updateTiles(Point[] points) {
