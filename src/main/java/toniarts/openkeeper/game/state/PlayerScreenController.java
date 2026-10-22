@@ -115,6 +115,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Screen screen;
 
     private Element selectedButton;
+    private final Set<Element> unaffordableSpells = new HashSet<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -975,6 +976,40 @@ public final class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
+        updateSpellAffordability(mana - manaLoose);
+    }
+
+    /**
+     * Darkens the spell icons that the player doesn't have enough mana to cast
+     *
+     * @param availableMana mana available for casting
+     */
+    private void updateSpellAffordability(int availableMana) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (!spell.isDiscovered()) {
+                continue;
+            }
+            KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
+            Element icon = hud.findElementById("spell_" + keeperSpell.getKeeperSpellId());
+            if (icon == null) {
+                continue;
+            }
+            boolean unaffordable = keeperSpell.getManaCost() > availableMana;
+            if (unaffordable == unaffordableSpells.contains(icon)) {
+                continue;
+            }
+            if (unaffordable) {
+                unaffordableSpells.add(icon);
+                icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else {
+                unaffordableSpells.remove(icon);
+                icon.stopEffect(EffectEventId.onCustom);
+                if (icon == selectedButton) {
+                    icon.startEffect(EffectEventId.onCustom, null, "select");
+                }
+            }
+        }
     }
 
     public void populateManufactureTab() {
@@ -1029,6 +1064,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 researchControl.initJme(state.app);
             }
         }
+        unaffordableSpells.clear();
+        updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
     }
 
     /**
@@ -1210,6 +1247,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
+            if (unaffordableSpells.contains(selectedButton)) {
+                selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            }
         }
 
         String itemId = state.getType().toString().toLowerCase() + "_" + state.getItemId();
