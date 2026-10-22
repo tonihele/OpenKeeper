@@ -85,9 +85,16 @@ public enum CreatureState implements State<ICreatureController> {
                 return; // Found work
             }
 
-            // Find work
+            // A full worker unloads its gold before it takes on new work
+            if (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return;
+            }
+
+            // Find work, a worker with nothing to do brings home the gold it carries
             entity.findWork((foundWork) -> {
-                if (foundWork || (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
+                if (foundWork || (entity.isWorker() && entity.dropGoldToTreasury())) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
@@ -208,8 +215,8 @@ public enum CreatureState implements State<ICreatureController> {
             }
 
             // Check validity
-            // If we have some pocket money left, we should return it to treasury
-            if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
+            // A full worker unloads its gold, otherwise it looks for new work and keeps the gold it carries for now
+            if (!entity.isAssignedTaskValid() && !(entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
                 entity.getStateMachine().changeState(IDLE);
                 return;
             }
