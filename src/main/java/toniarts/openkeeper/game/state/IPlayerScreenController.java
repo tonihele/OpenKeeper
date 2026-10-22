@@ -57,6 +57,10 @@ public interface IPlayerScreenController extends ScreenController {
     public void pauseMenuNavigate(String menu, String backMenu,
             String confirmationTitle, String confirmMethod);
 
+    public void applyGraphicsSettings();
+
+    public void applySoundSettings();
+
     public void zoomToDungeon();
 
     public void workersAmount(String uiState);

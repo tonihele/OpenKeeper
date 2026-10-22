@@ -65,6 +65,7 @@ import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
@@ -116,11 +117,12 @@ public final class MainMenuState extends AbstractAppState {
     private CampaignLevel pendingCutsceneLevel;
 
     private IKwdFile frontEndKwd;
-    protected final MainMenuInteraction listener;
+    final MainMenuInteraction listener;
     private Vector3f startLocation;
-    protected MapSelector mapSelector;
+    MapSelector mapSelector;
     private EntityData mainMenuEntityData;
     private MainMenuEntityViewState mainMenuEntityViewState;
+    private EffectManagerState effectManagerState;
     private GameController gameController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
@@ -178,9 +180,11 @@ public final class MainMenuState extends AbstractAppState {
 
         // Create the actual map
         // DKII applies different decoration rules to the front end than to playable level maps.
-        // Front-end effects are handled separately, so do not generate automatic wall torches here.
+        // Front-end effects are handled separately, so do not generate automatic wall torches
+        // here, and the cave ceiling stays off - this scene is a fixed camera looking at a
+        // hand-placed diorama, not a dungeon being explored under fog of war.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
-                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false) {
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false, false) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -202,6 +206,12 @@ public final class MainMenuState extends AbstractAppState {
         mainMenuEntityViewState = new MainMenuEntityViewState(frontEndKwd, assetManager, mainMenuEntityData, Player.KEEPER1_ID, new TextParserService(gameController.getGameWorldController().getMapController(), null), menuNode);
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
+
+        // Effects (currently just the hero gate's gem holder swirl, spawned
+        // by PlayerEntityViewState/MainMenuEntityViewState's RoomEffectContainer
+        // once HeroGateFrontEndController's RoomEffect component appears)
+        effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        app.getStateManager().attach(effectManagerState);
 
         // Init the skirmish and multiplayer maps selector
         mapSelector = new MapSelector();
@@ -257,6 +267,11 @@ public final class MainMenuState extends AbstractAppState {
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
+        }
+
+        if (effectManagerState != null) {
+            stateManager.detach(effectManagerState);
+            effectManagerState = null;
         }
 
         // Clear sound
@@ -369,7 +384,7 @@ public final class MainMenuState extends AbstractAppState {
                 rootNode.detachChild(menuNode);
             }
 
-            screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
+            screen.goToScreen(IMainMenuScreenController.SCREEN_EMPTY_ID);
         }
     }
 
@@ -538,7 +553,7 @@ public final class MainMenuState extends AbstractAppState {
     protected void doTransitionAndGoToScreen(final String transition, final String screen, final String transitionStatic) {
 
         // Remove the current screen
-        this.screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
+        this.screen.goToScreen(IMainMenuScreenController.SCREEN_EMPTY_ID);
 
         // Do cinematic transition
         Cinematic c = new Cinematic(assetManager, app.getCamera(), app.getListener(), startLocation, transition, menuNode, stateManager);
@@ -685,7 +700,7 @@ public final class MainMenuState extends AbstractAppState {
         // The debriefing screen is shown (instead of the start screen) once the
         // menu has been initialized, see initializeMainMenu()
         if (!pendingDebriefing) {
-            screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            screen.goToScreen(IMainMenuScreenController.SCREEN_START_ID);
         }
     }
 
