@@ -128,6 +128,14 @@ public interface IEntityViewControl<T, S> extends Control {
     public CursorFactory.CursorType getInHandCursor();
 
     /**
+     * Get the cursor animation the hand plays once when it drops this
+     *
+     * @return cursor type when the keeper drops the control, {@code null} for
+     * no animation
+     */
+    public CursorFactory.CursorType getDropCursor();
+
+    /**
      * Get in hand mesh, when the keeper dangles the control in hand
      *
      * @return the in hand mesh/animation
