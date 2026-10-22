@@ -40,6 +40,21 @@ public abstract class TriggerData {
      */
     protected transient TriggerGenericData parent;
     protected Map<String, Number> userData = null;
+    /**
+     * The repeat byte of the trigger record. For conditions this decides how
+     * often the actions below them run (1 = once, anything else = on every
+     * walk, see {@link TriggerControl}). Actions never read their own repeat,
+     * but the root node's byte (be it condition or action) is what the owner's
+     * root chain inherits.
+     */
+    private short repeatTimes;
+    /**
+     * Runtime ENABLED bit of the node. A condition starts enabled only if its
+     * repeat is above 0, an action always starts enabled. A disabled node is
+     * skipped by the walker, disabled actions are the way "run once" works.
+     */
+    private boolean enabled = true;
+    private short[] payload = new short[0];
 
     public TriggerData() {
         id = 0; // FIXME
@@ -52,6 +67,35 @@ public abstract class TriggerData {
     public TriggerData(int id, TriggerGenericData parent) {
         this(id);
         this.parent = parent;
+    }
+
+    public short getRepeatTimes() {
+        return repeatTimes;
+    }
+
+    protected void setRepeatTimes(short repeatTimes) {
+        this.repeatTimes = repeatTimes;
+    }
+
+    /**
+     * The raw payload bytes of the trigger record, for diagnostics
+     *
+     * @return the 8 payload bytes (unsigned values), empty if not known
+     */
+    public short[] getPayload() {
+        return payload.clone();
+    }
+
+    protected void setPayload(short[] payload) {
+        this.payload = payload.clone();
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     /**
