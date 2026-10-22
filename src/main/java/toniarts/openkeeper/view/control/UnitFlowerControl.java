@@ -56,6 +56,7 @@ import toniarts.openkeeper.utils.MapThumbnailGenerator;
 public abstract class UnitFlowerControl<T> extends BillboardControl implements IUnitFlowerControl<T> {
 
     private static final float DISPLAY_SECONDS = 2.5f;
+    private static final int HEALTH_SEGMENTS = 5;
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Health.class, Owner.class);
 
     private float targetTimeVisible = DISPLAY_SECONDS;
@@ -384,13 +385,32 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     private void updateHealth() {
-        int healthIndex = 5 - (int) Math.ceil((float) Math.max(getHealthCurrent(), 0) / getHealthMax() / (1.0 / 5));
+        int healthIndex = getHealthIndex(getHealthCurrent(), getHealthMax());
         if (healthIndex != currentHealthIndex) {
 
             // Reload health ring
             currentHealthIndex = healthIndex;
             updateRequired = true;
         }
+    }
+
+    /**
+     * Get the health ring texture index, 0 is full health and
+     * {@value #HEALTH_SEGMENTS} is no health. Integer arithmetic is used so
+     * that health exactly on a segment boundary is not rounded up to the next
+     * segment
+     *
+     * @param health current health
+     * @param maxHealth maximum health
+     * @return the health ring index
+     */
+    static int getHealthIndex(int health, int maxHealth) {
+        if (maxHealth <= 0) {
+            return HEALTH_SEGMENTS;
+        }
+        long clampedHealth = Math.clamp(health, 0, maxHealth);
+        int segments = (int) ((clampedHealth * HEALTH_SEGMENTS + maxHealth - 1) / maxHealth);
+        return HEALTH_SEGMENTS - segments;
     }
 
     private void generateTexture() {

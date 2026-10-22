@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -165,9 +166,8 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
-        return (tile.getOwnerId() == playerId
-                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
-                && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE);
+        Interaction interaction = entity.get(Interaction.class);
+        return DropValidator.canDrop(interaction, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override
