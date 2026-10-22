@@ -136,7 +136,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             return;
         }
 
-        PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+        PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
         if (enabled && creature != null) {
             targetSpatial = entityViewState != null ? entityViewState.getEntitySpatial(target) : null;
             camera = new PossessionCamera(app.getCamera(), creature.getAttributes().getSpeed(), creature.getFirstPersonOscillateScale());

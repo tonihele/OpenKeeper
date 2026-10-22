@@ -457,12 +457,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     protected Creature getPossessionCreature() {
         EntityId target = possessionState.getTarget();
-        PlayerEntityViewState entityViewState = target != null ? stateManager.getState(PlayerEntityViewState.class) : null;
+        PlayerEntityViewState entityViewState = target != null ? stateManager.getState(GameClientState.class).getEntityViewState() : null;
         IEntityViewControl<?, ?> control = entityViewState != null ? entityViewState.getEntityViewControl(target) : null;
 
         if (control != null && control.getDataObject() instanceof Creature creature) {
-            java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.WARNING,
-                    "No possession creature: target={0}, entityViewState={1}, control={2}", target, entityViewState, control);
             return creature;
         }
         java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.WARNING,

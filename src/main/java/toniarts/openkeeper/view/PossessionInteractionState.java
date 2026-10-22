@@ -156,7 +156,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
         if (target == null) {
             return null;
         }
-        PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+        PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
         Spatial spatial = entityViewState != null ? entityViewState.getEntitySpatial(target) : null;
         return spatial != null && spatial.getParent() != null ? spatial : null;
     }
