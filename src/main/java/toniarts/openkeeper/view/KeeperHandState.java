@@ -123,7 +123,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         cursor.setLocalTranslation(75, 0, 0);
 
         spellIconNode = new Node("Spell icon");
-        spellIconNode.setLocalTranslation(75, -CURSOR_ITEM_SIZE*2, 0);
+        spellIconNode.setLocalTranslation(90, -CURSOR_ITEM_SIZE, 0);
 
         handRootNode.attachChild(queueNode);
         rootNode.attachChild(cursor);
