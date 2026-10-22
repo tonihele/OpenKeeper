@@ -218,7 +218,9 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         if (interaction == null) {
             return false;
         }
-        return interaction.slappable;
+
+        // Only our own, the server ignores slaps on anything else
+        return interaction.slappable && getOwnerId() == playerId;
     }
 
     @Override
