@@ -614,6 +614,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * Fills the possession screen with the details of the possessed creature
      */
     private void initPossessionScreen(Creature creature) {
+        if (creature == null) {
+
+            // The screen transition ends asynchronously, possession may already be over
+            return;
+        }
+
         Element contentPanel = screen.findElementById("creature-icon");
         if (contentPanel != null) {
             createCreatureIcon(creature.getIcon1Resource().getName()).build(contentPanel);

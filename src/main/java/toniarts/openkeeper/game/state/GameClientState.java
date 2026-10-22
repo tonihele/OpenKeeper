@@ -678,6 +678,17 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
     }
 
+    /**
+     * Gets the entity view state of this game. Look this up instead of asking
+     * the state manager by class, the main menu's entity view state is a
+     * {@link PlayerEntityViewState} too and may be found first.
+     *
+     * @return the game's entity view state, {@code null} if not loaded
+     */
+    public PlayerEntityViewState getEntityViewState() {
+        return playerModelViewState;
+    }
+
     public IMapInformation getMapClientService() {
         return mapInformation;
     }

@@ -395,12 +395,12 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         this.target = target;
         creature = null;
         if (target != null) {
-            PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+            PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
             IEntityViewControl control = entityViewState != null ? entityViewState.getEntityViewControl(target) : null;
             if (control instanceof CreatureViewControl creatureViewControl) {
                 creature = creatureViewControl.getDataObject();
             } else {
-                logger.log(Logger.Level.WARNING, "Possession target {0} is not a creature!", target);
+                logger.log(Logger.Level.WARNING, "Possession target {0} is not a creature! entityViewState={1}, control={2}", target, entityViewState, control);
             }
         }
     }

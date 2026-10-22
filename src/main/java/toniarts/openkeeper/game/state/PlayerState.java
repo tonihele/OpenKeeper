@@ -413,7 +413,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @param animate whether to animate the transition
      */
     public void zoomToEntity(EntityId entityId, boolean animate) {
-        PlayerEntityViewState entityViewState = stateManager.getState(PlayerEntityViewState.class);
+        PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
         Spatial spatial = entityViewState != null ? entityViewState.getEntitySpatial(entityId) : null;
         if (spatial != null) {
             zoomToPosition(spatial.getLocalTranslation(), animate);
@@ -460,7 +460,14 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         PlayerEntityViewState entityViewState = target != null ? stateManager.getState(PlayerEntityViewState.class) : null;
         IEntityViewControl<?, ?> control = entityViewState != null ? entityViewState.getEntityViewControl(target) : null;
 
-        return control != null && control.getDataObject() instanceof Creature creature ? creature : null;
+        if (control != null && control.getDataObject() instanceof Creature creature) {
+            java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.WARNING,
+                    "No possession creature: target={0}, entityViewState={1}, control={2}", target, entityViewState, control);
+            return creature;
+        }
+        java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.WARNING,
+                "No possession creature: target={0}, entityViewState={1}, control={2}", target, entityViewState, control);
+        return null;
     }
 
     protected InteractionState getInteractionState() {
