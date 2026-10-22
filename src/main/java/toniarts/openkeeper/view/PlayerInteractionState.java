@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -820,16 +821,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private Set<Point> getConstructionBlockingTiles() {
         Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects, this::isConstructionBlockingObject);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps, entity -> true);
         return blockedTiles;
     }
 
     private boolean isTrapPlacementValid(Point tile) {
         Set<Point> occupiedTiles = new HashSet<>();
-        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors);
-        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
         return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
                 kwdFile.getTrapById(interactionState.getItemId()),
                 gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
@@ -845,8 +846,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return false;
     }
 
-    private static void addConstructionBlockingTiles(Set<Point> blockedTiles, EntitySet entities) {
+    private boolean isConstructionBlockingObject(Entity entity) {
+        ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+        return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
+    }
+
+    private static void addConstructionBlockingTiles(Set<Point> blockedTiles, EntitySet entities,
+            Predicate<Entity> isBlocking) {
         for (Entity entity : entities) {
+            if (!isBlocking.test(entity)) {
+                continue;
+            }
             Position position = entity.get(Position.class);
             if (position != null) {
                 blockedTiles.add(WorldUtils.vectorToPoint(position.position));

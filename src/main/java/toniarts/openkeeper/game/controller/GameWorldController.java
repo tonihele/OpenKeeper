@@ -91,6 +91,7 @@ import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -373,15 +374,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     private Set<Point> getConstructionBlockingTiles() {
         Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingPositions(blockedTiles, ObjectComponent.class);
-        addConstructionBlockingPositions(blockedTiles, DoorComponent.class);
-        addConstructionBlockingPositions(blockedTiles, TrapComponent.class);
+        addConstructionBlockingPositions(blockedTiles, ObjectComponent.class, this::isConstructionBlockingObject);
+        addConstructionBlockingPositions(blockedTiles, DoorComponent.class, entityId -> true);
+        addConstructionBlockingPositions(blockedTiles, TrapComponent.class, entityId -> true);
         return blockedTiles;
     }
 
+    private boolean isConstructionBlockingObject(EntityId entityId) {
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
+    }
+
     private void addConstructionBlockingPositions(Set<Point> blockedTiles,
-            Class<? extends EntityComponent> componentType) {
+            Class<? extends EntityComponent> componentType, Predicate<EntityId> isBlocking) {
         for (EntityId entityId : entityData.findEntities(null, componentType, Position.class)) {
+            if (!isBlocking.test(entityId)) {
+                continue;
+            }
             Position position = entityData.getComponent(entityId, Position.class);
             if (position != null) {
                 blockedTiles.add(WorldUtils.vectorToPoint(position.position));
@@ -1088,7 +1097,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
             playerHandControl.pop();
 
             // Stuff drop differently
@@ -1184,24 +1195,69 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (roomController != null && roomController.canStoreGold()) {
             int leftOverGold = addGold(playerId, tile, gold.gold);
 
-            // TODO: if I remember correctly... DK II drops left overs as loose gold next to the treasury
+            // The treasury is filled first, the rest forms a loose pile in the treasury
             if (leftOverGold > 0) {
-                objectsController.addLooseGold(playerId, tile.x, tile.y, leftOverGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                dropLooseGold(playerId, tile, null, leftOverGold);
             }
         } else {
-            EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, gold.gold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
-            Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
-            entityData.setComponent(newGold, new Position(0, pos));
+            dropLooseGold(playerId, tile, coordinates, gold.gold);
         }
         entityData.removeEntity(entity);
     }
 
-    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile) {
-        // TODO: Somewhere common shared static, can share the rules with the UI client
-
-        if (tile == null) {
-            return false;
+    /**
+     * Drops loose gold from the hand. Like in DK II, the gold is added to a
+     * loose gold pile already lying on the tile, there is no limit to the pile
+     * size. Gold can only be dropped on own land, and in DK II loose gold
+     * belongs to the owner of the land, so the pile becomes ours
+     *
+     * @param playerId the player dropping the gold
+     * @param tile the tile to drop the gold to
+     * @param coordinates exact coordinates for a new pile, {@code null} for
+     * anywhere on the tile
+     * @param amount the amount of gold
+     */
+    private void dropLooseGold(short playerId, Point tile, Vector2f coordinates, int amount) {
+        synchronized (GOLD_LOCK) {
+            EntityId goldPile = findLooseGoldPile(entityData, entityPositionLookup, tile);
+            if (goldPile != null) {
+                Gold gold = entityData.getComponent(goldPile, Gold.class);
+                entityData.setComponent(goldPile, new Gold(gold.gold + amount, gold.maxGold));
+                entityData.setComponent(goldPile, new Owner(playerId, playerId));
+                return;
+            }
         }
+
+        EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        if (coordinates != null) {
+            Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
+            entityData.setComponent(newGold, new Position(0, pos));
+        }
+    }
+
+    /**
+     * Finds a loose gold pile lying on the given tile. Gold stored in rooms
+     * and gold carried by creatures don't count. Only the entities on the
+     * tile are looked at, not all the gold on the map
+     *
+     * @param entityData the entity data
+     * @param entityPositionLookup the entities by tile
+     * @param tile the tile to search
+     * @return the gold pile, {@code null} if there is none
+     */
+    static EntityId findLooseGoldPile(EntityData entityData, IEntityPositionLookup entityPositionLookup, Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+            if (objectComponent != null && objectComponent.objectType == ObjectType.GOLD
+                    && entityData.getComponent(entityId, Gold.class) != null
+                    && entityData.getComponent(entityId, Stored.class) == null) {
+                return entityId;
+            }
+        }
+        return null;
+    }
+
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
 
         // Check if picked up in the first place
         InHand inHand = entityData.getComponent(entityId, InHand.class);
@@ -1209,18 +1265,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        // Is it iteractable?
+        // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        if (interaction == null) {
-            return false;
-        }
-
-        // Own land rule
-        if (!interaction.canBeDroppedOnAnyLand && tile.getOwnerId() != playerId) {
-            return false;
-        }
-
-        return true;
+        return DropValidator.canDrop(interaction, tile, terrain, playerId);
     }
 
     @Override
