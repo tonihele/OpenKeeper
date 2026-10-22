@@ -313,7 +313,13 @@ public abstract class KeeperHandState extends AbstractAppState {
             itemNode.setLocalTranslation(0, 0, 0);
             itemNode.setLocalRotation(Matrix3f.ZERO);
             queueNode.attachChild(itemNode);
-            AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
+
+            // CreatureViewControl already loads its IN_HAND animation and applies
+            // variant textures when attached. Objects start with their world mesh,
+            // so they still need to be switched to their dedicated in-hand mesh.
+            if (currentItem instanceof ObjectViewControl) {
+                AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
+            }
         }
     }
 

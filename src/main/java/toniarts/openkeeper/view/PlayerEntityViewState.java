@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -253,7 +254,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser != null ? textParser.getObjectTextParser() : null, mapData);
+                Creature lairCreatureType = objectViewState.lairCreatureTypeId != 0
+                        ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
+                boolean uniqueCreatureBed = lairCreatureType != null
+                        && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
+                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
+                        uniqueCreatureBed);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
