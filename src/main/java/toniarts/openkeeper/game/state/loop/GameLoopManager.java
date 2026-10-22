@@ -93,7 +93,6 @@ public final class GameLoopManager {
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
-                new HaulingSystem(entityData),
                 (IGameLogicUpdatable) taskManager);
 
         loops.add(new GameLoop(gameLogicThread, 1_000_000_000 / levelInfo.getLevelData().getGameLevel().getTicksPerSec(), "Logic"));
@@ -106,8 +105,9 @@ public final class GameLoopManager {
                 new CreatureFallSystem(entityData));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
-        // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "Steering"));
+        // Steering, the hauled things move right along with their haulers
+        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData), new HaulingSystem(entityData)), GameLoop.INTERVAL_FPS_60,
+                "Steering"));
     }
 
     public void pause() {
