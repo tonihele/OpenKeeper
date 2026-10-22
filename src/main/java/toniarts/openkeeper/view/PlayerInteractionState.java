@@ -51,10 +51,13 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
+import toniarts.openkeeper.game.controller.TrapPlacementValidator;
+import toniarts.openkeeper.game.controller.TrapSellRules;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -142,7 +145,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.entityData = entityData;
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
         constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
-        constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class);
+        constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class, Owner.class);
         this.mapInformation = mapInformation;
         this.textParser = textParser;
 
@@ -602,7 +605,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                 }*/
             } else if (interactionState.getType() == Type.TRAP) {
-                //TODO put trap
+                Point p = selectionHandler.getPointedTileIndex();
+                if (isTrapPlacementValid(p)) {
+                    gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
+                }
             } else if (interactionState.getType() == Type.DOOR) {
                 //TODO put door
             } else if (interactionState.getType() == Type.NONE
@@ -657,7 +663,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                             gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
-                gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
+
+                // Started on a trap: sell just that one, a trap is never sold together with rooms
+                Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
+                if (hasSellableTrap(realStart)) {
+                    Vector2f tile = WorldUtils.pointToVector2f(realStart);
+                    gameClientState.getGameClientService().sell(tile, tile);
+                } else {
+                    gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
+                }
             }
 
             selectionHandler.setActive(false);
@@ -813,6 +827,25 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return blockedTiles;
     }
 
+    private boolean isTrapPlacementValid(Point tile) {
+        Set<Point> occupiedTiles = new HashSet<>();
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
+                kwdFile.getTrapById(interactionState.getItemId()),
+                gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
+    }
+
+    private boolean hasSellableTrap(Point tile) {
+        for (Entity trap : constructionBlockingTraps) {
+            if (TrapSellRules.isSellable(trap.get(Owner.class).ownerId, player.getPlayerId())
+                    && WorldUtils.vectorToPoint(trap.get(Position.class).position).equals(tile)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isConstructionBlockingObject(Entity entity) {
         ObjectComponent objectComponent = entity.get(ObjectComponent.class);
         return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
@@ -910,8 +943,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 return getDropColor(point);
             }
             if (interactionState.getType() == Type.SELL) {
-                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId())
+                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId()) || hasSellableTrap(point)
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
+            if (interactionState.getType() == Type.TRAP) {
+                return isTrapPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;
