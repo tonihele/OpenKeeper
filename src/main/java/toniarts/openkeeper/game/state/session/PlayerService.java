@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 
 /**
@@ -34,6 +35,25 @@ public interface PlayerService {
      * @param playerId the player to set to
      */
     public void setWidescreen(boolean enable, short playerId);
+
+    /**
+     * Set the system messages (advisor notifications) on/off for the player
+     *
+     * @param enable set system messages on/off
+     * @param playerId the player to set to
+     */
+    public void setSystemMessages(boolean enable, short playerId);
+
+    /**
+     * Post a message (advisor notification) to the player
+     *
+     * @param type the message type
+     * @param key variant of the type, 0 if the type has none
+     * @param data1 type specific data
+     * @param data2 type specific data
+     * @param playerId the player to post to
+     */
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId);
 
     /**
      * Play a speech on the player

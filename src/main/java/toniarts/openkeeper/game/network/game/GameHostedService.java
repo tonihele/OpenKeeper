@@ -30,6 +30,7 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -210,6 +211,26 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
                 gameSession.getValue().onSetWidescreen(enable);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onPlayerMessage(type.getId(), key, data1, data2);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void setSystemMessages(boolean enable, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onSetSystemMessages(enable);
                 break;
             }
         }
@@ -685,6 +706,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onSetWidescreen(boolean enable) {
             getCallback().onSetWidescreen(enable);
+        }
+
+        @Override
+        public void onSetSystemMessages(boolean enable) {
+            getCallback().onSetSystemMessages(enable);
+        }
+
+        @Override
+        public void onPlayerMessage(int typeId, int key, long data1, long data2) {
+            getCallback().onPlayerMessage(typeId, key, data1, data2);
         }
 
         @Override

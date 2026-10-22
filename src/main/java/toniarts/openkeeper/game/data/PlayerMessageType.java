@@ -1,0 +1,169 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.game.data;
+
+/**
+ * Player message types, a subset of the original game's 100 entry type table
+ */
+public enum PlayerMessageType {
+
+    /**
+     * Stub for messages that have no counterpart in the original table. Never
+     * de-duplicated.
+     */
+    CUSTOM(-1, Category.INFO, 50, false, false, 0),
+    HEART_UNDER_ATTACK(0x01, Category.FIGHT, 120, true, false, 345),
+    LORD_OF_THE_LAND_EVENT(0x04, Category.INFO, 20, true, false, 0),
+    KING_EVENT(0x05, Category.INFO, 20, true, false, 0),
+    NEW_SPECIES(0x0D, Category.CREATURE, 50, false, false, 376),
+    LEVEL_CREATURE_INTRO(0x0E, Category.INFO, 50, false, true, 0),
+    PORTAL_FULL(0x0F, Category.INFO, 420, true, false, 374),
+    PORTALS_FULL(0x10, Category.INFO, 420, true, false, 375),
+    LEVEL_SPEECH(0x15, Category.INFO, 50, false, true, 0),
+    SPELL_RESEARCHED(0x16, Category.INFO, 10, true, false, 391),
+    SPELL_UPGRADED(0x17, Category.INFO, 20, true, false, 0),
+    NOTHING_TO_RESEARCH(0x18, Category.INFO, 30, false, false, 395),
+    WORKSHOP_ITEM_BUILT(0x1A, Category.INFO, 30, true, false, 0),
+    WORKERS_DISTURBED(0x1B, Category.INFO, 20, true, false, 0),
+    LORD_OF_THE_LAND_DEFEATED(0x1E, Category.INFO, 20, true, false, 0),
+    ROOM_CAPTURED(0x20, Category.INFO, 20, true, false, 0),
+    ROOM_CLAIMED(0x21, Category.INFO, 20, true, false, 0),
+    ROOM_UNDER_ATTACK(0x22, Category.INFO, 30, true, false, 0),
+    ROOM_BEING_CAPTURED(0x23, Category.INFO, 20, false, false, 0),
+    ROOM_DESTROYED(0x24, Category.INFO, 20, true, false, 0),
+    ONE_OF_ROOMS_DESTROYED(0x25, Category.INFO, 20, true, false, 0),
+    NEED_ROOM(0x29, Category.INFO, 300, true, false, 0),
+    ROOM_TOO_SMALL(0x2A, Category.INFO, 300, true, false, 0),
+    ROOM_UNREACHABLE(0x2B, Category.INFO, 300, true, false, 0),
+    ROOM_NOT_USABLE(0x2C, Category.INFO, 240, true, false, 0),
+    ROOM_FULL(0x2D, Category.INFO, 120, true, false, 0),
+    MAGIC_ITEM_FOUND(0x30, Category.INFO, 10, true, true, 486),
+    SPECIAL_EFFECT(0x31, Category.INFO, 20, false, true, 0),
+    REALM_CONQUERED(0x32, Category.INFO, 50, true, false, 1159),
+    PLAYER_DEFEATED(0x33, Category.INFO, 50, true, false, 1160),
+    MANA_LOW(0x34, Category.INFO, 20, true, false, 0),
+    NOT_ENOUGH_MANA(0x35, Category.INFO, 20, true, false, 0),
+    GOLD_LOW(0x36, Category.INFO, 20, true, false, 0),
+    NOT_ENOUGH_GOLD(0x37, Category.INFO, 20, true, false, 0),
+    SACRIFICE_RESULT(0x47, Category.INFO, 5, false, false, 0),
+    /**
+     * Multiplayer, the texts have a {0} slot for the other player's name
+     */
+    ALLIANCE(0x52, Category.ALLY_MSG, 30, false, false, 0),
+    /**
+     * Multiplayer, the texts have a {2} slot for the player's name
+     */
+    PLAYER_DEFEATED_MULTIPLAYER(0x57, Category.FIGHT, 20, false, false, 0),
+    PRAISE(0x58, Category.INFO, 20, false, false, 0),
+    JOKE(0x59, Category.INFO, 20, false, false, 0),
+    IRON_MAIDENS_NEED_TORTURE_CHAMBER(0x63, Category.INFO, 300, true, false, 0);
+
+    /**
+     * Tab icon categories
+     */
+    public enum Category {
+        INFO,
+        FIGHT,
+        ALLY_MSG,
+        PLAYER_EXIT,
+        CREATURE
+    }
+
+    private final int id;
+    private final Category category;
+    private final int timeoutSeconds;
+    private final boolean deduplicate;
+    private final boolean alwaysAllowed;
+    private final int speechTextId;
+
+    /**
+     * @param id the original type id
+     * @param category tab icon category
+     * @param timeoutSeconds lifetime of the message, which is also the minimum
+     * repeat interval for de-duplicated types
+     * @param deduplicate if true, a new message is dropped while a live message
+     * of the same type (and key) exists
+     * @param alwaysAllowed if true, the message passes even when the system
+     * messages are switched off (trigger action SET_SYSTEM_MESSAGES)
+     * @param speechTextId the Speech.str index of the message text, or
+     * 0 if the text is given by the producer
+     */
+    private PlayerMessageType(int id, Category category, int timeoutSeconds, boolean deduplicate, boolean alwaysAllowed, int speechTextId) {
+        this.id = id;
+        this.category = category;
+        this.timeoutSeconds = timeoutSeconds;
+        this.deduplicate = deduplicate;
+        this.alwaysAllowed = alwaysAllowed;
+        this.speechTextId = speechTextId;
+    }
+
+    /**
+     * @param id the original type id
+     * @return the type, {@link #CUSTOM} if not known
+     */
+    public static PlayerMessageType fromId(int id) {
+        for (PlayerMessageType type : values()) {
+            if (type.id == id) {
+                return type;
+            }
+        }
+        return CUSTOM;
+    }
+
+    /**
+     * Resolves the text and timeout of the message
+     *
+     * @param key the variant of the type, ignored by the types without variants
+     * @return the text and timeout, or {@code null} if the message is to be
+     * dropped (a variant that has no text)
+     */
+    public PlayerMessageSubTable.Entry resolve(int key) {
+        PlayerMessageSubTable subTable = PlayerMessageSubTables.get(this);
+        if (subTable != null) {
+            return subTable.get(key);
+        }
+        return new PlayerMessageSubTable.Entry(speechTextId, timeoutSeconds);
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public int getTimeoutSeconds() {
+        return timeoutSeconds;
+    }
+
+    public boolean isDeduplicated() {
+        return deduplicate;
+    }
+
+    public boolean isAlwaysAllowed() {
+        return alwaysAllowed;
+    }
+
+    /**
+     * @return the Speech.str index of the message text, 0 if the producer
+     * gives the text
+     */
+    public int getSpeechTextId() {
+        return speechTextId;
+    }
+}

@@ -11,6 +11,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.PlayerMessageListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -67,6 +68,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * @param listener the listener
      */
     public void removeListener(short playerId, RoomListener listener);
+
+    /**
+     * Set the receiver of the messages (advisor notifications) the map
+     * events cause for the player
+     *
+     * @param playerId the player
+     * @param listener the receiver
+     */
+    public void setMessageListener(short playerId, PlayerMessageListener listener);
 
     /**
      * Get all the room controllers. FIXME: At least with the current design,

@@ -84,6 +84,25 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     public void onSetWidescreen(boolean enable);
 
     /**
+     * The client should set the system messages on/off
+     *
+     * @param enable on/off
+     */
+    @Asynchronous
+    public void onSetSystemMessages(boolean enable);
+
+    /**
+     * The client should show a message (advisor notification)
+     *
+     * @param typeId the message type, see {@code PlayerMessageType}
+     * @param key variant of the type, 0 if the type has none
+     * @param data1 type specific data
+     * @param data2 type specific data
+     */
+    @Asynchronous
+    public void onPlayerMessage(int typeId, int key, long data1, long data2);
+
+    /**
      * The game has ended for the client
      *
      * @param win if true, the client won the game, if not, lost

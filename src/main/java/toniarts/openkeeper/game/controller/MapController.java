@@ -28,7 +28,9 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.listener.PlayerMessageListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.map.IMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -70,6 +72,7 @@ public final class MapController extends Container implements IMapController {
     private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
     private final Map<Short, SafeArrayList<RoomListener>> roomListeners = new HashMap<>();
+    private final Map<Short, PlayerMessageListener> messageListeners = new HashMap<>();
 
     /**
      * Load map data from a KWD file straight (new game)
@@ -223,6 +226,18 @@ public final class MapController extends Container implements IMapController {
         }
         listeners.add(listener);
         roomListeners.put(playerId, listeners);
+    }
+
+    @Override
+    public void setMessageListener(short playerId, PlayerMessageListener listener) {
+        messageListeners.put(playerId, listener);
+    }
+
+    private void postMessage(short playerId, PlayerMessageType type, int key) {
+        PlayerMessageListener listener = messageListeners.get(playerId);
+        if (listener != null) {
+            listener.onPlayerMessage(type, key, 0, 0);
+        }
     }
 
     private void notifyOnBuild(short playerId, IRoomController room) {
@@ -655,6 +670,15 @@ public final class MapController extends Container implements IMapController {
                 room.setHealth(room.getMaxHealth());
                 notifyOnCapturedByEnemy(owner, room);
                 notifyOnCaptured(playerId, room);
+
+                // Unowned rooms are just claimed
+                short roomId = room.getRoomInstance().getRoom().getRoomId();
+                if (owner >= Player.KEEPER1_ID) {
+                    postMessage(playerId, PlayerMessageType.ROOM_CAPTURED, roomId);
+                    postMessage(owner, PlayerMessageType.ROOM_BEING_CAPTURED, roomId);
+                } else {
+                    postMessage(playerId, PlayerMessageType.ROOM_CLAIMED, roomId);
+                }
                 return;
             }
             currentHealth += roomTile.getHealth();

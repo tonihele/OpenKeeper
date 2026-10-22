@@ -59,6 +59,7 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -109,6 +110,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      */
     public static final Object GOLD_LOCK = new Object();
     private static final short WOODEN_BRIDGE_ROOM_ID = 8;
+    private static final int NOT_ENOUGH_GOLD_ROOM_KEY = 2; // "You cannot afford to build this room"
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -199,6 +201,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
             // Add the listener
             mapController.addListener(player.getId(), playerController.getRoomControl());
+            mapController.setMessageListener(player.getId(), playerController::postMessage);
         }
     }
 
@@ -338,6 +341,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 kwdFile, mapController, getConstructionBlockingTiles(), start, end,
                 playerId, roomId, player.getGold());
         if (!placement.isValid()) {
+            if (placement.failure() == RoomPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
+                playerControllers.get(playerId).postMessage(PlayerMessageType.NOT_ENOUGH_GOLD, NOT_ENOUGH_GOLD_ROOM_KEY, 0, 0);
+            }
             return;
         }
 
@@ -345,6 +351,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Room room = kwdFile.getRoomById(roomId);
 
         if (!payForRoom(instancePlots.size(), room, playerId)) {
+            playerControllers.get(playerId).postMessage(PlayerMessageType.NOT_ENOUGH_GOLD, NOT_ENOUGH_GOLD_ROOM_KEY, 0, 0);
             return;
         }
 
@@ -851,7 +858,30 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 return false;
             }
         }
+        playerControllers.get(playerId).postMessage(PlayerMessageType.SPECIAL_EFFECT, getSpecialMessageKey(objectId), 0, 0);
         return true;
+    }
+
+    /**
+     * The special messages are keyed by the special's event index, not the object ID
+     */
+    private static int getSpecialMessageKey(short objectId) {
+        return switch (objectId) {
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_LEVEL_ID -> 2;
+            case ObjectsController.OBJECT_SPECIAL_REVEAL_MAP_ID -> 6;
+            case ObjectsController.OBJECT_SPECIAL_MAKE_SAFE_ID -> 7;
+            case ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID -> 8;
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID -> 10;
+            case ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID -> 11;
+            case ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID -> 12;
+            case ObjectsController.OBJECT_SPECIAL_RECEIVE_IMPS_ID -> 13;
+            case ObjectsController.OBJECT_SPECIAL_MAKE_HAPPY_ID -> 14;
+            case ObjectsController.OBJECT_SPECIAL_MAKE_UNHAPPY_ID -> 15;
+            case ObjectsController.OBJECT_SPECIAL_KILL_CREATURES_ID -> 16;
+            case ObjectsController.OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID -> 17;
+            case ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID -> 18;
+            default -> 0; // No effect
+        };
     }
 
     /**
