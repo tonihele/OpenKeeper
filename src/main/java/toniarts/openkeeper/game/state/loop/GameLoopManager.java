@@ -88,6 +88,8 @@ public final class GameLoopManager {
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
                         playerControllers.values(), gameSettings, levelInfo, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
+                new PossessedSystem(playerControllers.values(), entityData, gameController,
+                        gameWorldController.getCreaturesController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
@@ -107,7 +109,9 @@ public final class GameLoopManager {
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "Steering"));
+        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData),
+                new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
+                        positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }
 
     public void pause() {
