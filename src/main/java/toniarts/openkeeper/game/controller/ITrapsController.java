@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -37,5 +38,14 @@ public interface ITrapsController extends IEntityWrapper<ITrapController> {
      * @return the trap entity
      */
     public EntityId addTrapBlueprint(short trapId, Point tile, short ownerId);
+
+    /**
+     * The trap the keeper's workshops manufacture next: the oldest blueprint
+     * that doesn't have its crate yet
+     *
+     * @param playerId the keeper
+     * @return the trap, {@code null} if every blueprint has its crate
+     */
+    public Trap getTrapToManufacture(short playerId);
 
 }
