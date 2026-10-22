@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -94,6 +95,19 @@ public final class RoomPlacementValidator {
         }
 
         return terrainResult;
+    }
+
+    /**
+     * Determines whether an object prevents room construction on its tile.
+     * Only obstacles block. Loose items such as gold, spell books and crates
+     * don't, they are either stored by the new room or fetched by the workers.
+     * Neither do things like wandering chickens or the Call To Arms banner.
+     *
+     * @param object the object type, {@code null} if unknown
+     * @return {@code true} if the object blocks room construction
+     */
+    public static boolean isConstructionBlockingObject(GameObject object) {
+        return object == null || object.getFlags().contains(GameObject.ObjectFlag.OBSTACLE);
     }
 
     private static boolean isBuildableRoom(Room room) {
