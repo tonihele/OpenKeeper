@@ -254,10 +254,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                Creature bedOwner = objectViewState.creatureId != 0
-                        ? kwdFile.getCreature(objectViewState.creatureId) : null;
-                boolean uniqueCreatureBed = bedOwner != null
-                        && bedOwner.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                Creature lairCreatureType = objectViewState.lairCreatureTypeId != 0
+                        ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
+                boolean uniqueCreatureBed = lairCreatureType != null
+                        && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
                         kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
                         textParser != null ? textParser.getObjectTextParser() : null, mapData,
