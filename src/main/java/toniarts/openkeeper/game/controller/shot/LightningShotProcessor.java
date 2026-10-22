@@ -57,7 +57,7 @@ public final class LightningShotProcessor implements IShotProcessor {
             return;
         }
 
-        EntityController.setDamage(entityData, target, request.shotData1());
+        EntityController.setDamage(entityData, target, request.damage());
 
         if (entityData.getComponent(target, CreatureComponent.class) != null) {
             entityData.setComponent(target, new KnockedDown());
