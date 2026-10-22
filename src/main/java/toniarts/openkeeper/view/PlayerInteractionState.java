@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
+import toniarts.openkeeper.game.controller.TrapPlacementValidator;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -602,7 +603,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     }
                 }*/
             } else if (interactionState.getType() == Type.TRAP) {
-                //TODO put trap
+                Point p = selectionHandler.getPointedTileIndex();
+                if (isTrapPlacementValid(p)) {
+                    gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
+                }
             } else if (interactionState.getType() == Type.DOOR) {
                 //TODO put door
             } else if (interactionState.getType() == Type.NONE
@@ -813,6 +817,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return blockedTiles;
     }
 
+    private boolean isTrapPlacementValid(Point tile) {
+        Set<Point> occupiedTiles = new HashSet<>();
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
+                kwdFile.getTrapById(interactionState.getItemId()),
+                gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
+    }
+
     private boolean isConstructionBlockingObject(Entity entity) {
         ObjectComponent objectComponent = entity.get(ObjectComponent.class);
         return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
@@ -912,6 +925,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.SELL) {
                 return gameClientState.getMapClientService().isSellable(point, player.getPlayerId())
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
+            if (interactionState.getType() == Type.TRAP) {
+                return isTrapPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;
