@@ -98,8 +98,10 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
         if (current == null || current.blueprint != target.blueprint) {
             if (target.blueprint) {
                 AssetUtils.setBlueprint(assetManager, spatial);
-            } else {
-                // TODO: Unblueprint?
+            } else if (current != null) {
+
+                // The trap got armed
+                AssetUtils.removeBlueprint(spatial);
             }
         }
         currentState = target;

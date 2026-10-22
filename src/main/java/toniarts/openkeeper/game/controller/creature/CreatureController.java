@@ -1067,6 +1067,11 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void updateAssignedTask(Task task) {
+        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType(), 0.0f, false));
+    }
+
+    @Override
     public Creature getCreature() {
         return creature;
     }

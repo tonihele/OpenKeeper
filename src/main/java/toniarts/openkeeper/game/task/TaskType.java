@@ -42,5 +42,7 @@ public enum TaskType {
     RESCUE_CREATURE,
     GO_TO_EAT,
     TRAIN,
-    MANUFACTURE
+    MANUFACTURE,
+    FETCH_TRAP_CRATE,
+    DELIVER_TRAP_CRATE
 }
