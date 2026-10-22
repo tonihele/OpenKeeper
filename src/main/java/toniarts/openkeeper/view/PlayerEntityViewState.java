@@ -134,6 +134,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, Entity> entities = new HashMap<>();
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -258,7 +259,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
 
-                entityViewControls.put(e.getId(), control);
+                addViewControl(e, control);
             }
         }
         if (result == null) {
@@ -289,7 +290,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
                 result.addControl(flowerControl);
 
-                entityViewControls.put(e.getId(), control);
+                addViewControl(e, control);
                 flowerControls.put(e.getId(), flowerControl);
             }
         }
@@ -320,7 +321,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
             result.addControl(flowerControl);
 
-            entityViewControls.put(e.getId(), control);
+            addViewControl(e, control);
             flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
@@ -350,7 +351,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);
             result.addControl(flowerControl);
 
-            entityViewControls.put(e.getId(), control);
+            addViewControl(e, control);
             flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
@@ -436,19 +437,33 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
         Set<Point> dirty = new HashSet<>(Arrays.asList(points));
         for (Map.Entry<EntityId, IEntityViewControl> entry : entityViewControls.entrySet()) {
-            EntityId id = entry.getKey();
-            Position position = entityData.getComponent(id, Position.class);
-            if (position == null) {
-                continue;
-            }
-            Point tile = WorldUtils.vectorToPoint(position.position);
+            Entity entity = entities.get(entry.getKey());
+            Point tile = WorldUtils.vectorToPoint(entity.get(Position.class).position);
             if (!dirty.contains(tile)) {
                 continue;
             }
-            ObjectViewState objectViewState = entityData.getComponent(id, ObjectViewState.class);
+            ObjectViewState objectViewState = entity.get(ObjectViewState.class);
             boolean baseVisible = objectViewState == null || objectViewState.visible;
             applyFogCullHint(entry.getValue().getSpatial(), tile, baseVisible);
         }
+    }
+
+    /**
+     * Where an entity is on the map, as far as the client knows
+     *
+     * @param entityId the entity
+     * @return the position, {@code null} if the entity is not on the map
+     */
+    public Vector3f getPosition(EntityId entityId) {
+        Entity entity = entities.get(entityId);
+        return entity != null ? entity.get(Position.class).position : null;
+    }
+
+    private void addViewControl(Entity e, IEntityViewControl control) {
+
+        // The entity of an entity set is kept up to date, no need to look its components up
+        entities.put(e.getId(), e);
+        entityViewControls.put(e.getId(), control);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -460,6 +475,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
 
+        entities.remove(e.getId());
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());
         if (entityViewControl != null) {
             entityViewControl.cleanup();
