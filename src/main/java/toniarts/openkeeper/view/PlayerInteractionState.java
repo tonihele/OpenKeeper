@@ -193,7 +193,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             // We are no longer around to keep it updated (e.g. entering possession
             // mode), so drop any leftover held-item/spell icon and cursor image
             // rather than leaving them frozen on screen
-            keeperHandState.setSpellIcon(null);
+            keeperHandState.setSpellIcon(null, true);
             keeperHandState.setVisible(false);
             inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
         }
@@ -508,7 +508,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         // Show the spell's icon next to the cursor while it's selected for casting,
         // the same way a grabbed creature or object is shown
         boolean showSpellIcon = !isOnGui && interactionState.getType() == Type.SPELL;
-        keeperHandState.setSpellIcon(showSpellIcon ? kwdFile.getKeeperSpellById(interactionState.getItemId()).getGuiIcon() : null);
+        if (showSpellIcon) {
+            KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(interactionState.getItemId());
+            boolean castable = isOnMap() && canCastSpell(keeperSpell, interactiveControl, selectionHandler.getPointedTileIndex());
+            keeperHandState.setSpellIcon(keeperSpell.getGuiIcon(), castable);
+        } else {
+            keeperHandState.setSpellIcon(null, true);
+        }
 
         if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
             if (slapCursorTimeRemaining > 0) {
