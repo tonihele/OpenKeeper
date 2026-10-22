@@ -27,25 +27,38 @@ import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
-import toniarts.openkeeper.game.controller.player.*;
+import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.PlayerListener;
-import toniarts.openkeeper.tools.convert.map.*;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.*;
+import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.view.PlayerEntityViewState;
+import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
+import toniarts.openkeeper.view.PossessionCameraState;
+import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nullable;
-import toniarts.openkeeper.game.data.CampaignLevel;
-import toniarts.openkeeper.game.data.Settings;
 
 /**
  * The player state! GUI, camera, etc. Player interactions
@@ -53,6 +66,8 @@ import toniarts.openkeeper.game.data.Settings;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class PlayerState extends AbstractAppState implements PlayerListener {
+
+    private static final System.Logger logger = System.getLogger(PlayerState.class.getName());
 
     protected final Main app;
 
@@ -463,7 +478,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         if (control != null && control.getDataObject() instanceof Creature creature) {
             return creature;
         }
-        java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.WARNING,
+        logger.log(System.Logger.Level.WARNING,
                 "No possession creature: target={0}, entityViewState={1}, control={2}", target, entityViewState, control);
         return null;
     }
@@ -506,7 +521,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             try {
                 settings.save();
             } catch (IOException ex) {
-                java.lang.System.getLogger(PlayerState.class.getName()).log(java.lang.System.Logger.Level.ERROR, "Failed to save level progress!", ex);
+                logger.log(System.Logger.Level.ERROR, "Failed to save level progress!", ex);
             }
         }
 
