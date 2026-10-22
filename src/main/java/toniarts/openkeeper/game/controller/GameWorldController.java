@@ -1059,7 +1059,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     @Override
     public void drop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapController.getMapData().getTile(tile))) {
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
             playerHandControl.pop();
 
             // Stuff drop differently
@@ -1167,12 +1169,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeEntity(entity);
     }
 
-    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile) {
-        // TODO: Somewhere common shared static, can share the rules with the UI client
-
-        if (tile == null) {
-            return false;
-        }
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
 
         // Check if picked up in the first place
         InHand inHand = entityData.getComponent(entityId, InHand.class);
@@ -1180,18 +1177,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        // Is it iteractable?
+        // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        if (interaction == null) {
-            return false;
-        }
-
-        // Own land rule
-        if (!interaction.canBeDroppedOnAnyLand && tile.getOwnerId() != playerId) {
-            return false;
-        }
-
-        return true;
+        return DropValidator.canDrop(interaction, tile, terrain, playerId);
     }
 
     @Override
