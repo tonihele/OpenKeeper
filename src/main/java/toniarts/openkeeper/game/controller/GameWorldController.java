@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureLairPlacement;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -722,7 +723,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
             CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
             if (lair.equals(sleep.lairObjectId)) {
-                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime,
+                        sleep.sleepStartTime, sleep.sleepNeed));
                 break;
             }
         }
@@ -980,6 +982,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, AttackTarget.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
+        entityData.removeComponent(entity, CreatureLairPlacement.class);
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
@@ -1097,6 +1100,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean torture = false;
         boolean imprison = false;
         CreatureState creatureState = null;
+        entityData.removeComponent(entity, CreatureLairPlacement.class);
 
         // TODO: Evict & sacrifice
         // TODO: Duplicated code with CreaturesController
@@ -1126,6 +1130,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+            if (!tortureOrImprisonment && roomController.getOwnerId() == owner.ownerId
+                    && roomController.hasObjectControl(ObjectType.LAIR)
+                    && entityData.getComponent(entity, CreatureSleep.class) != null) {
+                entityData.setComponent(entity, new CreatureLairPlacement(roomController.getEntityId()));
+            }
         }
 
         // Add position

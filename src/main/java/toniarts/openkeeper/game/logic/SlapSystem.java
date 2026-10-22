@@ -27,12 +27,15 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -157,7 +160,27 @@ public final class SlapSystem extends GameTimeCounter {
             }
         }
 
+        // Native state 0x53 removes one authored sleep unit from the runtime
+        // debt when slapped. A fresh debt contains four such units.
+        CreatureAi creatureAi = entityData.getComponent(entity.getId(), CreatureAi.class);
+        CreatureSleep creatureSleep = entityData.getComponent(entity.getId(), CreatureSleep.class);
+        CreatureSleep updatedSleep = applySleepingSlap(creatureSleep,
+                creatureAi == null ? null : creatureAi.getCreatureState(),
+                creature.getAttributes().getTimeSleep());
+        if (updatedSleep != creatureSleep) {
+            entityData.setComponent(entity.getId(), updatedSleep);
+        }
+
         // TODO: Apply the force
+    }
+
+    static CreatureSleep applySleepingSlap(CreatureSleep sleep, CreatureState state,
+            int authoredTimeSleep) {
+        if (sleep == null || state != CreatureState.SLEEPING || sleep.sleepNeed == 0) {
+            return sleep;
+        }
+        return new CreatureSleep(sleep.lairObjectId, sleep.lastSleepTime,
+                sleep.sleepStartTime, Math.max(0, sleep.sleepNeed - authoredTimeSleep));
     }
 
     private void processDeletedEntities(Set<Entity> entities) {

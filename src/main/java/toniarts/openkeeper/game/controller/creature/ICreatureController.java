@@ -65,6 +65,9 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean goToSleep();
 
+    /** Consumes a manual lair placement after landing, independently of fatigue debt. */
+    public boolean goToSleepAfterLairDrop();
+
     public void findWork(Consumer<Boolean> workResult);
 
     public boolean isWorker();
