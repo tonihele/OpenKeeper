@@ -42,7 +42,6 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
-import toniarts.openkeeper.view.lighting.IFogOfWarQuery;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.lighting.LightSource;
@@ -65,37 +64,6 @@ import java.util.*;
 public abstract class MapViewController implements ILoader<IKwdFile> {
 
     private static final Logger logger = System.getLogger(MapViewController.class.getName());
-
-    /**
-     * Used where no fog of war applies (main menu map preview, model viewer):
-     * everything is simply always visible.
-     */
-    private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
-        @Override
-        public boolean isVisible(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isExplored(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isPerceived(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isHighlightable(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isPendingTagged(Point p) {
-            return false;
-        }
-    };
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     /**
@@ -160,7 +128,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled, boolean ceilingEnabled) {
-        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled, ceilingEnabled);
+        this(assetManager, kwdFile, mapClientService, IFogOfWarInformation.ALWAYS_VISIBLE, playerId, torchesEnabled, ceilingEnabled);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
@@ -174,7 +142,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled, boolean litSolidTerrain, boolean ceilingEnabled) {
-        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled, litSolidTerrain, ceilingEnabled);
+        this(assetManager, kwdFile, mapClientService, IFogOfWarInformation.ALWAYS_VISIBLE, playerId, torchesEnabled, litSolidTerrain, ceilingEnabled);
     }
 
     private MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
@@ -191,17 +159,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Lighting consults the same local-viewer fog as the renderer
         // (cursor colour, terrain-light selection)
-        this.lightRules = new LightRules(new IFogOfWarQuery() {
-            @Override
-            public boolean isExplored(Point tile) {
-                return fogOfWarInformation.isExplored(tile);
-            }
-
-            @Override
-            public boolean isPerceived(Point tile) {
-                return fogOfWarInformation.isPerceived(tile);
-            }
-        });
+        this.lightRules = new LightRules(fogOfWarInformation);
     }
 
     public LightRules getLightRules() {

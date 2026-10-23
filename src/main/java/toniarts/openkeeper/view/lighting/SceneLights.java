@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
  * Turns the current set of {@link LightSource}s into what the two
@@ -79,7 +80,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     private static final float FRUSTUM_MARGIN_TILES = 5f;
 
     private ColorRGBA globalAmbient = ColorRGBA.Black.clone();
-    private IFogOfWarQuery fogOfWar = new NoFogOfWarQuery();
+    private IFogOfWarInformation fogOfWar = IFogOfWarInformation.ALWAYS_VISIBLE;
     private final Texture2D lightData;
     private final FloatBuffer lightFloats;
     private boolean warnedAboutLightCount;
@@ -104,7 +105,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      * used to mark which lights are exempt: terrain lights owned by an
      * unexplored tile, i.e. the claim-scan glow.
      */
-    public void setFogOfWar(IFogOfWarQuery fogOfWar) {
+    public void setFogOfWar(IFogOfWarInformation fogOfWar) {
         this.fogOfWar = fogOfWar;
     }
 

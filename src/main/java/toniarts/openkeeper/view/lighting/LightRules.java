@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /**
  * The single creator/destroyer of {@link LightSource}s. Callers (the mesh-building code that already knows the
@@ -43,7 +44,7 @@ public final class LightRules {
 
     private final LightModulators modulators = new LightModulators();
     private final SceneLights sceneLights;
-    private final IFogOfWarQuery fogOfWar;
+    private final IFogOfWarInformation fogOfWar;
     private boolean cheapLighting;
     // Replaced, never mutated: read on the render thread, set from the UI
     private volatile EnumSet<LightSource.Group> disabledGroups = EnumSet.noneOf(LightSource.Group.class);
@@ -61,16 +62,16 @@ public final class LightRules {
     private LightSource cursorLight;
 
     public LightRules() {
-        this(new NoFogOfWarQuery());
+        this(IFogOfWarInformation.ALWAYS_VISIBLE);
     }
 
-    public LightRules(IFogOfWarQuery fogOfWar) {
+    public LightRules(IFogOfWarInformation fogOfWar) {
         this.sceneLights = new SceneLights();
         this.fogOfWar = fogOfWar;
         this.sceneLights.setFogOfWar(fogOfWar);
     }
 
-    public IFogOfWarQuery getFogOfWar() {
+    public IFogOfWarInformation getFogOfWar() {
         return fogOfWar;
     }
 

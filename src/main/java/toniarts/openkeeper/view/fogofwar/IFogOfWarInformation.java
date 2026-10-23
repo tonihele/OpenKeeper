@@ -26,6 +26,37 @@ import toniarts.openkeeper.utils.Point;
 public interface IFogOfWarInformation {
 
     /**
+     * Used where no fog of war applies (main menu map preview, model viewer,
+     * lighting without fog): everything is simply always visible.
+     */
+    IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
+        @Override
+        public boolean isVisible(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isExplored(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPerceived(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isHighlightable(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPendingTagged(Point p) {
+            return false;
+        }
+    };
+
+    /**
      * Should this tile be rendered/treated as visible right now? Folds in
      * perception (for terrain that reveals through fog) and the camera
      * mode (first-person/possession bypasses fog entirely).
