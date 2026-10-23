@@ -129,8 +129,9 @@ public final class TrapsController implements ITrapsController {
         // Add some interaction properties
         entityData.setComponent(entity, new Interaction(true, false, false, false, false));
 
-        // The visual state
-        entityData.setComponent(entity, new TrapViewState(trapId, blueprint));
+        // The visual state, invisible traps are hidden from the other players until they are revealed
+        entityData.setComponent(entity, new TrapViewState(trapId, blueprint,
+                kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.INVISIBLE)));
 
         return entity;
     }
@@ -152,7 +153,7 @@ public final class TrapsController implements ITrapsController {
         }
 
         setArmed(blueprint, kwdFile.getTrapById(viewState.trapId));
-        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false));
+        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false, viewState.hidden));
     }
 
     @Override

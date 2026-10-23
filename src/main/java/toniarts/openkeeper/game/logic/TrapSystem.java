@@ -65,6 +65,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  * speed up to {@value #TRIGGER_TRAP_RANGE} tiles, and every recharged trap of
  * the owner it reaches fires. A trap that can see the Trigger Trap's victim
  * fires at it, the others fire without a target.
+ * <br>
+ * A hidden trap shows itself to the other players when it fires, if it is
+ * revealed when fired. Creatures that reveal traps reveal the hidden traps of
+ * their enemies on their tile and the eight tiles around it.
  *
  * @see ITrapEffects for what the shots do
  */
@@ -85,6 +89,12 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * trap's triggering. Only the four tiles next to it, not the diagonal ones
      */
     private static final float TRIGGER_TRAP_TAKEOVER_RANGE = 1;
+
+    /**
+     * How far, in tiles, a creature that reveals traps reveals them. Its own
+     * tile and the eight around it
+     */
+    private static final int TRAP_REVEAL_RANGE = 1;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -142,6 +152,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         trapEntities.applyChanges();
         creatureEntities.applyChanges();
+
+        revealTrapsAroundCreatures();
 
         double gameTime = gameTimer.getGameTime();
         for (Entity trapEntity : trapEntities) {
@@ -219,6 +231,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         trapEffects.fire(trap, ownerId, trapEntity.get(Position.class).position.clone(), target);
+        if (trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED)) {
+            reveal(trapEntity);
+        }
 
         // Every shot threatens the enemies anew
         double threatEndTime = firing.threatEndTime;
@@ -300,6 +315,44 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         return radius >= TRIGGER_TRAP_RANGE;
+    }
+
+    /**
+     * Shows the hidden traps to the other players
+     *
+     * @param trapEntity the trap
+     */
+    private void reveal(Entity trapEntity) {
+        TrapViewState viewState = trapEntity.get(TrapViewState.class);
+        if (viewState.hidden) {
+            entityData.setComponent(trapEntity.getId(), new TrapViewState(viewState.trapId, viewState.blueprint, false));
+        }
+    }
+
+    /**
+     * The creatures that reveal traps reveal the hidden traps of their
+     * enemies around them
+     */
+    private void revealTrapsAroundCreatures() {
+        for (Entity creatureEntity : creatureEntities) {
+            Creature creature = kwdFile.getCreature(creatureEntity.get(CreatureComponent.class).creatureId);
+            if (creature == null || !creature.getFlags().contains(Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS)
+                    || !canSetOffTraps(creatureEntity, false)) {
+                continue;
+            }
+
+            Point creatureTile = WorldUtils.vectorToPoint(creatureEntity.get(Position.class).position);
+            short creatureOwnerId = creatureEntity.get(Owner.class).ownerId;
+            for (Entity trapEntity : trapEntities) {
+                Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
+                if (trapEntity.get(TrapViewState.class).hidden
+                        && Math.abs(trapTile.x - creatureTile.x) <= TRAP_REVEAL_RANGE
+                        && Math.abs(trapTile.y - creatureTile.y) <= TRAP_REVEAL_RANGE
+                        && isEnemy(creatureOwnerId, trapEntity.get(Owner.class).ownerId)) {
+                    reveal(trapEntity);
+                }
+            }
+        }
     }
 
     private boolean payForShot(Trap trap, short ownerId) {
