@@ -435,7 +435,8 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
             case 1:  // Treasury
                 return 76;
             case 2:  // Lair
-                return 77;
+                // Object 77 exists, but native DK II does not use lair pillars (#607).
+                return null;
             case 4:  // Hatchery
                 return 78;
             case 10:  // Workshop
