@@ -18,12 +18,16 @@
                     <text style="text" text="Filter" width="50px" valign="center"/>
                     <control name="textfield" id="filter" text="" maxLength="64" width="*"/>
                 </panel>
-                <panel id="selectionOptions" childLayout="vertical" width="100%" height="50px"
+                <panel id="selectionOptions" childLayout="vertical" width="100%" height="72px"
                        padding="4px" backgroundColor="#000f">
                     <text style="text" text="Options" width="100%" height="20px" textHAlign="left"/>
                     <panel childLayout="horizontal" width="100%" height="22px">
                         <control name="checkbox" id="autoRotate"/>
                         <text style="text" text=" Auto-rotate" width="*" valign="center"/>
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="22px">
+                        <control name="checkbox" id="showNormals"/>
+                        <text style="text" text=" Show normals" width="*" valign="center"/>
                     </panel>
                 </panel>
                 <control name="listBox" id="items" horizontal="optional" selection="Single"

@@ -168,6 +168,9 @@ public final class ModelViewer extends SimpleApplication {
     private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
+            if (screen != null && screen.isTyping()) {
+                return;
+            }
 
             // Toggle wireframe
             if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name) && !pressed) {
@@ -178,8 +181,7 @@ public final class ModelViewer extends SimpleApplication {
                 setAutoRotateEnabled(!rotate);
             } // Normals
             else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
-                showNormals = !showNormals;
-                toggleShowNormals();
+                setShowNormalsEnabled(!showNormals);
             } // Ceiling
             else if (KEY_MAPPING_TOGGLE_CEILING.equals(name) && !pressed) {
                 ceilingVisible = !ceilingVisible;
@@ -448,10 +450,22 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    boolean isShowNormalsEnabled() {
+        return showNormals;
+    }
+
+    void setShowNormalsEnabled(boolean enabled) {
+        showNormals = enabled;
+        toggleShowNormals();
+        if (screen != null) {
+            screen.setShowNormalsChecked(enabled);
+        }
+    }
+
     private void toggleShowNormals() {
         Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
 
-        if (spat != null && spat instanceof Node) {
+        if (spat instanceof Node node && node.getQuantity() > 0) {
 
             // See if it already has the normal meshes generated
             Node normals = (Node) ((Node) spat).getChild(ModelViewer.NODE_NAME_NORMALS);

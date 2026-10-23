@@ -27,6 +27,7 @@ import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
+import de.lessvoid.nifty.controls.TextField;
 import de.lessvoid.nifty.controls.TextFieldChangedEvent;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
@@ -65,6 +66,7 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_SOUNDS = "sounds";
     private final static String ID_FILTER = "filter";
     private final static String ID_AUTO_ROTATE = "autoRotate";
+    private final static String ID_SHOW_NORMALS = "showNormals";
 
     private final ModelViewer app;
     private final Nifty nifty;
@@ -96,6 +98,12 @@ public final class ModelViewerScreenController implements ScreenController {
     @Override
     public void onStartScreen() {
         setAutoRotateChecked(app.isAutoRotateEnabled());
+        setShowNormalsChecked(app.isShowNormalsEnabled());
+    }
+
+    boolean isTyping() {
+        Element focus = screen.getFocusHandler().getKeyboardFocusElement();
+        return focus != null && focus.getNiftyControl(TextField.class) != null;
     }
 
     @Override
@@ -129,6 +137,18 @@ public final class ModelViewerScreenController implements ScreenController {
 
     void setAutoRotateChecked(boolean enabled) {
         CheckBox checkBox = screen.findNiftyControl(ID_AUTO_ROTATE, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_SHOW_NORMALS)
+    public void onShowNormalsChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setShowNormalsEnabled(event.isChecked());
+    }
+
+    void setShowNormalsChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_SHOW_NORMALS, CheckBox.class);
         if (checkBox != null && checkBox.isChecked() != enabled) {
             checkBox.setChecked(enabled);
         }
