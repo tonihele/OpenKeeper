@@ -53,6 +53,7 @@ DEFAULT_SOURCE = REPO_ROOT / "assets" / "Converted" / "Textures"
 DEFAULT_DEST = REPO_ROOT / "assets" / "Textures"
 DEFAULT_TOOLS_DIR = Path.home() / ".OpenKeeper" / "hd-textures"
 MANIFEST_NAME = ".hd-textures.json"
+MANIFEST_RETRIES = 40
 SCALE = 4
 
 # Real-ESRGAN's portable Vulkan build, so no Python ML stack or CUDA is needed
@@ -550,7 +551,17 @@ def save_manifest(dest, manifest):
     path = dest / MANIFEST_NAME
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text(json.dumps(manifest, indent=1, sort_keys=True), encoding="utf-8")
-    os.replace(temporary, path)
+
+    # On Windows another program (a build copying the assets, a virus scanner)
+    # can keep the manifest open for a moment
+    for attempt in range(MANIFEST_RETRIES):
+        try:
+            os.replace(temporary, path)
+            return
+        except PermissionError:
+            if attempt == MANIFEST_RETRIES - 1:
+                raise
+            time.sleep(0.25)
 
 
 def clean_textures(dest):
