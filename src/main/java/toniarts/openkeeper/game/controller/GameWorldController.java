@@ -1007,9 +1007,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (owner == null || owner.controlId != playerId) {
-            return false;
+        // Loose gold goes by the owner of the land instead
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        if (EntityPickupValidator.isOwnershipRequired(objectComponent)) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            if (owner == null || owner.controlId != playerId) {
+                return false;
+            }
         }
 
         // Is it iteractable?
@@ -1023,7 +1027,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         return EntityPickupValidator.isValidLocation(
-                entityData.getComponent(entityId, ObjectComponent.class),
+                objectComponent,
                 entityData.getComponent(entityId, Position.class),
                 playerId,
                 mapController.getMapData());
