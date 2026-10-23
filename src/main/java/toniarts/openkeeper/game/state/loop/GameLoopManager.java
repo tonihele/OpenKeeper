@@ -101,7 +101,8 @@ public final class GameLoopManager {
                 new HaulingSystem(entityData),
                 new TrapSystem(entityData, level, gameController.getGameTimer(),
                         solidTilesBlockSight(gameWorldController.getMapController()), playerControllers,
-                        new TrapEffects(entityData, level)),
+                        new TrapEffects(entityData, level, gameController.getGameTimer())),
+                new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 (IGameLogicUpdatable) taskManager);
 
         loops.add(new GameLoop(gameLogicThread, 1_000_000_000 / levelInfo.getLevelData().getGameLevel().getTicksPerSec(), "Logic"));

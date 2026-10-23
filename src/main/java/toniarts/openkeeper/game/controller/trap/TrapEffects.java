@@ -27,10 +27,13 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -48,6 +51,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * creatures on the trap's tile.</li>
  * <li>A shot with damage from its origin (Fireburst Trap) or a gas shot (Gas
  * Trap) deals shot data 1 to the creatures within shot data 2 tiles.</li>
+ * <li>A freeze shot (Freeze Trap) freezes its target for shot data 1
+ * seconds.</li>
  * </ul>
  * Area damage spares only the trap owner's creatures.
  */
@@ -57,12 +62,14 @@ public final class TrapEffects implements ITrapEffects {
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
+    private final IGameTimer gameTimer;
     private final EntitySet creatureEntities;
     private final Set<Shot.ProcessType> reportedProcessTypes = EnumSet.noneOf(Shot.ProcessType.class);
 
-    public TrapEffects(EntityData entityData, IKwdFile kwdFile) {
+    public TrapEffects(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameTimer = gameTimer;
 
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
     }
@@ -77,6 +84,8 @@ public final class TrapEffects implements ITrapEffects {
         switch (shot.getProcessType()) {
             case NONE, GAS ->
                 damage(shot, trap, ownerId, origin, target);
+            case FREEZE ->
+                freeze(trap, target);
             default ->
                 reportNotImplemented(shot.getProcessType());
         }
@@ -115,6 +124,31 @@ public final class TrapEffects implements ITrapEffects {
                 EntityController.setDamage(entityData, creatureEntity.getId(), damage);
             }
         }
+    }
+
+    /**
+     * Freezes the target, unless it already is frozen or is of a creature type
+     * that can't be frozen
+     *
+     * @param trap the trap
+     * @param target the creature to freeze, can be {@code null}
+     */
+    private void freeze(Trap trap, EntityId target) {
+        if (target == null || entityData.getComponent(target, Frozen.class) != null) {
+            return;
+        }
+
+        // Like with setting off traps, the data flag OpenKeeper calls IS_HORNY makes the Horned Reaper immune
+        CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+        if (creatureComponent == null) {
+            return;
+        }
+        Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
+        if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+            return;
+        }
+
+        entityData.setComponent(target, new Frozen(gameTimer.getGameTime(), trap.getShotData1()));
     }
 
     private static float distanceSquared(Vector3f from, Vector3f to) {
