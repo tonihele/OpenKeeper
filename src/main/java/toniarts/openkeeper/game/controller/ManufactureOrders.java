@@ -35,15 +35,16 @@ public final class ManufactureOrders {
     /**
      * The next type to manufacture
      *
+     * @param <T> the type of a blueprint and its crate
      * @param blueprints the type of each blueprint, in the order they were
      * placed
      * @param crates the number of existing crates by type
      * @return the type of the oldest blueprint without a crate, {@code null}
      * if every blueprint has one
      */
-    public static Short next(List<Short> blueprints, Map<Short, Integer> crates) {
-        Map<Short, Integer> unassignedCrates = new HashMap<>(crates);
-        for (Short type : blueprints) {
+    public static <T> T next(List<T> blueprints, Map<T, Integer> crates) {
+        Map<T, Integer> unassignedCrates = new HashMap<>(crates);
+        for (T type : blueprints) {
             int available = unassignedCrates.getOrDefault(type, 0);
             if (available > 0) {
                 unassignedCrates.put(type, available - 1);
