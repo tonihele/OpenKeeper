@@ -158,6 +158,21 @@ public final class DoorsController implements IDoorsController {
     }
 
     @Override
+    public void buildDoor(EntityId blueprint) {
+        DoorComponent doorComponent = entityData.getComponent(blueprint, DoorComponent.class);
+        if (doorComponent == null || !doorComponent.blueprint) {
+            return;
+        }
+
+        setBuilt(blueprint, kwdFile.getDoorById(doorComponent.doorId));
+        entityData.setComponent(blueprint, new DoorComponent(doorComponent.doorId, doorComponent.locked, false));
+        DoorViewState viewState = entityData.getComponent(blueprint, DoorViewState.class);
+        if (viewState != null) {
+            entityData.setComponent(blueprint, new DoorViewState(viewState.doorId, viewState.locked, false, viewState.open));
+        }
+    }
+
+    @Override
     public IDoorController createController(EntityId entityId) {
         DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
         if (doorComponent == null) {
