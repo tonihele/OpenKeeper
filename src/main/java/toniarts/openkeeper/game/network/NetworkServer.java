@@ -34,6 +34,7 @@ import toniarts.openkeeper.utils.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
@@ -160,6 +161,7 @@ public final class NetworkServer {
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
 
             // Our entity components
+            Serializer.registerClass(Alarm.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());

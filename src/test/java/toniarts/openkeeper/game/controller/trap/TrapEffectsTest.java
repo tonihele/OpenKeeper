@@ -19,13 +19,16 @@ package toniarts.openkeeper.game.controller.trap;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
@@ -183,6 +186,47 @@ class TrapEffectsTest {
         trapEffects.fire(freeze, KEEPER, TRAP_POSITION, reaper);
 
         assertNull(entityData.getComponent(reaper, Frozen.class));
+    }
+
+    @Test
+    void alarmTrapRaisesAnAlarmForItsOwnerAtTheTrap() {
+        Trap alarm = trap((short) 4, Shot.ProcessType.ALARM, Shot.DamageType.NONE, 0, 5);
+        EntityId target = addCreature(ENEMY, 12, 10);
+
+        trapEffects.fire(alarm, KEEPER, TRAP_POSITION, target);
+
+        EntitySet alarms = entityData.getEntities(Alarm.class, Owner.class, Position.class, Decay.class);
+        assertEquals(1, alarms.size());
+        EntityId alarmId = alarms.iterator().next().getId();
+        assertEquals(KEEPER, entityData.getComponent(alarmId, Owner.class).ownerId);
+        assertEquals(TRAP_POSITION, entityData.getComponent(alarmId, Position.class).position);
+        assertEquals(5, entityData.getComponent(alarmId, Decay.class).startTime);
+        assertEquals(50, entityData.getComponent(alarmId, Decay.class).duration);
+        assertEquals(0, damage(target));
+    }
+
+    @Test
+    void alarmIsNotRaisedAgainWhileTheOwnersLastAlarmLasts() {
+        Trap alarm = trap((short) 4, Shot.ProcessType.ALARM, Shot.DamageType.NONE, 0, 5);
+        EntityId target = addCreature(ENEMY, 12, 10);
+
+        trapEffects.fire(alarm, KEEPER, TRAP_POSITION, target);
+        gameTime = 20;
+        trapEffects.fire(alarm, KEEPER, new Vector3f(20, WorldUtils.FLOOR_HEIGHT, 20), target);
+
+        EntitySet alarms = entityData.getEntities(Alarm.class, Owner.class);
+        assertEquals(1, alarms.size());
+        assertEquals(TRAP_POSITION, entityData.getComponent(alarms.iterator().next().getId(), Position.class).position);
+    }
+
+    @Test
+    void anotherKeepersAlarmDoesNotHoldBackTheAlarm() {
+        Trap alarm = trap((short) 4, Shot.ProcessType.ALARM, Shot.DamageType.NONE, 0, 5);
+        trapEffects.fire(alarm, ENEMY, TRAP_POSITION, addCreature(KEEPER, 12, 10));
+
+        trapEffects.fire(alarm, KEEPER, TRAP_POSITION, addCreature(ENEMY, 12, 10));
+
+        assertEquals(2, entityData.getEntities(Alarm.class, Owner.class).size());
     }
 
     private Trap trap(short trapId, Shot.ProcessType processType, Shot.DamageType damageType, int shotData1, int shotData2) {
