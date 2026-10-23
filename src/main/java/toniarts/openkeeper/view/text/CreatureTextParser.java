@@ -209,6 +209,12 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case DELIVER_TRAP_CRATE -> {
                 return Utils.getMainTextResourceBundle().getString("2613");
             }
+            case FETCH_DOOR_CRATE -> {
+                return Utils.getMainTextResourceBundle().getString("2615");
+            }
+            case DELIVER_DOOR_CRATE -> {
+                return Utils.getMainTextResourceBundle().getString("2616");
+            }
             case GO_TO_EAT -> {
                 return Utils.getMainTextResourceBundle().getString("2668");
             }

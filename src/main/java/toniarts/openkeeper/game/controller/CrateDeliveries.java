@@ -24,22 +24,22 @@ import java.util.SequencedMap;
 import java.util.Set;
 
 /**
- * Which trap crate goes to which blueprint. The oldest blueprints get their
- * crates first, like the workshop manufactures for the oldest blueprints
- * first.
+ * Which crate goes to which blueprint, for the keeper's traps or for its
+ * doors. The oldest blueprints get their crates first, like the workshop
+ * manufactures for the oldest blueprints first.
  */
-public final class TrapDeliveries {
+public final class CrateDeliveries {
 
-    private TrapDeliveries() {
+    private CrateDeliveries() {
         // Nope
     }
 
     /**
      * The new deliveries
      *
-     * @param blueprints the keeper's blueprints and their traps, in the order
-     * they were placed
-     * @param crates the keeper's trap crates and their traps
+     * @param blueprints the keeper's blueprints and their traps or doors, in
+     * the order they were placed
+     * @param crates the keeper's crates and their traps or doors
      * @param underWay the deliveries already under way, blueprint to crate,
      * they stay as they are
      * @return the new deliveries, blueprint to crate

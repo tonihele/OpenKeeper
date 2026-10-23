@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class TrapDeliveriesTest {
+class CrateDeliveriesTest {
 
     private static final short SENTRY = 1;
     private static final short BOULDER = 3;
@@ -37,21 +37,21 @@ class TrapDeliveriesTest {
 
     @Test
     void oldestBlueprintGetsTheCrate() {
-        Map<EntityId, EntityId> deliveries = TrapDeliveries.next(blueprints(SENTRY, SENTRY), Map.of(CRATE, SENTRY), Map.of());
+        Map<EntityId, EntityId> deliveries = CrateDeliveries.next(blueprints(SENTRY, SENTRY), Map.of(CRATE, SENTRY), Map.of());
 
         assertEquals(Map.of(OLD_BLUEPRINT, CRATE), deliveries);
     }
 
     @Test
     void crateOnlyGoesToItsOwnTrap() {
-        Map<EntityId, EntityId> deliveries = TrapDeliveries.next(blueprints(BOULDER, SENTRY), Map.of(CRATE, SENTRY), Map.of());
+        Map<EntityId, EntityId> deliveries = CrateDeliveries.next(blueprints(BOULDER, SENTRY), Map.of(CRATE, SENTRY), Map.of());
 
         assertEquals(Map.of(NEW_BLUEPRINT, CRATE), deliveries);
     }
 
     @Test
     void deliveryUnderWayStaysAndItsCrateIsNotPromisedTwice() {
-        Map<EntityId, EntityId> deliveries = TrapDeliveries.next(blueprints(SENTRY, SENTRY), Map.of(CRATE, SENTRY),
+        Map<EntityId, EntityId> deliveries = CrateDeliveries.next(blueprints(SENTRY, SENTRY), Map.of(CRATE, SENTRY),
                 Map.of(OLD_BLUEPRINT, CRATE));
 
         assertTrue(deliveries.isEmpty());
@@ -63,14 +63,14 @@ class TrapDeliveriesTest {
         crates.put(CRATE, SENTRY);
         crates.put(OTHER_CRATE, SENTRY);
 
-        Map<EntityId, EntityId> deliveries = TrapDeliveries.next(blueprints(SENTRY, SENTRY), crates, Map.of());
+        Map<EntityId, EntityId> deliveries = CrateDeliveries.next(blueprints(SENTRY, SENTRY), crates, Map.of());
 
         assertEquals(Map.of(OLD_BLUEPRINT, CRATE, NEW_BLUEPRINT, OTHER_CRATE), deliveries);
     }
 
     @Test
     void noCrateNoDelivery() {
-        assertTrue(TrapDeliveries.next(blueprints(SENTRY, SENTRY), Map.of(), Map.of()).isEmpty());
+        assertTrue(CrateDeliveries.next(blueprints(SENTRY, SENTRY), Map.of(), Map.of()).isEmpty());
     }
 
     private static SequencedMap<EntityId, Short> blueprints(short oldTrap, short newTrap) {

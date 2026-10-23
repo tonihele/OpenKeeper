@@ -163,6 +163,13 @@ public interface IGameWorldController {
     public IObjectsController getObjectsController();
 
     /**
+     * Get the doors controller
+     *
+     * @return doors controller
+     */
+    public IDoorsController getDoorsController();
+
+    /**
      * Get the traps controller
      *
      * @return traps controller

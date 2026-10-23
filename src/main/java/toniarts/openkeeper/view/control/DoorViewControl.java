@@ -123,8 +123,10 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         if (current == null || current.blueprint != target.blueprint) {
             if (target.blueprint) {
                 AssetUtils.setBlueprint(assetManager, spatial);
-            } else {
-                // TODO: Unblueprint?
+            } else if (current != null) {
+
+                // The door got built
+                AssetUtils.removeBlueprint(spatial);
             }
         }
         currentState = target;

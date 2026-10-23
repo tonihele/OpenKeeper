@@ -218,6 +218,11 @@ public final class FogOfWarController implements IFogOfWarInformation {
         doorsByPosition.clear();
         closedDoorTiles.clear();
         for (Entity e : doorEntities) {
+
+            // A blueprint is no door yet, it doesn't block the view
+            if (e.get(DoorViewState.class).blueprint) {
+                continue;
+            }
             Position position = e.get(Position.class);
             Point p = WorldUtils.vectorToPoint(position.position);
             doorsByPosition.put(p, e);
