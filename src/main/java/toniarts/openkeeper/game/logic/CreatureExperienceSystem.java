@@ -24,6 +24,7 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.AndFilter;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,12 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         WORKING_OR_FIGHTING,
         TRAINING
     }
+
+    /**
+     * Tasks that only take the creature somewhere. A worker learns nothing on
+     * the way, like a hero Dwarf heading to an action point
+     */
+    private static final Set<TaskType> GOING_SOMEWHERE = EnumSet.of(TaskType.GO_TO_LOCATION, TaskType.KILL_PLAYER);
 
     private final IKwdFile kwdFile;
     private final EntitySet experienceEntities;
@@ -170,7 +177,17 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private boolean isEntityWorkingOrFighting(Entity entity) {
         CreatureAi creatureAi = entity.get(CreatureAi.class);
         CreatureState creatureState = creatureAi.getCreatureState();
-        return creatureState == CreatureState.MELEE_ATTACK || creatureState == CreatureState.CAST_SPELL || (creatureState == CreatureState.WORK && isWorker(entity));
+        return creatureState == CreatureState.MELEE_ATTACK || creatureState == CreatureState.CAST_SPELL || (creatureState == CreatureState.WORK && isWorker(entity) && isDoingWorkerJob(entity));
+    }
+
+    /**
+     * A worker learns from its jobs, digging, claiming, carrying and the like.
+     * Its objectives also keep it in the work state, but they only take it
+     * somewhere
+     */
+    private boolean isDoingWorkerJob(Entity entity) {
+        TaskComponent taskComponent = entityData.getComponent(entity.getId(), TaskComponent.class);
+        return taskComponent != null && !GOING_SOMEWHERE.contains(taskComponent.taskType);
     }
 
     private boolean isWorker(Entity entity) {
