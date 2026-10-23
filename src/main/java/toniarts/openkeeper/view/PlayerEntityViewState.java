@@ -134,6 +134,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final PortalEffectContainer portalEffectContainer;
+    private final PortalLightContainer portalLightContainer;
     private final List<TransientEffect> transientEffects = new ArrayList<>();
 
     private record TransientEffect(EntityId source, Node node, Point tile, VisualEffect visualEffect) {
@@ -194,6 +195,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         portalEffectContainer = new PortalEffectContainer(entityData);
+        portalLightContainer = new PortalLightContainer(entityData, rootNode, this.fogOfWarInformation);
     }
 
     @Override
@@ -211,6 +213,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         portalEffectContainer.start();
+        portalLightContainer.start();
     }
 
     @Override
@@ -223,6 +226,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         portalEffectContainer.update();
+        portalLightContainer.update(tpf);
         transientEffects.removeIf(effect -> {
             if (effect.node().getQuantity() == 0) {
                 effect.node().removeFromParent();
@@ -241,6 +245,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         portalEffectContainer.stop();
+        portalLightContainer.stop();
         transientEffects.forEach(effect -> {
             effect.visualEffect().removeEffect();
             effect.node().removeFromParent();
