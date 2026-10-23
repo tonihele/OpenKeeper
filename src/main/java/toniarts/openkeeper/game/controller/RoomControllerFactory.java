@@ -22,6 +22,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.BridgeController;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
@@ -79,6 +80,10 @@ public final class RoomControllerFactory {
             }
             case DOUBLE_QUAD -> {
                 return constructDoubleQuad(entity, entityData, roomName, kwdFile, roomInstance, objectsController, gameTimer);
+            }
+            case QUAD -> {
+                // Only the bridges are built of quads
+                return new BridgeController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
             default -> {
                 // TODO
