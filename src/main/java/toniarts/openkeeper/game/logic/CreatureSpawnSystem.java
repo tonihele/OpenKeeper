@@ -18,7 +18,9 @@ package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalAttracted;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -55,6 +61,12 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class CreatureSpawnSystem extends GameTimeCounter {
 
+    /**
+     * A hero portal the keeper has captured, the "Mercenary Portal", counts as a portal for the creature limit
+     */
+    private static final short HERO_PORTAL_ROOM_ID = 25;
+
+    private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final int minimumImpCount;
     private final int entranceCooldownTime;
@@ -65,9 +77,10 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final IKwdFile kwdFile;
 
-    public CreatureSpawnSystem(ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
+    public CreatureSpawnSystem(EntityData entityData, ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
             IMapController mapController) {
+        this.entityData = entityData;
         this.creaturesController = creaturesController;
 
         // We need the game state just for the variables
@@ -154,6 +167,11 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
                 entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.ENTRANCE);
+                if (entityId != null) {
+
+                    // Only the attracted creatures count towards the limit
+                    entityData.setComponent(entityId, new PortalAttracted());
+                }
                 spawned = true;
             }
         }
@@ -166,7 +184,50 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     }
 
     private boolean isCreatureLimitReached(IPlayerController player) {
-        return player.getCreatureControl().getTypeCount() >= (initialPortalCapacity + (player.getRoomControl().getTypeCount(kwdFile.getPortal()) - 1) * additionalPortalCapacity);
+        int portals = player.getRoomControl().getTypeCount(kwdFile.getPortal());
+        Room heroPortal = kwdFile.getRoomById(HERO_PORTAL_ROOM_ID);
+        if (heroPortal != null) {
+            portals += player.getRoomControl().getTypeCount(heroPortal);
+        }
+        return getAttractedCreatureCount(entityData, player.getKeeper().getId())
+                >= getPortalCapacity(portals, initialPortalCapacity, additionalPortalCapacity);
+    }
+
+    /**
+     * Get the number of creatures the portals can attract. As in the original, the first portal supports
+     * CREATURES_SUPPORTED_BY_FIRST_PORTAL creatures and each further portal
+     * CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL more.
+     *
+     * @param portals the number of portals the keeper has, captured hero portals included
+     * @param firstPortal the creatures the first portal supports
+     * @param perAdditionalPortal the creatures each further portal supports
+     * @return the number of creatures the portals can attract
+     */
+    static int getPortalCapacity(int portals, int firstPortal, int perAdditionalPortal) {
+        if (portals <= 0) {
+            return 0;
+        }
+        return firstPortal + (portals - 1) * perAdditionalPortal;
+    }
+
+    /**
+     * Get the number of the keeper's living creatures that came in through a portal. As in the original, the
+     * creatures the keeper got otherwise, like the ones in the level from the start, don't count towards the
+     * portal limit.
+     *
+     * @param entityData the entities
+     * @param playerId the keeper
+     * @return the number of attracted creatures
+     */
+    static int getAttractedCreatureCount(EntityData entityData, short playerId) {
+        int count = 0;
+        for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", playerId),
+                CreatureComponent.class, Owner.class, PortalAttracted.class)) {
+            if (entityData.getComponent(creature, Death.class) == null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private boolean isCreatureRequirementsSatisfied(Creature creature, IPlayerController player) {
