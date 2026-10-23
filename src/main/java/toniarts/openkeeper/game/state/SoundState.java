@@ -148,7 +148,7 @@ public final class SoundState extends AbstractPauseAwareState {
      * @param type the speech
      * @param listener can be {@code null}, allows you to listen when the speech starts playing
      */
-     public void attachMentorSpeech(MentorType type, ISpeechListener listener) {
+    public void attachMentorSpeech(MentorType type, ISpeechListener listener) {
         attachSpeech(SoundCategory.SPEECH_MENTOR, type.getId(), listener);
     }
 
