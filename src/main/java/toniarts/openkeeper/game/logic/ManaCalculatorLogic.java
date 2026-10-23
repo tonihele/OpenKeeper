@@ -40,9 +40,11 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     private final EntitySet manaEntities;
     private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
     private final Map<EntityId, Integer> manaGenerationByEntityId = new HashMap<>();
+    private final Map<EntityId, Integer> maxManaGenerationByEntityId = new HashMap<>();
     private final Map<Short, PlayerManaControl> manaControls;
     private final Map<Short, Integer> manaGains;
     private final Map<Short, Integer> manaLosses;
+    private final Map<Short, Integer> maxManaGains;
 
     public ManaCalculatorLogic(Collection<IPlayerController> playerControllers, EntityData entityData) {
         manaControls = HashMap.newHashMap(playerControllers.size());
@@ -54,6 +56,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
         }
         manaGains = HashMap.newHashMap(manaControls.size());
         manaLosses = HashMap.newHashMap(manaControls.size());
+        maxManaGains = HashMap.newHashMap(manaControls.size());
 
         // Listen for mana entities
         manaEntities = entityData.getEntities(Mana.class, Owner.class);
@@ -72,7 +75,8 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
 
     private void updateManaControls() {
         for (Map.Entry<Short, PlayerManaControl> entry : manaControls.entrySet()) {
-            entry.getValue().updateMana(manaGains.getOrDefault(entry.getKey(), 0), manaLosses.getOrDefault(entry.getKey(), 0));
+            entry.getValue().updateMana(manaGains.getOrDefault(entry.getKey(), 0), manaLosses.getOrDefault(entry.getKey(), 0),
+                    maxManaGains.getOrDefault(entry.getKey(), 0));
         }
     }
 
@@ -101,10 +105,13 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             short ownerId = entity.get(Owner.class).ownerId;
             int manaGeneration = entity.get(Mana.class).manaGeneration;
+            int maxManaGeneration = entity.get(Mana.class).maxManaGeneration;
             ownerIdsByEntityId.put(entity.getId(), ownerId);
             manaGenerationByEntityId.put(entity.getId(), manaGeneration);
+            maxManaGenerationByEntityId.put(entity.getId(), maxManaGeneration);
 
             addManaGenerationToPlayer(ownerId, manaGeneration);
+            addMaxManaGenerationToPlayer(ownerId, maxManaGeneration);
         }
     }
 
@@ -112,8 +119,10 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
         for (Entity entity : entities) {
             short ownerId = ownerIdsByEntityId.remove(entity.getId());
             int manaGeneration = manaGenerationByEntityId.remove(entity.getId());
+            int maxManaGeneration = maxManaGenerationByEntityId.remove(entity.getId());
 
             removeManaGenerationFromPlayer(ownerId, manaGeneration);
+            removeMaxManaGenerationFromPlayer(ownerId, maxManaGeneration);
         }
     }
 
@@ -123,10 +132,16 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
             int newManaGeneration = entity.get(Mana.class).manaGeneration;
             short oldOwnerId = ownerIdsByEntityId.put(entity.getId(), newOwnerId);
             int oldManaGeneration = manaGenerationByEntityId.put(entity.getId(), newManaGeneration);
+            int newMaxManaGeneration = entity.get(Mana.class).maxManaGeneration;
+            int oldMaxManaGeneration = maxManaGenerationByEntityId.put(entity.getId(), newMaxManaGeneration);
 
             if (newOwnerId != oldOwnerId || newManaGeneration != oldManaGeneration) {
                 addManaGenerationToPlayer(newOwnerId, newManaGeneration);
                 removeManaGenerationFromPlayer(oldOwnerId, oldManaGeneration);
+            }
+            if (newOwnerId != oldOwnerId || newMaxManaGeneration != oldMaxManaGeneration) {
+                addMaxManaGenerationToPlayer(newOwnerId, newMaxManaGeneration);
+                removeMaxManaGenerationFromPlayer(oldOwnerId, oldMaxManaGeneration);
             }
         }
     }
@@ -158,6 +173,18 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
             } else {
                 addMana(manaGains, playerId, manaGeneration);
             }
+        }
+    }
+
+    private void addMaxManaGenerationToPlayer(short playerId, int maxManaGeneration) {
+        if (maxManaGeneration != 0 && manaControls.containsKey(playerId)) {
+            addMana(maxManaGains, playerId, maxManaGeneration);
+        }
+    }
+
+    private void removeMaxManaGenerationFromPlayer(short playerId, int maxManaGeneration) {
+        if (maxManaGeneration != 0 && manaControls.containsKey(playerId)) {
+            substractMana(maxManaGains, playerId, maxManaGeneration);
         }
     }
 

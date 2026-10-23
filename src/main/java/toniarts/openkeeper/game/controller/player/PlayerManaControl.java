@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 public final class PlayerManaControl {
 
     private final Keeper keeper;
+    private final int maxManaGain;
     private final SafeArrayList<PlayerManaListener> listeners = new SafeArrayList<>(PlayerManaListener.class);
 
     public PlayerManaControl(Keeper keeper,
@@ -38,22 +39,30 @@ public final class PlayerManaControl {
         this.keeper = keeper;
 
         this.keeper.setMaxMana((int) gameSettings.get(MiscType.MAXIMUM_MANA_THRESHOLD).getValue());
+        this.maxManaGain = (int) gameSettings.get(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND).getValue();
     }
 
     /**
      * Updates gain and loose and adds/removes mana accordingly to the player.
+     * The gain is limited to the maximum mana gain per second, raised by the
+     * owned tiles (mana vaults), and the loose is paid after the limit
+     * (DKII.EXE 0x4C10E0; a tile changing owner moves its raise in 0x4559D0).
      * The mana spent at once since the last update leaves the loose here, like
      * DKII.EXE clears it before the update (0x4C10E0)
      *
      * @param gain mana gain
      * @param loose mana loose
+     * @param maxGainIncrease how much the owned mana sources raise the gain
+     * limit
      */
-    public void updateMana(int gain, int loose) {
+    public void updateMana(int gain, int loose, int maxGainIncrease) {
 
-        keeper.setManaGain(gain);
+        int cappedGain = Math.min(gain, maxManaGain + maxGainIncrease);
+
+        keeper.setManaGain(cappedGain);
         keeper.setManaLoose(loose);
 
-        addMana(keeper.getManaGain() - keeper.getManaLoose());
+        addMana(cappedGain - loose);
 
         updateListerners();
     }
