@@ -57,9 +57,9 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
     @Override
     public boolean isValid(ICreatureController creature) {
 
-        // The workshop is there and has room for another crate
+        // The workshop is there and has room for another crate, without a creature only that is asked
         return super.isValid(creature)
-                && creature.getManufacturePerSecond() > 0
+                && (creature == null || creature.getManufacturePerSecond() > 0)
                 && trapsController.getTrapToManufacture(playerId) != null;
     }
 
