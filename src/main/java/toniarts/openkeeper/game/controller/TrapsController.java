@@ -34,7 +34,6 @@ import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
-import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
@@ -122,7 +121,7 @@ public final class TrapsController implements ITrapsController {
         pos.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
-        // Health and threat
+        // Health, traps only threaten after they fire
         if (!blueprint) {
             setArmed(entity, kwdFile.getTrapById(trapId));
         }
@@ -138,7 +137,6 @@ public final class TrapsController implements ITrapsController {
 
     private void setArmed(EntityId entity, Trap trap) {
         entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
-        entityData.setComponent(entity, new Threat(trap.getThreat()));
 
         // Regeneration
         if (trap.getHealthGain() > 0) {
