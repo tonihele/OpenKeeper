@@ -26,6 +26,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -37,22 +38,26 @@ import toniarts.openkeeper.tools.convert.map.TrapFiringFixtures;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class TrapEffectsTest {
 
     private static final short KEEPER = 3;
     private static final short ENEMY = 4;
     private static final short IMP = 1;
+    private static final short REAPER = 2;
     private static final Vector3f TRAP_POSITION = new Vector3f(10, WorldUtils.FLOOR_HEIGHT, 10);
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shots = new HashMap<>();
     private final Map<Short, Creature> creatures = new HashMap<>();
     private final TrapEffects trapEffects;
+    private double gameTime = 5;
 
     TrapEffectsTest() {
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
-        trapEffects = new TrapEffects(entityData, kwdFile());
+        creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
+        trapEffects = new TrapEffects(entityData, kwdFile(), () -> gameTime);
     }
 
     @Test
@@ -140,6 +145,44 @@ class TrapEffectsTest {
         trapEffects.fire(trigger, KEEPER, TRAP_POSITION, target);
 
         assertEquals(0, damage(target));
+    }
+
+    @Test
+    void freezeTrapFreezesItsTarget() {
+        Trap freeze = trap((short) 7, Shot.ProcessType.FREEZE, Shot.DamageType.NONE, 20, 1);
+        EntityId target = addCreature(ENEMY, 10, 10);
+        EntityId bystander = addCreature(ENEMY, 10, 10);
+
+        trapEffects.fire(freeze, KEEPER, TRAP_POSITION, target);
+
+        Frozen frozen = entityData.getComponent(target, Frozen.class);
+        assertEquals(5, frozen.startTime);
+        assertEquals(20, frozen.duration);
+        assertNull(entityData.getComponent(bystander, Frozen.class));
+    }
+
+    @Test
+    void freezingAgainDoesNotProlongTheFreeze() {
+        Trap freeze = trap((short) 7, Shot.ProcessType.FREEZE, Shot.DamageType.NONE, 20, 1);
+        EntityId target = addCreature(ENEMY, 10, 10);
+        entityData.setComponent(target, new Frozen(0, 20));
+
+        trapEffects.fire(freeze, KEEPER, TRAP_POSITION, target);
+
+        assertEquals(0, entityData.getComponent(target, Frozen.class).startTime);
+    }
+
+    @Test
+    void hornedReaperDoesNotFreeze() {
+        Trap freeze = trap((short) 7, Shot.ProcessType.FREEZE, Shot.DamageType.NONE, 20, 1);
+        EntityId reaper = addCreature(ENEMY, 10, 10);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = REAPER;
+        entityData.setComponent(reaper, creatureComponent);
+
+        trapEffects.fire(freeze, KEEPER, TRAP_POSITION, reaper);
+
+        assertNull(entityData.getComponent(reaper, Frozen.class));
     }
 
     private Trap trap(short trapId, Shot.ProcessType processType, Shot.DamageType damageType, int shotData1, int shotData2) {

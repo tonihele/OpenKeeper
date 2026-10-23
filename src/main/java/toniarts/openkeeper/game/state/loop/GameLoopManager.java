@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.logic.DeathSystem;
 import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
+import toniarts.openkeeper.game.logic.FreezeSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.GraveyardSystem;
 import toniarts.openkeeper.game.logic.HaulingSystem;
@@ -155,7 +156,8 @@ public final class GameLoopManager {
                 new HaulingSystem(entityData),
                 new TrapSystem(entityData, level, gameController.getGameTimer(),
                         solidTilesBlockSight(gameWorldController.getMapController()), playerControllers,
-                        new TrapEffects(entityData, level)),
+                        new TrapEffects(entityData, level, gameController.getGameTimer())),
+                new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
                 (IGameLogicUpdatable) taskManager);
