@@ -86,6 +86,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.awt.DisplayMode;
+import java.awt.GraphicsEnvironment;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,6 +97,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+
 
 /**
  * Simple model viewer
@@ -145,6 +149,7 @@ public final class ModelViewer extends SimpleApplication {
     private List<String> maps;
     private IKwdFile kwdFile;
     private Node floorGeom;
+    private String itemFilter = "";
 
     //private SoundsLoader soundLoader;
     /**
@@ -170,8 +175,7 @@ public final class ModelViewer extends SimpleApplication {
                 toggleWireframe();
             } // Toggle rotation
             else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name) && !pressed) {
-                rotate = !rotate;
-                toggleRotate();
+                setAutoRotateEnabled(!rotate);
             } // Normals
             else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
                 showNormals = !showNormals;
@@ -187,13 +191,17 @@ public final class ModelViewer extends SimpleApplication {
     public static void main(String[] args) {
 
         // Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 1 || !Files.exists(Paths.get(args[0]))) {
+        String folderArgument = Arrays.stream(args)
+                .filter(argument -> !argument.startsWith("--"))
+                .findFirst()
+                .orElse(null);
+        if (folderArgument == null || !Files.exists(Paths.get(folderArgument))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
             }
         } else {
-            dkIIFolder = PathUtils.fixFilePath(args[0]);
+            dkIIFolder = PathUtils.fixFilePath(folderArgument);
         }
 
         ModelViewer app = new ModelViewer();
@@ -205,7 +213,26 @@ public final class ModelViewer extends SimpleApplication {
 
         app.setSettings(settings);
 
+        if (Arrays.asList(args).contains("--fullscreen")) {
+            configureFullscreen(app);
+        }
         app.start();
+    }
+
+    private static void configureFullscreen(ModelViewer app) {
+        DisplayMode displayMode = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getDefaultScreenDevice().getDisplayMode();
+        AppSettings settings = new AppSettings(true);
+        settings.setFullscreen(true);
+        settings.setResolution(displayMode.getWidth(), displayMode.getHeight());
+        if (displayMode.getBitDepth() > 0) {
+            settings.setBitsPerPixel(displayMode.getBitDepth());
+        }
+        if (displayMode.getRefreshRate() > 0) {
+            settings.setFrequency(displayMode.getRefreshRate());
+        }
+        app.setSettings(settings);
+        app.setShowSettings(false);
     }
 
     public ModelViewer(Path kmfModel, String dkFolder) {
@@ -220,6 +247,9 @@ public final class ModelViewer extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+
+        setDisplayFps(false);
+        setDisplayStatView(false);
 
         ((GLRenderer) renderer).setDebugEnabled(true); // get debug names for GL objects
 
@@ -254,6 +284,7 @@ public final class ModelViewer extends SimpleApplication {
         cam.setLocation(new Vector3f(0, 10, 10));
         cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
         flyCam.setMoveSpeed(10);
+        flyCam.setZoomSpeed(0);
         flyCam.setDragToRotate(true);
 
         // Mouse cursor
@@ -402,6 +433,18 @@ public final class ModelViewer extends SimpleApplication {
             if (rotator != null) {
                 rotator.setEnabled(rotate);
             }
+        }
+    }
+
+    boolean isAutoRotateEnabled() {
+        return rotate;
+    }
+
+    void setAutoRotateEnabled(boolean enabled) {
+        rotate = enabled;
+        toggleRotate();
+        if (screen != null) {
+            screen.setAutoRotateChecked(enabled);
         }
     }
 
@@ -648,7 +691,7 @@ public final class ModelViewer extends SimpleApplication {
         }
 
         // Add & sort
-        listBox.addAllItems(object);
+        addFilteredItems(object);
         listBox.sortAllItems(String.CASE_INSENSITIVE_ORDER);
     }
 
@@ -688,56 +731,109 @@ public final class ModelViewer extends SimpleApplication {
             case CREATURES: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Creature> creatures = kwfFile.getCreatureList();
-                screen.getItemsControl().addAllItems(creatures);
+                addFilteredItems(creatures);
                 break;
             }
             case TERRAIN: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Terrain> terrains = kwfFile.getTerrainList();
-                screen.getItemsControl().addAllItems(terrains);
+                addFilteredItems(terrains);
                 break;
             }
             case OBJECTS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<GameObject> objects = kwfFile.getObjectList();
-                screen.getItemsControl().addAllItems(objects);
+                addFilteredItems(objects);
                 break;
             }
             case ROOMS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Room> rooms = kwfFile.getRooms();
-                screen.getItemsControl().addAllItems(rooms);
+                addFilteredItems(rooms);
                 break;
             }
             case DOORS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Door> doors = kwfFile.getDoors();
-                screen.getItemsControl().addAllItems(doors);
+                addFilteredItems(doors);
                 break;
             }
             case TRAPS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Trap> traps = kwfFile.getTraps();
-                screen.getItemsControl().addAllItems(traps);
+                addFilteredItems(traps);
                 break;
             }
             case SHOTS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Shot> shots = kwfFile.getShots();
-                screen.getItemsControl().addAllItems(shots);
+                addFilteredItems(shots);
                 break;
             }
             case EFFECTS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Effect> effects = kwfFile.getEffects().values();
-                screen.getItemsControl().addAllItems(effects);
+                addFilteredItems(effects);
                 break;
             }
         }
     }
 
+    protected void filterList(String filter) {
+        itemFilter = filter == null ? "" : filter.strip().toLowerCase(Locale.ROOT);
+        fillList(screen.getTypeControl().getSelection());
+    }
+
+    private void addFilteredItems(Collection<?> items) {
+        ListBox<Object> listBox = screen.getItemsControl();
+        List<Object> filteredItems = new ArrayList<>();
+        for (Object item : items) {
+            if (matchesFilter(item)) {
+                filteredItems.add(item);
+            }
+        }
+        listBox.addAllItems(filteredItems);
+    }
+
+    private boolean matchesFilter(Object item) {
+        if (itemFilter.isEmpty() || item.toString().toLowerCase(Locale.ROOT).contains(itemFilter)) {
+            return true;
+        }
+        if (item instanceof Effect effect) {
+            return Integer.toString(effect.getEffectId()).contains(itemFilter)
+                    || getEffectReferences(effect).toLowerCase(Locale.ROOT).contains(itemFilter);
+        }
+        return false;
+    }
+
+    protected String getEffectReferences(Effect effect) {
+        List<String> references = new ArrayList<>();
+        int effectId = effect.getEffectId();
+
+        for (Room room : getKwdFile().getRooms()) {
+            if (room.getEffects().contains(effectId)) {
+                references.add(room.getName() + " room");
+            }
+            if (room.getFightEffectId() == effectId) {
+                references.add(room.getName() + " fight");
+            }
+        }
+        for (GameObject object : getKwdFile().getObjectList()) {
+            if (object.getMiscEffectId() == effectId) {
+                references.add(object.getName() + " misc");
+            }
+            if (object.getSlapEffectId() == effectId) {
+                references.add(object.getName() + " slap");
+            }
+            if (object.getDeathEffectId() == effectId) {
+                references.add(object.getName() + " death");
+            }
+        }
+
+        return references.isEmpty() ? "None" : String.join(", ", references);
+    }
+
     private IKwdFile getKwdFile() {
-        // Read Alcatraz.kwd by default
         // Read Alcatraz.kwd by default
         if (kwdFile == null) {
             kwdFile = getKwdFile("Alcatraz");

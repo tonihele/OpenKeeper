@@ -21,10 +21,13 @@ import com.jme3.asset.TextureKey;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.controls.CheckBox;
+import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
+import de.lessvoid.nifty.controls.TextFieldChangedEvent;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
@@ -60,6 +63,8 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_TYPES = "types";
     private final static String ID_ITEM = "item";
     private final static String ID_SOUNDS = "sounds";
+    private final static String ID_FILTER = "filter";
+    private final static String ID_AUTO_ROTATE = "autoRotate";
 
     private final ModelViewer app;
     private final Nifty nifty;
@@ -90,6 +95,7 @@ public final class ModelViewerScreenController implements ScreenController {
 
     @Override
     public void onStartScreen() {
+        setAutoRotateChecked(app.isAutoRotateEnabled());
     }
 
     @Override
@@ -109,6 +115,23 @@ public final class ModelViewerScreenController implements ScreenController {
     @NiftyEventSubscriber(id = ID_TYPES)
     public void onTypeChanged(final String id, final DropDownSelectionChangedEvent<ModelViewer.Types> event) {
         app.fillList(event.getSelection());
+    }
+
+    @NiftyEventSubscriber(id = ID_FILTER)
+    public void onFilterChanged(final String id, final TextFieldChangedEvent event) {
+        app.filterList(event.getText());
+    }
+
+    @NiftyEventSubscriber(id = ID_AUTO_ROTATE)
+    public void onAutoRotateChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setAutoRotateEnabled(event.isChecked());
+    }
+
+    void setAutoRotateChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_AUTO_ROTATE, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
     }
 
     @NiftyEventSubscriber(id = ID_SOUNDS)
@@ -380,7 +403,8 @@ public final class ModelViewerScreenController implements ScreenController {
 
         ControlBuilder result = new ControlBuilder(name, "effect") {
             {
-                parameter("title", name);
+                parameter("title", name + " [" + item.getEffectId() + "]");
+                parameter("relatedTo", app.getEffectReferences(item));
 
                 parameter("airFriction", String.valueOf(item.getAirFriction()));
                 parameter("circularPathRate", String.valueOf(item.getCircularPathRate()));
