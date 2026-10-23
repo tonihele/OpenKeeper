@@ -61,6 +61,13 @@ public final class SummonReaperFixtures {
         return creature;
     }
 
+    public static Variable.MiscVariable miscVariable(Variable.MiscVariable.MiscType type, int value) {
+        Variable.MiscVariable variable = new Variable.MiscVariable();
+        variable.setVariableId(type);
+        variable.setValue(value);
+        return variable;
+    }
+
     public static GameLevel gameLevel(short oneShotHornyLevel) {
         GameLevel gameLevel = new GameLevel();
         gameLevel.setOneShotHornyLev(oneShotHornyLevel);
