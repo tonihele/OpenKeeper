@@ -40,13 +40,19 @@ public final class TrapFiring implements EntityComponent {
      */
     public double chargeStartTime;
 
+    /**
+     * Game time the threat of the last shot ends
+     */
+    public double threatEndTime;
+
     public TrapFiring() {
         // For serialization
     }
 
-    public TrapFiring(double rechargedTime, double chargeStartTime) {
+    public TrapFiring(double rechargedTime, double chargeStartTime, double threatEndTime) {
         this.rechargedTime = rechargedTime;
         this.chargeStartTime = chargeStartTime;
+        this.threatEndTime = threatEndTime;
     }
 
 }

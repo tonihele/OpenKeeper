@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
@@ -50,6 +51,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * creature standing on its tile. When a victim stays found for the trap's
  * charge time, the trap pays the mana for the shot, fires and starts to
  * recharge. A trap whose owner lacks the mana doesn't fire and keeps trying.
+ * <br>
+ * After a shot the trap threatens its enemies for the trap's threat duration,
+ * this is what makes the Fear Trap's victims flee.
  *
  * @see ITrapEffects for what the shots do
  */
@@ -97,6 +101,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
     private void processTrap(Entity trapEntity, double gameTime) {
         TrapFiring firing = getFiring(trapEntity.getId());
+        if (gameTime >= firing.threatEndTime && entityData.getComponent(trapEntity.getId(), Threat.class) != null) {
+            entityData.removeComponent(trapEntity.getId(), Threat.class);
+        }
         if (gameTime < firing.rechargedTime) {
             return;
         }
@@ -107,15 +114,17 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
             // Losing the victim starts the charging over
             if (firing.chargeStartTime != TrapFiring.NOT_CHARGING) {
-                entityData.setComponent(trapEntity.getId(), new TrapFiring(firing.rechargedTime, TrapFiring.NOT_CHARGING));
+                entityData.setComponent(trapEntity.getId(), new TrapFiring(firing.rechargedTime, TrapFiring.NOT_CHARGING,
+                        firing.threatEndTime));
             }
             return;
         }
 
         double chargeStartTime = firing.chargeStartTime == TrapFiring.NOT_CHARGING ? gameTime : firing.chargeStartTime;
-        if (gameTime - chargeStartTime < trap.getChargeTime() || !fire(trapEntity, trap, target, gameTime)) {
+        if (gameTime - chargeStartTime < trap.getChargeTime() || !fire(trapEntity, trap, target, firing, gameTime)) {
             if (firing.chargeStartTime != chargeStartTime) {
-                entityData.setComponent(trapEntity.getId(), new TrapFiring(firing.rechargedTime, chargeStartTime));
+                entityData.setComponent(trapEntity.getId(), new TrapFiring(firing.rechargedTime, chargeStartTime,
+                        firing.threatEndTime));
             }
         }
     }
@@ -123,7 +132,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private TrapFiring getFiring(EntityId trapId) {
         TrapFiring firing = entityData.getComponent(trapId, TrapFiring.class);
         if (firing == null) {
-            return new TrapFiring(0, TrapFiring.NOT_CHARGING);
+            return new TrapFiring(0, TrapFiring.NOT_CHARGING, 0);
         }
 
         return firing;
@@ -135,17 +144,26 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * @param trapEntity the trap
      * @param trap the trap data
      * @param target the victim, can be {@code null}
+     * @param firing the trap's firing state
      * @param gameTime the current game time
      * @return whether the trap fired
      */
-    private boolean fire(Entity trapEntity, Trap trap, EntityId target, double gameTime) {
+    private boolean fire(Entity trapEntity, Trap trap, EntityId target, TrapFiring firing, double gameTime) {
         short ownerId = trapEntity.get(Owner.class).ownerId;
         if (!payForShot(trap, ownerId)) {
             return false;
         }
 
         trapEffects.fire(trap, ownerId, trapEntity.get(Position.class).position.clone(), target);
-        entityData.setComponent(trapEntity.getId(), new TrapFiring(gameTime + trap.getRechargeTime(), TrapFiring.NOT_CHARGING));
+
+        // Every shot threatens the enemies anew
+        double threatEndTime = firing.threatEndTime;
+        if (trap.getThreat() > 0 && trap.getThreatDuration() > 0) {
+            entityData.setComponent(trapEntity.getId(), new Threat(trap.getThreat()));
+            threatEndTime = gameTime + trap.getThreatDuration();
+        }
+        entityData.setComponent(trapEntity.getId(), new TrapFiring(gameTime + trap.getRechargeTime(), TrapFiring.NOT_CHARGING,
+                threatEndTime));
 
         return true;
     }

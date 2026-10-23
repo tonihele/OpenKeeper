@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -51,6 +52,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TrapSystemTest {
@@ -59,8 +61,10 @@ class TrapSystemTest {
     private static final short ENEMY = 4;
     private static final short SENTRY = 3;
     private static final short SPIKE = 10;
+    private static final short FEAR = 8;
     private static final short CANNON_BALL = 44;
     private static final short SPIKE_SHOT = 27;
+    private static final short FEAR_SHOT = 25;
     private static final short IMP = 1;
     private static final short REAPER = 2;
     private static final Point TRAP_TILE = new Point(10, 10);
@@ -82,6 +86,8 @@ class TrapSystemTest {
         traps.put((int) SENTRY, TrapFiringFixtures.withManaCost(
                 TrapFiringFixtures.trap(SENTRY, Trap.TriggerType.LINE_OF_SIGHT, 5, 6, CANNON_BALL), 250));
         traps.put((int) SPIKE, TrapFiringFixtures.trap(SPIKE, Trap.TriggerType.PRESSURE, 1, 4, SPIKE_SHOT));
+        traps.put((int) FEAR, TrapFiringFixtures.withThreat(
+                TrapFiringFixtures.trap(FEAR, Trap.TriggerType.LINE_OF_SIGHT, 3, 6, FEAR_SHOT), 600, 60));
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         keeper.setMana(1000);
@@ -242,6 +248,49 @@ class TrapSystemTest {
         tick();
 
         assertTrue(shots.isEmpty());
+    }
+
+    @Test
+    void fearTrapThreatensOnlyAfterItFires() {
+        EntityId trap = addTrap(FEAR, TRAP_TILE);
+
+        tick();
+        assertNull(entityData.getComponent(trap, Threat.class));
+
+        addCreature(IMP, ENEMY, 12, 10);
+        gameTime = 1;
+        tick();
+        assertEquals(600, entityData.getComponent(trap, Threat.class).threat);
+    }
+
+    @Test
+    void threatLastsItsDurationFromTheLastShot() {
+        EntityId trap = addTrap(FEAR, TRAP_TILE);
+        EntityId enemy = addCreature(IMP, ENEMY, 12, 10);
+
+        tick();
+
+        // Fires again after the recharge, which renews the threat
+        gameTime = 6;
+        tick();
+        entityData.removeComponent(enemy, Position.class);
+        gameTime = 65.75;
+        tick();
+        assertEquals(600, entityData.getComponent(trap, Threat.class).threat);
+
+        gameTime = 66;
+        tick();
+        assertNull(entityData.getComponent(trap, Threat.class));
+    }
+
+    @Test
+    void trapsWithoutThreatMakeNone() {
+        EntityId trap = addTrap(SENTRY, TRAP_TILE);
+        addCreature(IMP, ENEMY, 13, 10);
+
+        tick();
+
+        assertNull(entityData.getComponent(trap, Threat.class));
     }
 
     @Test
