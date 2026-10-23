@@ -64,7 +64,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     /**
      * A hero portal the keeper has captured, the "Mercenary Portal", counts as a portal for the creature limit
      */
-    private static final short HERO_PORTAL_ROOM_ID = 25;
+    public static final short HERO_PORTAL_ROOM_ID = 25;
 
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
@@ -203,7 +203,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
      * @param perAdditionalPortal the creatures each further portal supports
      * @return the number of creatures the portals can attract
      */
-    static int getPortalCapacity(int portals, int firstPortal, int perAdditionalPortal) {
+    public static int getPortalCapacity(int portals, int firstPortal, int perAdditionalPortal) {
         if (portals <= 0) {
             return 0;
         }
@@ -219,7 +219,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
      * @param playerId the keeper
      * @return the number of attracted creatures
      */
-    static int getAttractedCreatureCount(EntityData entityData, short playerId) {
+    public static int getAttractedCreatureCount(EntityData entityData, short playerId) {
         int count = 0;
         for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", playerId),
                 CreatureComponent.class, Owner.class, PortalAttracted.class)) {
