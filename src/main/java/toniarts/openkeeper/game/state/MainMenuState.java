@@ -30,6 +30,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -237,6 +238,12 @@ public final class MainMenuState extends AbstractAppState {
             controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
             controller.getLightRules().setCheapLighting(settings.getBoolean(Setting.CHEAP_LIGHTING));
             controller.getLightRules().update(tpf, app.getCamera());
+
+            // Every animation change loads a new creature model, light them like creatures in the game
+            Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
+            if (mpdCreature != null) {
+                AssetUtils.applyVertexLight(assetManager, mpdCreature, controller.getLightRules(), false, false);
+            }
         }
     }
 

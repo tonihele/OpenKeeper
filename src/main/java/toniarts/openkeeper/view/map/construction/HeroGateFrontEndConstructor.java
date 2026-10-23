@@ -71,6 +71,11 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             Map.entry(13, Set.of(13, 16)),
             Map.entry(17, Set.of(17, 18)));
 
+    /**
+     * Name of the node holding the creature that shows the MPD progress
+     */
+    public static final String MPD_CREATURE_NODE_NAME = "MpdCreature";
+
     private final IKwdFile kwdFile;
 
     public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance, IKwdFile kwdFile) {
@@ -291,7 +296,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             return;
         }
 
-        final Node mpdObj = new Node(creature.getName());
+        final Node mpdObj = new Node(MPD_CREATURE_NODE_NAME);
 
         // The idle animations to rotate between
         CreatureRandomAnimationControl animationControl = new CreatureRandomAnimationControl(creature, assetManager,
