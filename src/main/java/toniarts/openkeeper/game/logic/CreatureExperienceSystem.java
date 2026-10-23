@@ -75,7 +75,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         trainingEntityIds = new SafeArrayList<>(EntityId.class);
 
         impExperienceGainPerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND).getValue();
-        trainingRoomMaxExperienceLevel = (int) gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue();
+        Variable.MiscVariable trainingRoomMaxLevelVariable = gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL);
+        trainingRoomMaxExperienceLevel = trainingRoomMaxLevelVariable != null ? (int) trainingRoomMaxLevelVariable.getValue() : Utils.MAX_CREATURE_LEVEL;
 
         experienceEntities = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureAi.class);
         trainingEntities = entityData.getEntities(new AndFilter(TaskComponent.class, new FieldFilter(TaskComponent.class, "taskStarted", true), new FieldFilter(TaskComponent.class, "taskType", TaskType.TRAIN)), CreatureComponent.class, CreatureExperience.class, CreatureAi.class, TaskComponent.class);
