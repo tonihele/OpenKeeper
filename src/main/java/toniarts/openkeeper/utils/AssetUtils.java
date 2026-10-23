@@ -224,6 +224,13 @@ public final class AssetUtils {
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
 
+        // Also apply the native alpha-pass depth state to already converted
+        // materials; changing the KMF converter alone would require reconversion.
+        // Portal chasm surfaces must not depth-mask additive particles below them.
+        if (material.isTransparent()) {
+            material.getAdditionalRenderState().setDepthWrite(false);
+        }
+
         // Unharmed texture
         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
 
@@ -332,7 +339,9 @@ public final class AssetUtils {
     public static Material createParticleMaterial(ArtResource resource, AssetManager assetManager) {
 
         // Cache
-        MaterialKey assetKey = new MaterialKey(resource.getName());
+        MaterialKey assetKey = new MaterialKey("particle:" + resource.getName() + ":" + resource.getType()
+                + ":" + resource.getFlags() + ":" + resource.getData(ArtResource.KEY_FRAMES)
+                + ":" + resource.getData(ArtResource.KEY_WIDTH));
         Material mat = ASSET_CACHE.getFromCache(assetKey);
 
         if (mat == null) {
@@ -343,15 +352,13 @@ public final class AssetUtils {
                 logger.log(Level.ERROR, "Can't create a texture out of " + resource + "!", e);
             }
 
-            // Particle.j3md hardcodes "Blend AlphaAdditive" in its technique,
-            // which is right for glow/spark-style ADDITIVE_ALPHA art but
-            // washes out plain ALPHA/SPRITE textures (e.g. feathers) to
-            // near-invisibility over lit terrain - use standard alpha
-            // compositing for those instead.
-            if (resource.getType() != ArtResource.ArtResourceType.ADDITIVE_ALPHA) {
-                mat.setTransparent(false);
-                mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-            }
+            // Native Portal mist/sparkle/Whitedisc draws use ONE + ONE, not
+            // Particle.j3md's SRC_ALPHA + ONE default (AlphaAdditive).
+            mat.getAdditionalRenderState().setBlendMode(
+                    resource.getType() == ArtResource.ArtResourceType.ADDITIVE_ALPHA
+                            ? BlendMode.Additive : BlendMode.Alpha);
+            mat.getAdditionalRenderState().setDepthTest(true);
+            mat.getAdditionalRenderState().setDepthWrite(false);
 
             // Add to cache
             ASSET_CACHE.addToCache(assetKey, mat);

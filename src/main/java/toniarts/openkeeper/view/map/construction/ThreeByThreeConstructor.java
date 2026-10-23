@@ -45,6 +45,7 @@ public final class ThreeByThreeConstructor extends RoomConstructor {
         for (Point p : roomInstance.getCoordinates()) {
             Spatial tile = (Spatial) AssetUtils.loadModel(assetManager, artResource.getName() + i, artResource, false, true);
 
+            PortalTransparentSurfaces.prepare(tile);
             moveSpatial(tile, start, p);
 
             attachFloorTile(root, p, tile);
