@@ -81,7 +81,6 @@ public class VisualEffect {
     private final short ownerId;
     private boolean infinite;
     private Spatial lightTarget;
-    private PointLight light;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.

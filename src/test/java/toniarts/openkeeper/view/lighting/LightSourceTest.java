@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link LightSource}.
  */
-public class LightSourceTest {
+class LightSourceTest {
 
     @Test
-    public void radiusIsCappedAtNineAndSevenEighthsTiles() {
+    void radiusIsCappedAtNineAndSevenEighthsTiles() {
         LightSource source = new LightSource(LightSource.Kind.PORTAL, null, Vector3f.ZERO,
                 255, 33, 26, 1.0f, 50f);
 
@@ -38,7 +38,7 @@ public class LightSourceTest {
     }
 
     @Test
-    public void flickerScaleStaysClampedBetweenHalfAndOne() {
+    void flickerScaleStaysClampedBetweenHalfAndOne() {
         LightSource source = new LightSource(LightSource.Kind.TORCH, null, Vector3f.ZERO,
                 300, 200, 100, 1.41f, 1.5f);
         source.setFlickers(true);
@@ -53,7 +53,7 @@ public class LightSourceTest {
     }
 
     @Test
-    public void nonFlickeringSourceIgnoresFlickerStep() {
+    void nonFlickeringSourceIgnoresFlickerStep() {
         LightSource source = new LightSource(LightSource.Kind.TERRAIN, null, Vector3f.ZERO,
                 200, 80, 35, 1.0f, 4.5f);
         Random random = new Random(1);
@@ -64,7 +64,7 @@ public class LightSourceTest {
     }
 
     @Test
-    public void tickCountsLifetimeDownAndSignalsExpiry() {
+    void tickCountsLifetimeDownAndSignalsExpiry() {
         LightSource source = new LightSource(LightSource.Kind.THING, null, Vector3f.ZERO,
                 255, 255, 255, 1.0f, 5f);
         source.setLifetime(3);
@@ -75,7 +75,7 @@ public class LightSourceTest {
     }
 
     @Test
-    public void infiniteLifetimeNeverExpires() {
+    void infiniteLifetimeNeverExpires() {
         LightSource source = new LightSource(LightSource.Kind.CURSOR, null, Vector3f.ZERO,
                 511, 511, 511, 2.0f, 7f);
 

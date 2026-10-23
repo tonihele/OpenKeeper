@@ -24,10 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link Modulator}.
  */
-public class ModulatorTest {
+class ModulatorTest {
 
     @Test
-    public void pulsePeriodIs48TicksAndStaysInRange() {
+    void pulsePeriodIs48TicksAndStaysInRange() {
         Modulator modulator = new Modulator();
         modulator.pulse();
         int[] base = {200, 100, 50};
@@ -60,7 +60,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void pulseKeepsChannelsInPlace() {
+    void pulseKeepsChannelsInPlace() {
         Modulator modulator = new Modulator();
         modulator.pulse();
         int[] base = {0, 300, 100};
@@ -75,7 +75,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void pulseRangeIsRoughly104To198Percent() {
+    void pulseRangeIsRoughly104To198Percent() {
         Modulator modulator = new Modulator();
         modulator.pulse();
         int[] base = {200, 200, 200};
@@ -95,7 +95,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void fadeInReachesBaseExactlyAtDuration() {
+    void fadeInReachesBaseExactlyAtDuration() {
         // colour = base * counter / duration, computed BEFORE counter is
         // incremented -- so it takes duration calls at counter=0..duration-1
         // (all < base) plus one more (at counter==duration) to reach base.
@@ -117,7 +117,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void fadeOutReachesZeroAndStops() {
+    void fadeOutReachesZeroAndStops() {
         // fadeOut starts with counter == duration, so the very first call
         // outputs full base; it takes duration+1 calls total to reach 0.
         Modulator modulator = new Modulator();
@@ -139,7 +139,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void flashRampsUpThenDownOverHalvesOfDuration() {
+    void flashRampsUpThenDownOverHalvesOfDuration() {
         // flash(8) fades in over 4 ticks, then out over 4 ticks: duration+1 calls to ramp up to full and flip to FADE_OUT,
         // then duration+1 more to ramp back down to 0.
         Modulator modulator = new Modulator();
@@ -170,7 +170,7 @@ public class ModulatorTest {
     }
 
     @Test
-    public void noneModulatorAlwaysReturnsBase() {
+    void noneModulatorAlwaysReturnsBase() {
         Modulator modulator = new Modulator();
         int[] base = {123, 45, 67};
         int[] colour = new int[3];

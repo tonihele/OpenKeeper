@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link LightRules}.
  */
-public class LightRulesTest {
+class LightRulesTest {
 
     @Test
-    public void cheapLightingStopsAndRestoresFlickerOnAllCapableSources() {
+    void cheapLightingStopsAndRestoresFlickerOnAllCapableSources() {
         LightRules rules = new LightRules();
         LightSource torch = rules.addTorchLight(new Point(1, 1), Vector3f.ZERO, 300, 200, 100, 1.41f, 1.5f);
         LightSource slab = rules.addSlabLight(new Point(2, 2), Vector3f.ZERO, 100, 100, 100, 3f, false, true);
@@ -50,7 +50,7 @@ public class LightRulesTest {
     }
 
     @Test
-    public void lightsCreatedWhileCheapDoNotFlickerButRecover() {
+    void lightsCreatedWhileCheapDoNotFlickerButRecover() {
         LightRules rules = new LightRules();
         rules.setCheapLighting(true);
         LightSource torch = rules.addTorchLight(new Point(1, 1), Vector3f.ZERO, 300, 200, 100, 1.41f, 1.5f);
@@ -61,7 +61,7 @@ public class LightRulesTest {
     }
 
     @Test
-    public void slabLightRadiusIsNotScaledByTwoThirds() {
+    void slabLightRadiusIsNotScaledByTwoThirds() {
         LightRules rules = new LightRules();
         LightSource slab = rules.addSlabLight(new Point(1, 1), Vector3f.ZERO, 100, 100, 100, 1.5f, false, false);
         assertEquals(LightSource.Kind.SLAB, slab.getKind());
@@ -69,7 +69,7 @@ public class LightRulesTest {
     }
 
     @Test
-    public void clearTileLightsRemovesSlabLights() {
+    void clearTileLightsRemovesSlabLights() {
         LightRules rules = new LightRules();
         Point tile = new Point(4, 4);
         rules.addSlabLight(tile, Vector3f.ZERO, 100, 100, 100, 3f, false, false);

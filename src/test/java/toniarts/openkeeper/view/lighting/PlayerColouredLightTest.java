@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests for the {@code PLAYER_COLOURED} rule.
  */
-public class PlayerColouredLightTest {
+class PlayerColouredLightTest {
 
     private static LightSource whiteThingLight(Short owner) {
         LightRules rules = new LightRules();
@@ -36,7 +36,7 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void redKeeperLightTakesTheSlotThreeColour() {
+    void redKeeperLightTakesTheSlotThreeColour() {
         // Slot 3 (red): (230,50,50) -- the floor of 32 is not hit here
         LightSource light = whiteThingLight((short) 3);
         assertEquals(230, light.getRed());
@@ -45,7 +45,7 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void channelsAreFlooredAtThirtyTwo() {
+    void channelsAreFlooredAtThirtyTwo() {
         LightRules rules = new LightRules();
         // A dim base colour times a dark player channel falls under 32
         LightSource light = rules.addThingLight(new Object(), Vector3f.ZERO, Vector3f.ZERO,
@@ -58,14 +58,14 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void absentOrUnknownPlayerFallsBackToSlotOneNotBlack() {
+    void absentOrUnknownPlayerFallsBackToSlotOneNotBlack() {
         assertArrayEquals(new int[]{191, 213, 224}, LightConstants.getPlayerLightColour(null));
         assertArrayEquals(new int[]{191, 213, 224}, LightConstants.getPlayerLightColour((short) 42));
         assertArrayEquals(new int[]{191, 213, 224}, LightConstants.getPlayerLightColour((short) -1));
     }
 
     @Test
-    public void tableHasTheExpectedColours() {
+    void tableHasTheExpectedColours() {
         assertArrayEquals(new int[]{0, 0, 0}, LightConstants.getPlayerLightColour((short) 0));
         assertArrayEquals(new int[]{255, 255, 255}, LightConstants.getPlayerLightColour((short) 2));
         assertArrayEquals(new int[]{50, 78, 230}, LightConstants.getPlayerLightColour((short) 4));
@@ -73,7 +73,7 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void lightOffsetHeightLandsOnJmeUpAxis() {
+    void lightOffsetHeightLandsOnJmeUpAxis() {
         // The imp's light block is (0, 0, 0.5): half a tile UP, not sideways
         Vector3f offset = LightConstants.toJmeOffset(new javax.vecmath.Vector3f(0f, 0f, 0.5f));
         assertEquals(0f, offset.x);
@@ -86,7 +86,7 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void playerColouredLightsHaveASmallRadius() {
+    void playerColouredLightsHaveASmallRadius() {
         // The imp's data radius is 2 tiles (x 2/3 = 1.33): capped for player-coloured lights
         LightRules rules = new LightRules();
         LightSource coloured = rules.addThingLight(new Object(), Vector3f.ZERO, Vector3f.ZERO,
@@ -102,14 +102,14 @@ public class PlayerColouredLightTest {
     }
 
     @Test
-    public void returnedColourIsACopy() {
+    void returnedColourIsACopy() {
         int[] colour = LightConstants.getPlayerLightColour((short) 3);
         colour[0] = 0;
         assertEquals(230, LightConstants.getPlayerLightColour((short) 3)[0]);
     }
 
     @Test
-    public void overBrightBitsApplyBeforeThePlayerColour() {
+    void overBrightBitsApplyBeforeThePlayerColour() {
         LightRules rules = new LightRules();
         // COLOR_RED adds 256 first: (0 + 256) * 230 / 255 = 230
         LightSource light = rules.addThingLight(new Object(), Vector3f.ZERO, Vector3f.ZERO,
