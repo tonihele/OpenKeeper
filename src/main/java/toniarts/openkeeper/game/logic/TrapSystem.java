@@ -21,7 +21,11 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
@@ -54,6 +58,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  * <br>
  * After a shot the trap threatens its enemies for the trap's threat duration,
  * this is what makes the Fear Trap's victims flee.
+ * <br>
+ * A Trigger Trap sets off its owner's traps around it. A trap next to an armed
+ * Trigger Trap leaves the triggering to it and doesn't trigger on its own.
+ * When the Trigger Trap fires, a wave spreads from it at the level's trigger
+ * speed up to {@value #TRIGGER_TRAP_RANGE} tiles, and every recharged trap of
+ * the owner it reaches fires. A trap that can see the Trigger Trap's victim
+ * fires at it, the others fire without a target.
  *
  * @see ITrapEffects for what the shots do
  */
@@ -64,23 +75,64 @@ public final class TrapSystem implements IGameLogicUpdatable {
      */
     private static final float LINE_OF_SIGHT_STEP = 0.25f;
 
+    /**
+     * How far, in tiles, a Trigger Trap's wave reaches
+     */
+    private static final float TRIGGER_TRAP_RANGE = 4;
+
+    /**
+     * How close, in tiles, a Trigger Trap needs to be to take over another
+     * trap's triggering. Only the four tiles next to it, not the diagonal ones
+     */
+    private static final float TRIGGER_TRAP_TAKEOVER_RANGE = 1;
+
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final IBlocksSight blocksSight;
     private final Map<Short, IPlayerController> playerControllers;
     private final ITrapEffects trapEffects;
+    private final float triggerSpeed;
     private final EntitySet trapEntities;
     private final EntitySet creatureEntities;
+    private final List<TriggerWave> triggerWaves = new ArrayList<>();
 
+    /**
+     * The spreading set off of a Trigger Trap
+     *
+     * @param triggerTrapId the Trigger Trap
+     * @param ownerId the owner, whose traps the wave sets off
+     * @param origin where the Trigger Trap is
+     * @param target the creature that set off the Trigger Trap
+     * @param startTime game time the Trigger Trap fired
+     * @param reachedTraps the traps the wave has already reached
+     */
+    private record TriggerWave(EntityId triggerTrapId, short ownerId, Vector3f origin, EntityId target, double startTime,
+            Set<EntityId> reachedTraps) {
+
+    }
+
+    /**
+     * The trap system
+     *
+     * @param entityData the entity data
+     * @param kwdFile the level data, for the traps and creatures
+     * @param gameTimer the game time
+     * @param blocksSight tells the tiles that block a trap's sight
+     * @param playerControllers the players, for their mana and enemies
+     * @param trapEffects applies the shots
+     * @param triggerSpeed how fast, in tiles per second, a Trigger Trap's wave
+     * spreads
+     */
     public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IBlocksSight blocksSight,
-            Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects) {
+            Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects, float triggerSpeed) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         this.blocksSight = blocksSight;
         this.playerControllers = playerControllers;
         this.trapEffects = trapEffects;
+        this.triggerSpeed = triggerSpeed;
 
         trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class, Health.class);
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
@@ -97,6 +149,13 @@ public final class TrapSystem implements IGameLogicUpdatable {
                 processTrap(trapEntity, gameTime);
             }
         }
+
+        // A wave can start new waves, those spread from the next tick on
+        for (TriggerWave triggerWave : new ArrayList<>(triggerWaves)) {
+            if (spreadTriggerWave(triggerWave, gameTime)) {
+                triggerWaves.remove(triggerWave);
+            }
+        }
     }
 
     private void processTrap(Entity trapEntity, double gameTime) {
@@ -109,7 +168,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         Trap trap = kwdFile.getTrapById(trapEntity.get(TrapComponent.class).trapId);
-        EntityId target = findTarget(trapEntity, trap);
+        EntityId target = isTriggeredByTriggerTrap(trapEntity, trap) ? null : findTarget(trapEntity, trap);
         if (target == null) {
 
             // Losing the victim starts the charging over
@@ -165,7 +224,74 @@ public final class TrapSystem implements IGameLogicUpdatable {
         entityData.setComponent(trapEntity.getId(), new TrapFiring(gameTime + trap.getRechargeTime(), TrapFiring.NOT_CHARGING,
                 threatEndTime));
 
+        if (trap.getTriggerType() == Trap.TriggerType.TRIGGER && target != null) {
+            triggerWaves.add(new TriggerWave(trapEntity.getId(), ownerId, trapEntity.get(Position.class).position.clone(), target,
+                    gameTime, new HashSet<>()));
+        }
+
         return true;
+    }
+
+    /**
+     * Whether an armed Trigger Trap of the same owner is next to the trap.
+     * Then the trap leaves the triggering to the Trigger Trap
+     *
+     * @param trapEntity the trap
+     * @param trap the trap data
+     * @return does a Trigger Trap trigger this trap
+     */
+    private boolean isTriggeredByTriggerTrap(Entity trapEntity, Trap trap) {
+        if (trap.getTriggerType() == Trap.TriggerType.TRIGGER) {
+            return false;
+        }
+
+        short ownerId = trapEntity.get(Owner.class).ownerId;
+        Vector3f trapPosition = trapEntity.get(Position.class).position;
+        for (Entity otherTrapEntity : trapEntities) {
+            if (otherTrapEntity.get(Owner.class).ownerId == ownerId && !otherTrapEntity.get(TrapViewState.class).blueprint
+                    && distanceSquared(trapPosition, otherTrapEntity.get(Position.class).position)
+                    <= TRIGGER_TRAP_TAKEOVER_RANGE * TRIGGER_TRAP_TAKEOVER_RANGE
+                    && kwdFile.getTrapById(otherTrapEntity.get(TrapComponent.class).trapId).getTriggerType() == Trap.TriggerType.TRIGGER) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Fires the recharged traps the Trigger Trap's wave reaches
+     *
+     * @param triggerWave the wave
+     * @param gameTime the current game time
+     * @return whether the wave has reached as far as it goes
+     */
+    private boolean spreadTriggerWave(TriggerWave triggerWave, double gameTime) {
+        float radius = (float) Math.min(TRIGGER_TRAP_RANGE, (gameTime - triggerWave.startTime()) * triggerSpeed);
+        Entity victim = creatureEntities.getEntity(triggerWave.target());
+        for (Entity trapEntity : trapEntities) {
+            Vector3f trapPosition = trapEntity.get(Position.class).position;
+            if (trapEntity.get(TrapViewState.class).blueprint || trapEntity.get(Owner.class).ownerId != triggerWave.ownerId()
+                    || trapEntity.getId().equals(triggerWave.triggerTrapId())
+                    || distanceSquared(triggerWave.origin(), trapPosition) > radius * radius
+                    || !triggerWave.reachedTraps().add(trapEntity.getId())) {
+                continue;
+            }
+
+            TrapFiring firing = getFiring(trapEntity.getId());
+            if (gameTime < firing.rechargedTime) {
+                continue;
+            }
+            Trap trap = kwdFile.getTrapById(trapEntity.get(TrapComponent.class).trapId);
+            EntityId target = null;
+            if (victim != null && (trap.getTriggerType() == Trap.TriggerType.TRIGGER
+                    || hasLineOfSight(blocksSight, trapPosition, victim.get(Position.class).position))) {
+                target = victim.getId();
+            }
+            fire(trapEntity, trap, target, firing, gameTime);
+        }
+
+        return radius >= TRIGGER_TRAP_RANGE;
     }
 
     private boolean payForShot(Trap trap, short ownerId) {
@@ -333,6 +459,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     public void stop() {
         trapEntities.release();
         creatureEntities.release();
+        triggerWaves.clear();
     }
 
 }

@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -62,9 +63,11 @@ class TrapSystemTest {
     private static final short SENTRY = 3;
     private static final short SPIKE = 10;
     private static final short FEAR = 8;
+    private static final short TRIGGER = 9;
     private static final short CANNON_BALL = 44;
     private static final short SPIKE_SHOT = 27;
     private static final short FEAR_SHOT = 25;
+    private static final short TRIGGER_SHOT = 39;
     private static final short IMP = 1;
     private static final short REAPER = 2;
     private static final Point TRAP_TILE = new Point(10, 10);
@@ -88,6 +91,7 @@ class TrapSystemTest {
         traps.put((int) SPIKE, TrapFiringFixtures.trap(SPIKE, Trap.TriggerType.PRESSURE, 1, 4, SPIKE_SHOT));
         traps.put((int) FEAR, TrapFiringFixtures.withThreat(
                 TrapFiringFixtures.trap(FEAR, Trap.TriggerType.LINE_OF_SIGHT, 3, 6, FEAR_SHOT), 600, 60));
+        traps.put((int) TRIGGER, TrapFiringFixtures.trap(TRIGGER, Trap.TriggerType.TRIGGER, 1, 4, TRIGGER_SHOT));
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         keeper.setMana(1000);
@@ -294,6 +298,76 @@ class TrapSystemTest {
     }
 
     @Test
+    void trapNextToTriggerTrapLeavesTheTriggeringToIt() {
+        addTrap(TRIGGER, TRAP_TILE);
+        addTrap(SPIKE, new Point(11, 10));
+        addCreature(IMP, ENEMY, 11, 10);
+
+        tick();
+
+        assertTrue(shots.isEmpty());
+    }
+
+    @Test
+    void trapDiagonalToTriggerTrapStillTriggersItself() {
+        addTrap(TRIGGER, TRAP_TILE);
+        addTrap(SPIKE, new Point(11, 11));
+        EntityId enemy = addCreature(IMP, ENEMY, 11, 11);
+
+        tick();
+
+        assertEquals(List.of(new Fired(SPIKE, enemy)), shots);
+    }
+
+    @Test
+    void triggerTrapSetsOffTrapsAsItsWaveReachesThem() {
+        addTrap(TRIGGER, TRAP_TILE);
+        addTrap(SPIKE, new Point(12, 10));
+        addTrap(SPIKE, new Point(10, 13));
+        addTrap(SPIKE, new Point(15, 10));
+        walls.add(new Point(10, 12));
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+        assertEquals(List.of(new Fired(TRIGGER, enemy)), shots);
+
+        gameTime = 1.75;
+        tick();
+        assertEquals(1, shots.size());
+
+        // The trap that sees the victim aims at it, the one behind the wall just fires
+        gameTime = 2;
+        tick();
+        assertEquals(new Fired(SPIKE, enemy), shots.get(1));
+        gameTime = 3;
+        tick();
+        assertEquals(new Fired(SPIKE, null), shots.get(2));
+
+        // The wave ends at four tiles
+        gameTime = 5;
+        tick();
+        assertEquals(2, shots.stream().filter(fired -> fired.trapId() == SPIKE).count());
+    }
+
+    @Test
+    void triggerTrapLeavesOtherKeepersAndRechargingTrapsAlone() {
+        addTrap(TRIGGER, TRAP_TILE);
+        EntityId enemyTrap = addTrap(SPIKE, new Point(12, 10));
+        entityData.setComponent(enemyTrap, new Owner(ENEMY, ENEMY));
+        EntityId rechargingTrap = addTrap(SPIKE, new Point(8, 10));
+        entityData.setComponent(rechargingTrap, new TrapFiring(10, TrapFiring.NOT_CHARGING, 0));
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+        entityData.removeComponent(enemy, Position.class);
+        for (gameTime = 0.25; gameTime <= 5; gameTime += 0.25) {
+            tick();
+        }
+
+        assertEquals(List.of(TRIGGER), shots.stream().map(Fired::trapId).toList());
+    }
+
+    @Test
     void lineOfSightIsBlockedByWallsBetween() {
         walls.add(new Point(11, 11));
 
@@ -304,7 +378,7 @@ class TrapSystemTest {
     private void tick() {
         if (trapSystem == null) {
             trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, this::isWall, playerControllers(),
-                    effects());
+                    effects(), 1);
         }
         trapSystem.processTick(0.25f);
     }
