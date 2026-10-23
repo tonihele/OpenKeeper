@@ -28,6 +28,10 @@ public interface ICreatureEntrance extends IEntityGenerator {
         return 0;
     }
 
+    /** Signal an eligible Portal's build-up, three seconds before its generation check. */
+    default void onPrepareSpawn(double preparationTime) {
+    }
+
     /** Advance a Portal's generation clock, even when attraction cannot produce a creature. */
     default void onGenerationCycle(double time) {
         // Dungeon Hearts have their own free-Imp clock.

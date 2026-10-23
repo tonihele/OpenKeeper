@@ -123,14 +123,15 @@ public class EffectManagerState extends AbstractAppState {
      * effects...?)
      * @param ownerId the player who owns the effect
      */
-    public void load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
+    public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
 
         // Load the effect
         if (effectId == 0) {
-            return;
+            return null;
         }
         VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite, ownerId);
         activeEffects.add(visualEffect);
+        return visualEffect;
     }
 
     public PlayerMapViewState getPlayerMapViewState() {

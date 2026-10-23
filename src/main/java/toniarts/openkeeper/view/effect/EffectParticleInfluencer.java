@@ -58,13 +58,6 @@ public class EffectParticleInfluencer implements ParticleInfluencer {
         emitterShape.getRandomPoint(particle.position);
 
         Vector3f velocity = EffectControl.calculateVelocity(element);
-        // Capping only the upper half of the vertical launch range tames the
-        // rare high-outlier throw that (thanks to gravity having to first
-        // cancel it out before the particle can even start falling back
-        // down) hangs in the air for far longer than the rest of the burst,
-        // without narrowing the horizontal spread this influencer exists for.
-        float maxTypicalSpeedYz = (element.getMinSpeedYz() + element.getMaxSpeedYz()) / 8f;
-        velocity.y = Math.min(velocity.y, maxTypicalSpeedYz);
         particle.velocity.set(velocity);
     }
 

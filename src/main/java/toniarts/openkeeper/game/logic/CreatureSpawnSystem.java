@@ -138,17 +138,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 return;
             }
 
-            // Evaluate what creature can we spawn
-            Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getKeeper().getId());
-            List<Creature> possibleCreatures = new ArrayList<>(player.getCreatureControl().getTypesAvailable());
-            Iterator<Creature> iter = possibleCreatures.iterator();
-            while (iter.hasNext()) {
-                Creature creature = iter.next();
-                if (!isCreatureAvailableFromPool(creature, player, pool)
-                        || !isCreatureRequirementsSatisfied(creature, player)) {
-                    iter.remove();
-                }
-            }
+            List<Creature> possibleCreatures = getPossibleCreatures(player);
 
             // Spawn random?
             // TODO: also get notified about the evicted and newly introduced creatures
@@ -160,6 +150,13 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.ENTRANCE);
                 spawned = entityId != null;
             }
+        } else if (!entrance.isDungeonHeart()) {
+            double preparationTime = entrance.getLastSpawnTime() + entranceCooldownTime
+                    + (double) entrance.getGeneratedCount() * entrance.getGeneratedCount() - 3;
+            if (timeElapsed >= preparationTime && !isCreatureLimitReached(player)
+                    && !getPossibleCreatures(player).isEmpty()) {
+                entrance.onPrepareSpawn(preparationTime);
+            }
         }
 
         if (spawned) {
@@ -167,6 +164,20 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
             // Reset spawn time
             entrance.onSpawn(timeElapsed, entityId);
         }
+    }
+
+    private List<Creature> getPossibleCreatures(IPlayerController player) {
+        Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getKeeper().getId());
+        List<Creature> possibleCreatures = new ArrayList<>(player.getCreatureControl().getTypesAvailable());
+        Iterator<Creature> iter = possibleCreatures.iterator();
+        while (iter.hasNext()) {
+            Creature creature = iter.next();
+            if (!isCreatureAvailableFromPool(creature, player, pool)
+                    || !isCreatureRequirementsSatisfied(creature, player)) {
+                iter.remove();
+            }
+        }
+        return possibleCreatures;
     }
 
     private boolean isCreatureLimitReached(IPlayerController player) {

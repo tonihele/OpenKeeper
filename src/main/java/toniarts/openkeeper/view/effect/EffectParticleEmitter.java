@@ -20,6 +20,7 @@ import com.jme3.effect.Particle;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
 import com.jme3.math.FastMath;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -41,6 +42,8 @@ public class EffectParticleEmitter extends ParticleEmitter {
      */
     private static final float DIRECTIONAL_FRICTION_DRIFT_AMPLITUDE = 0.2f;
 
+    private AdditiveParticleColor additiveColor;
+
     private final float airFriction;
     private final float elasticity;
     private final boolean directionalFriction;
@@ -53,6 +56,10 @@ public class EffectParticleEmitter extends ParticleEmitter {
         this.elasticity = elasticity;
         this.directionalFriction = directionalFriction;
         this.whirlpoolRate = whirlpoolRate;
+    }
+
+    void setAdditiveColor(ColorRGBA color, boolean fade) {
+        additiveColor = new AdditiveParticleColor(color, fade);
     }
 
     @Override
@@ -84,6 +91,9 @@ public class EffectParticleEmitter extends ParticleEmitter {
         // upkeep are all private to the base class, so they still have to
         // run through here rather than being reimplemented.
         super.updateParticle(p, tpf, min, max);
+        if (additiveColor != null) {
+            additiveColor.update(p, justSpawned);
+        }
 
         if (whirlpoolRate != 0 && !justSpawned && !wasLanded) {
             Vector3f base = getLocalTranslation();

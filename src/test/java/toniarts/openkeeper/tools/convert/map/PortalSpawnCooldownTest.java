@@ -17,6 +17,8 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import com.simsilica.es.base.DefaultEntityData;
+import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.PortalViewState;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -42,6 +44,7 @@ import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /** Tests live spawn decisions; this package also permits parser-only fixture setters. */
 class PortalSpawnCooldownTest {
@@ -153,6 +156,33 @@ class PortalSpawnCooldownTest {
         assertEquals(18, f.portal.getLastSpawnTime());
     }
 
+    @Test
+    void buildupOccursOnceThreeSecondsBeforeGeneration() {
+        Fixture f = new Fixture(0);
+        f.tick(14.75f);
+        assertEquals(-1, f.preparation().preparationTime);
+        f.tick(0.25f);
+        PortalViewState event = f.preparation();
+        assertEquals(15, event.preparationTime);
+        assertEquals(List.of(), f.spawned);
+        f.tick(0.25f);
+        assertSame(event, f.preparation(), "An unchanged preparation event must not restart the particles");
+        f.tick(2.75f);
+        assertEquals(List.of((short) 7), f.spawned);
+        f.tick(16);
+        assertEquals(34, f.preparation().preparationTime);
+        f.portal.captured((short) 3);
+        assertEquals(-1, f.preparation().preparationTime);
+    }
+
+    @Test
+    void ineligiblePortalDoesNotBuildUp() {
+        Fixture f = new Fixture(0);
+        f.pool.setValue(0);
+        f.tick(15);
+        assertEquals(-1, f.preparation().preparationTime);
+    }
+
     private static final class Fixture {
         final DefaultEntityData entities;
         final GameTimeController timer;
@@ -161,6 +191,7 @@ class PortalSpawnCooldownTest {
         final ICreaturesController spawner;
         final CreatureSpawnSystem system;
         final ThreeByThreeController portal;
+        final EntityId portalId;
         final Variable.CreaturePool pool;
         final IKwdFile level;
         final IPlayerController player;
@@ -234,10 +265,15 @@ class PortalSpawnCooldownTest {
             RoomInstance room = new RoomInstance(portalDefinition);
             room.setOwnerId((short) 3);
             room.addCoordinate(new Point(5, 5));
+            portalId = entities.createEntity();
             portal = new ThreeByThreeController(
-                    entities.createEntity(), entities, level, room, null, timer);
+                    portalId, entities, level, room, null, timer);
             rooms.onBuild(portal);
             listeners.forEach(listener -> listener.onBuild(portal));
+        }
+
+        PortalViewState preparation() {
+            return entities.getComponent(portalId, PortalViewState.class);
         }
 
         void generateScriptedGoblin() {
