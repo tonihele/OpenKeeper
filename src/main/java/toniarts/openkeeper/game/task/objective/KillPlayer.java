@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -91,8 +92,9 @@ public final class KillPlayer extends AbstractObjectiveTask {
 
     private void createSubTasks() {
 
-        // See if we can navigate there
-        GraphPath<IMapTileInformation> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), creature.getParty() != null ? creature.getParty() : creature);
+        // See if we can navigate there, a worker on its own tunnels its way like a party with workers does
+        INavigable navigable = creature.getParty() != null ? creature.getParty() : (creature.isWorker() ? new Tunneller(creature) : creature);
+        GraphPath<IMapTileInformation> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), navigable);
         if (outPath != null) {
             Iterator<IMapTileInformation> iter = outPath.iterator();
             IMapTileInformation lastPoint = null;
