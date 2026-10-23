@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -114,7 +115,8 @@ class WorkerTaskAssignmentTest {
             default -> null;
         });
         IGameWorldController gameWorldController = stub(IGameWorldController.class, (name, args) -> null);
-        return new TaskManager(entityData, gameWorldController, mapController, null, null, null, List.of(player), null, null, Map.of());
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> null);
+        return new TaskManager(entityData, gameWorldController, mapController, null, null, null, List.of(player), levelInfo, null, Map.of());
     }
 
     private ICreatureController imp(Point location) {
