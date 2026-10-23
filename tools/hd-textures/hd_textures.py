@@ -81,6 +81,14 @@ TEST_BATCH = r"(?i)^(T_[^/]*|[^/]*(wall|floor)[^/]*)\.png$"
 # so the edges of tiling textures are upscaled with their neighbours in view
 DEFAULT_PAD = 16
 
+# Real-ESRGAN invents cracks, hairs and hard rims on soft images: smoke, flames,
+# glows, explosions. How much fine detail a texture has is measured as its mean
+# absolute Laplacian over its mean absolute gradient. Below SOFT_BELOW it is
+# resized smoothly (bicubic), above DETAILED_ABOVE upscaled with Real-ESRGAN,
+# and in between the two are blended.
+SOFT_BELOW = 0.75
+DETAILED_ABOVE = 1.05
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -104,6 +112,8 @@ def main():
     upscale.add_argument("--pad", type=int, default=DEFAULT_PAD)
     upscale.add_argument("--pad-mode", default="wrap", choices=["wrap", "edge", "reflect"],
                          help="how the padding is filled: wrap suits tiling textures (default)")
+    upscale.add_argument("--no-soft-blend", action="store_true",
+                         help="use Real-ESRGAN for soft textures (smoke, flames, glows) too")
     upscale.add_argument("--no-level-match", action="store_true",
                          help="keep Real-ESRGAN's brightness and alpha levels instead of the original's")
     upscale.add_argument("--gpu", default="auto", help="Real-ESRGAN's -g: a GPU id, or -1 for the CPU")
@@ -207,6 +217,11 @@ def upscale_textures(args):
     settings = {"model": args.model, "pad": args.pad, "pad_mode": args.pad_mode,
                 "level_match": not args.no_level_match}
     textures = select_textures(source, args)
+    if args.no_soft_blend:
+        weights = dict.fromkeys(textures, 1.0)
+    else:
+        print("Measuring detail")
+        weights = detail_weights(source, textures)
     todo = []
     for rel in textures:
         out = dest / rel
@@ -215,7 +230,8 @@ def upscale_textures(args):
             print(f"Skipping {rel}: the destination has a file this script didn't write")
             continue
         up_to_date = (entry is not None and out.exists() and entry.get("settings") == settings
-                      and entry.get("source_mtime") == (source / rel).stat().st_mtime_ns)
+                      and entry.get("source_mtime") == (source / rel).stat().st_mtime_ns
+                      and entry.get("esrgan_weight", 1.0) == weights[rel])
         if args.force or not up_to_date:
             todo.append(rel)
 
@@ -235,17 +251,19 @@ def upscale_textures(args):
         work_out.mkdir()
 
         print("Preparing")
-        jobs = [prepare(source / rel, work_in, index, args.pad, args.pad_mode) for index, rel in enumerate(todo)]
+        jobs = [prepare(source / rel, work_in, index, args.pad, args.pad_mode, weights[rel])
+                for index, rel in enumerate(todo)]
 
-        print(f"Upscaling with {args.model}")
-        command = [str(executable), "-i", str(work_in), "-o", str(work_out), "-n", args.model,
-                   "-s", str(SCALE), "-f", "png", "-m", str(executable.parent / "models"), "-t", str(args.tile)]
-        if args.gpu != "auto":
-            command += ["-g", args.gpu]
-        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
-                                errors="replace")
-        if result.returncode != 0:
-            sys.exit(f"Real-ESRGAN failed ({result.returncode}):\n{result.stderr[-2000:]}")
+        if any(work_in.iterdir()):
+            print(f"Upscaling with {args.model}")
+            command = [str(executable), "-i", str(work_in), "-o", str(work_out), "-n", args.model, "-s", str(SCALE),
+                       "-f", "png", "-m", str(executable.parent / "models"), "-t", str(args.tile)]
+            if args.gpu != "auto":
+                command += ["-g", args.gpu]
+            result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+                                    errors="replace")
+            if result.returncode != 0:
+                sys.exit(f"Real-ESRGAN failed ({result.returncode}):\n{result.stderr[-2000:]}")
 
         print("Writing")
         failed = []
@@ -255,7 +273,8 @@ def upscale_textures(args):
             except (OSError, ValueError) as error:
                 failed.append(f"{rel}: {error}")
                 continue
-            manifest["files"][rel] = {"source_mtime": (source / rel).stat().st_mtime_ns, "settings": settings}
+            manifest["files"][rel] = {"source_mtime": (source / rel).stat().st_mtime_ns, "settings": settings,
+                                      "esrgan_weight": weights[rel]}
             save_manifest(dest, manifest)
 
     if not args.no_git_exclude:
@@ -281,8 +300,71 @@ def select_textures(source, args):
     return textures
 
 
-def prepare(path, work_in, index, pad, pad_mode):
-    """Writes the padded colour, and the alpha as a grey image, for Real-ESRGAN"""
+def detail_weights(source, textures):
+    """How much of each texture comes from Real-ESRGAN, the rest from a bicubic resize.
+
+    The frames of an animation (names that differ only in their trailing number)
+    share one weight, so an animation doesn't change style from frame to frame.
+    """
+    import statistics
+
+    groups = {}
+    for path in source.rglob("*"):
+        if path.is_file() and path.suffix.lower() == ".png":
+            rel = path.relative_to(source).as_posix()
+            groups.setdefault(animation_key(rel), []).append(rel)
+
+    scores = {}
+
+    def score(rel):
+        if rel not in scores:
+            scores[rel] = detail_score(source / rel)
+        return scores[rel]
+
+    weights = {}
+    for rel in textures:
+        members = [score(member) for member in groups.get(animation_key(rel), [rel])]
+        members = [value for value in members if value is not None]
+        if not members:
+            weights[rel] = 0.0  # A flat colour, nothing to upscale
+            continue
+        value = statistics.median(members)
+        weight = (value - SOFT_BELOW) / (DETAILED_ABOVE - SOFT_BELOW)
+        weights[rel] = round(min(1.0, max(0.0, weight)), 2)
+    return weights
+
+
+def animation_key(rel):
+    path = Path(rel)
+    return (path.parent / re.sub(r"\d+$", "", path.stem)).as_posix().lower()
+
+
+def detail_score(path):
+    """Mean absolute Laplacian over mean absolute gradient, the higher of colour and alpha.
+
+    Crisp, detailed textures score above 1, soft ones (blurred glows, smoke)
+    well below. None for a flat image.
+    """
+    import numpy as np
+    from PIL import Image
+
+    with Image.open(path) as image:
+        has_alpha = image.mode in ("RGBA", "LA", "PA") or "transparency" in image.info
+        pixels = np.asarray(image.convert("RGBA")).astype(np.float32)
+    channels = [pixels[..., :3].mean(axis=2)] + ([pixels[..., 3]] if has_alpha else [])
+    values = []
+    for channel in channels:
+        if channel.std() <= 1 or min(channel.shape) < 3:
+            continue
+        gradient = np.abs(np.diff(channel, axis=0)).mean() + np.abs(np.diff(channel, axis=1)).mean()
+        laplacian = np.abs(4 * channel[1:-1, 1:-1] - channel[:-2, 1:-1] - channel[2:, 1:-1]
+                           - channel[1:-1, :-2] - channel[1:-1, 2:]).mean()
+        values.append(float(laplacian / max(gradient, 1e-6)))
+    return max(values) if values else None
+
+
+def prepare(path, work_in, index, pad, pad_mode, weight):
+    """Pads the colour and the alpha, and writes them for Real-ESRGAN if it is used"""
     import numpy as np
     from PIL import Image
 
@@ -291,7 +373,8 @@ def prepare(path, work_in, index, pad, pad_mode):
         pixels = np.asarray(image.convert("RGBA" if has_alpha else "RGB"))
 
     rgb = pixels[..., :3]
-    job = {"name": f"{index:05d}", "source": path, "size": (pixels.shape[1], pixels.shape[0]), "alpha": None}
+    job = {"name": f"{index:05d}", "source": path, "size": (pixels.shape[1], pixels.shape[0]), "alpha": None,
+           "weight": weight}
     if has_alpha:
         alpha = pixels[..., 3]
         values = np.unique(alpha)
@@ -300,11 +383,14 @@ def prepare(path, work_in, index, pad, pad_mode):
         else:
             # Binary alpha (colour keyed cutouts) is kept binary, so the edges stay crisp
             job["alpha"] = {"binary": bool(set(values.tolist()) <= {0, 255})}
-            Image.fromarray(np.pad(np.repeat(alpha[..., None], 3, axis=2), padding(pad), mode=pad_mode)) \
-                .save(work_in / f"{job['name']}_a.png")
+            job["a"] = np.pad(np.repeat(alpha[..., None], 3, axis=2), padding(pad), mode=pad_mode)
         rgb = bleed_colour(rgb, alpha)
 
-    Image.fromarray(np.pad(rgb, padding(pad), mode=pad_mode)).save(work_in / f"{job['name']}_c.png")
+    job["c"] = np.pad(rgb, padding(pad), mode=pad_mode)
+    if weight > 0:
+        for suffix in ("c", "a"):
+            if suffix in job:
+                Image.fromarray(job[suffix]).save(work_in / f"{job['name']}_{suffix}.png")
     return job
 
 
@@ -351,16 +437,26 @@ def finish(job, work_out, out, pad, match_levels):
     width, height = job["size"]
     crop = pad * SCALE
 
-    def load(suffix):
-        path = work_out / f"{job['name']}_{suffix}.png"
-        if not path.exists():
-            raise ValueError("Real-ESRGAN wrote no output")
-        with Image.open(path) as image:
-            pixels = np.asarray(image.convert("RGB"))
+    def cropped(pixels):
         pixels = pixels[crop:crop + height * SCALE, crop:crop + width * SCALE]
         if pixels.shape[:2] != (height * SCALE, width * SCALE):
             raise ValueError(f"unexpected output size {pixels.shape[1]}x{pixels.shape[0]}")
         return pixels.astype(np.float32)
+
+    def load(suffix):
+        """Real-ESRGAN's output blended with a bicubic resize by the job's weight"""
+        weight = job["weight"]
+        padded = job[suffix]
+        smooth = cropped(np.asarray(Image.fromarray(padded).resize(
+            (padded.shape[1] * SCALE, padded.shape[0] * SCALE), Image.BICUBIC)))
+        if weight == 0:
+            return smooth
+        path = work_out / f"{job['name']}_{suffix}.png"
+        if not path.exists():
+            raise ValueError("Real-ESRGAN wrote no output")
+        with Image.open(path) as image:
+            detailed = cropped(np.asarray(image.convert("RGB")))
+        return detailed * weight + smooth * (1 - weight)
 
     alpha = job["alpha"]
     with Image.open(job["source"]) as image:

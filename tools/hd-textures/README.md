@@ -39,6 +39,11 @@ python tools/hd-textures/hd_textures.py clean
   transparent or opaque pixels) stays cut-out.
 - Spreads the visible colours into the fully transparent pixels first, so no
   dark fringes appear round cut-outs.
+- Resizes soft textures (smoke, flames, glows, explosions) smoothly instead:
+  Real-ESRGAN draws cracks, hairs and hard rims on them. Each texture's fine
+  detail is measured; soft ones get a bicubic resize, detailed ones
+  Real-ESRGAN, and those in between a blend of the two. The frames of an
+  animation get the same mix (`--no-soft-blend` uses Real-ESRGAN for all).
 - Keeps the original's local brightness, colour and opacity: Real-ESRGAN tends
   to darken grainy textures and shift semi-transparent alpha
   (`--no-level-match` turns this off).
