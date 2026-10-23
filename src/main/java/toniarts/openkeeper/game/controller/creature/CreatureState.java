@@ -33,6 +33,12 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void enter(ICreatureController entity) {
 
+            // A chicken has nothing else to do
+            if (entity.isChicken()) {
+                entity.getStateMachine().changeState(CHICKEN);
+                return;
+            }
+
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
                 return;
@@ -664,6 +670,38 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.getStateMachine().changeState(CreatureState.IDLE);
             }
 
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CHICKEN {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            entity.navigateToRandomPoint();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Back to our old self
+            if (!entity.isChicken()) {
+                entity.getStateMachine().changeState(IDLE);
+                return;
+            }
+
+            // Just peck about
+            if (entity.isStopped()) {
+                entity.navigateToRandomPoint();
+            }
         }
 
         @Override

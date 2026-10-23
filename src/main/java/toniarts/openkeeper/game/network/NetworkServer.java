@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Morphed;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -192,6 +193,7 @@ public final class NetworkServer {
             Serializer.registerClass(Mana.class, new FieldSerializer());
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(Mobile.class, new FieldSerializer());
+            Serializer.registerClass(Morphed.class, new FieldSerializer());
             Serializer.registerClass(Navigation.class, new FieldSerializer());
             Serializer.registerClass(ObjectComponent.class, new FieldSerializer());
             Serializer.registerClass(ObjectViewState.class, new FieldSerializer());

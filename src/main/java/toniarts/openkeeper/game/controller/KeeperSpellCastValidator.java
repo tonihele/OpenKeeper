@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Morphed;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -117,7 +118,32 @@ public final class KeeperSpellCastValidator {
             }
         }
 
-        return true;
+        return checkChickenRule(target, entityData, keeperSpell);
+    }
+
+    /**
+     * Spells for all creatures, such as Chicken, can't be cast on neutral
+     * creatures. And a creature that is a chicken can't be possessed
+     *
+     * @param target the spell target, can be null
+     * @param entityData the entities
+     * @param keeperSpell the spell
+     * @return true if the target is fine for the spell
+     */
+    static boolean checkChickenRule(EntityId target, EntityData entityData, KeeperSpell keeperSpell) {
+        if (target == null) {
+            return true;
+        }
+
+        Owner owner = entityData.getComponent(target, Owner.class);
+        return switch (keeperSpell.getTargetRule()) {
+            case ALL_CREATURES ->
+                owner != null && owner.ownerId != Player.NEUTRAL_PLAYER_ID;
+            case POSESSION ->
+                entityData.getComponent(target, Morphed.class) == null;
+            default ->
+                true;
+        };
     }
 
     private static boolean checkCastRule(IMapInformation mapInformation, IMapTileInformation mapTile, KeeperSpell keeperSpell, Keeper player) {
