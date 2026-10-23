@@ -100,7 +100,7 @@ public abstract class TgqPlayer {
         byte[] data = pcm.array();
         int end = pcm.arrayOffset() + pcm.limit() - 1;
         for (int i = pcm.arrayOffset() + pcm.position(); i < end; i += 2) {
-            int sample = (short) ((data[i] & 0xFF) | (data[i + 1] << 8));
+            int sample = (short) ((data[i] & 0xFF) | ((data[i + 1] & 0xFF) << 8));
             int scaled = Math.round(sample * volume);
             data[i] = (byte) scaled;
             data[i + 1] = (byte) (scaled >> 8);
