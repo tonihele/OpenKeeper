@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.modelviewer;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.TextureKey;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyMethodInvoker;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.controls.CheckBox;
@@ -93,6 +94,12 @@ public final class ModelViewerScreenController implements ScreenController {
     @Override
     public void bind(Nifty nifty, Screen screen) {
         this.screen = screen;
+        // Nifty dispatches rapid clicks separately from single clicks.
+        for (String option : List.of(ID_AUTO_ROTATE, ID_SHOW_NORMALS, ID_WIREFRAME, ID_SHOW_CEILING)) {
+            CheckBox checkBox = screen.findNiftyControl(option, CheckBox.class);
+            checkBox.getElement().getElementInteraction().getPrimary()
+                    .setOnMultiClickMethod(new NiftyMethodInvoker(nifty, "onClick()", checkBox));
+        }
         // Fill types
         app.fillTypes();
     }

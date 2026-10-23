@@ -21,30 +21,10 @@
                 <panel id="selectionOptions" childLayout="vertical" width="100%" height="148px"
                        padding="8px" backgroundColor="#000f">
                     <text style="text" text="Options" width="100%" height="20px" textHAlign="left"/>
-                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
-                        <control name="checkbox" id="autoRotate" style="viewer-checkbox-style" valign="center"/>
-                        <panel width="8px"/>
-                        <text style="text" text="Auto-rotate" width="*" valign="center"/>
-                        <text style="text" text="Alt+R" width="48px" valign="center" textHAlign="right"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
-                        <control name="checkbox" id="showNormals" style="viewer-checkbox-style" valign="center"/>
-                        <panel width="8px"/>
-                        <text style="text" text="Show normals" width="*" valign="center"/>
-                        <text style="text" text="Alt+N" width="48px" valign="center" textHAlign="right"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
-                        <control name="checkbox" id="wireframe" style="viewer-checkbox-style" valign="center"/>
-                        <panel width="8px"/>
-                        <text style="text" text="Wireframe" width="*" valign="center"/>
-                        <text style="text" text="Alt+T" width="48px" valign="center" textHAlign="right"/>
-                    </panel>
-                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
-                        <control name="checkbox" id="showCeiling" style="viewer-checkbox-style" valign="center"/>
-                        <panel width="8px"/>
-                        <text style="text" text="Map ceiling" width="*" valign="center"/>
-                        <text style="text" text="Alt+C" width="48px" valign="center" textHAlign="right"/>
-                    </panel>
+                    <control name="viewerOption" id="autoRotate" label="Auto-rotate" shortcut="Alt+R"/>
+                    <control name="viewerOption" id="showNormals" label="Show normals" shortcut="Alt+N"/>
+                    <control name="viewerOption" id="wireframe" label="Wireframe" shortcut="Alt+T"/>
+                    <control name="viewerOption" id="showCeiling" label="Map ceiling" shortcut="Alt+C"/>
                 </panel>
                 <control name="listBox" id="items" horizontal="optional" selection="Single"
                          vertical="on" forceSelection="true" displayItems="20"/>

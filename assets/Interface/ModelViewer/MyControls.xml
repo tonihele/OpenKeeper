@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <nifty-controls xmlns="http://nifty-gui.lessvoid.com/nifty-gui">
 
+    <controlDefinition name="viewerOption" style="viewer-option-style"
+                       controller="de.lessvoid.nifty.controls.checkbox.CheckboxControl">
+        <panel style="#panel" childLayout="horizontal" width="100%" height="28px"
+               focusable="true" visibleToMouse="true" valign="center">
+            <interact onClick="onClick()"/>
+            <panel style="#box" visibleToMouse="false" valign="center">
+                <panel id="#select" style="#select" visibleToMouse="false"/>
+            </panel>
+            <panel width="8px" visibleToMouse="false"/>
+            <text style="text" text="$label" width="*" valign="center" visibleToMouse="false"/>
+            <text style="text" text="$shortcut" width="48px" valign="center"
+                  textHAlign="right" visibleToMouse="false"/>
+        </panel>
+    </controlDefinition>
+
     <controlDefinition name="property" style="nifty-panel-style"
                        controller="de.lessvoid.nifty.controls.DefaultController">
         <panel childLayout="horizontal" width="100%" height="22px" backgroundColor="#111d">
