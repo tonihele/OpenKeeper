@@ -43,6 +43,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
@@ -79,10 +80,31 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
+    private final GameObject chickenObject;
+    private boolean drawnAsChicken;
 
+    /**
+     * Creates a creature view control
+     *
+     * @param entityId the creature entity
+     * @param entityData the entity data
+     * @param data the creature
+     * @param animation the starting animation
+     * @param chickenObject the object the Chicken spell turns creatures into,
+     * can be {@code null}
+     * @param assetManager the asset manager
+     * @param textParser the tooltip parser, can be {@code null}
+     */
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
-            AssetManager assetManager, EntityTextParser<Creature> textParser) {
+            GameObject chickenObject, AssetManager assetManager, EntityTextParser<Creature> textParser) {
         super(entityId, entityData, data, animation, assetManager, textParser);
+        this.chickenObject = chickenObject;
+
+        drawnAsChicken = isDrawnAsChicken();
+    }
+
+    private boolean isDrawnAsChicken() {
+        return chickenObject != null && getEntity() != null && isChicken();
     }
 
     @Override
@@ -147,7 +169,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private void playAnimation(Creature.AnimationType animation) {
         AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager);
-        if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
+        if (getAnimationData(animation) == getDataObject().getAnimation(animation) && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
         isAnimationPlaying = true;
@@ -158,6 +180,16 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+
+        // The Chicken spell changes the look, and back again when it wears off
+        boolean nowChicken = isDrawnAsChicken();
+        if (nowChicken != drawnAsChicken) {
+            ArtResource before = currentState != null ? getAnimationData(currentState) : null;
+            drawnAsChicken = nowChicken;
+            if (currentState != null && before != getAnimationData(currentState)) {
+                playAnimation(currentState);
+            }
+        }
 
         // A creature in the hand talks, one line every few seconds as long as it is held. It is heard at the hand
         if (currentState == Creature.AnimationType.IN_HAND) {
@@ -291,7 +323,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public ArtResource getInHandMesh() {
-        return getDataObject().getAnimation(Creature.AnimationType.IN_HAND);
+        return getAnimationData(Creature.AnimationType.IN_HAND);
     }
 
     @Override
@@ -301,6 +333,12 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
+
+        // A creature under the Chicken spell is drawn with the chicken object's mesh, also in hand,
+        // but it dies with its own animations (0x48BE50)
+        if (drawnAsChicken && state != Creature.AnimationType.DIE && state != Creature.AnimationType.DEATH_POSE) {
+            return state == Creature.AnimationType.IN_HAND ? chickenObject.getInHandMeshResource() : chickenObject.getMeshResource();
+        }
         ArtResource animation = getDataObject().getAnimation(state);
         if (animation == null && state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
             return ELECTROCUTE_SKELETONS[ThreadLocalRandom.current().nextInt(ELECTROCUTE_SKELETONS.length)];
