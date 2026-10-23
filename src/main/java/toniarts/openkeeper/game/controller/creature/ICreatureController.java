@@ -37,6 +37,9 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreatureController extends IGameLogicUpdatable, INavigable, IEntityController {
 
+    /** Move to the authored end position after a completed Portal entrance animation. */
+    public void completeDungeonEntrance();
+
     public boolean shouldFleeOrAttack();
 
     /**
