@@ -39,7 +39,6 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
-import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.TrapViewState;
@@ -586,8 +585,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         // ...except the creature being possessed, whose light stays neutral
         boolean possessed = object == hiddenSpatial;
         boolean playerColoured = !possessed && light.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
-        Owner owner = playerColoured ? entityData.getComponent(id, Owner.class) : null;
-        Short ownerId = owner != null ? Short.valueOf(owner.ownerId) : null;
+        // The view control already watches the entity's Owner
+        IEntityViewControl viewControl = playerColoured ? entityViewControls.get(id) : null;
+        Short ownerId = viewControl != null ? Short.valueOf(viewControl.getOwnerId()) : null;
         if (playerColoured && lightRules.getThingLight(id) != null
                 && !Objects.equals(lightOwners.get(id), ownerId)) {
             lightRules.removeThingLight(id);
