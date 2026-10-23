@@ -709,6 +709,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 break;
             }
+            default: {
+
+                // The other objectives don't give the creature a task of its own
+                break;
+            }
         }
 
         // Assign
