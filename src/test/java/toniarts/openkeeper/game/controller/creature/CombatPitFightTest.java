@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -131,6 +132,9 @@ class CombatPitFightTest {
     void pitFightersDealDoubleAndTakeAFifthOfTheDamage() {
         EntityId us = createFighter(KEEPER, 1, 5, pit);
         EntityId other = createFighter(KEEPER, 1, 6, pit);
+
+        // Face to face, so no bonus for hitting from the side or back
+        entityData.setComponent(other, new Position(FastMath.PI, entityData.getComponent(other, Position.class).position));
 
         createController(us).executeAttack(other);
 
