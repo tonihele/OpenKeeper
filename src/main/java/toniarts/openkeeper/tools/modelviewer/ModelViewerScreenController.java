@@ -75,7 +75,7 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_SHOW_NORMALS = "showNormals";
     private final static String ID_WIREFRAME = "wireframe";
     private final static String ID_SHOW_CEILING = "showCeiling";
-    private final static String ID_PORTAL_ROOM = "showPortalRoom";
+    private final static String ID_OVERLAY = "enableOverlay";
     private final static String ID_EFFECT_DETAILS = "showEffectDetails";
 
     private final ModelViewer app;
@@ -108,10 +108,15 @@ public final class ModelViewerScreenController implements ScreenController {
     public void bind(Nifty nifty, Screen screen) {
         this.screen = screen;
         // Nifty dispatches rapid clicks separately from single clicks.
-        for (String option : List.of(ID_AUTO_ROTATE, ID_SHOW_NORMALS, ID_WIREFRAME, ID_SHOW_CEILING, ID_EFFECT_DETAILS, ID_PORTAL_ROOM)) {
+        for (String option : List.of(ID_AUTO_ROTATE, ID_SHOW_NORMALS, ID_WIREFRAME, ID_SHOW_CEILING, ID_EFFECT_DETAILS, ID_OVERLAY)) {
             CheckBox checkBox = screen.findNiftyControl(option, CheckBox.class);
             checkBox.getElement().getElementInteraction().getPrimary()
                     .setOnMultiClickMethod(new NiftyMethodInvoker(nifty, "onClick()", checkBox));
+        }
+        DropDown<String> overlays = screen.findNiftyControl("overlayModel", DropDown.class);
+        overlays.addAllItems(app.getOverlayModels());
+        if (overlays.itemCount() > 0) {
+            overlays.selectItemByIndex(0);
         }
         // Fill types
         app.fillTypes();
@@ -204,9 +209,14 @@ public final class ModelViewerScreenController implements ScreenController {
         }
     }
 
-    @NiftyEventSubscriber(id = ID_PORTAL_ROOM)
-    public void onPortalRoomChanged(final String id, final CheckBoxStateChangedEvent event) {
-        app.setPortalRoomVisible(event.isChecked());
+    @NiftyEventSubscriber(id = "overlayModel")
+    public void onOverlayModelChanged(final String id, final DropDownSelectionChangedEvent<String> event) {
+        app.setOverlayModel(event.getSelection());
+    }
+
+    @NiftyEventSubscriber(id = ID_OVERLAY)
+    public void onOverlayChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setOverlayEnabled(event.isChecked());
     }
 
     @NiftyEventSubscriber(id = ID_EFFECT_DETAILS)
@@ -269,7 +279,8 @@ public final class ModelViewerScreenController implements ScreenController {
 
     void selectionChanged(Object item) {
         selectedItem = item;
-        screen.findNiftyControl(ID_PORTAL_ROOM, CheckBox.class).setEnabled(item instanceof Effect);
+        screen.findNiftyControl(ID_OVERLAY, CheckBox.class).setEnabled(item instanceof Effect);
+        screen.findNiftyControl("overlayModel", DropDown.class).setEnabled(item instanceof Effect);
         inspectedItem = item;
         selectedAudio = null;
         if (showEffectDetails) {
@@ -353,7 +364,7 @@ public final class ModelViewerScreenController implements ScreenController {
         addInspectorText(content, details.title(), width, null);
         addInspectorText(content, "Inspecting definitions; preview playback is unchanged.", width, null);
         if (selectedItem instanceof Effect) {
-            addInspectorText(content, "Portal room places the preview at the pit base and restarts the effect when toggled.", width, null);
+            addInspectorText(content, "Overlay models share the effect origin. Changing the overlay restarts the preview; the assembled Portal uses its pit base.", width, null);
         }
         if (inspectedItem != selectedItem) {
             addInspectorText(content, "Back to selected item", width, "resetEffectInspection()");

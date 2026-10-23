@@ -18,14 +18,16 @@
                     <text style="text" text="Filter" width="50px" valign="center"/>
                     <control name="textfield" id="filter" text="" maxLength="64" width="*"/>
                 </panel>
-                <panel id="selectionOptions" childLayout="vertical" width="100%" height="204px"
+                <panel id="selectionOptions" childLayout="vertical" width="100%" height="236px"
                        padding="8px" backgroundColor="#000f">
                     <text style="text" text="Options" width="100%" height="20px" textHAlign="left"/>
                     <control name="viewerOption" id="autoRotate" label="Auto-rotate" shortcut="Alt+R"/>
                     <control name="viewerOption" id="showNormals" label="Show normals" shortcut="Alt+N"/>
                     <control name="viewerOption" id="wireframe" label="Wireframe" shortcut="Alt+T"/>
                     <control name="viewerOption" id="showCeiling" label="Map ceiling" shortcut="Alt+C"/>
-                    <control name="viewerOption" id="showPortalRoom" label="Portal room" shortcut=""/>
+                    <control name="viewerOption" id="enableOverlay" label="Enable overlay" shortcut=""/>
+                    <control name="dropDown" id="overlayModel" displayItems="12" width="100%" height="28px"/>
+                    <panel height="4px" width="100%"/>
                     <control name="viewerOption" id="showEffectDetails" label="Effect details" shortcut=""/>
                 </panel>
                 <control name="listBox" id="items" horizontal="optional" selection="Single"

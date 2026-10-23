@@ -147,7 +147,9 @@ public final class ModelViewer extends SimpleApplication {
     private boolean rotate = true;
     private boolean showNormals = false;
     private boolean ceilingVisible = true;
-    private boolean portalRoomVisible;
+    static final String PORTAL_OVERLAY = "Portal (assembled room)";
+    private boolean overlayEnabled;
+    private String overlayModel = PORTAL_OVERLAY;
     private Effect selectedEffect;
     private List<String> models;
     private List<String> maps;
@@ -670,12 +672,17 @@ public final class ModelViewer extends SimpleApplication {
                 Node spat = new Node();
                 Effect effect = (Effect) selection;
                 effectManagerState.setEnabled(true);
-                if (portalRoomVisible) {
-                    spat.attachChild(new RoomsLoader().loadPortalContext(assetManager, getKwdFile()));
+                if (overlayEnabled) {
+                    Spatial overlay = PORTAL_OVERLAY.equals(overlayModel)
+                            ? new RoomsLoader().loadPortalContext(assetManager, getKwdFile())
+                            : AssetUtils.loadAsset(assetManager, overlayModel, null);
+                    overlay.setName("Overlay model");
+                    spat.attachChild(overlay);
                 }
-                // Native Portal build-up and entrance effects start at the pit base (Y=0).
+                // Overlay models retain their authored origin; the assembled Portal's origin
+                // is its pit base, matching the traced native Portal effect anchor (Y=0).
                 // Keep the elevated anchor for isolated effects that need room to fall.
-                Vector3f anchor = portalRoomVisible ? new Vector3f()
+                Vector3f anchor = overlayEnabled ? new Vector3f()
                         : new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0);
                 effectManagerState.loadSingleEffect(spat, anchor, effect.getEffectId(), false);
                 setupModel(spat, false);
@@ -687,11 +694,41 @@ public final class ModelViewer extends SimpleApplication {
 
     }
 
-    void setPortalRoomVisible(boolean visible) {
-        if (portalRoomVisible == visible) {
+    List<String> getOverlayModels() {
+        List<String> choices = new ArrayList<>();
+        if (dkIIFolder != null) {
+            choices.add(PORTAL_OVERLAY);
+        }
+        Path directory = Paths.get(AssetsConverter.getAssetsFolder(), AssetsConverter.MODELS_FOLDER);
+        try (var files = Files.newDirectoryStream(directory, PathUtils.getFilterForFilesEndingWith(".j3o"))) {
+            List<String> names = new ArrayList<>();
+            for (Path file : files) {
+                String name = file.getFileName().toString();
+                names.add(name.substring(0, name.length() - 4));
+            }
+            names.sort(String.CASE_INSENSITIVE_ORDER);
+            choices.addAll(names);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Failed to list overlay models", e);
+        }
+        return choices;
+    }
+
+    void setOverlayModel(String model) {
+        if (model == null || model.equals(overlayModel)) {
             return;
         }
-        portalRoomVisible = visible;
+        overlayModel = model;
+        if (overlayEnabled && selectedEffect != null) {
+            onSelectionChanged(selectedEffect);
+        }
+    }
+
+    void setOverlayEnabled(boolean visible) {
+        if (overlayEnabled == visible) {
+            return;
+        }
+        overlayEnabled = visible;
         // Restart explicitly so already emitted world-space particles use the new anchor.
         if (selectedEffect != null) {
             onSelectionChanged(selectedEffect);
@@ -723,7 +760,7 @@ public final class ModelViewer extends SimpleApplication {
         }
 
         // Hide the floor on maps
-        floorGeom.setCullHint(isMap || (selectedEffect != null && portalRoomVisible)
+        floorGeom.setCullHint(isMap || (selectedEffect != null && overlayEnabled)
                 ? Spatial.CullHint.Always : Spatial.CullHint.Never);
 
         // Shadows
