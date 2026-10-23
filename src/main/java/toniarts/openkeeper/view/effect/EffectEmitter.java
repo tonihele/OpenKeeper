@@ -60,7 +60,7 @@ public abstract class EffectEmitter extends Node {
     /**
      * For serialization only. Do not use.
      */
-    public EffectEmitter() {
+    protected EffectEmitter() {
         super();
     }
 

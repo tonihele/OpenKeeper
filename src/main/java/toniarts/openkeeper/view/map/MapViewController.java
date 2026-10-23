@@ -1746,7 +1746,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
 
             List<Point> section = getRoomWalls(p, roomInstance, direction);
-            if (section != null) {
+            if (!section.isEmpty()) {
 
                 // Add section
                 sections.add(new WallSection(direction, section));
@@ -1775,7 +1775,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
                 || !terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-            return null;
+            return Collections.emptyList();
         }
 
         // Found wallable
@@ -1786,10 +1786,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Point nextPoint = getNextWallPoint(p, direction);
         RoomInstance instance = roomCoordinates.get(nextPoint);
         if (instance != null && instance.equals(roomInstance)) {
-            List<Point> adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-            if (adjacentWallPoints != null) {
-                wallPoints.addAll(adjacentWallPoints);
-            }
+            wallPoints.addAll(getRoomWalls(nextPoint, roomInstance, wallDirection));
         }
 
         return wallPoints;

@@ -409,14 +409,17 @@ public final class AssetUtils {
             return;
         }
 
-        Boolean found = TEXTURE_MAP_CACHE.get(textureName);
-        if (found == null) {
+        boolean found;
+        Boolean cachedFound = TEXTURE_MAP_CACHE.get(textureName);
+        if (cachedFound == null) {
             AssetInfo assetInfo = assetManager.locateAsset(new TextureKey(textureName, false));
             found = (assetInfo != null);
             Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
             if (cached != null) {
                 found = cached;
             }
+        } else {
+            found = cachedFound;
         }
 
         // Set it
@@ -728,6 +731,14 @@ public final class AssetUtils {
                                     case HERO_GATE_FRONT_END: {
                                         count = 17;
                                         start = 1;
+                                        break;
+                                    }
+                                    case COMPLETE:
+                                    case CENTER_POOL:
+                                    case HERO_GATE:
+                                    case HERO_GATE_TILE:
+                                    case HERO_GATE_3_BY_1: {
+                                        // No numbered terrain meshes
                                         break;
                                     }
                                 }

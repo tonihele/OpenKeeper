@@ -42,8 +42,6 @@ import java.util.function.Supplier;
 public class EffectManagerState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(EffectManagerState.class.getName());
-    
-    public static int ROOM_CLAIM_ID = 2;
 
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
