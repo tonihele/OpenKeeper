@@ -219,6 +219,11 @@ public final class MainMenuState extends AbstractAppState {
         // by PlayerEntityViewState/MainMenuEntityViewState's RoomEffectContainer
         // once HeroGateFrontEndController's RoomEffect component appears)
         effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        // No PlayerMapViewState in the menu, the effects are lit by the menu map's own light rules
+        effectManagerState.setLightRulesSupplier(() -> {
+            MapViewController controller = mapViewController;
+            return controller != null ? controller.getLightRules() : null;
+        });
         app.getStateManager().attach(effectManagerState);
 
         // Init the skirmish and multiplayer maps selector

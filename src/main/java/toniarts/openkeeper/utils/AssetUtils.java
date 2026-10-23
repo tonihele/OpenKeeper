@@ -369,7 +369,10 @@ public final class AssetUtils {
                 }
                 Material material = geometry.getMaterial();
                 if (isVertexMaterial(material)) {
+                    // MinLight only scales the (zero) global ambient floor, RockFloor
+                    // is the absolute one
                     material.setFloat("MinLight", 1f);
+                    material.setFloat("RockFloor", 1f);
                     return;
                 }
                 if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {

@@ -619,10 +619,7 @@ public class VisualEffect {
     }
 
     private LightRules getLightRules() {
-        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
-        // Guard against racing the map loader thread's LightRules writes
-        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
-        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
+        return effectManagerState.getLightRules();
     }
 
     /**
@@ -653,7 +650,13 @@ public class VisualEffect {
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS) && effectElements.isEmpty()
                 && effect.getDeathEffectId() != 0 && !deathEffectSpawned) {
             deathEffectSpawned = true;
-            addEffect(effect.getDeathEffectId(), null);
+            if (kwdFile.getEffect(effect.getDeathEffectId()) == effect) {
+                // Dies into itself (e.g. "3dfe lightbeam light"), i.e. it just loops. Nesting a copy each time
+                // would grow the scene graph by a level per cycle until it overflows the stack, so restart instead.
+                infinite = true;
+            } else {
+                addEffect(effect.getDeathEffectId(), null);
+            }
         }
 
         return handleEffectCompletion();
@@ -749,6 +752,13 @@ public class VisualEffect {
             }
         }
         return true;
+    }
+
+    /**
+     * @return the node everything of this effect hangs from, for placing it
+     */
+    public Node getEffectNode() {
+        return effectNode;
     }
 
     public void removeEffect() {

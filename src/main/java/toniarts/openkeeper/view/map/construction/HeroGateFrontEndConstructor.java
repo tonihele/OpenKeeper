@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.map.construction;
 
-import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -100,17 +99,6 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
             switch (i) {
 
-                case 2:
-
-                    // The light beams, I dunno, there are maybe several of these here
-                    // FIXME beams is a visual effect of gem holder ???
-                    float yAngle = -FastMath.PI;
-                    Spatial obj = loadObject("3dfe_beams", assetManager, start, p);
-                    obj.rotate(0, yAngle, 0).move(0, 0.4f, 0.1f);
-                    root.attachChild(obj);
-                    animate(obj, false);
-
-                    break;
                 case 7:
                     showMpdProgress(root, start, p);
 
@@ -247,26 +235,6 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
         object.move(0, WorldUtils.FLOOR_HEIGHT, 0);
 
         return object;
-    }
-
-    private void animate(Spatial object, final boolean randomizeAnimation) {
-
-        // Animate
-        object.breadthFirstTraversal(spatial -> {
-            var animComposer = spatial.getControl(AnimComposer.class);
-            if (animComposer != null) {
-                // creates a ClipAction that starts the animation
-                var action = animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
-
-		        if (randomizeAnimation) {
-                    animComposer.setGlobalSpeed(FastMath.nextRandomInt(6, 10) / 10f);
-                    animComposer.setTime(FastMath.nextRandomFloat() * action.getLength());
-		        }
-
-		        // Don't batch animated objects, seems not to work
-		        object.setBatchHint(Spatial.BatchHint.Never);
-		    }
-		});
     }
 
     private void showMpdProgress(BatchNode root, Point start, Point p) {

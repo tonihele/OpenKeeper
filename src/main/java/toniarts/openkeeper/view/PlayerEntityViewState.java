@@ -65,6 +65,7 @@ import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.effect.VisualEffect;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -847,8 +848,11 @@ public class PlayerEntityViewState extends AbstractAppState {
             // Effect 350 sits half a tile further than the gem holder's own
             // tile centre
             Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
-                    .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f);
-            stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+                    .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f + roomEffect.offsetZ);
+            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+            if (visualEffect != null && roomEffect.yaw != 0) {
+                visualEffect.getEffectNode().rotate(0, roomEffect.yaw, 0);
+            }
             return Boolean.TRUE;
         }
 
