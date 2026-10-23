@@ -25,6 +25,7 @@ import com.jme3.renderer.Camera;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.minimap.MinimapCoordinates;
 
 /**
  * Player camera movement is modeled here
@@ -141,6 +142,16 @@ public final class PlayerCamera {
 
         cam.setLocation(look.addLocal(pos));
         cam.setAxes(q);
+    }
+
+    /**
+     * Turns the camera around its look-at point until it faces north again
+     * (yaw 0 in {@link MinimapCoordinates#cameraYawRadians}, the orientation
+     * the north-up maps are drawn in). Pitch and zoom are kept.
+     */
+    public void resetYawToNorth() {
+        // Rotating by +a about Y adds a to the yaw
+        rotateAround(-MinimapCoordinates.cameraYawRadians(cam));
     }
 
     public void pith(float value) {

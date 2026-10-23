@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -92,7 +93,6 @@ import toniarts.openkeeper.view.text.TextParser;
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
-    private static final int SPELL_POSSESSION_ID = 2;
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
     private Main app;
@@ -192,6 +192,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             app.getInputManager().removeRawInputListener(inputListener);
             inputListenerAdded = false;
             keys.clear();
+
+            // We are no longer around to keep it updated (e.g. entering possession
+            // mode), so drop any leftover held-item/spell icon and cursor image
+            // rather than leaving them frozen on screen
+            keeperHandState.setSpellIcon(null, true);
+            keeperHandState.setVisible(false);
+            inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
         }
     }
 
@@ -540,6 +547,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected void updateCursor() {
         keeperHandState.setVisible(false);
+
+        // Show the spell's icon next to the cursor while it's selected for casting,
+        // the same way a grabbed creature or object is shown
+        boolean showSpellIcon = !isOnGui && interactionState.getType() == Type.SPELL;
+        if (showSpellIcon) {
+            KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(interactionState.getItemId());
+            boolean castable = isOnMap() && canCastSpell(keeperSpell, interactiveControl, selectionHandler.getPointedTileIndex());
+            keeperHandState.setSpellIcon(keeperSpell.getGuiIcon(), castable);
+        } else {
+            keeperHandState.setSpellIcon(null, true);
+        }
+
         if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
             if (slapCursorTimeRemaining > 0) {
 
@@ -547,6 +566,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.SLAP, assetManager));
             } else if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+                if (showSpellIcon) {
+                    keeperHandState.setVisible(true);
+                }
             } else if (selectionHandler.isActive() && isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
@@ -559,7 +581,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
-        } else if (keeperHandState.getItem() != null) {
+        } else if (keeperHandState.getItem() != null || showSpellIcon) {
             keeperHandState.setVisible(true);
         }
     }
@@ -631,17 +653,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         private void onLeftMouseButtonPressed() {
             if (interactionState.getType() == Type.SPELL) {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
-                //TODO correct interactiveControl.isPickable
-                /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
-                        && interactiveControl.isPickable(player.getPlayerId())) {
-                    CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
-                    if (cc != null) {
-                        onPossession(cc);
-                        // Reset the state
-                        // TODO disable selection box
-                        setInteractionState(Type.NONE, 0);
-                    }
-                }*/
             } else if (interactionState.getType() == Type.TRAP) {
                 //TODO put trap
             } else if (interactionState.getType() == Type.DOOR) {
@@ -848,14 +859,23 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private Set<Point> getConstructionBlockingTiles() {
         Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects, this::isConstructionBlockingObject);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps, entity -> true);
         return blockedTiles;
     }
 
-    private static void addConstructionBlockingTiles(Set<Point> blockedTiles, EntitySet entities) {
+    private boolean isConstructionBlockingObject(Entity entity) {
+        ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+        return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
+    }
+
+    private static void addConstructionBlockingTiles(Set<Point> blockedTiles, EntitySet entities,
+            Predicate<Entity> isBlocking) {
         for (Entity entity : entities) {
+            if (!isBlocking.test(entity)) {
+                continue;
+            }
             Position position = entity.get(Position.class);
             if (position != null) {
                 blockedTiles.add(WorldUtils.vectorToPoint(position.position));
@@ -895,8 +915,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @param interactionState new state
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
-
-    protected abstract void onPossession(EntityId creature);
 
     private final class InteractionKeeperHandState extends KeeperHandState {
 
