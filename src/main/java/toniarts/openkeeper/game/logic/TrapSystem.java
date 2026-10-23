@@ -168,6 +168,11 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         Trap trap = kwdFile.getTrapById(trapEntity.get(TrapComponent.class).trapId);
+        if (trap.getShotTypeId() == 0) {
+
+            // Nothing to fire, the Guard Post for one
+            return;
+        }
         EntityId target = isTriggeredByTriggerTrap(trapEntity, trap) ? null : findTarget(trapEntity, trap);
         if (target == null) {
 
@@ -283,6 +288,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
                 continue;
             }
             Trap trap = kwdFile.getTrapById(trapEntity.get(TrapComponent.class).trapId);
+            if (trap.getShotTypeId() == 0) {
+                continue;
+            }
             EntityId target = null;
             if (victim != null && (trap.getTriggerType() == Trap.TriggerType.TRIGGER
                     || hasLineOfSight(blocksSight, trapPosition, victim.get(Position.class).position))) {

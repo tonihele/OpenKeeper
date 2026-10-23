@@ -64,6 +64,7 @@ class TrapSystemTest {
     private static final short SPIKE = 10;
     private static final short FEAR = 8;
     private static final short TRIGGER = 9;
+    private static final short GUARD_POST = 11;
     private static final short CANNON_BALL = 44;
     private static final short SPIKE_SHOT = 27;
     private static final short FEAR_SHOT = 25;
@@ -92,6 +93,7 @@ class TrapSystemTest {
         traps.put((int) FEAR, TrapFiringFixtures.withThreat(
                 TrapFiringFixtures.trap(FEAR, Trap.TriggerType.LINE_OF_SIGHT, 3, 6, FEAR_SHOT), 600, 60));
         traps.put((int) TRIGGER, TrapFiringFixtures.trap(TRIGGER, Trap.TriggerType.TRIGGER, 1, 4, TRIGGER_SHOT));
+        traps.put((int) GUARD_POST, TrapFiringFixtures.trap(GUARD_POST, Trap.TriggerType.PRESSURE, 6, 1, (short) 0));
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         keeper.setMana(1000);
@@ -365,6 +367,17 @@ class TrapSystemTest {
         }
 
         assertEquals(List.of(TRIGGER), shots.stream().map(Fired::trapId).toList());
+    }
+
+    @Test
+    void trapWithoutShotNeverFires() {
+        EntityId guardPost = addTrap(GUARD_POST, TRAP_TILE);
+        addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+
+        assertTrue(shots.isEmpty());
+        assertNull(entityData.getComponent(guardPost, TrapFiring.class));
     }
 
     @Test
