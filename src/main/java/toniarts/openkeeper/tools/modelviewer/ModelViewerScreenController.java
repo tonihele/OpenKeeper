@@ -19,18 +19,27 @@ package toniarts.openkeeper.tools.modelviewer;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.TextureKey;
 import de.lessvoid.nifty.Nifty;
+import de.lessvoid.nifty.NiftyMethodInvoker;
 import de.lessvoid.nifty.NiftyEventSubscriber;
 import de.lessvoid.nifty.builder.ControlBuilder;
+import de.lessvoid.nifty.builder.PanelBuilder;
+import de.lessvoid.nifty.builder.TextBuilder;
+import de.lessvoid.nifty.controls.scrollpanel.builder.ScrollPanelBuilder;
+import de.lessvoid.nifty.controls.CheckBox;
+import de.lessvoid.nifty.controls.CheckBoxStateChangedEvent;
 import de.lessvoid.nifty.controls.DropDown;
 import de.lessvoid.nifty.controls.DropDownSelectionChangedEvent;
 import de.lessvoid.nifty.controls.ListBox;
 import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
+import de.lessvoid.nifty.controls.TextField;
+import de.lessvoid.nifty.controls.TextFieldChangedEvent;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.screen.ScreenController;
 import de.lessvoid.nifty.spi.render.RenderFont;
 import java.io.File;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.SoundFile;
@@ -39,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.Effect;
+import toniarts.openkeeper.tools.convert.map.EffectElement;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -60,10 +70,22 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_TYPES = "types";
     private final static String ID_ITEM = "item";
     private final static String ID_SOUNDS = "sounds";
+    private final static String ID_FILTER = "filter";
+    private final static String ID_AUTO_ROTATE = "autoRotate";
+    private final static String ID_SHOW_NORMALS = "showNormals";
+    private final static String ID_WIREFRAME = "wireframe";
+    private final static String ID_SHOW_CEILING = "showCeiling";
+    private final static String ID_OVERLAY = "enableOverlay";
+    private final static String ID_EFFECT_DETAILS = "showEffectDetails";
 
     private final ModelViewer app;
     private final Nifty nifty;
     private Screen screen;
+    private final RenderFont detailsFont;
+    private Object selectedItem;
+    private Object inspectedItem;
+    private List<SoundFile> selectedAudio;
+    private boolean showEffectDetails;
 
     public ModelViewerScreenController(ModelViewer app) {
         this.app = app;
@@ -73,6 +95,7 @@ public final class ModelViewerScreenController implements ScreenController {
 
         // Set default font
         RenderFont font = nifty.createFont("Interface/Fonts/Frontend14.fnt");
+        detailsFont = font;
         nifty.getRenderEngine().setFont(font);
         nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
@@ -84,12 +107,32 @@ public final class ModelViewerScreenController implements ScreenController {
     @Override
     public void bind(Nifty nifty, Screen screen) {
         this.screen = screen;
+        // Nifty dispatches rapid clicks separately from single clicks.
+        for (String option : List.of(ID_AUTO_ROTATE, ID_SHOW_NORMALS, ID_WIREFRAME, ID_SHOW_CEILING, ID_EFFECT_DETAILS, ID_OVERLAY)) {
+            CheckBox checkBox = screen.findNiftyControl(option, CheckBox.class);
+            checkBox.getElement().getElementInteraction().getPrimary()
+                    .setOnMultiClickMethod(new NiftyMethodInvoker(nifty, "onClick()", checkBox));
+        }
+        DropDown<String> overlays = screen.findNiftyControl("overlayModel", DropDown.class);
+        overlays.addAllItems(app.getOverlayModels());
+        if (overlays.itemCount() > 0) {
+            overlays.selectItemByIndex(0);
+        }
         // Fill types
         app.fillTypes();
     }
 
     @Override
     public void onStartScreen() {
+        setAutoRotateChecked(app.isAutoRotateEnabled());
+        setShowNormalsChecked(app.isShowNormalsEnabled());
+        setWireframeChecked(app.isWireframeEnabled());
+        setCeilingChecked(app.isCeilingVisible());
+    }
+
+    boolean isTyping() {
+        Element focus = screen.getFocusHandler().getKeyboardFocusElement();
+        return focus != null && focus.getNiftyControl(TextField.class) != null;
     }
 
     @Override
@@ -103,12 +146,104 @@ public final class ModelViewerScreenController implements ScreenController {
 
         if (selection.size() == 1) {
             app.onSelectionChanged(selection.get(0));
+        } else if (selection.isEmpty()) {
+            selectionChanged(null);
         }
     }
 
     @NiftyEventSubscriber(id = ID_TYPES)
     public void onTypeChanged(final String id, final DropDownSelectionChangedEvent<ModelViewer.Types> event) {
         app.fillList(event.getSelection());
+    }
+
+    @NiftyEventSubscriber(id = ID_FILTER)
+    public void onFilterChanged(final String id, final TextFieldChangedEvent event) {
+        app.filterList(event.getText());
+    }
+
+    @NiftyEventSubscriber(id = ID_AUTO_ROTATE)
+    public void onAutoRotateChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setAutoRotateEnabled(event.isChecked());
+    }
+
+    void setAutoRotateChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_AUTO_ROTATE, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_SHOW_NORMALS)
+    public void onShowNormalsChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setShowNormalsEnabled(event.isChecked());
+    }
+
+    void setShowNormalsChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_SHOW_NORMALS, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_WIREFRAME)
+    public void onWireframeChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setWireframeEnabled(event.isChecked());
+    }
+
+    void setWireframeChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_WIREFRAME, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_SHOW_CEILING)
+    public void onCeilingChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setCeilingVisible(event.isChecked());
+    }
+
+    void setCeilingChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_SHOW_CEILING, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = "overlayModel")
+    public void onOverlayModelChanged(final String id, final DropDownSelectionChangedEvent<String> event) {
+        app.setOverlayModel(event.getSelection());
+    }
+
+    @NiftyEventSubscriber(id = ID_OVERLAY)
+    public void onOverlayChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setOverlayEnabled(event.isChecked());
+    }
+
+    @NiftyEventSubscriber(id = ID_EFFECT_DETAILS)
+    public void onEffectDetailsChanged(final String id, final CheckBoxStateChangedEvent event) {
+        showEffectDetails = event.isChecked();
+        rebuildItem();
+    }
+
+    public void inspectEffect(String id) {
+        Effect effect = app.getKwdFile().getEffect(Integer.parseInt(id));
+        if (effect != null) {
+            inspectedItem = effect;
+            rebuildItem();
+        }
+    }
+
+    public void inspectParticle(String id) {
+        EffectElement element = app.getKwdFile().getEffectElement(Integer.parseInt(id));
+        if (element != null) {
+            inspectedItem = element;
+            rebuildItem();
+        }
+    }
+
+    public void resetEffectInspection() {
+        inspectedItem = selectedItem;
+        rebuildItem();
     }
 
     @NiftyEventSubscriber(id = ID_SOUNDS)
@@ -142,14 +277,41 @@ public final class ModelViewerScreenController implements ScreenController {
         nifty.gotoScreen(screen);
     }
 
+    void selectionChanged(Object item) {
+        selectedItem = item;
+        screen.findNiftyControl(ID_OVERLAY, CheckBox.class).setEnabled(item instanceof Effect);
+        screen.findNiftyControl("overlayModel", DropDown.class).setEnabled(item instanceof Effect);
+        inspectedItem = item;
+        selectedAudio = null;
+        if (showEffectDetails) {
+            rebuildItem();
+        }
+    }
+
     protected void setupItem(Object item, List<SoundFile> audio) {
+        boolean sameSelection = selectedItem == item;
+        selectedItem = item;
+        if (!sameSelection) {
+            inspectedItem = item;
+        }
+        selectedAudio = audio;
+        if (!showEffectDetails || !sameSelection) {
+            rebuildItem();
+        }
+    }
+
+    private void rebuildItem() {
+        Object item = selectedItem;
+        List<SoundFile> audio = selectedAudio;
         Element panel = screen.findElementById(ID_ITEM);
         for (Element element : panel.getChildren()) {
             element.markForRemoval();
         }
 
         Element el = null;
-        if (item instanceof Creature) {
+        if (showEffectDetails) {
+            el = createEffectInspector(panel);
+        } else if (item instanceof Creature) {
             ControlBuilder cb = createCreatureControl((Creature) item);
             el = cb.build(panel);
         } else if (item instanceof Room) {
@@ -182,12 +344,79 @@ public final class ModelViewerScreenController implements ScreenController {
             DropDown<SoundFile> dropDown = (DropDown<SoundFile>) el.findNiftyControl(ID_SOUNDS, DropDown.class);
             if (dropDown != null) {
                 dropDown.clear();
-                dropDown.addAllItems(audio);
+                if (audio != null) {
+                    dropDown.addAllItems(audio);
+                }
             }
         }
         //panel.addChild(el);
         panel.layoutElements();
         panel.reactivate();
+    }
+
+    private Element createEffectInspector(Element panel) {
+        EffectInspector.Details details = new EffectInspector(app.getKwdFile()).describe(inspectedItem);
+        PanelBuilder content = new PanelBuilder("effectInspectorContent");
+        content.childLayoutVertical();
+        content.width("100%");
+        content.padding("6px");
+        int width = Math.max(120, panel.getWidth() - 40);
+        addInspectorText(content, details.title(), width, null);
+        addInspectorText(content, "Inspecting definitions; preview playback is unchanged.", width, null);
+        if (selectedItem instanceof Effect) {
+            addInspectorText(content, "Overlay models share the effect origin. Changing the overlay restarts the preview; the assembled Portal uses its pit base.", width, null);
+        }
+        if (inspectedItem != selectedItem) {
+            addInspectorText(content, "Back to selected item", width, "resetEffectInspection()");
+        }
+        for (String field : details.fields()) {
+            addInspectorText(content, field, width, null);
+        }
+        for (EffectInspector.Link link : details.links()) {
+            String method = link.kind() == EffectInspector.Kind.EFFECT ? "inspectEffect" : "inspectParticle";
+            addInspectorText(content, link.label(), width, method + "(" + link.id() + ")");
+        }
+        ScrollPanelBuilder scroll = new ScrollPanelBuilder("effectInspector");
+        scroll.width("100%");
+        scroll.height("100%");
+        scroll.parameter("horizontal", "false");
+        scroll.panel(content);
+        return scroll.build(panel);
+    }
+
+    private void addInspectorText(PanelBuilder parent, String text, int width, String action) {
+        List<String> lines = new ArrayList<>();
+        String line = "";
+        for (String word : text.split("\\s+")) {
+            String candidate = line.isEmpty() ? word : line + " " + word;
+            if (!line.isEmpty() && detailsFont.getWidth(candidate) > width) {
+                lines.add(line);
+                line = word;
+            } else {
+                line = candidate;
+            }
+        }
+        lines.add(line);
+        TextBuilder label = new TextBuilder();
+        label.style("text");
+        label.font("Interface/Fonts/Frontend14.fnt");
+        label.text(String.join("\n", lines));
+        label.width("100%");
+        label.height((detailsFont.getHeight() * lines.size() + 10) + "px");
+        label.textHAlignLeft();
+        label.textVAlignCenter();
+        label.visibleToMouse(false);
+        PanelBuilder row = new PanelBuilder();
+        row.childLayoutVertical();
+        row.width("100%");
+        row.height((detailsFont.getHeight() * lines.size() + 10) + "px");
+        row.backgroundColor(action == null ? "#111e" : "#234f");
+        if (action != null) {
+            row.visibleToMouse(true);
+            row.interactOnClick(action);
+        }
+        row.text(label);
+        parent.panel(row);
     }
 
     private ControlBuilder createCreatureControl(final Creature item) {
@@ -380,7 +609,8 @@ public final class ModelViewerScreenController implements ScreenController {
 
         ControlBuilder result = new ControlBuilder(name, "effect") {
             {
-                parameter("title", name);
+                parameter("title", name + " [" + item.getEffectId() + "]");
+                parameter("relatedTo", app.getEffectReferences(item));
 
                 parameter("airFriction", String.valueOf(item.getAirFriction()));
                 parameter("circularPathRate", String.valueOf(item.getCircularPathRate()));

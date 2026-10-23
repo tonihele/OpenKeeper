@@ -86,6 +86,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.awt.DisplayMode;
+import java.awt.GraphicsEnvironment;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,6 +97,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Locale;
+
 
 /**
  * Simple model viewer
@@ -141,10 +147,18 @@ public final class ModelViewer extends SimpleApplication {
     private boolean rotate = true;
     private boolean showNormals = false;
     private boolean ceilingVisible = true;
+    static final String PORTAL_OVERLAY = "Portal (assembled room)";
+    private boolean overlayEnabled;
+    private String overlayModel = PORTAL_OVERLAY;
+    private Effect selectedEffect;
     private List<String> models;
     private List<String> maps;
     private IKwdFile kwdFile;
     private Node floorGeom;
+    private String itemFilter = "";
+    private boolean leftAltPressed;
+    private boolean rightAltPressed;
+    private final Map<Geometry, Material> originalNormalMaterials = new IdentityHashMap<>();
 
     //private SoundsLoader soundLoader;
     /**
@@ -156,6 +170,8 @@ public final class ModelViewer extends SimpleApplication {
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final String KEY_MAPPING_TOGGLE_CEILING = "toggle ceiling";
+    private static final String KEY_MAPPING_LEFT_ALT = "left alt";
+    private static final String KEY_MAPPING_RIGHT_ALT = "right alt";
 
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
@@ -163,23 +179,26 @@ public final class ModelViewer extends SimpleApplication {
     private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
+            if (KEY_MAPPING_LEFT_ALT.equals(name)) {
+                leftAltPressed = pressed;
+                return;
+            }
+            if (KEY_MAPPING_RIGHT_ALT.equals(name)) {
+                rightAltPressed = pressed;
+                return;
+            }
+            if (!pressed || !(leftAltPressed || rightAltPressed) || (screen != null && screen.isTyping())) {
+                return;
+            }
 
-            // Toggle wireframe
-            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name) && !pressed) {
-                wireframe = !wireframe;
-                toggleWireframe();
-            } // Toggle rotation
-            else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name) && !pressed) {
-                rotate = !rotate;
-                toggleRotate();
-            } // Normals
-            else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
-                showNormals = !showNormals;
-                toggleShowNormals();
-            } // Ceiling
-            else if (KEY_MAPPING_TOGGLE_CEILING.equals(name) && !pressed) {
-                ceilingVisible = !ceilingVisible;
-                mapLoaderAppState.setCeilingVisible(ceilingVisible);
+            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name)) {
+                setWireframeEnabled(!wireframe);
+            } else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name)) {
+                setAutoRotateEnabled(!rotate);
+            } else if (KEY_MAPPING_SHOW_NORMALS.equals(name)) {
+                setShowNormalsEnabled(!showNormals);
+            } else if (KEY_MAPPING_TOGGLE_CEILING.equals(name)) {
+                setCeilingVisible(!ceilingVisible);
             }
         }
     };
@@ -187,13 +206,17 @@ public final class ModelViewer extends SimpleApplication {
     public static void main(String[] args) {
 
         // Take Dungeon Keeper 2 root folder as parameter
-        if (args.length != 1 || !Files.exists(Paths.get(args[0]))) {
+        String folderArgument = Arrays.stream(args)
+                .filter(argument -> !argument.startsWith("--"))
+                .findFirst()
+                .orElse(null);
+        if (folderArgument == null || !Files.exists(Paths.get(folderArgument))) {
             dkIIFolder = PathUtils.getDKIIFolder();
             if (dkIIFolder == null) {
                 throw new RuntimeException("Please provide Dungeon Keeper II main folder as a first parameter!");
             }
         } else {
-            dkIIFolder = PathUtils.fixFilePath(args[0]);
+            dkIIFolder = PathUtils.fixFilePath(folderArgument);
         }
 
         ModelViewer app = new ModelViewer();
@@ -205,7 +228,26 @@ public final class ModelViewer extends SimpleApplication {
 
         app.setSettings(settings);
 
+        if (Arrays.asList(args).contains("--fullscreen")) {
+            configureFullscreen(app);
+        }
         app.start();
+    }
+
+    private static void configureFullscreen(ModelViewer app) {
+        DisplayMode displayMode = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getDefaultScreenDevice().getDisplayMode();
+        AppSettings settings = new AppSettings(true);
+        settings.setFullscreen(true);
+        settings.setResolution(displayMode.getWidth(), displayMode.getHeight());
+        if (displayMode.getBitDepth() > 0) {
+            settings.setBitsPerPixel(displayMode.getBitDepth());
+        }
+        if (displayMode.getRefreshRate() > 0) {
+            settings.setFrequency(displayMode.getRefreshRate());
+        }
+        app.setSettings(settings);
+        app.setShowSettings(false);
     }
 
     public ModelViewer(Path kmfModel, String dkFolder) {
@@ -220,6 +262,9 @@ public final class ModelViewer extends SimpleApplication {
 
     @Override
     public void simpleInitApp() {
+
+        setDisplayFps(false);
+        setDisplayStatView(false);
 
         ((GLRenderer) renderer).setDebugEnabled(true); // get debug names for GL objects
 
@@ -254,11 +299,16 @@ public final class ModelViewer extends SimpleApplication {
         cam.setLocation(new Vector3f(0, 10, 10));
         cam.lookAt(Vector3f.ZERO, Vector3f.UNIT_Y);
         flyCam.setMoveSpeed(10);
+        flyCam.setZoomSpeed(0);
         flyCam.setDragToRotate(true);
 
         // Mouse cursor
         inputManager.setCursorVisible(true);
         inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+
+        inputManager.addMapping(KEY_MAPPING_LEFT_ALT, new KeyTrigger(KeyInput.KEY_LMENU));
+        inputManager.addMapping(KEY_MAPPING_RIGHT_ALT, new KeyTrigger(KeyInput.KEY_RMENU));
+        inputManager.addListener(actionListener, KEY_MAPPING_LEFT_ALT, KEY_MAPPING_RIGHT_ALT);
 
         // Wireframe
         inputManager.addMapping(KEY_MAPPING_TOGGLE_WIREFRAME, new KeyTrigger(KeyInput.KEY_T));
@@ -381,6 +431,37 @@ public final class ModelViewer extends SimpleApplication {
         rootNode.attachChild(floorGeom);
     }
 
+    @Override
+    public void loseFocus() {
+        leftAltPressed = false;
+        rightAltPressed = false;
+        super.loseFocus();
+    }
+
+    boolean isWireframeEnabled() {
+        return wireframe;
+    }
+
+    void setWireframeEnabled(boolean enabled) {
+        wireframe = enabled;
+        toggleWireframe();
+        if (screen != null) {
+            screen.setWireframeChecked(enabled);
+        }
+    }
+
+    boolean isCeilingVisible() {
+        return ceilingVisible;
+    }
+
+    void setCeilingVisible(boolean visible) {
+        ceilingVisible = visible;
+        mapLoaderAppState.setCeilingVisible(visible);
+        if (screen != null) {
+            screen.setCeilingChecked(visible);
+        }
+    }
+
     private void toggleWireframe() {
         Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
         if (spat != null) {
@@ -405,10 +486,47 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    boolean isAutoRotateEnabled() {
+        return rotate;
+    }
+
+    void setAutoRotateEnabled(boolean enabled) {
+        rotate = enabled;
+        toggleRotate();
+        if (screen != null) {
+            screen.setAutoRotateChecked(enabled);
+        }
+    }
+
+    boolean isShowNormalsEnabled() {
+        return showNormals;
+    }
+
+    void setShowNormalsEnabled(boolean enabled) {
+        showNormals = enabled;
+        toggleShowNormals();
+        if (screen != null) {
+            screen.setShowNormalsChecked(enabled);
+        }
+    }
+
+    private void restoreNormalMaterials() {
+        originalNormalMaterials.forEach(Geometry::setMaterial);
+        originalNormalMaterials.clear();
+    }
+
     private void toggleShowNormals() {
         Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
+        if (!showNormals) {
+            restoreNormalMaterials();
+            if (spat instanceof Node node) {
+                node.detachChildNamed(NODE_NAME_NORMALS);
+            }
+            toggleWireframe();
+            return;
+        }
 
-        if (spat != null && spat instanceof Node) {
+        if (spat instanceof Node node && node.getQuantity() > 0) {
 
             // See if it already has the normal meshes generated
             Node normals = (Node) ((Node) spat).getChild(ModelViewer.NODE_NAME_NORMALS);
@@ -432,8 +550,11 @@ public final class ModelViewer extends SimpleApplication {
                             nodeNormals.attachChild(normalGeometry);
 
                             if (!g.isGrouped()) {
-                                g.setMaterial(new Material(assetManager,
-                                        "Common/MatDefs/Misc/ShowNormals.j3md"));
+                                originalNormalMaterials.put(g, g.getMaterial());
+                                Material normalsMaterial = new Material(assetManager,
+                                        "Common/MatDefs/Misc/ShowNormals.j3md");
+                                normalsMaterial.getAdditionalRenderState().setWireframe(wireframe);
+                                g.setMaterial(normalsMaterial);
                             }
                         }
                     }
@@ -446,6 +567,8 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     public void onSelectionChanged(Object selection) {
+        selectedEffect = selection instanceof Effect effect ? effect : null;
+        screen.selectionChanged(selection);
         effectManagerState.setEnabled(false);
 
         switch (screen.getTypeControl().getSelection()) {
@@ -549,12 +672,19 @@ public final class ModelViewer extends SimpleApplication {
                 Node spat = new Node();
                 Effect effect = (Effect) selection;
                 effectManagerState.setEnabled(true);
-                // Load the selected effect a tile above the floor, so it can
-                // actually fall and land instead of spawning at/under floor
-                // level (WorldUtils.FLOOR_HEIGHT).
-                effectManagerState.loadSingleEffect(spat,
-                        new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0),
-                        effect.getEffectId(), false);
+                if (overlayEnabled) {
+                    Spatial overlay = PORTAL_OVERLAY.equals(overlayModel)
+                            ? new RoomsLoader().loadPortalContext(assetManager, getKwdFile())
+                            : AssetUtils.loadAsset(assetManager, overlayModel, null);
+                    overlay.setName("Overlay model");
+                    spat.attachChild(overlay);
+                }
+                // Overlay models retain their authored origin; the assembled Portal's origin
+                // is its pit base, matching the traced native Portal effect anchor (Y=0).
+                // Keep the elevated anchor for isolated effects that need room to fall.
+                Vector3f anchor = overlayEnabled ? new Vector3f()
+                        : new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0);
+                effectManagerState.loadSingleEffect(spat, anchor, effect.getEffectId(), false);
                 setupModel(spat, false);
 
                 screen.setupItem(effect, null);
@@ -562,6 +692,47 @@ public final class ModelViewer extends SimpleApplication {
             }
         }
 
+    }
+
+    List<String> getOverlayModels() {
+        List<String> choices = new ArrayList<>();
+        if (dkIIFolder != null) {
+            choices.add(PORTAL_OVERLAY);
+        }
+        Path directory = Paths.get(AssetsConverter.getAssetsFolder(), AssetsConverter.MODELS_FOLDER);
+        try (var files = Files.newDirectoryStream(directory, PathUtils.getFilterForFilesEndingWith(".j3o"))) {
+            List<String> names = new ArrayList<>();
+            for (Path file : files) {
+                String name = file.getFileName().toString();
+                names.add(name.substring(0, name.length() - 4));
+            }
+            names.sort(String.CASE_INSENSITIVE_ORDER);
+            choices.addAll(names);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Failed to list overlay models", e);
+        }
+        return choices;
+    }
+
+    void setOverlayModel(String model) {
+        if (model == null || model.equals(overlayModel)) {
+            return;
+        }
+        overlayModel = model;
+        if (overlayEnabled && selectedEffect != null) {
+            onSelectionChanged(selectedEffect);
+        }
+    }
+
+    void setOverlayEnabled(boolean visible) {
+        if (overlayEnabled == visible) {
+            return;
+        }
+        overlayEnabled = visible;
+        // Restart explicitly so already emitted world-space particles use the new anchor.
+        if (selectedEffect != null) {
+            onSelectionChanged(selectedEffect);
+        }
     }
 
     private void setupDebug() {
@@ -589,12 +760,14 @@ public final class ModelViewer extends SimpleApplication {
         }
 
         // Hide the floor on maps
-        floorGeom.setCullHint(!isMap ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+        floorGeom.setCullHint(isMap || (selectedEffect != null && overlayEnabled)
+                ? Spatial.CullHint.Always : Spatial.CullHint.Never);
 
         // Shadows
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
-        // Remove the old model
+        // Restore materials before releasing the old model.
+        restoreNormalMaterials();
         rootNode.detachChildNamed(NODE_NAME);
 
         // Attach the new model
@@ -648,7 +821,7 @@ public final class ModelViewer extends SimpleApplication {
         }
 
         // Add & sort
-        listBox.addAllItems(object);
+        addFilteredItems(object);
         listBox.sortAllItems(String.CASE_INSENSITIVE_ORDER);
     }
 
@@ -688,56 +861,86 @@ public final class ModelViewer extends SimpleApplication {
             case CREATURES: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Creature> creatures = kwfFile.getCreatureList();
-                screen.getItemsControl().addAllItems(creatures);
+                addFilteredItems(creatures);
                 break;
             }
             case TERRAIN: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Terrain> terrains = kwfFile.getTerrainList();
-                screen.getItemsControl().addAllItems(terrains);
+                addFilteredItems(terrains);
                 break;
             }
             case OBJECTS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<GameObject> objects = kwfFile.getObjectList();
-                screen.getItemsControl().addAllItems(objects);
+                addFilteredItems(objects);
                 break;
             }
             case ROOMS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Room> rooms = kwfFile.getRooms();
-                screen.getItemsControl().addAllItems(rooms);
+                addFilteredItems(rooms);
                 break;
             }
             case DOORS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Door> doors = kwfFile.getDoors();
-                screen.getItemsControl().addAllItems(doors);
+                addFilteredItems(doors);
                 break;
             }
             case TRAPS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Trap> traps = kwfFile.getTraps();
-                screen.getItemsControl().addAllItems(traps);
+                addFilteredItems(traps);
                 break;
             }
             case SHOTS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Shot> shots = kwfFile.getShots();
-                screen.getItemsControl().addAllItems(shots);
+                addFilteredItems(shots);
                 break;
             }
             case EFFECTS: {
                 IKwdFile kwfFile = getKwdFile();
                 Collection<Effect> effects = kwfFile.getEffects().values();
-                screen.getItemsControl().addAllItems(effects);
+                addFilteredItems(effects);
                 break;
             }
         }
     }
 
-    private IKwdFile getKwdFile() {
-        // Read Alcatraz.kwd by default
+    protected void filterList(String filter) {
+        itemFilter = filter == null ? "" : filter.strip().toLowerCase(Locale.ROOT);
+        fillList(screen.getTypeControl().getSelection());
+    }
+
+    private void addFilteredItems(Collection<?> items) {
+        ListBox<Object> listBox = screen.getItemsControl();
+        List<Object> filteredItems = new ArrayList<>();
+        for (Object item : items) {
+            if (matchesFilter(item)) {
+                filteredItems.add(item);
+            }
+        }
+        listBox.addAllItems(filteredItems);
+    }
+
+    private boolean matchesFilter(Object item) {
+        if (itemFilter.isEmpty() || item.toString().toLowerCase(Locale.ROOT).contains(itemFilter)) {
+            return true;
+        }
+        if (item instanceof Effect effect) {
+            return Integer.toString(effect.getEffectId()).contains(itemFilter)
+                    || getEffectReferences(effect).toLowerCase(Locale.ROOT).contains(itemFilter);
+        }
+        return false;
+    }
+
+    protected String getEffectReferences(Effect effect) {
+        return EffectInspector.references(getKwdFile(), effect.getEffectId());
+    }
+
+    IKwdFile getKwdFile() {
         // Read Alcatraz.kwd by default
         if (kwdFile == null) {
             kwdFile = getKwdFile("Alcatraz");
