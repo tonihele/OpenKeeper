@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger.player;
 
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.EnumMap;
@@ -309,7 +310,12 @@ public class PlayerTriggerControl extends TriggerControl {
             return;
         }
         ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
-        creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        EntityId entityId = creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        if (entityId != null) {
+
+            // The creature counts as one that came in through the Portal, but the Portal's clock is not touched
+            room.onCreatureEntered(entityId);
+        }
     }
 
     private void setPortalStatus(TriggerActionData trigger) { // Creature part. Only for keeper x
