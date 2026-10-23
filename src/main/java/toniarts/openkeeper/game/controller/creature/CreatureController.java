@@ -486,7 +486,14 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void dropGold() {
-        // TODO:
+        Gold gold = entityData.getComponent(entityId, Gold.class);
+        if (gold == null || gold.gold <= 0) {
+            return;
+        }
+
+        // Nowhere to take the gold, leave it on the floor so we can carry on working
+        entityData.setComponent(entityId, new Gold(0, gold.maxGold));
+        addLooseGold(gold.gold);
     }
 
     @Override
@@ -987,9 +994,13 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         if (looseGold > 0) {
-            Point coordinates = getCreatureCoordinates();
-            objectsController.addLooseGold(getOwnerId(), coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+            addLooseGold(looseGold);
         }
+    }
+
+    private void addLooseGold(int amount) {
+        Point coordinates = getCreatureCoordinates();
+        objectsController.addLooseGold(getOwnerId(), coordinates.x, coordinates.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
     }
 
     @Override
