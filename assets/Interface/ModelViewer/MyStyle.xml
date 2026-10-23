@@ -3,4 +3,16 @@
     <style id="nifty-scrollpanel#scrollpanel">
         <attributes backgroundColor="#000e" />
     </style>
+    <style id="viewer-checkbox-style#panel">
+        <attributes width="18px" height="18px" childLayout="center" backgroundColor="#444f"/>
+        <effect>
+            <onActive name="border" color="#888f" post="true" inset="1px"/>
+            <onFocus name="border" color="#cccf" post="true" inset="1px"/>
+            <onHover name="border" color="#aaaf" post="true" inset="1px"/>
+        </effect>
+    </style>
+    <style id="viewer-checkbox-style#select">
+        <attributes align="center" valign="center" width="18px" height="18px"
+                    backgroundImage="checkbox/checkbox.png"/>
+    </style>
 </nifty-styles>

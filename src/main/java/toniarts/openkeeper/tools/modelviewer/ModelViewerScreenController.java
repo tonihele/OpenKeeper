@@ -67,6 +67,8 @@ public final class ModelViewerScreenController implements ScreenController {
     private final static String ID_FILTER = "filter";
     private final static String ID_AUTO_ROTATE = "autoRotate";
     private final static String ID_SHOW_NORMALS = "showNormals";
+    private final static String ID_WIREFRAME = "wireframe";
+    private final static String ID_SHOW_CEILING = "showCeiling";
 
     private final ModelViewer app;
     private final Nifty nifty;
@@ -99,6 +101,8 @@ public final class ModelViewerScreenController implements ScreenController {
     public void onStartScreen() {
         setAutoRotateChecked(app.isAutoRotateEnabled());
         setShowNormalsChecked(app.isShowNormalsEnabled());
+        setWireframeChecked(app.isWireframeEnabled());
+        setCeilingChecked(app.isCeilingVisible());
     }
 
     boolean isTyping() {
@@ -149,6 +153,30 @@ public final class ModelViewerScreenController implements ScreenController {
 
     void setShowNormalsChecked(boolean enabled) {
         CheckBox checkBox = screen.findNiftyControl(ID_SHOW_NORMALS, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_WIREFRAME)
+    public void onWireframeChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setWireframeEnabled(event.isChecked());
+    }
+
+    void setWireframeChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_WIREFRAME, CheckBox.class);
+        if (checkBox != null && checkBox.isChecked() != enabled) {
+            checkBox.setChecked(enabled);
+        }
+    }
+
+    @NiftyEventSubscriber(id = ID_SHOW_CEILING)
+    public void onCeilingChanged(final String id, final CheckBoxStateChangedEvent event) {
+        app.setCeilingVisible(event.isChecked());
+    }
+
+    void setCeilingChecked(boolean enabled) {
+        CheckBox checkBox = screen.findNiftyControl(ID_SHOW_CEILING, CheckBox.class);
         if (checkBox != null && checkBox.isChecked() != enabled) {
             checkBox.setChecked(enabled);
         }

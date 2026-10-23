@@ -150,6 +150,8 @@ public final class ModelViewer extends SimpleApplication {
     private IKwdFile kwdFile;
     private Node floorGeom;
     private String itemFilter = "";
+    private boolean leftAltPressed;
+    private boolean rightAltPressed;
 
     //private SoundsLoader soundLoader;
     /**
@@ -161,6 +163,8 @@ public final class ModelViewer extends SimpleApplication {
     private static final String KEY_MAPPING_TOGGLE_WIREFRAME = "toggle wireframe";
     private static final String KEY_MAPPING_TOGGLE_ROTATION = "toggle rotation";
     private static final String KEY_MAPPING_TOGGLE_CEILING = "toggle ceiling";
+    private static final String KEY_MAPPING_LEFT_ALT = "left alt";
+    private static final String KEY_MAPPING_RIGHT_ALT = "right alt";
 
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
@@ -168,24 +172,26 @@ public final class ModelViewer extends SimpleApplication {
     private final ActionListener actionListener = new ActionListener() {
         @Override
         public void onAction(String name, boolean pressed, float tpf) {
-            if (screen != null && screen.isTyping()) {
+            if (KEY_MAPPING_LEFT_ALT.equals(name)) {
+                leftAltPressed = pressed;
+                return;
+            }
+            if (KEY_MAPPING_RIGHT_ALT.equals(name)) {
+                rightAltPressed = pressed;
+                return;
+            }
+            if (!pressed || !(leftAltPressed || rightAltPressed) || (screen != null && screen.isTyping())) {
                 return;
             }
 
-            // Toggle wireframe
-            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name) && !pressed) {
-                wireframe = !wireframe;
-                toggleWireframe();
-            } // Toggle rotation
-            else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name) && !pressed) {
+            if (KEY_MAPPING_TOGGLE_WIREFRAME.equals(name)) {
+                setWireframeEnabled(!wireframe);
+            } else if (KEY_MAPPING_TOGGLE_ROTATION.equals(name)) {
                 setAutoRotateEnabled(!rotate);
-            } // Normals
-            else if (KEY_MAPPING_SHOW_NORMALS.equals(name) && !pressed) {
+            } else if (KEY_MAPPING_SHOW_NORMALS.equals(name)) {
                 setShowNormalsEnabled(!showNormals);
-            } // Ceiling
-            else if (KEY_MAPPING_TOGGLE_CEILING.equals(name) && !pressed) {
-                ceilingVisible = !ceilingVisible;
-                mapLoaderAppState.setCeilingVisible(ceilingVisible);
+            } else if (KEY_MAPPING_TOGGLE_CEILING.equals(name)) {
+                setCeilingVisible(!ceilingVisible);
             }
         }
     };
@@ -292,6 +298,10 @@ public final class ModelViewer extends SimpleApplication {
         // Mouse cursor
         inputManager.setCursorVisible(true);
         inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+
+        inputManager.addMapping(KEY_MAPPING_LEFT_ALT, new KeyTrigger(KeyInput.KEY_LMENU));
+        inputManager.addMapping(KEY_MAPPING_RIGHT_ALT, new KeyTrigger(KeyInput.KEY_RMENU));
+        inputManager.addListener(actionListener, KEY_MAPPING_LEFT_ALT, KEY_MAPPING_RIGHT_ALT);
 
         // Wireframe
         inputManager.addMapping(KEY_MAPPING_TOGGLE_WIREFRAME, new KeyTrigger(KeyInput.KEY_T));
@@ -412,6 +422,37 @@ public final class ModelViewer extends SimpleApplication {
 
         floorGeom.setMaterial(floorMaterial);
         rootNode.attachChild(floorGeom);
+    }
+
+    @Override
+    public void loseFocus() {
+        leftAltPressed = false;
+        rightAltPressed = false;
+        super.loseFocus();
+    }
+
+    boolean isWireframeEnabled() {
+        return wireframe;
+    }
+
+    void setWireframeEnabled(boolean enabled) {
+        wireframe = enabled;
+        toggleWireframe();
+        if (screen != null) {
+            screen.setWireframeChecked(enabled);
+        }
+    }
+
+    boolean isCeilingVisible() {
+        return ceilingVisible;
+    }
+
+    void setCeilingVisible(boolean visible) {
+        ceilingVisible = visible;
+        mapLoaderAppState.setCeilingVisible(visible);
+        if (screen != null) {
+            screen.setCeilingChecked(visible);
+        }
     }
 
     private void toggleWireframe() {

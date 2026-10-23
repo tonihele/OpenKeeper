@@ -18,16 +18,32 @@
                     <text style="text" text="Filter" width="50px" valign="center"/>
                     <control name="textfield" id="filter" text="" maxLength="64" width="*"/>
                 </panel>
-                <panel id="selectionOptions" childLayout="vertical" width="100%" height="72px"
-                       padding="4px" backgroundColor="#000f">
+                <panel id="selectionOptions" childLayout="vertical" width="100%" height="148px"
+                       padding="8px" backgroundColor="#000f">
                     <text style="text" text="Options" width="100%" height="20px" textHAlign="left"/>
-                    <panel childLayout="horizontal" width="100%" height="22px">
-                        <control name="checkbox" id="autoRotate"/>
-                        <text style="text" text=" Auto-rotate" width="*" valign="center"/>
+                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
+                        <control name="checkbox" id="autoRotate" style="viewer-checkbox-style" valign="center"/>
+                        <panel width="8px"/>
+                        <text style="text" text="Auto-rotate" width="*" valign="center"/>
+                        <text style="text" text="Alt+R" width="48px" valign="center" textHAlign="right"/>
                     </panel>
-                    <panel childLayout="horizontal" width="100%" height="22px">
-                        <control name="checkbox" id="showNormals"/>
-                        <text style="text" text=" Show normals" width="*" valign="center"/>
+                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
+                        <control name="checkbox" id="showNormals" style="viewer-checkbox-style" valign="center"/>
+                        <panel width="8px"/>
+                        <text style="text" text="Show normals" width="*" valign="center"/>
+                        <text style="text" text="Alt+N" width="48px" valign="center" textHAlign="right"/>
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
+                        <control name="checkbox" id="wireframe" style="viewer-checkbox-style" valign="center"/>
+                        <panel width="8px"/>
+                        <text style="text" text="Wireframe" width="*" valign="center"/>
+                        <text style="text" text="Alt+T" width="48px" valign="center" textHAlign="right"/>
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="28px" valign="center">
+                        <control name="checkbox" id="showCeiling" style="viewer-checkbox-style" valign="center"/>
+                        <panel width="8px"/>
+                        <text style="text" text="Map ceiling" width="*" valign="center"/>
+                        <text style="text" text="Alt+C" width="48px" valign="center" textHAlign="right"/>
                     </panel>
                 </panel>
                 <control name="listBox" id="items" horizontal="optional" selection="Single"
