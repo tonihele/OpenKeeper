@@ -2378,6 +2378,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             TriggerGeneric.TargetType.CREATURE_LEAVES,
             TriggerGeneric.TargetType.CREATURE_STUNNED,
             TriggerGeneric.TargetType.CREATURE_DYING,
+            // The original never reads the parameters of these two events
+            TriggerGeneric.TargetType.DOOR_DESTROYED,
+            TriggerGeneric.TargetType.OBJECT_CLAIMED,
             TriggerGeneric.TargetType.GUI_TRANSITION_ENDS,
             TriggerGeneric.TargetType.CREATURE_PICKED_UP,
             TriggerGeneric.TargetType.CREATURE_SACKED,
