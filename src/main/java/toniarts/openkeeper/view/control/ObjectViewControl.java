@@ -125,19 +125,32 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     @Override
     public String getTooltip(short playerId) {
-        String tooltip;
-        if (getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+        String key = getTooltipKey(getDataObject());
+        if (key == null) {
+            return null;
+        }
+        return textParser.parseText(Utils.getMainTextResourceBundle().getString(key), getEntity(), getDataObject());
+    }
+
+    /**
+     * Get the text key of the object's own tooltip
+     *
+     * @param object the object
+     * @return the key, or {@code null} if the object has no tooltip of its own,
+     * like the creature beds
+     */
+    static String getTooltipKey(GameObject object) {
+        if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
 
             // TODO: better separation between loose and room gold
-            if (getDataObject().getObjectId() == 1) {
-                tooltip = Utils.getMainTextResourceBundle().getString("2544");
-            } else {
-                tooltip = Utils.getMainTextResourceBundle().getString("2543");
-            }
-        } else {
-            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
+            return object.getObjectId() == 1 ? "2544" : "2543";
         }
-        return textParser.parseText(tooltip, getEntity(), getDataObject());
+
+        // Text 0 is "Jelly", the objects that have it have no tooltip
+        if (object.getTooltipStringId() == 0) {
+            return null;
+        }
+        return Integer.toString(object.getTooltipStringId());
     }
 
     @Override
