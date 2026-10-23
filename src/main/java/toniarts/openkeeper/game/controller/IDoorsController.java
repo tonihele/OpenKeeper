@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityId;
+import java.util.OptionalInt;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.utils.Point;
 
@@ -45,5 +46,16 @@ public interface IDoorsController extends IEntityWrapper<IDoorController> {
      * (anymore)
      */
     public void buildDoor(EntityId blueprint);
+
+    /**
+     * Sells the keeper's door or door blueprint on the tile. The door is gone,
+     * the caller returns the gold to the keeper
+     *
+     * @param tile the tile
+     * @param playerId the selling keeper
+     * @return the gold the sale returns, empty if the keeper has no door
+     * there
+     */
+    public OptionalInt sellDoor(Point tile, short playerId);
 
 }
