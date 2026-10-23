@@ -95,7 +95,7 @@ public final class KeeperSpellCastValidator {
                 }
             }
             case ENEMY_CREATURES -> {
-                if (creature == null || owner == null) {
+                if (creature == null || owner == null || !checkTurncoatRule(keeperSpell, entityData, target)) {
                     return false;
                 }
                 if (!player.isEnemy(owner)) {
@@ -152,6 +152,23 @@ public final class KeeperSpellCastValidator {
         }
 
         return true;
+    }
+
+    /**
+     * Spells for enemy creatures, such as Turncoat, need a creature to be cast
+     * on. An enemy door or trap won't do
+     *
+     * @param keeperSpell the spell
+     * @param entityData the entities
+     * @param target the spell target, can be null
+     * @return true if the target is fine for the spell
+     */
+    static boolean checkTurncoatRule(KeeperSpell keeperSpell, EntityData entityData, EntityId target) {
+        if (keeperSpell.getTargetRule() != ENEMY_CREATURES) {
+            return true;
+        }
+
+        return target != null && entityData.getComponent(target, CreatureComponent.class) != null;
     }
 
 }

@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -1054,6 +1055,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         Owner owner = entityData.getComponent(entityId, Owner.class);
         if (owner == null || owner.controlId != playerId) {
+            return false;
+        }
+
+        // A turncoat can't be picked up by either keeper
+        if (entityData.getComponent(entityId, Turncoat.class) != null) {
             return false;
         }
 

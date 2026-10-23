@@ -282,4 +282,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void convertCreature(short playerId);
 
+    /**
+     * Makes the creature fight for another player for a while, as by the
+     * Turncoat spell. It stays owned by its keeper. Creatures immune to the
+     * spell stay as they are
+     *
+     * @param playerId the player the creature fights for
+     * @param duration how long, in seconds
+     */
+    public void turncoat(short playerId, double duration);
+
 }
