@@ -565,22 +565,21 @@ public class PlayerEntityViewState extends AbstractAppState {
      */
     private void applyThingLight(EntityId id, Spatial object, Light light, float intensity, boolean honourPulse, boolean objectLight) {
         LightRules lightRules = getLightRules();
-        if (lightRules == null) {
-            // Map still loading: remember the thing so update() creates the
-            // light as soon as the map is ready, without waiting for the
-            // entity to change again (an idle imp might never)
-            if (LightConstants.isLightEnabled(light)) {
-                trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
+        if (!LightConstants.isLightEnabled(light)) {
+            trackedLights.remove(id);
+            lightOwners.remove(id);
+            if (lightRules != null) {
+                lightRules.removeThingLight(id);
             }
             return;
         }
-        if (!LightConstants.isLightEnabled(light)) {
-            lightRules.removeThingLight(id);
-            lightOwners.remove(id);
-            trackedLights.remove(id);
+        trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
+        if (lightRules == null) {
+            // Map still loading: update() creates the light as soon as the
+            // map is ready, without waiting for the entity to change again
+            // (an idle imp might never)
             return;
         }
-        trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
 
         // A PLAYER_COLOURED light takes the owner's colour, so a change of
         // owner (e.g. a converted creature) needs the light rebuilt
