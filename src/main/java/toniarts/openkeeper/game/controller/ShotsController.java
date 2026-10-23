@@ -33,6 +33,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJE
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -78,6 +79,13 @@ public final class ShotsController implements IShotsController {
         result.put(CREATE_OBJECT, request -> objectsController.loadObject((short) request.shotData1(), request.playerId(), request.position(), 0));
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        result.put(SIGHT_OF_EVIL, request -> {
+
+            // Shot data 1 is the radius, the shot lifetime (in game ticks) the duration
+            if (request.shotData1() > 0) {
+                mapController.revealSightOfEvil(WorldUtils.vectorToPoint(request.position()), request.shotData1(), request.shot().getHealth(), request.playerId());
+            }
+        });
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
 
         return result;

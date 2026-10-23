@@ -789,6 +789,13 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onSightOfEvil(centre, radius, durationTicks, playerId);
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onFogOfWarDisabled(playerId);

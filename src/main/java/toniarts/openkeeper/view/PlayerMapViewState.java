@@ -271,6 +271,13 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         fogOfWarController.revealActionPointTiles(points, explore);
     }
 
+    @Override
+    public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+
+        // Fog of war is only touched on the render thread
+        app.enqueue(() -> fogOfWarController.startSightOfEvil(centre, radius, durationTicks));
+    }
+
     public IMapInformation getMapInformation() {
         return mapInformation;
     }

@@ -413,6 +413,13 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onSightOfEvil(centre, radius, durationTicks, keeperId);
+            }
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onFogOfWarDisabled(keeperId);

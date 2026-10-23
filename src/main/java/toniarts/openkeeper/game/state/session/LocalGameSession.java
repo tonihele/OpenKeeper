@@ -279,6 +279,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onSightOfEvil(centre, radius, durationTicks, playerId);
+            }
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {

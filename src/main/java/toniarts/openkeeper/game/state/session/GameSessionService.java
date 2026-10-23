@@ -81,6 +81,18 @@ public interface GameSessionService extends PlayerListener, PlayerService {
     public void revealTiles(List<Point> points, boolean explore, short keeperId);
 
     /**
+     * The Sight of Evil keeper spell: reveal an area through the fog of war
+     * for a while
+     *
+     * @param centre the cast tile
+     * @param radius the radius of the revealed area, in tiles
+     * @param durationTicks how long the area stays revealed, in game ticks
+     * @param keeperId the keeper whose fog of war is affected
+     */
+    @Asynchronous
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short keeperId);
+
+    /**
      * The {@code REMOVE_FOW} cheat: disable fog of war
      *
      * @param keeperId the keeper whose fog of war is affected
