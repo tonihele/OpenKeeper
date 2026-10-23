@@ -147,12 +147,6 @@ public class VisualEffect {
         }
 
         // Light
-        //light = getLight(effect.getLight());
-        //if (light != null) {
-        //    model.addLight(light);
-        //}
-
-        // Light
         lightTarget = model;
         applyEffectLight(effect.getLight());
         // Elements/effects
