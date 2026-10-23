@@ -224,6 +224,13 @@ public final class AssetUtils {
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
 
+        // Also apply the native alpha-pass depth state to already converted
+        // materials; changing the KMF converter alone would require reconversion.
+        // Portal chasm surfaces must not depth-mask additive particles below them.
+        if (material.isTransparent()) {
+            material.getAdditionalRenderState().setDepthWrite(false);
+        }
+
         // Unharmed texture
         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
 

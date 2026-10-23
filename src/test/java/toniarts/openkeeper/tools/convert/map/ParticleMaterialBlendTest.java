@@ -4,6 +4,7 @@ package toniarts.openkeeper.tools.convert.map;
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.material.RenderState.BlendMode;
+import com.jme3.material.Material;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +40,30 @@ class ParticleMaterialBlendTest {
             assertFalse(additiveMaterial.getAdditionalRenderState().isDepthWrite());
             assertFalse(alphaMaterial.getAdditionalRenderState().isDepthWrite());
         }
+    }
+
+    @Test
+    void convertedTransparentModelsDoNotDepthMaskAdditiveParticles() throws Exception {
+        var assets = new DesktopAssetManager(true);
+        assets.registerLocator(directory.toString(), FileLocator.class);
+        Files.createDirectories(directory.resolve("Textures"));
+        ImageIO.write(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), "png",
+                directory.resolve("Textures/chasm.png").toFile());
+        var material = new Material(assets, "Common/MatDefs/Light/Lighting.j3md");
+        material.setTexture("DiffuseMap", assets.loadTexture("Textures/chasm.png"));
+        material.setTransparent(true);
+        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+        material.getAdditionalRenderState().setDepthWrite(true); // Old converted .j3m state.
+        AssetUtils.assignMapsToMaterial(assets, material);
+        assertFalse(material.getAdditionalRenderState().isDepthWrite());
+        assertTrue(material.getAdditionalRenderState().isDepthTest());
+        assertEquals(BlendMode.Alpha, material.getAdditionalRenderState().getBlendMode());
+
+        var opaque = material.clone();
+        opaque.setTransparent(false);
+        opaque.getAdditionalRenderState().setDepthWrite(true);
+        AssetUtils.assignMapsToMaterial(assets, opaque);
+        assertTrue(opaque.getAdditionalRenderState().isDepthWrite());
     }
 
     private static ArtResource resource(String name, ArtResource.ArtResourceType type) {
