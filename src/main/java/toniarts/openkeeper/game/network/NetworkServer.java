@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.InfernoArea;
 import toniarts.openkeeper.game.component.KnockedDown;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
@@ -189,6 +190,7 @@ public final class NetworkServer {
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
             Serializer.registerClass(KnockedDown.class, new FieldSerializer());
+            Serializer.registerClass(InfernoArea.class, new FieldSerializer());
             Serializer.registerClass(Mana.class, new FieldSerializer());
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(Mobile.class, new FieldSerializer());

@@ -24,12 +24,14 @@ import java.util.EnumMap;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
+import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
@@ -79,6 +81,7 @@ public final class ShotsController implements IShotsController {
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer));
+        result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
 
         return result;
     }

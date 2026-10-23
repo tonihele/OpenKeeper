@@ -78,6 +78,7 @@ public final class GameLoopManager {
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController()),
                 new KnockdownSystem(entityData, gameWorldController.getCreaturesController()),
+                new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
