@@ -32,8 +32,8 @@ import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * DK II adds a researcher's research points on every game tick, not once a
- * second
+ * DK II adds a researcher's research points per tick on every game tick, not
+ * once a second
  */
 class ResearchRateTest {
 
@@ -52,6 +52,15 @@ class ResearchRateTest {
     @Test
     void firstTickAlreadyResearches() {
         assertEquals(5, researchFor(5, 4, 0.25f));
+    }
+
+    @Test
+    void levelOneWarlockTakesOverFourMinutesForAnItem() {
+
+        // A level 1 Warlock (5 a second in the data) makes 1 point a tick at 4
+        // ticks a second, so a 1000 point item takes 250 seconds
+        assertEquals(999, researchFor(1, 4, 249.75f));
+        assertEquals(1000, researchFor(1, 4, 250));
     }
 
     private static int researchFor(int researchPerTick, int ticksPerSecond, float seconds) {
@@ -84,7 +93,7 @@ class ResearchRateTest {
     private static ICreatureController creature(int researchPerTick) {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "getResearchPerSecond" -> researchPerTick;
+                    case "getResearchPerTick" -> researchPerTick;
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
