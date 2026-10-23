@@ -60,6 +60,7 @@ class DoorsControllerTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Door woodenDoor = DoorFixtures.door((short) 1, 250, 800);
+    private final Door secretDoor = DoorFixtures.door((short) 5, 3000, Door.DoorFlag.IS_SECRET);
     private FakeMapData mapData;
     private DoorsController doorsController;
 
@@ -83,7 +84,7 @@ class DoorsControllerTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getThings" -> List.of();
-            case "getDoorById" -> woodenDoor;
+            case "getDoorById" -> ((Number) args[0]).shortValue() == secretDoor.getDoorId() ? secretDoor : woodenDoor;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         doorsController = new DoorsController(kwdFile, entityData, null, mapController, null, null);
@@ -136,6 +137,29 @@ class DoorsControllerTest {
         assertFalse(entityData.getComponent(door, DoorComponent.class).blueprint);
         assertFalse(entityData.getComponent(door, DoorViewState.class).blueprint);
         assertEquals(800, entityData.getComponent(door, Health.class).health);
+    }
+
+    @Test
+    void deliveredSecretDoorIsSecret() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(secretDoor.getDoorId(), TILE, PLAYER);
+        assertFalse(entityData.getComponent(door, DoorComponent.class).secret);
+
+        doorsController.buildDoor(door);
+
+        assertTrue(entityData.getComponent(door, DoorComponent.class).secret);
+    }
+
+    @Test
+    void deliveredDoorIsNotSecret() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        doorsController.buildDoor(door);
+
+        assertFalse(entityData.getComponent(door, DoorComponent.class).secret);
     }
 
     @Test

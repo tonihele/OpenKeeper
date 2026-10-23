@@ -1038,7 +1038,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Doors
         DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
         if (doorComponent != null && !doorComponent.blueprint) {
-            entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
+            entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint, doorComponent.secret));
             DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
             if (doorViewState != null) {
                 entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
