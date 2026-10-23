@@ -588,7 +588,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private void onLeftMouseButtonPressed() {
             if (interactionState.getType() == Type.SPELL) {
-                castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
+                Vector2f floorPosition = selectionHandler.getPointedFloorPosition();
+                castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, WorldUtils.vectorToPoint(floorPosition), floorPosition);
                 //TODO correct interactiveControl.isPickable
                 /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
                         && interactiveControl.isPickable(player.getPlayerId())) {

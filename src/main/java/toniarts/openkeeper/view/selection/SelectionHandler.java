@@ -52,6 +52,7 @@ public abstract class SelectionHandler {
     private Point pointedTileIndex = new Point(); // Could be just point...
     private Vector2f pointedTilePosition = new Vector2f(Vector2f.ZERO); // Could be just point...
     private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
+    private final Vector2f pointedFloorPosition = new Vector2f(Vector2f.ZERO);
 
     public SelectionHandler(Main app) {
         this.app = app;
@@ -73,6 +74,8 @@ public abstract class SelectionHandler {
 
         Vector3f tmp = cam.getWorldCoordinates(this.mousePosition, 0f).clone();
         Vector3f dir = cam.getWorldCoordinates(this.mousePosition, 1f).subtractLocal(tmp).normalizeLocal();
+        float floorDistance = (WorldUtils.FLOOR_HEIGHT - pos.getY()) / dir.getY();
+        pointedFloorPosition.set(pos.getX() + dir.getX() * floorDistance, pos.getZ() + dir.getZ() * floorDistance);
         dir.multLocal((WorldUtils.TOP_HEIGHT - pos.getY()) / dir.getY()).addLocal(pos);
         
         pointedPosition.set(dir.getX(), dir.getZ());
@@ -91,6 +94,16 @@ public abstract class SelectionHandler {
      */
     public Vector2f getActualPointedPosition() {
         return pointedPosition;
+    }
+
+    /**
+     * Get the pointed location on the floor. The actual pointed location is on
+     * the height of the wall tops, so on the floor it is off towards the camera
+     *
+     * @return the pointed location on the floor in 2D space
+     */
+    public Vector2f getPointedFloorPosition() {
+        return pointedFloorPosition;
     }
 
     /**
