@@ -1375,8 +1375,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             }
         }
 
-        // FIXME: GameResult has no data yet and also get it from the client state directly
-        boolean levelWon = true; // result.getData(GameResult.ResultType.LEVEL_WON);
+        // FIXME: GameResult has no other data yet and also get it from the client state directly
+        boolean levelWon = state.isDebriefingLevelWon();
         deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
         int timeTaken = 0; //Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
