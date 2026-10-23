@@ -42,6 +42,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
@@ -829,9 +830,22 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (!dirty.contains(tile)) {
                 continue;
             }
-            boolean baseVisible = !(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible;
+            boolean baseVisible = (!(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible)
+                    && isTrapShown(control.getEntityId());
             applyFogCullHint(spatial, tile, baseVisible);
         }
+    }
+
+    /**
+     * Hidden traps and blueprints are shown only to their owner
+     *
+     * @param entityId the entity
+     * @return false if the entity is a trap the player doesn't get to see
+     */
+    private boolean isTrapShown(EntityId entityId) {
+        TrapViewState trapViewState = entityData.getComponent(entityId, TrapViewState.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        return trapViewState == null || owner == null || trapViewState.isShownTo(owner.ownerId, playerId);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -1015,7 +1029,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             }
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
-            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), isTrapShown(e.getId()));
         }
 
         @Override

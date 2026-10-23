@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,12 +66,15 @@ class TrapSystemTest {
     private static final short FEAR = 8;
     private static final short TRIGGER = 9;
     private static final short GUARD_POST = 11;
+    private static final short GAS = 1;
     private static final short CANNON_BALL = 44;
     private static final short SPIKE_SHOT = 27;
     private static final short FEAR_SHOT = 25;
     private static final short TRIGGER_SHOT = 39;
+    private static final short GAS_SHOT = 58;
     private static final short IMP = 1;
     private static final short REAPER = 2;
+    private static final short THIEF = 18;
     private static final Point TRAP_TILE = new Point(10, 10);
 
     private final EntityData entityData = new DefaultEntityData();
@@ -94,8 +98,11 @@ class TrapSystemTest {
                 TrapFiringFixtures.trap(FEAR, Trap.TriggerType.LINE_OF_SIGHT, 3, 6, FEAR_SHOT), 600, 60));
         traps.put((int) TRIGGER, TrapFiringFixtures.trap(TRIGGER, Trap.TriggerType.TRIGGER, 1, 4, TRIGGER_SHOT));
         traps.put((int) GUARD_POST, TrapFiringFixtures.trap(GUARD_POST, Trap.TriggerType.PRESSURE, 6, 1, (short) 0));
+        traps.put((int) GAS, TrapFiringFixtures.trap(GAS, Trap.TriggerType.PRESSURE, 1, 4, GAS_SHOT));
+        traps.get((int) GAS).getFlags().addAll(EnumSet.of(Trap.TrapFlag.INVISIBLE, Trap.TrapFlag.REVEAL_WHEN_FIRED));
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
+        creatures.put(THIEF, TrapFiringFixtures.creature(THIEF, Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS));
         keeper.setMana(1000);
     }
 
@@ -381,6 +388,62 @@ class TrapSystemTest {
     }
 
     @Test
+    void hiddenTrapShowsItselfWhenItFires() {
+        EntityId trap = addHiddenTrap(GAS, TRAP_TILE);
+        addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+
+        assertFalse(entityData.getComponent(trap, TrapViewState.class).hidden);
+    }
+
+    @Test
+    void hiddenTrapStaysHiddenUntilItFires() {
+        EntityId trap = addHiddenTrap(GAS, TRAP_TILE);
+        addCreature(IMP, ENEMY, 11, 10);
+
+        tick();
+
+        assertTrue(entityData.getComponent(trap, TrapViewState.class).hidden);
+    }
+
+    @Test
+    void trapThatIsNotRevealedWhenFiredStaysHidden() {
+        EntityId trap = addHiddenTrap(SPIKE, TRAP_TILE);
+        addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+
+        assertEquals(1, shots.size());
+        assertTrue(entityData.getComponent(trap, TrapViewState.class).hidden);
+    }
+
+    @Test
+    void creatureThatRevealsTrapsRevealsTheEnemyTrapsAroundIt() {
+        EntityId diagonal = addHiddenTrap(SPIKE, TRAP_TILE);
+        EntityId below = addHiddenTrap(SPIKE, new Point(10, 12));
+        EntityId twoTilesAway = addHiddenTrap(SPIKE, new Point(9, 13));
+        addCreature(THIEF, ENEMY, 11, 11);
+
+        tick();
+
+        assertFalse(entityData.getComponent(diagonal, TrapViewState.class).hidden);
+        assertFalse(entityData.getComponent(below, TrapViewState.class).hidden);
+        assertTrue(entityData.getComponent(twoTilesAway, TrapViewState.class).hidden);
+    }
+
+    @Test
+    void ownAndOrdinaryCreaturesRevealNoTraps() {
+        EntityId trap = addHiddenTrap(SPIKE, TRAP_TILE);
+        addCreature(THIEF, KEEPER, 11, 10);
+        addCreature(IMP, ENEMY, 10, 11);
+
+        tick();
+
+        assertTrue(entityData.getComponent(trap, TrapViewState.class).hidden);
+    }
+
+    @Test
     void lineOfSightIsBlockedByWallsBetween() {
         walls.add(new Point(11, 11));
 
@@ -405,6 +468,12 @@ class TrapSystemTest {
         Vector3f position = WorldUtils.pointToVector3f(tile);
         position.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entityId, new Position(0, position));
+        return entityId;
+    }
+
+    private EntityId addHiddenTrap(short trapId, Point tile) {
+        EntityId entityId = addTrap(trapId, tile);
+        entityData.setComponent(entityId, new TrapViewState(trapId, false, true));
         return entityId;
     }
 
