@@ -30,15 +30,11 @@ import toniarts.openkeeper.tools.convert.map.Shot;
  * {@code InfernoSystem}.
  * <p>
  * Prima's official strategy guide for the original gives 40 damage a second,
- * 50 upgraded, for 8 seconds. The shot data is 100 and 125, and the shot's
- * health 30 is 7.5 seconds at the level's 4 ticks a second.
+ * 50 upgraded, for 8 seconds. That is the shot's damage, 10 (13 upgraded),
+ * each of the level's 4 ticks a second, and the shot's health 30 is 7.5
+ * seconds in ticks.
  */
 public final class InfernoShotProcessor implements IShotProcessor {
-
-    /**
-     * Damage a second per point of shot data 1
-     */
-    static final double DAMAGE_PER_SECOND_PER_SHOT_DATA = 0.4;
 
     private final EntityData entityData;
     private final IGameTimer gameTimer;
@@ -56,9 +52,9 @@ public final class InfernoShotProcessor implements IShotProcessor {
         EntityId fire = ShotEntityFactory.create(entityData, request.shot(), request.position(), now);
         entityData.setComponent(fire, new Decay(now, getLifetime(request.shot())));
 
-        // Shot data 1 is the strength, 2 the reach in tiles
+        // The damage is per game tick, shot data 2 is the reach in tiles
         double interval = getInterval(request.shot());
-        int damage = (int) Math.round(request.shotData1() * DAMAGE_PER_SECOND_PER_SHOT_DATA * interval);
+        int damage = (int) Math.round(request.damage() * ticksPerSecond.getAsInt() * interval);
         entityData.setComponent(fire, new InfernoArea(damage, request.shotData2(), interval, now));
     }
 
