@@ -17,7 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 /**
- * Builds level variable fixtures for the training tests. Lives in
+ * Builds level variable, level and creature fixtures for the training tests. Lives in
  * {@code Variable}'s own package because its setters are {@code protected}
  * (parser-only).
  */
@@ -31,6 +31,28 @@ public final class TrainingVariableFixtures {
         variable.setVariableId(type);
         variable.setValue(value);
         return variable;
+    }
+
+    public static Variable.CreatureStats creatureStats(Variable.CreatureStats.StatType type, int level, int percentage) {
+        Variable.CreatureStats stats = new Variable.CreatureStats();
+        stats.setStatId(type);
+        stats.setLevel(level);
+        stats.setValue(percentage);
+        return stats;
+    }
+
+    public static GameLevel gameLevel(int ticksPerSecond) {
+        GameLevel gameLevel = new GameLevel();
+        gameLevel.setTicksPerSec(ticksPerSecond);
+        return gameLevel;
+    }
+
+    public static Creature trainee(short creatureId, int experiencePerSecondTraining) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        creature.setName("Creature " + creatureId);
+        creature.getAttributes().setExpPerSecondTraining(experiencePerSecondTraining);
+        return creature;
     }
 
 }

@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
@@ -123,7 +124,41 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
             return;
         }
 
-        addExperience(entityId, creatureExperience, getTrainingExperienceGain(creatureExperience));
+        addExperience(entityId, creatureExperience, getTrainingExperienceGain(creatureExperience, getTrainingExperiencePerTick(entity, creatureExperience)));
+    }
+
+    /**
+     * Get the training experience the creature gets on each tick. When the
+     * level loads, DK II divides the training experience per second of the
+     * creature data by the ticks per second, keeping at least 1 if there is
+     * anything to divide. The creature's level percentage is applied to that
+     * per tick value.
+     */
+    private int getTrainingExperiencePerTick(Entity entity, CreatureExperience creatureExperience) {
+        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+        if (creature == null) {
+            return 0;
+        }
+        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureExperience.level);
+        Variable.CreatureStats levelPercent = (stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND) : null);
+        return getPointsPerTick(creature.getAttributes().getExpPerSecondTraining(), kwdFile.getGameLevel().getTicksPerSec(), levelPercent != null ? levelPercent.getValue() : 100);
+    }
+
+    /**
+     * Turn points per second of the creature data into points per tick, like
+     * DK II
+     *
+     * @param pointsPerSecond the points per second in the creature data
+     * @param ticksPerSecond the level's ticks per second
+     * @param levelPercent the percentage of the creature's level
+     * @return the points per tick
+     */
+    static int getPointsPerTick(int pointsPerSecond, int ticksPerSecond, int levelPercent) {
+        if (pointsPerSecond <= 0) {
+            return 0;
+        }
+        int pointsPerTick = Math.max(1, pointsPerSecond / Math.max(1, ticksPerSecond));
+        return pointsPerTick * levelPercent / 100;
     }
 
     /**
@@ -132,11 +167,12 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
      * creature up with no experience left over.
      *
      * @param creatureExperience the creature's experience
+     * @param experiencePerTick the training experience per tick
      * @return the experience to add
      */
-    private static int getTrainingExperienceGain(CreatureExperience creatureExperience) {
+    private static int getTrainingExperienceGain(CreatureExperience creatureExperience, int experiencePerTick) {
         int stillNeeded = creatureExperience.experienceToNextLevel - creatureExperience.experience;
-        return Math.max(0, Math.min(creatureExperience.experiencePerSecondTraining, stillNeeded));
+        return Math.max(0, Math.min(experiencePerTick, stillNeeded));
     }
 
     private void handleEntity(Entity entity, EntityId entityId, float tpf, Supplier<ExperienceGainReason> reasonSupplier) {
