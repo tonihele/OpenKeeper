@@ -30,6 +30,7 @@ import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
+import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
@@ -186,6 +187,7 @@ public final class NetworkServer {
             Serializer.registerClass(GameEvent.ThingFlag.class, new EnumSerializer());
 
             // Our entity components
+            Serializer.registerClass(Alarm.class, new FieldSerializer());
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
