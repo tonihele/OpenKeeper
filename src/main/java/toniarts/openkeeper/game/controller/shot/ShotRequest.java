@@ -25,12 +25,29 @@ import toniarts.openkeeper.tools.convert.map.Shot;
  *
  * @param shot the shot type
  * @param shotData1 first parameter, meaning depends on the process type. For
- * damaging shots it is the damage
+ * damaging shots it is the damage, in tenths, see {@link #damage()}
  * @param shotData2 second parameter, meaning depends on the process type
  * @param playerId the player firing the shot
  * @param position where the shot was fired at
  * @param target the targeted entity, may be {@code null}
  */
 public record ShotRequest(Shot shot, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
+
+    /**
+     * The shot data holds the damage in tenths of health points: Prima's
+     * official strategy guide gives 15 damage for the Thunderbolt (20
+     * upgraded), the data has 150 (200). Creature health in the data is not
+     * scaled, a Troll has 1000 in both.
+     */
+    static final int SHOT_DATA_PER_DAMAGE = 10;
+
+    /**
+     * The damage of a damaging shot
+     *
+     * @return the damage in health points
+     */
+    public int damage() {
+        return Math.round((float) shotData1 / SHOT_DATA_PER_DAMAGE);
+    }
 
 }

@@ -40,7 +40,12 @@ class LightningShotProcessorTest {
 
     private static final double GAME_TIME = 12.5;
     private static final short PLAYER_ID = 3;
-    private static final int DAMAGE = 150;
+    private static final int SHOT_DATA = 150;
+
+    /**
+     * 15 damage, as Prima's guide gives for the Thunderbolt
+     */
+    private static final int DAMAGE = 15;
 
     private final EntityData entityData = new DefaultEntityData();
     private final LightningShotProcessor processor = new LightningShotProcessor(entityData, () -> GAME_TIME);
@@ -57,12 +62,21 @@ class LightningShotProcessorTest {
     }
 
     @Test
+    void upgradedStrikeDamagesTwenty() {
+        EntityId creature = createCreature(new Vector3f(3.5f, 1f, 4.5f));
+
+        processor.process(new ShotRequest(thunderbolt, 200, 0, PLAYER_ID, new Vector3f(), creature));
+
+        assertEquals(20, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
     void strikeLeavesTheBoltWhereTheTargetStands() {
         Vector3f creaturePosition = new Vector3f(3.5f, 1f, 4.5f);
         EntityId creature = createCreature(creaturePosition);
 
         // The cursor is a bit off, the bolt still hits the creature
-        processor.process(new ShotRequest(thunderbolt, DAMAGE, 0, PLAYER_ID, new Vector3f(3.9f, 1f, 4.1f), creature));
+        processor.process(new ShotRequest(thunderbolt, SHOT_DATA, 0, PLAYER_ID, new Vector3f(3.9f, 1f, 4.1f), creature));
 
         EntitySet shots = entityData.getEntities(ShotViewState.class, Position.class, Decay.class);
         assertEquals(1, shots.size());
@@ -120,7 +134,7 @@ class LightningShotProcessorTest {
     }
 
     private ShotRequest strike(EntityId target) {
-        return new ShotRequest(thunderbolt, DAMAGE, 0, PLAYER_ID, new Vector3f(), target);
+        return new ShotRequest(thunderbolt, SHOT_DATA, 0, PLAYER_ID, new Vector3f(), target);
     }
 
 }

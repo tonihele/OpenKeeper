@@ -62,7 +62,7 @@ class ShotsControllerTest {
 
         shotsController.createShot(ShotFixtures.THUNDERBOLT_ID, 150, 0, PLAYER_ID, new Vector3f(), creature, null);
 
-        assertEquals(150, entityData.getComponent(creature, Damage.class).damage);
+        assertEquals(15, entityData.getComponent(creature, Damage.class).damage);
         assertEquals(1, countShotEntities());
     }
 
