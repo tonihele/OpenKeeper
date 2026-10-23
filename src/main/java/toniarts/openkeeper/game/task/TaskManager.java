@@ -64,6 +64,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.TrapDeliveries;
+import toniarts.openkeeper.game.controller.WorkshopOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -134,6 +135,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final EntitySet freeObjectEntities;
     private final EntitySet trapBlueprintEntities;
     private final EntitySet trapCrateEntities;
+    private final WorkshopOrders workshopOrders;
     private final Map<EntityId, ArmTrapTask> armTrapTasks = new HashMap<>();
     private boolean armTrapTasksScanned = false;
     private final Map<Short, Set<Task>> taskQueues;
@@ -197,6 +199,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // they change all the time while a crate is carried
         trapBlueprintEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class);
         trapCrateEntities = entityData.getEntities(Crate.class, Owner.class);
+
+        // What the workshops manufacture
+        workshopOrders = new WorkshopOrders(entityData, levelInfo.getLevelData());
     }
 
     @Override
@@ -212,6 +217,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         freeObjectEntities.release();
         trapBlueprintEntities.release();
         trapCrateEntities.release();
+        workshopOrders.release();
     }
 
     @Override
@@ -753,7 +759,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
-                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), gameWorldController.getTrapsController(), objectsController);
+                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), workshopOrders, objectsController);
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
