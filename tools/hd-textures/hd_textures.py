@@ -68,14 +68,26 @@ DOWNLOADS = {
 PYTHON_PACKAGES = ["pillow>=11", "numpy>=2"]
 MODELS = ["realesrgan-x4plus", "realesrgan-x4plus-anime", "realesr-animevideov3-x4"]
 
-# Left out of a full run unless --all is given. The GUI is laid out by image
-# size in pixels and some of it is read as data (the minimap palette, the
-# panel background), cursors have their hot spots in pixels, and
-# Thumbnails/MapColours.png is a colour table.
-DEFAULT_EXCLUDES = ["GUI/", "cursor/", "Thumbnails/", "Maps/"]
+# Left out of a full run unless --all is given: a path ending in / is a
+# folder, anything else one file. The interface (GUI/) is in: the game draws
+# an HD interface image at its original's size.
+DEFAULT_EXCLUDES = {
+    "GUI/Map/MapColours.png": "the minimap's colour table, read as data",
+    "GUI/Map/Map-BG.png": "the minimap tiles the converted original as its rock, so an HD copy "
+                          "would only make the panel round the minimap differ from the rock in it",
+    "cursor/": "not used: the mouse cursors come from Interface/Cursors, and cursors have their "
+               "hot spots in pixels",
+    "Thumbnails/": "MapColours.png is the colour table of the map thumbnails, and OpenKeeper "
+                   "draws its own thumbnails",
+    "Maps/": "not used",
+}
 
 # The test batch: the terrain (T_*) and the other wall and floor textures
 TEST_BATCH = r"(?i)^(T_[^/]*|[^/]*(wall|floor)[^/]*)\.png$"
+
+# The interface test batch: the HUD's windows and bars, the minimap frame,
+# the tabs and the room icons
+GUI_TEST_BATCH = r"(?i)^GUI/(Windows|Map|Tabs|Rooms)/[^/]*\.png$"
 
 # Source pixels added round each texture before upscaling and cut off after,
 # so the edges of tiling textures are upscaled with their neighbours in view
@@ -104,10 +116,12 @@ def main():
     which = upscale.add_mutually_exclusive_group()
     which.add_argument("--test-batch", action="store_true",
                        help="only the terrain, wall and floor textures in the top folder")
+    which.add_argument("--gui-test-batch", action="store_true",
+                       help="only some of the interface: the HUD windows, the minimap frame, the tabs and the room icons")
     which.add_argument("--match", metavar="REGEX",
                        help="only the textures whose path relative to the source matches, e.g. '(?i)lava'")
     upscale.add_argument("--all", action="store_true",
-                         help="also the folders left out by default: " + ", ".join(DEFAULT_EXCLUDES))
+                         help="also what is left out by default: " + ", ".join(DEFAULT_EXCLUDES))
     upscale.add_argument("--model", default=MODELS[0], choices=MODELS)
     upscale.add_argument("--pad", type=int, default=DEFAULT_PAD)
     upscale.add_argument("--pad-mode", default="wrap", choices=["wrap", "edge", "reflect"],
@@ -239,6 +253,10 @@ def upscale_textures(args):
     if args.dry_run:
         for rel in todo:
             print("  " + rel)
+        if not args.all:
+            print("Left out (--all to include them):")
+            for path, reason in DEFAULT_EXCLUDES.items():
+                print(f"  {path}: {reason}")
         return
     if not todo:
         return
@@ -291,13 +309,21 @@ def select_textures(source, args):
     textures = sorted(path.relative_to(source).as_posix() for path in source.rglob("*")
                       if path.is_file() and path.suffix.lower() == ".png")
     if not args.all:
-        textures = [rel for rel in textures
-                    if not any(rel.lower().startswith(folder.lower()) for folder in DEFAULT_EXCLUDES)]
-    pattern = TEST_BATCH if args.test_batch else args.match
+        textures = [rel for rel in textures if not is_excluded(rel)]
+    pattern = TEST_BATCH if args.test_batch else GUI_TEST_BATCH if args.gui_test_batch else args.match
     if pattern:
         regex = re.compile(pattern)
         textures = [rel for rel in textures if regex.search(rel)]
     return textures
+
+
+def is_excluded(rel):
+    rel = rel.lower()
+    for path in DEFAULT_EXCLUDES:
+        path = path.lower()
+        if rel == path or (path.endswith("/") and rel.startswith(path)):
+            return True
+    return False
 
 
 def detail_weights(source, textures):
