@@ -130,6 +130,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     int damageTile(Point point, short playerId, ICreatureController creature);
 
     /**
+     * Damage a tile by a set amount of health, e.g. from a spell. A tile that
+     * runs out of health turns into its destroyed terrain type.
+     *
+     * @param point the point
+     * @param damage the amount of health to take
+     */
+    void applyTerrainDamage(Point point, int damage);
+
+    /**
      * Attempt to claim the tile or room, applies either damage or heal,
      * depending on whose tile is it
      *
