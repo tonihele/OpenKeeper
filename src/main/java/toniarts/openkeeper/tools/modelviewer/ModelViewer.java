@@ -97,6 +97,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Locale;
 
 
@@ -152,6 +154,7 @@ public final class ModelViewer extends SimpleApplication {
     private String itemFilter = "";
     private boolean leftAltPressed;
     private boolean rightAltPressed;
+    private final Map<Geometry, Material> originalNormalMaterials = new IdentityHashMap<>();
 
     //private SoundsLoader soundLoader;
     /**
@@ -503,8 +506,21 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    private void restoreNormalMaterials() {
+        originalNormalMaterials.forEach(Geometry::setMaterial);
+        originalNormalMaterials.clear();
+    }
+
     private void toggleShowNormals() {
         Spatial spat = rootNode.getChild(ModelViewer.NODE_NAME);
+        if (!showNormals) {
+            restoreNormalMaterials();
+            if (spat instanceof Node node) {
+                node.detachChildNamed(NODE_NAME_NORMALS);
+            }
+            toggleWireframe();
+            return;
+        }
 
         if (spat instanceof Node node && node.getQuantity() > 0) {
 
@@ -530,8 +546,11 @@ public final class ModelViewer extends SimpleApplication {
                             nodeNormals.attachChild(normalGeometry);
 
                             if (!g.isGrouped()) {
-                                g.setMaterial(new Material(assetManager,
-                                        "Common/MatDefs/Misc/ShowNormals.j3md"));
+                                originalNormalMaterials.put(g, g.getMaterial());
+                                Material normalsMaterial = new Material(assetManager,
+                                        "Common/MatDefs/Misc/ShowNormals.j3md");
+                                normalsMaterial.getAdditionalRenderState().setWireframe(wireframe);
+                                g.setMaterial(normalsMaterial);
                             }
                         }
                     }
@@ -692,7 +711,8 @@ public final class ModelViewer extends SimpleApplication {
         // Shadows
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
 
-        // Remove the old model
+        // Restore materials before releasing the old model.
+        restoreNormalMaterials();
         rootNode.detachChildNamed(NODE_NAME);
 
         // Attach the new model
