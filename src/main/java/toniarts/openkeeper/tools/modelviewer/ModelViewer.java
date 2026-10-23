@@ -147,6 +147,8 @@ public final class ModelViewer extends SimpleApplication {
     private boolean rotate = true;
     private boolean showNormals = false;
     private boolean ceilingVisible = true;
+    private boolean portalRoomVisible;
+    private Effect selectedEffect;
     private List<String> models;
     private List<String> maps;
     private IKwdFile kwdFile;
@@ -563,6 +565,7 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     public void onSelectionChanged(Object selection) {
+        selectedEffect = selection instanceof Effect effect ? effect : null;
         screen.selectionChanged(selection);
         effectManagerState.setEnabled(false);
 
@@ -667,12 +670,14 @@ public final class ModelViewer extends SimpleApplication {
                 Node spat = new Node();
                 Effect effect = (Effect) selection;
                 effectManagerState.setEnabled(true);
-                // Load the selected effect a tile above the floor, so it can
-                // actually fall and land instead of spawning at/under floor
-                // level (WorldUtils.FLOOR_HEIGHT).
-                effectManagerState.loadSingleEffect(spat,
-                        new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0),
-                        effect.getEffectId(), false);
+                if (portalRoomVisible) {
+                    spat.attachChild(new RoomsLoader().loadPortalContext(assetManager, getKwdFile()));
+                }
+                // Native Portal build-up and entrance effects start at the pit base (Y=0).
+                // Keep the elevated anchor for isolated effects that need room to fall.
+                Vector3f anchor = portalRoomVisible ? new Vector3f()
+                        : new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0);
+                effectManagerState.loadSingleEffect(spat, anchor, effect.getEffectId(), false);
                 setupModel(spat, false);
 
                 screen.setupItem(effect, null);
@@ -680,6 +685,17 @@ public final class ModelViewer extends SimpleApplication {
             }
         }
 
+    }
+
+    void setPortalRoomVisible(boolean visible) {
+        if (portalRoomVisible == visible) {
+            return;
+        }
+        portalRoomVisible = visible;
+        // Restart explicitly so already emitted world-space particles use the new anchor.
+        if (selectedEffect != null) {
+            onSelectionChanged(selectedEffect);
+        }
     }
 
     private void setupDebug() {
@@ -707,7 +723,8 @@ public final class ModelViewer extends SimpleApplication {
         }
 
         // Hide the floor on maps
-        floorGeom.setCullHint(!isMap ? Spatial.CullHint.Never : Spatial.CullHint.Always);
+        floorGeom.setCullHint(isMap || (selectedEffect != null && portalRoomVisible)
+                ? Spatial.CullHint.Always : Spatial.CullHint.Never);
 
         // Shadows
         spat.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
