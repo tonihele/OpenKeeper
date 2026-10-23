@@ -295,9 +295,18 @@ public final class LightRules {
      */
     public LightSource addThingLight(Object owner, Vector3f ownerPosition, Light light, Short ownerId,
             float intensity, boolean honourPulse) {
+        return addThingLight(owner, ownerPosition, light, ownerId, intensity, honourPulse, true);
+    }
+
+    /**
+     * @param applyPlayerColour false ignores the block's {@code PLAYER_COLOURED}
+     * flag, i.e. the light of a creature the player is possessing
+     */
+    public LightSource addThingLight(Object owner, Vector3f ownerPosition, Light light, Short ownerId,
+            float intensity, boolean honourPulse, boolean applyPlayerColour) {
         toniarts.openkeeper.utils.Color c = light.getColor();
         Set<Light.LightFlag> flags = light.getFlags();
-        boolean playerColoured = flags.contains(Light.LightFlag.PLAYER_COLOURED);
+        boolean playerColoured = applyPlayerColour && flags.contains(Light.LightFlag.PLAYER_COLOURED);
         return addThingLight(owner, ownerPosition, LightConstants.toJmeOffset(light.getmKPos()),
                 c.getRed(), c.getGreen(), c.getBlue(),
                 flags.contains(Light.LightFlag.COLOR_RED),

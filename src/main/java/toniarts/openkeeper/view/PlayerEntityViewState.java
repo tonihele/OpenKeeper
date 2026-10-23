@@ -345,9 +345,23 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (hiddenSpatial != null) {
             hiddenSpatial.setCullHint(Spatial.CullHint.Inherit);
         }
+        Spatial previous = hiddenSpatial;
         hiddenSpatial = entityId != null ? getEntitySpatial(entityId) : null;
         if (hiddenSpatial != null) {
             hiddenSpatial.setCullHint(Spatial.CullHint.Always);
+        }
+
+        // The light's player colour depends on possession, drop the lights so
+        // update() rebuilds them
+        LightRules lightRules = getLightRules();
+        if (lightRules != null) {
+            for (Map.Entry<EntityId, TrackedLight> entry : trackedLights.entrySet()) {
+                Spatial spatial = entry.getValue().spatial();
+                if (spatial == previous || spatial == hiddenSpatial) {
+                    lightRules.removeThingLight(entry.getKey());
+                    lightOwners.remove(entry.getKey());
+                }
+            }
         }
     }
 
@@ -570,7 +584,9 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         // A PLAYER_COLOURED light takes the owner's colour, so a change of
         // owner (e.g. a converted creature) needs the light rebuilt
-        boolean playerColoured = light.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
+        // ...except the creature being possessed, whose light stays neutral
+        boolean possessed = object == hiddenSpatial;
+        boolean playerColoured = !possessed && light.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
         Owner owner = playerColoured ? entityData.getComponent(id, Owner.class) : null;
         Short ownerId = owner != null ? Short.valueOf(owner.ownerId) : null;
         if (playerColoured && lightRules.getThingLight(id) != null
@@ -584,7 +600,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 lightOwners.put(id, ownerId);
             }
             LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
-                    intensity, honourPulse);
+                    intensity, honourPulse, !possessed);
             source.setObjectLight(objectLight);
             if (objectLight) {
                 source.setRadius(Math.min(source.getRadius() * LightConstants.OBJECT_LIGHT_RADIUS_SCALE,
