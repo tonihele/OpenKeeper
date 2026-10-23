@@ -68,14 +68,8 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) < 1.0f) {
-            return;
-        }
-
-        setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
-
-        // Advance players spell research
+        // Advance players spell research. Despite the name, DK II adds the
+        // creature's research points per second on every game tick
         ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerSecond());
         if (researchableEntity != null) {
 
