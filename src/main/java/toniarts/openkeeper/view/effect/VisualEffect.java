@@ -635,11 +635,11 @@ public class VisualEffect {
     public boolean update(float tpf) {
         updateCircularPath(tpf);
 
-        // Lighting: refresh the flat-light sample every frame -- nearby lights flicker/pulse even though effectNode's
+        // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
         // own position is set once at construction and never moves.
         LightRules lightRules = getLightRules();
         if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
-            AssetUtils.applyFlatLight(lightTarget, lightRules);
+            AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);
         }
         lightMeshElements(lightRules);
 
@@ -661,8 +661,7 @@ public class VisualEffect {
 
     /**
      * Lights the spawned mesh elements (dig rock / gold debris...). They move
-     * on their own, so each one samples the flat light at its own position
-     * every frame; they need no thing light of their own to be lit.
+     * on their own, so each one is vertex lit; they need no thing light of their own to be lit.
      */
     private void lightMeshElements(LightRules lightRules) {
         if (lightRules == null) {
@@ -671,7 +670,7 @@ public class VisualEffect {
         for (Spatial element : effectElements.keySet()) {
             if (element instanceof EffectEmitter emitter) {
                 for (Spatial instance : emitter.getChildren()) {
-                    AssetUtils.applyFlatLight(instance, lightRules);
+                    AssetUtils.applyVertexLight(assetManager, instance, lightRules, false);
                 }
             }
         }

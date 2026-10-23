@@ -229,8 +229,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
 
-        // Lighting: re-derive attached-light positions and the flat-light
-        // sample every frame -- lights on other things
+        // Lighting: re-derive attached-light positions and bind the
+        // vertex-lit models every frame -- lights on other things
         // (a nearby flickering torch) change even for a thing that hasn't
         // itself moved, so this can't rely on EntityContainer's own
         // change-driven updateObject().
@@ -250,14 +250,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 ObjectViewControl control = object.getControl(ObjectViewControl.class);
                 int objectId = control != null ? control.getDataObject().getObjectId() : -1;
 
-                // TODO: maybe there is a hint where flat lightning is okay
-                // Workarround, otherwise the dungeon heart does not react to light (keeper, torches, imps etc.)
-                if (DUNGEON_HEART_PART_IDS.contains(objectId)) {
-                    // Big pieces: lit per vertex like the floor, not by one sample
-                    AssetUtils.applyVertexLight(assetManager, object, lightRules, true);
-                } else {
-                    AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
-                }
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, DUNGEON_HEART_PART_IDS.contains(objectId));
             }
             for (Spatial object : creatureModelContainer.getModels()) {
                 // Creatures take no room / terrain ambient colour, only lights

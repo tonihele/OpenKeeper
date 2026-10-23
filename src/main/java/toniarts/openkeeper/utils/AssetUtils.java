@@ -219,10 +219,10 @@ public final class AssetUtils {
         });
     }
 
-    public static final String DK_TERRAIN_MATDEF = "MatDefs/DkLighting/DkTerrain.j3md";
+    public static final String VERTEX_MATDEF = "MatDefs/DkLighting/Vertex.j3md";
 
     /**
-     * Builds a {@code DkTerrain} material carrying {@code original}'s
+     * Builds a {@code Vertex} material carrying {@code original}'s
      * DiffuseMap/AlphaDiscardThreshold/transparency and this terrain
      * type's vertex ambient. Must be called BEFORE the
      * geometry it's applied to is batched (jME refuses to re-material an
@@ -230,45 +230,45 @@ public final class AssetUtils {
      * throws post-batch too -- "please set the material on the geoms
      * before batching").
      */
-    public static Material createDkTerrainMaterial(AssetManager assetManager, Material original, ColorRGBA ambient) {
-        Material dkTerrain = new Material(assetManager, DK_TERRAIN_MATDEF);
-        dkTerrain.setName(original.getName());
+    public static Material createVertexMaterial(AssetManager assetManager, Material original, ColorRGBA ambient) {
+        Material vertex = new Material(assetManager, VERTEX_MATDEF);
+        vertex.setName(original.getName());
         if (original.getTextureParam("DiffuseMap") != null) {
-            dkTerrain.setTexture("DiffuseMap", original.getTextureParam("DiffuseMap").getTextureValue());
+            vertex.setTexture("DiffuseMap", original.getTextureParam("DiffuseMap").getTextureValue());
         }
         if (original.getParam("AlphaDiscardThreshold") != null) {
-            dkTerrain.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
+            vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
         }
-        dkTerrain.setTransparent(original.isTransparent());
-        dkTerrain.setColor("Ambient", ambient);
-        return dkTerrain;
+        vertex.setTransparent(original.isTransparent());
+        vertex.setColor("Ambient", ambient);
+        return vertex;
     }
 
     /**
-     * A DkTerrain version of a water / lava surface material, so the surface
+     * A Vertex version of a water / lava surface material, so the surface
      * is lit like the ground around it. Keeps the texture, the frame
      * animation (water), the alpha handling and the blend mode of
      * {@code original}.
      */
     public static Material createDkSurfaceMaterial(AssetManager assetManager, Material original) {
-        Material dkTerrain = createDkTerrainMaterial(assetManager, original, ColorRGBA.Black);
+        Material vertex = createVertexMaterial(assetManager, original, ColorRGBA.Black);
         if (original.getParam("NumberOfTiles") != null) {
-            dkTerrain.setInt("NumberOfTiles", (Integer) original.getParam("NumberOfTiles").getValue());
+            vertex.setInt("NumberOfTiles", (Integer) original.getParam("NumberOfTiles").getValue());
         }
         if (original.getParam("Speed") != null) {
-            dkTerrain.setInt("Speed", (Integer) original.getParam("Speed").getValue());
+            vertex.setInt("Speed", (Integer) original.getParam("Speed").getValue());
         }
-        dkTerrain.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
-        return dkTerrain;
+        vertex.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
+        return vertex;
     }
 
-    public static boolean isDkTerrainMaterial(Material material) {
-        return DK_TERRAIN_MATDEF.equals(material.getMaterialDef().getAssetName());
+    public static boolean isVertexMaterial(Material material) {
+        return VERTEX_MATDEF.equals(material.getMaterialDef().getAssetName());
     }
 
     /**
      * Refreshes the "flat" light sample on
-     * every {@code DkFlat}-materialled geometry under {@code spatial},
+     * every {@code Flat}-materialled geometry under {@code spatial},
      * using {@code spatial}'s current world position. Meant to be called
      * once per frame for anything with an attached thing light -- position changes and modulator/flicker changes on
      * nearby lights both need this, not just the former.
@@ -305,12 +305,11 @@ public final class AssetUtils {
     }
 
     /**
-     * Lights a model per vertex, like the floor it stands on, instead of with
-     * the single {@link #applyFlatLight flat} sample: swaps its
-     * {@code DkFlat} materials for {@code DkTerrain} ones (once) and hooks them
-     * up to the shared light data. For big static pieces where one sample at
-     * the model origin lights the far end wrongly (arches, steps). Call once
-     * per frame, as the ambient map may only exist after the first call.
+     * Lights a model per vertex, like the floor it stands on: sets up its
+     * {@code Vertex} materials for a thing (no rock floor) and hooks them
+     * up to the shared light data. Materials still on {@code Flat} (old
+     * generated material files) are swapped once. Call once per frame, as the
+     * ambient map may only exist after the first call.
      *
      * @param ignoreObjectLights true to leave out the lights carried by game
      * objects
@@ -335,21 +334,19 @@ public final class AssetUtils {
                     return;
                 }
                 Material material = geometry.getMaterial();
-                if (!isDkTerrainMaterial(material)) {
+                if (!isVertexMaterial(material)) {
                     if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
                         return;
                     }
-                    Material dkTerrain = createDkTerrainMaterial(assetManager, material, ColorRGBA.Black);
-                    dkTerrain.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
-                    dkTerrain.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
-                    dkTerrain.setFloat("MinLight", 0f);
-                    dkTerrain.setBoolean("IgnoreObjectLights", ignoreObjectLights);
-                    if (!useTileAmbient) {
-                        dkTerrain.setFloat("AmbientScale", 0f);
-                    }
-                    geometry.setMaterial(dkTerrain);
-                    material = dkTerrain;
+                    Material vertex = createVertexMaterial(assetManager, material, ColorRGBA.Black);
+                    vertex.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
+                    vertex.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
+                    geometry.setMaterial(vertex);
+                    material = vertex;
                 }
+                material.setFloat("MinLight", 0f);
+                material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
                 materials.add(material);
             }
         });
@@ -357,8 +354,8 @@ public final class AssetUtils {
     }
 
     /**
-     * Lights every {@code DkFlat}-materialled geometry under {@code spatial}
-     * to full brightness, ignoring the scene's lights. For things that are
+     * Lights every {@code Flat} / {@code Vertex}-materialled geometry under
+     * {@code spatial} to full brightness, ignoring the scene's lights. For things that are
      * not in the world, such as creatures held in the hand.
      *
      * @param spatial the model to light
@@ -371,6 +368,10 @@ public final class AssetUtils {
                     return;
                 }
                 Material material = geometry.getMaterial();
+                if (isVertexMaterial(material)) {
+                    material.setFloat("MinLight", 1f);
+                    return;
+                }
                 if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
                     return;
                 }
@@ -399,7 +400,7 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        // DkFlat/DkTerrain (no specular term) don't declare
+        // Flat/Vertex (no specular term) don't declare
         // Normal/Specular/ParallaxMap at all -- nothing to assign there.
         if (material.getMaterialDef().getMaterialParam(paramName) == null) {
             return;
@@ -780,7 +781,7 @@ public final class AssetUtils {
                 try {
                     Material material = ((Geometry) spatial).getMaterial();
                     if (material.getMaterialDef().getMaterialParam("TintOverlay") != null) {
-                        // Same look as a flashed tile (DkTerrain)
+                        // Same look as a flashed tile (Vertex)
                         material.setColor("Tint", enabled ? FLASH_BASE : ColorRGBA.BlackNoAlpha);
                         material.setColor("TintOverlay", enabled ? FLASH_OVERLAY : ColorRGBA.BlackNoAlpha);
                         return;

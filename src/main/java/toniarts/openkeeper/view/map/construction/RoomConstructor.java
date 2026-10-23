@@ -46,7 +46,7 @@ public abstract class RoomConstructor {
      * This room's vertex ambient, set by
      * the caller (see {@code MapViewController.handleRoom}) before
      * {@link #construct()}/{@link #getWallSpatial} run, since it's needed
-     * to build the DkTerrain materials this class pre-swaps its geometry
+     * to build the Vertex materials this class pre-swaps its geometry
      * onto BEFORE batching it (jME forbids re-materialling afterwards).
      */
     private ColorRGBA ambient = ColorRGBA.Black;
@@ -75,7 +75,7 @@ public abstract class RoomConstructor {
     }
 
     /**
-     * The DkTerrain materials {@link #construct()} swapped its floor/wall
+     * The Vertex materials {@link #construct()} swapped its floor/wall
      * geometry onto, for the caller to register with {@code LightRules}. Only populated after {@link #construct()}
      * has run.
      */
@@ -118,7 +118,7 @@ public abstract class RoomConstructor {
     }
 
     /**
-     * Swaps every geometry under {@code node} to a DkTerrain material.
+     * Swaps every geometry under {@code node} to a Vertex material.
      * Must run before {@code node.batch()},
      * see the class-level note on {@link #ambient}. {@code outMaterials}
      * is a separate list per call site (not always {@link
@@ -133,9 +133,9 @@ public abstract class RoomConstructor {
                 if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
                     return;
                 }
-                Material dkTerrain = AssetUtils.createDkTerrainMaterial(assetManager, geometry.getMaterial(), ambient);
-                geometry.setMaterial(dkTerrain);
-                outMaterials.add(dkTerrain);
+                Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
+                geometry.setMaterial(vertex);
+                outMaterials.add(vertex);
             }
         });
     }
@@ -272,7 +272,7 @@ public abstract class RoomConstructor {
         spatial.attachChild(loadWallPart(resource + firstPiece, artResource, moveFirst));
         spatial.attachChild(loadWallPart(resource + secondPiece, artResource, moveSecond));
 
-        // Pre-swap to DkTerrain before batching (see the class-level
+        // Pre-swap to Vertex before batching (see the class-level
         // note on `ambient`) -- MapViewController.applyTerrainLighting
         // recognizes and collects the already-swapped result for
         // per-tile light registration, it doesn't re-swap it.

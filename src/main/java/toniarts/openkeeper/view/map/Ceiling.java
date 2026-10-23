@@ -103,7 +103,7 @@ public final class Ceiling {
         // face down, so lights below shine on it
         ColorRGBA ambient = mat.getParam("Ambient") != null
                 ? (ColorRGBA) mat.getParam("Ambient").getValue() : ColorRGBA.Black;
-        Material dkMat = AssetUtils.createDkTerrainMaterial(assetManager, mat, ambient);
+        Material dkMat = AssetUtils.createVertexMaterial(assetManager, mat, ambient);
         // Object lights and the terrain's per-tile ambient belong to the
         // ground; the ceiling ignores them
         dkMat.setBoolean("IgnoreObjectLights", true);

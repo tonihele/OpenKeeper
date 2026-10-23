@@ -28,7 +28,7 @@ MaterialDef DK Flat Lighting {
         // Simply added on top of the lit colour, not a full override.
         Color Ambient : 0.0 0.0 0.0 0.0
 
-        // Highlight, same as DkTerrain's tile flash: Tint is added to the
+        // Highlight, same as Vertex's tile flash: Tint is added to the
         // lit colour, TintOverlay is a flat additive pass scaled by it.
         // Black = off.
         Color Tint : 0.0 0.0 0.0 0.0
@@ -37,8 +37,8 @@ MaterialDef DK Flat Lighting {
     }
 
     Technique {
-        VertexShader GLSL150: Shaders/DkLighting/DkFlat.vert
-        FragmentShader GLSL150: Shaders/DkLighting/DkFlat.frag
+        VertexShader GLSL150: Shaders/DkLighting/Flat.vert
+        FragmentShader GLSL150: Shaders/DkLighting/Flat.frag
 
         WorldParameters {
             WorldViewProjectionMatrix

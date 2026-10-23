@@ -675,7 +675,7 @@ public final class KmfModelLoader implements AssetLoader {
 
             // Create the material
             if (material == null) {
-                material = new Material(assetInfo.getManager(), "MatDefs/DkLighting/DkFlat.j3md");
+                material = new Material(assetInfo.getManager(), "MatDefs/DkLighting/Vertex.j3md");
                 material.setName(mat.getName());
             }
 

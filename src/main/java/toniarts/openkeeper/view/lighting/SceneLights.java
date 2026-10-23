@@ -40,7 +40,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * {@code DkLighting} material techniques (the two evaluation
  * modes) actually consume:
  * <ul>
- * <li><b>Per-vertex terrain</b> ({@code DkTerrain.j3md}): one shared list of
+ * <li><b>Per-vertex terrain</b> ({@code Vertex.j3md}): one shared list of
  * every light near the camera, written once per frame into a data texture
  * ({@code LightData}) that every terrain material reads. All materials see
  * exactly the same lights, so neighbouring tiles, room meshes and page
@@ -48,7 +48,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * (per-material light lists would cut hard at tile borders). The
  * shader evaluates the model exactly, per vertex; there is no cap on
  * the number of lights beyond the texture size ({@link #MAX_LIGHTS}).</li>
- * <li><b>Flat things</b> ({@code DkFlat.j3md}): {@link #computeFlatLight}
+ * <li><b>Flat things</b> ({@code Flat.j3md}): {@link #computeFlatLight}
  * is a pure function callers (entity containers, {@code VisualEffect})
  * invoke themselves each frame with the owner's current position -- this class does not track thing positions.</li>
  * </ul>
@@ -60,7 +60,7 @@ public final class SceneLights {
 
     /**
      * Most lights the data texture holds; must match {@code DK_MAX_LIGHTS} in
-     * {@code DkTerrain.vert}.
+     * {@code Vertex.vert}.
      */
     public static final int MAX_LIGHTS = 3084;
 
@@ -68,7 +68,7 @@ public final class SceneLights {
      * Layout of {@code LightData}: texel 0 is a header (x = light count,
      * yzw = global ambient), then three texels per light: (x, y, z, radius),
 w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
-     * are described in {@code DkTerrain.vert}.
+     * are described in {@code Vertex.vert}.
      */
     private static final int TEXELS_PER_LIGHT = 3;
 
@@ -112,7 +112,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     /**
      * The video "ambient light" setting. It travels in the
      * light data header, and is available to callers of {@link
-     * #computeFlatLight} for their own {@code DkFlat} materials.
+     * #computeFlatLight} for their own {@code Flat} materials.
      */
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
         this.globalAmbient = globalAmbient;
@@ -123,7 +123,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     }
 
     /**
-     * Hooks DkTerrain materials up to the shared light and ambient textures.
+     * Hooks Vertex materials up to the shared light and ambient textures.
      * Nothing else is needed: they are lit from then on by {@link #update}, and
      * a dropped material is simply no longer rendered, so there is nothing to
      * undo. Binding the same material again is harmless.

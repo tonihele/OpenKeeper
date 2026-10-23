@@ -343,7 +343,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
         Spatial surface = Water.construct(assetManager, batches);
-        if (surface instanceof Geometry geometry && AssetUtils.isDkTerrainMaterial(geometry.getMaterial())) {
+        if (surface instanceof Geometry geometry && AssetUtils.isVertexMaterial(geometry.getMaterial())) {
             lightRules.bindMaterials(List.of(geometry.getMaterial()));
         }
         map.attachChild(surface);
@@ -645,9 +645,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     private static void applyHighlight(Material material, boolean flashing, boolean tagged) {
-        // DkTerrain's Ambient is replaced by the per-tile ambient map,
+        // Vertex's Ambient is replaced by the per-tile ambient map,
         // so the highlight goes through its own additive Tint instead
-        if (AssetUtils.isDkTerrainMaterial(material)) {
+        if (AssetUtils.isVertexMaterial(material)) {
             // A flashing tile overrides a tagged one (as in the original)
             if (flashing) {
                 material.setColor("Tint", FLASH_BASE);
@@ -668,7 +668,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     private static void setAmbientColour(Material material, ColorRGBA colour) {
         material.setColor("Ambient", colour);
-        // DkTerrain (jME's CommonMat-parameter-free def) has no
+        // Vertex (jME's CommonMat-parameter-free def) has no
         // UseMaterialColors; guard like AssetUtils does so the flag
         // is only flipped on defs that declare it
         if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
@@ -728,7 +728,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Hooks the DkTerrain materials of a page's batched geometry up to the lighting
+     * Hooks the Vertex materials of a page's batched geometry up to the lighting
      */
     private void bindPageBatchMaterials(Node page) {
         if (page == null) {
@@ -741,11 +741,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 continue;
             }
             for (Spatial child : batchNode.getChildren()) {
-                // Only DkTerrain materials take the shared light data;
-                // DkFlat things are lit CPU-side per thing
+                // Only Vertex materials take the shared light data;
+                // Flat things are lit CPU-side per thing
                 if (child instanceof Geometry geometry && geometry.getMesh() != null
                         && geometry.getMaterial() != null
-                        && AssetUtils.isDkTerrainMaterial(geometry.getMaterial())) {
+                        && AssetUtils.isVertexMaterial(geometry.getMaterial())) {
                     materials.add(geometry.getMaterial());
                 }
             }
@@ -1375,7 +1375,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Vertex ambient: the room's own terrain type, used
         // by RoomConstructor to pre-swap its floor/wall materials to
-        // DkTerrain BEFORE it batches them (jME forbids re-materialling
+        // Vertex BEFORE it batches them (jME forbids re-materialling
         // after batching).
         Terrain roomTerrain = kwdFile.getTerrain(roomInstance.getRoom().getTerrainId());
         roomConstructor.setAmbient(getVertexAmbient(roomTerrain, roomInstance.getOwnerId()));
@@ -1517,8 +1517,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Swaps every geometry under {@code node}'s DkFlat material (created by
-     * KmfModelLoader) for a DkTerrain material carrying this tile's
+     * Swaps every geometry under {@code node}'s Flat material (created by
+     * KmfModelLoader) for a Vertex material carrying this tile's
      * per-terrain-type vertex ambient, and returns them
      * so the caller can register them with {@link LightRules} -- terrain
      * lights and global ambient are pushed
@@ -1534,12 +1534,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             public void visit(Spatial spatial) {
                 if (spatial instanceof BatchNode batchNode) {
                     // Room-wall corner pieces (RoomConstructor.getWallSpatial)
-                    // pre-swap themselves to DkTerrain before their own
+                    // pre-swap themselves to Vertex before their own
                     // internal batch() call (jME forbids re-materialling
                     // after batching, whether per-geometry or via
                     // BatchNode.setMaterial) -- just collect the result here.
                     Material existing = firstGeometryMaterial(batchNode);
-                    if (existing != null && AssetUtils.isDkTerrainMaterial(existing)) {
+                    if (existing != null && AssetUtils.isVertexMaterial(existing)) {
                         materials.add(existing);
                     }
                     return; // traversal still descends; children are isBatched() and skipped below
@@ -1547,18 +1547,18 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
                     return;
                 }
-                Material dkTerrain = AssetUtils.createDkTerrainMaterial(assetManager, geometry.getMaterial(), ambient);
+                Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
                 if (solid && !litSolidTerrain) {
-                    dkTerrain.setFloat("MinLight", 0f);
+                    vertex.setFloat("MinLight", 0f);
                 } else if (solid) {
-                    dkTerrain.setFloat("RockFloor", LightConstants.LIT_SOLID_ROCK_MIN_LIGHT);
+                    vertex.setFloat("RockFloor", LightConstants.LIT_SOLID_ROCK_MIN_LIGHT);
                 }
                 if (solid && !litSolidTerrain) {
                     // The ambient map is sampled bilinearly: keep the neighbouring floor's ambient off the wall
-                    dkTerrain.setFloat("AmbientScale", 0f);
+                    vertex.setFloat("AmbientScale", 0f);
                 }
-                geometry.setMaterial(dkTerrain);
-                materials.add(dkTerrain);
+                geometry.setMaterial(vertex);
+                materials.add(vertex);
             }
         });
         return materials;
@@ -1579,7 +1579,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     /**
      * Gathers whatever Material each Geometry under {@code node} currently
-     * carries - called after {@link #applyTerrainLighting} (DkTerrain
+     * carries - called after {@link #applyTerrainLighting} (Vertex
      * conversion) and {@link #setTileMaterialToGeometries} (tag/flash/decay
      * tint, which clones a fresh Material for a tagged/flashing/decaying
      * tile) have both already run, so this always matches what's actually
@@ -1592,7 +1592,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             public void visit(Spatial spatial) {
                 if (spatial instanceof BatchNode batchNode) {
                     Material existing = firstGeometryMaterial(batchNode);
-                    if (existing != null && AssetUtils.isDkTerrainMaterial(existing)) {
+                    if (existing != null && AssetUtils.isVertexMaterial(existing)) {
                         materials.add(existing);
                     }
                     return;
