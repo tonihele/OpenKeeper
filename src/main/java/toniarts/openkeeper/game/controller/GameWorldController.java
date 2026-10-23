@@ -88,6 +88,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.SortedMap;
@@ -485,6 +486,17 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
+
+        // A door is sold on its own, one at a time and never together with rooms
+        Point startTile = new Point((int) start.x, (int) start.y);
+        if (startTile.equals(new Point((int) end.x, (int) end.y))) {
+            OptionalInt doorSaleValue = doorsController.sellDoor(startTile, playerId);
+            if (doorSaleValue.isPresent()) {
+                returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(startTile, doorSaleValue.getAsInt())));
+                return;
+            }
+        }
+
         Sale sale = sellTiles(start, end, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
