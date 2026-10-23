@@ -80,6 +80,9 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isAtAssignedTaskTarget();
 
+    /**
+     * Drops all the gold the creature carries on the floor where it stands
+     */
     public void dropGold();
 
     public boolean isWorkNavigationRequired();
