@@ -55,6 +55,7 @@ import de.lessvoid.nifty.tools.SizeValueType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -121,11 +122,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private String cinematicText;
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
+    private int lastImpCount = -1;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
     private final TrapIconTextParser trapIconTextParser = new TrapIconTextParser();
     private final DoorIconTextParser doorIconTextParser = new DoorIconTextParser();
-    private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser();
+    private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser(this::getSpellManaCost);
     private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
@@ -140,6 +142,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (lastUpdate >= SCREEN_UPDATE_INTERVAL) {
             if (creatureCardManager != null) {
                 creatureCardManager.update(tpf);
+
+                // Create Imp costs more the more imps we have
+                int impCount = creatureCardManager.getImpCount();
+                if (impCount != lastImpCount) {
+                    lastImpCount = impCount;
+                    updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+                }
             }
             lastUpdate = 0;
         }
@@ -984,6 +993,18 @@ public final class PlayerScreenController implements IPlayerScreenController {
      *
      * @param availableMana mana available for casting
      */
+    /**
+     * Get the mana cost of casting a keeper spell, as the server will charge it
+     *
+     * @param keeperSpell the spell
+     * @return the mana cost
+     */
+    public int getSpellManaCost(KeeperSpell keeperSpell) {
+        int impCount = creatureCardManager != null ? creatureCardManager.getImpCount() : 0;
+        return KeeperSpellCost.getManaCost(keeperSpell, impCount,
+                (int) state.getKwdFile().getVariables().get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+    }
+
     private void updateSpellAffordability(int availableMana) {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
@@ -995,7 +1016,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (icon == null) {
                 continue;
             }
-            boolean unaffordable = keeperSpell.getManaCost() > availableMana;
+            boolean unaffordable = getSpellManaCost(keeperSpell) > availableMana;
             if (unaffordable == unaffordableSpells.contains(icon)) {
                 continue;
             }
@@ -1430,6 +1451,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private final WorkerAmountControl workerAmountControl;
         private final Screen hud;
         private final short impId;
+        private int impCount;
 
         private final Map<EntityId, WatchedEntity> creatureEntities = new LinkedHashMap<>();
         private final Map<EntityId, Short> creatureIdsByEntityIds = new HashMap<>();
@@ -1472,6 +1494,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (!modifiedCreatures.isEmpty()) {
                 processChangedPlayerCreatureEntities(modifiedCreatures);
             }
+        }
+
+        /**
+         * Get the number of imps the player has
+         *
+         * @return the imp count
+         */
+        public int getImpCount() {
+            return impCount;
         }
 
         public void cleanup() {
@@ -1677,6 +1708,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     impBusy++;
                 }
                 impTotal++;
+            }
+
+            // All our living imps count for the Create Imp price, also the ones in hand
+            impCount = 0;
+            for (EntityId entityId : imps) {
+                Entity entity = creatureEntities.get(entityId);
+                if (entity != null && entity.get(Death.class) == null) {
+                    impCount++;
+                }
             }
 
             // Set the amounts

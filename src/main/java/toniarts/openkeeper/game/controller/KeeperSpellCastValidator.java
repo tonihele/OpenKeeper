@@ -51,6 +51,19 @@ public final class KeeperSpellCastValidator {
         // Nope
     }
 
+    /**
+     * Checks whether the player can cast the spell
+     *
+     * @param keeperSpell the spell
+     * @param kwdFile the level
+     * @param mapInformation the map
+     * @param mapTile the tile the spell is cast on
+     * @param player the casting player
+     * @param entityData the entities
+     * @param target the targeted entity, can be {@code null}
+     * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
+     * @return true if the cast is allowed
+     */
     public static boolean isValidCast(
             KeeperSpell keeperSpell,
             IKwdFile kwdFile,
@@ -58,14 +71,15 @@ public final class KeeperSpellCastValidator {
             IMapTileInformation mapTile,
             Keeper player,
             EntityData entityData,
-            EntityId target) {
-        return checkPlayerMana(keeperSpell, player)
+            EntityId target,
+            int manaCost) {
+        return checkPlayerMana(manaCost, player)
                 && checkCastRule(mapInformation, mapTile, keeperSpell, player)
                 && checkTargetRule(target, entityData, kwdFile, keeperSpell, player);
     }
 
-    private static boolean checkPlayerMana(KeeperSpell keeperSpell, Keeper player) {
-        return keeperSpell.getManaCost() <= player.getMana() - player.getManaLoose();
+    private static boolean checkPlayerMana(int manaCost, Keeper player) {
+        return manaCost <= player.getMana() - player.getManaLoose();
     }
 
     private static boolean checkTargetRule(EntityId target, EntityData entityData, IKwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {

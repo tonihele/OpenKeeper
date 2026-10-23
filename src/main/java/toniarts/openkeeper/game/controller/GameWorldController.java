@@ -1314,12 +1314,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target)) {
+        int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
+                (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target, manaCost)) {
             return;
         }
 
         // Deduct the mana
-        playerControllers.get(playerId).getManaControl().addMana(-keeperSpell.getManaCost());
+        playerControllers.get(playerId).getManaControl().addMana(-manaCost);
 
         // Cast the spell
         boolean spellUpgraded = researchableEntity.isUpgraded();
