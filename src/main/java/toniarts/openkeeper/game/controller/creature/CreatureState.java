@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -250,7 +251,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            ICreatureController attackTarget = entity.getAttackTarget();
+            IEntityController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(IDLE); // Nothing to do
                 return;
