@@ -143,11 +143,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (creatureCardManager != null) {
                 creatureCardManager.update(tpf);
 
-                // Create Imp costs more the more imps we have
+                // Create Imp costs more the more imps we have. The price is baked
+                // into the icon tooltips, so rebuild the tab, which also updates
+                // the affordability
                 int impCount = creatureCardManager.getImpCount();
                 if (impCount != lastImpCount) {
                     lastImpCount = impCount;
-                    updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+                    populateSpellTab();
                 }
             }
             lastUpdate = 0;
