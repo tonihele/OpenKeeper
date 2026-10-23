@@ -183,6 +183,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         };
 
+        // The ceiling is only shown while possessing a creature
+        mapLoader.setCeilingVisible(false);
+
         flashTileControl = new FlashTileViewState(mapLoader);
 
         // Start collecting the map entities
@@ -333,6 +336,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     public void markPendingTaggedTiles(List<Point> points, boolean tagged) {
         fogOfWarController.markPendingTagged(points, tagged);
+    }
+
+    public void setCeilingVisible(boolean visible) {
+        mapLoader.setCeilingVisible(visible);
     }
 
     public void setPossessedCreature(EntityId entityId) {
