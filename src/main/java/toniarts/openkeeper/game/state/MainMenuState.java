@@ -109,6 +109,7 @@ public final class MainMenuState extends AbstractAppState {
      */
     private IKwdFile debriefingLevel;
     private boolean debriefingIsCampaign;
+    private boolean debriefingLevelWon;
 
     /**
      * The campaign level that was just won and for which the level cutscene (mentor speech + movie)
@@ -688,10 +689,9 @@ public final class MainMenuState extends AbstractAppState {
         debriefingIsCampaign = campaign || selectedLevel instanceof CampaignLevel;
         pendingDebriefing = result != null;
 
-        // FIXME: GameResult has no win/lose data yet (see showDebriefing()), so for now every
-        // completed campaign level is treated as won, same as the debriefing screen does
-        boolean levelWon = true;
-        pendingCutsceneLevel = (pendingDebriefing && debriefingIsCampaign && levelWon
+        // Only a won level gets the level-won cutscene and the winning debriefing
+        debriefingLevelWon = result != null && result.isLevelWon();
+        pendingCutsceneLevel = (pendingDebriefing && debriefingIsCampaign && debriefingLevelWon
                 && selectedLevel instanceof CampaignLevel lvl && lvl.getType() == CampaignLevel.LevelType.Level)
                 ? lvl : null;
 
@@ -734,11 +734,21 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
+     * See if the level of the debriefing being shown was won
+     *
+     * @return {@code true} if the level was won
+     */
+    public boolean isDebriefingLevelWon() {
+        return debriefingLevelWon;
+    }
+
+    /**
      * Clear the level used for the debriefing screen, called when leaving the debriefing
      */
     void clearDebriefing() {
         debriefingLevel = null;
         debriefingIsCampaign = false;
+        debriefingLevelWon = false;
     }
 
     /**
