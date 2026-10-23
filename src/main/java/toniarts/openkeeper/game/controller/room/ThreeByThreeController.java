@@ -62,7 +62,19 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public void onSpawn(double time, EntityId spawnedEntityId) {
-        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time));
+        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                getGeneratedCount() + 1));
+    }
+
+    @Override
+    public int getGeneratedCount() {
+        return getEntityComponent(CreatureGenerator.class).generatedCount;
+    }
+
+    @Override
+    public void onGenerationCycle(double time) {
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                getGeneratedCount()));
     }
 
     @Override

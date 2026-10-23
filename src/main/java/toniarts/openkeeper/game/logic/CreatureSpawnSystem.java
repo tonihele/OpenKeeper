@@ -46,10 +46,8 @@ import toniarts.openkeeper.utils.Utils;
 
 /**
  * Handles creatures spawning, from Portals, Dungeon Hearts...<br>
- * It is confirmed behavior in the original game that multiple portals that have the same counter value will
- * spawn creatures at the same time. Even one could think that since the creature count goes up, we wouldn't
- * be able to spawn more than one creature at the time as the cooldown requirement increases. We replicate
- * this behavior 100% since we actually count the creatures once per tick.
+ * Each Portal keeps its own generation clock and generated-since-capture count.
+ * Portals with equal clocks can therefore attract creatures on the same tick.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -131,8 +129,14 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.PLACE);
                 spawned = true;
             }
-        } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
-                && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
+        } else if (!entrance.isDungeonHeart()
+                && timeSinceLastSpawn >= entranceCooldownTime + (double) entrance.getGeneratedCount() * entrance.getGeneratedCount()) {
+
+            // Native Portals advance the clock on every due check, including closed or ineligible ones.
+            entrance.onGenerationCycle(timeElapsed);
+            if (!player.getRoomControl().isPortalsOpen() || isCreatureLimitReached(player)) {
+                return;
+            }
 
             // Evaluate what creature can we spawn
             Map<Integer, CreaturePool> pool = kwdFile.getCreaturePool(player.getKeeper().getId());
@@ -154,7 +158,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 short creatureId = Utils.getRandomItem(possibleCreatures).getCreatureId();
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
                 entityId = creaturesController.spawnCreature(creatureId, player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.ENTRANCE);
-                spawned = true;
+                spawned = entityId != null;
             }
         }
 
