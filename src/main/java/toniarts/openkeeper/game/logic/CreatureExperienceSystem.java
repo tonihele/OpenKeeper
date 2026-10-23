@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -61,6 +62,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private final EntitySet trainingEntities;
     private final EntityData entityData;
     private final int impExperienceGainPerSecond;
+    private final int combatPitMaxLevel;
     private final SafeArrayList<EntityId> experienceEntityIds;
     private final SafeArrayList<EntityId> trainingEntityIds;
     private final ICreaturesController creaturesController;
@@ -76,6 +78,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         trainingEntityIds = new SafeArrayList<>(EntityId.class);
 
         impExperienceGainPerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND).getValue();
+        Variable.MiscVariable combatPitMaxLevelVariable = gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL);
+        combatPitMaxLevel = combatPitMaxLevelVariable != null ? (int) combatPitMaxLevelVariable.getValue() : Utils.MAX_CREATURE_LEVEL;
 
         experienceEntities = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureAi.class);
         trainingEntities = entityData.getEntities(new AndFilter(TaskComponent.class, new FieldFilter(TaskComponent.class, "taskStarted", true), new FieldFilter(TaskComponent.class, "taskType", TaskType.TRAIN)), CreatureComponent.class, CreatureExperience.class, CreatureAi.class, TaskComponent.class);
@@ -117,6 +121,11 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private void handleEntity(Entity entity, EntityId entityId, float tpf, Supplier<ExperienceGainReason> reasonSupplier) {
         CreatureExperience creatureExperience = entity.get(CreatureExperience.class);
         if (creatureExperience.level >= Utils.MAX_CREATURE_LEVEL) {
+            return;
+        }
+
+        // The Combat Pit teaches only up to a level
+        if (creatureExperience.level >= combatPitMaxLevel && entityData.getComponent(entityId, CombatPitFighter.class) != null) {
             return;
         }
 

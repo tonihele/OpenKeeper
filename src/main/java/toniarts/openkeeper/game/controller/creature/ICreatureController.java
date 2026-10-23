@@ -114,6 +114,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isIncapacitated();
 
+    /**
+     * Is the creature fighting in a Combat Pit
+     *
+     * @return true if dropped into a Combat Pit to fight
+     */
+    public boolean isCombatPitFighter();
+
     public boolean isTimeToReEvaluate();
 
     public void resetReEvaluationTimer();
