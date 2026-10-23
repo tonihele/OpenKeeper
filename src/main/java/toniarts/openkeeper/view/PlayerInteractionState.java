@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.controller.DoorPlacementValidator;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
 import toniarts.openkeeper.game.controller.TrapPlacementValidator;
@@ -696,7 +697,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
                 }
             } else if (interactionState.getType() == Type.DOOR) {
-                //TODO put door
+                Point p = selectionHandler.getPointedTileIndex();
+                if (isDoorPlacementValid(p)) {
+                    gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(), p);
+                }
             } else if (interactionState.getType() == Type.NONE
                     && interactiveControl != null && !keeperHandState.isFull()
                     && interactiveControl.isPickable(player.getPlayerId())) {
@@ -941,6 +945,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return false;
     }
 
+    private boolean isDoorPlacementValid(Point tile) {
+        Set<Point> occupiedTiles = new HashSet<>();
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        return DoorPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
+                kwdFile.getDoorById(interactionState.getItemId()),
+                gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
+    }
+
     private boolean isConstructionBlockingObject(Entity entity) {
         ObjectComponent objectComponent = entity.get(ObjectComponent.class);
         return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
@@ -1069,6 +1082,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
             if (interactionState.getType() == Type.TRAP) {
                 return isTrapPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
+            if (interactionState.getType() == Type.DOOR) {
+                return isDoorPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;

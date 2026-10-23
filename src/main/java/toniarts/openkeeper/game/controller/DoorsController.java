@@ -34,12 +34,11 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -113,7 +112,8 @@ public final class DoorsController implements IDoorsController {
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
         pos.y = WorldUtils.FLOOR_HEIGHT;
         float rotation = 0;
-        if (canTileSupportDoor(x, y - 1, ownerId) && canTileSupportDoor(x, y + 1, ownerId)) {
+        if (!DoorPlacementValidator.isBetweenWallsEastAndWest(mapController, x, y)
+                && DoorPlacementValidator.isBetweenWallsNorthAndSouth(mapController, x, y)) {
             rotation = -FastMath.HALF_PI;
         }
         entityData.setComponent(entity, new Position(rotation, pos));
@@ -125,11 +125,8 @@ public final class DoorsController implements IDoorsController {
         }
 
         // Health
-        entityData.setComponent(entity, new Health(door.getHealth(), door.getHealth()));
-
-        // Regeneration
-        if (door.getHealthGain() > 0) {
-            entityData.setComponent(entity, new Regeneration(door.getHealthGain(), null));
+        if (!blueprint) {
+            setBuilt(entity, door);
         }
 
         // Trigger
@@ -146,13 +143,18 @@ public final class DoorsController implements IDoorsController {
         return entity;
     }
 
-    private boolean canTileSupportDoor(int x, int y, short ownerId) {
-        IMapTileInformation tile = mapController.getMapData().getTile(x, y);
-        Terrain terrain = mapController.getTerrain(tile);
+    private void setBuilt(EntityId entity, Door door) {
+        entityData.setComponent(entity, new Health(door.getHealth(), door.getHealth()));
 
-        return (tile != null && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && ((!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))
-                || (tile.getOwnerId() == ownerId && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))));
+        // Regeneration
+        if (door.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(door.getHealthGain(), null));
+        }
+    }
+
+    @Override
+    public EntityId addDoorBlueprint(short doorId, Point tile, short ownerId) {
+        return loadDoor(tile.x, tile.y, doorId, ownerId, null, false, true);
     }
 
     @Override
