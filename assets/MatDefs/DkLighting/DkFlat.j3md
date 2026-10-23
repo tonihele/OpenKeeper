@@ -9,7 +9,7 @@ MaterialDef DK Flat Lighting {
 
         // Global ambient: the video "ambient light" setting.
         // Defaulted to black -- materials that nobody pushes a live value
-        // into (e.g. batched room geometry this pass leaves untouched,
+        // into (e.g. batched room geometry,
         // see MapViewController.applyTerrainLighting) must not read an
         // uninitialized GPU uniform here.
         Color GlobalAmbient : 0.0 0.0 0.0 0.0

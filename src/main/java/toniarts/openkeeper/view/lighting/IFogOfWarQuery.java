@@ -25,10 +25,8 @@ import toniarts.openkeeper.utils.Point;
  * <p>
  * This is the seam between lighting and the fog-of-war system
  * ({@code view/fogofwar}): {@code MapViewController} adapts its
- * {@code IFogOfWarInformation} to it. {@link NoFogOfWarQuery} remains the
+ * {@code IFogOfWarInformation} to it. {@link NoFogOfWarQuery} is the
  * default for lighting set-ups without fog (tests, previews).
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public interface IFogOfWarQuery {
 

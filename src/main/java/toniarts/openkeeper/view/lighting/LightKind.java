@@ -20,8 +20,6 @@ package toniarts.openkeeper.view.lighting;
  * The kinds of light source the lighting system creates.
  * {@link #SLAB} is the per-terrain {@code Light} block;
  * no stock terrain uses it, it exists for custom terrain.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public enum LightKind {
     THING,

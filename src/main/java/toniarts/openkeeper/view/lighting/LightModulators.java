@@ -27,8 +27,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * and a fixed 30&nbsp;Hz presentation clock (flicker). Owns its own
  * {@link Random} stream -- this must never share the simulation's RNG
  * state.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class LightModulators {
 

@@ -44,17 +44,14 @@ import toniarts.openkeeper.utils.Point;
  * ({@code LightData}) that every terrain material reads. All materials see
  * exactly the same lights, so neighbouring tiles, room meshes and page
  * batches can never disagree about a light that reaches their shared edge
- * (the earlier per-material light lists, chosen by distance from each
- * material's own centre and capped, produced hard cuts at tile borders). The
- * shader still evaluates the model exactly, per vertex; there is no cap on
+ * (per-material light lists would cut hard at tile borders). The
+ * shader evaluates the model exactly, per vertex; there is no cap on
  * the number of lights beyond the texture size ({@link #MAX_LIGHTS}).</li>
  * <li><b>Flat things</b> ({@code DkFlat.j3md}): {@link #computeFlatLight}
  * is a pure function callers (entity containers, {@code VisualEffect})
  * invoke themselves each frame with the owner's current position -- this class does not track thing positions.</li>
  * </ul>
  * This is the only place that knows how sources get turned into pixels.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class SceneLights {
 

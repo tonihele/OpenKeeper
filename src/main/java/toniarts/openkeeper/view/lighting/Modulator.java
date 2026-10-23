@@ -21,8 +21,6 @@ import java.util.Arrays;
 /**
  * A time-varying multiplier/override on a {@link LightSource}'s current
  * colour, advanced once per simulation tick.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class Modulator {
 

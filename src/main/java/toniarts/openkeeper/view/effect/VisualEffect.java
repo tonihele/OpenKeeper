@@ -218,9 +218,8 @@ public class VisualEffect {
             model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
 
         } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
-
-                AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
-                if (animControl != null) {
+            AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+            if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
 //                    resource.getData(ArtResource.KEY_FPS);
@@ -609,9 +608,7 @@ public class VisualEffect {
     /**
      * The thing-light formula, applied to this effect
      * (owner = the effect itself). Fade modulators are left to
-     * the effect system to trigger via {@code LightSource.startFade} --
-     * this only creates the entry point;
-     * nothing here decides which effects fade or for how long.
+     * the effect system to trigger via {@code LightSource.startFade}.
      * {@code PLAYER_COLOURED} lights take the colour of the effect's owner.
      */
     private void applyEffectLight(Light effectLight) {

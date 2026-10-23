@@ -22,8 +22,6 @@ import toniarts.openkeeper.utils.Point;
  * The default {@link IFogOfWarQuery}: everything is explored and
  * perceived. Used where there is no fog (tests, previews); in the game
  * {@code MapViewController} supplies a query backed by the real fog state.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class NoFogOfWarQuery implements IFogOfWarQuery {
 

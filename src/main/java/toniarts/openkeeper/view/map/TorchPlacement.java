@@ -27,8 +27,6 @@ import toniarts.openkeeper.view.map.WallSection.WallDirection;
 /**
  * Where wall torches, and the lights that go with them, are placed. Pure
  * functions of the tile coordinates and terrain data.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 final class TorchPlacement {
 

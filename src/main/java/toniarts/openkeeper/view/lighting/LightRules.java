@@ -38,8 +38,6 @@ import toniarts.openkeeper.utils.Point;
  * <p>
  * Deliberately presentation-only: nothing here is read by the simulation
  * state.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class LightRules {
 

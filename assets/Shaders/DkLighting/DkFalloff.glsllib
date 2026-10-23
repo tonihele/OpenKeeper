@@ -35,7 +35,7 @@ float dkFalloffMonotonic(float n) {
 }
 
 // Loose tail stretched past every light's radius (a deliberate deviation
-// from the exact falloff, requested in-game). The exact falloff cuts the contribution
+// from the original falloff). The original falloff cuts the contribution
 // to exactly 0 at the radius surface, so a small radius pool (torches
 // and terrain lights sit at 1.5 tiles) saturates up to its edge and then
 // stops dead -- the neighbouring tiles read as flat, harsh unlit blocks.
@@ -50,11 +50,10 @@ float dkFalloffMonotonic(float n) {
 // One point light's additive per-vertex contribution
 // (per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and
 // `intensity` is the source's effective (flicker-scaled) intensity --
-// note the surface normal is deliberately dotted the surface normal against the
-// UN-normalized light vector `d` (not its normalized direction): this is
-// how the original's falloff and "1 tile from a torch is full colour"
-// behaviour actually combine, not a mistake to "fix" into a normalized
-// Lambert term.
+// note the surface normal is deliberately dotted against the
+// un-normalized light vector `d` (not its normalized direction): this is
+// how the falloff and "1 tile from a torch is full colour" combine, not a
+// mistake to "fix" into a normalized Lambert term.
 vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
         float radius, vec3 lightColor, float intensity, bool smoothFalloff) {
     vec3 d = lightPos - worldPos;
@@ -91,11 +90,11 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
 
 // Not part of the original model -- a deliberate deviation from "the mesh
 // base colour" (black) outside every light's reach: keeps torch-less
-// ground dim rather than a flat black void. Currently 0 (off): objects and
-// walkable terrain are black wherever no light reaches. Was 0.4.
+// ground dim rather than a flat black void. 0 means off: objects and
+// walkable terrain are black wherever no light reaches.
 #define DK_MIN_AMBIENT_FLOOR 0.0
 
-// Compresses the brightest channel, as before.
+// Compresses a single channel value.
 float dkSoftClampValue(float x) {
     if (x <= DK_SOFTCLAMP_KNEE) {
         return x;

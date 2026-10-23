@@ -23,8 +23,6 @@ import java.util.Random;
  * A presentation-only point light source. Never saved, checksummed or read
  * by the simulation -- {@link LightRules} is the only
  * creator/destroyer of these.
- *
- * @author Toni Helenius &lt;helenius.toni@gmail.com&gt;
  */
 public final class LightSource {
 
@@ -60,7 +58,7 @@ public final class LightSource {
         this.colour[1] = green;
         this.colour[2] = blue;
         this.intensity = intensity;
-        // Terrain lights keep their fixed 4.5 tile radius, the cap is for the rest
+        // Terrain lights are exempt from the radius cap
         this.radius = kind == LightKind.TERRAIN ? radius : Math.min(radius, LightConstants.MAX_LIGHT_RADIUS_TILES);
     }
 

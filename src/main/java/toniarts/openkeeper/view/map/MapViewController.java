@@ -1432,9 +1432,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     /**
      * Handle the terrain-light source for a tile: a positioned {@code LightSource}, not a material
-     * constant, so it illuminates its surroundings like a torch does. The
-     * interior-slab rule is unverified and should be checked in game
-     * against a 3x3/5x5 room.
+     * constant, so it illuminates its surroundings like a torch does.
      * <p>
      * {@code terrain} is whatever {@link #getTerrain(IMapTileInformation)}
      * already resolved for this tile's mesh (real terrain, the Claim Scan
@@ -1682,11 +1680,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Legacy material tweak, kept only for {@link Water}'s own
-     * (separate, KMF-independent) material -- out of scope for this pass
-     * of the lighting rewrite, unaffected either way since
-     * {@code UseMaterialColors} is false here and these params were never
-     * visible before.
+     * Material tweak used for {@link Water}'s own material, which does not
+     * come from a KMF model. {@code UseMaterialColors} is false there, so the
+     * parameters have no visible effect.
      *
      * @param material the material to adjust
      * @param terrain the terrain data

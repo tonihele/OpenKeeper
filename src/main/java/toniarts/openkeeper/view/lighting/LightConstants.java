@@ -36,16 +36,15 @@ public final class LightConstants {
     public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
 
     /**
-     * The original's terrain-light radius: the terrain data has no radius
-     * field, the original reuses the scratch CLight at CBridge+0x35B with a
-     * fixed radius of 1.125 tiles (small enough to light raised geometry such
-     * as rims and wall faces, but not the floor: the "edge glow"). Not subject
+     * Radius of terrain lights. The terrain data has no radius field, so all
+     * of them use 1.125 tiles: small enough to light raised geometry such as
+     * rims and wall faces, but not the floor (the "edge glow"). Not subject
      * to {@link #MAX_LIGHT_RADIUS_TILES}.
      */
     public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.125f;
 
     /**
-     * The original's terrain-light intensity
+     * Intensity of terrain lights
      */
     public static final float TERRAIN_LIGHT_INTENSITY = 0.4f;
 
@@ -156,8 +155,7 @@ public final class LightConstants {
     public static final float CURSOR_LIGHT_HEIGHT_OPEN = WorldUtils.FLOOR_HEIGHT + 0.1f;
 
     /**
-     * Portal light radius: this is also the hard cap every light's radius
-     * is clamped to
+     * Portal light radius
      */
     public static final float PORTAL_LIGHT_RADIUS_TILES = 2f;
 
@@ -166,8 +164,8 @@ public final class LightConstants {
      */
     public static final float MAX_LIGHT_RADIUS_TILES = 4.5f;
     /**
-     * Portal light colour/intensity DK2
-     * hard-codes this for room ids 3 (Portal) and 25 (Hero Portal).
+     * Portal light colour and intensity, used for the room ids 3 (Portal) and
+     * 25 (Hero Portal).
      */
     public static final int PORTAL_LIGHT_RED = 255;
     public static final int PORTAL_LIGHT_GREEN = 33;
