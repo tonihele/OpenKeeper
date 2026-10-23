@@ -235,6 +235,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public int getResearchPerSecond();
 
     /**
+     * Get manufacture per second attribute
+     *
+     * @return manufacture per second
+     */
+    public int getManufacturePerSecond();
+
+    /**
      * Gives object to creature
      *
      * @param object the object, might be food, gold, or what ever
