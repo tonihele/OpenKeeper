@@ -30,7 +30,60 @@ public final class LightSource {
         IN, OUT, FLASH
     }
 
-    private final LightKind kind;
+    /**
+     * The kinds of light source the lighting system creates.
+     * {@link #SLAB} is the per-terrain {@code Light} block;
+     * no stock terrain uses it, it exists for custom terrain.
+     */
+    public enum Kind {
+        THING,
+        TORCH,
+        TERRAIN,
+        SLAB,
+        PORTAL,
+        CURSOR;
+
+        /**
+         * Whether lights of this kind belong to a map tile (and so follow that
+         * tile's fog of war), as opposed to a thing, a room or the cursor.
+         */
+        public boolean isTileOwned() {
+            return this == TORCH || this == TERRAIN || this == SLAB;
+        }
+    }
+
+    /**
+     * The groups of light sources that can be switched on and off independently
+     * (see {@link LightRules#setGroupEnabled(Group, boolean)}), a coarser
+     * view of {@link Kind} that also tells object lights from creature and
+     * effect lights.
+     */
+    public enum Group {
+        TORCH,
+        TERRAIN,
+        ROOM,
+        CREATURE,
+        OBJECT,
+        CURSOR;
+
+        public static Group of(LightSource light) {
+            switch (light.getKind()) {
+                case TORCH:
+                    return TORCH;
+                case TERRAIN:
+                case SLAB:
+                    return TERRAIN;
+                case PORTAL:
+                    return ROOM;
+                case CURSOR:
+                    return CURSOR;
+                default:
+                    return light.isObjectLight() ? OBJECT : CREATURE;
+            }
+        }
+    }
+
+    private final Kind kind;
     private final Object owner;
     private Vector3f position;
     private final int[] baseColour = new int[3];
@@ -46,7 +99,7 @@ public final class LightSource {
     private float flickerScale = 1.0f;
     private boolean enabled = true;
 
-    public LightSource(LightKind kind, Object owner, Vector3f position,
+    public LightSource(Kind kind, Object owner, Vector3f position,
             int red, int green, int blue, float intensity, float radius) {
         this.kind = kind;
         this.owner = owner;
@@ -59,10 +112,10 @@ public final class LightSource {
         this.colour[2] = blue;
         this.intensity = intensity;
         // Terrain lights are exempt from the radius cap
-        this.radius = kind == LightKind.TERRAIN ? radius : Math.min(radius, LightConstants.MAX_LIGHT_RADIUS_TILES);
+        this.radius = kind == Kind.TERRAIN ? radius : Math.min(radius, LightConstants.MAX_LIGHT_RADIUS_TILES);
     }
 
-    public LightKind getKind() {
+    public Kind getKind() {
         return kind;
     }
 
@@ -78,7 +131,7 @@ public final class LightSource {
      * other source
      */
     public boolean needsSmoothFalloff() {
-        return kind == LightKind.CURSOR;
+        return kind == Kind.CURSOR;
     }
 
     public Object getOwner() {

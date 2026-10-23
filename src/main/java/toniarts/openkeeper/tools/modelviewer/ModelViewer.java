@@ -81,7 +81,7 @@ import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.lighting.LightConstants;
-import toniarts.openkeeper.view.lighting.LightGroup;
+import toniarts.openkeeper.view.lighting.LightSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -498,11 +498,11 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
-    boolean isLightGroupEnabled(LightGroup group) {
+    boolean isLightGroupEnabled(LightSource.Group group) {
         return mapLoaderAppState.isLightGroupEnabled(group);
     }
 
-    void setLightGroupEnabled(LightGroup group, boolean enabled) {
+    void setLightGroupEnabled(LightSource.Group group, boolean enabled) {
         mapLoaderAppState.setLightGroupEnabled(group, enabled);
     }
 

@@ -191,7 +191,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      */
     private static float litIntensity(LightSource light) {
         float intensity = light.getEffectiveIntensity();
-        return LightGroup.of(light) == LightGroup.CREATURE ? intensity * LightConstants.CREATURE_LIGHT_STRENGTH : intensity;
+        return LightSource.Group.of(light) == LightSource.Group.CREATURE ? intensity * LightConstants.CREATURE_LIGHT_STRENGTH : intensity;
     }
 
     /**
@@ -212,8 +212,8 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         lightFloats.put(base + 8, (light.needsSmoothFalloff() ? 1 : 0)
                 | (lightsUnexploredTiles(light) ? 2 : 0)
                 | (light.yieldsToTorches() ? 4 : 0)
-                | (light.getKind() == LightKind.TORCH ? 8 : 0)
-                | (LightGroup.of(light) == LightGroup.CREATURE ? 16 : 0)
+                | (light.getKind() == LightSource.Kind.TORCH ? 8 : 0)
+                | (LightSource.Group.of(light) == LightSource.Group.CREATURE ? 16 : 0)
                 | (light.isObjectLight() ? 32 : 0));
     }
 
@@ -261,10 +261,10 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      * torches, creatures, effects and explored terrain must not reveal it.
      */
     private boolean lightsUnexploredTiles(LightSource light) {
-        if (light.getKind() == LightKind.CURSOR) {
+        if (light.getKind() == LightSource.Kind.CURSOR) {
             return true; // the keeper's hand lights the fog it points at
         }
-        return light.getKind() == LightKind.TERRAIN
+        return light.getKind() == LightSource.Kind.TERRAIN
                 && light.getOwner() instanceof Point owner
                 && !fogOfWar.isExplored(owner);
     }

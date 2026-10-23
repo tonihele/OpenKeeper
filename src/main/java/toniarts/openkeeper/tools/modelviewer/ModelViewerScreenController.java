@@ -48,7 +48,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
-import toniarts.openkeeper.view.lighting.LightGroup;
+import toniarts.openkeeper.view.lighting.LightSource;
 
 /**
  *
@@ -145,7 +145,7 @@ public final class ModelViewerScreenController implements ScreenController {
 
     @NiftyEventSubscriber(pattern = ID_LIGHT_PREFIX + ".*")
     public void onLightGroupChanged(final String id, final CheckBoxStateChangedEvent event) {
-        LightGroup group = LightGroup.valueOf(id.substring(ID_LIGHT_PREFIX.length()));
+        LightSource.Group group = LightSource.Group.valueOf(id.substring(ID_LIGHT_PREFIX.length()));
         if (event.isChecked() != app.isLightGroupEnabled(group)) {
             app.setLightGroupEnabled(group, event.isChecked());
         }
@@ -363,7 +363,7 @@ public final class ModelViewerScreenController implements ScreenController {
                 parameter("terrainAmbient", String.valueOf(app.isTerrainAmbient()));
                 parameter("ceiling", String.valueOf(app.isCeilingVisible()));
                 // Initial state of the per-group light checkboxes
-                for (LightGroup group : LightGroup.values()) {
+                for (LightSource.Group group : LightSource.Group.values()) {
                     parameter(ID_LIGHT_PREFIX + group.name(), String.valueOf(app.isLightGroupEnabled(group)));
                 }
             }

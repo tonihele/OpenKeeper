@@ -39,7 +39,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.view.PlayerEntityViewState;
-import toniarts.openkeeper.view.lighting.LightGroup;
+import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
@@ -61,7 +61,7 @@ public final class MapLoaderAppState extends AbstractAppState {
     private GameController gameController;
     private volatile MapViewController mapViewController;
     private Application app;
-    private final Set<LightGroup> disabledLightGroups = EnumSet.noneOf(LightGroup.class);
+    private final Set<LightSource.Group> disabledLightGroups = EnumSet.noneOf(LightSource.Group.class);
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -118,21 +118,21 @@ public final class MapLoaderAppState extends AbstractAppState {
             float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
             controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
             controller.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
-            for (LightGroup group : LightGroup.values()) {
+            for (LightSource.Group group : LightSource.Group.values()) {
                 controller.getLightRules().setGroupEnabled(group, !disabledLightGroups.contains(group));
             }
             controller.getLightRules().update(tpf, app.getCamera());
         }
     }
 
-    boolean isLightGroupEnabled(LightGroup group) {
+    boolean isLightGroupEnabled(LightSource.Group group) {
         return !disabledLightGroups.contains(group);
     }
 
     /**
      * Applies to the current and any later loaded map, no reload needed.
      */
-    void setLightGroupEnabled(LightGroup group, boolean enabled) {
+    void setLightGroupEnabled(LightSource.Group group, boolean enabled) {
         if (enabled) {
             disabledLightGroups.remove(group);
         } else {

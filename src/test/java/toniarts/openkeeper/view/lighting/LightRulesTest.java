@@ -64,7 +64,7 @@ public class LightRulesTest {
     public void slabLightRadiusIsNotScaledByTwoThirds() {
         LightRules rules = new LightRules();
         LightSource slab = rules.addSlabLight(new Point(1, 1), Vector3f.ZERO, 100, 100, 100, 1.5f, false, false);
-        assertEquals(LightKind.SLAB, slab.getKind());
+        assertEquals(LightSource.Kind.SLAB, slab.getKind());
         assertEquals(Math.min(1.5f, LightConstants.MAX_LIGHT_RADIUS_TILES), slab.getRadius());
     }
 

@@ -46,7 +46,7 @@ public final class LightRules {
     private final IFogOfWarQuery fogOfWar;
     private boolean cheapLighting;
     // Replaced, never mutated: read on the render thread, set from the UI
-    private volatile EnumSet<LightGroup> disabledGroups = EnumSet.noneOf(LightGroup.class);
+    private volatile EnumSet<LightSource.Group> disabledGroups = EnumSet.noneOf(LightSource.Group.class);
 
     /**
      * Torch and terrain lights, keyed by their owner tile -- a tile
@@ -118,26 +118,26 @@ public final class LightRules {
      * Switches a whole group of lights on or off, e.g. for debugging. The
      * lights keep being simulated, they just stop contributing.
      */
-    public void setGroupEnabled(LightGroup group, boolean enabled) {
-        EnumSet<LightGroup> copy = EnumSet.copyOf(disabledGroups);
+    public void setGroupEnabled(LightSource.Group group, boolean enabled) {
+        EnumSet<LightSource.Group> copy = EnumSet.copyOf(disabledGroups);
         if (enabled ? copy.remove(group) : copy.add(group)) {
             disabledGroups = copy;
         }
     }
 
-    public boolean isGroupEnabled(LightGroup group) {
+    public boolean isGroupEnabled(LightSource.Group group) {
         return !disabledGroups.contains(group);
     }
 
     private List<LightSource> activeSources() {
         List<LightSource> sources = modulators.getSources();
-        Set<LightGroup> disabled = disabledGroups;
+        Set<LightSource.Group> disabled = disabledGroups;
         if (disabled.isEmpty()) {
             return sources;
         }
         List<LightSource> result = new ArrayList<>(sources.size());
         for (LightSource light : sources) {
-            if (!disabled.contains(LightGroup.of(light))) {
+            if (!disabled.contains(LightSource.Group.of(light))) {
                 result.add(light);
             }
         }
@@ -209,7 +209,7 @@ public final class LightRules {
 
     public LightSource addTorchLight(Point owner, Vector3f position,
             int red, int green, int blue, float intensity, float radius) {
-        LightSource light = new LightSource(LightKind.TORCH, owner, position,
+        LightSource light = new LightSource(LightSource.Kind.TORCH, owner, position,
                 red, green, blue, intensity, radius);
         light.setFlickerCapable(true);
         light.applyCheapLighting(cheapLighting);
@@ -224,7 +224,7 @@ public final class LightRules {
 
     public LightSource addTerrainLight(Point owner, Vector3f position,
             int red, int green, int blue, float intensity) {
-        LightSource light = new LightSource(LightKind.TERRAIN, owner, position,
+        LightSource light = new LightSource(LightSource.Kind.TERRAIN, owner, position,
                 red, green, blue, intensity,
                 LightConstants.TERRAIN_LIGHT_RADIUS_TILES);
         addTileLight(owner, light);
@@ -239,7 +239,7 @@ public final class LightRules {
      */
     public LightSource addSlabLight(Point owner, Vector3f position,
             int red, int green, int blue, float fileRadius, boolean pulse, boolean flicker) {
-        LightSource light = new LightSource(LightKind.SLAB, owner, position,
+        LightSource light = new LightSource(LightSource.Kind.SLAB, owner, position,
                 red, green, blue, LightConstants.SLAB_LIGHT_INTENSITY, fileRadius);
         if (pulse) {
             light.startPulse();
@@ -260,7 +260,7 @@ public final class LightRules {
     // ------------------------------------------------------------------
 
     public LightSource addPortalLight(Object room, Vector3f position) {
-        LightSource light = new LightSource(LightKind.PORTAL, room, position,
+        LightSource light = new LightSource(LightSource.Kind.PORTAL, room, position,
                 LightConstants.PORTAL_LIGHT_RED, LightConstants.PORTAL_LIGHT_GREEN,
                 LightConstants.PORTAL_LIGHT_BLUE, LightConstants.PORTAL_LIGHT_INTENSITY,
                 LightConstants.PORTAL_LIGHT_RADIUS_TILES);
@@ -340,7 +340,7 @@ public final class LightRules {
         }
         Vector3f position = ownerPosition.add(offset);
 
-        LightSource light = new LightSource(LightKind.THING, owner, position,
+        LightSource light = new LightSource(LightSource.Kind.THING, owner, position,
                 r, g, b, intensity, radius);
         if (pulse) {
             light.startPulse();
@@ -385,7 +385,7 @@ public final class LightRules {
     // ------------------------------------------------------------------
 
     public void createCursorLight() {
-        cursorLight = new LightSource(LightKind.CURSOR, null, Vector3f.ZERO,
+        cursorLight = new LightSource(LightSource.Kind.CURSOR, null, Vector3f.ZERO,
                 LightConstants.MAX_COLOUR, LightConstants.MAX_COLOUR, LightConstants.MAX_COLOUR, LightConstants.CURSOR_LIGHT_INTENSITY,
                 LightConstants.CURSOR_LIGHT_RADIUS_TILES);
         modulators.add(cursorLight);
