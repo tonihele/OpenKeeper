@@ -563,6 +563,7 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     public void onSelectionChanged(Object selection) {
+        screen.selectionChanged(selection);
         effectManagerState.setEnabled(false);
 
         switch (screen.getTypeControl().getSelection()) {
@@ -882,33 +883,10 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     protected String getEffectReferences(Effect effect) {
-        List<String> references = new ArrayList<>();
-        int effectId = effect.getEffectId();
-
-        for (Room room : getKwdFile().getRooms()) {
-            if (room.getEffects().contains(effectId)) {
-                references.add(room.getName() + " room");
-            }
-            if (room.getFightEffectId() == effectId) {
-                references.add(room.getName() + " fight");
-            }
-        }
-        for (GameObject object : getKwdFile().getObjectList()) {
-            if (object.getMiscEffectId() == effectId) {
-                references.add(object.getName() + " misc");
-            }
-            if (object.getSlapEffectId() == effectId) {
-                references.add(object.getName() + " slap");
-            }
-            if (object.getDeathEffectId() == effectId) {
-                references.add(object.getName() + " death");
-            }
-        }
-
-        return references.isEmpty() ? "None" : String.join(", ", references);
+        return EffectInspector.references(getKwdFile(), effect.getEffectId());
     }
 
-    private IKwdFile getKwdFile() {
+    IKwdFile getKwdFile() {
         // Read Alcatraz.kwd by default
         if (kwdFile == null) {
             kwdFile = getKwdFile("Alcatraz");
