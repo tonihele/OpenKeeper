@@ -124,6 +124,18 @@ public interface Task {
     boolean isFaceTarget();
 
     /**
+     * Where exactly the creature stands to do the task. If it differs from the
+     * target, the navigation ends here instead of in the middle of the target
+     * tile.
+     *
+     * @param creature the creature doing the task
+     * @return the position, by default the target itself
+     */
+    default Vector2f getWorkPosition(ICreatureController creature) {
+        return getTarget(creature);
+    }
+
+    /**
      * Is the task reachable by the given creature. Ask this last if determining
      * validity etc. As the method might be heavy
      *

@@ -34,7 +34,9 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_ATTACK;
 import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
@@ -46,13 +48,15 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class CreatureViewSystem extends GameTimeCounter {
 
     private final EntityData entityData;
+    private final IKwdFile kwdFile;
     private final EntitySet creatureViewEntities;
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
 
-    public CreatureViewSystem(EntityData entityData) {
+    public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile) {
         this.entityData = entityData;
+        this.kwdFile = kwdFile;
 
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
@@ -83,7 +87,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
             } else {
                 TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
                 if (taskComponent != null) {
-                    targetState = getAnimation(taskComponent.taskType);
+                    targetState = taskComponent.taskType == TaskType.MANUFACTURE
+                            ? getManufactureAnimation(kwdFile.getCreature(state.creatureId))
+                            : getAnimation(taskComponent.taskType);
                 } else {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null) {
@@ -171,6 +177,21 @@ public final class CreatureViewSystem extends GameTimeCounter {
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
+    }
+
+    /**
+     * Only the Bile Demon has an animation of its own for the workshop, the
+     * others, like the Troll, swing their hammer, their melee attack
+     *
+     * @param creature the creature manufacturing
+     * @return the animation to show
+     */
+    static Creature.AnimationType getManufactureAnimation(Creature creature) {
+        ArtResource manufacturing = creature.getAnimation(Creature.AnimationType.MANUFACTURING);
+        if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
+            return Creature.AnimationType.MANUFACTURING;
+        }
+        return Creature.AnimationType.MELEE_ATTACK;
     }
 
 }

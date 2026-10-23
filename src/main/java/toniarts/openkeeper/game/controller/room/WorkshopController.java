@@ -25,7 +25,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomCrateControl;
+import toniarts.openkeeper.game.controller.room.storage.RoomManufacturerControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.view.map.WallSection;
 
@@ -36,8 +39,31 @@ import toniarts.openkeeper.view.map.WallSection;
  */
 public final class WorkshopController extends NormalRoomController {
 
-    public WorkshopController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+    private final IGameTimer gameTimer;
+
+    public WorkshopController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.MANUFACTURER);
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        // The creatures work at the furniture, the crates are stored on the floor
+        addObjectControl(new RoomManufacturerControl(kwdFile, this, entityData, gameTimer) {
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return getFurnitureCount();
+            }
+        });
+        addObjectControl(new RoomCrateControl(kwdFile, this, entityData, gameTimer) {
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return getCoordinates().size();
+            }
+        });
     }
 
     @Override
