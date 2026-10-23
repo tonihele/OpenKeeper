@@ -89,6 +89,7 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -213,6 +214,7 @@ public final class NetworkServer {
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());
             Serializer.registerClass(Threat.class, new FieldSerializer());
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());
+            Serializer.registerClass(TrapFiring.class, new FieldSerializer());
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
             Serializer.registerClass(Unconscious.class, new FieldSerializer());
