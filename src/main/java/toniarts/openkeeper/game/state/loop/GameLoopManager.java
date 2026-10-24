@@ -79,6 +79,8 @@ public final class GameLoopManager {
                         levelInfo, playerControllers.values(), gameWorldController.getMapController()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
+                new KeeperDefeatSystem(entityData, levelInfo, gameController, gameWorldController.getMapController(),
+                        gameWorldController.getObjectsController(), players != null && !players.isEmpty()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),

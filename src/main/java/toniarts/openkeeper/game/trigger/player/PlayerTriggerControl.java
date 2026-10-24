@@ -208,9 +208,8 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
             case PLAYER_KILLED:
 
-                // TODO: Is player killed specifically by this other player
-                short otherPlayerId = trigger.getUserData("playerId", short.class);
-                return false;
+                // Has this player been defeated, by a certain player or by anyone (0)
+                return getPlayer().isKilledBy(trigger.getUserData("playerId", short.class));
             case PLAYER_DUNGEON_BREACHED:
                 return false;
             case PLAYER_ENEMY_BREACHED:
