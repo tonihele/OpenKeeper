@@ -78,6 +78,7 @@ import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
+import toniarts.openkeeper.game.task.hero.DestroyRoomTile;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
@@ -747,6 +748,17 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     public boolean assignSleepTask(ICreatureController creature) {
         GoToSleep task = new GoToSleep(navigationService, mapController, creature);
         if (task.isReachable(creature)) {
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean assignDestroyRoomTask(ICreatureController creature, Point tile) {
+        DestroyRoomTile task = new DestroyRoomTile(navigationService, mapController, gameWorldController, gameSettings, tile, creature.getOwnerId());
+        if (task.isValid(creature)) {
             task.assign(creature, true);
             tasksByIds.put(task.getId(), task);
             return true;

@@ -36,6 +36,7 @@ public enum TaskType {
     CLAIM_ROOM,
     CLAIM_TILE,
     CLAIM_WALL,
+    DESTROY_ROOM_TILE,
     DIG_TILE,
     FETCH_OBJECT,
     REPAIR_WALL,

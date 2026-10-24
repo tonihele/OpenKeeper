@@ -162,6 +162,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case REPAIR_WALL:
             case CLAIM_WALL:
                 return Creature.AnimationType.SLEEPING;
+            case DESTROY_ROOM_TILE:
             case DIG_TILE:
                 return Creature.AnimationType.MELEE_ATTACK;
             case TRAIN:
