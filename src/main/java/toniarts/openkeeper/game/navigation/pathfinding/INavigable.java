@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.navigation.pathfinding;
 
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -35,6 +36,11 @@ public interface INavigable {
      * Default path cost
      */
     public static final float DEFAULT_COST = 1.0f;
+    /**
+     * What breaking through a door adds to the path cost, so that a short way
+     * round is preferred
+     */
+    public static final float DOOR_COST = 8.0f;
 
     /**
      * Can the entity travel from A to B?
@@ -80,6 +86,17 @@ public interface INavigable {
      * @return true for walking on lava
      */
     public boolean canWalkOnLava();
+
+    /**
+     * Is the entity willing and able to break through the door that blocks the
+     * way. Such a door doesn't stop the path finding, it just costs more.
+     *
+     * @param door the door entity
+     * @return true if the entity breaks the door down when it is in the way
+     */
+    default public boolean canBreakDoor(EntityId door) {
+        return false;
+    }
 
     /**
      * Can the entity move diagonally

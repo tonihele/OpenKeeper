@@ -291,9 +291,14 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
     @Override
     public boolean isTileBlocked(int x, int y, short playerId) {
+        return getBlockingDoor(x, y, playerId) != null;
+    }
+
+    @Override
+    public EntityId getBlockingDoor(int x, int y, short playerId) {
         Set<EntityId> entityIds = obstaclesByMapTile[x][y];
         if (entityIds.isEmpty()) {
-            return false;
+            return null;
         }
 
         for (EntityId entityId : entityIds) {
@@ -303,15 +308,15 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             }
 
             if (doorComponent.locked) {
-                return true;
+                return entityId;
             }
 
             Owner owner = entityData.getComponent(entityId, Owner.class);
 
-            return owner == null || owner.ownerId != playerId;
+            return owner == null || owner.ownerId != playerId ? entityId : null;
         }
 
-        return false;
+        return null;
     }
 
     @Override
