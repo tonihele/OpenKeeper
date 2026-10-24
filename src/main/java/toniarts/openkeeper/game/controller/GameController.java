@@ -480,6 +480,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         public LevelInfo(IKwdFile kwdFile) {
             this.kwdFile = kwdFile;
+            creatureMoodsEnabled = true; // The original turns them on at the start of every level
         }
 
         public void load() {
