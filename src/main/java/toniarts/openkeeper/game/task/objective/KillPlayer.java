@@ -92,9 +92,8 @@ public final class KillPlayer extends AbstractObjectiveTask {
 
     private void createSubTasks() {
 
-        // See if we can navigate there, a worker on its own tunnels its way like a party with workers does
-        INavigable navigable = creature.getParty() != null ? creature.getParty() : (creature.isWorker() ? new Tunneller(creature) : creature);
-        GraphPath<IMapTileInformation> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), navigable);
+        // See if we can navigate there
+        GraphPath<IMapTileInformation> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), getNavigable());
         if (outPath != null) {
             Iterator<IMapTileInformation> iter = outPath.iterator();
             IMapTileInformation lastPoint = null;
@@ -134,6 +133,17 @@ public final class KillPlayer extends AbstractObjectiveTask {
                 i++;
             }
         }
+    }
+
+    /**
+     * How the way to the heart is planned: a party plans for all its members,
+     * a worker on its own tunnels its way like a party with workers does
+     */
+    private INavigable getNavigable() {
+        if (creature.getParty() != null) {
+            return creature.getParty();
+        }
+        return creature.isWorker() ? new Tunneller(creature) : creature;
     }
 
     @Override
