@@ -525,7 +525,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         // Over open ground the light is lowered to reach the things standing
         // there. The mouse ray is cast to the light's own height, else the
         // light sits off towards the camera, under the pointer
-        boolean overSolid = !visible || mapInformation.isSolid(p);
+        // Unexplored ground (incl. the perceived claim scan) is drawn as rock,
+        // so it gets the rock height even where the real tile is open
+        IFogOfWarInformation fogOfWar = gameClientState.getFogOfWarInformation();
+        boolean overSolid = !visible || mapInformation.isSolid(p)
+                || (fogOfWar != null && !fogOfWar.isExplored(p));
         float height = overSolid ? LightConstants.CURSOR_LIGHT_HEIGHT : LightConstants.CURSOR_LIGHT_HEIGHT_OPEN;
         Vector2f pointed = selectionHandler.getPointedPositionAtHeight(height);
         Vector3f position = new Vector3f(pointed.x, height, pointed.y);
