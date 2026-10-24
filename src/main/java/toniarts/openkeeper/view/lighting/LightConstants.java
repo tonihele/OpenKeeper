@@ -277,9 +277,9 @@ public final class LightConstants {
      * The fixed presentation clock {@link LightModulators#flickerStep()} is
      * driven at.
      */
-    public static final int FLICKER_HZ = 30;
+    public static final int FLICKER_HZ = 15;
 
-    public static final float FLICKER_MIN = 0.2f;
+    public static final float FLICKER_MIN = 0.4f;
     public static final float FLICKER_MAX = 1.0f;
     public static final float FLICKER_STEP = 0.125f;
 
