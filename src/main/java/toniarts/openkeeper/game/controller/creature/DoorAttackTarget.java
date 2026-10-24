@@ -21,11 +21,13 @@ import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -40,6 +42,8 @@ public final class DoorAttackTarget {
      * the path (the creature itself is the index 0)
      */
     public static final int ADJACENT_DOOR_INDEX = 1;
+
+    private static final int[][] NEIGHBOURS = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
 
     private DoorAttackTarget() {
         // Nope
@@ -109,6 +113,38 @@ public final class DoorAttackTarget {
             shortPath.add(path.get(i));
         }
         return shortPath;
+    }
+
+    /**
+     * Does an idle creature go for an enemy door next to it on its own, with no
+     * target or objective that leads through it. In DKII.EXE the idle state
+     * checks the four tiles around the creature (0x481400), but only for the
+     * creatures of the keepers. The heroes meet doors on their way to an
+     * objective.
+     *
+     * @param ownerId the owner of the creature
+     * @return true if the creature looks for a door next to it
+     */
+    public static boolean attacksAdjacentWhenIdle(short ownerId) {
+        return ownerId > Player.NEUTRAL_PLAYER_ID;
+    }
+
+    /**
+     * Finds a door to break on the four tiles next to the given tile
+     *
+     * @param tile the tile we stand on
+     * @param doorAt gives the door that blocks the tile, or null
+     * @param canBreak tells if the door is one to break
+     * @return the door, or null if there is none
+     */
+    public static EntityId findAdjacent(Point tile, Function<Point, EntityId> doorAt, Predicate<EntityId> canBreak) {
+        for (int[] offset : NEIGHBOURS) {
+            EntityId door = doorAt.apply(new Point(tile.x + offset[0], tile.y + offset[1]));
+            if (door != null && canBreak.test(door)) {
+                return door;
+            }
+        }
+        return null;
     }
 
 }

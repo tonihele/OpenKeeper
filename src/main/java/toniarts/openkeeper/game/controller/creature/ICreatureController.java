@@ -47,6 +47,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean attackVisibleTrap();
 
     /**
+     * An idle fighter hits an enemy door that is next to it, as DKII.EXE does
+     *
+     * @return true if there is such a door and we are on it
+     */
+    public boolean attackAdjacentDoor();
+
+    /**
      * Checks what the creature sees and hears
      */
     public void checkSurroundings();
