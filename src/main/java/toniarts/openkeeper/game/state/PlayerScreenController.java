@@ -116,6 +116,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
+    private final Set<Element> unaffordableRooms = new HashSet<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -969,6 +970,27 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public void setGold(int gold) {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
+        updateRoomAffordability(gold);
+    }
+
+    /**
+     * Darkens the room icons that the player doesn't have enough gold to
+     * build a single tile of
+     *
+     * @param gold the gold the player has
+     */
+    private void updateRoomAffordability(int gold) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
+            if (!room.isDiscovered()) {
+                continue;
+            }
+            Element icon = hud.findElementById("room_" + room.getId());
+            if (icon != null) {
+                Room roomType = state.getKwdFile().getRoomById(room.getId());
+                setUnaffordable(icon, !HudAffordability.canAffordRoom(roomType, gold), unaffordableRooms);
+            }
+        }
     }
 
     public void setMana(int mana, int manaLoose, int manaGain) {
@@ -1008,6 +1030,29 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 if (icon == selectedButton) {
                     icon.startEffect(EffectEventId.onCustom, null, "select");
                 }
+            }
+        }
+    }
+
+    /**
+     * Darkens an icon, or lights it up again
+     *
+     * @param icon the icon
+     * @param unaffordable whether the player can't afford what the icon is for
+     * @param unaffordableIcons the icons of the same kind that are darkened
+     */
+    private void setUnaffordable(Element icon, boolean unaffordable, Set<Element> unaffordableIcons) {
+        if (unaffordable == unaffordableIcons.contains(icon)) {
+            return;
+        }
+        if (unaffordable) {
+            unaffordableIcons.add(icon);
+            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        } else {
+            unaffordableIcons.remove(icon);
+            icon.stopEffect(EffectEventId.onCustom);
+            if (icon == selectedButton) {
+                icon.startEffect(EffectEventId.onCustom, null, "select");
             }
         }
     }
@@ -1079,6 +1124,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             Element element = contentPanel.addElement(createRoomIcon(room));
             setResearchEffect(room, element);
         }
+        unaffordableRooms.clear();
+        updateRoomAffordability(state.getPlayer().getGold());
     }
 
     /**
@@ -1247,7 +1294,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
-            if (unaffordableSpells.contains(selectedButton)) {
+            if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)) {
                 selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
             }
         }
