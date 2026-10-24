@@ -54,12 +54,21 @@ public final class KillPlayer extends AbstractObjectiveTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        if (!isPlayerDestroyed() && creature != null && !getTaskQueue().isEmpty()) {
-
-            // Check that the objectives are still the same
-            return Thing.HeroParty.Objective.KILL_PLAYER.equals(creature.getObjective()) && Short.valueOf(targetPlayerId).equals(creature.getObjectiveTargetPlayerId());
+        if (isPlayerDestroyed()) {
+            return false;
         }
-        return !isPlayerDestroyed() && !getTaskQueue().isEmpty();
+        if (creature == null) {
+            return true;
+        }
+
+        // Check that the objectives are still the same
+        if (!Thing.HeroParty.Objective.KILL_PLAYER.equals(creature.getObjective()) || !Short.valueOf(targetPlayerId).equals(creature.getObjectiveTargetPlayerId())) {
+            return false;
+        }
+
+        // With no steps left the creature walks straight to the heart. If it
+        // stops short of it, a new plan is needed
+        return !getTaskQueue().isEmpty() || !creature.isStopped() || creature.isAtAssignedTaskTarget();
     }
 
     @Override
@@ -71,8 +80,10 @@ public final class KillPlayer extends AbstractObjectiveTask {
 
         for (Point point : points) {
             // TODO check is point accessible by creature?
-            if (point.distance(location) < temp) {
+            double distance = point.distance(location);
+            if (distance < temp) {
                 result = point;
+                temp = distance;
             }
         }
 
