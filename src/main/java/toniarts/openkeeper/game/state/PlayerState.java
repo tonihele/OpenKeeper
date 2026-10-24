@@ -337,7 +337,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
-        // TODO make flash button
+        screen.flashButton(buttonType, targetId, targetButtonType, enabled, time);
     }
 
     protected List<ResearchableEntity> getAvailableRoomsToBuild() {

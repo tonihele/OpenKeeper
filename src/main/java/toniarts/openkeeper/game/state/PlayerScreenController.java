@@ -127,6 +127,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private final DoorIconTextParser doorIconTextParser = new DoorIconTextParser();
     private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser();
     private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
+    private final HudButtonFlasher buttonFlasher = new HudButtonFlasher(this::setButtonFlashing);
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;
@@ -135,6 +136,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void update(float tpf) {
+        buttonFlasher.update(tpf);
         lastUpdate += tpf;
 
         if (lastUpdate >= SCREEN_UPDATE_INTERVAL) {
@@ -172,8 +174,42 @@ public final class PlayerScreenController implements IPlayerScreenController {
         this.state = state;
     }
 
+    /**
+     * Make a HUD button flash, or stop it from flashing. Can be called from
+     * any thread, the flashing is applied on the render thread.
+     *
+     * @param buttonType the button type
+     * @param targetId the room, spell, door, trap or button id
+     * @param targetButtonType the misc button type, if the type is a misc button
+     * @param enabled flash on or off
+     * @param time how many seconds to flash, 0 flashes until stopped
+     */
+    public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
+        buttonFlasher.flash(buttonType, targetId, targetButtonType, enabled, time);
+    }
+
+    private void setButtonFlashing(String buttonKey, boolean flashing) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element button = HudButtonFlasher.CREATURE_TAB.equals(buttonKey)
+                ? getCreatureTabButton(hud) : hud.findElementById(buttonKey);
+        if (button == null) {
+            return;
+        }
+        if (!flashing) {
+            button.stopEffect(EffectEventId.onActive);
+        } else if (!button.isEffectActive(EffectEventId.onActive)) {
+            button.startEffect(EffectEventId.onActive);
+        }
+    }
+
+    private static Element getCreatureTabButton(Screen hud) {
+        CustomTabGroupControl tabs = hud.findNiftyControl("tabs-hud", CustomTabGroupControl.class);
+        return tabs != null ? tabs.getTabButton(0) : null;
+    }
+
     @Override
     public void select(String iState, String id) {
+        buttonFlasher.stop(iState.trim().toLowerCase() + "_" + id.trim());
         Type type = Type.valueOf(iState.toUpperCase());
         if (type == Type.SELL) {
             this.playButtonSound(GlobalCategory.GUI_SELL);
@@ -190,6 +226,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void togglePanel() {
+        buttonFlasher.stop("toggleButton");
         // FIXME work but not properly. Map should not move with other things. Need HUD redesign
         Element element = nifty.getScreen(SCREEN_HUD_ID).findElementById("bottomPanel");
 
@@ -489,6 +526,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void grabGold() {
         state.grabGold(100);
+        buttonFlasher.stop("goldButton");
     }
 
     @Override
@@ -500,6 +538,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
      */
     public void resizeMap() {
+        buttonFlasher.stop("zoomButton");
         playButtonSound("GUI_BUTTON_ZOOM");
         MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
         if (minimapPanelState != null) {
@@ -515,6 +554,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (minimapPanelState != null) {
             minimapPanelState.zoomOut();
         }
+        buttonFlasher.stop("zoomButton");
     }
 
     @Override
@@ -715,6 +755,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @NiftyEventSubscriber(id = "tabs-hud")
     public void onTabChange(String id, TabSelectedEvent event) {
         updateSelectedItem(state.getInteractionState());
+        if ("tab-creature".equals(event.getTab().getId())) {
+            buttonFlasher.stop(HudButtonFlasher.CREATURE_TAB);
+        }
         Tab tab = event.getTab();
         if (tab instanceof CustomTabControl) {
             String sound = ((CustomTabControl) event.getTab()).getSound();
