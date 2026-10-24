@@ -83,7 +83,7 @@ public final class GameLoopManager {
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 (IGameLogicUpdatable) gameController,
-                new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(),
+                new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
                         gameSettings, levelInfo, gameWorldController.getMapController()),
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
                         playerControllers.values(), gameSettings, levelInfo, gameWorldController.getMapController()),
