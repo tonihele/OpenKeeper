@@ -39,6 +39,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean shouldFleeOrAttack();
 
     /**
+     * A fighter with no enemy creature to fight goes for the nearest enemy
+     * trap it sees, as DKII.EXE does
+     *
+     * @return true if there is such a trap and we are on it
+     */
+    public boolean attackVisibleTrap();
+
+    /**
      * Checks what the creature sees and hears
      */
     public void checkSurroundings();
