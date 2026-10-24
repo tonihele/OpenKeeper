@@ -244,19 +244,14 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     }
 
     private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
-        switch (reason) {
-            case WORKING_OR_FIGHTING -> {
-                CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                if (kwdFile.getImp().getId() == creatureComponent.creatureId) {
-                    return impExperienceGainPerSecond;
-                } else {
-                    return entity.get(CreatureExperience.class).experiencePerSecond;
-                }
-            }
-            default -> {
-                return 0;
-            }
+        if (reason != ExperienceGainReason.WORKING_OR_FIGHTING) {
+            return 0;
         }
+        CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+        if (kwdFile.getImp().getId() == creatureComponent.creatureId) {
+            return impExperienceGainPerSecond;
+        }
+        return entity.get(CreatureExperience.class).experiencePerSecond;
     }
 
     @Override
