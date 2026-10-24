@@ -90,6 +90,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 /**
@@ -101,6 +102,12 @@ import java.util.function.Consumer;
 public final class CreatureController extends EntityController implements ICreatureController {
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
+
+    /**
+     * How far from the threat, in tiles, a fleeing creature aims. The distance
+     * DKII.EXE adds to the effect radius is 2, the radius is guessed at 5
+     */
+    private static final int FLEE_DISTANCE = 7;
 
     /**
      * Possessed movement speed relative to walking forward
@@ -793,18 +800,13 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void flee() {
-        //PrioritySteering<Vector2> prioritySteering = new PrioritySteering(this, 0.0001f);
+        Point threat = findThreatLocation();
+        if (threat != null) {
+            fleeFrom(threat);
+            return;
+        }
 
-        // Get the nearest enemy
-        // FIXME: method naming if truly nearest enemy, and perhaps we should flee from our assailant
-//        CreatureControl target = getAttackTarget();
-//
-//        // Flee from the enemy
-//        if (target != null) {
-//            Flee<Vector2> flee = new Flee<>(this, target);
-//            prioritySteering.add(flee);
-//        }
-        // FIXME: For now just flee towards the dungeon heart or random tiles
+        // Nothing to run from, just go to the dungeon heart or random tiles
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point p = keeper.getDungeonHeartLocation();
@@ -812,9 +814,40 @@ public final class CreatureController extends EntityController implements ICreat
         } else {
             navigateToRandomPoint();
         }
+    }
 
-        // Try to find our dungeon heart etc. safety haven
-        //setSteeringBehavior(prioritySteering);
+    /**
+     * Finds what we are running from, the nearest enemy we sense that
+     * threatens us. A trap is one after it has fired, see {@link Threat}.
+     *
+     * @return the tile of the threat, null if there is none
+     */
+    private Point findThreatLocation() {
+        Point ourLocation = getCreatureCoordinates();
+        Point nearest = null;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            IMapTileInformation tile = isEnemy(entity) && isThreat(entity) && getThreat(entity) > 0
+                    ? entityPositionLookup.getEntityLocation(entity) : null;
+            if (tile != null && (nearest == null || tile.getLocation().distance(ourLocation) < nearest.distance(ourLocation))) {
+                nearest = tile.getLocation();
+            }
+        }
+        return nearest;
+    }
+
+    /**
+     * Runs away from the threat the way DKII.EXE does, see
+     * {@link FleeDestinationFinder}
+     */
+    private void fleeFrom(Point threat) {
+        Point ourLocation = getCreatureCoordinates();
+        FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
+                mapController.getMapData().getHeight(),
+                (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
+                ThreadLocalRandom.current());
+        finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
+                .or(() -> finder.findAround(ourLocation))
+                .ifPresent(destination -> createNavigation(ourLocation, destination, null));
     }
 
     @Override
