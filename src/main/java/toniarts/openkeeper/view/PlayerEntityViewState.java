@@ -251,7 +251,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 ObjectViewControl control = object.getControl(ObjectViewControl.class);
                 int objectId = control != null ? control.getDataObject().getObjectId() : -1;
 
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, DUNGEON_HEART_PART_IDS.contains(objectId));
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
             for (Spatial object : creatureModelContainer.getModels()) {
                 // Creatures take no room / terrain ambient colour, only lights
