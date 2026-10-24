@@ -702,7 +702,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 break;
             }
             case KILL_PLAYER: {
-                task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
+
+                // Without the keeper the creature has nobody to go after, it just carries on as usual
+                if (KillPlayer.isTargetPresent(levelInfo, creature.getObjectiveTargetPlayerId())) {
+                    task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
+                }
+                break;
+            }
+            default: {
+
+                // The other objectives don't give the creature a task of its own
                 break;
             }
         }
