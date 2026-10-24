@@ -29,30 +29,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class LightConstants {
 
-
-    /**
-     * Loose tail stretched past every light's radius
-     */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
-
-    /**
-     * Radius of terrain lights. The terrain data has no radius field, so all
-     * of them use 1.125 tiles: small enough to light raised geometry such as
-     * rims and wall faces, but not the floor (the "edge glow"). Not subject
-     * to {@link #MAX_LIGHT_RADIUS_TILES}.
-     */
-    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.125f;
-
-    /**
-     * Intensity of terrain lights
-     */
-    public static final float TERRAIN_LIGHT_INTENSITY = 0.4f;
-
-    /**
-     * Intensity of the interior-slab terrain light of room tiles. Higher than
-     * {@link #TERRAIN_LIGHT_INTENSITY}, which stays for paths, water, lava, ...
-     */
-    public static final float ROOM_TERRAIN_LIGHT_INTENSITY = 1f;
+    // ---- switches ----
 
     /**
      * Terrain lights of room tiles (the interior-slab glow) and
@@ -90,39 +67,18 @@ public final class LightConstants {
      */
     public static final boolean TERRAIN_AMBIENT_ENABLED = true;
 
-    /**
-     * Torch lights are small and local: at most this radius (tiles), however
-     * large the room / default torch radius is.
-     */
-    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 4f;
+    // ---- general ----
 
     /**
-     * Claim-scan terrain lights keep the full intensity: every other terrain
-     * light is dialled back (a light saturates to its full colour within about
-     * a tile, and a light on every tile summed to a fully lit map), so the
-     * claim-scan glow is what stands out on unexplored rock.
+     * Hard cap on any light source's radius
      */
-    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.4f;
+    public static final float MAX_LIGHT_RADIUS_TILES = 4.5f;
 
     /**
-     * Slab lights use an intensity of 1.0
+     * Loose tail stretched past every light's radius
      */
-    public static final float SLAB_LIGHT_INTENSITY = 1.0f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
 
-    /**
-     * Share of its own intensity a creature / effect light shines with, on
-     * terrain and on other things
-     */
-    public static final float CREATURE_LIGHT_STRENGTH = 1f;
-
-    /**
-     * Cursor light radius
-     */
-    public static final float CURSOR_LIGHT_RADIUS_TILES = 1.5f;
-
-    /**
-     * Cursor light intensity, 255/128
-     */
     /**
      * Largest value of a light colour channel (255 is the plain colour, up to 511 is over-bright).
      */
@@ -134,11 +90,93 @@ public final class LightConstants {
     public static final float COLOUR_SCALE = 255f;
 
     /**
+     * The over-bright bit adds this to a colour channel
+     */
+    public static final int OVER_BRIGHT_BONUS = 256;
+
+    /**
      * Minimum light of solid rock when the model viewer's "lit solid rock" is
      * on, so it shows where no light reaches
      */
     public static final float LIT_SOLID_ROCK_MIN_LIGHT = 0.3f;
 
+    // ---- terrain, room slab and claim scan ----
+
+    /**
+     * Radius of terrain lights. The terrain data has no radius field, so all
+     * of them use 1.125 tiles: small enough to light raised geometry such as
+     * rims and wall faces, but not the floor (the "edge glow"). Not subject
+     * to {@link #MAX_LIGHT_RADIUS_TILES}.
+     */
+    public static final float TERRAIN_LIGHT_RADIUS_TILES = 1.125f;
+
+    /**
+     * Intensity of terrain lights
+     */
+    public static final float TERRAIN_LIGHT_INTENSITY = 0.4f;
+
+    public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
+
+    /**
+     * Intensity of the interior-slab terrain light of room tiles. Higher than
+     * {@link #TERRAIN_LIGHT_INTENSITY}, which stays for paths, water, lava, ...
+     */
+    public static final float ROOM_TERRAIN_LIGHT_INTENSITY = 1f;
+
+    /**
+     * Slab lights use an intensity of 1.0
+     */
+    public static final float SLAB_LIGHT_INTENSITY = 1.0f;
+
+    /**
+     * Claim-scan terrain lights keep the full intensity: every other terrain
+     * light is dialled back (a light saturates to its full colour within about
+     * a tile, and a light on every tile summed to a fully lit map), so the
+     * claim-scan glow is what stands out on unexplored rock.
+     */
+    public static final float CLAIM_SCAN_LIGHT_INTENSITY = 0.4f;
+
+    // ---- torches ----
+
+    /**
+     * Fallbacks for the {@code DEFAULT_TORCH_LIGHT_*} misc variables
+     */
+    public static final int DEFAULT_TORCH_LIGHT_RED_FALLBACK = 300;
+    public static final int DEFAULT_TORCH_LIGHT_GREEN_FALLBACK = 200;
+    public static final int DEFAULT_TORCH_LIGHT_BLUE_FALLBACK = 100;
+    public static final float DEFAULT_TORCH_LIGHT_INTENSITY_FALLBACK = 180f / 128f;
+    public static final float DEFAULT_TORCH_LIGHT_RADIUS_TILES_FALLBACK = 1.5f;
+    public static final float DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK = 1.5f;
+
+    /**
+     * Torch lights are small and local: at most this radius (tiles), however
+     * large the room / default torch radius is.
+     */
+    public static final float TORCH_LIGHT_MAX_RADIUS_TILES = 4f;
+
+    /**
+     * A {@code TORCH_COLOR_*} room flag adds this to its torch colour channel
+     */
+    public static final int TORCH_OVER_BRIGHT_BONUS = 255;
+
+    /**
+     * Brightest a room torch channel gets once the over-bright bonus is
+     * added. The usual room torch (a base of 44 plus the bonus) lands at
+     * about 300; the dungeon heart's base red of 244 would reach 499 and
+     * turn its walls deep red, so channels are held to the usual flame.
+     */
+    public static final int TORCH_MAX_CHANNEL = 300;
+
+    // ---- cursor ----
+
+    /**
+     * Cursor light radius
+     */
+    public static final float CURSOR_LIGHT_RADIUS_TILES = 1.5f;
+
+    /**
+     * Cursor light intensity, 255/128
+     */
     public static final float CURSOR_LIGHT_INTENSITY = 255f / 128f;
 
     /**
@@ -154,15 +192,13 @@ public final class LightConstants {
      */
     public static final float CURSOR_LIGHT_HEIGHT_OPEN = WorldUtils.FLOOR_HEIGHT + 0.1f;
 
+    // ---- portals ----
+
     /**
      * Portal light radius
      */
     public static final float PORTAL_LIGHT_RADIUS_TILES = 2f;
 
-    /**
-     * Hard cap on any light source's radius
-     */
-    public static final float MAX_LIGHT_RADIUS_TILES = 4.5f;
     /**
      * Portal light colour and intensity, used for the room ids 3 (Portal) and
      * 25 (Hero Portal).
@@ -172,15 +208,7 @@ public final class LightConstants {
     public static final int PORTAL_LIGHT_BLUE = 26;
     public static final float PORTAL_LIGHT_INTENSITY = 1.0f;
 
-    /**
-     * Fallbacks for the {@code DEFAULT_TORCH_LIGHT_*} misc variables
-     */
-    public static final int DEFAULT_TORCH_LIGHT_RED_FALLBACK = 300;
-    public static final int DEFAULT_TORCH_LIGHT_GREEN_FALLBACK = 200;
-    public static final int DEFAULT_TORCH_LIGHT_BLUE_FALLBACK = 100;
-    public static final float DEFAULT_TORCH_LIGHT_INTENSITY_FALLBACK = 180f / 128f;
-    public static final float DEFAULT_TORCH_LIGHT_RADIUS_TILES_FALLBACK = 1.5f;
-    public static final float DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK = 1.5f;
+    // ---- thing lights (objects, creatures, shots, effects) ----
 
     /**
      * Thing-light intensity by owner type.
@@ -189,6 +217,12 @@ public final class LightConstants {
     public static final float CREATURE_LIGHT_INTENSITY = 1.0f;
     public static final float SHOT_LIGHT_INTENSITY = 1.0f;
     public static final float EFFECT_LIGHT_INTENSITY = 1.0f;
+
+    /**
+     * Share of its own intensity a creature / effect light shines with, on
+     * terrain and on other things
+     */
+    public static final float CREATURE_LIGHT_STRENGTH = 1f;
 
     /**
      * Thing-light radius scale
@@ -232,6 +266,26 @@ public final class LightConstants {
     };
     private static final int PLAYER_LIGHT_FALLBACK_SLOT = 1;
 
+    // ---- timing and flicker ----
+
+    /**
+     * The rate {@link LightModulators#tick()} is expected to be driven at.
+     */
+    public static final int SIMULATION_TICKS_PER_SECOND = 4;
+
+    /**
+     * The fixed presentation clock {@link LightModulators#flickerStep()} is
+     * driven at.
+     */
+    public static final int FLICKER_HZ = 30;
+
+    public static final float FLICKER_MIN = 0.2f;
+    public static final float FLICKER_MAX = 1.0f;
+    public static final float FLICKER_STEP = 0.125f;
+
+    private LightConstants() {
+    }
+
     /**
      * The player colour a {@code PLAYER_COLOURED} light is multiplied by.
      * An absent or out-of-range player falls back to slot 1 (pale blue-grey),
@@ -272,48 +326,11 @@ public final class LightConstants {
     }
 
     /**
-     * The over-bright bit adds this to a colour channel
-     */
-    public static final int OVER_BRIGHT_BONUS = 256;
-
-    /**
      * A colour channel with its over-bright flag applied: when the flag is
      * set, {@code bonus} is added on top of the stored value.
      */
     public static int withBonus(int channel, boolean flagSet, int bonus) {
         return flagSet ? channel + bonus : channel;
-    }
-    public static final int TERRAIN_OVER_BRIGHT_BONUS = 255;
-
-    /**
-     * A {@code TORCH_COLOR_*} room flag adds this to its torch colour channel
-     */
-    public static final int TORCH_OVER_BRIGHT_BONUS = 255;
-
-    /**
-     * Brightest a room torch channel gets once the over-bright bonus is
-     * added. The usual room torch (a base of 44 plus the bonus) lands at
-     * about 300; the dungeon heart's base red of 244 would reach 499 and
-     * turn its walls deep red, so channels are held to the usual flame.
-     */
-    public static final int TORCH_MAX_CHANNEL = 300;
-
-    /**
-     * The rate {@link LightModulators#tick()} is expected to be driven at.
-     */
-    public static final int SIMULATION_TICKS_PER_SECOND = 4;
-
-    /**
-     * The fixed presentation clock {@link LightModulators#flickerStep()} is
-     * driven at.
-     */
-    public static final int FLICKER_HZ = 30;
-
-    public static final float FLICKER_MIN = 0.2f;
-    public static final float FLICKER_MAX = 1.0f;
-    public static final float FLICKER_STEP = 0.125f;
-
-    private LightConstants() {
     }
 
     public static int getDefaultTorchLightRed(IKwdFile kwdFile) {
