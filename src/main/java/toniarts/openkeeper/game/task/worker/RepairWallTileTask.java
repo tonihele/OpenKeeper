@@ -53,8 +53,7 @@ public final class RepairWallTileTask extends DigTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+        if (isWorkStepDue(creature, executionDuration)) {
 
             mapController.applyClaimTile(getTaskLocation(), playerId);
         }
