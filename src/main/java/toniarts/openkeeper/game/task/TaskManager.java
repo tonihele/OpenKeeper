@@ -126,6 +126,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<Short, Set<Task>> taskQueues;
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
+    private final Map<EntityId, ICreatureController> creaturesByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
@@ -219,15 +220,28 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             tasksIdsByEntities.put(entity.getId(), taskId);
+            trackCreature(entity.getId());
+        }
+    }
+
+    /**
+     * Remembers the creature that has a task. When it is killed its entity is
+     * removed outright and a controller can't be made of it anymore, but the
+     * task still needs to let go of it
+     */
+    private void trackCreature(EntityId entityId) {
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            creaturesByEntities.put(entityId, creaturesController.createController(entityId));
         }
     }
 
     private void processDeletedTasks(Set<Entity> entities) {
         for (Entity entity : entities) {
             Long taskId = tasksIdsByEntities.remove(entity.getId());
+            ICreatureController creature = creaturesByEntities.remove(entity.getId());
             Task task = tasksByIds.get(taskId);
-            if (task != null) {
-                task.unassign(creaturesController.createController(entity.getId()));
+            if (task != null && creature != null) {
+                task.unassign(creature);
                 if (task.getAssigneeCount() == 0 && task.isRemovable()) {
                     //tasksByIds.remove(taskId);
                 }
@@ -239,13 +253,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            trackCreature(entity.getId());
+            ICreatureController creature = creaturesByEntities.get(entity.getId());
             if (oldTaskId == null || taskId == oldTaskId) {
                 continue;
             }
 
             Task task = tasksByIds.get(oldTaskId);
-            if (task != null) {
-                task.unassign(creaturesController.createController(entity.getId()));
+            if (task != null && creature != null) {
+                task.unassign(creature);
                 if (task.getAssigneeCount() == 0 && task.isRemovable()) {
                     //tasksByIds.remove(taskId);
                 }
