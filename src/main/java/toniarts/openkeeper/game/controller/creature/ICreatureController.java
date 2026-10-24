@@ -66,6 +66,16 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean goToSleep();
 
+    /**
+     * Takes on the job of the room the keeper dropped the creature into, as
+     * in DK II. Right after the drop the job comes first, later only when
+     * the creature has no need to see to. A job that can't be done any more
+     * is forgotten
+     *
+     * @return {@code true} if the creature took on the job
+     */
+    public boolean doDroppedJob();
+
     public void findWork(Consumer<Boolean> workResult);
 
     public boolean isWorker();
