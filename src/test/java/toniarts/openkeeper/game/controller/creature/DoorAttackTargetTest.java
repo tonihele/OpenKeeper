@@ -29,10 +29,12 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DoorAttackTargetTest {
@@ -135,6 +137,37 @@ class DoorAttackTargetTest {
 
         assertEquals(3, shortPath.getCount());
         assertEquals(new Point(1, 3), shortPath.get(2).getLocation());
+    }
+
+    @Test
+    void anIdleFighterFindsTheDoorOnTheTileNextToIt() {
+        EntityId found = DoorAttackTarget.findAdjacent(new Point(5, 5),
+                p -> p.equals(new Point(5, 6)) ? door : null, d -> true);
+
+        assertEquals(door, found);
+    }
+
+    @Test
+    void aDoorOnTheDiagonalIsNotNextToUs() {
+        EntityId found = DoorAttackTarget.findAdjacent(new Point(5, 5),
+                p -> p.equals(new Point(6, 6)) ? door : null, d -> true);
+
+        assertNull(found);
+    }
+
+    @Test
+    void aDoorThatCantBeBrokenIsLeftAlone() {
+        EntityId found = DoorAttackTarget.findAdjacent(new Point(5, 5),
+                p -> p.equals(new Point(4, 5)) ? door : null, d -> false);
+
+        assertNull(found);
+    }
+
+    @Test
+    void onlyTheKeepersCreaturesGoForDoorsOnTheirOwn() {
+        assertTrue(DoorAttackTarget.attacksAdjacentWhenIdle((short) 3));
+        assertFalse(DoorAttackTarget.attacksAdjacentWhenIdle(Player.GOOD_PLAYER_ID));
+        assertFalse(DoorAttackTarget.attacksAdjacentWhenIdle(Player.NEUTRAL_PLAYER_ID));
     }
 
     private static IMapTileInformation tile(int x, int y) {
