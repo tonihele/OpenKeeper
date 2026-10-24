@@ -61,7 +61,8 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private static final Set<TriggerGeneric.TargetType> EVENT_CONDITIONS = EnumSet.of(
             TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP, TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED,
-            TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED);
+            TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED, TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED,
+            TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
     private static final Map<TriggerGeneric.TargetType, String> STUB_REASONS = createStubReasons();
 
     private final short playerId;
@@ -110,6 +111,17 @@ public class PlayerTriggerControl extends TriggerControl {
     @Override
     protected void pollEvents() {
         super.pollEvents();
+
+        // The map keeps the breaches the player has not heard of yet. Like in the original the
+        // player of the condition data is not looked at
+        if (isPlayerScope() && mapController != null) {
+            if (mapController.takeBreach(playerId, false)) {
+                fire(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
+            }
+            if (mapController.takeBreach(playerId, true)) {
+                fire(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+            }
+        }
 
         // The player events about the creatures are noticed from the statistics. Fire for each
         // creature type that has got more than on the previous poll
@@ -237,10 +249,6 @@ public class PlayerTriggerControl extends TriggerControl {
         // STUB, event: a GUI button was clicked, matched by the button group and button
         // (userdata targetType / targetId). The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)
         result.put(TriggerGeneric.TargetType.GUI_BUTTON_PRESSED, "The HUD buttons do not report their clicks to the game logic, and the map's button IDs would need a mapping to our own buttons. The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)");
-
-        // STUB, events: an enemy broke into this dungeon / this player broke into one
-        putStub(result, "Nothing in the game logic detects a dungeon breach, so there is nothing to raise these from",
-                TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED, TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
 
         // STUB, events: a creature left the player / the player was paid
         putStub(result, "Nothing in the game logic announces either, there is no pay day processing to hook into",
