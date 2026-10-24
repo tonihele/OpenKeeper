@@ -21,12 +21,14 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Multiplayer maps give heroes keepers to kill whose slots may be left empty
+ * Maps give heroes keepers to kill whose slots may be left empty, or that have
+ * no Dungeon Heart, such as the heroes' own side
  */
 class KillPlayerTargetTest {
 
@@ -43,8 +45,22 @@ class KillPlayerTargetTest {
         assertFalse(KillPlayer.isTargetPresent(level(PLAYING_KEEPER), EMPTY_SLOT));
     }
 
+    @Test
+    void keeperWithoutDungeonHeartIsNoTarget() {
+        Keeper keeper = new Keeper();
+        ILevelInfo level = level(PLAYING_KEEPER, keeper);
+
+        assertFalse(KillPlayer.isTargetPresent(level, PLAYING_KEEPER));
+    }
+
     private static ILevelInfo level(short keeperId) {
-        Map<Short, Keeper> keepers = Map.of(keeperId, new Keeper());
+        Keeper keeper = new Keeper();
+        keeper.setDungeonHeartLocation(new Point(10, 10));
+        return level(keeperId, keeper);
+    }
+
+    private static ILevelInfo level(short keeperId, Keeper keeper) {
+        Map<Short, Keeper> keepers = Map.of(keeperId, keeper);
         return (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                 new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> {
                     if (!method.getName().equals("getPlayer")) {
