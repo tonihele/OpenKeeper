@@ -203,7 +203,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 button.resetSingleEffect(EffectEventId.onCustom, FLASH_EFFECT_KEY);
             }
         } else if (flashingButtons.add(buttonKey)) {
-            button.startEffect(EffectEventId.onCustom, null, FLASH_EFFECT_KEY);
+            try {
+                button.startEffect(EffectEventId.onCustom, null, FLASH_EFFECT_KEY);
+            } catch (RuntimeException e) {
+
+                // A button whose flash can't be shown mustn't take the game down
+                logger.log(Level.WARNING, "Can't flash button " + buttonKey, e);
+            }
         }
     }
 
