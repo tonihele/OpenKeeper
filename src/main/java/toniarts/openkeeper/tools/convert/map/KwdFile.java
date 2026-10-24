@@ -2859,20 +2859,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
         // Read the requested VARIABLES file
         // Should be the GlobalVariables first, then the level's own
-        if (variables == null) {
-            logger.log(Level.INFO, "Reading variables!");
-            availabilities = new ArrayList<>();
-            researchOrder = new ArrayList<>();
-            creaturePools = HashMap.newHashMap(4);
-            creatureStatistics = HashMap.newHashMap(10);
-            creatureFirstPersonStatistics = HashMap.newHashMap(10);
-            variables = new HashMap<>();
-            sacrifices = new HashSet<>();
-            playerAlliances = new HashSet<>();
-            unknownVariables = new HashSet<>();
-        } else {
-            logger.log(Level.INFO, "Overrides variables!");
-        }
+        initVariables();
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -3001,6 +2988,27 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     break;
             }
         }
+    }
+
+    /**
+     * Creates the variable collections for the first variables file, the
+     * GlobalVariables. The level's own file then overrides them.
+     */
+    private void initVariables() {
+        if (variables != null) {
+            logger.log(Level.INFO, "Overrides variables!");
+            return;
+        }
+        logger.log(Level.INFO, "Reading variables!");
+        availabilities = new ArrayList<>();
+        researchOrder = new ArrayList<>();
+        creaturePools = HashMap.newHashMap(4);
+        creatureStatistics = HashMap.newHashMap(10);
+        creatureFirstPersonStatistics = HashMap.newHashMap(10);
+        variables = new HashMap<>();
+        sacrifices = new HashSet<>();
+        playerAlliances = new HashSet<>();
+        unknownVariables = new HashSet<>();
     }
 
     @Override
