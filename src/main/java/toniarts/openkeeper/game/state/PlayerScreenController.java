@@ -38,6 +38,8 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.controls.Tab;
 import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
+import de.lessvoid.nifty.controls.listbox.builder.ListBoxBuilder;
+import de.lessvoid.nifty.controls.textfield.builder.TextFieldBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.elements.render.ImageRenderer;
@@ -52,6 +54,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -70,6 +73,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.DoorIconTextParser;
 import toniarts.openkeeper.view.text.RoomIconTextParser;
 import toniarts.openkeeper.view.text.SpellIconTextParser;
@@ -92,9 +96,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private enum PauseMenuState {
 
-        MAIN, QUIT, CONFIRMATION;
+        MAIN, OBJECTIVE, GAME, LOAD, SAVE, GRAPHICS, SOUND, CONTROLS, CAMERAS, CAMERA_EDIT, QUIT, CONFIRMATION;
     }
-    
+
+    private PauseMenuSettings pauseMenuSettings;
+
+    private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
+
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
@@ -107,6 +115,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Screen screen;
 
     private Element selectedButton;
+    private final Set<Element> unaffordableSpells = new HashSet<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -220,6 +229,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             subObjective3.setText(gameLevel.getSubObjective3());
 
             element.layoutElements();
+            // skipcq: JAVA-W1062
             element.show();
         }
     }
@@ -241,7 +251,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         } else {
             menuButton.stopEffect(EffectEventId.onCustom);
         }
-
+        // skipcq: JAVA-W1062
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             this.playButtonSound("GUI_BUTTON_OPTIONS");
@@ -252,79 +262,35 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void pauseMenuNavigate(String menu, String backMenu, String confirmationTitle, String confirmMethod) {
         Element optionsMenu = nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu");
-        Label optionsMenuTitle = optionsMenu.findNiftyControl("#title", Label.class);
-        Element optionsColumnOne = optionsMenu.findElementById("#columnOne");
-        for (Element element : optionsColumnOne.getChildren()) {
-            element.markForRemoval();
-        }
-        Element optionsColumnTwo = optionsMenu.findElementById("#columnTwo");
-        for (Element element : optionsColumnTwo.getChildren()) {
-            element.markForRemoval();
-        }
-        Element optionsNavigationColumnOne = optionsMenu.findElementById("#navigationColumnOne");
-        for (Element element : optionsNavigationColumnOne.getChildren()) {
-            element.markForRemoval();
-        }
-        Element optionsNavigationColumnTwo = optionsMenu.findElementById("#navigationColumnTwo");
-        for (Element element : optionsNavigationColumnTwo.getChildren()) {
-            element.markForRemoval();
+        MenuPage page = new MenuPage(optionsMenu.findNiftyControl("#title", Label.class),
+                optionsMenu.findElementById("#columnOne"), optionsMenu.findElementById("#columnTwo"),
+                optionsMenu.findElementById("#navigationColumnOne"), optionsMenu.findElementById("#navigationColumnTwo"));
+        page.clear();
+
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.cleanup();
+            pauseMenuSettings = null;
         }
 
         // TODO: @ArchDemon: I think we need to do modern (not original) game menu
-        List<GameMenu> items = new ArrayList<>();
         switch (PauseMenuState.valueOf(menu)) {
-            case MAIN:
-                optionsMenuTitle.setText("${menu.94}");
-
-                     items.add(new GameMenu("i-objective", "${menu.537}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-game", "${menu.97}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-load", "${menu.143}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-save", "${menu.201}", "pauseMenu()", optionsColumnOne));
-                items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
-                        PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), optionsColumnTwo));
-                items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", optionsColumnTwo));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-
-                break;
-
-            case QUIT:
-                optionsMenuTitle.setText("${menu.1266}");
-
-                if (state.stateManager.getState(EndGameState.class) != null) {
-                    items.add(new GameMenu("i-quit", "${menu.2913}", String.format("pauseMenuNavigate(%s,%s,${menu.2913},quitToDebriefing())",
-                            PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
-                } else {
-                    items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
-                            PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), optionsColumnOne));
-                }
-                items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
-                        String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
-                                PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), optionsColumnOne));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", PauseMenuState.MAIN),
-                        optionsNavigationColumnTwo));
-                break;
-
-            case CONFIRMATION:
-                optionsMenuTitle.setText(confirmationTitle);
-                // Column one
-                new LabelBuilder("confirmLabel", "${menu.15}") {
-                    {
-                        style("textNormal");
-                    }
-                }.build(optionsColumnOne);
-
-                items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, optionsColumnOne));
-                items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", optionsNavigationColumnOne));
-                items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", backMenu),
-                        optionsNavigationColumnTwo));
-
-                break;
+            case MAIN -> buildMainPage(page);
+            case OBJECTIVE -> buildObjectivePage(page);
+            case GAME -> buildGamePage(page);
+            case LOAD -> buildLoadPage(page);
+            case SAVE -> buildSavePage(page);
+            case GRAPHICS -> buildGraphicsPage(page);
+            case SOUND -> buildSoundPage(page);
+            case CONTROLS -> buildControlsPage(page);
+            case CAMERAS -> buildCamerasPage(page);
+            case CAMERA_EDIT -> buildCameraEditPage(page, confirmationTitle);
+            case QUIT -> buildQuitPage(page);
+            case CONFIRMATION -> buildConfirmationPage(page, backMenu, confirmationTitle, confirmMethod);
         }
 
         // build menu items
         // FIXME id="#image" and "#text" already exist
-        for (GameMenu item : items) {
+        for (GameMenu item : page.items) {
             new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action,
                     GlobalCategory.OPTIONS, "i-back".equals(item.id) ? GlobalType.OPTIONS_CLICK_11.getId() : GlobalType.OPTIONS_CLICK_10.getId()) {
                 {
@@ -333,8 +299,195 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         // Fix layout
-        NiftyUtils.resetContraints(optionsMenuTitle);
+        NiftyUtils.resetContraints(page.title);
         optionsMenu.layoutElements();
+    }
+
+    private void buildMainPage(MenuPage page) {
+        page.title.setText("${menu.94}");
+
+        page.items.add(new GameMenu("i-objective", "${menu.537}", navigateAction(PauseMenuState.OBJECTIVE), page.columnOne));
+        page.items.add(new GameMenu("i-game", "${menu.97}", navigateAction(PauseMenuState.GAME), page.columnOne));
+        page.items.add(new GameMenu("i-load", "${menu.143}", navigateAction(PauseMenuState.LOAD), page.columnOne));
+        page.items.add(new GameMenu("i-save", "${menu.201}", navigateAction(PauseMenuState.SAVE), page.columnOne));
+        page.items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
+                PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), page.columnTwo));
+        page.items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", page.columnTwo));
+        page.items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", page.navigationOne));
+    }
+
+    private void buildObjectivePage(MenuPage page) {
+        page.title.setText("${menu.537}");
+
+        GameLevel gameLevel = state.stateManager.getState(GameClientState.class).getLevelData().getGameLevel();
+        buildTextLabel("${menu.1408}", "textGold", page.columnOne);
+        buildTextLabel(gameLevel.getMainObjective(), "text", page.columnOne);
+        buildTextLabel("${menu.1409}", "textGold", page.columnOne);
+        buildTextLabel(gameLevel.getSubObjective1(), "text", page.columnOne);
+        buildTextLabel(gameLevel.getSubObjective2(), "text", page.columnOne);
+        buildTextLabel(gameLevel.getSubObjective3(), "text", page.columnOne);
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildGamePage(MenuPage page) {
+        page.title.setText("${menu.97}");
+
+        page.items.add(new GameMenu("i-graphics", "${menu.96}", navigateAction(PauseMenuState.GRAPHICS), page.columnOne));
+        page.items.add(new GameMenu("i-audio", "${menu.95}", navigateAction(PauseMenuState.SOUND), page.columnOne));
+        page.items.add(new GameMenu("i-controls", "${menu.98}", navigateAction(PauseMenuState.CONTROLS), page.columnTwo));
+        page.items.add(new GameMenu("i-camera", "${menu.1490}", navigateAction(PauseMenuState.CAMERAS), page.columnTwo));
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildLoadPage(MenuPage page) {
+        page.title.setText("${menu.143}");
+
+        buildSavedGamesList(page.columnOne);
+        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildSavePage(MenuPage page) {
+        page.title.setText("${menu.201}");
+
+        buildSavedGamesList(page.columnOne);
+        buildTextLabel("${menu.1393}", "textNormal", page.columnOne);
+        new TextFieldBuilder("saveGameName", "") {
+            {
+                width("60%");
+            }
+        }.build(page.columnOne);
+        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildGraphicsPage(MenuPage page) {
+        page.title.setText("${menu.96}");
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildGraphics(page.columnOne, page.columnTwo);
+        page.items.add(new GameMenu("i-accept", "${menu.201}", "applyGraphicsSettings()", page.columnTwo));
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildSoundPage(MenuPage page) {
+        page.title.setText("${menu.95}");
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildSound(page.columnOne);
+        page.items.add(new GameMenu("i-accept", "${menu.201}", "applySoundSettings()", page.columnTwo));
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildControlsPage(MenuPage page) {
+        page.title.setText("${menu.98}");
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildControls(page.columnOne, page.columnTwo);
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildCamerasPage(MenuPage page) {
+        page.title.setText("${menu.1490}");
+
+        for (int cameraNumber = 1; cameraNumber <= 3; cameraNumber++) {
+            // The user camera texts are in order: 1486, 1487, 1488
+            page.items.add(new GameMenu("i-camera", "${menu." + (1485 + cameraNumber) + "}",
+                    String.format("pauseMenuNavigate(%s,%s,${menu.%d},null)", PauseMenuState.CAMERA_EDIT.name(),
+                            PauseMenuState.CAMERAS.name(), 1485 + cameraNumber), page.columnOne));
+        }
+        addContinueAndBack(page, PauseMenuState.GAME);
+    }
+
+    private void buildCameraEditPage(MenuPage page, String confirmationTitle) {
+        page.title.setText(confirmationTitle);
+
+        buildTextLabel("${menu.1686}", "textNormal", page.columnOne);
+        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        page.items.add(new GameMenu("i-accept", "${menu.1489}", navigateAction(PauseMenuState.CAMERAS), page.columnOne));
+        addContinueAndBack(page, PauseMenuState.CAMERAS);
+    }
+
+    private void buildQuitPage(MenuPage page) {
+        page.title.setText("${menu.1266}");
+
+        if (state.stateManager.getState(EndGameState.class) != null) {
+            page.items.add(new GameMenu("i-quit", "${menu.2913}", String.format("pauseMenuNavigate(%s,%s,${menu.2913},quitToDebriefing())",
+                    PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), page.columnOne));
+        } else {
+            page.items.add(new GameMenu("i-quit", "${menu.12}", String.format("pauseMenuNavigate(%s,%s,${menu.12},quitToMainMenu())",
+                    PauseMenuState.CONFIRMATION.name(), PauseMenuState.QUIT.name()), page.columnOne));
+        }
+        page.items.add(new GameMenu(Utils.isWindows() ? "i-exit_to_windows" : "i-quit", Utils.isWindows() ? "${menu.13}" : "${menu.14}",
+                String.format("pauseMenuNavigate(%s,%s,%s,quitToOS())", PauseMenuState.CONFIRMATION.name(),
+                        PauseMenuState.QUIT.name(), (Utils.isWindows() ? "${menu.13}" : "${menu.14}")), page.columnOne));
+        addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    private void buildConfirmationPage(MenuPage page, String backMenu, String confirmationTitle, String confirmMethod) {
+        page.title.setText(confirmationTitle);
+        // Column one
+        new LabelBuilder("confirmLabel", "${menu.15}") {
+            {
+                style("textNormal");
+            }
+        }.build(page.columnOne);
+
+        page.items.add(new GameMenu("i-accept", "${menu.21}", confirmMethod, page.columnOne));
+        page.items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", page.navigationOne));
+        page.items.add(new GameMenu("i-back", "${menu.20}", String.format("pauseMenuNavigate(%s,null,null,null)", backMenu),
+                page.navigationTwo));
+    }
+
+    private static String navigateAction(PauseMenuState menu) {
+        return String.format("pauseMenuNavigate(%s,null,null,null)", menu.name());
+    }
+
+    /**
+     * Adds the continue (resume game) and back buttons shared by all pause sub menus
+     */
+    private static void addContinueAndBack(MenuPage page, PauseMenuState backMenu) {
+        page.items.add(new GameMenu("i-accept", "${menu.142}", "pauseMenu()", page.navigationOne));
+        page.items.add(new GameMenu("i-back", "${menu.20}", navigateAction(backMenu), page.navigationTwo));
+    }
+
+    private static void buildTextLabel(String text, String labelStyle, Element parent) {
+        new LabelBuilder("label-" + NiftyIdCreator.generate(), text) {
+            {
+                style(labelStyle);
+                wrap(true);
+                alignLeft();
+                textHAlignLeft();
+                width("90%");
+            }
+        }.build(parent);
+    }
+
+    private static void buildSavedGamesList(Element parent) {
+        // There is no saved games storage yet, so the list is always empty
+        new ListBoxBuilder("savedGames") {
+            {
+                width("60%");
+                displayItems(4);
+                selectionModeSingle();
+                optionalVerticalScrollbar();
+                hideHorizontalScrollbar();
+            }
+        }.build(parent);
+    }
+
+    @Override
+    public void applyGraphicsSettings() {
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.applyGraphics();
+        }
+    }
+
+    @Override
+    public void applySoundSettings() {
+        if (pauseMenuSettings != null) {
+            pauseMenuSettings.applySound();
+        }
     }
 
     @Override
@@ -345,6 +498,27 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void zoomToDungeon() {
         state.zoomToDungeon();
+    }
+
+    /**
+     * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
+     */
+    public void resizeMap() {
+        playButtonSound("GUI_BUTTON_ZOOM");
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomIn();
+        }
+    }
+
+    /**
+     * "Resize Map" button, right click: zoom out one level (or back to fit mode).
+     */
+    public void resizeMapDown() {
+        MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
+        if (minimapPanelState != null) {
+            minimapPanelState.zoomOut();
+        }
     }
 
     @Override
@@ -431,69 +605,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 break;
             }
             case SCREEN_POSSESSION_ID:
-                // what we need? abitities and spells, also melee
-                //final Creature creature = gameState.getLevelData().getCreature((short)13);
-                final Creature creature = state.getPossessionCreature();
-
-                Element contentPanel = screen.findElementById("creature-icon");
-                if (contentPanel != null) {
-                    createCreatureIcon(creature.getIcon1Resource().getName()).build(contentPanel);
-                }
-
-                contentPanel = screen.findElementById("creature-filter");
-                if (contentPanel != null) {
-                    if (creature.getFirstPersonFilterResource() != null) {
-                        new ImageBuilder() {
-                            {
-                                filename(creature.getFirstPersonFilterResource().getName());
-                            }
-                        }.build(contentPanel);
-                    } else if (getFilterResourceName(creature.getCreatureId()) != null) {
-                        new ImageBuilder() {
-                            {
-                                filename(getFilterResourceName(creature.getCreatureId()));
-                            }
-                        }.build(contentPanel);
-                    }
-
-                    if (creature.getFirstPersonGammaEffect() != null) {
-                        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(getGammaEffectColor(creature.getFirstPersonGammaEffect()));
-                    }
-                }
-
-                contentPanel = screen.findElementById("creature-abilities");
-                if (contentPanel != null) {
-
-                    String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
-                    if (ability != null) {
-                        createCreatureAbilityIcon(ability, 1).build(contentPanel);
-                    }
-
-                    ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
-                    if (ability != null) {
-                        createCreatureAbilityIcon(ability, 2).build(contentPanel);
-                    }
-                }
-
-                contentPanel = screen.findElementById("creature-attacks");
-                if (contentPanel != null) {
-                    for (Element element : contentPanel.getChildren()) {
-                        element.markForRemoval();
-                    }
-
-                    createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
-
-                    int index = 1;
-                    for (Creature.Spell s : creature.getSpells()) {
-                        // TODO: check creature level availiablity
-                        if (s.getCreatureSpellId() == 0) {
-                            continue;
-                        }
-                        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-                        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
-                    }
-                }
-                updatePossessionSelectedItem(possessionAction);
+                initPossessionScreen(state.getPossessionCreature());
                 break;
 
             case SCREEN_CINEMATIC_ID:
@@ -501,6 +613,103 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 text.setText(cinematicText);
                 break;
         }
+    }
+
+    /**
+     * Fills the possession screen with the details of the possessed creature
+     */
+    private void initPossessionScreen(Creature creature) {
+        if (creature == null) {
+
+            // The screen transition ends asynchronously, possession may already be over
+            return;
+        }
+
+        Element contentPanel = screen.findElementById("creature-icon");
+        if (contentPanel != null) {
+            createCreatureIcon(creature.getIcon1Resource().getName()).build(contentPanel);
+        }
+
+        initPossessionFilter(creature);
+        initPossessionAbilities(creature);
+        initPossessionAttacks(creature);
+        updatePossessionSelectedItem(possessionAction);
+    }
+
+    private void initPossessionFilter(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-filter");
+        if (contentPanel == null) {
+            return;
+        }
+
+        String filterImageName = creature.getFirstPersonFilterResource() != null
+                ? creature.getFirstPersonFilterResource().getName()
+                : getFilterResourceName(creature.getCreatureId());
+        setPossessionFilterImage(contentPanel, filterImageName);
+
+        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(creature.getFirstPersonGammaEffect() != null
+                ? getGammaEffectColor(creature.getFirstPersonGammaEffect()) : new Color(0, 0, 0, 0));
+
+        // Revealed once the camera has entered the creature, see showPossessionFilter
+        state.app.enqueue(() -> contentPanel.hide());
+    }
+
+    /**
+     * The image element is kept and only re-pointed, removing elements loses
+     * the image on the next possession
+     */
+    private void setPossessionFilterImage(Element filterPanel, String filterImageName) {
+        List<Element> filterChildren = filterPanel.getChildren();
+        Element filterImage = filterChildren.isEmpty() ? null : filterChildren.get(0);
+        if (filterImageName == null) {
+            if (filterImage != null) {
+                state.app.enqueue(() -> filterImage.hide());
+            }
+        } else if (filterImage == null) {
+            new ImageBuilder() {
+                {
+                    filename(filterImageName);
+                }
+            }.build(filterPanel);
+        } else {
+            filterImage.getRenderer(ImageRenderer.class).setImage(nifty.createImage(filterImageName, false));
+            // skipcq: JAVA-W1062
+            state.app.enqueue(() -> filterImage.show());
+        }
+    }
+
+    private void initPossessionAbilities(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-abilities");
+        if (contentPanel == null) {
+            return;
+        }
+
+        String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
+        if (ability != null) {
+            createCreatureAbilityIcon(ability, 1).build(contentPanel);
+        }
+
+        ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility2());
+        if (ability != null) {
+            createCreatureAbilityIcon(ability, 2).build(contentPanel);
+        }
+    }
+
+    private void initPossessionAttacks(Creature creature) {
+        Element contentPanel = screen.findElementById("creature-attacks");
+        if (contentPanel == null) {
+            return;
+        }
+
+        for (Element element : contentPanel.getChildren()) {
+            element.markForRemoval();
+        }
+
+        createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
+
+        // TODO: creature spells, check creature level availiablity
+        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
+        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
     }
 
     @Override
@@ -534,12 +743,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         initHud = true;
         this.entityData = entityData;
 
-        nifty.gotoScreen(PlayerScreenController.SCREEN_HUD_ID);
+        nifty.gotoScreen(IPlayerScreenController.SCREEN_HUD_ID);
 
         hud.layoutLayers();
     }
 
     public void setPause(boolean paused) {
+        // skipcq: JAVA-W1062
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
     }
 
@@ -596,6 +806,40 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     public void goToScreen(String screen) {
         nifty.gotoScreen(screen);
+    }
+
+    /**
+     * Shows the prepared first person filter of the possessed creature. Called
+     * only after the camera has entered the creature, not when the possession
+     * screen starts.
+     */
+    public void showPossessionFilter() {
+        // Nifty must be touched from the render thread, enqueued so that it
+        // also stays in order with resetPossessionFilter
+        state.app.enqueue(() -> {
+            Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
+            if (filter != null) {
+                // skipcq: JAVA-W1062
+                filter.show();
+            }
+        });
+    }
+
+    /**
+     * Hides the first person filter image and clears the gamma tint of the
+     * possessed creature, so they don't linger after possession. The image
+     * element itself is kept, it is re-pointed on the next possession.
+     */
+    public void resetPossessionFilter() {
+        state.app.enqueue(() -> {
+            Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
+            if (filter == null) {
+                return;
+            }
+
+            filter.hide();
+            filter.getRenderer(PanelRenderer.class).setBackgroundColor(new Color(0, 0, 0, 0));
+        });
     }
 
     /**
@@ -736,6 +980,40 @@ public final class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
+        updateSpellAffordability(mana - manaLoose);
+    }
+
+    /**
+     * Darkens the spell icons that the player doesn't have enough mana to cast
+     *
+     * @param availableMana mana available for casting
+     */
+    private void updateSpellAffordability(int availableMana) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (!spell.isDiscovered()) {
+                continue;
+            }
+            KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
+            Element icon = hud.findElementById("spell_" + keeperSpell.getKeeperSpellId());
+            if (icon == null) {
+                continue;
+            }
+            boolean unaffordable = keeperSpell.getManaCost() > availableMana;
+            if (unaffordable == unaffordableSpells.contains(icon)) {
+                continue;
+            }
+            if (unaffordable) {
+                unaffordableSpells.add(icon);
+                icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else {
+                unaffordableSpells.remove(icon);
+                icon.stopEffect(EffectEventId.onCustom);
+                if (icon == selectedButton) {
+                    icon.startEffect(EffectEventId.onCustom, null, "select");
+                }
+            }
+        }
     }
 
     public void populateManufactureTab() {
@@ -790,6 +1068,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 researchControl.initJme(state.app);
             }
         }
+        unaffordableSpells.clear();
+        updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
     }
 
     /**
@@ -861,6 +1141,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 c = new Color(1f, 0, 0, 0.1f);
                 break;
 
+            case MARTINS_TEST_1:
+            case MARTINS_TEST_2:
+            case MARTINS_TEST_3:
+            case MARTINS_TEST_4:
             case DARK_ANGER_BRIGHT_BLUE:
             case DEATH_VIEW_HALF_RED:
             case FREEZE_VIEW_ONLY_BLUE:
@@ -899,6 +1183,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 break;
             case DISGUISE_N_STEAL:
                 name = "GUI/Icons/1st-person/sneak-mode";
+                break;
+            case FLY:
+            case PICK_LOCKS:
+            case FEAR_ATTACK:
+            case GHOST_POSESSION:
+            case NONE:
                 break;
         }
         return name;
@@ -961,6 +1251,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
+            if (unaffordableSpells.contains(selectedButton)) {
+                selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            }
         }
 
         String itemId = state.getType().toString().toLowerCase() + "_" + state.getItemId();
@@ -1263,7 +1556,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private void processChangedPlayerCreatureEntities(Set<Entity> entities) {
             Set<Short> modifiedCreatures = new LinkedHashSet<>();
             for (Entity entity : entities) {
-                short creatureId = entity.get(CreatureComponent.class).creatureId;
+                short creatureId = CreaturePortraitResolver.cardTypeId(
+                        kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId));
                 Short oldCreatureId = creatureIdsByEntityIds.put(entity.getId(), creatureId);
                 if (oldCreatureId != null) {
 
@@ -1317,10 +1611,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         private CreatureCardControl createPlayerCreatureIcon(Creature creature, Screen hud, Element parent) {
+            ArtResource portrait = CreaturePortraitResolver.resolve(creature, kwdFile::getCreature);
+            String portraitName = portrait != null ? portrait.getName() : "Logo";
             ControlBuilder cb = new ControlBuilder("creature") {
                 {
                     filename(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
-                            + File.separator + creature.getPortraitResource().getName() + ".png"));
+                            + File.separator + portraitName + ".png"));
                     parameter("creatureId", Integer.toString(creature.getCreatureId()));
                     parameter("creatureName", Utils.getMainTextResourceBundle().getString(
                             Integer.toString(creature.getNameStringId())));
@@ -1469,12 +1765,44 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     }
 
+    /**
+     * The elements and items of the pause menu page being built
+     */
+    private static final class MenuPage {
+
+        private final Label title;
+        private final Element columnOne;
+        private final Element columnTwo;
+        private final Element navigationOne;
+        private final Element navigationTwo;
+        private final List<GameMenu> items = new ArrayList<>();
+
+        private MenuPage(Label title, Element columnOne, Element columnTwo, Element navigationOne, Element navigationTwo) {
+            this.title = title;
+            this.columnOne = columnOne;
+            this.columnTwo = columnTwo;
+            this.navigationOne = navigationOne;
+            this.navigationTwo = navigationTwo;
+        }
+
+        /**
+         * Removes the content of the previously shown page
+         */
+        private void clear() {
+            for (Element column : List.of(columnOne, columnTwo, navigationOne, navigationTwo)) {
+                for (Element element : column.getChildren()) {
+                    element.markForRemoval();
+                }
+            }
+        }
+    }
+
     private static final class GameMenu {
 
-        protected String title;
-        protected String action;
-        protected String id;
-        protected Element parent;
+        private String title;
+        private String action;
+        private String id;
+        private Element parent;
 
         public GameMenu() {
         }

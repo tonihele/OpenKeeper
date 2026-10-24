@@ -38,10 +38,12 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -58,6 +60,7 @@ import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -124,6 +127,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final CreatureModelContainer creatureModelContainer;
     private final DoorModelContainer doorModelContainer;
     private final TrapModelContainer trapModelContainer;
+    private final RoomEffectContainer roomEffectContainer;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -132,6 +136,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private Spatial hiddenSpatial;
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -177,6 +182,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureModelContainer = new CreatureModelContainer(entityData);
         doorModelContainer = new DoorModelContainer(entityData);
         trapModelContainer = new TrapModelContainer(entityData);
+        roomEffectContainer = new RoomEffectContainer(entityData);
     }
 
     @Override
@@ -192,6 +198,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureModelContainer.start();
         doorModelContainer.start();
         trapModelContainer.start();
+        roomEffectContainer.start();
     }
 
     @Override
@@ -202,6 +209,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureModelContainer.update();
         doorModelContainer.update();
         trapModelContainer.update();
+        roomEffectContainer.update();
     }
 
     @Override
@@ -210,6 +218,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureModelContainer.stop();
         doorModelContainer.stop();
         trapModelContainer.stop();
+        roomEffectContainer.stop();
 
         // Detach entities
         rootNode.detachChild(root);
@@ -233,6 +242,47 @@ public class PlayerEntityViewState extends AbstractAppState {
         return root;
     }
 
+    /**
+     * Gets the model of an entity
+     *
+     * @param entityId the entity
+     * @return the model, or {@code null} if the entity has no model (yet)
+     */
+    public Spatial getEntitySpatial(EntityId entityId) {
+        IEntityViewControl control = entityViewControls.get(entityId);
+        return control != null ? control.getSpatial() : null;
+    }
+
+    /**
+     * Gets the view control of an entity, already holding the locally
+     * resolved game data for the entity (e.g. the {@link Creature} for a
+     * creature entity), so callers don't need to query the server for it
+     *
+     * @param entityId the entity
+     * @return the view control, or {@code null} if the entity has no view
+     * (yet)
+     */
+    public IEntityViewControl getEntityViewControl(EntityId entityId) {
+        return entityViewControls.get(entityId);
+    }
+
+    /**
+     * Hides the model of an entity regardless of fog of war, i.e. the creature
+     * we are looking out of while possessing it
+     *
+     * @param entityId the entity to hide, {@code null} to show the previously
+     * hidden one again
+     */
+    public void setHiddenEntity(EntityId entityId) {
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Inherit);
+        }
+        hiddenSpatial = entityId != null ? getEntitySpatial(entityId) : null;
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Always);
+        }
+    }
+
     private Spatial createObjectModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
@@ -247,7 +297,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser != null ? textParser.getObjectTextParser() : null, mapData);
+                Creature lairCreatureType = objectViewState.lairCreatureTypeId != 0
+                        ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
+                boolean uniqueCreatureBed = lairCreatureType != null
+                        && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
+                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
+                        uniqueCreatureBed);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -369,7 +426,24 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
-        object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
+        IEntityViewControl control = object.getControl(IEntityViewControl.class);
+        boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
+        control.setTargetState(viewState.state);
+
+        // Trigger the death effect once, when the creature actually dies
+        if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
+            int deathEffectId = control.getDeathEffectId();
+            if (deathEffectId == 0) {
+                // use the default puddle of blood
+                deathEffectId = 129;
+            }
+            stateManager.getState(EffectManagerState.class).load(nodeCreatures, object.getWorldTranslation(), deathEffectId, true, control.getOwnerId());
+        }
+
+        // Dead bodies are charred
+        if (viewState.state == Creature.AnimationType.DEATH_POSE) {
+            CharredOverlay.apply(object, assetManager);
+        }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
@@ -402,6 +476,10 @@ public class PlayerEntityViewState extends AbstractAppState {
      * with no exceptions.
      */
     private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
+        if (object == hiddenSpatial) {
+            object.setCullHint(Spatial.CullHint.Always);
+            return;
+        }
         boolean visible = baseVisible;
         if (visible) {
             visible = fogOfWarInformation.isVisible(tile);
@@ -589,6 +667,42 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
+        }
+    }
+
+    /**
+     * Watches for room-tied effects (currently only the hero gate's gem
+     * holder swirl) and spawns them - fires identically regardless of
+     * whether the map was loaded for the main menu or a real game, since
+     * both attach a PlayerEntityViewState (or MainMenuEntityViewState).
+     */
+    private final class RoomEffectContainer extends EntityContainer<Boolean> {
+
+        public RoomEffectContainer(EntityData ed) {
+            super(ed, RoomEffect.class);
+        }
+
+        @Override
+        protected Boolean addObject(Entity e) {
+            logger.log(Level.TRACE, "RoomEffectContainer.addObject({0})", e);
+            RoomEffect roomEffect = e.get(RoomEffect.class);
+            // Effect 350 sits half a tile further than the gem holder's own
+            // tile centre
+            Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
+                    .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f);
+            stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+            return Boolean.TRUE;
+        }
+
+        @Override
+        protected void updateObject(Boolean object, Entity e) {
+            // Location/effect id never change after construction
+        }
+
+        @Override
+        protected void removeObject(Boolean object, Entity e) {
+            // Not individually removable today - only
+            // EffectManagerState.clearActiveEffects() clears everything
         }
     }
 }

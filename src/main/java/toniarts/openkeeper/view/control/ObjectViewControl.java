@@ -49,17 +49,25 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     private boolean initialized = false;
     private int loopHandle = SoundEngine.NO_HANDLE;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
+    private final boolean uniqueCreatureBed;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
-        this(entityId, entityData, data, state, assetManager, textParser, null);
+        this(entityId, entityData, data, state, assetManager, textParser, null, false);
     }
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
             IMapDataInformation<? extends IMapTileInformation> mapData) {
+        this(entityId, entityData, data, state, assetManager, textParser, mapData, false);
+    }
+
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
+            AssetManager assetManager, EntityTextParser<GameObject> textParser,
+            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed) {
         super(entityId, entityData, data, state, assetManager, textParser);
         this.mapData = mapData;
+        this.uniqueCreatureBed = uniqueCreatureBed;
     }
 
     @Override
@@ -78,6 +86,11 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
                         getEntity().get(Position.class),
                         playerId,
                         mapData));
+    }
+
+    @Override
+    public int getSlapEffectId(short playerId) {
+        return getDataObject().getSlapEffectId();
     }
 
     @Override
@@ -186,6 +199,9 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     private void playAnimation(ObjectViewState viewState) {
         AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
+        if (uniqueCreatureBed) {
+            CreatureVariantTextures.apply(getSpatial(), assetManager);
+        }
         isAnimationPlaying = true;
     }
 

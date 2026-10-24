@@ -20,6 +20,7 @@ import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
@@ -40,6 +41,7 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_TWO_ID = 134;
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
+    private static final int EFFECT_3DFE_GEMS = 350;
 
     public HeroGateFrontEndController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
@@ -63,6 +65,8 @@ public final class HeroGateFrontEndController extends NormalRoomController {
 
                     // The "candles"
                     addCandles(p);
+
+                    entityData.setComponent(entityId, new RoomEffect(EFFECT_3DFE_GEMS, p));
                     break;
                 case 5:
 

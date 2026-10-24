@@ -89,6 +89,11 @@ public abstract class KeeperHandState extends AbstractAppState {
     private IEntityViewControl currentItem;
     private final Node queueNode;
     private final Node cursor;
+    private final Node spellIconNode;
+    private Picture spellIcon;
+    private ArtResource spellIconResource;
+    private boolean spellIconCastable = true;
+    private static final String NO_GO_ICON = "GUI/Cursors/I-No_Go";
     private final Node rootNode;
     private final Node handRootNode;
     private final InHandLoaderCreatureModelContainer inHandLoader;
@@ -115,8 +120,12 @@ public abstract class KeeperHandState extends AbstractAppState {
         cursor = new Node("Cursor");
         cursor.setLocalTranslation(75, 0, 0);
 
+        spellIconNode = new Node("Spell icon");
+        spellIconNode.setLocalTranslation(90, -CURSOR_ITEM_SIZE, 0);
+
         handRootNode.attachChild(queueNode);
         rootNode.attachChild(cursor);
+        rootNode.attachChild(spellIconNode);
 
         // Create the model "listener"
         inHandLoader = new InHandLoaderCreatureModelContainer(entityData);
@@ -171,6 +180,42 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     public IEntityViewControl getItem() {
         return currentItem;
+    }
+
+    /**
+     * Show the icon of the currently selected spell next to the cursor, the
+     * same way a grabbed creature or object is shown. Pass {@code null} to
+     * remove it.
+     *
+     * @param icon the spell's icon, or {@code null} to clear it
+     * @param castable false if the spell can't be cast right now, a "no go"
+     * mark is then shown over the icon
+     */
+    public void setSpellIcon(ArtResource icon, boolean castable) {
+        if (icon == null) {
+            if (spellIcon != null) {
+                spellIconNode.detachAllChildren();
+                spellIcon = null;
+                spellIconResource = null;
+            }
+            return;
+        }
+
+        // Called every cursor update, rebuild only on change
+        if (spellIcon != null && spellIconResource == icon && spellIconCastable == castable) {
+            return;
+        }
+
+        spellIconNode.detachAllChildren();
+        spellIcon = getIcon(icon);
+        spellIconResource = icon;
+        spellIconCastable = castable;
+        spellIconNode.attachChild(spellIcon);
+        if (!castable) {
+            Picture noGo = getIcon(NO_GO_ICON);
+            noGo.setLocalTranslation(0, 0, 1);
+            spellIconNode.attachChild(noGo);
+        }
     }
 
     private KeeperHandItem addToHand(IEntityViewControl item, int index) {
@@ -308,7 +353,13 @@ public abstract class KeeperHandState extends AbstractAppState {
             itemNode.setLocalTranslation(0, 0, 0);
             itemNode.setLocalRotation(Matrix3f.ZERO);
             queueNode.attachChild(itemNode);
-            AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
+
+            // CreatureViewControl already loads its IN_HAND animation and applies
+            // variant textures when attached. Objects start with their world mesh,
+            // so they still need to be switched to their dedicated in-hand mesh.
+            if (currentItem instanceof ObjectViewControl) {
+                AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
+            }
         }
     }
 
