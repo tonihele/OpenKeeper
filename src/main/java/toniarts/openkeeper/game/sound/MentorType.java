@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import javax.annotation.Nullable;
 import toniarts.openkeeper.game.data.IIndexable;
 
 /**
@@ -1545,5 +1546,23 @@ public enum MentorType implements IIndexable {
     @Override
     public short getId() {
         return value;
+    }
+
+    /**
+     * Level related mentor speech, i.e. the briefing and the two debriefing
+     * speeches of a campaign level.
+     *
+     * @param level the 1-based level number
+     * @param index {@code 0} for the briefing, {@code 1} for winning and
+     * {@code 2} for losing
+     * @return the speech type, or {@code null} if the level has no such speech
+     */
+    @Nullable
+    public static MentorType forLevel(int level, int index) {
+        try {
+            return valueOf(String.format("LEV%02d%03d", level, index + 1));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }

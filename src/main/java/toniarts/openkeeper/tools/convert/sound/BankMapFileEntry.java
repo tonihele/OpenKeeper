@@ -53,6 +53,16 @@ public final class BankMapFileEntry {
         return unknown4;
     }
 
+    /**
+     * Archive kind byte, i.e. the high byte of the field stored in
+     * {@link #getUnknown3()}.
+     *
+     * @return archive kind
+     */
+    public int getKind() {
+        return (unknown3 >> 8) & 0xFF;
+    }
+
     public void setUnknown4(short unknown4) {
         this.unknown4 = unknown4;
     }

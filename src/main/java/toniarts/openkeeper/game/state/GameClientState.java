@@ -98,6 +98,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final CampaignLevel campaignLevel;
 
     private PlayerMapViewState playerMapViewState;
+    private AmbienceState ambienceState;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
@@ -174,6 +175,10 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
+        if (ambienceState != null) {
+            stateManager.detach(ambienceState);
+            ambienceState = null;
+        }
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
         stateManager.detach(playerModelViewState);
@@ -458,6 +463,12 @@ public final class GameClientState extends AbstractPauseAwareState {
             app.enqueue(() -> {
                 playerState.setEnabled(true);
 
+                // The background sounds of the level
+                if (playerMapViewState != null) {
+                    ambienceState = new AmbienceState(kwdFile, playerMapViewState);
+                    stateManager.attach(ambienceState);
+                }
+
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {
                     gameStarted = true;
@@ -706,6 +717,10 @@ public final class GameClientState extends AbstractPauseAwareState {
             // Runs on the network thread; PlayerState applies the possession
             // (including the fog-of-war bypass) on the render thread
             playerState.setPossession(target);
+            setPossessedCreature(target);
+            if (ambienceState != null) {
+                ambienceState.setPossessing(target != null);
+            }
         }
     }
 

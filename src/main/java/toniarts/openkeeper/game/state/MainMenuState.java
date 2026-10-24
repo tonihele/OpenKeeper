@@ -21,8 +21,6 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
-import com.jme3.audio.AudioNode;
-import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
@@ -62,6 +60,9 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.game.sound.FrontEndSounds;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
@@ -97,8 +98,9 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
-    private AudioNode levelBriefing;
-    private AudioNode levelDebriefing;
+    private final FrontEndSounds frontEndSounds = new FrontEndSounds();
+    private int levelBriefing = SoundEngine.NO_HANDLE;
+    private int levelDebriefing = SoundEngine.NO_HANDLE;
     private boolean pendingDebriefing;
     private Camera storedCamera;
 
@@ -275,6 +277,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         // Clear sound
+        frontEndSounds.stop();
         clearLevelBriefingNarration();
 
         // Detach our start menu
@@ -347,6 +350,7 @@ public final class MainMenuState extends AbstractAppState {
         stateManager.getState(SoundState.class).setEnabled(true);
 
         if (enabled) {
+            frontEndSounds.start();
 
             // If this is the first time, we might have to load the menu
             if (menuNode == null) {
@@ -373,6 +377,7 @@ public final class MainMenuState extends AbstractAppState {
                 initializeMainMenu();
             }
         } else {
+            frontEndSounds.stop();
 
             // Save the camera position so that we can restore it (e.g. for the debriefing screen) when re-enabling the menu
             storedCamera = app.getCamera().clone();
@@ -642,7 +647,7 @@ public final class MainMenuState extends AbstractAppState {
         }
     }
 
-    protected void setLevelBriefing(AudioNode levelBriefing) {
+    protected void setLevelBriefing(int levelBriefing) {
         this.levelBriefing = levelBriefing;
     }
 
@@ -652,13 +657,13 @@ public final class MainMenuState extends AbstractAppState {
     protected void clearLevelBriefingNarration() {
 
         // Quit playing the sound
-        if (levelBriefing != null && levelBriefing.getStatus() == AudioSource.Status.Playing) {
-            levelBriefing.stop();
+        if (levelBriefing != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(levelBriefing);
         }
-        levelBriefing = null;
+        levelBriefing = SoundEngine.NO_HANDLE;
     }
 
-    protected void setLevelDebriefing(AudioNode levelDebriefing) {
+    protected void setLevelDebriefing(int levelDebriefing) {
         this.levelDebriefing = levelDebriefing;
     }
 
@@ -668,10 +673,10 @@ public final class MainMenuState extends AbstractAppState {
     protected void clearLevelDebriefingNarration() {
 
         // Quit playing the sound
-        if (levelDebriefing != null && levelDebriefing.getStatus() == AudioSource.Status.Playing) {
-            levelDebriefing.stop();
+        if (levelDebriefing != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(levelDebriefing);
         }
-        levelDebriefing = null;
+        levelDebriefing = SoundEngine.NO_HANDLE;
     }
 
     /**

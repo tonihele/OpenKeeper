@@ -70,6 +70,9 @@ import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
+ import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
@@ -343,6 +346,21 @@ public final class Main extends SimpleApplication {
         t.join();
     }
 
+    /**
+     * Advances the sound engine once per frame, independent of the state that
+     * happens to be active.
+     */
+    @Override
+    public void update() {
+        super.update();
+
+        // The player camera sets the listener itself, it listens from where it looks at, not from where it hovers
+        if (getCamera() != null && stateManager.getState(PlayerCameraState.class) == null) {
+            SoundManager.setListener(WorldUtils.vectorToPoint(getCamera().getLocation()));
+        }
+        SoundManager.tick();
+    }
+
     @Override
     public void simpleInitApp() {
 
@@ -369,6 +387,8 @@ public final class Main extends SimpleApplication {
                     // Asset loaders
                     // Sound
                     getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
+                    SoundManager.init(Main.this);
+                    applySoundSettings();
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
 
@@ -483,6 +503,16 @@ public final class Main extends SimpleApplication {
         float musicVolume = s.getFloat(Settings.Setting.MASTER_VOLUME) * s.getFloat(Settings.Setting.MUSIC_VOLUME);
         nifty.getSoundSystem().setMusicVolume(s.getBoolean(Settings.Setting.VOICE_ENABLED) ? musicVolume : 0);
         nifty.getSoundSystem().setSoundVolume(s.getFloat(Settings.Setting.MASTER_VOLUME));
+    }
+
+    /**
+     * Feeds the sound engine with the volume settings of the game.
+     */
+    public static void applySoundSettings() {
+        Settings s = getUserSettings();
+
+        SoundManager.applyVolumes(s.getFloat(Settings.Setting.MASTER_VOLUME), s.getFloat(Settings.Setting.MUSIC_VOLUME),
+                s.getFloat(Settings.Setting.VOICE_VOLUME), s.getFloat(Settings.Setting.SFX_VOLUME));
     }
 
     public byte[] getGameUiXml() {

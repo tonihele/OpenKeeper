@@ -76,6 +76,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.game.sound.CombatSounds;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -119,6 +120,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final IShotsController shotsController;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
+    private final CombatSounds combatSounds;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
     private float motionless = 0;
 
@@ -136,6 +138,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
+        this.combatSounds = new CombatSounds(entityData, levelInfo.getLevelData());
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -654,6 +657,7 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // Set the damage
                 setDamage(attackTarget, creatureMeleeAttack.damage);
+                combatSounds.playMeleeHit(creature, attackTarget, getPosition());
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);

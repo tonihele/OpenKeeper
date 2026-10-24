@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.RoomListener;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -43,6 +44,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Handles creatures spawning, from Portals, Dungeon Hearts...<br>
@@ -128,8 +130,12 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
 
                 // Spawn imp
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.PLACE);
+                Vector2f spot = new Vector2f(entranceCoordinate.x, entranceCoordinate.y);
+                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, spot, ICreaturesController.SpawnType.PLACE);
                 spawned = true;
+
+                // The cast sound is not gated by the free flag
+                ThingSounds.playCreateImp(kwdFile, WorldUtils.vector2fToVector3(spot));
             }
         } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
