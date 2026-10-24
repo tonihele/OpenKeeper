@@ -18,30 +18,23 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.BooleanSupplier;
 import toniarts.openkeeper.game.component.CreatureMood;
 
 /**
  * Honours the level script's creature moods switch (trigger action
- * SET_CREATURE_MOODS). In DKII the anger counters of a creature only change
- * while the switch is on: the operations that add, remove, scale, decay or clear
- * them do nothing when it is off (DKII.EXE 0x486E20-0x4871A0). So while the
- * switch is off the counters are held at the value they had when it was
- * turned off, and the creatures can not turn unhappy or angry.
- * <p>
- * The systems that change the counters are not told about the switch, so this
- * one undoes their changes. It should run after them in the tick, before the creature AI.
+ * SET_CREATURE_MOODS). In DKII the operations that add, remove, scale, decay or
+ * clear the anger counters of a creature do nothing while the switch is off
+ * (DKII.EXE 0x486E20-0x4871A0), so the creatures can not turn unhappy or
+ * angry. Here the moods of the creatures are marked frozen, which makes the
+ * same operations of {@link CreatureMood} do nothing.
  */
 public final class CreatureMoodSwitchSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final BooleanSupplier moodsEnabled;
     private final EntitySet entities;
-    private final Map<EntityId, CreatureMood> frozenMoods = new HashMap<>();
 
     /**
      * @param entityData the entity data
@@ -56,29 +49,14 @@ public final class CreatureMoodSwitchSystem implements IGameLogicUpdatable {
     @Override
     public void processTick(float tpf) {
         entities.applyChanges();
-        if (moodsEnabled.getAsBoolean()) {
-            frozenMoods.clear();
-            return;
-        }
-        for (Entity entity : entities.getRemovedEntities()) {
-            frozenMoods.remove(entity.getId());
-        }
+        boolean frozen = !moodsEnabled.getAsBoolean();
         for (Entity entity : entities) {
-            freeze(entity);
+            CreatureMood mood = entity.get(CreatureMood.class);
+            CreatureMood updated = mood.withFrozen(frozen);
+            if (updated != mood) {
+                entityData.setComponent(entity.getId(), updated);
+            }
         }
-    }
-
-    private void freeze(Entity entity) {
-        CreatureMood current = entity.get(CreatureMood.class);
-        CreatureMood frozen = frozenMoods.putIfAbsent(entity.getId(), current);
-        if (frozen != null && !sameCounters(frozen, current)) {
-            entityData.setComponent(entity.getId(), frozen);
-        }
-    }
-
-    private static boolean sameCounters(CreatureMood a, CreatureMood b) {
-        return a.general == b.general && a.noFood == b.noFood && a.noLair == b.noLair
-                && a.noWork == b.noWork && a.noPay == b.noPay && a.other == b.other;
     }
 
     @Override
@@ -88,6 +66,5 @@ public final class CreatureMoodSwitchSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         entities.release();
-        frozenMoods.clear();
     }
 }

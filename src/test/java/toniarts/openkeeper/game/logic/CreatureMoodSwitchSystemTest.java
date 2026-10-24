@@ -29,7 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * The level script's creature moods switch (trigger action SET_CREATURE_MOODS)
- * freezes the anger counters of the creatures.
+ * freezes the anger counters of the creatures: the operations
+ * that change them do nothing while it is off.
  */
 class CreatureMoodSwitchSystemTest {
 
@@ -54,45 +55,54 @@ class CreatureMoodSwitchSystemTest {
         EntityId creature = createCreature(new CreatureMood());
         system.processTick(0.25f);
 
-        entityData.setComponent(creature, new CreatureMood().add(CreatureMood.REASON_OTHER, 500));
-        system.processTick(0.25f);
+        entityData.setComponent(creature, mood(creature).add(CreatureMood.REASON_OTHER, 500));
 
         assertEquals(500, mood(creature).other);
     }
 
     @Test
-    void moodChangesAreUndoneWhenTheSwitchIsOff() {
+    void moodChangesDoNothingWhenTheSwitchIsOff() {
         EntityId creature = createCreature(new CreatureMood());
         enabled.set(false);
         system.processTick(0.25f);
 
         entityData.setComponent(creature, mood(creature).add(CreatureMood.REASON_NO_PAY, 40000));
-        system.processTick(0.25f);
 
         assertEquals(0, mood(creature).noPay);
     }
 
     @Test
-    void clearedMoodStaysWhenTheSwitchIsOff() {
+    void clearingDoesNothingWhenTheSwitchIsOff() {
         EntityId creature = createCreature(new CreatureMood(0, 0, 900, 0, 0, 0));
         enabled.set(false);
         system.processTick(0.25f);
 
         entityData.setComponent(creature, mood(creature).clear(CreatureMood.REASON_NO_LAIR));
-        system.processTick(0.25f);
 
         assertEquals(900, mood(creature).noLair);
     }
 
     @Test
-    void creatureAddedWhileOffStartsFrozen() {
+    void creatureAddedWhileOffIsFrozen() {
         enabled.set(false);
         system.processTick(0.25f);
         EntityId creature = createCreature(new CreatureMood());
         system.processTick(0.25f);
 
         entityData.setComponent(creature, mood(creature).add(CreatureMood.REASON_GENERAL, 700));
+
+        assertEquals(0, mood(creature).general);
+    }
+
+    @Test
+    void moodReplacedWhileOffIsFrozenAgain() {
+        EntityId creature = createCreature(new CreatureMood());
+        enabled.set(false);
         system.processTick(0.25f);
+        entityData.setComponent(creature, new CreatureMood());
+        system.processTick(0.25f);
+
+        entityData.setComponent(creature, mood(creature).add(CreatureMood.REASON_GENERAL, 700));
 
         assertEquals(0, mood(creature).general);
     }
@@ -106,7 +116,6 @@ class CreatureMoodSwitchSystemTest {
         system.processTick(0.25f);
 
         entityData.setComponent(creature, mood(creature).add(CreatureMood.REASON_OTHER, 300));
-        system.processTick(0.25f);
 
         assertEquals(300, mood(creature).other);
     }
