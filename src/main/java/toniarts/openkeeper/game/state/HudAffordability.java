@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.state;
 
+import java.util.Set;
+import java.util.function.Consumer;
 import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
@@ -37,6 +39,30 @@ public final class HudAffordability {
      */
     public static boolean canAffordRoom(Room room, int gold) {
         return room.getCost() <= gold;
+    }
+
+    /**
+     * Gives an icon the effects it should have: the effects are all stopped,
+     * then the icon is darkened if it is unaffordable, or marked if it is the
+     * selected one. A darkened icon stays darkened even if it is selected, the
+     * same as when the selection changes.
+     *
+     * @param <T> the icon type
+     * @param darkened the darkened icons of one kind
+     * @param icon the icon
+     * @param selected is the icon the selected one
+     * @param stop stops the effects of an icon
+     * @param darken darkens an icon
+     * @param select marks an icon as selected
+     */
+    public static <T> void reapply(Set<T> darkened, T icon, boolean selected, Consumer<T> stop,
+            Consumer<T> darken, Consumer<T> select) {
+        stop.accept(icon);
+        if (darkened.contains(icon)) {
+            darken.accept(icon);
+        } else if (selected) {
+            select.accept(icon);
+        }
     }
 
 }

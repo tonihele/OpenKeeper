@@ -16,10 +16,13 @@
  */
 package toniarts.openkeeper.game.state;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.tools.convert.map.HudIconFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,6 +42,30 @@ class HudAffordabilityTest {
     @Test
     void roomIsDarkWithoutGoldForOneTile() {
         assertFalse(HudAffordability.canAffordRoom(temple, 2999));
+    }
+
+    private static String reapply(Set<String> darkened, boolean selected) {
+        StringBuilder log = new StringBuilder();
+        HudAffordability.reapply(darkened, "temple", selected,
+                i -> log.append("stop "), i -> log.append("dark "), i -> log.append("select "));
+        return log.toString().trim();
+    }
+
+    @Test
+    void iconLitWhileItsTabWasHiddenIsLitAgainWhenTheTabComesBack() {
+        // Nifty restores the effect the tab had when it was hidden, so the effects are stopped once more
+        assertEquals("stop", reapply(new HashSet<>(), false));
+    }
+
+    @Test
+    void darkIconIsDarkAgainWhenTheTabComesBack() {
+        assertEquals("stop dark", reapply(new HashSet<>(Set.of("temple")), false));
+    }
+
+    @Test
+    void selectedIconIsMarkedAgainUnlessItIsDark() {
+        assertEquals("stop select", reapply(new HashSet<>(), true));
+        assertEquals("stop dark", reapply(new HashSet<>(Set.of("temple")), true));
     }
 
 }

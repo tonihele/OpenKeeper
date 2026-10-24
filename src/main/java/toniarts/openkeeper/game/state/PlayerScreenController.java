@@ -721,6 +721,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String sound = ((CustomTabControl) event.getTab()).getSound();
             this.playButtonSound(sound);
         }
+        reapplyIconEffects();
     }
 
     protected void initHud(String resource, EntityData entityData) {
@@ -1054,6 +1055,39 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (icon == selectedButton) {
                 icon.startEffect(EffectEventId.onCustom, null, "select");
             }
+        }
+    }
+
+    /**
+     * Nifty saves the effects of a tab when it is hidden and starts them again
+     * when the tab is shown, even the ones that were stopped in between. Gives
+     * the room and spell icons their effects again so that an icon that was lit
+     * while its tab was hidden doesn't come back dark.
+     */
+    private void reapplyIconEffects() {
+        if (state == null) {
+            return;
+        }
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
+            if (room.isDiscovered()) {
+                reapplyIconEffects(hud.findElementById("room_" + room.getId()), unaffordableRooms);
+            }
+        }
+        for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.isDiscovered()) {
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
+                reapplyIconEffects(hud.findElementById("spell_" + keeperSpell.getKeeperSpellId()), unaffordableSpells);
+            }
+        }
+    }
+
+    private void reapplyIconEffects(Element icon, Set<Element> unaffordableIcons) {
+        if (icon != null) {
+            HudAffordability.reapply(unaffordableIcons, icon, icon == selectedButton,
+                    litIcon -> litIcon.stopEffect(EffectEventId.onCustom),
+                    darkIcon -> darkIcon.startEffect(EffectEventId.onCustom, null, "unaffordable"),
+                    selectedIcon -> selectedIcon.startEffect(EffectEventId.onCustom, null, "select"));
         }
     }
 
