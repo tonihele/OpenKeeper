@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.pfa.Connection;
 import com.badlogic.gdx.ai.pfa.DefaultConnection;
 import com.badlogic.gdx.ai.pfa.indexed.IndexedGraph;
 import com.badlogic.gdx.utils.Array;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -27,6 +28,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.DEFAULT_COST;
+import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.DOOR_COST;
 import static toniarts.openkeeper.game.navigation.pathfinding.INavigable.WATER_COST;
 
 /**
@@ -134,7 +136,13 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
      */
     protected static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
             IEntityPositionLookup entityPositionLookup) {
-        return getCost(navigable, from, to, mapController, entityPositionLookup, true);
+        Float cost = getCost(navigable, from, to, mapController, entityPositionLookup, true);
+
+        // Breaking through a door takes effort
+        if (cost != null && entityPositionLookup.getBlockingDoor(to.getX(), to.getY(), navigable.getOwnerId()) != null) {
+            return cost + DOOR_COST;
+        }
+        return cost;
     }
 
     private static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
@@ -171,8 +179,9 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
                 }
             }
 
-            // Check for doors etc.
-            if (entityPositionLookup.isTileBlocked(to, navigable.getOwnerId())) {
+            // Check for doors etc., the ones that can be broken don't stop us
+            EntityId door = entityPositionLookup.getBlockingDoor(to.getX(), to.getY(), navigable.getOwnerId());
+            if (door != null && !navigable.canBreakDoor(door)) {
                 return null;
             }
 
