@@ -52,7 +52,7 @@
                     <panel width="256px" align="left" valign="center" childLayout="overlay">
                         <panel id="manaButton" childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
                             <effect>
-                                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
+                                <onCustom customKey="flash" name="imageOverlayPulsate" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
                                 <onHover name="hint" hintText="${menu.2133}" hintDelay="200" />
                                 <onHover name="simpleHintEx" hintText="${menu.2134}" targetElement="tooltip" />
                                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
@@ -88,7 +88,7 @@
                         <panel id="goldButton" childLayout="horizontal" align="left" valign="center" visibleToMouse="true">
                             <interact onClick="grabGold()"/>
                             <effect>
-                                <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
+                                <onCustom customKey="flash" name="imageOverlayPulsate" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
                                 <onHover name="hint" hintText="${menu.2141}" hintDelay="200" />
                                 <onHover name="simpleHintEx" hintText="${menu.2142}" targetElement="tooltip" />
                                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
@@ -249,7 +249,7 @@
                                     <effect>
                                         <onHover name="imageOverlay" filename="Textures/GUI/Map/mapbf-01.png" post="true" />
                                         <onCustom name="imageOverlay" customKey="select" filename="Textures/GUI/Map/selected-mapbf-01.png" post="true" neverStopRendering="true" />
-                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Map/mapbf-01.png" post="true" neverStopRendering="true" timeType="infinite" />
+                                        <onCustom customKey="flash" name="imageOverlayPulsate" filename="Textures/GUI/Map/mapbf-01.png" post="true" neverStopRendering="true" timeType="infinite" />
                                         <onHover name="hint" hintText="${menu.1805}" hintDelay="200" />
                                         <onHover name="simpleHintEx" hintText="${menu.1806}" targetElement="tooltip" />
                                         <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
@@ -271,7 +271,7 @@
                             <panel id="zoomButton" x="100%" y="100%" width="64px" height="64px" visibleToMouse="true">
                                 <interact onClick="resizeMap()" onSecondaryClick="resizeMapDown()"/>
                                 <effect>
-                                    <onActive name="imageOverlayPulsate" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" neverStopRendering="true" timeType="infinite" />
+                                    <onCustom customKey="flash" name="imageOverlayPulsate" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" neverStopRendering="true" timeType="infinite" />
                                     <onHover name="imageOverlay" filename="Textures/GUI/Map/selected-mapbf-03.png" post="true" />
                                     <!-- original game have no next effect -->
                                     <onClick name="imageOverlay" filename="Textures/GUI/Map/mapbf-03.png" post="true" />
@@ -291,7 +291,7 @@
                                 <image id="toggleButton" valign="center" filename="Textures/GUI/Icons/i-mise.png" height="64px" width="64px" filter="true" visibleToMouse="true">
                                     <interact onClick="togglePanel()" />
                                     <effect>
-                                        <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
+                                        <onCustom customKey="flash" name="imageOverlayPulsate" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" timeType="infinite" />
                                         <onHover name="hint" hintText="${menu.2161}" hintDelay="200" />
                                         <onHover name="simpleHintEx" hintText="${menu.2162}" targetElement="tooltip" />
                                         <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />

@@ -102,6 +102,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private PauseMenuSettings pauseMenuSettings;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
+    private static final String FLASH_EFFECT_KEY = "flash";
     
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
@@ -128,6 +129,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser();
     private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
     private final HudButtonFlasher buttonFlasher = new HudButtonFlasher(this::setButtonFlashing);
+    private final Set<String> flashingButtons = new HashSet<>();
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
         this.state = state;
@@ -195,10 +197,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (button == null) {
             return;
         }
+        // The flash is a custom effect of its own, so it neither starts with the button nor stops its other effects
         if (!flashing) {
-            button.stopEffect(EffectEventId.onActive);
-        } else if (!button.isEffectActive(EffectEventId.onActive)) {
-            button.startEffect(EffectEventId.onActive);
+            if (flashingButtons.remove(buttonKey)) {
+                button.resetSingleEffect(EffectEventId.onCustom, FLASH_EFFECT_KEY);
+            }
+        } else if (flashingButtons.add(buttonKey)) {
+            button.startEffect(EffectEventId.onCustom, null, FLASH_EFFECT_KEY);
         }
     }
 
