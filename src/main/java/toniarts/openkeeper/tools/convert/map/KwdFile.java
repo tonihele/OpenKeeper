@@ -47,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats.StatType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
+import toniarts.openkeeper.tools.convert.map.Variable.ResearchOrder;
 import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.PathUtils;
@@ -128,6 +129,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     private Map<Integer, Trigger> triggers;
     // Variables
     private List<Availability> availabilities;
+    private List<ResearchOrder> researchOrder;
     private Map<Integer, Map<Integer, CreaturePool>> creaturePools;
     private Map<Integer, Map<StatType, CreatureStats>> creatureStatistics;
     private Map<Integer, Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
@@ -2857,19 +2859,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
         // Read the requested VARIABLES file
         // Should be the GlobalVariables first, then the level's own
-        if (variables == null) {
-            logger.log(Level.INFO, "Reading variables!");
-            availabilities = new ArrayList<>();
-            creaturePools = HashMap.newHashMap(4);
-            creatureStatistics = HashMap.newHashMap(10);
-            creatureFirstPersonStatistics = HashMap.newHashMap(10);
-            variables = new HashMap<>();
-            sacrifices = new HashSet<>();
-            playerAlliances = new HashSet<>();
-            unknownVariables = new HashSet<>();
-        } else {
-            logger.log(Level.INFO, "Overrides variables!");
-        }
+        initVariables();
 
         IResourceChunkReader reader = file.readChunk(header.dataSize);
         for (int i = 0; i < header.getItemCount(); i++) {
@@ -2904,6 +2894,16 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                     // Add
                     availabilities.add(availability);
+                    break;
+
+                case Variable.RESEARCH_ORDER:
+                    ResearchOrder researchOrderStep = new ResearchOrder();
+                    researchOrderStep.setType(reader.readIntegerAsEnum(ResearchOrder.ResearchOrderType.class));
+                    researchOrderStep.setTypeId(reader.readInteger());
+                    researchOrderStep.setResearchPoints(reader.readInteger());
+
+                    // Add, the order is the order of the variables
+                    researchOrder.add(researchOrderStep);
                     break;
 
                 case Variable.SACRIFICES_ID: // not changeable (in editor you can, but changes will not save)
@@ -2963,7 +2963,6 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     playerAlliances.add(playerAlliance);
                     break;
 
-                case Variable.UNKNOWN_17: // FIXME unknown value
                 case Variable.UNKNOWN_0: // FIXME unknownn value
                 case Variable.UNKNOWN_77: // FIXME unknown value
                     Variable.Unknown unknown = new Variable.Unknown();
@@ -2989,6 +2988,27 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     break;
             }
         }
+    }
+
+    /**
+     * Creates the variable collections for the first variables file, the
+     * GlobalVariables. The level's own file then overrides them.
+     */
+    private void initVariables() {
+        if (variables != null) {
+            logger.log(Level.INFO, "Overrides variables!");
+            return;
+        }
+        logger.log(Level.INFO, "Reading variables!");
+        availabilities = new ArrayList<>();
+        researchOrder = new ArrayList<>();
+        creaturePools = HashMap.newHashMap(4);
+        creatureStatistics = HashMap.newHashMap(10);
+        creatureFirstPersonStatistics = HashMap.newHashMap(10);
+        variables = new HashMap<>();
+        sacrifices = new HashSet<>();
+        playerAlliances = new HashSet<>();
+        unknownVariables = new HashSet<>();
     }
 
     @Override
@@ -3183,6 +3203,11 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     @Override
     public List<Availability> getAvailabilities() {
         return availabilities;
+    }
+
+    @Override
+    public List<ResearchOrder> getResearchOrder() {
+        return researchOrder;
     }
 
     @Override
