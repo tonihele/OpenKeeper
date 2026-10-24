@@ -106,7 +106,8 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         }
         timeBeforeFirstPayDay = gameSettings.get(MiscType.TIME_BEFORE_FIRST_PAY_DAY_SECONDS).getValue();
         payDayFrequency = gameSettings.get(MiscType.PAY_DAY_FREQUENCY_SECONDS).getValue();
-        payDayCutOffTime = gameSettings.get(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS).getValue();
+        // Despite the name the cut off time is in ticks, like in DKII.EXE (0x4BE180 returns ticks)
+        payDayCutOffTime = gameSettings.get(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS).getValue() / kwdFile.getGameLevel().getTicksPerSec();
         payReevaluationDelay = gameSettings.get(MiscType.DELAY_BEFORE_PAY_REEVALUATION_SECONDS).getValue();
 
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class);

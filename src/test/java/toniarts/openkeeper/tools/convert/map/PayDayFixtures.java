@@ -54,4 +54,16 @@ public final class PayDayFixtures {
         return variable;
     }
 
+    /**
+     * The level settings
+     *
+     * @param ticksPerSecond the logic ticks per second
+     * @return the game level
+     */
+    public static GameLevel gameLevel(int ticksPerSecond) {
+        GameLevel gameLevel = new GameLevel();
+        gameLevel.setTicksPerSec(ticksPerSecond);
+        return gameLevel;
+    }
+
 }

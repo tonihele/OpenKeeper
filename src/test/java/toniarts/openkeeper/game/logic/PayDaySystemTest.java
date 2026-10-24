@@ -54,7 +54,9 @@ class PayDaySystemTest {
     private static final int ANGER_NO_PAY = 60;
     private static final int FIRST_PAY_DAY = 100;
     private static final int FREQUENCY = 200;
-    private static final int CUT_OFF = 30;
+    private static final int TICKS_PER_SECOND = 4;
+    private static final int CUT_OFF_TICKS = 120;
+    private static final int CUT_OFF = CUT_OFF_TICKS / TICKS_PER_SECOND;
     private static final int REEVALUATION = 4;
 
     private final EntityData entityData = new DefaultEntityData();
@@ -199,6 +201,19 @@ class PayDaySystemTest {
     }
 
     @Test
+    void cutOffTimeIsInTicksNotSeconds() {
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(0);
+
+        // 40 seconds before the pay day, outside the 30 seconds (120 ticks) of the cut off
+        EntityId newcomer = addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(FIRST_PAY_DAY - 40);
+
+        tick(FIRST_PAY_DAY);
+        assertEquals(WAGE / 2, gold(newcomer));
+    }
+
+    @Test
     void prisonersAreNotPaid() {
         EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
         entityData.setComponent(goblin, new CreatureImprisoned(0, 0));
@@ -251,7 +266,7 @@ class PayDaySystemTest {
         Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
         settings.put(MiscType.TIME_BEFORE_FIRST_PAY_DAY_SECONDS, PayDayFixtures.payDayVariable(MiscType.TIME_BEFORE_FIRST_PAY_DAY_SECONDS, FIRST_PAY_DAY));
         settings.put(MiscType.PAY_DAY_FREQUENCY_SECONDS, PayDayFixtures.payDayVariable(MiscType.PAY_DAY_FREQUENCY_SECONDS, FREQUENCY));
-        settings.put(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS, PayDayFixtures.payDayVariable(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS, CUT_OFF));
+        settings.put(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS, PayDayFixtures.payDayVariable(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS, CUT_OFF_TICKS));
         settings.put(MiscType.DELAY_BEFORE_PAY_REEVALUATION_SECONDS, PayDayFixtures.payDayVariable(MiscType.DELAY_BEFORE_PAY_REEVALUATION_SECONDS, REEVALUATION));
         return settings;
     }
@@ -261,6 +276,9 @@ class PayDaySystemTest {
                 (proxy, method, args) -> {
                     if ("getCreature".equals(method.getName())) {
                         return creatures.get((Short) args[0]);
+                    }
+                    if ("getGameLevel".equals(method.getName())) {
+                        return PayDayFixtures.gameLevel(TICKS_PER_SECOND);
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
