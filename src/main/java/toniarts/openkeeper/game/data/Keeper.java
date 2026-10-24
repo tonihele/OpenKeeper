@@ -59,6 +59,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private transient Player player;
     private short id;
     private boolean destroyed = false;
+    private short killerId;
     private Set<Short> allies = HashSet.newHashSet(4);
 
     public Keeper() {
@@ -128,6 +129,35 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
      */
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    /**
+     * Mark the player destroyed, his Dungeon Heart is gone
+     *
+     * @param killerId the player who destroyed the heart, 0 if not known
+     */
+    public void setDestroyed(short killerId) {
+        this.destroyed = true;
+        this.killerId = killerId;
+    }
+
+    /**
+     * Get the player who destroyed this player
+     *
+     * @return the player id, 0 if not known or if the player is not destroyed
+     */
+    public short getKillerId() {
+        return killerId;
+    }
+
+    /**
+     * Check whether the player is destroyed by the given player
+     *
+     * @param playerId the player who destroyed this player, 0 for anyone
+     * @return is destroyed by the player
+     */
+    public boolean isKilledBy(short playerId) {
+        return destroyed && (playerId == 0 || playerId == killerId);
     }
 
     public AIType getAiType() {

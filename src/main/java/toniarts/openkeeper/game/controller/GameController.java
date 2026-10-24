@@ -25,8 +25,10 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import toniarts.openkeeper.Main;
@@ -81,6 +83,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private PositionSystem positionSystem;
 
     private GameResult gameResult = null;
+    private final Set<Short> playersWithResult = new HashSet<>();
     private TaskManager taskManager;
 
     /**
@@ -294,6 +297,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void endGame(short playerId, boolean win) {
+
+        // A player's game ends only once, the first result stands
+        if (!playersWithResult.add(playerId)) {
+            return;
+        }
 
         // Determine what happens to the game & players
         gameResult = new GameResult();
