@@ -266,14 +266,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         GdxAI.getTimepiece().update(tpf);
 
         // Time limit is a special timer, it just ticks towards 0 if it is set
-        if (levelInfo.timeLimit != null) {
-            levelInfo.timeLimit -= tpf;
-
-            // We rest on zero
-            if (levelInfo.timeLimit < 0) {
-                levelInfo.timeLimit = 0f;
-            }
-        }
+        updateTimeLimit(tpf);
 
         // Advance game timers
         for (GameTimer timer : levelInfo.timers.getArray()) {
@@ -285,11 +278,43 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
 
         controllers.stream().forEach(controller -> controller.processTick(tpf));
+    }
 
-        if (levelInfo.timeLimit != null && levelInfo.timeLimit <= 0) {
-            //TODO:
-            throw new RuntimeException("Level time limit exceeded!");
+    private void updateTimeLimit(float tpf) {
+        Float previous = levelInfo.timeLimit;
+        if (previous == null) {
+            return;
         }
+
+        levelInfo.timeLimit = advanceTimeLimit(previous, tpf);
+
+        // The game itself does nothing more than note that the time is up,
+        // the level script is what loses or wins the level
+        if (isTimeLimitReached(previous, levelInfo.timeLimit)) {
+            logger.log(Level.INFO, "Level time limit reached");
+        }
+    }
+
+    /**
+     * Counts the level time limit down. It rests on zero
+     *
+     * @param timeLimit the time left
+     * @param tpf the time passed
+     * @return the time left now
+     */
+    static float advanceTimeLimit(float timeLimit, float tpf) {
+        return Math.max(timeLimit - tpf, 0f);
+    }
+
+    /**
+     * Tells if the level time limit ran out just now
+     *
+     * @param previous the time left before
+     * @param current the time left now
+     * @return true on the tick the time ran out, false before and after
+     */
+    static boolean isTimeLimitReached(float previous, float current) {
+        return previous > 0f && current <= 0f;
     }
 
     @Override
