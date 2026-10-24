@@ -103,7 +103,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         for (EntityId entityId : experienceEntityIds.getArray()) {
             Entity entity = experienceEntities.getEntity(entityId);
             handleEntity(entity, entityId, tpf, () -> {
-                return isEntityWorkingOrFighting(entity) ? ExperienceGainReason.WORKING_OR_FIGHTING : ExperienceGainReason.NONE;
+                return isEntityWorkingOrFighting(entity) && !isWorkerFightingWithoutGain(entity) ? ExperienceGainReason.WORKING_OR_FIGHTING : ExperienceGainReason.NONE;
             });
         }
         for (EntityId entityId : trainingEntityIds.getArray()) {
@@ -176,6 +176,18 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private boolean isWorker(Entity entity) {
         CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
         return creatureComponent.worker;
+    }
+
+    /**
+     * Workers learn nothing from fighting, unless they are heroes. An Imp
+     * gains nothing in battle, a Dwarf does
+     */
+    private boolean isWorkerFightingWithoutGain(Entity entity) {
+        if (entity.get(CreatureAi.class).getCreatureState() == CreatureState.WORK || !isWorker(entity)) {
+            return false;
+        }
+        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+        return !creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD);
     }
 
     private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
