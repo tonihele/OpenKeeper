@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -112,6 +113,14 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private final Map<Point, Entity> doorsByPosition = new HashMap<>();
     private final Set<Point> closedDoorTiles = new HashSet<>();
     private final Set<EntityId> seenEnemies = new HashSet<>();
+
+    /**
+     * Tiles the level script revealed, and that are still waiting for the
+     * "enemy sighted" check to go past them. A reveal is not a sighting: the
+     * level intros reveal areas that have enemies in them. Scripts run on the
+     * game thread, the fog updates on the render thread.
+     */
+    private final Set<Point> scriptedRevealTiles = ConcurrentHashMap.newKeySet();
     private final List<PendingHeartReveal> pendingHeartReveals = new ArrayList<>();
     private final Set<Point> pendingTaggedTiles = new HashSet<>();
 
@@ -302,7 +311,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
         // "Enemy sighted" (§8.5.3): the first time an enemy creature's tile
         // becomes explored, notify once. Checked after our own creatures'
         // vision above so a tile explored this very pass still counts.
-        Set<Point> newlyDirty = state.peekDirtyTiles();
+        Set<Point> newlyDirty = withoutScriptedReveals(state.peekDirtyTiles());
         if (newlyDirty.isEmpty()) {
             return;
         }
@@ -322,6 +331,20 @@ public final class FogOfWarController implements IFogOfWarInformation {
                 onEnemySighted.accept(id);
             }
         }
+    }
+
+    /**
+     * The scripted reveals do not count as sightings, take them out of the
+     * dirty tiles. The mark of a tile goes once the tile has been passed.
+     */
+    private Set<Point> withoutScriptedReveals(Set<Point> dirty) {
+        if (scriptedRevealTiles.isEmpty()) {
+            return dirty;
+        }
+        Set<Point> result = new HashSet<>(dirty);
+        result.removeAll(scriptedRevealTiles);
+        scriptedRevealTiles.removeAll(dirty);
+        return result;
     }
 
     private void updatePossession() {
@@ -498,6 +521,13 @@ public final class FogOfWarController implements IFogOfWarInformation {
      */
     public void revealActionPointTiles(List<Point> points, boolean explore) {
         if (explore) {
+            // Not a sighting, even if an enemy stands there. Mark first, so
+            // the check cannot see the tiles dirty without the mark.
+            for (Point p : points) {
+                if (!state.isExplored(p.x, p.y)) {
+                    scriptedRevealTiles.add(p);
+                }
+            }
             FogOfWarRules.exploreTiles(state, points);
         } else {
             FogOfWarRules.unexploreTiles(state, points);

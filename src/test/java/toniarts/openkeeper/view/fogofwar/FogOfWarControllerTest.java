@@ -131,6 +131,53 @@ class FogOfWarControllerTest {
     }
 
     @Test
+    void scriptedRevealDoesNotReportEnemiesInIt() {
+        createCreature(VIEWER, 3, 3);
+        createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+
+        controller.revealActionPointTiles(List.of(new Point(14, 14), new Point(15, 14),
+                new Point(14, 15), new Point(15, 15)), true);
+        update(UPDATES);
+
+        assertTrue(controller.isExplored(new Point(15, 15)), "The script revealed the tiles");
+        assertTrue(sightings.isEmpty(), "A scripted reveal, e.g. in the level intro, is not a sighting");
+    }
+
+    @Test
+    void revealBeforeSeedingIsAppliedLaterWithoutReportingEnemies() {
+        createCreature(VIEWER, 3, 3);
+        createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+        update(UPDATES);
+
+        controller.revealActionPointTiles(List.of(new Point(15, 15)), true);
+        controller.update(0.01f);
+        update(UPDATES);
+
+        assertTrue(sightings.isEmpty());
+    }
+
+    @Test
+    void enemyWalkingIntoSightAfterScriptedRevealIsStillReported() {
+        EntityId own = createCreature(VIEWER, 3, 3);
+        EntityId enemy = createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+        controller.revealActionPointTiles(List.of(new Point(15, 15)), true);
+        update(UPDATES);
+        assertTrue(sightings.isEmpty());
+
+        entityData.setComponents(enemy, new Position(0, WorldUtils.pointToVector3f(8, 3)));
+        entityData.setComponents(own, new Position(0, WorldUtils.pointToVector3f(10, 3)));
+        update(UPDATES);
+
+        assertEquals(List.of(enemy), sightings, "Our own creature sees the enemy come close");
+    }
+
+    @Test
     void heartAddedBeforeSeedingIsRevealedAfterSeeding() {
         controller.start();
         createHeart(10, 10);
