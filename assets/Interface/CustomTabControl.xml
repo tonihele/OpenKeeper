@@ -25,6 +25,7 @@
                 <onHover name="hint" hintText="$hintText" hintDelay="200" />
                 <onHover name="simpleHint" hintText="$tooltip" targetElement="tooltip" />
                 <onEndHover name="simpleHint" hintText="" targetElement="tooltip" />
+                <onCustom customKey="flash" name="imageOverlayPulsate" filename="$active" post="true" neverStopRendering="true" timeType="infinite" />
             </effect>
         </image>
     </controlDefinition>
