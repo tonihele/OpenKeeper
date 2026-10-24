@@ -129,16 +129,33 @@ class CombatPitFightTest {
     }
 
     @Test
-    void pitFightersDealDoubleAndTakeAFifthOfTheDamage() {
+    void pitFightersDealNormalDamageAndTakeAFifthOfIt() {
         EntityId us = createFighter(KEEPER, 1, 5, pit);
         EntityId other = createFighter(KEEPER, 1, 6, pit);
-
-        // Face to face, so no bonus for hitting from the side or back
-        entityData.setComponent(other, new Position(FastMath.PI, entityData.getComponent(other, Position.class).position));
+        faceToFace(other);
 
         createController(us).executeAttack(other);
 
-        assertEquals(40, entityData.getComponent(other, Damage.class).damage);
+        assertEquals(20, entityData.getComponent(other, Damage.class).damage);
+    }
+
+    @Test
+    void pitMeleeModifierIsThePercentageOfTheDamage() {
+        gameSettings.put(MiscType.COMBAT_PIT_MELEE_DAMAGE_MODIFIER_PERCENTAGE, CombatPitFixtures.pitVariable(MiscType.COMBAT_PIT_MELEE_DAMAGE_MODIFIER_PERCENTAGE, 150));
+        EntityId us = createFighter(KEEPER, 1, 5, pit);
+        EntityId other = createFighter(KEEPER, 1, 6, pit);
+        faceToFace(other);
+
+        createController(us).executeAttack(other);
+
+        assertEquals(30, entityData.getComponent(other, Damage.class).damage);
+    }
+
+    /**
+     * Face to face, so no bonus for hitting from the side or back
+     */
+    private void faceToFace(EntityId entity) {
+        entityData.setComponent(entity, new Position(FastMath.PI, entityData.getComponent(entity, Position.class).position));
     }
 
     private EntityId createFighter(short ownerId, int level, int z, EntityId pitId) {

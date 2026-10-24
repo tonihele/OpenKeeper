@@ -763,7 +763,8 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Fighters in the Combat Pit hit harder but take only a part of the damage
+     * Fighters in the Combat Pit hit by the melee damage modifier percentage
+     * (normal damage at 100) and take only a part of the damage
      *
      * @param attackTarget the target we hit
      * @param damage the damage of our hit
@@ -771,7 +772,7 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private int getCombatPitDamage(EntityId attackTarget, int damage) {
         if (isCombatPitFighter()) {
-            damage = damage * (100 + (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MELEE_DAMAGE_MODIFIER_PERCENTAGE).getValue()) / 100;
+            damage = damage * (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MELEE_DAMAGE_MODIFIER_PERCENTAGE).getValue() / 100;
         }
         if (entityData.getComponent(attackTarget, CombatPitFighter.class) != null) {
             damage = damage * (int) gameSettings.get(Variable.MiscVariable.MiscType.PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT).getValue() / 100;
