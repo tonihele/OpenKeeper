@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
@@ -111,6 +113,12 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 continue;
             }
 
+            // A door is not walked through, whatever path the entity was following
+            if (isWalkingIntoBlockingDoor(entity, currentMapTile)) {
+                pushBack(entity, previousMapTile);
+                continue;
+            }
+
             int x = previousMapTile.getX();
             int y = previousMapTile.getY();
 
@@ -123,6 +131,26 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
             addEntityToTile(currentMapTile, entity);
         }
+    }
+
+    private boolean isWalkingIntoBlockingDoor(Entity entity, IMapTileInformation mapTile) {
+        if (entityData.getComponent(entity.getId(), Navigation.class) == null) {
+            return false;
+        }
+
+        Owner owner = entityData.getComponent(entity.getId(), Owner.class);
+        return owner != null && getBlockingDoor(mapTile.getX(), mapTile.getY(), owner.ownerId) != null;
+    }
+
+    /**
+     * Stops the entity and puts it back to the middle of the tile it came from
+     */
+    private void pushBack(Entity entity, IMapTileInformation mapTile) {
+        Position position = entity.get(Position.class);
+        Vector3f center = WorldUtils.pointToVector3f(mapTile.getX(), mapTile.getY());
+        center.y = position.position.y;
+        entityData.removeComponent(entity.getId(), Navigation.class);
+        entityData.setComponent(entity.getId(), new Position(position.rotation, center));
     }
 
     private void addEntityToTile(IMapTileInformation mapTile, Entity entity) {
