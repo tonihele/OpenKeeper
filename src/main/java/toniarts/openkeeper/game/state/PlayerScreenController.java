@@ -535,6 +535,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     @Override
+    public Vector3f getEntityPosition(EntityId entityId) {
+        return state.getEntityPosition(entityId);
+    }
+
+    @Override
     public void pickUpEntity(EntityId entityId) {
         state.pickUpEntity(entityId);
     }

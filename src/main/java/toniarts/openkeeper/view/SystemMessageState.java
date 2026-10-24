@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageControl;
+import toniarts.openkeeper.gui.nifty.message.SystemMessageTarget;
 import toniarts.openkeeper.utils.AssetUtils;
 
 /**
@@ -87,6 +88,19 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * @param text message text
      */
     public void addMessage(MessageType type, String text) {
+        addMessage(type, text, null);
+    }
+
+    /**
+     * Adds a message about a certain place or thing to the message queue, the
+     * message box then offers to zoom to it
+     *
+     * @param type message type
+     * @param text message text
+     * @param target what the message is about, or {@code null} if nothing in
+     * particular
+     */
+    public void addMessage(MessageType type, String text, SystemMessageTarget target) {
         if (!this.isEnabled() || !isInitialized()) {
             return;
         }
@@ -94,17 +108,21 @@ public final class SystemMessageState extends AbstractPauseAwareState {
             SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
                         GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());
             this.app.enqueue(() -> {
-                this.addMessageIcon(type, text);
+                this.addMessageIcon(type, text, target);
                 if (soundHandler != null) {
                     soundHandler.play();
                 }
             });
         } else {
-            this.addMessageIcon(type, text);
+            this.addMessageIcon(type, text, target);
         }
     }
 
     public void addMessageIcon(MessageType type, String text) {
+        addMessageIcon(type, text, null);
+    }
+
+    private void addMessageIcon(MessageType type, String text, SystemMessageTarget target) {
         final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.getIcon());
         final String normalIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
         final String hoverIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
@@ -118,6 +136,10 @@ public final class SystemMessageState extends AbstractPauseAwareState {
                 set("text", text);
             }
         }.build(systemMessagesQueue);
+        SystemMessageControl control = systemMessage.getControl(SystemMessageControl.class);
+        if (control != null) {
+            control.setTarget(target);
+        }
         systemMessage.show();
     }
 

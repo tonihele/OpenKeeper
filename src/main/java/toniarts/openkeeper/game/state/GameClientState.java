@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
+import toniarts.openkeeper.gui.nifty.message.SystemMessageTarget;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -372,7 +373,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                             app.enqueue(() -> {
                                 SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
                                 if (systemMessageState != null) {
-                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
+                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!",
+                                            SystemMessageTarget.ofEntity(entityId));
                                 }
                             });
                         }) {
