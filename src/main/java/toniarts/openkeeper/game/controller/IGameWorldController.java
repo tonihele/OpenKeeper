@@ -81,6 +81,17 @@ public interface IGameWorldController {
     int substractGold(int amount, short playerId);
 
     /**
+     * Substract gold from the player's treasury at the given point, a thief
+     * stealing from it for example
+     *
+     * @param amount the amount to try to substract
+     * @param playerId the player id
+     * @param p a tile of the treasury
+     * @return amount of money that could not be substracted from the player
+     */
+    int substractGold(int amount, short playerId, Point p);
+
+    /**
      * Get a map controller
      *
      * @return map controller
