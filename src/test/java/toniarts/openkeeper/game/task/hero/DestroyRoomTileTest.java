@@ -33,7 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * A hero with the DESTROY_ROOMS flag wrecks the keeper's room tiles he walks
  * over. DKII.EXE: the hit (0x497DF0) only lands on a room that is buildable
  * and placed on land, and takes ten times ATTACK_ROOM_HEALTH off the tile
- * (0x452F60). At no health the room tile is lost (0x4C5DB0)
+ * (0x452F60). The level variables are kept per game tick (0x51CB80), so a blow
+ * is -1500 / 4 * 10 = -3750 at the default variables. At no health the room
+ * tile is lost (0x4C5DB0)
  */
 class DestroyRoomTileTest {
 
@@ -89,43 +91,75 @@ class DestroyRoomTileTest {
     }
 
     @Test
-    void oneBlowLosesTheTileAtTheDefaultVariables() {
-        DestroyRoomTile task = createTask();
+    void threeBlowsLoseTheTileAtTheDefaultVariables() {
+        DestroyRoomTile task = createTask(RoomTileWorld.TICKS_PER_SEC);
         task.assign(hero, false);
 
+        // The level variable is per tick: -1500 / 4 ticks a second, ten times over
+        task.executeTask(hero, 0f);
+        assertEquals(RoomTileWorld.ROOM_TILE_HEALTH - 3750, world.health);
         task.executeTask(hero, 0.5f);
-        assertEquals(RoomTileWorld.ROOM_TILE_HEALTH, world.health);
+        assertEquals(RoomTileWorld.ROOM_TILE_HEALTH - 3750, world.health);
+        task.executeTask(hero, 1.0f);
+        assertEquals(RoomTileWorld.ROOM_TILE_HEALTH - 7500, world.health);
         assertTrue(world.destroyedTiles.isEmpty());
 
-        task.executeTask(hero, 1.0f);
+        task.executeTask(hero, 2.0f);
         assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);
 
         // The tile is the keeper's claimed path now, with the health of one
         assertEquals(RoomTileWorld.CLAIMED_PATH_HEALTH, world.health);
         assertFalse(task.isValid(hero));
-        task.executeTask(hero, 2.0f);
-        assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);
-    }
-
-    @Test
-    void weakerBlowsTakeSeveralSwings() {
-        world.setAttackRoomHealth(-400);
-        DestroyRoomTile task = createTask();
-        task.assign(hero, false);
-
-        task.executeTask(hero, 1.0f);
-        assertEquals(6000, world.health);
-        task.executeTask(hero, 1.5f);
-        task.executeTask(hero, 2.0f);
-        assertEquals(2000, world.health);
-        assertTrue(world.destroyedTiles.isEmpty());
-
         task.executeTask(hero, 3.0f);
         assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);
     }
 
+    @Test
+    void theBlowFollowsTheTicksPerSecond() {
+        DestroyRoomTile task = createTask(2);
+        task.assign(hero, false);
+
+        task.executeTask(hero, 0f);
+        assertEquals(RoomTileWorld.ROOM_TILE_HEALTH - 7500, world.health);
+        task.executeTask(hero, 1.0f);
+        assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);
+    }
+
+    @Test
+    void weakerBlowsTakeMoreSwings() {
+        world.setAttackRoomHealth(-400);
+        DestroyRoomTile task = createTask(RoomTileWorld.TICKS_PER_SEC);
+        task.assign(hero, false);
+
+        task.executeTask(hero, 4.5f);
+        assertEquals(5000, world.health);
+        task.executeTask(hero, 8.0f);
+        assertTrue(world.destroyedTiles.isEmpty());
+
+        task.executeTask(hero, 9.0f);
+        assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);
+    }
+
+    @Test
+    void theKeeperHearsOfTheAttackAndOfTheLostRoom() {
+        DestroyRoomTile task = createTask(RoomTileWorld.TICKS_PER_SEC);
+        task.assign(hero, false);
+
+        // "Your Lair is under attack", once for the two blows that leave it standing
+        task.executeTask(hero, 1.0f);
+        assertEquals(List.of(158), world.mentorMessages);
+
+        // "Your Lair has been destroyed", it was his only one
+        task.executeTask(hero, 2.0f);
+        assertEquals(List.of(158, 96), world.mentorMessages);
+    }
+
     private DestroyRoomTile createTask() {
-        return new DestroyRoomTile(null, world.mapController, world.gameWorldController, world.gameSettings,
+        return createTask(RoomTileWorld.TICKS_PER_SEC);
+    }
+
+    private DestroyRoomTile createTask(int ticksPerSec) {
+        return new DestroyRoomTile(null, world.mapController, world.gameWorldController, world.gameSettings, ticksPerSec,
                 RoomTileWorld.TILE, Player.GOOD_PLAYER_ID);
     }
 

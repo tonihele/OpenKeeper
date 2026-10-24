@@ -24,12 +24,15 @@ import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -48,6 +51,7 @@ public final class RoomTileWorld {
     public static final short CLAIMED_PATH_TERRAIN_ID = 8;
     public static final int ROOM_TILE_HEALTH = 10000;
     public static final int CLAIMED_PATH_HEALTH = 660;
+    public static final int TICKS_PER_SEC = 4;
 
     public short ownerId = Player.KEEPER1_ID;
     public int health = ROOM_TILE_HEALTH;
@@ -56,6 +60,8 @@ public final class RoomTileWorld {
     public Room room = DestroyRoomsFixtures.destroyRoomsRoom("Lair", LAIR_TERRAIN_ID,
             Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.HAS_WALLS, Room.RoomFlag.BUILDABLE, Room.RoomFlag.ATTACKABLE);
     public final List<Point> destroyedTiles = new ArrayList<>();
+    public final List<Integer> mentorMessages = new ArrayList<>();
+    public double gameTime = 0;
     public final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new EnumMap<>(Variable.MiscVariable.MiscType.class);
 
     public final IMapTileController tile = stub(IMapTileController.class, (proxy, method, args) -> switch (method.getName()) {
@@ -81,17 +87,34 @@ public final class RoomTileWorld {
         }
         return defaultValue(proxy, method);
     });
-    private final IRoomController roomController = stub(IRoomController.class, (proxy, method, args) -> method.getName().equals("getRoom") ? room : defaultValue(proxy, method));
+    private final IRoomController roomController = stub(IRoomController.class, (proxy, method, args) -> switch (method.getName()) {
+        case "getRoom" ->
+            room;
+        case "getOwnerId" ->
+            ownerId;
+        default ->
+            defaultValue(proxy, method);
+    });
     public final IMapController mapController = stub(IMapController.class, (proxy, method, args) -> switch (method.getName()) {
         case "getMapData" ->
             mapData;
         case "getTerrain" ->
             terrain;
         case "getRoomControllerByCoordinates" ->
-            terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) && TILE.equals(args[0]) ? roomController : null;
+            isRoom() && TILE.equals(args[0]) ? roomController : null;
+        case "getRoomControllers" ->
+            isRoom() ? List.of(roomController) : List.of();
         default ->
             defaultValue(proxy, method);
     });
+    private final PlayerService playerService = stub(PlayerService.class, (proxy, method, args) -> {
+        if (method.getName().equals("showMentorMessage")) {
+            mentorMessages.add((Integer) args[0]);
+        }
+        return defaultValue(proxy, method);
+    });
+    private final IGameTimer gameTimer = stub(IGameTimer.class, (proxy, method, args) -> method.getName().equals("getGameTime") ? gameTime : defaultValue(proxy, method));
+    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(playerService, gameTimer);
     @SuppressWarnings("unchecked")
     public final IGameWorldController gameWorldController = stub(IGameWorldController.class, (proxy, method, args) -> {
         if (method.getName().equals("destroyRoomTiles")) {
@@ -100,12 +123,19 @@ public final class RoomTileWorld {
             // The room tile turns to the claimed path of its owner
             terrain = claimedPath();
             return null;
+        } else if (method.getName().equals("getRoomAttackMessages")) {
+            return roomAttackMessages;
         }
         return defaultValue(proxy, method);
     });
 
     public RoomTileWorld() {
+        DestroyRoomsFixtures.setRoomId(room, (short) 2);
         setAttackRoomHealth(-1500);
+    }
+
+    private boolean isRoom() {
+        return terrain.getFlags().contains(Terrain.TerrainFlag.ROOM);
     }
 
     /**

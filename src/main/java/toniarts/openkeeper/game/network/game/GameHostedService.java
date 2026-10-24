@@ -266,6 +266,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void showMentorMessage(int speechId, Vector3f position, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onShowMentorMessage(speechId, position);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void zoomViewToPoint(Vector3f point, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -732,6 +742,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onShowMessage(int textId) {
             getCallback().onShowMessage(textId);
+        }
+
+        @Override
+        public void onShowMentorMessage(int speechId, Vector3f position) {
+            getCallback().onShowMentorMessage(speechId, position);
         }
 
         @Override

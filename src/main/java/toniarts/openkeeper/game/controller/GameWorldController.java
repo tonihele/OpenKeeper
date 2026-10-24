@@ -121,6 +121,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
+    private RoomAttackMessages roomAttackMessages;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -420,6 +421,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             IMapTileController tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
+            setHealthFromTerrain(tile, kwdFile.getTerrain(room.getTerrainId()));
             if (room.getRoomId() == WOODEN_BRIDGE_ROOM_ID
                     && tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                 double lifetime = gameSettings.get(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS).getValue();
@@ -427,6 +429,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             buildTiles.add(tile.getLocation());
         }
+    }
+
+    /**
+     * Give the tile the health of its terrain, a room tile has the health of
+     * the room terrain (10000 for a Lair), not of the claimed path it was built
+     * on
+     *
+     * @param tile the tile
+     * @param terrain its new terrain
+     */
+    static void setHealthFromTerrain(IMapTileController tile, Terrain terrain) {
+        tile.setMaxHealth(terrain.getMaxHealth());
+        tile.setHealth(terrain.getStartingHealth());
     }
 
     private Set<EntityId> findAdjacentRoomInstances(Set<Point> buildPlots, Room room, short playerId) {
@@ -1399,5 +1414,20 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     public void setEntityPositionLookup(IEntityPositionLookup entityPositionLookup) {
         this.entityPositionLookup = entityPositionLookup;
+    }
+
+    @Override
+    public RoomAttackMessages getRoomAttackMessages() {
+        return roomAttackMessages;
+    }
+
+    /**
+     * Set the messages that tell the keepers of their rooms under attack and
+     * lost
+     *
+     * @param roomAttackMessages the room attack messages
+     */
+    public void setRoomAttackMessages(RoomAttackMessages roomAttackMessages) {
+        this.roomAttackMessages = roomAttackMessages;
     }
 }

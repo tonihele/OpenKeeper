@@ -49,6 +49,28 @@ public final class DestroyRoomsFixtures {
     }
 
     /**
+     * Set the ID of a room type
+     *
+     * @param room the room
+     * @param roomId the room ID
+     */
+    public static void setRoomId(Room room, short roomId) {
+        room.setRoomId(roomId);
+    }
+
+    /**
+     * The level settings
+     *
+     * @param ticksPerSec the game ticks per second
+     * @return the level settings
+     */
+    public static GameLevel destroyRoomsGameLevel(int ticksPerSec) {
+        GameLevel gameLevel = new GameLevel();
+        gameLevel.setTicksPerSec(ticksPerSec);
+        return gameLevel;
+    }
+
+    /**
      * A terrain
      *
      * @param terrainId the terrain ID

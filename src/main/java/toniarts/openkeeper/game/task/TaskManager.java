@@ -757,7 +757,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public boolean assignDestroyRoomTask(ICreatureController creature, Point tile) {
-        DestroyRoomTile task = new DestroyRoomTile(navigationService, mapController, gameWorldController, gameSettings, tile, creature.getOwnerId());
+        DestroyRoomTile task = new DestroyRoomTile(navigationService, mapController, gameWorldController, gameSettings,
+                levelInfo.getLevelData().getGameLevel().getTicksPerSec(), tile, creature.getOwnerId());
         if (task.isValid(creature)) {
             task.assign(creature, true);
             tasksByIds.put(task.getId(), task);

@@ -30,6 +30,9 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.hero.RoomTileWorld;
+import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,6 +70,11 @@ class TaskManagerDestroyRoomTaskTest {
         assertEquals(TaskType.DESTROY_ROOM_TILE, task.getTaskType());
         assertEquals(RoomTileWorld.TILE, task.getTaskLocation());
         assertSame(task, taskManager.getTaskById(task.getId()));
+
+        // The blow follows the level's ticks per second, 2 here: -1500 / 2 * 10
+        task.assign(hero, false);
+        task.executeTask(hero, 0f);
+        assertEquals(RoomTileWorld.ROOM_TILE_HEALTH - 7500, world.health);
     }
 
     @Test
@@ -78,6 +86,8 @@ class TaskManagerDestroyRoomTaskTest {
     }
 
     private TaskManager createTaskManager() {
+        GameLevel gameLevel = DestroyRoomsFixtures.destroyRoomsGameLevel(2);
+        IKwdFile kwdFile = RoomTileWorld.stub(IKwdFile.class, (proxy, method, args) -> method.getName().equals("getGameLevel") ? gameLevel : RoomTileWorld.defaultValue(proxy, method));
         Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
         IPlayerController player = RoomTileWorld.stub(IPlayerController.class, (proxy, method, args) -> method.getName().equals("getKeeper") ? keeper : RoomTileWorld.defaultValue(proxy, method));
         return new TaskManager(entityData, world.gameWorldController, world.mapController,
@@ -85,7 +95,7 @@ class TaskManagerDestroyRoomTaskTest {
                 RoomTileWorld.stub(ICreaturesController.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)),
                 RoomTileWorld.stub(INavigationService.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)),
                 List.of(player),
-                RoomTileWorld.stub(ILevelInfo.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)),
+                RoomTileWorld.stub(ILevelInfo.class, (proxy, method, args) -> method.getName().equals("getLevelData") ? kwdFile : RoomTileWorld.defaultValue(proxy, method)),
                 RoomTileWorld.stub(IEntityPositionLookup.class, (proxy, method, args) -> RoomTileWorld.defaultValue(proxy, method)),
                 world.gameSettings);
     }

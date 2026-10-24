@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -596,6 +597,24 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onShowMessage(int textId) {
             playerState.showMessage(textId);
+        }
+
+        @Override
+        public void onShowMentorMessage(int speechId, Vector3f position) {
+            app.enqueue(() -> {
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState == null || !systemMessageState.isEnabled()) {
+                    return;
+                }
+                systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, String.format("${speech.%d}", speechId - 1),
+                        SystemMessageTarget.ofPosition(position));
+                for (MentorType speech : MentorType.values()) {
+                    if (speech.getId() == speechId) {
+                        stateManager.getState(SoundState.class).attachMentorSpeech(speech, null);
+                        break;
+                    }
+                }
+            });
         }
 
         @Override

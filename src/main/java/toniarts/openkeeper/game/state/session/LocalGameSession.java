@@ -223,6 +223,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void showMentorMessage(int speechId, Vector3f position, short playerId) {
+        if (playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onShowMentorMessage(speechId, position);
+            }
+        }
+    }
+
+    @Override
     public void zoomViewToPoint(Vector3f point, short playerId) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {

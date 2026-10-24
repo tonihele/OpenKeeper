@@ -392,6 +392,13 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onShowMentorMessage(int speechId, Vector3f position) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onShowMentorMessage(speechId, position);
+            }
+        }
+
+        @Override
         public void onZoomViewToPoint(Vector3f point) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onZoomViewToPoint(point);
