@@ -23,8 +23,6 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Decay;
-import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -48,12 +46,6 @@ import toniarts.openkeeper.utils.WorldUtils;
  * a hit on a wall, then the shot's lifetime.
  */
 public final class ShotSystem implements IGameLogicUpdatable {
-
-    /**
-     * How long, in seconds, a triggered effect's entity lives. Long enough for
-     * the view to see it, the effect itself plays on as long as it lasts
-     */
-    private static final double EFFECT_TRIGGER_LIFETIME = 1;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -169,15 +161,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
      * @param position where to play it
      */
     private void triggerEffect(int effectId, Vector3f position) {
-        if (effectId == 0) {
-            return;
-        }
-
-        EntityId effect = entityData.createEntity();
-        entityData.setComponents(effect,
-                new Position(0, new Vector3f(position)),
-                new EffectTrigger(effectId),
-                new Decay(gameTimer.getGameTime(), EFFECT_TRIGGER_LIFETIME));
+        EffectTriggers.trigger(entityData, effectId, position, gameTimer.getGameTime());
     }
 
     private boolean isSolid(Vector3f position) {
