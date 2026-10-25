@@ -625,7 +625,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private boolean sellDoor(Point tile, short playerId) {
-        OptionalInt saleValue = doorsController.sellDoor(tile, playerId);
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every door on the map
+        OptionalInt saleValue = doorsController.sellDoor(entityPositionLookup.getEntitiesInLocation(tile), playerId);
         if (saleValue.isEmpty()) {
             return false;
         }

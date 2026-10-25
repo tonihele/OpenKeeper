@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Collection;
 import java.util.Map;
 import java.util.OptionalInt;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -175,16 +176,17 @@ public final class DoorsController implements IDoorsController {
     }
 
     @Override
-    public OptionalInt sellDoor(Point tile, short playerId) {
-        for (EntityId entity : entityData.findEntities(null, DoorComponent.class, Position.class, Owner.class)) {
-            if (entityData.getComponent(entity, Owner.class).ownerId != playerId
-                    || !WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position).equals(tile)) {
+    public OptionalInt sellDoor(Collection<EntityId> entitiesOnTile, short playerId) {
+        for (EntityId entity : entitiesOnTile) {
+            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+            Owner owner = entityData.getComponent(entity, Owner.class);
+            if (doorComponent == null || owner == null || owner.ownerId != playerId) {
                 continue;
             }
 
             // A blueprint returns the same as a built door. The share is the one of the rooms, the original doesn't
             // use DOOR_SELL_VALUE_PERCENTAGE_OF_COST
-            Door door = kwdFile.getDoorById(entityData.getComponent(entity, DoorComponent.class).doorId);
+            Door door = kwdFile.getDoorById(doorComponent.doorId);
             int sellValuePercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue();
             entityData.removeEntity(entity);
 
