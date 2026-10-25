@@ -983,10 +983,17 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
     }
 
-    private int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
+    static int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
+
+        // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
+        // work order (DKII.EXE 0x463DF0)
+        int result = Boolean.compare(isArmingTrap(o2.task), isArmingTrap(o1.task));
+        if (result != 0) {
+            return result;
+        }
 
         // Fill in jobs that have no workers first
-        int result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
+        result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
         if (result != 0) {
             return result;
         }
@@ -1001,7 +1008,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
     }
 
-    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+    private static boolean isArmingTrap(Task task) {
+        return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
+    }
+
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
 
     }
 
