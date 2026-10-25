@@ -200,23 +200,33 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
      */
     static int getCooldownByHatcherySize(int tiles) {
 
-        // The size ranges of the original (DKII.EXE 0x4DE0E0)
-        if (tiles <= 3) {
-            return 15;
-        }
-        if (tiles <= 6) {
-            return 13;
-        }
-        if (tiles <= 9) {
-            return 12;
-        }
-        if (tiles <= 16) {
-            return 21 - tiles;
-        }
-        if (tiles <= 19) {
-            return 4;
-        }
-        return 3;
+        // The cases of the original (DKII.EXE 0x4DE0E0)
+        return switch (tiles) {
+            case 1, 2, 3 ->
+                15;
+            case 4, 5, 6 ->
+                13;
+            case 7, 8, 9 ->
+                12;
+            case 10 ->
+                11;
+            case 11 ->
+                10;
+            case 12 ->
+                9;
+            case 13 ->
+                8;
+            case 14 ->
+                7;
+            case 15 ->
+                6;
+            case 16 ->
+                5;
+            case 17, 18, 19 ->
+                4;
+            default ->
+                3;
+        };
     }
 
     @Override
