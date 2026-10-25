@@ -29,6 +29,15 @@ import toniarts.openkeeper.utils.Point;
  */
 public final class SoundManager {
 
+    /**
+     * The volume channels a category can be affected by, taken from the channel
+     * mask of the category's {@code SFX.map} entry.
+     */
+    public static final int CHANNEL_MASTER = 0;
+    public static final int CHANNEL_MUSIC = 1;
+    public static final int CHANNEL_SPEECH = 2;
+    public static final int CHANNEL_EFFECTS = 3;
+
     @Nullable
     private static SoundEngine engine;
 
@@ -239,9 +248,9 @@ public final class SoundManager {
             return;
         }
         current.setMasterVolume(percent(master));
-        current.setChannelVolume(SoundChannels.MUSIC, percent(music));
-        current.setChannelVolume(SoundChannels.SPEECH, percent(speech));
-        current.setChannelVolume(SoundChannels.EFFECTS, percent(effects));
+        current.setChannelVolume(CHANNEL_MUSIC, percent(music));
+        current.setChannelVolume(CHANNEL_SPEECH, percent(speech));
+        current.setChannelVolume(CHANNEL_EFFECTS, percent(effects));
     }
 
     private static int percent(float value) {
