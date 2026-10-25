@@ -43,7 +43,7 @@ public final class FootstepSounds {
     private static int windowSteps;
 
     private FootstepSounds() {
-        // Nope
+        // Static helper
     }
 
     /**
