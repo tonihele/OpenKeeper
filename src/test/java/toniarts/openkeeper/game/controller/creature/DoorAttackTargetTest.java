@@ -157,6 +157,15 @@ class DoorAttackTargetTest {
     }
 
     @Test
+    void noDoorWithoutATile() {
+
+        // A creature in the keeper's hand has no position
+        EntityId found = DoorAttackTarget.findAdjacent(null, p -> door, d -> true);
+
+        assertNull(found);
+    }
+
+    @Test
     void onlyTheKeepersCreaturesGoForDoorsOnTheirOwn() {
         assertTrue(DoorAttackTarget.attacksAdjacentWhenIdle((short) 3));
         assertFalse(DoorAttackTarget.attacksAdjacentWhenIdle(Player.GOOD_PLAYER_ID));
