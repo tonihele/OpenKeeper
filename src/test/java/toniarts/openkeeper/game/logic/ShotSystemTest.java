@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -99,7 +102,7 @@ class ShotSystemTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
 
-        shotSystem = new ShotSystem(entityData, kwdFile, shotsController, positionLookup, mapInformation, Map.of());
+        shotSystem = new ShotSystem(entityData, kwdFile, () -> 0.0, shotsController, positionLookup, mapInformation, Map.of());
     }
 
     @AfterEach
@@ -151,6 +154,33 @@ class ShotSystemTest {
         assertEquals(shot, hits.get(0)[0]);
         assertEquals(enemy, hits.get(0)[1]);
         assertNull(positionOf(shot));
+    }
+
+    @Test
+    void hitSetsOffTheShotsHitEffectWhereTheShotIs() {
+        createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        EntitySet effects = entityData.getEntities(EffectTrigger.class, Position.class);
+        assertEquals(1, effects.size());
+        Entity effect = effects.iterator().next();
+        assertEquals(ShotFixtures.FIREBALL_HIT_EFFECT_ID, effect.get(EffectTrigger.class).effectId);
+        assertEquals(new Vector3f(1.8f, 1.3f, 1), effect.get(Position.class).position);
+        effects.release();
+    }
+
+    @Test
+    void shotWithoutAWallEffectSetsOffNothingAtTheWall() {
+        solidTiles.add(new Point(2, 1));
+        createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        EntitySet effects = entityData.getEntities(EffectTrigger.class);
+        assertTrue(effects.isEmpty());
+        effects.release();
     }
 
     @Test

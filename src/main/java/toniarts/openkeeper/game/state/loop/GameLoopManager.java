@@ -105,7 +105,7 @@ public final class GameLoopManager {
                         new TrapEffects(entityData, level, gameController.getGameTimer()), gameWorldController.getShotsController(),
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND)),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
-                new ShotSystem(entityData, level, gameWorldController.getShotsController(), positionSystem,
+                new ShotSystem(entityData, level, gameController.getGameTimer(), gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
                 (IGameLogicUpdatable) taskManager);
 
