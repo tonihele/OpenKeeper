@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.trap.ITrapEffects;
 import toniarts.openkeeper.game.data.Keeper;
@@ -82,6 +83,8 @@ class TrapSystemTest {
     private final Map<Short, Creature> creatures = new HashMap<>();
     private final Set<Point> walls = new HashSet<>();
     private final List<Fired> shots = new ArrayList<>();
+    private final List<Object[]> flyingShots = new ArrayList<>();
+    private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
     private double gameTime = 0;
     private TrapSystem trapSystem;
@@ -91,8 +94,8 @@ class TrapSystemTest {
     }
 
     TrapSystemTest() {
-        traps.put((int) SENTRY, TrapFiringFixtures.withManaCost(
-                TrapFiringFixtures.trap(SENTRY, Trap.TriggerType.LINE_OF_SIGHT, 5, 6, CANNON_BALL), 250));
+        traps.put((int) SENTRY, TrapFiringFixtures.withShotOffset(TrapFiringFixtures.withManaCost(
+                TrapFiringFixtures.trap(SENTRY, Trap.TriggerType.LINE_OF_SIGHT, 5, 6, CANNON_BALL), 250), 0.5f, 0.53f));
         traps.put((int) SPIKE, TrapFiringFixtures.trap(SPIKE, Trap.TriggerType.PRESSURE, 1, 4, SPIKE_SHOT));
         traps.put((int) FEAR, TrapFiringFixtures.withThreat(
                 TrapFiringFixtures.trap(FEAR, Trap.TriggerType.LINE_OF_SIGHT, 3, 6, FEAR_SHOT), 600, 60));
@@ -114,6 +117,36 @@ class TrapSystemTest {
         tick();
 
         assertEquals(List.of(new Fired(SENTRY, enemy)), shots);
+    }
+
+    @Test
+    void sentrySendsAFlyingShotAfterTheEnemy() {
+        shotsFly = true;
+        EntityId sentry = addTrap(SENTRY, TRAP_TILE);
+        EntityId enemy = addCreature(IMP, ENEMY, 13, 10);
+
+        tick();
+
+        assertTrue(shots.isEmpty());
+        assertEquals(1, flyingShots.size());
+        Object[] shot = flyingShots.get(0);
+        assertEquals(CANNON_BALL, shot[0]);
+        assertEquals(new Vector3f(10.5f, WorldUtils.FLOOR_HEIGHT + 0.53f, 10), shot[4]);
+        assertEquals(enemy, shot[5]);
+        assertEquals(sentry, shot[6]);
+        assertEquals(0f, shot[7]);
+    }
+
+    @Test
+    void pressureTrapShotHitsAtOnce() {
+        shotsFly = true;
+        addTrap(SPIKE, TRAP_TILE);
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+
+        assertTrue(flyingShots.isEmpty());
+        assertEquals(List.of(new Fired(SPIKE, enemy)), shots);
     }
 
     @Test
@@ -454,7 +487,7 @@ class TrapSystemTest {
     private void tick() {
         if (trapSystem == null) {
             trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, this::isWall, playerControllers(),
-                    effects(), 1);
+                    effects(), shotsController(), 1);
         }
         trapSystem.processTick(0.25f);
     }
@@ -494,6 +527,19 @@ class TrapSystemTest {
 
     private ITrapEffects effects() {
         return (trap, ownerId, origin, target) -> shots.add(new Fired(trap.getTrapId(), target));
+    }
+
+    private IShotsController shotsController() {
+        return (IShotsController) Proxy.newProxyInstance(IShotsController.class.getClassLoader(),
+                new Class<?>[]{IShotsController.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("fireShot")) {
+                        if (shotsFly) {
+                            flyingShots.add(args);
+                        }
+                        return shotsFly;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
     }
 
     private Map<Short, IPlayerController> playerControllers() {

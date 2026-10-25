@@ -46,7 +46,21 @@ public final class TrapFiringFixtures {
         trap.setTriggerData(triggerData);
         trap.setRechargeTime(rechargeTime);
         trap.setShotTypeId(shotTypeId);
+        trap.setShotOffset(0, 0, 0);
         trap.setFlags(EnumSet.noneOf(Trap.TrapFlag.class));
+        return trap;
+    }
+
+    /**
+     * Gives the trap the shot offset, in tiles
+     *
+     * @param trap the trap
+     * @param forward how far in front of the trap the shot starts
+     * @param up how high above the floor the shot starts
+     * @return the same trap
+     */
+    public static Trap withShotOffset(Trap trap, float forward, float up) {
+        trap.setShotOffset(0, -forward, up);
         return trap;
     }
 

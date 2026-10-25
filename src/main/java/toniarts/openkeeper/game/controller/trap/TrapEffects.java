@@ -45,9 +45,11 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Applies the shots of the traps. A trap hands its own shot data to its shot,
  * so the trap decides how hard the shot hits.<br>
- * The shots hit at once, there are no flying shots or lingering clouds yet:
+ * These are the shots that hit at once, the flying shots of the line of sight
+ * traps (Sentry Trap) fly through the shots controller. There are no lingering
+ * clouds yet:
  * <ul>
- * <li>A shot that hits a thing (Sentry Trap) deals shot data 1 as damage to
+ * <li>A shot that hits a thing (Magic Door) deals shot data 1 as damage to
  * the trap's target.</li>
  * <li>A shot with constant damage (Spike Trap) deals shot data 1 to the
  * creatures on the trap's tile.</li>

@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.trap.ITrapEffects;
 import toniarts.openkeeper.game.fogofwar.IBlocksSight;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -102,6 +103,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private final IBlocksSight blocksSight;
     private final Map<Short, IPlayerController> playerControllers;
     private final ITrapEffects trapEffects;
+    private final IShotsController shotsController;
     private final float triggerSpeed;
     private final EntitySet trapEntities;
     private final EntitySet creatureEntities;
@@ -130,18 +132,21 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * @param gameTimer the game time
      * @param blocksSight tells the tiles that block a trap's sight
      * @param playerControllers the players, for their mana and enemies
-     * @param trapEffects applies the shots
+     * @param trapEffects applies the shots that hit at once
+     * @param shotsController fires the shots that fly
      * @param triggerSpeed how fast, in tiles per second, a Trigger Trap's wave
      * spreads
      */
     public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IBlocksSight blocksSight,
-            Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects, float triggerSpeed) {
+            Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects, IShotsController shotsController,
+            float triggerSpeed) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         this.blocksSight = blocksSight;
         this.playerControllers = playerControllers;
         this.trapEffects = trapEffects;
+        this.shotsController = shotsController;
         this.triggerSpeed = triggerSpeed;
 
         trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class, Health.class);
@@ -230,7 +235,10 @@ public final class TrapSystem implements IGameLogicUpdatable {
             return false;
         }
 
-        trapEffects.fire(trap, ownerId, trapEntity.get(Position.class).position.clone(), target);
+        Vector3f trapPosition = trapEntity.get(Position.class).position;
+        if (!fireFlyingShot(trapEntity, trap, ownerId, trapPosition, target)) {
+            trapEffects.fire(trap, ownerId, trapPosition.clone(), target);
+        }
         if (trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED)) {
             reveal(trapEntity);
         }
@@ -250,6 +258,50 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         return true;
+    }
+
+    /**
+     * A line of sight trap, like the Sentry Trap, sends a flying shot after its
+     * victim (0x4A7FD0). A pressure trap's shot hits the creature on the trap
+     * at once (0x4A80E0), so that stays with the trap effects.
+     *
+     * @param trapEntity the trap
+     * @param trap the trap data
+     * @param ownerId the trap's owner
+     * @param trapPosition where the trap is
+     * @param target the victim, can be {@code null}
+     * @return whether the shot flies
+     */
+    private boolean fireFlyingShot(Entity trapEntity, Trap trap, short ownerId, Vector3f trapPosition, EntityId target) {
+        if (trap.getTriggerType() != Trap.TriggerType.LINE_OF_SIGHT || target == null) {
+            return false;
+        }
+
+        return shotsController.fireShot(trap.getShotTypeId(), trap.getShotData1(), trap.getShotData2(), ownerId,
+                getShotStart(trap, trapPosition, target), target, trapEntity.getId(), 0);
+    }
+
+    /**
+     * Where the trap's shot starts. Like a creature's, the shot offset is in
+     * front of the trap, the trap turned to its victim, and above the floor.
+     *
+     * @param trap the trap data
+     * @param trapPosition where the trap is
+     * @param target the victim
+     * @return the start of the shot
+     */
+    private Vector3f getShotStart(Trap trap, Vector3f trapPosition, EntityId target) {
+        Vector3f result = new Vector3f(trapPosition);
+        Entity targetEntity = creatureEntities.getEntity(target);
+        if (targetEntity != null) {
+            Vector3f forward = targetEntity.get(Position.class).position.subtract(trapPosition).setY(0);
+            if (forward.lengthSquared() > 0) {
+                result.addLocal(forward.normalizeLocal().multLocal(-trap.getShotOffset().y));
+            }
+        }
+        result.y += trap.getShotOffset().z;
+
+        return result;
     }
 
     /**
