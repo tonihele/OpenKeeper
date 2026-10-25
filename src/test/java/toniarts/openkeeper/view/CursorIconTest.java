@@ -44,4 +44,21 @@ class CursorIconTest {
         assertNull(CursorIcon.getIcon(Type.SPELL));
     }
 
+    @Test
+    void costIsLightRedIfTheKeeperCanAffordIt() {
+        assertEquals(new CursorIcon.Price(900, CursorIcon.PriceKind.AFFORDABLE), CursorIcon.Price.cost(900, 900));
+        assertEquals(new CursorIcon.Price(900, CursorIcon.PriceKind.TOO_EXPENSIVE), CursorIcon.Price.cost(900, 899));
+    }
+
+    @Test
+    void nothingToPayOrToSellShowsNoPrice() {
+        assertNull(CursorIcon.Price.cost(0, 1000));
+        assertNull(CursorIcon.Price.sale(0));
+    }
+
+    @Test
+    void saleShowsWhatSellingGivesBack() {
+        assertEquals(new CursorIcon.Price(375, CursorIcon.PriceKind.SALE), CursorIcon.Price.sale(375));
+    }
+
 }

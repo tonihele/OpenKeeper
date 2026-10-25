@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
+import toniarts.openkeeper.game.controller.SellValue;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -109,6 +110,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
     private CursorIcon cursorIcon;
+    private CursorIcon.Price cursorPrice;
     private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
@@ -229,7 +231,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         selectionHandler.update(mousePosition);
         cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
-                selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED);
+                selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED, cursorPrice);
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
         }
@@ -876,6 +878,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private final class InteractionSelectionHandler extends SelectionHandler {
 
+        private long roomCost;
+
         private InteractionSelectionHandler() {
             super(app);
         }
@@ -898,6 +902,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         @Override
         protected ColorIndicator getColorIndicator() {
+            roomCost = interactionState.getType() == Type.ROOM ? getRoomCost() : 0;
+            cursorPrice = getPrice();
             Point point = isActive()
                     ? WorldUtils.vectorToPoint(getSelectionArea().getRealStart())
                     : WorldUtils.vectorToPoint(getPointedTilePosition());
@@ -931,12 +937,70 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     && !isRoomSelectionValid();
         }
 
+        /**
+         * The room can be built if it has tiles to build on and the keeper can pay for them
+         */
         private boolean isRoomSelectionValid() {
+            return roomCost > 0 && roomCost <= gameClientState.getPlayer(player.getPlayerId()).getGold();
+        }
+
+        /**
+         * What the room selection costs, validated with any amount of gold so that the price shows even when the
+         * keeper can't afford it
+         *
+         * @return the cost, 0 if nothing can be built there
+         */
+        private long getRoomCost() {
             SelectionArea area = getSelectionArea();
-            return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
-                    area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
-                    (short) interactionState.getItemId(),
-                    gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();
+            RoomPlacementValidator.Result result = RoomPlacementValidator.validate(kwdFile, mapInformation,
+                    getConstructionBlockingTiles(), area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
+                    (short) interactionState.getItemId(), Integer.MAX_VALUE);
+            if (!result.isValid()) {
+                return 0;
+            }
+            return (long) result.plots().size() * kwdFile.getRoomById(interactionState.getItemId()).getCost();
+        }
+
+        /**
+         * The price the original shows next to the hand for the selection
+         *
+         * @return the price, {@code null} for none
+         */
+        private CursorIcon.Price getPrice() {
+            int gold = gameClientState.getPlayer(player.getPlayerId()).getGold();
+            return switch (interactionState.getType()) {
+                case ROOM ->
+                    CursorIcon.Price.cost(roomCost, gold);
+                case DOOR ->
+                    CursorIcon.Price.cost(kwdFile.getDoorById(interactionState.getItemId()).getGoldCost(), gold);
+                case TRAP ->
+                    CursorIcon.Price.cost(kwdFile.getTrapById(interactionState.getItemId()).getGoldCost(), gold);
+                case SELL ->
+                    CursorIcon.Price.sale(getSellValue());
+                default ->
+                    null;
+            };
+        }
+
+        /**
+         * What selling the own rooms in the selection gives back
+         *
+         * @return the gold
+         */
+        private int getSellValue() {
+            SelectionArea area = getSelectionArea();
+            float percentage = gameClientState.getLevelVariable(MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST);
+            int value = 0;
+            for (int x = (int) Math.min(area.getRealStart().x, area.getRealEnd().x); x <= (int) Math.max(area.getRealStart().x, area.getRealEnd().x); x++) {
+                for (int y = (int) Math.min(area.getRealStart().y, area.getRealEnd().y); y <= (int) Math.max(area.getRealStart().y, area.getRealEnd().y); y++) {
+                    Point point = new Point(x, y);
+                    if (gameClientState.getMapClientService().isSellable(point, player.getPlayerId())) {
+                        IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
+                        value += SellValue.ofRoomTile(kwdFile.getRoomByTerrain(tile.getTerrainId()), percentage);
+                    }
+                }
+            }
+            return value;
         }
     }
 
