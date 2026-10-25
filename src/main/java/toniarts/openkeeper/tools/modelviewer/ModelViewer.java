@@ -22,7 +22,6 @@ import com.jme3.anim.tween.action.BaseAction;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.plugins.FileLocator;
-import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -58,6 +57,7 @@ import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.game.sound.SoundGroup;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
@@ -231,8 +231,9 @@ public final class ModelViewer extends SimpleApplication {
         this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
         stateManager.attach(effectManagerState);
 
-        // init sound loader
-        //soundLoader = new SoundsLoader(assetManager);
+        // Sound system, used for previewing the sound files
+        SoundManager.init(this);
+
         // Map loader
         mapLoaderAppState = new MapLoaderAppState();
         stateManager.attach(mapLoaderAppState);
@@ -751,10 +752,7 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     public void onSoundChanged(SoundFile soundFile) {
-        AudioNode node = SoundsLoader.getAudioNode(assetManager, soundFile);
-        node.setLooping(false);
-        node.setPositional(false);
-        node.play();
+        SoundManager.playFile(soundFile);
     }
 
     public List<SoundFile> loadSoundCategory(ISoundable item) {

@@ -152,6 +152,16 @@ public final class SoundManager {
     }
 
     /**
+     * Plays a single clip of a sound file, ignoring the event rules.
+     */
+    public static void playFile(SoundFile file) {
+        SoundEngine current = engine;
+        if (current != null && file != null) {
+            current.playClip(AssetsConverter.SOUNDS_FOLDER + "/" + file.getFilename());
+        }
+    }
+
+    /**
      * Loads a category, looking into the global sound folder first and into the
      * category folder of the non global sounds afterwards.
  */
