@@ -23,48 +23,75 @@ package toniarts.openkeeper.tools.convert.sound;
  */
 public final class BankMapFileEntry {
 
-    private long unknown1; // 0xFFFFFFFF in all files. resets to 0 in DK2 source
-    private int unknown2; // 6746904, 6746032, 6746020, 6683824
-    private int unknown3; // 8539, 8795
-    private short unknown4; // 115
+    /**
+     * {@code <name>xx.sdt} is loaded whole into memory
+     */
+    public static final int FLAG_RESIDENT = 0x01;
+    /**
+     * {@code <name>xx.sdt} is streamed from disk (music tracks, Track_Zero, SetPieces, all speech)
+     */
+    public static final int FLAG_STREAMED = 0x02;
+    /**
+     * {@code <name>.sf2} SoundFont (one_shot_atmos), falls back to resident
+     */
+    public static final int FLAG_SOUNDFONT = 0x04;
+    /**
+     * Never read by the game. Probably "archive holds MPEG-compressed clips" (an authoring tool flag): set on
+     * all Global archives that are (mostly) MP2, clear on the only two all-PCM ones (JackinBox, Maiden). Clear
+     * on all speech archives too, though they are MP2, those come from a separately built set of banks.
+     */
+    public static final int FLAG_MPEG_COMPRESSED = 0x20;
+
+    private long archiveHandle; // 0xFFFFFFFF in the file, runtime handle
+    private short refCount; // runtime, file value is garbage
+    private long namePtr; // runtime, file value is garbage
+    private short flags; // see FLAG_* constants, bits 3, 4, 6 and 7 are 0 in every shipped record
+    private short unused; // never read
     private String name;
 
-    protected void setUnknown1(long unknown1) {
-        this.unknown1 = unknown1;
+    protected void setArchiveHandle(long archiveHandle) {
+        this.archiveHandle = archiveHandle;
     }
 
-    public int getUnknown2() {
-        return unknown2;
+    protected void setRefCount(short refCount) {
+        this.refCount = refCount;
     }
 
-    protected void setUnknown2(int unknown2) {
-        this.unknown2 = unknown2;
-    }
-
-    public int getUnknown3() {
-        return unknown3;
-    }
-
-    protected void setUnknown3(int unknown3) {
-        this.unknown3 = unknown3;
-    }
-
-    public short getUnknown4() {
-        return unknown4;
+    protected void setNamePtr(long namePtr) {
+        this.namePtr = namePtr;
     }
 
     /**
-     * Archive kind byte, i.e. the high byte of the field stored in
-     * {@link #getUnknown3()}.
+     * The archive flag byte, see the {@code FLAG_*} constants
      *
-     * @return archive kind
+     * @return the raw flags
      */
-    public int getKind() {
-        return (unknown3 >> 8) & 0xFF;
+    public int getFlags() {
+        return flags;
     }
 
-    public void setUnknown4(short unknown4) {
-        this.unknown4 = unknown4;
+    protected void setFlags(short flags) {
+        this.flags = flags;
+    }
+
+    protected void setUnused(short unused) {
+        this.unused = unused;
+    }
+
+    public boolean isResident() {
+        return (flags & FLAG_RESIDENT) != 0;
+    }
+
+    public boolean isStreamed() {
+        return (flags & FLAG_STREAMED) != 0;
+    }
+
+    public boolean isSoundFont() {
+        return (flags & FLAG_SOUNDFONT) != 0;
+    }
+
+    public boolean isMpegCompressed() {
+        return (flags & FLAG_MPEG_COMPRESSED) != 0;
     }
 
     /**

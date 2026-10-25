@@ -381,7 +381,7 @@ int entryCount = cursor.readInt();
             return null;
         }
         BankMapFileEntry entry = bank.getEntries()[archiveId - 1];
-        return SoundArchive.load(entry.getName(), entry.getKind());
+        return SoundArchive.load(entry.getName(), entry.getFlags());
     }
 
     @Override
