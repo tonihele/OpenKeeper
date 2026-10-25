@@ -44,7 +44,7 @@ class SoundCategoryParserTest {
 
     /** Real {@code gui_button_defaultSFX.map}, 130 bytes, a single event and group. */
     private static final String GUI_BUTTON_DEFAULT_SFX_MAP_BASE64 = "ACxh6dAx0hG0CQCwyZPyAwAAAAAAAAAAAQAAAAEAAAAAA"
-            + "AACQABAAAAgD8AAABAAAAAPwQBAAABAAAAAAAAAJ8PAAABAgAAAQAAAAAAAAAAAAAAZGQAAAAAAAAyMgAAAAAAAAAA//8AAAAAoEFHBH"
+            + "AAACQABAAAAgD8AAABAAAAAPwQBAAABAAAAAAAAAJ8PAAABAgAAAQAAAAAAAAAAAAAAZGQAAAAAAAAyMgAAAAAAAAAA//8AAAAAoEFHBH"
             + "TwFAAAAP//AAB7AwAAAQAAAA==";
 
     private String previousDkFolder;
@@ -209,10 +209,12 @@ class SoundCategoryParserTest {
                 String where = "event " + event.getId();
                 assertEquals(1, group.getSamples().size(), where);
                 assertEquals(0, group.getLinks().size(), where);
-                assertEquals(100, group.getVolumeMin(), where);
-                assertEquals(100, group.getVolumeMax(), where);
+                // event 783 is the one odd event of the file: quieter, and played from the second bank
+                int volume = event.getId() == 783 ? 10 : 100;
+                assertEquals(volume, group.getVolumeMin(), where);
+                assertEquals(volume, group.getVolumeMax(), where);
                 assertTrue(group.getSamples().get(0).getDurationMs() > 0, where);
-                assertEquals(1, group.getSamples().get(0).getBankRef(), where);
+                assertEquals(event.getId() == 783 ? 2 : 1, group.getSamples().get(0).getBankRef(), where);
             }
         }
     }

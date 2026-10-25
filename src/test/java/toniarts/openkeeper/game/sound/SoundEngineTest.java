@@ -71,7 +71,7 @@ class SoundEngineTest {
         assertEquals(1, backends.size());
         assertTrue(backends.get(0).spec.positional());
         assertEquals(3.0f, backends.get(0).spec.x());
-        assertEquals(4.0f, backends.get(0).spec.y());
+        assertEquals(4.0f, backends.get(0).spec.z());
         assertEquals(5.0f, voiceOf(handle).getDistanceToListener(), 0.001f);
         engine.stop(handle);
     }
