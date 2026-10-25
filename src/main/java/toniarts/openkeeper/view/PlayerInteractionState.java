@@ -108,6 +108,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
+    private RoomCursorIcon roomCursorIcon;
     private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
@@ -168,6 +169,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Init handler
         selectionHandler = new InteractionSelectionHandler();
+        roomCursorIcon = new RoomCursorIcon(assetManager, this.app.getGuiNode());
 
         if (!gameClientState.isMultiplayer()) {
             this.stateManager.attach(new InteractionCheatState());
@@ -201,6 +203,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         app.getInputManager().removeRawInputListener(inputListener);
         keys.clear();
         selectionHandler.cleanup();
+        roomCursorIcon.cleanup();
         constructionBlockingObjects.release();
         constructionBlockingDoors.release();
         constructionBlockingTraps.release();
@@ -225,6 +228,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         constructionBlockingTraps.applyChanges();
 
         selectionHandler.update(mousePosition);
+        roomCursorIcon.update(mousePosition, interactionState.getType() == Type.ROOM && isOnMap && !isOnGui,
+                selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED);
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
         }

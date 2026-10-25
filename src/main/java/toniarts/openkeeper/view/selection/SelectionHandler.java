@@ -120,6 +120,15 @@ public abstract class SelectionHandler {
         return selectionColor;
     }
 
+    /**
+     * The color the selection box shows now
+     *
+     * @return the shown selection indicator color
+     */
+    public ColorIndicator getSelectionColor() {
+        return selectionColor;
+    }
+
     public SelectionArea getSelectionArea() {
         return selectionArea;
     }
