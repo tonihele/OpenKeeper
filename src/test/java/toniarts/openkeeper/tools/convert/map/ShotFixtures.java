@@ -45,6 +45,15 @@ public final class ShotFixtures {
         return shot(THUNDERBOLT_ID, Shot.ProcessType.LIGHTNING, 8, EnumSet.of(Shot.ShotProcessFlag.AT_START));
     }
 
+    public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        creature.setName("Creature " + creatureId);
+        creature.setFlags(flags);
+        creature.setFlags3(flags3);
+        return creature;
+    }
+
     public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {
         KeeperSpell keeperSpell = new KeeperSpell();
         keeperSpell.setName("Spell");
