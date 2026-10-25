@@ -1322,7 +1322,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         restoreDroppedCreatureAi(entity, creatureState, targetState);
 
-        // A dropped worker digs right next to it and claims the floor around it first
+        // A dropped worker first looks for work right around it
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
         if (!tortureOrImprisonment && creatureComponent.worker) {
             entityData.setComponent(entity, new DropArea(tile));

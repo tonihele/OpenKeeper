@@ -26,14 +26,8 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
     @Override
     public int compare(TaskManager.TaskWorkerPriority o1, TaskManager.TaskWorkerPriority o2) {
 
-        // A worker dropped right next to a tile to dig digs it first
-        int result = Boolean.compare(o2.digNextToDrop(), o1.digNextToDrop());
-        if (result != 0) {
-            return result;
-        }
-
-        // Then a dropped worker claims the floor around the drop before anything else
-        result = Boolean.compare(o2.inDropArea(), o1.inDropArea());
+        // A dropped worker first takes the closest work around the drop, whatever it is
+        int result = Integer.compare(o1.dropRing(), o2.dropRing());
         if (result != 0) {
             return result;
         }
