@@ -50,8 +50,7 @@ public final class DoorAttackTarget {
     }
 
     /**
-     * Can the door be attacked at all. Door blueprints are not doors yet, the
-     * secret doors that are still undiscovered are walls to the enemy, and a
+     * Can the door be attacked at all. Door blueprints are not doors yet, and a
      * door with no health left is gone already.
      *
      * @param entityData the entity data
@@ -60,7 +59,7 @@ public final class DoorAttackTarget {
      */
     public static boolean isBreakable(EntityData entityData, EntityId door) {
         DoorComponent doorComponent = entityData.getComponent(door, DoorComponent.class);
-        if (doorComponent == null || doorComponent.blueprint || doorComponent.secret) {
+        if (doorComponent == null || doorComponent.blueprint) {
             return false;
         }
 

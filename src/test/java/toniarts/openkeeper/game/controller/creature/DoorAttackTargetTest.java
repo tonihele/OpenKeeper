@@ -63,13 +63,6 @@ class DoorAttackTargetTest {
     }
 
     @Test
-    void anUndiscoveredSecretDoorIsAWall() {
-        entityData.setComponent(door, new DoorComponent(WOODEN_DOOR, false, false, true));
-
-        assertFalse(DoorAttackTarget.isBreakable(entityData, door));
-    }
-
-    @Test
     void aDoorWithNoHealthLeftIsGone() {
         entityData.setComponent(door, new Health(0, 2000));
 
