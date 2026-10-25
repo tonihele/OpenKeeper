@@ -112,10 +112,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
 
     /**
-     * How far around the drop a dropped worker claims the floor first, in
-     * tiles as the crow flies
+     * How far around the drop a dropped worker looks for work first, in tiles
+     * in every direction. The original (DKII.EXE 0x463DF0) searches 2 tiles
+     * around a dropped imp before its usual work.
      */
-    static final int DROP_AREA_RADIUS = 3;
+    static final int DROP_AREA_RADIUS = 2;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -856,13 +857,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
             DropArea dropArea = entityData.getComponent(creature.getEntityId(), DropArea.class);
-            boolean workLeftInDropArea = false;
 
             // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
             for (Task task : taskQueue) {
-                boolean digNextToDrop = dropArea != null && isDigNextToDrop(task, dropArea.center);
-                boolean inDropArea = dropArea != null && isClaimInDropArea(task, dropArea.center);
-                workLeftInDropArea |= digNextToDrop || inDropArea;
                 Vector2f target = task.getTarget(creature);
                 if (target == null) {
 
@@ -871,11 +868,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, digNextToDrop, inDropArea, workResult));
+                int dropRing = dropArea != null ? getDropRing(task, dropArea.center) : Integer.MAX_VALUE;
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, dropRing, workResult));
             }
 
-            // The area around the drop is dug and claimed, back to normal work
-            if (dropArea != null && !workLeftInDropArea) {
+            // Only the first search after the drop looks around it, then the worker is back to its usual work
+            if (dropArea != null) {
                 entityData.removeComponent(creature.getEntityId(), DropArea.class);
             }
         }
@@ -917,14 +915,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     static int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
 
-        // A worker dropped right next to a tile to dig digs it first
-        int result = Boolean.compare(o2.digNextToDrop, o1.digNextToDrop);
-        if (result != 0) {
-            return result;
-        }
-
-        // Then a dropped worker claims the floor around the drop before anything else
-        result = Boolean.compare(o2.inDropArea, o1.inDropArea);
+        // A dropped worker first takes the closest work around the drop, whatever it is
+        int result = Integer.compare(o1.dropRing, o2.dropRing);
         if (result != 0) {
             return result;
         }
@@ -956,47 +948,28 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
-     * Whether the task claims a floor tile around the spot a worker was
-     * dropped on, within {@link #DROP_AREA_RADIUS} tiles as the crow flies.
-     * Walls don't count, only the floor.
+     * The ring around the spot a worker was dropped on that the task lies in:
+     * 0 on the spot itself, 1 for the eight tiles around it and so on, up to
+     * {@link #DROP_AREA_RADIUS}. Any kind of work counts, walls and gold too.
      *
      * @param task the task
      * @param dropCenter the tile the worker was dropped on
-     * @return true if the dropped worker claims it before anything else
+     * @return the ring, {@link Integer#MAX_VALUE} if the task is further away
      */
-    static boolean isClaimInDropArea(Task task, Point dropCenter) {
-        if (task.getTaskType() != TaskType.CLAIM_TILE) {
-            return false;
-        }
+    static int getDropRing(Task task, Point dropCenter) {
         Point tile = task.getTaskLocation();
-        int dx = tile.x - dropCenter.x;
-        int dy = tile.y - dropCenter.y;
-        return dx * dx + dy * dy <= DROP_AREA_RADIUS * DROP_AREA_RADIUS;
+        if (tile == null) {
+            return Integer.MAX_VALUE;
+        }
+        int ring = Math.max(Math.abs(tile.x - dropCenter.x), Math.abs(tile.y - dropCenter.y));
+        return ring <= DROP_AREA_RADIUS ? ring : Integer.MAX_VALUE;
     }
 
     /**
-     * Whether the task digs a tile right next to the spot a worker was
-     * dropped on, one of the eight tiles around it
-     *
-     * @param task the task
-     * @param dropCenter the tile the worker was dropped on
-     * @return true if the dropped worker digs it before anything else
+     * @param dropRing the ring around the spot this worker was dropped on
+     * that the task lies in, see {@link #getDropRing(Task, Point)}
      */
-    static boolean isDigNextToDrop(Task task, Point dropCenter) {
-        if (task.getTaskType() != TaskType.DIG_TILE) {
-            return false;
-        }
-        Point tile = task.getTaskLocation();
-        return Math.abs(tile.x - dropCenter.x) <= 1 && Math.abs(tile.y - dropCenter.y) <= 1;
-    }
-
-    /**
-     * @param digNextToDrop the task digs a tile right next to the spot this
-     * worker was dropped on
-     * @param inDropArea the task claims floor around the spot this worker was
-     * dropped on
-     */
-    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, boolean digNextToDrop, boolean inDropArea,
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, int dropRing,
             Consumer<Boolean> workResult) {
 
     }

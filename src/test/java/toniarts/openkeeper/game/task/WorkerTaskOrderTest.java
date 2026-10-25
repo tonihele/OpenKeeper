@@ -24,8 +24,6 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The order in which unemployed workers take tasks
@@ -77,54 +75,27 @@ class WorkerTaskOrderTest {
     }
 
     @Test
-    void droppedImpClaimsAroundTheDropFirst() {
+    void droppedImpTakesTheClosestWorkAroundTheDrop() {
 
-        // Dropped 3 tiles from unclaimed floor: it claims, although digging is closer and worth more
-        TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 103, true);
+        // Dropped next to a wall, with floor to claim two tiles away and digging elsewhere: the wall comes first,
+        // whatever kind of work it is
+        TaskManager.TaskWorkerPriority wallNextToDrop = pair(TaskType.CLAIM_WALL, 0, 177, 1);
+        TaskManager.TaskWorkerPriority claimTwoTilesAway = pair(TaskType.CLAIM_TILE, 0, 102, 2);
         TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 11);
-        TaskManager.TaskWorkerPriority freeClaimElsewhere = pair(TaskType.CLAIM_TILE, 0, 101);
 
-        assertEquals(claimInDropArea, sorted(dig, freeClaimElsewhere, claimInDropArea).getFirst());
+        assertEquals(List.of(wallNextToDrop, claimTwoTilesAway, dig), sorted(dig, claimTwoTilesAway, wallNextToDrop));
     }
 
     @Test
-    void dropAreaIsTheFloorWithinThreeTilesAsTheCrowFlies() {
+    void dropAreaIsTwoTilesInEveryDirection() {
         Point drop = new Point(10, 10);
 
-        assertTrue(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(13, 10)), drop));
-        assertTrue(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(8, 12)), drop));
-        assertTrue(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(10, 10)), drop));
-        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(13, 11)), drop));
-        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_TILE, new Point(10, 14)), drop));
-    }
-
-    @Test
-    void onlyFloorCountsInTheDropArea() {
-        Point drop = new Point(10, 10);
-
-        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.CLAIM_WALL, new Point(11, 10)), drop));
-        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.DIG_TILE, new Point(11, 10)), drop));
-        assertFalse(TaskManager.isClaimInDropArea(task(TaskType.REPAIR_WALL, new Point(11, 10)), drop));
-    }
-
-    @Test
-    void droppedNextToDiggingDigsFirst() {
-
-        // Dropped right next to a tile to dig, with floor to claim around it: it digs first
-        TaskManager.TaskWorkerPriority digNextToDrop = pair(TaskType.DIG_TILE, 0, 11, true, false);
-        TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 101, false, true);
-
-        assertEquals(List.of(digNextToDrop, claimInDropArea), sorted(claimInDropArea, digNextToDrop));
-    }
-
-    @Test
-    void digNextToDropIsOneOfTheEightTilesAround() {
-        Point drop = new Point(10, 10);
-
-        assertTrue(TaskManager.isDigNextToDrop(task(TaskType.DIG_TILE, new Point(11, 10)), drop));
-        assertTrue(TaskManager.isDigNextToDrop(task(TaskType.DIG_TILE, new Point(9, 11)), drop));
-        assertFalse(TaskManager.isDigNextToDrop(task(TaskType.DIG_TILE, new Point(12, 10)), drop));
-        assertFalse(TaskManager.isDigNextToDrop(task(TaskType.CLAIM_TILE, new Point(11, 10)), drop));
+        assertEquals(0, TaskManager.getDropRing(task(TaskType.CLAIM_TILE, new Point(10, 10)), drop));
+        assertEquals(1, TaskManager.getDropRing(task(TaskType.DIG_TILE, new Point(11, 9)), drop));
+        assertEquals(2, TaskManager.getDropRing(task(TaskType.CLAIM_WALL, new Point(12, 12)), drop));
+        assertEquals(2, TaskManager.getDropRing(task(TaskType.REPAIR_WALL, new Point(8, 11)), drop));
+        assertEquals(Integer.MAX_VALUE, TaskManager.getDropRing(task(TaskType.CLAIM_TILE, new Point(13, 10)), drop));
+        assertEquals(Integer.MAX_VALUE, TaskManager.getDropRing(task(TaskType.CARRY_GOLD_TO_TREASURY, null), drop));
     }
 
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
@@ -134,15 +105,11 @@ class WorkerTaskOrderTest {
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points) {
-        return pair(taskType, assignees, points, false);
+        return pair(taskType, assignees, points, Integer.MAX_VALUE);
     }
 
-    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean inDropArea) {
-        return pair(taskType, assignees, points, false, inDropArea);
-    }
-
-    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, boolean digNextToDrop, boolean inDropArea) {
-        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, digNextToDrop, inDropArea, null);
+    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, int dropRing) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, dropRing, null);
     }
 
     private static Task task(TaskType taskType, Point location) {
