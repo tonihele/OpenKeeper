@@ -133,7 +133,6 @@ public class EffectManagerState extends AbstractAppState {
         }
         VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite, ownerId);
         activeEffects.add(visualEffect);
-
         return visualEffect;
     }
 

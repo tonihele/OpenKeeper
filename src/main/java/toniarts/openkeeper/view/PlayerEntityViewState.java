@@ -29,6 +29,8 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,10 +42,14 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.RoomComponent;
+import toniarts.openkeeper.game.component.PortalViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -133,6 +139,12 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
+    private final PortalEffectContainer portalEffectContainer;
+    private final PortalLightContainer portalLightContainer;
+    private final List<TransientEffect> transientEffects = new ArrayList<>();
+
+    private record TransientEffect(EntityId source, Node node, Point tile, VisualEffect visualEffect) {
+    }
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -143,6 +155,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
+    private Spatial hiddenSpatial;
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -195,6 +208,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         shotModelContainer = new ShotModelContainer(entityData);
+        portalEffectContainer = new PortalEffectContainer(entityData);
+        portalLightContainer = new PortalLightContainer(entityData, rootNode, this.fogOfWarInformation);
     }
 
     @Override
@@ -213,6 +228,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        portalEffectContainer.start();
+        portalLightContainer.start();
     }
 
     @Override
@@ -225,6 +242,16 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        portalEffectContainer.update();
+        portalLightContainer.update(tpf);
+        transientEffects.removeIf(effect -> {
+            if (effect.node().getQuantity() == 0) {
+                effect.node().removeFromParent();
+                return true;
+            }
+            applyFogCullHint(effect.node(), effect.tile(), true);
+            return false;
+        });
     }
 
     @Override
@@ -235,6 +262,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         shotModelContainer.stop();
+        portalEffectContainer.stop();
+        portalLightContainer.stop();
+        transientEffects.forEach(effect -> {
+            effect.visualEffect().removeEffect();
+            effect.node().removeFromParent();
+        });
+        transientEffects.clear();
 
         // Detach entities
         rootNode.detachChild(root);
@@ -259,6 +293,47 @@ public class PlayerEntityViewState extends AbstractAppState {
         return root;
     }
 
+    /**
+     * Gets the model of an entity
+     *
+     * @param entityId the entity
+     * @return the model, or {@code null} if the entity has no model (yet)
+     */
+    public Spatial getEntitySpatial(EntityId entityId) {
+        IEntityViewControl control = entityViewControls.get(entityId);
+        return control != null ? control.getSpatial() : null;
+    }
+
+    /**
+     * Gets the view control of an entity, already holding the locally
+     * resolved game data for the entity (e.g. the {@link Creature} for a
+     * creature entity), so callers don't need to query the server for it
+     *
+     * @param entityId the entity
+     * @return the view control, or {@code null} if the entity has no view
+     * (yet)
+     */
+    public IEntityViewControl getEntityViewControl(EntityId entityId) {
+        return entityViewControls.get(entityId);
+    }
+
+    /**
+     * Hides the model of an entity regardless of fog of war, i.e. the creature
+     * we are looking out of while possessing it
+     *
+     * @param entityId the entity to hide, {@code null} to show the previously
+     * hidden one again
+     */
+    public void setHiddenEntity(EntityId entityId) {
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Inherit);
+        }
+        hiddenSpatial = entityId != null ? getEntitySpatial(entityId) : null;
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Always);
+        }
+    }
+
     private Spatial createObjectModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
@@ -273,7 +348,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser != null ? textParser.getObjectTextParser() : null, mapData);
+                Creature lairCreatureType = objectViewState.lairCreatureTypeId != 0
+                        ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
+                boolean uniqueCreatureBed = lairCreatureType != null
+                        && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
+                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
+                        uniqueCreatureBed);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -490,6 +572,10 @@ public class PlayerEntityViewState extends AbstractAppState {
      * with no exceptions.
      */
     private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
+        if (object == hiddenSpatial) {
+            object.setCullHint(Spatial.CullHint.Always);
+            return;
+        }
         boolean visible = baseVisible;
         if (visible) {
             visible = fogOfWarInformation.isVisible(tile);
@@ -536,6 +622,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     private void removeModel(Spatial spatial, Entity e) {
+        removeTransientEffects(e.getId());
         spatial.removeFromParent();
 
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());
@@ -602,6 +689,13 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "CreatureModelContainer.addObject({0})", e);
             Spatial result = createCreatureModel(e);
             updateObject(result, e);
+            CreatureViewState viewState = e.get(CreatureViewState.class);
+            if (viewState.state == Creature.AnimationType.ENTRANCE) {
+                Creature creature = kwdFile.getCreature(viewState.creatureId);
+                Owner owner = entityData.getComponent(e.getId(), Owner.class);
+                loadTransientEffect(e.getId(), e.get(Position.class).position.clone().setY(WorldUtils.UNDERFLOOR_HEIGHT),
+                        creature.getEntranceEffectId(), owner.ownerId, false);
+            }
             return result;
         }
 
@@ -677,6 +771,67 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
+        }
+    }
+
+    private void loadTransientEffect(EntityId source, Vector3f location, int effectId, short ownerId, boolean continuousGeneration) {
+        if (effectId == 0) {
+            return;
+        }
+        Node anchor = new Node("Portal effect");
+        anchor.setLocalTranslation(location);
+        root.attachChild(anchor);
+        Point tile = WorldUtils.vectorToPoint(location);
+        applyFogCullHint(anchor, tile, true);
+        VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(anchor, null, effectId, false, ownerId);
+        if (continuousGeneration) {
+            visualEffect.generateThroughoutLifetime();
+        }
+        transientEffects.add(new TransientEffect(source, anchor, tile, visualEffect));
+    }
+
+    private void removeTransientEffects(EntityId source) {
+        transientEffects.removeIf(effect -> {
+            if (effect.source().equals(source)) {
+                effect.visualEffect().removeEffect();
+                effect.node().removeFromParent();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private final class PortalEffectContainer extends EntityContainer<double[]> {
+        PortalEffectContainer(EntityData ed) {
+            super(ed, PortalViewState.class, RoomComponent.class, Owner.class);
+        }
+
+        @Override
+        protected double[] addObject(Entity e) {
+            double[] previous = {-1};
+            updateObject(previous, e);
+            return previous;
+        }
+
+        @Override
+        protected void updateObject(double[] previous, Entity e) {
+            double preparationTime = e.get(PortalViewState.class).preparationTime;
+            RoomComponent room = e.get(RoomComponent.class);
+            if (room.destroyed || preparationTime < 0) {
+                removeObject(previous, e);
+            } else if (preparationTime != previous[0]) {
+                List<Integer> effects = kwdFile.getRoomById(room.roomId).getEffects();
+                if (effects.size() > 2) {
+                    loadTransientEffect(e.getId(), WorldUtils.pointToVector3f(room.location),
+                            effects.get(2), e.get(Owner.class).ownerId, true);
+                }
+            }
+            previous[0] = preparationTime;
+        }
+
+        @Override
+        protected void removeObject(double[] previous, Entity e) {
+            removeTransientEffects(e.getId());
         }
     }
 

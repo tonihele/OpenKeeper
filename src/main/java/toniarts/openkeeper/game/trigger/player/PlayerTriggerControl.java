@@ -309,7 +309,11 @@ public class PlayerTriggerControl extends TriggerControl {
             return;
         }
         ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
-        creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        var entityId = creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        if (entityId != null) {
+            // Scripted arrivals count toward the cadence without restarting the generation clock.
+            room.onSpawn(room.getLastSpawnTime(), entityId);
+        }
     }
 
     private void setPortalStatus(TriggerActionData trigger) { // Creature part. Only for keeper x
