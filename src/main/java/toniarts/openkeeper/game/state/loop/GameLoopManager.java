@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.logic.PlayerManufactureSystem;
 import toniarts.openkeeper.game.logic.PlayerSpellbookSystem;
 import toniarts.openkeeper.game.logic.PossessedMovementSystem;
 import toniarts.openkeeper.game.logic.PossessedSystem;
+import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
@@ -146,6 +147,8 @@ public final class GameLoopManager {
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
+                new ShotSystem(entityData, level, gameWorldController.getShotsController(), positionSystem,
+                        gameWorldController.getMapController(), playerControllers),
                 (IGameLogicUpdatable) taskManager);
 
         loops.add(new GameLoop(gameLogicThread, 1_000_000_000 / levelInfo.getLevelData().getGameLevel().getTicksPerSec(), "Logic"));
