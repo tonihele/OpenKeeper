@@ -513,15 +513,14 @@ public final class MapController extends Container implements IMapController {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
 
                 // Gems never run out: the face collapses, comes back at full health, and every collapse yields the
-                // same small amount. The miner only takes what it can carry
+                // same small amount
                 tileDestroyed = applyDamage(tile, damage);
-                returnedGold = tileDestroyed ? Math.min((int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS), getFreeGoldCapacity(creature)) : 0;
+                returnedGold = tileDestroyed ? (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS) : 0;
             } else {
-                TileWork.Mining mining = TileWork.mine(terrain.getGoldValue(), tile.getMaxHealth(), tile.getHealth(), tile.getGold(),
-                        damage, getFreeGoldCapacity(creature));
+                TileWork.Mining mining = TileWork.mine(terrain.getGoldValue(), tile.getMaxHealth(), tile.getHealth(), tile.getGold(), damage);
                 tile.setHealth(mining.health());
                 tile.setGold(mining.gold());
-                returnedGold = mining.taken();
+                returnedGold = mining.released();
                 tileDestroyed = mining.isExhausted();
             }
         } else { // Apply damage
@@ -680,19 +679,6 @@ public final class MapController extends Container implements IMapController {
         }
         CreatureEfficiency efficiency = entityData.getComponent(creature.getEntityId(), CreatureEfficiency.class);
         return efficiency != null ? efficiency.efficiencyPercentage : TileWork.FULL_EFFICIENCY;
-    }
-
-    /**
-     * How much more gold a miner can carry
-     *
-     * @param creature the miner, may be {@code null}
-     * @return the free capacity, unlimited without a miner
-     */
-    static int getFreeGoldCapacity(ICreatureController creature) {
-        if (creature == null) {
-            return Integer.MAX_VALUE;
-        }
-        return Math.max(0, creature.getMaxGold() - creature.getGold());
     }
 
     private boolean applyDamage(IMapTileController tile, int damage) {

@@ -73,10 +73,10 @@ public final class TileWork {
      * A seam after one swing of mining
      *
      * @param health the seam's health
-     * @param gold the gold left in the seam, released or not
-     * @param taken the gold the miner takes from this swing
+     * @param gold the gold left in the seam
+     * @param released the gold this swing releases
      */
-    public record Mining(int health, int gold, int taken) {
+    public record Mining(int health, int gold, int released) {
 
         public boolean isExhausted() {
             return health == 0;
@@ -85,31 +85,23 @@ public final class TileWork {
 
     /**
      * Mines a seam for one swing. The swing damages the seam and releases gold
-     * in proportion (see {@link #goldReleased(int, int, int)}), the miner
-     * takes what it can carry. What it cannot carry stays in the seam for the
-     * next swing, nothing falls to the floor. The seam only collapses once all
-     * its gold is taken, so a full miner leaves the last of it standing.
+     * in proportion (see {@link #goldReleased(int, int, int)}), whatever the
+     * miner carries already. As in the original, the gold a full miner can't
+     * carry falls to the floor, and the seam collapses once its health is
+     * gone.
      *
      * @param totalGold the seam's gold when untouched
      * @param maxHealth the seam's maximum health
      * @param health the seam's health now
      * @param gold the gold left in the seam now
      * @param damage the damage of the swing
-     * @param freeCapacity how much more gold the miner can carry
      * @return the seam after the swing
      */
-    public static Mining mine(int totalGold, int maxHealth, int health, int gold, int damage, int freeCapacity) {
+    public static Mining mine(int totalGold, int maxHealth, int health, int gold, int damage) {
         int newHealth = Math.max(0, health - damage);
+        int newGold = Math.min(gold, totalGold - goldReleased(totalGold, maxHealth, newHealth));
 
-        // Released by now but not yet taken, also what earlier swings left behind
-        int available = Math.max(0, gold - (totalGold - goldReleased(totalGold, maxHealth, newHealth)));
-        int taken = Math.min(available, Math.max(0, freeCapacity));
-        int newGold = gold - taken;
-        if (newHealth == 0 && newGold > 0) {
-            newHealth = 1;
-        }
-
-        return new Mining(newHealth, newGold, taken);
+        return new Mining(newHealth, newGold, gold - newGold);
     }
 
     /**

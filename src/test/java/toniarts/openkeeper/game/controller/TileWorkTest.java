@@ -37,7 +37,6 @@ class TileWorkTest {
     private static final int FRESH_IMP = 80;
     private static final int SEAM_GOLD = 3000;
     private static final int SEAM_HEALTH = 660;
-    private static final int IMP_CAPACITY = 1400;
 
     @Test
     void workRatesAreScaledByEfficiency() {
@@ -70,59 +69,39 @@ class TileWorkTest {
     }
 
     @Test
-    void impMinesOnlyWhatItCanCarry() {
-        int carried = 1300;
+    void swingReleasesItsGoldWhateverTheMinerCarries() {
+        TileWork.Mining mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, SEAM_HEALTH, SEAM_GOLD, 240);
 
-        TileWork.Mining mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, SEAM_HEALTH, SEAM_GOLD, 240, IMP_CAPACITY - carried);
-
-        // The swing releases about 1090, the imp takes the 100 it has room for and the rest stays in the seam
-        assertEquals(100, mining.taken());
-        assertEquals(SEAM_GOLD - 100, mining.gold());
+        // What a full imp can't carry falls to the floor, as in the original (#612), it doesn't stay in the seam
+        assertEquals(1090, mining.released());
+        assertEquals(SEAM_GOLD - 1090, mining.gold());
         assertEquals(SEAM_HEALTH - 240, mining.health());
     }
 
     @Test
-    void seamHoldsUntilItsGoldIsTaken() {
+    void seamCollapsesWhenItsHealthIsGone() {
 
-        // The last swing with a full imp: nothing taken, the seam stands with its gold
-        TileWork.Mining mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, 100, 500, 240, 0);
+        // At 100 health 2545 of the gold are out, the last swing releases the other 455
+        TileWork.Mining mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, 100, 455, 240);
 
-        assertEquals(0, mining.taken());
-        assertEquals(500, mining.gold());
-        assertEquals(1, mining.health());
-        assertFalse(mining.isExhausted());
-
-        // The next imp gets it all
-        mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, mining.health(), mining.gold(), 240, IMP_CAPACITY);
-
-        assertEquals(500, mining.taken());
+        assertEquals(455, mining.released());
+        assertEquals(0, mining.gold());
         assertTrue(mining.isExhausted());
     }
 
     @Test
-    void wholeSeamGoesToTheTreasuryWithoutLeftovers() {
+    void wholeSeamReleasesExactlyItsGold() {
         int health = SEAM_HEALTH;
         int gold = SEAM_GOLD;
-        int carried = 0;
-        int delivered = 0;
-        int swings = 0;
+        int released = 0;
         while (health > 0) {
-            TileWork.Mining mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, health, gold, 240, IMP_CAPACITY - carried);
+            TileWork.Mining mining = TileWork.mine(SEAM_GOLD, SEAM_HEALTH, health, gold, 240);
             health = mining.health();
             gold = mining.gold();
-            carried += mining.taken();
-            assertTrue(carried <= IMP_CAPACITY, "Carries " + carried);
-
-            // Full, the imp only leaves for the treasury when exactly full
-            if (carried == IMP_CAPACITY) {
-                delivered += carried;
-                carried = 0;
-            }
-            assertTrue(++swings < 100, "Stuck mining");
+            released += mining.released();
         }
-        delivered += carried;
 
-        assertEquals(SEAM_GOLD, delivered);
+        assertEquals(SEAM_GOLD, released);
         assertEquals(0, gold);
     }
 
