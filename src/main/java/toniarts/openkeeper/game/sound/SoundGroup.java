@@ -23,6 +23,7 @@ import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
@@ -96,7 +97,7 @@ public final class SoundGroup {
      * @return playback flags of the group
      * @see SfxGroupEntry#getFlags()
      */
-    public int getFlags() {
+    public EnumSet<SfxGroupEntry.PlaybackFlag> getFlags() {
         return entry.getFlags();
     }
 

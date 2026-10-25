@@ -93,7 +93,7 @@ public final class SfxMapFile {
                     entry.entries = new SfxEEEntry[count];
                     entry.unknown_1 = rawMapReader.readUnsignedInteger();
                     entry.unknown_2 = rawMapReader.readUnsignedInteger();
-                    entry.flags = rawMapReader.readUnsignedShort();
+                    entry.flags = rawMapReader.readShortAsFlag(SfxGroupEntry.PlaybackFlag.class);
                     entry.parameterId = rawMapReader.readUnsignedByte();
                     entry.unknown_3 = rawMapReader.readUnsignedByte();
                     entrie.groups[i] = entry;

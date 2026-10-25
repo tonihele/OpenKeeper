@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -75,24 +76,18 @@ public final class SoundSequencer {
         }
 
         SoundEntry from = entries.get(current < 0 ? 0 : current);
-        int matching = 0;
+        List<SoundEntry.Link> matchingLinks = new ArrayList<>();
         for (SoundEntry.Link link : from.getLinks()) {
             if (link.matches(intensity)) {
-                matching++;
+                matchingLinks.add(link);
             }
         }
-        if (matching == 0) {
+        if (matchingLinks.isEmpty()) {
             current = -1;
             return null;
         }
 
-        int pick = random.nextInt(matching);
-        for (SoundEntry.Link link : from.getLinks()) {
-            if (link.matches(intensity) && pick-- == 0) {
-                current = link.target();
-                break;
-            }
-        }
+        current = matchingLinks.get(random.nextInt(matchingLinks.size())).target();
         return entries.get(current);
     }
 
