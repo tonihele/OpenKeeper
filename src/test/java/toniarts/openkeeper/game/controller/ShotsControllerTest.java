@@ -166,6 +166,19 @@ class ShotsControllerTest {
     }
 
     @Test
+    void shotIsAimedAtTheMiddleOfTheTarget() {
+        EntityId target = createCreature();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.height = 0.8f;
+        entityData.setComponent(target, creatureComponent);
+
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1.4f, 4.5f), target,
+                entityData.createEntity(), 4);
+
+        assertEquals(0, getShotFlight().velocity.y, DELTA);
+    }
+
+    @Test
     void fireballHitDamagesByTheShotData() {
         EntityId target = createCreature();
         shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,

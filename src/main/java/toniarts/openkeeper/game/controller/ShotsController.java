@@ -25,6 +25,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
@@ -114,7 +115,7 @@ public final class ShotsController implements IShotsController {
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
             EntityId shooter, float maxRange) {
         Shot shot = kwdFile.getShotById(shotTypeId);
-        Vector3f targetPosition = EntityController.getPosition(entityData, target);
+        Vector3f targetPosition = getAimPoint(target);
         if (!ShotFlightRules.isFlying(shot) || targetPosition == null) {
             return false;
         }
@@ -129,6 +130,24 @@ public final class ShotsController implements IShotsController {
                         shot.getHealth()));
 
         return true;
+    }
+
+    /**
+     * Shots are aimed at the middle of a creature, half its height above its
+     * feet (0x4A7FD0)
+     *
+     * @param target the target
+     * @return the spot to aim at, {@code null} if the target isn't in the
+     * world
+     */
+    private Vector3f getAimPoint(EntityId target) {
+        Vector3f position = EntityController.getPosition(entityData, target);
+        CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+        if (position == null || creatureComponent == null) {
+            return position;
+        }
+
+        return position.add(0, creatureComponent.height / 2, 0);
     }
 
     @Override
