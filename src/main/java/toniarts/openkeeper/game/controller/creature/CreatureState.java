@@ -92,9 +92,9 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Find work, a worker with nothing to do brings home the gold it carries
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
             entity.findWork((foundWork) -> {
-                if (foundWork || (entity.isWorker() && entity.dropGoldToTreasury())) {
+                if (foundWork) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {

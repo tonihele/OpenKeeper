@@ -106,13 +106,14 @@ class CreatureStateTest {
     }
 
     @Test
-    void workerWithNothingToDoBringsHomeItsGold() {
+    void workerWithNothingToDoKeepsItsGold() {
         Worker worker = new Worker(CreatureState.IDLE, false, false);
 
         CreatureState.IDLE.enter(worker.creature);
 
-        assertEquals(CreatureState.WORK, worker.state.get());
-        assertTrue(worker.wentToTreasury.get());
+        // As in the original, an imp with some gold and nothing to do doesn't bring it home
+        assertEquals(CreatureState.IDLE, worker.state.get());
+        assertFalse(worker.wentToTreasury.get());
     }
 
     /**
