@@ -95,7 +95,7 @@ public final class KeeperSpellCastValidator {
                 }
             }
             case ENEMY_CREATURES -> {
-                if (owner == null) {
+                if (creature == null || owner == null) {
                     return false;
                 }
                 if (!player.isEnemy(owner)) {

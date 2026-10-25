@@ -39,12 +39,14 @@ import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
+import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -56,6 +58,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -63,6 +66,7 @@ import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
+import toniarts.openkeeper.view.loader.ShotLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.text.TextParser;
@@ -121,16 +125,19 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Node nodeObjects;
     private final Node nodeDoors;
     private final Node nodeTraps;
+    private final Node nodeShots;
     private final ObjectModelContainer objectModelContainer;
     private final CreatureModelContainer creatureModelContainer;
     private final DoorModelContainer doorModelContainer;
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
+    private final ShotModelContainer shotModelContainer;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
     private final ILoader<DoorViewState> doorLoader;
     private final ILoader<TrapViewState> trapLoader;
+    private final ILoader<ShotViewState> shotLoader;
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
@@ -162,6 +169,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureLoader = new CreatureLoader(kwdFile);
         doorLoader = new DoorLoader(kwdFile);
         trapLoader = new TrapLoader(kwdFile);
+        shotLoader = new ShotLoader(kwdFile);
 
         // Create the scene graph
         root = new Node("Things");
@@ -174,12 +182,17 @@ public class PlayerEntityViewState extends AbstractAppState {
         root.attachChild(nodeDoors);
         root.attachChild(nodeTraps);
 
+        // Not under the root, the root is what the cursor picks from. Bolts and particles are nothing to point
+        // at, and they would sit right in front of the creature the player keeps on striking
+        nodeShots = new Node("Shots");
+
         // Create the model "listener"
         objectModelContainer = new ObjectModelContainer(entityData);
         creatureModelContainer = new CreatureModelContainer(entityData);
         doorModelContainer = new DoorModelContainer(entityData);
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
+        shotModelContainer = new ShotModelContainer(entityData);
     }
 
     @Override
@@ -189,6 +202,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         // Attach the entities
         rootNode.attachChild(root);
+        rootNode.attachChild(nodeShots);
 
         // Start loading stuff (maybe we should do this earlier...)
         objectModelContainer.start();
@@ -196,6 +210,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.start();
         trapModelContainer.start();
         roomEffectContainer.start();
+        shotModelContainer.start();
     }
 
     @Override
@@ -207,6 +222,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.update();
         trapModelContainer.update();
         roomEffectContainer.update();
+        shotModelContainer.update();
     }
 
     @Override
@@ -216,9 +232,11 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.stop();
         trapModelContainer.stop();
         roomEffectContainer.stop();
+        shotModelContainer.stop();
 
         // Detach entities
         rootNode.detachChild(root);
+        rootNode.detachChild(nodeShots);
 
         for (IEntityViewControl entityViewControl : entityViewControls.values()) {
             entityViewControl.cleanup();
@@ -358,6 +376,43 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
         nodeTraps.attachChild(result);
         return result;
+    }
+
+    private Spatial createShotModel(Entity e) {
+        ShotViewState shotViewState = e.get(ShotViewState.class);
+        Spatial result = shotLoader.load(assetManager, shotViewState);
+        if (result == null) {
+            result = new Node("Wat"); // FIXME: Yeah...
+        }
+        if (shotViewState.velocity != null) {
+            result.addControl(new ShotFlightControl(shotViewState.velocity));
+        }
+        nodeShots.attachChild(result);
+
+        Vector3f position = e.get(Position.class).position;
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
+            playShotEffects(kwdFile.getShotById(shotViewState.shotId), position);
+        }
+
+        return result;
+    }
+
+    /**
+     * Plays the effects a shot starts with. They are not part of the shot
+     * model, the sparks and the smoke of a strike outlast the bolt itself.
+     */
+    private void playShotEffects(Shot shot, Vector3f position) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        effectManagerState.load(nodeShots, position.clone(), shot.getCreationEffectId(), false);
+
+        // A shot processed at its start hits there, a lightning strike for example
+        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.AT_START)) {
+            effectManagerState.load(nodeShots, position.clone(), shot.getHitThingEffectId(), false);
+        }
     }
 
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
@@ -650,6 +705,36 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Boolean object, Entity e) {
             // Not individually removable today - only
             // EffectManagerState.clearActiveEffects() clears everything
+        }
+    }
+
+    /**
+     * Contains the shots, spells and missiles on their way or striking
+     */
+    private final class ShotModelContainer extends EntityContainer<Spatial> {
+
+        public ShotModelContainer(EntityData ed) {
+            super(ed, Position.class, ShotViewState.class);
+        }
+
+        @Override
+        protected Spatial addObject(Entity e) {
+            logger.log(Level.TRACE, "ShotModelContainer.addObject({0})", e);
+            Spatial result = createShotModel(e);
+            updateObject(result, e);
+            return result;
+        }
+
+        @Override
+        protected void updateObject(Spatial object, Entity e) {
+            logger.log(Level.TRACE, "ShotModelContainer.updateObject({0})", e);
+            updateModelPosition(object, e);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+        }
+
+        @Override
+        protected void removeObject(Spatial object, Entity e) {
+            removeModel(object, e);
         }
     }
 }

@@ -692,13 +692,45 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // TODO: What is the alternative shot all about?
                 toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId);
-                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget);
+                if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+                        getOwnerId(), getShotPosition(attack.get().creatureSpellId, attackTarget), attackTarget, entityId, attack.get().range)) {
+                    shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget, entityId);
 
-                // TODO: Of course not like that, the shot is created and it does what it does
-                // Set the damage
-                setDamage(attackTarget, creatureSpell.getShotData1());
+                    // TODO: Of course not like that, the shot is created and it does what it does
+                    // Set the damage
+                    setDamage(attackTarget, creatureSpell.getShotData1());
+                }
             }
         }
+    }
+
+    /**
+     * Where the creature's shot starts. The spell's shot offset is in front of
+     * the creature and above its feet (0x4984D0), the creature faces the
+     * target when it fires.
+     *
+     * @param creatureSpellId the spell fired
+     * @param attackTarget the target
+     * @return the start of the shot
+     */
+    private Vector3f getShotPosition(short creatureSpellId, EntityId attackTarget) {
+        Vector3f position = getPosition();
+        Vector3f result = new Vector3f(position);
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getCreatureSpellId() != creatureSpellId) {
+                continue;
+            }
+
+            Vector3f targetPosition = getPosition(entityData, attackTarget);
+            Vector3f forward = targetPosition != null ? targetPosition.subtract(position).setY(0) : Vector3f.ZERO;
+            if (forward.lengthSquared() > 0) {
+                result.addLocal(forward.normalizeLocal().multLocal(-spell.getShotOffset().y));
+            }
+            result.y += spell.getShotOffset().z;
+            break;
+        }
+
+        return result;
     }
 
     /**
@@ -1209,6 +1241,23 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    @Override
+    public void knockDown() {
+
+        // Without the AI component the creature is in hand, falling or possessed, nothing for us to knock down
+        if (entityData.getComponent(entityId, CreatureAi.class) == null || isIncapacitated()) {
+            return;
+        }
+
+        unassingCurrentTask();
+        stopCreature();
+        stateMachine.changeState(CreatureState.FALLEN);
+
+        // Written here and not at the end of the tick, so that the state time restarts also when the creature
+        // was down already. That keeps a creature that is struck over and over down
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId()));
+    }
+
     private boolean isAlly(EntityId entity) {
         Owner otherOwner = entityData.getComponent(entity, Owner.class);
         if (otherOwner != null) {
@@ -1293,7 +1342,10 @@ public final class CreatureController extends EntityController implements ICreat
                 stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
             }
             case FALLEN -> {
-                stateTargetTime = entityData.getComponent(entityId, CreatureComponent.class).stunDuration;
+
+                // Never shorter than the fall itself, imps for example have no stun duration at all
+                stateTargetTime = Math.max(entityData.getComponent(entityId, CreatureComponent.class).stunDuration,
+                        getAnimationTime(creature, Creature.AnimationType.FALLBACK));
             }
             case GETTING_UP -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.GET_UP);
