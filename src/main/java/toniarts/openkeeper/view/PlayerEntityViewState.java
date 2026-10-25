@@ -58,6 +58,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -382,6 +383,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         Spatial result = shotLoader.load(assetManager, shotViewState);
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
+        }
+        if (shotViewState.velocity != null) {
+            result.addControl(new ShotFlightControl(shotViewState.velocity));
         }
         nodeShots.attachChild(result);
 
