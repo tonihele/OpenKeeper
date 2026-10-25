@@ -164,13 +164,27 @@ class WorkerTaskOrderTest {
     }
 
     @Test
-    void diggingImpBringsItsGoldHomeOnceTheDiggingIsDone() {
-        assertTrue(TaskManager.bringsGoldHomeFirst(true, false, 300));
+    void onlyFreeDiggingTheImpCanReachCountsAsMoreDigging() {
 
-        // More digging, no gold, or claiming: it takes its work as usual
-        assertFalse(TaskManager.bringsGoldHomeFirst(true, true, 300));
-        assertFalse(TaskManager.bringsGoldHomeFirst(true, false, 0));
-        assertFalse(TaskManager.bringsGoldHomeFirst(false, false, 300));
+        // A digging imp with gold only digs on if there is a free dig task it can reach, otherwise it brings
+        // its gold home first
+        assertTrue(TaskManager.hasMoreDigging(List.of(digTask(false, true)), null));
+        assertFalse(TaskManager.hasMoreDigging(List.of(digTask(true, true), digTask(false, false)), null));
+        assertFalse(TaskManager.hasMoreDigging(List.of(task(TaskType.CLAIM_TILE, null)), null));
+    }
+
+    private static Task digTask(boolean full, boolean reachable) {
+        return (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "getTaskType" ->
+                TaskType.DIG_TILE;
+            case "isFull" ->
+                full;
+            case "canAssign" ->
+                reachable;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
     }
 
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {

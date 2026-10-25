@@ -863,7 +863,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             boolean claiming = entityData.getComponent(creature.getEntityId(), ClaimingFloor.class) != null;
             boolean digging = entityData.getComponent(creature.getEntityId(), DiggingTiles.class) != null;
             List<TaskWorkerPriority> workerTasks = new ArrayList<>();
-            boolean moreDigging = false;
 
             // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
             for (Task task : taskQueue) {
@@ -875,7 +874,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 boolean sameWork = (digging && isDigging(task)) || (claiming && isClaiming(task));
-                moreDigging |= digging && isDigging(task) && !task.isFull();
                 int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
                 int dropRing = dropArea != null ? getDropRing(task, dropArea.center) : Integer.MAX_VALUE;
                 workerTasks.add(new TaskWorkerPriority(task, creature, points, dropRing, sameWork, workResult));
@@ -887,7 +885,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             // A worker whose digging is done brings home the gold it carries before it takes other work
-            if (bringsGoldHomeFirst(digging, moreDigging, creature.getGold()) && assignGoldToTreasuryTask(creature)) {
+            boolean bringsGoldHome = digging && creature.getGold() > 0 && !hasMoreDigging(taskQueue, creature);
+            if (bringsGoldHome && assignGoldToTreasuryTask(creature)) {
                 setCurrentWork(creature, TaskType.CARRY_GOLD_TO_TREASURY);
                 workResult.accept(Boolean.TRUE);
                 goingHome.add(creature);
@@ -1020,17 +1019,22 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
-     * Whether a worker brings its gold to the treasury before it takes other
-     * work. In the original's imp idle state (DKII.EXE 0x463DF0) a digging
-     * imp that finds no more digging takes any gold it carries home first.
+     * Whether there is more digging a worker can take. In the original's imp
+     * idle state (DKII.EXE 0x463DF0) a digging imp that finds none takes any
+     * gold it carries home first. Only digging it can reach counts, so this
+     * stops at the first free dig task it can be assigned to.
      *
-     * @param digging the worker is digging
-     * @param moreDigging there is more digging it can take
-     * @param gold the gold it carries
-     * @return true if it brings the gold home first
+     * @param tasks the player's tasks
+     * @param creature the worker
+     * @return true if it can dig on
      */
-    static boolean bringsGoldHomeFirst(boolean digging, boolean moreDigging, int gold) {
-        return digging && !moreDigging && gold > 0;
+    static boolean hasMoreDigging(Collection<Task> tasks, ICreatureController creature) {
+        for (Task task : tasks) {
+            if (isDigging(task) && !task.isFull() && task.canAssign(creature)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
