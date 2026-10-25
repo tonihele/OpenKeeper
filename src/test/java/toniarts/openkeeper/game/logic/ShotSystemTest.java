@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -118,6 +119,28 @@ class ShotSystemTest {
     }
 
     @Test
+    void shotHitsAnArmedEnemyTrap() {
+        EntityId trap = createTrap(ENEMY_ID, new Vector3f(2, 1, 1), false);
+        EntityId shot = createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(trap, hits.get(0)[1]);
+    }
+
+    @Test
+    void shotFliesOverAHiddenTrap() {
+        createTrap(ENEMY_ID, new Vector3f(2, 1, 1), true);
+        EntityId shot = createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
+        assertNotNull(positionOf(shot));
+    }
+
+    @Test
     void shotHitsAnEnemyCreatureAndDies() {
         EntityId enemy = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
         EntityId shot = createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
@@ -196,6 +219,17 @@ class ShotSystemTest {
                 new Owner(ownerId, ownerId));
         creatures.add(creature);
         return creature;
+    }
+
+    private EntityId createTrap(short ownerId, Vector3f position, boolean hidden) {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap,
+                new Position(0, position),
+                new TrapViewState((short) 1, false, hidden),
+                new Health(100, 100),
+                new Owner(ownerId, ownerId));
+        creatures.add(trap);
+        return trap;
     }
 
     private List<EntityId> creaturesOn(Point tile) {
