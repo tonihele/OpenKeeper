@@ -974,14 +974,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
         }
 
-        // Of the usual work, damaged walls are repaired first
-        result = Boolean.compare(isRepairWall(o2.task), isRepairWall(o1.task));
-        if (result != 0) {
-            return result;
-        }
-
-        // Walls are only reinforced once there is nothing else to do, the floor is claimed first
-        result = Boolean.compare(isClaimWall(o1.task), isClaimWall(o2.task));
+        // Walls are only worked on once there is nothing else to do, the floor is claimed first. Repairing goes with
+        // reinforcing, in the original (DKII.EXE 0x46AEA0) both are one job that only comes after the usual work
+        result = Boolean.compare(isWallWork(o1.task), isWallWork(o2.task));
         if (result != 0) {
             return result;
         }
@@ -1002,12 +997,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
     }
 
-    private static boolean isClaimWall(Task task) {
-        return task.getTaskType() == TaskType.CLAIM_WALL;
-    }
-
-    private static boolean isRepairWall(Task task) {
-        return task.getTaskType() == TaskType.REPAIR_WALL;
+    private static boolean isWallWork(Task task) {
+        return task.getTaskType() == TaskType.CLAIM_WALL || task.getTaskType() == TaskType.REPAIR_WALL;
     }
 
     /**

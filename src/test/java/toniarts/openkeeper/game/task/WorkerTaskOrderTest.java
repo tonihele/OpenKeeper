@@ -54,31 +54,21 @@ class WorkerTaskOrderTest {
         TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 2, 400);
         TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 1, 300);
 
-        assertEquals(wall, sorted(wall, repair, dig, gold).getLast());
+        assertEquals(List.of(gold, dig, wall, repair), sorted(wall, repair, dig, gold));
     }
 
     @Test
-    void damagedWallsAreRepairedBeforeTheUsualWork() {
+    void damagedWallsAreRepairedWithTheOtherWallWork() {
 
-        // The repair is further away and worth less points than the rest, it is still done first
+        // As in the original, repairing is not done first: it comes after the usual work, together with
+        // reinforcing, the free and closest first
         TaskManager.TaskWorkerPriority repair = pair(TaskType.REPAIR_WALL, 0, 140);
         TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 12);
         TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 101);
         TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 0, 105);
         TaskManager.TaskWorkerPriority wall = pair(TaskType.CLAIM_WALL, 0, 177);
 
-        assertEquals(List.of(repair, dig, claim, gold, wall), sorted(wall, gold, claim, dig, repair));
-    }
-
-    @Test
-    void dropAndStartedWorkComeBeforeRepairs() {
-        TaskManager.TaskWorkerPriority repair = pair(TaskType.REPAIR_WALL, 0, 101);
-        TaskManager.TaskWorkerPriority digNextToDrop = pair(TaskType.DIG_TILE, 0, 11, true, false);
-        TaskManager.TaskWorkerPriority claimInDropArea = pair(TaskType.CLAIM_TILE, 0, 102, true);
-        TaskManager.TaskWorkerPriority digOn = carriesOnPair(TaskType.DIG_TILE, 0, 15);
-        TaskManager.TaskWorkerPriority claimOn = carriesOnPair(TaskType.CLAIM_TILE, 0, 101);
-
-        assertEquals(repair, sorted(repair, digNextToDrop, claimInDropArea, digOn, claimOn).getLast());
+        assertEquals(List.of(dig, claim, gold, repair, wall), sorted(wall, gold, claim, dig, repair));
     }
 
     @Test
