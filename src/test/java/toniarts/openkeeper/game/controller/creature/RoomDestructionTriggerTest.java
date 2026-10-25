@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.jme3.math.Vector3f;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
@@ -67,6 +68,18 @@ class RoomDestructionTriggerTest {
         trigger.onTheWay(START, CreatureState.WORK, false, Player.GOOD_PLAYER_ID);
         assertNull(trigger.onTheWay(NEXT, CreatureState.WORK, false, Player.GOOD_PLAYER_ID));
         assertNull(trigger.onTheWay(START, CreatureState.WORK, true, Player.KEEPER1_ID));
+    }
+
+    @Test
+    void noTileWhileTheCreatureHasNoPosition() {
+
+        // A creature in the keeper's hand has no position
+        walk(START, CreatureState.WORK);
+        assertNull(trigger.onTheWay((Vector3f) null, CreatureState.WORK, true, Player.GOOD_PLAYER_ID));
+
+        // Being put down somewhere is not stepping on a tile
+        assertNull(walk(NEXT, CreatureState.WORK));
+        assertEquals(START, walk(START, CreatureState.WORK));
     }
 
     private Point walk(Point tile, CreatureState state) {

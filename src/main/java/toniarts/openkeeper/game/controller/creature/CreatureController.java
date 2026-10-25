@@ -969,7 +969,8 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private void destroyRoomOnTheWay() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        Point tile = roomDestructionTrigger.onTheWay(getCreatureCoordinates(), stateMachine.getCurrentState(),
+        Position position = entityData.getComponent(entityId, Position.class);
+        Point tile = roomDestructionTrigger.onTheWay(position != null ? position.position : null, stateMachine.getCurrentState(),
                 creatureComponent != null && creatureComponent.destroysRooms, getOwnerId());
         if (tile == null || entityData.getComponent(entityId, Possessed.class) != null
                 || !taskManager.assignDestroyRoomTask(this, tile)) {

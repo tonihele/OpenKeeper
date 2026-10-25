@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.jme3.math.Vector3f;
 import java.util.EnumSet;
 import java.util.Set;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Tells when a hero with the DESTROY_ROOMS flag should look at the room under
@@ -44,12 +46,27 @@ final class RoomDestructionTrigger {
      * there is a room to wreck, {@code null} otherwise
      */
     Point onTheWay(Point tile, CreatureState state, boolean destroysRooms, short ownerId) {
-        boolean steppedOn = lastTile != null && !lastTile.equals(tile);
+        boolean steppedOn = lastTile != null && tile != null && !lastTile.equals(tile);
         lastTile = tile;
         if (steppedOn && destroysRooms && ownerId == Player.GOOD_PLAYER_ID && FREE_STATES.contains(state)) {
             return tile;
         }
         return null;
+    }
+
+    /**
+     * Note where the creature is
+     *
+     * @param position the creature's position, {@code null} while it has none,
+     * as in the keeper's hand
+     * @param state the creature state
+     * @param destroysRooms has the creature the DESTROY_ROOMS flag
+     * @param ownerId the owner of the creature
+     * @return the tile, if the hero has just stepped on it and should see if
+     * there is a room to wreck, {@code null} otherwise
+     */
+    Point onTheWay(Vector3f position, CreatureState state, boolean destroysRooms, short ownerId) {
+        return onTheWay(position != null ? WorldUtils.vectorToPoint(position) : null, state, destroysRooms, ownerId);
     }
 
 }
