@@ -43,11 +43,11 @@ public record SystemMessageTarget(EntityId entityId, Vector3f position) {
     /**
      * A message about a place on the map
      *
-     * @param position the position
+     * @param position the position, {@code null} for a message without one
      * @return the target
      */
     public static SystemMessageTarget ofPosition(Vector3f position) {
-        return new SystemMessageTarget(null, position.clone());
+        return new SystemMessageTarget(null, position != null ? position.clone() : null);
     }
 
     /**

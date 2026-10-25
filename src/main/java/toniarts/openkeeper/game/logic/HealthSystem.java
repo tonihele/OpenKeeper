@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -201,7 +202,14 @@ public final class HealthSystem extends GameTimeCounter {
             if (health.health + healthChange <= 0) {
                 processHealthDepleted(entityId, health);
             } else {
-                entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
+                int newHealth = Math.min(health.health + healthChange, health.maxHealth);
+                entityData.setComponent(entityId, new Health(newHealth, health.maxHealth));
+                if (roomAttackMessages != null && DungeonHeartTarget.isDungeonHeart(entityData, entityId)) {
+                    Owner owner = entityData.getComponent(entityId, Owner.class);
+                    if (owner != null) {
+                        roomAttackMessages.heartHealthChanged(owner.ownerId, newHealth, health.maxHealth);
+                    }
+                }
             }
         }
     }
@@ -239,6 +247,10 @@ public final class HealthSystem extends GameTimeCounter {
     private void processHealthDepleted(EntityId entityId, Health health) {
 
         // Death or destruction!!!!
+        if (roomAttackMessages != null && DungeonHeartTarget.isDungeonHeart(entityData, entityId)) {
+            processHeartDestroyed(entityId);
+        }
+
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
             triggerDestroyedEffect(entityId);
@@ -275,6 +287,24 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Leave the entity incapacitaded and waiting for death... or rescue
         processUnconscious(entityId, health);
+    }
+
+    private void processHeartDestroyed(EntityId heart) {
+        Owner owner = entityData.getComponent(heart, Owner.class);
+        if (owner == null) {
+            return;
+        }
+
+        // The one attacking the heart destroyed it
+        short destroyerId = 0;
+        for (EntityId attacker : entityData.findEntities(new FieldFilter(AttackTarget.class, "entityId", heart), AttackTarget.class, Owner.class)) {
+            Owner attackerOwner = entityData.getComponent(attacker, Owner.class);
+            if (attackerOwner.ownerId != owner.ownerId) {
+                destroyerId = attackerOwner.ownerId;
+                break;
+            }
+        }
+        roomAttackMessages.heartDestroyed(owner.ownerId, destroyerId);
     }
 
     private boolean isDiesInstantly(EntityId entityId) {

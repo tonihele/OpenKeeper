@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.RoomAttackMessages;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.state.session.PlayerService;
@@ -94,6 +96,33 @@ class HealthSystemTest {
     }
 
     @Test
+    void heartAtHalfHealthIsToldToItsOwner() {
+        EntityId heart = createHeart(KEEPER);
+        HealthSystem healthSystem = createHealthSystem();
+
+        entityData.setComponent(heart, new Damage(500));
+        healthSystem.processTick(0.25f);
+
+        // "Your Dungeon Heart is under attack!", then the warning for 50% health
+        assertEquals(List.of(346 + "@" + WorldUtils.pointToVector3f(HEART_TILE) + ">p" + KEEPER, "347@null>p" + KEEPER), messages);
+    }
+
+    @Test
+    void destroyedHeartIsToldToItsOwnerAndTheKeeperAttackingIt() {
+        EntityId heart = createHeart(KEEPER);
+        EntityId attacker = entityData.createEntity();
+        entityData.setComponents(attacker, new AttackTarget(heart), new Owner(Player.KEEPER2_ID, Player.KEEPER2_ID));
+        HealthSystem healthSystem = createHealthSystem();
+
+        entityData.setComponent(heart, new Damage(1000));
+        healthSystem.processTick(0.25f);
+
+        // The heart is lost, then the one who destroyed it hears of the victory
+        assertEquals(List.of(346 + "@" + WorldUtils.pointToVector3f(HEART_TILE) + ">p" + KEEPER, "1291@null>p" + KEEPER,
+                "1162@null>p" + Player.KEEPER2_ID), messages);
+    }
+
+    @Test
     void damageToAnotherObjectIsNotToldAsAnAttackOnTheHeart() {
         EntityId object = entityData.createEntity();
         entityData.setComponents(object, new ObjectComponent(FiveByFiveRotatedController.OBJECT_PLUG_ID, null),
@@ -115,7 +144,7 @@ class HealthSystemTest {
     }
 
     private HealthSystem createHealthSystem() {
-        return new HealthSystem(entityData, stub(IEntityPositionLookup.class, null),
+        return new HealthSystem(entityData, stub(IEntityPositionLookup.class, stub(IEntityController.class, null)),
                 Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60),
                         MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND,

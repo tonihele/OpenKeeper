@@ -29,7 +29,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Tells the keeper that his room or his Dungeon Heart is under attack or that he
- * has lost a room. Each room message has a mentor speech of its own per room
+ * has lost a room or his heart. Each room message has a mentor speech of its own per room
  * type, and the same message about the same room type is not repeated while
  * the last one is still shown (DKII.EXE message table at 0x6A0B00, queue at
  * 0x4C4600)
@@ -43,6 +43,31 @@ public final class RoomAttackMessages {
          * when the heart object takes damage (0x4DA200)
          */
         HEART_UNDER_ATTACK(120, 346, Map.of()),
+
+        /**
+         * "Your Dungeon Heart is at half its health", message 0x27. DKII.EXE
+         * raises it in the heart room's update when the health is at exactly
+         * 50% (0x4D9A60). It has no tile
+         */
+        HEART_HALF_HEALTH(50, 347, Map.of()),
+
+        /**
+         * "Your Dungeon Heart is almost dead", message 0x28, at exactly 10%
+         * (0x4D9A60). It has no tile
+         */
+        HEART_LOW_HEALTH(50, 345, Map.of()),
+
+        /**
+         * "Your Dungeon Heart has been destroyed!", message 2, told to the
+         * owner when the heart is destroyed (0x4DA560). It has no tile
+         */
+        HEART_DESTROYED(50, 1291, Map.of()),
+
+        /**
+         * "You have defeated an enemy Keeper", message 3, told to the player
+         * who destroyed the heart (0x4DA560). It has no tile
+         */
+        ENEMY_DEFEATED(20, 1162, Map.of()),
 
         /**
          * "Your Lair is under attack", message 0x22
@@ -118,6 +143,37 @@ public final class RoomAttackMessages {
     }
 
     /**
+     * The Dungeon Heart's health changed. DKII.EXE checks the heart's health
+     * as a whole percent in the heart room's update, and warns at exactly 50%
+     * and at exactly 10%, so a change that jumps over them isn't warned about
+     *
+     * @param ownerId the owner of the heart
+     * @param health the health of the heart
+     * @param maxHealth the full health of the heart
+     */
+    public void heartHealthChanged(short ownerId, int health, int maxHealth) {
+        int percent = health * 100 / maxHealth;
+        if (percent == 50) {
+            show(Message.HEART_HALF_HEALTH, ownerId, (short) 0, null);
+        } else if (percent == 10) {
+            show(Message.HEART_LOW_HEALTH, ownerId, (short) 0, null);
+        }
+    }
+
+    /**
+     * The Dungeon Heart was destroyed
+     *
+     * @param ownerId the owner of the heart
+     * @param destroyerId the player who destroyed it, 0 if not known
+     */
+    public void heartDestroyed(short ownerId, short destroyerId) {
+        show(Message.HEART_DESTROYED, ownerId, (short) 0, null);
+        if (destroyerId != 0 && destroyerId != ownerId) {
+            show(Message.ENEMY_DEFEATED, destroyerId, (short) 0, null);
+        }
+    }
+
+    /**
      * The room lost a tile. The keeper hears of it if he has fewer rooms of the
      * type than before
      *
@@ -150,7 +206,7 @@ public final class RoomAttackMessages {
         }
         entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
         int speechId = message.speechIdsByRoom.getOrDefault((int) roomId, message.defaultSpeechId);
-        playerService.showMentorMessage(speechId, WorldUtils.pointToVector3f(tile), ownerId);
+        playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, ownerId);
     }
 
 }

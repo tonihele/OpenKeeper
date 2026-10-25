@@ -39,7 +39,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The message queue (0x4C4600) doesn't repeat a message of the same type for
  * the same room type while the last one is shown: 30 seconds for an attack, 20
  * for a lost room (table at 0x6A0B00). Damage to the Dungeon Heart raises
- * message 1 (0x4DA200), which is not repeated for 120 seconds
+ * message 1 (0x4DA200), which is not repeated for 120 seconds. The heart room's
+ * update warns at exactly 50% and 10% health (0x4D9A60), and the destroyed heart
+ * is told to its owner and to its destroyer (0x4DA560); none of them has a tile
  */
 class RoomAttackMessagesTest {
 
@@ -174,12 +176,57 @@ class RoomAttackMessagesTest {
     }
 
     @Test
+    void tellsTheKeeperWhenHisHeartIsAtHalfAndAtTenPercentOfHealth() {
+        roomAttackMessages.heartHealthChanged(KEEPER, 1000, 1000);
+        roomAttackMessages.heartHealthChanged(KEEPER, 500, 1000);
+        roomAttackMessages.heartHealthChanged(KEEPER, 100, 1000);
+
+        // Both are told without a tile
+        assertEquals(List.of("347@null>p" + KEEPER, "345@null>p" + KEEPER), messages);
+    }
+
+    @Test
+    void healthWarningsAreExactPercentagesAndTold50SecondsApart() {
+        roomAttackMessages.heartHealthChanged(KEEPER, 510, 1000);
+        roomAttackMessages.heartHealthChanged(KEEPER, 499, 1000);
+        roomAttackMessages.heartHealthChanged(KEEPER, 5, 1000);
+        assertEquals(List.of(), messages);
+
+        roomAttackMessages.heartHealthChanged(KEEPER, 509, 1000);
+        gameTime += 49;
+        roomAttackMessages.heartHealthChanged(KEEPER, 500, 1000);
+        assertEquals(1, messages.size());
+
+        gameTime += 1;
+        roomAttackMessages.heartHealthChanged(KEEPER, 500, 1000);
+        assertEquals(2, messages.size());
+    }
+
+    @Test
+    void destroyedHeartIsToldToItsOwnerAndItsDestroyer() {
+        roomAttackMessages.heartDestroyed(KEEPER, Player.KEEPER2_ID);
+
+        // "Your Dungeon Heart has been destroyed!", "You have defeated an enemy Keeper"
+        assertEquals(List.of("1291@null>p" + KEEPER, "1162@null>p" + Player.KEEPER2_ID), messages);
+    }
+
+    @Test
+    void destroyedHeartWithoutADestroyerIsToldOnlyToItsOwner() {
+        roomAttackMessages.heartDestroyed(KEEPER, (short) 0);
+        roomAttackMessages.heartDestroyed(Player.KEEPER2_ID, Player.KEEPER2_ID);
+
+        assertEquals(List.of("1291@null>p" + KEEPER, "1291@null>p" + Player.KEEPER2_ID), messages);
+    }
+
+    @Test
     void worksWithoutPlayers() {
         RoomAttackMessages withoutPlayers = new RoomAttackMessages(new DefaultEntityData(), null, gameTimer);
 
         withoutPlayers.roomTileAttacked(KEEPER, lair, TILE);
         withoutPlayers.roomLost(KEEPER, lair, 1, 0, TILE);
         withoutPlayers.heartAttacked(KEEPER, TILE);
+        withoutPlayers.heartHealthChanged(KEEPER, 500, 1000);
+        withoutPlayers.heartDestroyed(KEEPER, Player.KEEPER2_ID);
 
         assertTrue(messages.isEmpty());
     }
