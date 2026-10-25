@@ -273,6 +273,22 @@ public final class Main extends SimpleApplication {
     }
 
     /**
+     * A minimised window reports a 0x0 framebuffer. Resizing the cameras, the
+     * post processors and Nifty to that breaks them (NaN aspect ratio, empty
+     * layouts), so keep the last real size until the window is restored.
+     *
+     * @param w the new width
+     * @param h the new height
+     */
+    @Override
+    public void reshape(int w, int h) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        super.reshape(w, h);
+    }
+
+    /**
      * Sets SWING look and feel
      */
     private static void setLookNFeel() {
