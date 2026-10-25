@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A burning Inferno, it burns the creatures around it for as long as it
- * lasts
+ * A burning Inferno, it burns the creatures around it every game tick for as
+ * long as it lasts
  */
 public final class InfernoArea implements EntityComponent {
 
@@ -30,29 +30,23 @@ public final class InfernoArea implements EntityComponent {
     public int damage;
 
     /**
-     * How far the fire reaches, in tiles from the middle of its tile
+     * How far the fire reaches, in tiles from where it was cast
      */
     public int radius;
 
     /**
-     * Seconds between two burns
+     * How many times it has burnt so far
      */
-    public double interval;
-
-    /**
-     * Game time of the next burn
-     */
-    public double nextBurn;
+    public int burns;
 
     public InfernoArea() {
         // For serialization
     }
 
-    public InfernoArea(int damage, int radius, double interval, double nextBurn) {
+    public InfernoArea(int damage, int radius, int burns) {
         this.damage = damage;
         this.radius = radius;
-        this.interval = interval;
-        this.nextBurn = nextBurn;
+        this.burns = burns;
     }
 
 }

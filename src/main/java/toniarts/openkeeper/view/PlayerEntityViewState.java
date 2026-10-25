@@ -61,7 +61,6 @@ import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
-import toniarts.openkeeper.view.effect.RepeatingEffectControl;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -390,20 +389,6 @@ public class PlayerEntityViewState extends AbstractAppState {
         Vector3f position = e.get(Position.class).position;
         if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
             playShotEffects(shot, position);
-        }
-
-        // A constant shot, like the fire of an Inferno, keeps its effect going while it lasts, started again and again
-        // at uneven pauses. Always in the middle: the Inferno's flames reach about 1.4 tiles at most, inside the
-        // 1.5 tiles it burns
-        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.CONSTANT) && shot.getTimedDelay() > 0) {
-            Vector3f effectPosition = position.clone();
-            float timedDelay = shot.getTimedDelay() / 1000f;
-            result.addControl(new RepeatingEffectControl(0.3f * timedDelay, timedDelay, () -> {
-                EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
-                if (effectManagerState != null && fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(effectPosition))) {
-                    effectManagerState.load(nodeShots, effectPosition.clone(), shot.getCreationEffectId(), false);
-                }
-            }));
         }
 
         return result;

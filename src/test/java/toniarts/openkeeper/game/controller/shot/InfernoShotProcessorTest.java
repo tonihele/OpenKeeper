@@ -54,26 +54,24 @@ class InfernoShotProcessorTest {
         assertEquals(position, fire.get(Position.class).position);
         InfernoArea area = fire.get(InfernoArea.class);
         assertEquals(1, area.radius);
-        assertEquals(0.251, area.interval, 1e-9);
-        assertEquals(GAME_TIME, area.nextBurn, 1e-9);
+        assertEquals(0, area.burns);
         assertEquals(GAME_TIME, fire.get(Decay.class).startTime, 1e-9);
         assertEquals(7.5, fire.get(Decay.class).duration, 1e-9);
         fires.release();
     }
 
     @Test
-    void burnsFortyASecond() {
+    void burnsTheShotDataEveryTick() {
         processor.process(new ShotRequest(inferno, 100, 1, PLAYER_ID, new Vector3f(), null));
 
-        // 40 a second, a burn every 0.251 seconds
-        assertEquals(10, burnDamage());
+        assertEquals(100, burnDamage());
     }
 
     @Test
-    void upgradedSpellBurnsFiftyASecond() {
+    void upgradedSpellBurnsMore() {
         processor.process(new ShotRequest(inferno, 125, 1, PLAYER_ID, new Vector3f(), null));
 
-        assertEquals(13, burnDamage());
+        assertEquals(125, burnDamage());
     }
 
     private int burnDamage() {

@@ -29,10 +29,11 @@ import toniarts.openkeeper.tools.convert.map.Shot;
  * creatures around it while it lasts. The burning itself is done by
  * {@code InfernoSystem}.
  * <p>
- * Prima's official strategy guide for the original gives 40 damage a second,
- * 50 upgraded, for 8 seconds. That is the shot's damage, 10 (13 upgraded),
- * each of the level's 4 ticks a second, and the shot's health 30 is 7.5
- * seconds in ticks.
+ * As in the original's Inferno handler (DKII.EXE 0x4AF660): the shot is a
+ * constant one, so it burns every game tick while it lasts, with shot data 1
+ * as the damage (100, 125 upgraded) and shot data 2 as the reach in tiles.
+ * The shot's health 30 is its lifetime in game ticks, 7.5 seconds at the
+ * level's 4 ticks a second.
  */
 public final class InfernoShotProcessor implements IShotProcessor {
 
@@ -52,10 +53,7 @@ public final class InfernoShotProcessor implements IShotProcessor {
         EntityId fire = ShotEntityFactory.create(entityData, request.shot(), request.position(), now);
         entityData.setComponent(fire, new Decay(now, getLifetime(request.shot())));
 
-        // The damage is per game tick, shot data 2 is the reach in tiles
-        double interval = getInterval(request.shot());
-        int damage = (int) Math.round(request.damage() * ticksPerSecond.getAsInt() * interval);
-        entityData.setComponent(fire, new InfernoArea(damage, request.shotData2(), interval, now));
+        entityData.setComponent(fire, new InfernoArea(request.shotData1(), request.shotData2(), 0));
     }
 
     /**
@@ -66,17 +64,6 @@ public final class InfernoShotProcessor implements IShotProcessor {
      */
     double getLifetime(Shot shot) {
         return (double) shot.getHealth() / ticksPerSecond.getAsInt();
-    }
-
-    /**
-     * The shot burns again after its timed delay, which is taken to be in
-     * milliseconds
-     *
-     * @param shot the shot
-     * @return seconds between two burns
-     */
-    static double getInterval(Shot shot) {
-        return shot.getTimedDelay() / 1000.0;
     }
 
 }

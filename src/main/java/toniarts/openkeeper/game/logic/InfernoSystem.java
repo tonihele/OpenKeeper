@@ -28,15 +28,15 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Burns the creatures around a burning Inferno, friend and foe alike, except
- * the ones fire can't harm. The fire itself goes out on its own (it decays).
+ * the ones fire can't harm. As in the original (DKII.EXE 0x4AF660) it burns
+ * every game tick. The fire itself goes out on its own (it decays).
  */
-public final class InfernoSystem extends GameTimeCounter {
+public final class InfernoSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IEntityPositionLookup entityPositionLookup;
@@ -53,25 +53,24 @@ public final class InfernoSystem extends GameTimeCounter {
 
     @Override
     public void processTick(float tpf) {
-        super.processTick(tpf);
         fires.applyChanges();
 
         for (Entity fire : fires) {
             InfernoArea area = fire.get(InfernoArea.class);
-            if (timeElapsed < area.nextBurn) {
-                continue;
-            }
-
             burn(area, fire.get(Position.class).position);
-            entityData.setComponent(fire.getId(), new InfernoArea(area.damage, area.radius, area.interval, area.nextBurn + area.interval));
+            entityData.setComponent(fire.getId(), new InfernoArea(area.damage, area.radius, area.burns + 1));
         }
     }
 
     private void burn(InfernoArea area, Vector3f centre) {
 
-        // Only the tiles in reach, the creatures on them that are within the radius
+        // The creatures on the tiles in reach that are closer than the radius. The first burn reaches only half the
+        // area, as in the original
+        float reachSquared = area.radius * area.radius * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
+        if (area.burns == 0) {
+            reachSquared /= 2;
+        }
         Point tile = WorldUtils.vectorToPoint(centre);
-        float reach = area.radius + 0.5f;
         for (int x = tile.x - area.radius; x <= tile.x + area.radius; x++) {
             for (int y = tile.y - area.radius; y <= tile.y + area.radius; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
@@ -84,7 +83,7 @@ public final class InfernoSystem extends GameTimeCounter {
                     }
                     float dx = position.position.x - centre.x;
                     float dz = position.position.z - centre.z;
-                    if (dx * dx + dz * dz <= reach * reach) {
+                    if (dx * dx + dz * dz < reachSquared) {
                         EntityController.setDamage(entityData, entityId, area.damage);
                     }
                 }
@@ -93,14 +92,18 @@ public final class InfernoSystem extends GameTimeCounter {
     }
 
     /**
-     * Creatures walking on lava don't burn (Salamander, Giant, Horny), nor do
-     * the ones only Horny can harm (Stone Knight)
+     * Creatures walking on lava don't burn unless they fly (Salamander, Giant,
+     * Horny, but not Firefly or Fairy), that is the Inferno's own check in the
+     * original. Horny and the ones only Horny can harm (Stone Knight) take no
+     * damage at all there
      *
      * @param creature the creature
      * @return true if the Inferno can't harm it
      */
     static boolean isFireproof(Creature creature) {
-        return creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)
+        return (creature.getFlags().contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)
+                && !creature.getFlags().contains(Creature.CreatureFlag.CAN_FLY))
+                || creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
                 || creature.getFlags().contains(Creature.CreatureFlag.ONLY_ATTACKABLE_BY_HORNY);
     }
 

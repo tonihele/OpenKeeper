@@ -43,48 +43,64 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class InfernoSystemTest {
 
-    private static final int DAMAGE = 10;
+    private static final int DAMAGE = 100;
     private static final float TICK = 0.25f;
     private static final short TROLL = 1;
     private static final short SALAMANDER = 2;
     private static final short STONE_KNIGHT = 3;
+    private static final short HORNY = 4;
+    private static final short FIREFLY = 5;
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Point, List<EntityId>> entitiesByTile = new HashMap<>();
     private final Map<Short, Creature> creatures = Map.of(
             TROLL, CreatureFlagFixtures.creature(TROLL, EnumSet.of(Creature.CreatureFlag.CAN_WALK_ON_WATER)),
             SALAMANDER, CreatureFlagFixtures.creature(SALAMANDER, EnumSet.of(Creature.CreatureFlag.CAN_WALK_ON_LAVA)),
-            STONE_KNIGHT, CreatureFlagFixtures.creature(STONE_KNIGHT, EnumSet.of(Creature.CreatureFlag.ONLY_ATTACKABLE_BY_HORNY)));
+            STONE_KNIGHT, CreatureFlagFixtures.creature(STONE_KNIGHT, EnumSet.of(Creature.CreatureFlag.ONLY_ATTACKABLE_BY_HORNY)),
+            HORNY, CreatureFlagFixtures.creature(HORNY, EnumSet.of(Creature.CreatureFlag.CAN_WALK_ON_LAVA, Creature.CreatureFlag.IS_HORNY)),
+            FIREFLY, CreatureFlagFixtures.creature(FIREFLY, EnumSet.of(Creature.CreatureFlag.CAN_WALK_ON_LAVA, Creature.CreatureFlag.CAN_FLY)));
     private final InfernoSystem system = new InfernoSystem(entityData, positionLookup(), kwdFile());
 
     @Test
-    void burnsTheCreaturesInReachOnEveryBurn() {
+    void burnsEveryTick() {
         EntityId fire = fire(new Point(5, 5));
         EntityId inTheFire = creature(new Point(5, 5));
-        EntityId nextToIt = creature(new Point(6, 5));
 
-        system.processTick(TICK);
-        assertEquals(DAMAGE, damage(inTheFire));
-        assertEquals(DAMAGE, damage(nextToIt));
-
-        // The next burn comes after the interval, a hair longer than a logic tick
         system.processTick(TICK);
         assertEquals(DAMAGE, damage(inTheFire));
         system.processTick(TICK);
         assertEquals(2 * DAMAGE, damage(inTheFire));
-        assertEquals(TICK + 2 * 0.251, entityData.getComponent(fire, InfernoArea.class).nextBurn, 1e-6);
+        assertEquals(2, entityData.getComponent(fire, InfernoArea.class).burns);
+    }
+
+    @Test
+    void firstBurnReachesHalfTheArea() {
+        fire(new Point(5, 5));
+
+        // 0.8 tiles away: outside the first burn's reach of 0.71 tiles, inside the 1 tile after it
+        EntityId creature = creature(new Vector3f(5.8f, WorldUtils.FLOOR_HEIGHT, 5f), TROLL);
+
+        system.processTick(TICK);
+        assertEquals(0, damage(creature));
+        system.processTick(TICK);
+        assertEquals(DAMAGE, damage(creature));
     }
 
     @Test
     void creaturesOutOfReachAndObjectsAreNotBurnt() {
         fire(new Point(5, 5));
+
+        // The reach is less than a tile, the middle of the next tile is just out of it
+        EntityId nextTile = creature(new Point(6, 5));
         EntityId farAway = creature(new Point(7, 5));
         EntityId chest = entityData.createEntity();
-        place(chest, new Point(5, 6));
+        place(chest, new Point(5, 5));
         entityData.setComponent(chest, new Health(100, 100));
 
         system.processTick(TICK);
+        system.processTick(TICK);
 
+        assertNull(entityData.getComponent(nextTile, Damage.class));
         assertNull(entityData.getComponent(farAway, Damage.class));
         assertNull(entityData.getComponent(chest, Damage.class));
     }
@@ -94,11 +110,23 @@ class InfernoSystemTest {
         fire(new Point(5, 5));
         EntityId salamander = creature(new Point(5, 5), SALAMANDER);
         EntityId stoneKnight = creature(new Point(5, 5), STONE_KNIGHT);
+        EntityId horny = creature(new Point(5, 5), HORNY);
 
         system.processTick(TICK);
 
         assertNull(entityData.getComponent(salamander, Damage.class));
         assertNull(entityData.getComponent(stoneKnight, Damage.class));
+        assertNull(entityData.getComponent(horny, Damage.class));
+    }
+
+    @Test
+    void flyingCreaturesBurnEvenIfTheyWalkOnLava() {
+        fire(new Point(5, 5));
+        EntityId firefly = creature(new Point(5, 5), FIREFLY);
+
+        system.processTick(TICK);
+
+        assertEquals(DAMAGE, damage(firefly));
     }
 
     @Test
@@ -116,8 +144,17 @@ class InfernoSystemTest {
 
     private EntityId fire(Point tile) {
         EntityId fire = entityData.createEntity();
-        entityData.setComponents(fire, new InfernoArea(DAMAGE, 1, 0.251, TICK), at(tile));
+        entityData.setComponents(fire, new InfernoArea(DAMAGE, 1, 0), at(tile));
         return fire;
+    }
+
+    private EntityId creature(Vector3f position, short creatureId) {
+        EntityId creature = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = creatureId;
+        entityData.setComponents(creature, creatureComponent, new Health(1000, 1000), new Position(0, position));
+        entitiesByTile.computeIfAbsent(WorldUtils.vectorToPoint(position), p -> new ArrayList<>()).add(creature);
+        return creature;
     }
 
     private EntityId creature(Point tile) {
