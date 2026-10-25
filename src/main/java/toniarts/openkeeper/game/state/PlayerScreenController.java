@@ -721,6 +721,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String sound = ((CustomTabControl) event.getTab()).getSound();
             this.playButtonSound(sound);
         }
+        reapplyIconEffects();
     }
 
     protected void initHud(String resource, EntityData entityData) {
@@ -990,9 +991,22 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 continue;
             }
             Element icon = hud.findElementById("room_" + room.getId());
-            if (icon != null) {
-                Room roomType = state.getKwdFile().getRoomById(room.getId());
-                setUnaffordable(icon, !HudAffordability.canAffordRoom(roomType, gold), unaffordableRooms);
+            if (icon == null) {
+                continue;
+            }
+            boolean unaffordable = state.getKwdFile().getRoomById(room.getId()).getCost() > gold;
+            if (unaffordable == unaffordableRooms.contains(icon)) {
+                continue;
+            }
+            if (unaffordable) {
+                unaffordableRooms.add(icon);
+                icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else {
+                unaffordableRooms.remove(icon);
+                icon.stopEffect(EffectEventId.onCustom);
+                if (icon == selectedButton) {
+                    icon.startEffect(EffectEventId.onCustom, null, "select");
+                }
             }
         }
     }
@@ -1043,25 +1057,38 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
-     * Darkens an icon, or lights it up again
-     *
-     * @param icon the icon
-     * @param unaffordable whether the player can't afford what the icon is for
-     * @param unaffordableIcons the icons of the same kind that are darkened
+     * Nifty saves the effects of a tab when it is hidden and starts them again
+     * when the tab is shown, even the ones that were stopped in between. Gives
+     * the room and spell icons their effects again so that an icon that was lit
+     * while its tab was hidden doesn't come back dark.
      */
-    private void setUnaffordable(Element icon, boolean unaffordable, Set<Element> unaffordableIcons) {
-        if (unaffordable == unaffordableIcons.contains(icon)) {
+    private void reapplyIconEffects() {
+        if (state == null) {
             return;
         }
-        if (unaffordable) {
-            unaffordableIcons.add(icon);
-            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
-        } else {
-            unaffordableIcons.remove(icon);
-            icon.stopEffect(EffectEventId.onCustom);
-            if (icon == selectedButton) {
-                icon.startEffect(EffectEventId.onCustom, null, "select");
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
+            if (room.isDiscovered()) {
+                reapplyIconEffects(hud.findElementById("room_" + room.getId()), unaffordableRooms);
             }
+        }
+        for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.isDiscovered()) {
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
+                reapplyIconEffects(hud.findElementById("spell_" + keeperSpell.getKeeperSpellId()), unaffordableSpells);
+            }
+        }
+    }
+
+    private void reapplyIconEffects(Element icon, Set<Element> unaffordableIcons) {
+        if (icon == null) {
+            return;
+        }
+        icon.stopEffect(EffectEventId.onCustom);
+        if (unaffordableIcons.contains(icon)) {
+            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        } else if (icon == selectedButton) {
+            icon.startEffect(EffectEventId.onCustom, null, "select");
         }
     }
 
