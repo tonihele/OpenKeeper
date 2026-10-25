@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.state;
 
-import com.jme3.audio.AudioData;
-import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyNames;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
@@ -69,7 +67,6 @@ import toniarts.openkeeper.gui.nifty.table.TableControl;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
