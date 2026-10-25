@@ -19,8 +19,9 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A worker that is digging. It keeps on digging the tiles marked around it
- * before it takes on other work.
+ * A worker that is digging. It keeps on digging the marked tiles, the closest
+ * first however far, before it takes on other work. Once the digging is done
+ * it brings its gold home first.
  */
 public final class DiggingTiles implements EntityComponent {
 
