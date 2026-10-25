@@ -483,6 +483,7 @@
                 <panel childLayout="horizontal">
                     <panel childLayout="center" width="230px" padding="0,6px,6px,6px">
                         <panel padding="10px" childLayout="center">
+                            <panel id="minimapImage" valign="center" width="180px" height="180px"/>
                             <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
                         </panel>
                         <panel childLayout="center" valign="center" backgroundImage="Textures/GUI/Map/map-2.png"

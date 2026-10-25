@@ -81,7 +81,7 @@ class MinimapMarkerPainterTest {
 
     private boolean paintsAnything() {
         byte[] raster = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
-        painter.paint(raster, 16, 16, -1, 0, 0, new FakeFogOfWarInformation(), true, 0, 0, null, 0);
+        painter.paint(raster, 16, 16, -1, 0, 0, new FakeFogOfWarInformation(), true, 0, 0, null, 0, null);
         for (byte b : raster) {
             if (b != 0) {
                 return true;

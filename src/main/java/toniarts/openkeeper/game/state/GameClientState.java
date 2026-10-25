@@ -98,6 +98,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final CampaignLevel campaignLevel;
 
     private PlayerMapViewState playerMapViewState;
+    private volatile EntityId possessedCreature;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
@@ -751,9 +752,18 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */
     public void setPossessedCreature(EntityId entityId) {
+        possessedCreature = entityId;
         if (playerMapViewState != null) {
             playerMapViewState.setPossessedCreature(entityId);
         }
+    }
+
+    /**
+     * @return the creature the viewer is currently possessing, or
+     * {@code null} if not possessing
+     */
+    public EntityId getPossessedCreature() {
+        return possessedCreature;
     }
 
     public GameSessionClientService getGameClientService() {
