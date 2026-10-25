@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.sound.EntitySounds;
 import toniarts.openkeeper.game.sound.ThingSounds;
@@ -36,24 +37,25 @@ import toniarts.openkeeper.utils.WorldUtils;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class CreatureFallSystem extends GameTimeCounter {
+public final class CreatureFallSystem implements IGameLogicUpdatable {
 
     private static final float GRAVITY = 2.0f;
 
     private final EntityData entityData;
+    private final IGameTimer gameTimer;
     private final EntitySet fallEntities;
     private final EntitySounds entitySounds;
 
-    public CreatureFallSystem(EntityData entityData, IKwdFile kwdFile) {
+    public CreatureFallSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer) {
         this.entityData = entityData;
         this.entitySounds = new EntitySounds(entityData, kwdFile);
+        this.gameTimer = gameTimer;
 
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
     }
 
     @Override
     public void processTick(float tpf) {
-        super.processTick(tpf);
         // Add new & remove old
         fallEntities.applyChanges();
 
@@ -73,7 +75,7 @@ public final class CreatureFallSystem extends GameTimeCounter {
 
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                entityData.setComponent(entity.getId(), new CreatureAi(timeElapsed, creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
+                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2025 OpenKeeper
+ * Copyright (C) 2014-2026 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,12 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

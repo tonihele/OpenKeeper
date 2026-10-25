@@ -364,6 +364,11 @@ public final class Main extends SimpleApplication {
     @Override
     public void simpleInitApp() {
 
+        // Escape opens the game menu (PAUSE_OR_OPTIONS), it must not quit the application
+        if (inputManager.hasMapping(INPUT_MAPPING_EXIT)) {
+            inputManager.deleteMapping(INPUT_MAPPING_EXIT);
+        }
+
         if (debug) {
             ((GLRenderer)renderer).setDebugEnabled(true); // get debug names for GL objects
             if (GL.getCapabilities().OpenGL43) {
