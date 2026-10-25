@@ -353,8 +353,12 @@
 
     <!-- Fight Icon -->
     <controlDefinition style="nifty-panel-style" name="fight" controller="de.lessvoid.nifty.controls.DefaultController">
-        <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center" visible="$visible">
+        <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center">
+            <interact onSecondaryClick="zoomToBattle()" />
             <effect>
+                <onHover name="hint" hintText="${menu.2165}" hintDelay="200" />
+                <onHover name="simpleHintEx" hintText="${menu.2166}" targetElement="tooltip" />
+                <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                 <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png"
                          post="true" neverStopRendering="true" />
                 <onActive name="imageOverlayPulsate" filename="Textures/GUI/Icons/a-fight-01.png"
