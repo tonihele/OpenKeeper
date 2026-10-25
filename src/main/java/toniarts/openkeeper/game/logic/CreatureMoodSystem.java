@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
@@ -72,6 +73,13 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             CreatureMood mood = entity.get(CreatureMood.class);
             CreatureSleep sleep = entity.get(CreatureSleep.class);
             Owner owner = entity.get(Owner.class);
+
+            // DKII only runs the anger reasons for keepers (player index above 2),
+            // heroes and neutral creatures have no moods
+            if (owner.ownerId <= Player.NEUTRAL_PLAYER_ID) {
+                continue;
+            }
+
             Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
             if (creature == null) {
                 continue;
