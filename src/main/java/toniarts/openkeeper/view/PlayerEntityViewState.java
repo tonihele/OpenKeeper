@@ -496,8 +496,10 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
 
-        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), true);
+        // The effect generates its elements every turn it lives, the fire around the cannon ball for one
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), false);
         if (trail != null) {
+            trail.generateThroughoutLifetime();
             shotTrails.put(entityId, trail);
         }
     }
