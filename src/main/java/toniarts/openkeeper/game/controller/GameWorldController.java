@@ -489,8 +489,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // A door is sold on its own, one at a time and never together with rooms
         Point startTile = new Point((int) start.x, (int) start.y);
-        if (startTile.equals(new Point((int) end.x, (int) end.y))) {
-            OptionalInt doorSaleValue = doorsController.sellDoor(startTile, playerId);
+        if (startTile.equals(new Point((int) end.x, (int) end.y)) && mapController.getMapData().getTile(startTile) != null) {
+
+            // Only the entities on the tile, not every door on the map
+            OptionalInt doorSaleValue = doorsController.sellDoor(entityPositionLookup.getEntitiesInLocation(startTile), playerId);
             if (doorSaleValue.isPresent()) {
                 returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(startTile, doorSaleValue.getAsInt())));
                 return;

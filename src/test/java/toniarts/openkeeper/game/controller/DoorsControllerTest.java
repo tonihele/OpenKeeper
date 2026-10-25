@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -177,7 +178,7 @@ class DoorsControllerTest {
         doorsController.buildDoor(door);
 
         // The share is the one of the rooms, the door's own variable is not used
-        assertEquals(OptionalInt.of(125), doorsController.sellDoor(TILE, PLAYER));
+        assertEquals(OptionalInt.of(125), doorsController.sellDoor(entitiesOn(TILE), PLAYER));
         assertNull(entityData.getComponent(door, DoorComponent.class));
     }
 
@@ -187,7 +188,7 @@ class DoorsControllerTest {
         setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
         EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
 
-        assertEquals(OptionalInt.of(125), doorsController.sellDoor(TILE, PLAYER));
+        assertEquals(OptionalInt.of(125), doorsController.sellDoor(entitiesOn(TILE), PLAYER));
         assertNull(entityData.getComponent(door, DoorComponent.class));
     }
 
@@ -197,7 +198,7 @@ class DoorsControllerTest {
         setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
         EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
 
-        assertEquals(OptionalInt.empty(), doorsController.sellDoor(TILE, ENEMY));
+        assertEquals(OptionalInt.empty(), doorsController.sellDoor(entitiesOn(TILE), ENEMY));
         assertTrue(entityData.getComponent(door, DoorComponent.class) != null);
     }
 
@@ -207,7 +208,7 @@ class DoorsControllerTest {
         setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
         EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
 
-        assertEquals(OptionalInt.empty(), doorsController.sellDoor(new Point(2, 1), PLAYER));
+        assertEquals(OptionalInt.empty(), doorsController.sellDoor(entitiesOn(new Point(2, 1)), PLAYER));
         assertTrue(entityData.getComponent(door, DoorComponent.class) != null);
     }
 
@@ -232,6 +233,16 @@ class DoorsControllerTest {
 
     private static Terrain terrain(short terrainId, Terrain.TerrainFlag... flags) {
         return TerrainFixtures.terrain(terrainId, TerrainFixtures.flags(flags), 0, 1, 1, terrainId);
+    }
+
+    private List<EntityId> entitiesOn(Point tile) {
+        List<EntityId> result = new ArrayList<>();
+        for (EntityId entity : entityData.findEntities(null, Position.class)) {
+            if (WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position).equals(tile)) {
+                result.add(entity);
+            }
+        }
+        return result;
     }
 
 }
