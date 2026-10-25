@@ -23,10 +23,13 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
@@ -45,19 +48,27 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class ShotSystem implements IGameLogicUpdatable {
 
+    /**
+     * How long, in seconds, a triggered effect's entity lives. Long enough for
+     * the view to see it, the effect itself plays on as long as it lasts
+     */
+    private static final double EFFECT_TRIGGER_LIFETIME = 1;
+
     private final EntityData entityData;
     private final IKwdFile kwdFile;
+    private final IGameTimer gameTimer;
     private final IShotsController shotsController;
     private final IEntityPositionLookup entityPositionLookup;
     private final IMapInformation<?> mapInformation;
     private final Map<Short, IPlayerController> playerControllers;
     private final EntitySet shots;
 
-    public ShotSystem(EntityData entityData, IKwdFile kwdFile, IShotsController shotsController,
+    public ShotSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IShotsController shotsController,
             IEntityPositionLookup entityPositionLookup, IMapInformation<?> mapInformation,
             Map<Short, IPlayerController> playerControllers) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameTimer = gameTimer;
         this.shotsController = shotsController;
         this.entityPositionLookup = entityPositionLookup;
         this.mapInformation = mapInformation;
@@ -85,6 +96,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
         EntityId thing = findThingHit(shot, flight, position);
         if (thing != null) {
+            triggerEffect(shot.getHitThingEffectId(), position);
             shotsController.hit(entity.getId(), thing);
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
                 entityData.removeEntity(entity.getId());
@@ -92,24 +104,39 @@ public final class ShotSystem implements IGameLogicUpdatable {
             }
         }
 
-        Vector3f newPosition = move(position, flight.velocity);
-        if (newPosition == null && shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
-            entityData.removeEntity(entity.getId());
-            return;
+        Move move = move(position, flight.velocity);
+        if (move.hitWall()) {
+            triggerEffect(shot.getHitSolidEffectId(), move.position());
+            if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
+                entityData.removeEntity(entity.getId());
+                return;
+            }
         }
 
         int health = flight.health;
         if (shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME)) {
             health--;
             if (health < 1) {
+                triggerEffect(shot.getDeathEffectId(), move.position());
                 entityData.removeEntity(entity.getId());
                 return;
             }
             entityData.setComponent(entity.getId(), new ShotFlight(flight, health));
         }
-        if (newPosition != null) {
-            entityData.setComponent(entity.getId(), new Position(entity.get(Position.class).rotation, newPosition));
+        if (!move.hitWall()) {
+            entityData.setComponent(entity.getId(), new Position(entity.get(Position.class).rotation, move.position()));
         }
+    }
+
+    /**
+     * Where a move of a shot ends
+     *
+     * @param position the new position, the last one before the wall if the
+     * shot hit one
+     * @param hitWall whether the shot hit a wall
+     */
+    private record Move(Vector3f position, boolean hitWall) {
+
     }
 
     /**
@@ -117,20 +144,39 @@ public final class ShotSystem implements IGameLogicUpdatable {
      *
      * @param position where the shot is
      * @param velocity the shot's velocity
-     * @return the new position, {@code null} if the shot hit a wall
+     * @return where the move ends
      */
-    private Vector3f move(Vector3f position, Vector3f velocity) {
+    private Move move(Vector3f position, Vector3f velocity) {
         int steps = ShotFlightRules.getSteps(velocity);
         Vector3f step = velocity.divide(steps);
         Vector3f result = new Vector3f(position);
         for (int i = 0; i < steps; i++) {
             result.addLocal(step);
             if (isSolid(result)) {
-                return null;
+                return new Move(result.subtractLocal(step), true);
             }
         }
 
-        return result;
+        return new Move(result, false);
+    }
+
+    /**
+     * Sets off the shot's effect where it is, the shot's hit or its death
+     * (0x4ABD60, 0x4AB180)
+     *
+     * @param effectId the effect, 0 for none
+     * @param position where to play it
+     */
+    private void triggerEffect(int effectId, Vector3f position) {
+        if (effectId == 0) {
+            return;
+        }
+
+        EntityId effect = entityData.createEntity();
+        entityData.setComponents(effect,
+                new Position(0, new Vector3f(position)),
+                new EffectTrigger(effectId),
+                new Decay(gameTimer.getGameTime(), EFFECT_TRIGGER_LIFETIME));
     }
 
     private boolean isSolid(Vector3f position) {

@@ -95,7 +95,7 @@ public final class GameLoopManager {
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
-                new ShotSystem(entityData, level, gameWorldController.getShotsController(), positionSystem,
+                new ShotSystem(entityData, level, gameController.getGameTimer(), gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
                 (IGameLogicUpdatable) taskManager);
 

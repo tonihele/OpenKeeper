@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
@@ -133,6 +134,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
+    private final EffectTriggerContainer effectTriggerContainer;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -195,6 +197,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         shotModelContainer = new ShotModelContainer(entityData);
+        effectTriggerContainer = new EffectTriggerContainer(entityData);
     }
 
     @Override
@@ -213,6 +216,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        effectTriggerContainer.start();
     }
 
     @Override
@@ -225,6 +229,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        effectTriggerContainer.update();
     }
 
     @Override
@@ -235,6 +240,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         shotModelContainer.stop();
+        effectTriggerContainer.stop();
 
         // Detach entities
         rootNode.detachChild(root);
@@ -713,6 +719,39 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Boolean object, Entity e) {
             // Not individually removable today - only
             // EffectManagerState.clearActiveEffects() clears everything
+        }
+    }
+
+    /**
+     * Plays the effects the game logic sets off, like a shot hitting a
+     * creature. Each plays once, as long as it lasts, the entity is gone
+     * sooner.
+     */
+    private final class EffectTriggerContainer extends EntityContainer<Boolean> {
+
+        public EffectTriggerContainer(EntityData ed) {
+            super(ed, Position.class, EffectTrigger.class);
+        }
+
+        @Override
+        protected Boolean addObject(Entity e) {
+            logger.log(Level.TRACE, "EffectTriggerContainer.addObject({0})", e);
+            Vector3f position = e.get(Position.class).position;
+            EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+            if (effectManagerState != null && fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
+                effectManagerState.load(nodeShots, position.clone(), e.get(EffectTrigger.class).effectId, false);
+            }
+            return Boolean.TRUE;
+        }
+
+        @Override
+        protected void updateObject(Boolean object, Entity e) {
+            // The effect plays where it was set off
+        }
+
+        @Override
+        protected void removeObject(Boolean object, Entity e) {
+            // The effect plays on until it ends by itself
         }
     }
 
