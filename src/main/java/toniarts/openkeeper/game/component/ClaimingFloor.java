@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A worker that is claiming floor. It keeps on claiming the floor right next
- * to it before it takes on other work.
+ * A worker that is claiming, floor or rooms. It keeps on claiming, the
+ * closest first however far, before it takes on other work.
  */
 public final class ClaimingFloor implements EntityComponent {
 
