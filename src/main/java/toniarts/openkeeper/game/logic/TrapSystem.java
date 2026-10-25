@@ -86,10 +86,10 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private static final float TRIGGER_TRAP_RANGE = 4;
 
     /**
-     * How close, in tiles, a Trigger Trap needs to be to take over another
-     * trap's triggering. Only the four tiles next to it, not the diagonal ones
+     * Where a Trigger Trap needs to be to take over another trap's triggering.
+     * Only the four tiles next to it, not the diagonal ones
      */
-    private static final float TRIGGER_TRAP_TAKEOVER_RANGE = 1;
+    private static final int[][] TRIGGER_TRAP_TAKEOVER_TILES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
     /**
      * How far, in tiles, a creature that reveals traps reveals them. Its own
@@ -101,6 +101,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final IBlocksSight blocksSight;
+    private final IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final ITrapEffects trapEffects;
     private final IShotsController shotsController;
@@ -131,6 +132,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * @param kwdFile the level data, for the traps and creatures
      * @param gameTimer the game time
      * @param blocksSight tells the tiles that block a trap's sight
+     * @param entityPositionLookup finds the things on a tile
      * @param playerControllers the players, for their mana and enemies
      * @param trapEffects applies the shots that hit at once
      * @param shotsController fires the shots that fly
@@ -138,12 +140,13 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * spreads
      */
     public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IBlocksSight blocksSight,
-            Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects, IShotsController shotsController,
-            float triggerSpeed) {
+            IEntityPositionLookup entityPositionLookup, Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects,
+            IShotsController shotsController, float triggerSpeed) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         this.blocksSight = blocksSight;
+        this.entityPositionLookup = entityPositionLookup;
         this.playerControllers = playerControllers;
         this.trapEffects = trapEffects;
         this.shotsController = shotsController;
@@ -318,13 +321,15 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         short ownerId = trapEntity.get(Owner.class).ownerId;
-        Vector3f trapPosition = trapEntity.get(Position.class).position;
-        for (Entity otherTrapEntity : trapEntities) {
-            if (otherTrapEntity.get(Owner.class).ownerId == ownerId && !otherTrapEntity.get(TrapViewState.class).blueprint
-                    && distanceSquared(trapPosition, otherTrapEntity.get(Position.class).position)
-                    <= TRIGGER_TRAP_TAKEOVER_RANGE * TRIGGER_TRAP_TAKEOVER_RANGE
-                    && kwdFile.getTrapById(otherTrapEntity.get(TrapComponent.class).trapId).getTriggerType() == Trap.TriggerType.TRIGGER) {
-                return true;
+        Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
+        for (int[] offset : TRIGGER_TRAP_TAKEOVER_TILES) {
+            for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(trapTile.x + offset[0], trapTile.y + offset[1])) {
+                Entity otherTrapEntity = trapEntities.getEntity(entityId);
+                if (otherTrapEntity != null && otherTrapEntity.get(Owner.class).ownerId == ownerId
+                        && !otherTrapEntity.get(TrapViewState.class).blueprint
+                        && kwdFile.getTrapById(otherTrapEntity.get(TrapComponent.class).trapId).getTriggerType() == Trap.TriggerType.TRIGGER) {
+                    return true;
+                }
             }
         }
 
@@ -395,14 +400,20 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
             Point creatureTile = WorldUtils.vectorToPoint(creatureEntity.get(Position.class).position);
             short creatureOwnerId = creatureEntity.get(Owner.class).ownerId;
-            for (Entity trapEntity : trapEntities) {
-                Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
-                if (trapEntity.get(TrapViewState.class).hidden
-                        && Math.abs(trapTile.x - creatureTile.x) <= TRAP_REVEAL_RANGE
-                        && Math.abs(trapTile.y - creatureTile.y) <= TRAP_REVEAL_RANGE
-                        && isEnemy(creatureOwnerId, trapEntity.get(Owner.class).ownerId)) {
-                    reveal(trapEntity);
+            for (int x = creatureTile.x - TRAP_REVEAL_RANGE; x <= creatureTile.x + TRAP_REVEAL_RANGE; x++) {
+                for (int y = creatureTile.y - TRAP_REVEAL_RANGE; y <= creatureTile.y + TRAP_REVEAL_RANGE; y++) {
+                    revealTraps(x, y, creatureOwnerId);
                 }
+            }
+        }
+    }
+
+    private void revealTraps(int x, int y, short creatureOwnerId) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+            Entity trapEntity = trapEntities.getEntity(entityId);
+            if (trapEntity != null && trapEntity.get(TrapViewState.class).hidden
+                    && isEnemy(creatureOwnerId, trapEntity.get(Owner.class).ownerId)) {
+                reveal(trapEntity);
             }
         }
     }
@@ -484,10 +495,13 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private EntityId findTargetOnTrap(Entity trapEntity, boolean checkCreatureType) {
         Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
         short ownerId = trapEntity.get(Owner.class).ownerId;
-        for (Entity creatureEntity : creatureEntities) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(trapTile)) {
+            Entity creatureEntity = creatureEntities.getEntity(entityId);
+            if (creatureEntity == null) {
+                continue;
+            }
             short creatureOwnerId = creatureEntity.get(Owner.class).ownerId;
             if (creatureOwnerId != ownerId && creatureOwnerId != Player.NEUTRAL_PLAYER_ID
-                    && trapTile.equals(WorldUtils.vectorToPoint(creatureEntity.get(Position.class).position))
                     && canSetOffTraps(creatureEntity, checkCreatureType)) {
                 return creatureEntity.getId();
             }

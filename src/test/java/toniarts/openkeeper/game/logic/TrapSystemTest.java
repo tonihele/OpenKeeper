@@ -84,6 +84,7 @@ class TrapSystemTest {
     private final Set<Point> walls = new HashSet<>();
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
+    private final List<EntityId> entities = new ArrayList<>();
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
     private double gameTime = 0;
@@ -486,14 +487,15 @@ class TrapSystemTest {
 
     private void tick() {
         if (trapSystem == null) {
-            trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, this::isWall, playerControllers(),
-                    effects(), shotsController(), 1);
+            trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, this::isWall, positionLookup(),
+                    playerControllers(), effects(), shotsController(), 1);
         }
         trapSystem.processTick(0.25f);
     }
 
     private EntityId addTrap(short trapId, Point tile) {
         EntityId entityId = entityData.createEntity();
+        entities.add(entityId);
         entityData.setComponent(entityId, new TrapComponent(trapId));
         entityData.setComponent(entityId, new TrapViewState(trapId, false));
         entityData.setComponent(entityId, new Owner(KEEPER, KEEPER));
@@ -512,6 +514,7 @@ class TrapSystemTest {
 
     private EntityId addCreature(short creatureId, short ownerId, float x, float y) {
         EntityId entityId = entityData.createEntity();
+        entities.add(entityId);
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = creatureId;
         entityData.setComponent(entityId, creatureComponent);
@@ -527,6 +530,28 @@ class TrapSystemTest {
 
     private ITrapEffects effects() {
         return (trap, ownerId, origin, target) -> shots.add(new Fired(trap.getTrapId(), target));
+    }
+
+    private IEntityPositionLookup positionLookup() {
+        return (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
+                new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("getEntitiesInLocation")) {
+                        Point tile = args.length == 2 ? new Point((Integer) args[0], (Integer) args[1]) : (Point) args[0];
+                        return entitiesOn(tile);
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
+    }
+
+    private List<EntityId> entitiesOn(Point tile) {
+        List<EntityId> result = new ArrayList<>();
+        for (EntityId entityId : entities) {
+            Position position = entityData.getComponent(entityId, Position.class);
+            if (position != null && tile.equals(WorldUtils.vectorToPoint(position.position))) {
+                result.add(entityId);
+            }
+        }
+        return result;
     }
 
     private IShotsController shotsController() {
