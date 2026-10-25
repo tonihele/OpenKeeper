@@ -19,10 +19,9 @@ package toniarts.openkeeper.game.sound;
 import java.util.Arrays;
 
 /**
- * The slow frame throttle of section 7.1 of the design paper: while the game is
- * running below its normal frame rate, the 29 events of Appendix B.1 (footsteps,
- * digging, chickens, combat grunts and mood chatter) are dropped with a rotating
- * pattern, so that the game stays responsive instead of drowning in sound.
+ * The slow frame throttle: while the game is running below its normal frame rate,
+ * 29 frequent events (footsteps, digging, chickens, combat grunts and mood
+ * chatter) are dropped with a rotating pattern, so that the game stays responsive instead of drowning in sound.
  * <p>
  * At normal frame rates the throttle is inert. Speech playback disables it
  * around its own call.
@@ -30,14 +29,15 @@ import java.util.Arrays;
 public class SoundThrottle {
 
     /**
-     * Throttled events of Appendix B.1, all below {@code 0x400}.
+     * Throttled events, all below {@code 0x400}.
      */
     private static final int[] EVENTS = {0xE5, 0x314, 0x332, 0x315, 0x333, 0x331, 0x337, 0x338, 0x147, 0x33F,
         0xDC, 0x150, 0xD6, 0xDB, 0x114, 0x1BB, 0x1BC, 0xD7, 0xD8, 0x334, 0x109, 0xF1, 0xF4, 0x110, 0xCB,
         0xCC, 0xCA, 0xD0, 0x30F};
 
     /**
-     * Rotation table ROT[17] of Appendix B.1.
+     * Number of ticks an event is dropped after it was let through. The entries are used in
+     * turns, so that the gaps between played sounds vary.
      */
     private static final int[] ROT = {4, 1, 5, 2, 6, 3, 1, 3, 5, 4, 2, 4, 5, 2, 6, 2, 1};
 

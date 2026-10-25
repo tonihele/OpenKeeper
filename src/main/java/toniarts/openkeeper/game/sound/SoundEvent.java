@@ -21,8 +21,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 /**
- * A playable sound event of a category, as described in Appendix A of the
- * design paper.
+ * A playable sound event of a category: a priority, flags and the groups of clips
+ * to pick from.
  */
 public class SoundEvent {
 

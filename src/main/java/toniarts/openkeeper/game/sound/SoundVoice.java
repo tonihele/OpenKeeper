@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 import toniarts.openkeeper.utils.Point;
 
 /**
- * One playing sound, i.e. what the design paper calls a channel.
+ * One playing sound: the chosen clip with its volume, pitch and position.
  */
 public class SoundVoice {
 

@@ -37,7 +37,7 @@ public final class ThingSounds {
     public static final int SLAP = 0xC5;
     public static final int IN_HAND = 0xC9;
 
-    // Creatures, see the creature instance table
+    // Creatures
     public static final int CREATURE_HAPPY = 0xCA;
     public static final int CREATURE_ANGRY = 0xCC;
     public static final int CREATURE_EAT = 0xCD;
@@ -51,14 +51,14 @@ public final class ThingSounds {
     public static final int CREATURE_HIT = 0xDB;
     public static final int CREATURE_DIE = 0xDA;
     public static final int CREATURE_LAND = 0xF6;
-    public static final int CREATURE_LEVEL_UP = 0x349; // c_uplevel
+    public static final int CREATURE_LEVEL_UP = 0x349; // level up
     public static final int CREATURE_SULK = 0xDE;
     public static final int CREATURE_ENTRANCE = 0xE0;
     public static final int CREATURE_DRINK = 0xE1;
     public static final int CREATURE_FALL = 0xE6;
     public static final int CREATURE_DIG = 0x334;
-    public static final int CREATURE_CLAIM = 0x10A; // dk1claim, 0x109 is the same as digging
-    public static final int CREATURE_REINFORCE = 0x33D; // dk1reinf, 0x10C is the repair
+    public static final int CREATURE_CLAIM = 0x10A; // claiming a tile, 0x109 sounds like digging
+    public static final int CREATURE_REINFORCE = 0x33D; // reinforcing a wall, 0x10C is the repair
 
     // Hand
     public static final int TAG = 0xEC;
@@ -103,7 +103,7 @@ public final class ThingSounds {
     public static final int MANUFACTURED = 0x10F;
 
     private ThingSounds() {
-        // Nope
+        // Static helper
     }
 
     /**

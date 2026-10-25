@@ -39,9 +39,8 @@ import toniarts.openkeeper.utils.PathUtils;
 /**
  * A sound category, i.e. one {@code SFX.map} plus its {@code BANK.map}.
  * <p>
- * The file is parsed exactly as laid out in the design paper, which includes the
- * link records of a group that the original parser skipped, and which made every
- * sample after a group with links point at the wrong clip.
+ * The link records that follow a group in {@code SFX.map} have to be read as well,
+ * otherwise every sample after a group with links points at the wrong clip.
  */
 public final class SoundCategory {
 

@@ -48,8 +48,7 @@ public class SoundEngine {
 
     /**
      * Positional voices further away than this many tiles are not realised.
-     * The paper states this as a squared game unit distance; here it is applied
-     * to the tile distance that the game itself uses.
+     * The distance is measured between tile coordinates, not world units.
      */
     public static final int MAX_ELIGIBLE_DISTANCE = 12;
     /**
