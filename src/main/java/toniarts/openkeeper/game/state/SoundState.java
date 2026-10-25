@@ -31,7 +31,6 @@ import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundEvent;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
  * This state plays different sounds
@@ -148,7 +147,7 @@ public final class SoundState extends AbstractPauseAwareState {
             return;
         }
 
-        if (SoundsLoader.load(soundCategory, false) == null) {
+        if (SoundCategory.load(soundCategory, false) == null) {
             logger.log(Level.WARNING, "Sound category {0} not found", soundCategory);
             return;
         }
@@ -218,7 +217,7 @@ public final class SoundState extends AbstractPauseAwareState {
 
         public final synchronized void setCategory(String category) {
             this.category = category;
-            this.sc = SoundsLoader.load(category);
+            this.sc = SoundCategory.load(category, true);
             if (sc == null) {
                 throw new RuntimeException("Category " + category + " does not exist");
             }

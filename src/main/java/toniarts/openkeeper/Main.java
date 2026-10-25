@@ -69,6 +69,7 @@ import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
  import toniarts.openkeeper.utils.WorldUtils;
@@ -81,7 +82,6 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.video.MovieState;
@@ -477,7 +477,7 @@ public final class Main extends SimpleApplication {
 
             private void loadSounds() {
                 for (String cat : GlobalCategory.getCategories()) {
-                    SoundsLoader.load(cat);
+                    SoundCategory.load(cat, true);
                 }
             }
 

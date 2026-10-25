@@ -763,7 +763,7 @@ public final class ModelViewer extends SimpleApplication {
         List<SoundFile> result = new ArrayList<>();
 
         String soundCategory = item.getSoundCategory();
-        SoundCategory sc = SoundsLoader.load(soundCategory, useGlobal);
+        SoundCategory sc = SoundCategory.load(soundCategory, useGlobal);
         if (sc != null) {
             for (SoundGroup sa : sc.getGroups().values()) {
                 result.addAll(sa.getFiles());

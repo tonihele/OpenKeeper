@@ -57,9 +57,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.FrontEndSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -172,7 +172,7 @@ public final class MainMenuState extends AbstractAppState {
         AssetUtils.prewarmAssets(frontEndKwd, assetManager, app);
 
         // Load 3D Front end sound
-        SoundsLoader.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
+        SoundCategory.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         mainMenuEntityData = new DefaultEntityData();
