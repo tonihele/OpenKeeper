@@ -563,7 +563,11 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                // The speech is played from the queue, the HUD might not be there (yet / anymore)
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState != null) {
+                    systemMessageState.addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                }
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);
                 }
