@@ -103,7 +103,7 @@ class HealthSystemDyingTest {
                 Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, CreatureSleepFixtures.variable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, DYING_SECONDS),
                         MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, CreatureSleepFixtures.variable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, -3),
                         MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, CreatureSleepFixtures.variable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 10)),
-                null, levelInfo, List.of(), null, () -> 0.0, proxy(GameEventService.class, method -> null));
+                null, null, levelInfo, List.of(), null, () -> 0.0, proxy(GameEventService.class, method -> null));
     }
 
     @SuppressWarnings("unchecked")

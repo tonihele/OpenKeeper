@@ -28,14 +28,21 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Tells the keeper that his room is under attack or that he has lost a room.
- * Each message has a mentor speech of its own per room type, and the same
- * message about the same room type is not repeated while the last one is
- * still shown (DKII.EXE message table at 0x6A0B00, queue at 0x4C4600)
+ * Tells the keeper that his room or his Dungeon Heart is under attack or that he
+ * has lost a room. Each room message has a mentor speech of its own per room
+ * type, and the same message about the same room type is not repeated while
+ * the last one is still shown (DKII.EXE message table at 0x6A0B00, queue at
+ * 0x4C4600)
  */
 public final class RoomAttackMessages {
 
     private enum Message {
+
+        /**
+         * "Your Dungeon Heart is under attack!", message 1. DKII.EXE raises it
+         * when the heart object takes damage (0x4DA200)
+         */
+        HEART_UNDER_ATTACK(120, 346, Map.of()),
 
         /**
          * "Your Lair is under attack", message 0x22
@@ -97,7 +104,17 @@ public final class RoomAttackMessages {
      * @param tile the tile hit
      */
     public void roomTileAttacked(short ownerId, Room room, Point tile) {
-        show(Message.UNDER_ATTACK, ownerId, room, tile);
+        show(Message.UNDER_ATTACK, ownerId, room.getRoomId(), tile);
+    }
+
+    /**
+     * The Dungeon Heart took damage
+     *
+     * @param ownerId the owner of the heart
+     * @param tile the tile of the heart
+     */
+    public void heartAttacked(short ownerId, Point tile) {
+        show(Message.HEART_UNDER_ATTACK, ownerId, (short) 0, tile);
     }
 
     /**
@@ -112,11 +129,11 @@ public final class RoomAttackMessages {
      */
     public void roomLost(short ownerId, Room room, int roomsBefore, int roomsAfter, Point tile) {
         if (roomsAfter < roomsBefore) {
-            show(roomsBefore == 1 ? Message.DESTROYED : Message.ONE_DESTROYED, ownerId, room, tile);
+            show(roomsBefore == 1 ? Message.DESTROYED : Message.ONE_DESTROYED, ownerId, room.getRoomId(), tile);
         }
     }
 
-    private void show(Message message, short ownerId, Room room, Point tile) {
+    private void show(Message message, short ownerId, short roomId, Point tile) {
         if (playerService == null) {
             return;
         }
@@ -124,15 +141,15 @@ public final class RoomAttackMessages {
         EntityId shown = entityData.findEntity(AndFilter.create(RoomMessageShown.class,
                 new FieldFilter<>(RoomMessageShown.class, "playerId", ownerId),
                 new FieldFilter<>(RoomMessageShown.class, "message", message.ordinal()),
-                new FieldFilter<>(RoomMessageShown.class, "roomId", room.getRoomId())), RoomMessageShown.class);
+                new FieldFilter<>(RoomMessageShown.class, "roomId", roomId)), RoomMessageShown.class);
         if (shown != null && now - entityData.getComponent(shown, RoomMessageShown.class).shownAt < message.duration) {
             return;
         }
         if (shown == null) {
             shown = entityData.createEntity();
         }
-        entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), room.getRoomId(), now));
-        int speechId = message.speechIdsByRoom.getOrDefault((int) room.getRoomId(), message.defaultSpeechId);
+        entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
+        int speechId = message.speechIdsByRoom.getOrDefault((int) roomId, message.defaultSpeechId);
         playerService.showMentorMessage(speechId, WorldUtils.pointToVector3f(tile), ownerId);
     }
 

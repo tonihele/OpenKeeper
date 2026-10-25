@@ -76,7 +76,7 @@ class CombatPitKnockOutTest {
                 MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, CombatPitFixtures.pitVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60),
                 MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, CombatPitFixtures.pitVariable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, 0),
                 MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, CombatPitFixtures.pitVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 0)),
-                stub(ICreaturesController.class), levelInfo(CombatPitFixtures.pitCreature(FIGHTER)), List.of(), null, () -> 1.0,
+                stub(ICreaturesController.class), null, levelInfo(CombatPitFixtures.pitCreature(FIGHTER)), List.of(), null, () -> 1.0,
                 stub(GameEventService.class));
         healthSystem.processTick(1f);
         return fighter;

@@ -38,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * lost his last room of the type and 0x25 when he lost one of them (0x497DF0).
  * The message queue (0x4C4600) doesn't repeat a message of the same type for
  * the same room type while the last one is shown: 30 seconds for an attack, 20
- * for a lost room (table at 0x6A0B00)
+ * for a lost room (table at 0x6A0B00). Damage to the Dungeon Heart raises
+ * message 1 (0x4DA200), which is not repeated for 120 seconds
  */
 class RoomAttackMessagesTest {
 
@@ -137,11 +138,48 @@ class RoomAttackMessagesTest {
     }
 
     @Test
+    void tellsTheKeeperHisHeartIsUnderAttack() {
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+
+        // "Your Dungeon Heart is under attack!"
+        assertEquals(List.of(message(346)), messages);
+    }
+
+    @Test
+    void attackOnTheHeartIsToldOnceIn120Seconds() {
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+        gameTime += 119;
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+        assertEquals(1, messages.size());
+
+        gameTime += 1;
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+        assertEquals(2, messages.size());
+    }
+
+    @Test
+    void attackOnTheHeartDoesNotHoldBackRoomMessages() {
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+        roomAttackMessages.roomTileAttacked(KEEPER, treasury, TILE);
+
+        assertEquals(List.of(message(346), message(157)), messages);
+    }
+
+    @Test
+    void eachKeeperHearsOfHisOwnHeart() {
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+        roomAttackMessages.heartAttacked(Player.KEEPER2_ID, TILE);
+
+        assertEquals(List.of(message(346), message(346, Player.KEEPER2_ID)), messages);
+    }
+
+    @Test
     void worksWithoutPlayers() {
         RoomAttackMessages withoutPlayers = new RoomAttackMessages(new DefaultEntityData(), null, gameTimer);
 
         withoutPlayers.roomTileAttacked(KEEPER, lair, TILE);
         withoutPlayers.roomLost(KEEPER, lair, 1, 0, TILE);
+        withoutPlayers.heartAttacked(KEEPER, TILE);
 
         assertTrue(messages.isEmpty());
     }
