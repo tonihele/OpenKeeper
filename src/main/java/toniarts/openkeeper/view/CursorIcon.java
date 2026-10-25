@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
+import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.texture.Texture;
@@ -124,23 +125,35 @@ public final class CursorIcon {
     private static final float NO_GO_SHIFT = 40;
 
     /**
-     * The digits of the price: where they start from the icon's top left
-     * corner, their size and the step from one to the next
+     * Where the digits of the price start from the icon's top left corner
      */
     private static final float PRICE_OFFSET_X = 30;
     private static final float PRICE_OFFSET_Y = 10;
-    private static final int DIGIT_SIZE = 12;
-    private static final int DIGIT_STEP = 10;
     private static final int MAX_DIGITS = 10;
+
+    /**
+     * A digit is 48 wide and 40 high in the original's GUI units, which
+     * CGuiManager::scaleSize (0x52C5A0) scales from 2560 x 1920 to the screen.
+     * It is drawn as a square of the width, the height is the step to the
+     * next digit.
+     */
+    private static final float DIGIT_WIDTH = 48;
+    private static final float DIGIT_HEIGHT = 40;
+    private static final float GUI_WIDTH = 2560;
+    private static final float GUI_HEIGHT = 1920;
 
     private final Node node = new Node("CursorIcon");
     private final Map<Icon, Picture> icons = new EnumMap<>(Icon.class);
     private final Picture noGo;
     private final Texture[] digitTextures = new Texture[10];
     private final Picture[] digits = new Picture[MAX_DIGITS];
+    private final Camera camera;
     private Price shownPrice;
+    private int shownWidth;
+    private int shownHeight;
 
-    public CursorIcon(AssetManager assetManager, Node guiNode) {
+    public CursorIcon(AssetManager assetManager, Node guiNode, Camera camera) {
+        this.camera = camera;
         for (Icon icon : Icon.values()) {
             Picture picture = createPicture(assetManager, TEXTURES + icon.texture + ".png", SIZE);
             icons.put(icon, picture);
@@ -155,8 +168,7 @@ public final class CursorIcon {
             digitTextures[i] = assetManager.loadTexture("Textures/InGameDigit" + i + ".png");
         }
         for (int i = 0; i < digits.length; i++) {
-            digits[i] = createPicture(assetManager, "Textures/InGameDigit0.png", DIGIT_SIZE);
-            digits[i].setLocalTranslation(PRICE_OFFSET_X + i * DIGIT_STEP, SIZE - PRICE_OFFSET_Y - DIGIT_SIZE, 0);
+            digits[i] = createPicture(assetManager, "Textures/InGameDigit0.png", SIZE);
             digits[i].setCullHint(CullHint.Always);
             node.attachChild(digits[i]);
         }
@@ -215,7 +227,7 @@ public final class CursorIcon {
             entry.getValue().setCullHint(entry.getKey() == shown ? CullHint.Inherit : CullHint.Always);
         }
         noGo.setCullHint(possible ? CullHint.Always : CullHint.Inherit);
-        if (!Objects.equals(price, shownPrice)) {
+        if (!Objects.equals(price, shownPrice) || camera.getWidth() != shownWidth || camera.getHeight() != shownHeight) {
             showPrice(price);
         }
 
@@ -227,16 +239,44 @@ public final class CursorIcon {
     }
 
     /**
-     * Sets the digits of the price, only when it changes
+     * The size of a digit on a screen, see {@link #DIGIT_WIDTH}
+     *
+     * @param screenWidth the screen width
+     * @return the size in pixels
+     */
+    static float getDigitSize(int screenWidth) {
+        return DIGIT_WIDTH * screenWidth / GUI_WIDTH;
+    }
+
+    /**
+     * The step from one digit to the next on a screen, see
+     * {@link #DIGIT_WIDTH}
+     *
+     * @param screenHeight the screen height
+     * @return the step in pixels
+     */
+    static float getDigitStep(int screenHeight) {
+        return DIGIT_HEIGHT * screenHeight / GUI_HEIGHT;
+    }
+
+    /**
+     * Sets the digits of the price, only when it or the screen size changes
      */
     private void showPrice(Price price) {
         shownPrice = price;
+        shownWidth = camera.getWidth();
+        shownHeight = camera.getHeight();
+        float size = getDigitSize(shownWidth);
+        float step = getDigitStep(shownHeight);
         String text = price != null ? Integer.toString(price.amount()) : "";
         for (int i = 0; i < digits.length; i++) {
             if (i >= text.length()) {
                 digits[i].setCullHint(CullHint.Always);
                 continue;
             }
+            digits[i].setWidth(size);
+            digits[i].setHeight(size);
+            digits[i].setLocalTranslation(PRICE_OFFSET_X + i * step, SIZE - PRICE_OFFSET_Y - size, 0);
             Material material = digits[i].getMaterial();
             material.setTexture("Texture", digitTextures[text.charAt(i) - '0']);
             material.setColor("Color", price.kind().color);

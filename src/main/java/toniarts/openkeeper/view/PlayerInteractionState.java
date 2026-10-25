@@ -171,7 +171,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Init handler
         selectionHandler = new InteractionSelectionHandler();
-        cursorIcon = new CursorIcon(assetManager, this.app.getGuiNode());
+        cursorIcon = new CursorIcon(assetManager, this.app.getGuiNode(), this.app.getCamera());
 
         if (!gameClientState.isMultiplayer()) {
             this.stateManager.attach(new InteractionCheatState());

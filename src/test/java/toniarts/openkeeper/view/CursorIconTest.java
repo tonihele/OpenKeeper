@@ -57,6 +57,16 @@ class CursorIconTest {
     }
 
     @Test
+    void digitsGrowWithTheScreen() {
+
+        // 48 x 40 in the original's 2560 x 1920 GUI units
+        assertEquals(12, CursorIcon.getDigitSize(640), 1e-6);
+        assertEquals(10, CursorIcon.getDigitStep(480), 1e-6);
+        assertEquals(36, CursorIcon.getDigitSize(1920), 1e-6);
+        assertEquals(22.5, CursorIcon.getDigitStep(1080), 1e-6);
+    }
+
+    @Test
     void saleShowsWhatSellingGivesBack() {
         assertEquals(new CursorIcon.Price(375, CursorIcon.PriceKind.SALE), CursorIcon.Price.sale(375));
     }
