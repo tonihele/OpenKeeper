@@ -54,9 +54,16 @@ public final class ShotFixtures {
      * The keeper's Inferno, with the values of the original data
      */
     public static Shot inferno() {
-        Shot shot = shot(INFERNO_ID, Shot.ProcessType.INFERNO, 30, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
-        shot.setTimedDelay((short) 251);
-        return shot;
+        return shot(INFERNO_ID, Shot.ProcessType.INFERNO, 30, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+    }
+
+    public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        creature.setName("Creature " + creatureId);
+        creature.setFlags(flags);
+        creature.setFlags3(flags3);
+        return creature;
     }
 
     public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {

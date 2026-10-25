@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -68,7 +69,13 @@ class ShotsControllerTest {
                     throw new UnsupportedOperationException(method.getName());
                 });
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, null, null, objectsController, null);
+        // A map without tiles, no strike lands on water
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(), new Class<?>[]{IMapDataInformation.class},
+                (proxy, method, args) -> null);
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
+                (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
+
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null);
     }
 
     @Test
@@ -77,7 +84,7 @@ class ShotsControllerTest {
 
         shotsController.createShot(ShotFixtures.THUNDERBOLT_ID, 150, 0, PLAYER_ID, new Vector3f(), creature, null);
 
-        assertEquals(15, entityData.getComponent(creature, Damage.class).damage);
+        assertEquals(150, entityData.getComponent(creature, Damage.class).damage);
         assertEquals(1, countShotEntities());
     }
 
