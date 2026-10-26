@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
@@ -215,6 +216,39 @@ class PossessedAttackTest {
     }
 
     @Test
+    void hitsAnEnemyDoorInFront() {
+        EntityId door = createDoor(HERO, new Vector3f(5.5f, 0, 6.3f));
+
+        createController().executePossessedAttack();
+
+        assertEquals(DAMAGE, entityData.getComponent(door, Damage.class).damage);
+        assertEquals(Creature.AnimationType.MELEE_ATTACK, entityData.getComponent(us, CreatureViewState.class).state);
+    }
+
+    @Test
+    void doesNotHitOwnDoorsOrBlueprints() {
+        EntityId own = createDoor(KEEPER, new Vector3f(5.5f, 0, 5.8f));
+        EntityId blueprint = createDoor(HERO, new Vector3f(5.5f, 0, 6.3f));
+        entityData.setComponent(blueprint, new DoorComponent((short) 1, false, true));
+
+        createController().executePossessedAttack();
+
+        assertNull(entityData.getComponent(own, Damage.class));
+        assertNull(entityData.getComponent(blueprint, Damage.class));
+    }
+
+    @Test
+    void hitsTheNearerOfADoorAndACreature() {
+        EntityId door = createDoor(HERO, new Vector3f(5.5f, 0, 5.9f));
+        EntityId enemy = createCreature(HERO, new Vector3f(5, 0, 6.3f));
+
+        createController().executePossessedAttack();
+
+        assertEquals(DAMAGE, entityData.getComponent(door, Damage.class).damage);
+        assertNull(entityData.getComponent(enemy, Damage.class));
+    }
+
+    @Test
     void swingsAgainOnlyOnceRecharged() {
         EntityId enemy = createCreature(HERO, new Vector3f(5, 0, 5.8f));
         CreatureController controller = createController();
@@ -301,6 +335,13 @@ class PossessedAttackTest {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new CreatureComponent(), new Owner(ownerId, ownerId), new Health(1000, 1000),
                 new Position(0, position), new CreatureMeleeAttack(0, DAMAGE, RECHARGE, RANGE));
+        return entity;
+    }
+
+    private EntityId createDoor(short ownerId, Vector3f position) {
+        EntityId entity = entityData.createEntity();
+        entityData.setComponents(entity, new DoorComponent((short) 1, false, false), new Owner(ownerId, ownerId),
+                new Health(2000, 2000), new Position(0, position));
         return entity;
     }
 

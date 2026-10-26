@@ -3301,16 +3301,21 @@ public final class CreatureController extends EntityController implements ICreat
 
     /**
      * Can the possessed creature hit the entity with its melee attack. Any
-     * creature but our own, also neutral and allied ones. Doors, traps and the
-     * Dungeon Heart can be added here.
+     * creature but our own, also neutral and allied ones, and the doors that
+     * are not ours. Traps can be added here. The Dungeon Heart can't be hit, it
+     * is not among the objects the original game lets a possessed creature
+     * hit.
      *
      * @param entity the entity in reach
      * @return true if the entity is something to hit
      */
     private boolean isPossessedAttackTarget(EntityId entity) {
         Owner owner = entityData.getComponent(entity, Owner.class);
-        return !entityId.equals(entity) && creaturesController.isValidEntity(entity)
-                && owner != null && owner.ownerId != getOwnerId() && !isIncapacitated(entity);
+        if (entityId.equals(entity) || owner == null || owner.ownerId == getOwnerId()) {
+            return false;
+        }
+        return DoorAttackTarget.isBreakable(entityData, entity)
+                || (creaturesController.isValidEntity(entity) && !isIncapacitated(entity));
     }
 
     private boolean isInFront(Position position, EntityId entity) {
