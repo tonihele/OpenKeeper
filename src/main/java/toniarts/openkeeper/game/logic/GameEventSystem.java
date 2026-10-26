@@ -22,43 +22,43 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.HashMap;
 import java.util.Map;
-import toniarts.openkeeper.game.component.SoundCue;
+import toniarts.openkeeper.game.component.GameEvent;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
- * Removes the {@link SoundCue}s once the clients have had the time to pick them up.
+ * Removes the {@link GameEvent}s once the clients have had the time to pick them up.
  */
-public final class SoundCueSystem extends GameTimeCounter {
+public final class GameEventSystem extends GameTimeCounter {
 
     /**
-     * Seconds, a cue created and removed between two network updates would never reach a client
+     * Seconds, an event created and removed between two network updates would never reach a client
      */
-    private static final double CUE_LIFETIME = 2.0;
+    private static final double EVENT_LIFETIME = 2.0;
 
     private final EntityData entityData;
-    private final EntitySet cueEntities;
+    private final EntitySet eventEntities;
     private final Map<EntityId, Double> created = new HashMap<>();
 
-    public SoundCueSystem(EntityData entityData) {
+    public GameEventSystem(EntityData entityData) {
         this.entityData = entityData;
-        cueEntities = entityData.getEntities(SoundCue.class);
+        eventEntities = entityData.getEntities(GameEvent.class);
     }
 
     @Override
     public void processTick(float tpf) {
         super.processTick(tpf);
 
-        if (cueEntities.applyChanges()) {
-            for (Entity entity : cueEntities.getAddedEntities()) {
+        if (eventEntities.applyChanges()) {
+            for (Entity entity : eventEntities.getAddedEntities()) {
                 created.put(entity.getId(), timeElapsed);
             }
-            for (Entity entity : cueEntities.getRemovedEntities()) {
+            for (Entity entity : eventEntities.getRemovedEntities()) {
                 created.remove(entity.getId());
             }
         }
 
         created.entrySet().removeIf(entry -> {
-            if (timeElapsed - entry.getValue() < CUE_LIFETIME) {
+            if (timeElapsed - entry.getValue() < EVENT_LIFETIME) {
                 return false;
             }
             entityData.removeEntity(entry.getKey());
@@ -73,7 +73,7 @@ public final class SoundCueSystem extends GameTimeCounter {
 
     @Override
     public void stop() {
-        cueEntities.release();
+        eventEntities.release();
         created.clear();
     }
 }

@@ -36,8 +36,8 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.RoomListener;
-import toniarts.openkeeper.game.sound.SoundCues;
-import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.GameEvents;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -138,9 +138,8 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, spot, ICreaturesController.SpawnType.PLACE);
                 spawned = true;
 
-                // The cast sound is not gated by the free flag
-                SoundCues.emit(entityData, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH,
-                        WorldUtils.vector2fToVector3(spot));
+                // The cast is not gated by the free flag
+                GameEvents.emit(entityData, GameEventType.IMPS_CREATED, WorldUtils.vector2fToVector3(spot));
             }
         } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {

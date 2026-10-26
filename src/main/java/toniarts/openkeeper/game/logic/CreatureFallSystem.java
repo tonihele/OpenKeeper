@@ -25,9 +25,8 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.sound.EntitySounds;
-import toniarts.openkeeper.game.sound.ThingSounds;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.GameEvents;
 import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -44,11 +43,9 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final IGameTimer gameTimer;
     private final EntitySet fallEntities;
-    private final EntitySounds entitySounds;
 
-    public CreatureFallSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer) {
+    public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer) {
         this.entityData = entityData;
-        this.entitySounds = new EntitySounds(entityData, kwdFile);
         this.gameTimer = gameTimer;
 
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
@@ -70,8 +67,8 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
 
-                // The landing thud, on touchdown (hand drops and conjured creatures alike)
-                entitySounds.play(entity.getId(), ThingSounds.CREATURE_LAND, newPosition.position);
+                // The landing, on touchdown (hand drops and conjured creatures alike)
+                GameEvents.emit(entityData, GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
 
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);

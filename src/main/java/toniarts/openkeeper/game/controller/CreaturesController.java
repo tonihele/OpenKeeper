@@ -77,8 +77,8 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.sound.EntitySounds;
-import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.GameEvents;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -120,7 +120,6 @@ public final class CreaturesController implements ICreaturesController {
     private final IGameController gameController;
     private final IMapController mapController;
     private final ILevelInfo levelInfo;
-    private final EntitySounds entitySounds;
 
     private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
 
@@ -150,7 +149,6 @@ public final class CreaturesController implements ICreaturesController {
         this.gameController = gameController;
         this.mapController = mapController;
         this.levelInfo = levelInfo;
-        this.entitySounds = new EntitySounds(entityData, kwdFile);
 
         // Load creatures
         loadCreatures();
@@ -521,7 +519,7 @@ public final class CreaturesController implements ICreaturesController {
             entityData.removeComponent(entityId, Regeneration.class);
         }
 
-        entitySounds.play(entityId, ThingSounds.CREATURE_LEVEL_UP);
+        GameEvents.emit(entityData, GameEventType.CREATURE_LEVEL_UP, entityId);
     }
 
     private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack, Regeneration regeneration) {

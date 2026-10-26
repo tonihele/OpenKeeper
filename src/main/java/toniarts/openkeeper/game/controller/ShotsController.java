@@ -23,9 +23,9 @@ import java.lang.System.Logger;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.sound.CombatSounds;
-import toniarts.openkeeper.game.sound.SoundCues;
-import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.GameEvents;
+import toniarts.openkeeper.game.event.ThingKind;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
@@ -53,7 +53,6 @@ public final class ShotsController implements IShotsController {
     private final ILevelInfo levelInfo;
     private final IObjectsController objectsController;
     private final ICreaturesController creaturesController;
-    private final CombatSounds combatSounds;
 
     public ShotsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo, IObjectsController objectsController, ICreaturesController creaturesController) {
@@ -66,13 +65,12 @@ public final class ShotsController implements IShotsController {
         this.levelInfo = levelInfo;
         this.objectsController = objectsController;
         this.creaturesController = creaturesController;
-        this.combatSounds = new CombatSounds(entityData, kwdFile);
     }
 
     @Override
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
         Shot shot = kwdFile.getShotById(shotTypeId);
-        SoundCues.emit(entityData, shot.getSoundCategory(), ThingSounds.SHOT_LAUNCH, position);
+        GameEvents.emit(entityData, GameEventType.SHOT_LAUNCH, ThingKind.SHOT, shot.getShotId(), position);
         switch (shot.getProcessType()) {
             case CREATE_CREATURE, CREATE_SINGLE_CREATURE -> {
 
@@ -87,17 +85,17 @@ public final class ShotsController implements IShotsController {
             }
             case MODIFY_HEALTH -> {
                 EntityController.setDamage(entityData, target, -shotData1);
-                playShotHit(shot, target);
+                notifyShotHit(shot, target);
             }
             default ->
                 logger.log(Logger.Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
         }
     }
 
-    private void playShotHit(Shot shot, EntityId target) {
+    private void notifyShotHit(Shot shot, EntityId target) {
         Position targetPosition = target != null ? entityData.getComponent(target, Position.class) : null;
         if (targetPosition != null) {
-            combatSounds.playShotHit(shot, target, targetPosition.position);
+            GameEvents.emitAt(entityData, GameEventType.SHOT_HIT, ThingKind.SHOT, shot.getShotId(), target, targetPosition.position);
         }
     }
 

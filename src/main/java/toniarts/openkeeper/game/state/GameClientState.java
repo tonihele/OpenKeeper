@@ -99,7 +99,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
-    private SoundCueState soundCueState;
+    private GameEventState gameEventState;
     private RoomSoundState roomSoundState;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
@@ -181,9 +181,9 @@ public final class GameClientState extends AbstractPauseAwareState {
             stateManager.detach(ambienceState);
             ambienceState = null;
         }
-        if (soundCueState != null) {
-            stateManager.detach(soundCueState);
-            soundCueState = null;
+        if (gameEventState != null) {
+            stateManager.detach(gameEventState);
+            gameEventState = null;
         }
         if (roomSoundState != null) {
             stateManager.detach(roomSoundState);
@@ -479,10 +479,10 @@ public final class GameClientState extends AbstractPauseAwareState {
                     stateManager.attach(ambienceState);
                 }
 
-                // The sounds the game logic asks for, the logic itself makes none
-                soundCueState = new SoundCueState(gameClientService.getEntityData(),
+                // What happens in the game, the logic only tells it and the client reacts
+                gameEventState = new GameEventState(gameClientService.getEntityData(), kwdFile,
                         playerId != null ? playerId : Short.MIN_VALUE);
-                stateManager.attach(soundCueState);
+                stateManager.attach(gameEventState);
                 roomSoundState = new RoomSoundState(gameClientService.getEntityData(), kwdFile);
                 stateManager.attach(roomSoundState);
 

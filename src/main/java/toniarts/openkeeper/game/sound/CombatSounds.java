@@ -16,27 +16,15 @@
  */
 package toniarts.openkeeper.game.sound;
 
-import com.jme3.math.Vector3f;
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.DoorComponent;
-import toniarts.openkeeper.game.component.ObjectComponent;
-import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.GameObject;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Material;
-import toniarts.openkeeper.tools.convert.map.Shot;
-import toniarts.openkeeper.tools.convert.map.Trap;
 
 /**
  * The sounds of combat: a melee hit is the impact, picked from the attack type
  * of the attacker and the {@link Material} of the victim, plus the combat grunt
  * of the attacker. A shot that hits a creature has its own impact, split in
- * flesh and everything else.
+ * flesh and everything else. See {@link GameEventSounds} for how they are played.
  */
 public final class CombatSounds {
 
@@ -48,12 +36,8 @@ public final class CombatSounds {
     public static final int IMPACT_ROCK = 0x1BC;
     public static final int IMPACT_MAGIC = 0x1BD;
 
-    private final EntityData entityData;
-    private final IKwdFile kwdFile;
-
-    public CombatSounds(EntityData entityData, IKwdFile kwdFile) {
-        this.entityData = entityData;
-        this.kwdFile = kwdFile;
+    private CombatSounds() {
+        // Static helper
     }
 
     /**
@@ -111,62 +95,5 @@ public final class CombatSounds {
      */
     public static int getShotImpactEvent(@Nullable Material material) {
         return material == Material.FLESH ? IMPACT_FLESH : IMPACT_METAL1;
-    }
-
-    /**
-     * Makes the sound of a melee hit. The impact is heard at the attacker, followed by the
-     * attacker's grunt.
-     */
-    public void playMeleeHit(Creature attacker, EntityId victim, Vector3f attackerPosition) {
-        String weapon = getWeaponCategory(attacker.getMeleeAttackType());
-        if (weapon == null) {
-            return; // No sound at all, not even the grunt
-        }
-        int event = getMeleeImpactEvent(getMaterial(victim));
-        if (event >= 0) {
-            SoundCues.emit(entityData, weapon, event, attackerPosition);
-        }
-        SoundCues.emit(entityData, attacker.getSoundCategory(), ThingSounds.CREATURE_HIT, attackerPosition);
-    }
-
-    /**
-     * Makes the sound of the impact of a shot on a creature, only for the shots that
-     * recoil the victim.
-     */
-    public void playShotHit(Shot shot, EntityId victim, Vector3f victimPosition) {
-        if (!shot.getFlags().contains(Shot.ShotFlag.RECOIL)
-                || entityData.getComponent(victim, CreatureComponent.class) == null) {
-            return;
-        }
-        SoundCues.emit(entityData, shot.getSoundCategory(), getShotImpactEvent(getMaterial(victim)), victimPosition);
-    }
-
-    /**
-     * @return the material of a creature, door, trap or object, {@code null} if
-     * the entity is none of them
-     */
-    @Nullable
-    public Material getMaterial(EntityId entityId) {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        if (creatureComponent != null) {
-            Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
-            return creature != null ? creature.getMaterial() : null;
-        }
-        DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
-        if (doorComponent != null) {
-            Door door = kwdFile.getDoorById(doorComponent.doorId);
-            return door != null ? door.getMaterial() : null;
-        }
-        TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
-        if (trapComponent != null) {
-            Trap trap = kwdFile.getTrapById(trapComponent.trapId);
-            return trap != null ? trap.getMaterial() : null;
-        }
-        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
-        if (objectComponent != null) {
-            GameObject object = kwdFile.getObject(objectComponent.objectId);
-            return object != null ? object.getMaterial() : null;
-        }
-        return null;
     }
 }

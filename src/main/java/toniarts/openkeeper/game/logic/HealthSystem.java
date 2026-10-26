@@ -43,8 +43,8 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.sound.EntitySounds;
-import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.GameEvents;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -75,7 +75,6 @@ public final class HealthSystem extends GameTimeCounter {
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
-    private final EntitySounds entitySounds;
 
     private final EntitySet healthEntities;
     private final EntitySet damageEntities;
@@ -94,7 +93,6 @@ public final class HealthSystem extends GameTimeCounter {
         this.creaturesController = creaturesController;
         this.levelInfo = levelInfo;
         this.mapController = mapController;
-        this.entitySounds = new EntitySounds(entityData, levelInfo.getLevelData());
         entityIds = new SafeArrayList<>(EntityId.class);
 
         playerControllersById = HashMap.newHashMap(playerControllers.size());
@@ -277,8 +275,7 @@ public final class HealthSystem extends GameTimeCounter {
             Damage damage = entity.get(Damage.class);
             delta -= damage.damage;
             if (damage.damage > 0) {
-                // The hurt sound is not restarted while the previous one is still playing
-                entitySounds.playExclusive(entityId, ThingSounds.CREATURE_HIT);
+                GameEvents.emit(entityData, GameEventType.CREATURE_HURT, entityId);
             }
 
             // Remove the damage
@@ -348,8 +345,9 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private void processDeath(EntityId entityId) {
-        if (entityData.getComponent(entityId, Death.class) == null && entitySounds.isCreature(entityId)) {
-            entitySounds.play(entityId, ThingSounds.CREATURE_DIE);
+        if (entityData.getComponent(entityId, Death.class) == null
+                && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            GameEvents.emit(entityData, GameEventType.CREATURE_DIE, entityId);
         }
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);

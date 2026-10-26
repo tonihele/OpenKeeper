@@ -41,9 +41,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.game.sound.GlobalCategory;
-import toniarts.openkeeper.game.sound.SoundCues;
-import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.event.GameEvents;
+import toniarts.openkeeper.game.event.ThingKind;
 import toniarts.openkeeper.utils.Point;
 
 import java.util.ArrayList;
@@ -283,7 +283,7 @@ public final class MapController extends Container implements IMapController {
         // Notify
         notifyTileChange(updatableTiles);
         if (!updatableTiles.isEmpty()) {
-            SoundCues.emitToPlayer(entityData, GlobalCategory.HAND, ThingSounds.TAG, playerId);
+            GameEvents.emitToPlayer(entityData, GameEventType.TILES_TAGGED, playerId);
         }
     }
 
@@ -541,7 +541,7 @@ public final class MapController extends Container implements IMapController {
 //                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getDestroyedEffectId(), false);
 //            }
-            SoundCues.emit(entityData, terrain.getSoundCategory(), ThingSounds.DESTROYED, point);
+            GameEvents.emit(entityData, GameEventType.TERRAIN_DESTROYED, ThingKind.TERRAIN, terrain.getTerrainId(), point);
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
 
 //            updateRoomWalls(tile);
