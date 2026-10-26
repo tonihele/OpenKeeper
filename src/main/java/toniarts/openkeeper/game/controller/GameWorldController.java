@@ -78,7 +78,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.game.sound.EntitySounds;
 import toniarts.openkeeper.game.sound.GlobalCategory;
-import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.SoundCues;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -402,9 +402,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             minX = Math.min(minX, plot.x);
             minY = Math.min(minY, plot.y);
         }
-        ThingSounds.play(room.getSoundCategory(), ThingSounds.ROOM_LAY_TILE, new Point(minX, minY));
+        SoundCues.emit(entityData, room.getSoundCategory(), ThingSounds.ROOM_LAY_TILE, new Point(minX, minY));
         for (Point tile : buildTiles) {
-            ThingSounds.play(room.getSoundCategory(), ThingSounds.OBJECT_CREATE, tile);
+            SoundCues.emit(entityData, room.getSoundCategory(), ThingSounds.OBJECT_CREATE, tile);
         }
     }
 
@@ -594,7 +594,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-        ThingSounds.play(room.getSoundCategory(), ThingSounds.ROOM_SELL, p);
+        SoundCues.emit(entityData, room.getSoundCategory(), ThingSounds.ROOM_SELL, p);
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
         } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
@@ -1130,7 +1130,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
         if (creatureComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-            playSlapSound(entity);
+            playSlapSound(playerId);
             entitySounds.play(entity, ThingSounds.SLAP);
             return;
         }
@@ -1139,7 +1139,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
         if (objectComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-            playSlapSound(entity);
+            playSlapSound(playerId);
             entitySounds.play(entity, ThingSounds.SLAP);
             playSlappedThingSound(entity, objectComponent);
             return;
@@ -1153,13 +1153,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Position position = entityData.getComponent(entity, Position.class);
         GameObject object = kwdFile.getObject(objectComponent.objectId);
         if (position != null && object != null) {
-            ThingSounds.play(object.getSoundCategory(), ThingSounds.OBJECT_SLAPPED, position.position);
+            SoundCues.emit(entityData, object.getSoundCategory(), ThingSounds.OBJECT_SLAPPED, position.position);
         }
     }
 
-    private void playSlapSound(EntityId entity) {
-        // The slap comes from the player's hand, so it is not positional
-        SoundManager.playSound(GlobalCategory.HAND, ThingSounds.SLAP);
+    private void playSlapSound(short playerId) {
+        // The slap comes from the player's hand, so it is not positional and only the player hears it
+        SoundCues.emitToPlayer(entityData, GlobalCategory.HAND, ThingSounds.SLAP, playerId);
     }
 
     @Override
@@ -1445,7 +1445,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
-        ThingSounds.play(keeperSpell.getSoundCategory(), ThingSounds.SHOT_LAUNCH, WorldUtils.vector2fToVector3(position));
+        SoundCues.emit(entityData, keeperSpell.getSoundCategory(), ThingSounds.SHOT_LAUNCH, WorldUtils.vector2fToVector3(position));
         short shotTypeId = spellUpgraded && kwdFile.getShotById(keeperSpell.getBonusShotTypeId()) != null
                 ? keeperSpell.getBonusShotTypeId() : keeperSpell.getShotTypeId();
         shotsController.createShot(shotTypeId, shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);

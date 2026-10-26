@@ -114,7 +114,7 @@ public final class CombatSounds {
     }
 
     /**
-     * Plays a melee hit. The impact is heard at the attacker, followed by the
+     * Makes the sound of a melee hit. The impact is heard at the attacker, followed by the
      * attacker's grunt.
      */
     public void playMeleeHit(Creature attacker, EntityId victim, Vector3f attackerPosition) {
@@ -124,13 +124,13 @@ public final class CombatSounds {
         }
         int event = getMeleeImpactEvent(getMaterial(victim));
         if (event >= 0) {
-            ThingSounds.play(weapon, event, attackerPosition);
+            SoundCues.emit(entityData, weapon, event, attackerPosition);
         }
-        ThingSounds.play(attacker.getSoundCategory(), ThingSounds.CREATURE_HIT, attackerPosition);
+        SoundCues.emit(entityData, attacker.getSoundCategory(), ThingSounds.CREATURE_HIT, attackerPosition);
     }
 
     /**
-     * Plays the impact of a shot on a creature, only for the shots that
+     * Makes the sound of the impact of a shot on a creature, only for the shots that
      * recoil the victim.
      */
     public void playShotHit(Shot shot, EntityId victim, Vector3f victimPosition) {
@@ -138,7 +138,7 @@ public final class CombatSounds {
                 || entityData.getComponent(victim, CreatureComponent.class) == null) {
             return;
         }
-        ThingSounds.play(shot.getSoundCategory(), getShotImpactEvent(getMaterial(victim)), victimPosition);
+        SoundCues.emit(entityData, shot.getSoundCategory(), getShotImpactEvent(getMaterial(victim)), victimPosition);
     }
 
     /**

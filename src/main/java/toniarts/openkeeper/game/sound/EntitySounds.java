@@ -26,9 +26,11 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Plays the sounds of entities, i.e. on the sound category of the creature or object type of the entity.
+ * Tells the sounds of entities, i.e. on the sound category of the creature or object type of the entity, as
+ * {@link SoundCues}. The clients play them.
  */
 public final class EntitySounds {
 
@@ -59,15 +61,28 @@ public final class EntitySounds {
     }
 
     /**
-     * Plays a sound at the current position of the entity.
+     * Makes a sound at the current position of the entity.
      */
-    public int play(EntityId entityId, int eventId) {
+    public void play(EntityId entityId, int eventId) {
         Position position = entityData.getComponent(entityId, Position.class);
-        return position != null ? play(entityId, eventId, position.position) : SoundEngine.NO_HANDLE;
+        if (position != null) {
+            play(entityId, eventId, position.position);
+        }
     }
 
-    public int play(EntityId entityId, int eventId, Vector3f position) {
-        return ThingSounds.play(getCategory(entityId), eventId, position);
+    public void play(EntityId entityId, int eventId, Vector3f position) {
+        SoundCues.emit(entityData, getCategory(entityId), eventId, position);
+    }
+
+    /**
+     * Makes a sound at the current position of the entity, unless its previous sound of the same kind still plays.
+     */
+    public void playExclusive(EntityId entityId, int eventId) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (position != null) {
+            SoundCues.emitExclusive(entityData, getCategory(entityId), eventId,
+                    WorldUtils.vectorToPoint(position.position), entityId);
+        }
     }
 
     public boolean isCreature(EntityId entityId) {

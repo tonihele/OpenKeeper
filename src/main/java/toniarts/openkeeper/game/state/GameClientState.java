@@ -99,6 +99,8 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
+    private SoundCueState soundCueState;
+    private RoomSoundState roomSoundState;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
@@ -178,6 +180,14 @@ public final class GameClientState extends AbstractPauseAwareState {
         if (ambienceState != null) {
             stateManager.detach(ambienceState);
             ambienceState = null;
+        }
+        if (soundCueState != null) {
+            stateManager.detach(soundCueState);
+            soundCueState = null;
+        }
+        if (roomSoundState != null) {
+            stateManager.detach(roomSoundState);
+            roomSoundState = null;
         }
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
@@ -468,6 +478,13 @@ public final class GameClientState extends AbstractPauseAwareState {
                     ambienceState = new AmbienceState(kwdFile, playerMapViewState);
                     stateManager.attach(ambienceState);
                 }
+
+                // The sounds the game logic asks for, the logic itself makes none
+                soundCueState = new SoundCueState(gameClientService.getEntityData(),
+                        playerId != null ? playerId : Short.MIN_VALUE);
+                stateManager.attach(soundCueState);
+                roomSoundState = new RoomSoundState(gameClientService.getEntityData(), kwdFile);
+                stateManager.attach(roomSoundState);
 
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {

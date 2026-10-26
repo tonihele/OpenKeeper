@@ -34,7 +34,13 @@ import toniarts.openkeeper.utils.Point;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureGenerator;
+import toniarts.openkeeper.game.component.CreatureSpells;
+import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.ImpGenerator;
+import toniarts.openkeeper.game.component.Portal;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -83,6 +89,7 @@ import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SoundCue;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.component.Stored;
@@ -159,7 +166,13 @@ public final class NetworkServer {
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
 
             // Our entity components
+            Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
+            Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
+            Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
+            Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
+            Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
+            Serializer.registerClass(Portal.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
@@ -210,6 +223,7 @@ public final class NetworkServer {
             Serializer.registerClass(Stored.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
+            Serializer.registerClass(SoundCue.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());

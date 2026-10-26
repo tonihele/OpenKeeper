@@ -68,7 +68,7 @@ public final class ClaimWallTileTask extends DigTileTask {
 
             // The work is done, let it be heard
             if (!isValid(creature)) {
-                ThingSounds.play(creature.getCreature().getSoundCategory(), ThingSounds.CREATURE_REINFORCE, getTaskLocation());
+                creature.makeSound(ThingSounds.CREATURE_REINFORCE, getTaskLocation());
             }
         }
     }

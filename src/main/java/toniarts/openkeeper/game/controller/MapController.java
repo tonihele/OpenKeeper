@@ -42,7 +42,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.game.sound.GlobalCategory;
-import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.SoundCues;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 
@@ -283,7 +283,7 @@ public final class MapController extends Container implements IMapController {
         // Notify
         notifyTileChange(updatableTiles);
         if (!updatableTiles.isEmpty()) {
-            SoundManager.playSound(GlobalCategory.HAND, ThingSounds.TAG);
+            SoundCues.emitToPlayer(entityData, GlobalCategory.HAND, ThingSounds.TAG, playerId);
         }
     }
 
@@ -541,7 +541,7 @@ public final class MapController extends Container implements IMapController {
 //                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getDestroyedEffectId(), false);
 //            }
-            ThingSounds.play(terrain.getSoundCategory(), ThingSounds.DESTROYED, point);
+            SoundCues.emit(entityData, terrain.getSoundCategory(), ThingSounds.DESTROYED, point);
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
 
 //            updateRoomWalls(tile);

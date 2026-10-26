@@ -128,18 +128,19 @@ public final class ThingSounds {
     }
 
     /**
-     * Plays the Create Imp spell's cast sound. Not tied to actually casting the spell, the free imps and the
-     * Receive Imps special make it too.
+     * The Create Imp spell's sound category, its cast sound is not tied to actually casting the spell, the free
+     * imps and the Receive Imps special make it too.
      *
-     * @return the sound handle, {@link SoundEngine#NO_HANDLE} if nothing was played
+     * @return the sound category, {@code null} if there is no such spell
      */
-    public static int playCreateImp(IKwdFile kwdFile, Vector3f position) {
+    @Nullable
+    public static String getCreateImpCategory(IKwdFile kwdFile) {
         for (KeeperSpell keeperSpell : kwdFile.getKeeperSpells()) {
             if (keeperSpell.getFlags().contains(KeeperSpell.KeeperSpellFlag.CREATE_WORKER)) {
-                return play(keeperSpell.getSoundCategory(), SHOT_LAUNCH, position);
+                return keeperSpell.getSoundCategory();
             }
         }
-        return SoundEngine.NO_HANDLE;
+        return null;
     }
 
     /**

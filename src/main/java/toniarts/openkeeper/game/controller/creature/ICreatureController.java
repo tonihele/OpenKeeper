@@ -136,6 +136,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public Creature getCreature();
 
+    /**
+     * Makes a sound of the creature type, i.e. on its sound category
+     *
+     * @param eventId the sound event
+     * @param location the tile where it is heard
+     */
+    public void makeSound(int eventId, Point location);
+
     public void addGold(int amount);
 
     public int getObjectiveTargetActionPointId();

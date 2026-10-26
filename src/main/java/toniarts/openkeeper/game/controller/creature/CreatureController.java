@@ -77,6 +77,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.sound.CombatSounds;
+import toniarts.openkeeper.game.sound.SoundCues;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -1051,6 +1052,11 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public Creature getCreature() {
         return creature;
+    }
+
+    @Override
+    public void makeSound(int eventId, Point location) {
+        SoundCues.emit(entityData, creature.getSoundCategory(), eventId, location);
     }
 
     @Override

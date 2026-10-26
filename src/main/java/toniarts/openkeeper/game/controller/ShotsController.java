@@ -24,6 +24,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.sound.CombatSounds;
+import toniarts.openkeeper.game.sound.SoundCues;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -71,7 +72,7 @@ public final class ShotsController implements IShotsController {
     @Override
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
         Shot shot = kwdFile.getShotById(shotTypeId);
-        ThingSounds.play(shot.getSoundCategory(), ThingSounds.SHOT_LAUNCH, position);
+        SoundCues.emit(entityData, shot.getSoundCategory(), ThingSounds.SHOT_LAUNCH, position);
         switch (shot.getProcessType()) {
             case CREATE_CREATURE, CREATE_SINGLE_CREATURE -> {
 

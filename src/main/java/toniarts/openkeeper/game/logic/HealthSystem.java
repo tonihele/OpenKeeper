@@ -44,8 +44,6 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.sound.EntitySounds;
-import toniarts.openkeeper.game.sound.SoundEngine;
-import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -78,7 +76,6 @@ public final class HealthSystem extends GameTimeCounter {
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
     private final EntitySounds entitySounds;
-    private final Map<EntityId, Integer> hurtSounds = new HashMap<>();
 
     private final EntitySet healthEntities;
     private final EntitySet damageEntities;
@@ -280,7 +277,8 @@ public final class HealthSystem extends GameTimeCounter {
             Damage damage = entity.get(Damage.class);
             delta -= damage.damage;
             if (damage.damage > 0) {
-                playHurtSound(entityId);
+                // The hurt sound is not restarted while the previous one is still playing
+                entitySounds.playExclusive(entityId, ThingSounds.CREATURE_HIT);
             }
 
             // Remove the damage
@@ -347,16 +345,6 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return delta;
-    }
-
-    /**
-     * The hurt sound is not restarted while the previous one is still playing
-     */
-    private void playHurtSound(EntityId entityId) {
-        Integer handle = hurtSounds.get(entityId);
-        if (handle == null || handle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(handle)) {
-            hurtSounds.put(entityId, entitySounds.play(entityId, ThingSounds.CREATURE_HIT));
-        }
     }
 
     private void processDeath(EntityId entityId) {

@@ -63,7 +63,7 @@ public class ClaimTileTask extends AbstractTileTask {
 
             // The work is done, let it be heard
             if (!isValid(creature)) {
-                ThingSounds.play(creature.getCreature().getSoundCategory(), ThingSounds.CREATURE_CLAIM, getTaskLocation());
+                creature.makeSound(ThingSounds.CREATURE_CLAIM, getTaskLocation());
             }
         }
     }

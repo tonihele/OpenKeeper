@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.listener.RoomListener;
+import toniarts.openkeeper.game.sound.SoundCues;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
@@ -57,6 +59,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class CreatureSpawnSystem extends GameTimeCounter {
 
+    private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final int minimumImpCount;
     private final int entranceCooldownTime;
@@ -67,9 +70,10 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final IKwdFile kwdFile;
 
-    public CreatureSpawnSystem(ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
+    public CreatureSpawnSystem(EntityData entityData, ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
             IMapController mapController) {
+        this.entityData = entityData;
         this.creaturesController = creaturesController;
 
         // We need the game state just for the variables
@@ -135,7 +139,8 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
                 spawned = true;
 
                 // The cast sound is not gated by the free flag
-                ThingSounds.playCreateImp(kwdFile, WorldUtils.vector2fToVector3(spot));
+                SoundCues.emit(entityData, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH,
+                        WorldUtils.vector2fToVector3(spot));
             }
         } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {

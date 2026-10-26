@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
-import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -71,7 +70,6 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        playWorkSound(creature, ThingSounds.CREATURE_DIG);
 //        if (creature.getMeleeAttack().execute()) {
         // TODO: is this a general case or even smart to do this like this...?
         if (executionDuration - getExecutionDuration(creature) >= 1.0f) {

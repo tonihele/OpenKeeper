@@ -51,9 +51,12 @@ import toniarts.openkeeper.view.text.EntityTextParser;
 public final class CreatureViewControl extends EntityViewControl<Creature, Creature.AnimationType> {
 
     private static final long IN_HAND_SOUND_INTERVAL_MS = 8000;
+    private static final long DIG_SOUND_RETRY_MS = 250;
 
     private long nextInHandSound;
     private int researchSound = SoundEngine.NO_HANDLE;
+    private int digSound = SoundEngine.NO_HANDLE;
+    private long nextDigSound;
     private static final Logger LOGGER = System.getLogger(CreatureViewControl.class.getName());
 
     private float previousStepTime = -1;
@@ -85,6 +88,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     public void cleanup() {
         playResearchSound(null);
+        digSound = SoundEngine.NO_HANDLE;
         super.cleanup();
     }
 
@@ -134,7 +138,25 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             nextInHandSound = 0;
         }
 
+        playDigSound();
         playFootsteps();
+    }
+
+    /**
+     * The digging sound is restarted when it ends so that it lasts as long as the work
+     */
+    private void playDigSound() {
+        if (currentState != Creature.AnimationType.DIG || spatial == null
+                || spatial.getCullHint() == Spatial.CullHint.Always) {
+            digSound = SoundEngine.NO_HANDLE;
+            return;
+        }
+        // A dig that has no sound is not asked again on every frame
+        long now = System.currentTimeMillis();
+        if (now >= nextDigSound && (digSound == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(digSound))) {
+            digSound = ThingSounds.playCreature(getDataObject(), currentState, spatial.getWorldTranslation());
+            nextDigSound = now + DIG_SOUND_RETRY_MS;
+        }
     }
 
     /**
@@ -209,7 +231,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (!Objects.equals(currentState, targetState)) {
             playAnimation(state);
             if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
-                ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
+                int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
+                digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
+                nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
                 playResearchSound(state);
             }
         }
