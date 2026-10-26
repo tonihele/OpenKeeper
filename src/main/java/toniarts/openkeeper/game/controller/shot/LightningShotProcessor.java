@@ -74,7 +74,7 @@ public final class LightningShotProcessor implements IShotProcessor {
         // imprisoned creatures and the Horned Reaper are hurt but stay on their feet
         CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
         Creature creature = creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId) : null;
-        if (creature == null || !creature.getFlags3().contains(Creature.CreatureFlag3.UNK_1)) {
+        if (creature == null || !creature.getFlags3().contains(Creature.CreatureFlag3.IS_IMMUNE_TO_LIGHTNING)) {
             int damage = request.shotData1();
             if (isOnWater(targetPosition)) {
                 damage *= 2;

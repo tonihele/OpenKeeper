@@ -84,7 +84,7 @@ class LightningShotProcessorTest {
 
     LightningShotProcessorTest() {
         addCreature(TROLL_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
-        addCreature(STONE_KNIGHT_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.of(Creature.CreatureFlag3.UNK_1));
+        addCreature(STONE_KNIGHT_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.of(Creature.CreatureFlag3.IS_IMMUNE_TO_LIGHTNING));
         addCreature(HORNY_ID, EnumSet.of(Creature.CreatureFlag.IS_HORNY), EnumSet.noneOf(Creature.CreatureFlag3.class));
         waterTiles.add(WorldUtils.vectorToPoint(ON_WATER));
 
