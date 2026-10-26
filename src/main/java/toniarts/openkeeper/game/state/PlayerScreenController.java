@@ -107,6 +107,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
+    /**
+     * The Reaper Talisman's free one shot Reaper. It is never on the spell
+     * tab, the original casts it only from the Talisman
+     */
+    private static final short ONE_SHOT_REAPER_SPELL_ID = 14;
     
     public float lastUpdate = 0;
 
@@ -1053,6 +1058,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.getId() == ONE_SHOT_REAPER_SPELL_ID) {
+                continue;
+            }
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
                 ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
