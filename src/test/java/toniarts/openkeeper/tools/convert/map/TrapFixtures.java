@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
  * Builds {@link Trap} fixtures for tests. Lives in {@code Trap}'s own package
  * because its setters are {@code protected} (parser-only).
@@ -36,6 +38,14 @@ public final class TrapFixtures {
         Trap trap = new Trap();
         trap.setTrapId(trapId);
         trap.setManufToBuild(manufToBuild);
+        return trap;
+    }
+
+    public static Trap trapWithManaUsage(short trapId, int manaUsage) {
+        Trap trap = new Trap();
+        trap.setTrapId(trapId);
+        trap.setManaUsage(manaUsage);
+        trap.setFlags(EnumSet.noneOf(Trap.TrapFlag.class));
         return trap;
     }
 

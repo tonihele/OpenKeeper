@@ -31,6 +31,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
@@ -143,6 +144,12 @@ public final class TrapsController implements ITrapsController {
         // Regeneration
         if (trap.getHealthGain() > 0) {
             entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
+        }
+
+        // An armed trap costs its owner mana every second, whether it needs mana to fire or not (DKII.EXE 0x4A96D0,
+        // 0x4C1B60). The upkeep goes with the trap entity
+        if (trap.getManaUsage() > 0) {
+            entityData.setComponent(entity, new Mana(-trap.getManaUsage()));
         }
     }
 
