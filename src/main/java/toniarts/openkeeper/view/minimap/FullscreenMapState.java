@@ -43,6 +43,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
+import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -256,6 +257,12 @@ public final class FullscreenMapState extends AbstractAppState {
      * (e.g. in the console) doesn't trigger the map key
      */
     private boolean isTyping() {
+
+        // The debug console keeps its own focus, typing an "m" in it mustn't open the map
+        ConsoleState console = app.getStateManager().getState(ConsoleState.class);
+        if (console != null && console.isEnabled()) {
+            return true;
+        }
         Nifty nifty = app.getNifty();
         Element focus = nifty.getCurrentScreen() != null
                 ? nifty.getCurrentScreen().getFocusHandler().getKeyboardFocusElement() : null;
