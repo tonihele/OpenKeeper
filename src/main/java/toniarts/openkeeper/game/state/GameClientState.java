@@ -57,6 +57,7 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.TextParser;
@@ -102,6 +103,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
     private MusicLevelState musicLevelState;
+    private EffectManagerState effectManagerState;
     private TextParser textParser;
 
     /**
@@ -177,6 +179,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private void detachRelatedAppStates() {
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
+        stateManager.detach(effectManagerState);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -206,6 +209,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         minimapPanelState = null;
         fullscreenMapState = null;
         musicLevelState = null;
+        effectManagerState = null;
     }
 
     @Override
@@ -404,6 +408,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
+                effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
 
                 // Attach the states
                 stateManager.attach(playerState);
@@ -413,6 +418,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
+                stateManager.attach(effectManagerState);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {

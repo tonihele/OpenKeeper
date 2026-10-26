@@ -63,7 +63,7 @@ public final class ClaimWallTileTask extends DigTileTask {
         if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
             setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
 
-            mapController.applyClaimTile(getTaskLocation(), playerId);
+            mapController.applyClaimTile(getTaskLocation(), playerId, creature);
         }
     }
 
