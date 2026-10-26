@@ -521,8 +521,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
         }
 
-        int saleValue = SellValue.ofRoomTile(room,
-                gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue());
+        int saleValue = (int) (room.getCost()
+                * (gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue() / 100));
         sale.moneyToReturnByPoint.add(new AbstractMap.SimpleImmutableEntry<>(p, saleValue));
         sale.soldInstances.add(tile.getRoomId());
         sale.updatableTiles.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(mapController.getMapData(), p, true)));
