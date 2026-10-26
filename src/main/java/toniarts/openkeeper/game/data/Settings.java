@@ -73,6 +73,7 @@ public final class Settings {
         SECRET_LEVEL_STATUS(LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN),
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         // Graphic
+        BORDERLESS(Boolean.class, false, SettingCategory.GRAPHICS),
         ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
@@ -277,6 +278,11 @@ public final class Settings {
             }
         }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+
+        // Borderless is a window, the exclusive fullscreen would override it
+        if (getBoolean(Setting.BORDERLESS)) {
+            settings.setFullscreen(false);
+        }
 
         // Assing some app level settings
         settings.setTitle(TITLE);
