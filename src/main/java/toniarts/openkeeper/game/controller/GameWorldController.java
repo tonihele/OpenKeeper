@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -1413,8 +1414,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      */
     private Set<Point> getTrapBlockingTiles(Point tile) {
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
-            if (entityData.getComponent(entityId, TrapComponent.class) != null
-                    || entityData.getComponent(entityId, DoorComponent.class) != null) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, DoorComponent.class);
+            if (entity.get(TrapComponent.class) != null || entity.get(DoorComponent.class) != null) {
                 return Set.of(tile);
             }
         }
