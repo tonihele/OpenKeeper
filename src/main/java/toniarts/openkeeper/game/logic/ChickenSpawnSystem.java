@@ -55,6 +55,12 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class ChickenSpawnSystem extends GameTimeCounter {
 
+    /**
+     * Seconds between the chickens of a hatchery of 1-3, 4-6 and 7-9 tiles
+     * (DKII.EXE 0x4DE0E0)
+     */
+    private static final int[] SMALL_TILE_VALUES = {15, 13, 12};
+
     private final EntityData entityData;
     private final IObjectsController objectsController;
     private final IMapController mapController;
@@ -199,34 +205,13 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
      * @return the time to wait for the next chicken
      */
     static int getCooldownByHatcherySize(int tiles) {
-
-        // The cases of the original (DKII.EXE 0x4DE0E0)
-        return switch (tiles) {
-            case 1, 2, 3 ->
-                15;
-            case 4, 5, 6 ->
-                13;
-            case 7, 8, 9 ->
-                12;
-            case 10 ->
-                11;
-            case 11 ->
-                10;
-            case 12 ->
-                9;
-            case 13 ->
-                8;
-            case 14 ->
-                7;
-            case 15 ->
-                6;
-            case 16 ->
-                5;
-            case 17, 18, 19 ->
-                4;
-            default ->
-                3;
-        };
+        if (tiles < 1 || tiles >= 20) {
+            return 3;
+        }
+        if (tiles <= 9) {
+            return SMALL_TILE_VALUES[(tiles - 1) / 3];
+        }
+        return Math.max(4, 21 - tiles);
     }
 
     @Override
