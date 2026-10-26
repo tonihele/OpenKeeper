@@ -559,13 +559,18 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     /**
      * The Battle tab, the flashing crossed blades, shows while our creatures
-     * fight
+     * fight. DK II flies an icon to the tab with two sounds when the first of
+     * our creatures joins a battle, we just play the sounds.
      */
     private void showBattleButton() {
         Element battleButton = nifty.getScreen(SCREEN_HUD_ID).findElementById("battleButton");
         boolean visible = !getPlayerBattles().isEmpty();
         if (battleButton != null && battleButton.isVisible() != visible) {
             battleButton.setVisible(visible);
+            if (visible) {
+                playSound(GlobalCategory.GUI_BUTTON_TAB_NEW_COMBAT, String.valueOf(GlobalType.GUI_BUTTON_TABSLAB.getId()));
+                playSound(GlobalCategory.GUI_BUTTON_TAB_NEW_COMBAT, String.valueOf(GlobalType.GUI_BUTTON_SPINNING.getId()));
+            }
         }
     }
 
