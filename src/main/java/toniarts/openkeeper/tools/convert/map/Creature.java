@@ -171,7 +171,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     };
 
     public enum CreatureFlag3 implements IFlagEnum {
-        UNK_1(1),
+        IS_IMMUNE_TO_LIGHTNING(1), // King Reginald, Stone Knight and Jack, the lightning shot (0x4AF1E0) leaves them alone
         UNK_2(2), // Only in stone knight
         UNK_4(4), // Only skeleton and Jack
         UNK_8(8);

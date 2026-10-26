@@ -1376,7 +1376,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
-        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);
+        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target, null);
     }
 
     @Override

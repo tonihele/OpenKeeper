@@ -24,11 +24,13 @@ import java.util.EnumMap;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
+import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -76,12 +78,20 @@ public final class ShotsController implements IShotsController {
         result.put(CREATE_OBJECT, request -> objectsController.loadObject((short) request.shotData1(), request.playerId(), request.position(), 0));
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
 
         return result;
     }
 
     @Override
-    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
+    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter) {
+
+        // Creature attacks still apply their damage themselves, see CreatureController#executeAttack. Processing
+        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type)
+        if (shooter != null) {
+            return;
+        }
+
         Shot shot = kwdFile.getShotById(shotTypeId);
         IShotProcessor processor = processors.get(shot.getProcessType());
         if (processor == null) {
