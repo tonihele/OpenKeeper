@@ -287,7 +287,7 @@ public final class AssetUtils {
                 !resource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
             return createLightningSpriteMaterial(resource.getName(), 
                     resource.getType() == ArtResource.ArtResourceType.ALPHA, resource.getData("fps"), () -> {
-                        return getTextureFrames(resource);
+                        return getTextureFrames(resource, assetManager);
                     }, assetManager);
         }
         return null;
@@ -371,7 +371,7 @@ public final class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
                     resource.getType() == ArtResource.ArtResourceType.ALPHA,
-                    getTextureFrames(resource), assetManager);
+                    getTextureFrames(resource, assetManager), assetManager);
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -385,21 +385,63 @@ public final class AssetUtils {
         }
     }
     
-    private static List<String> getTextureFrames(ArtResource resource) {
-        int frames = resource.getData(ArtResource.KEY_FRAMES);
-        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
-        List<String> framesList = new ArrayList<>(frames);
-        for (int x = 0; x < frames; x++) {
-            framesList.add(assetFolder + resource.getName() + x + ".png");
+    /**
+     * Returns the available sprite animation length, independently of the KWD
+     * frame count. Native DK II probes consecutive texture names, up to 32.
+     * Non-animated resources always use a single image.
+     */
+    public static int getAnimationFrameCount(ArtResource resource, AssetManager assetManager) {
+        if (!resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            return 1;
         }
-        
-        return framesList;
+        return Math.max(1, getTextureFrames(resource, assetManager).size());
+    }
+
+    private static List<String> getTextureFrames(ArtResource resource, AssetManager assetManager) {
+        AssetKey<List<String>> key = new AssetKey<>("animation-frames:" + resource.getName());
+        List<String> cached = assetManager.getFromCache(key);
+        if (cached != null) {
+            return cached;
+        }
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER + "/";
+        List<String> frames = new ArrayList<>();
+        for (int frame = 0; frame < 32; frame++) {
+            String name = assetFolder + resource.getName() + frame + ".png";
+            AssetInfo asset = locateAnimationFrame(assetManager, name);
+            if (asset == null) {
+                break;
+            }
+            frames.add(asset.getKey().getName());
+        }
+        List<String> result = List.copyOf(frames);
+        assetManager.addToCache(key, result);
+        return result;
+    }
+
+    private static AssetInfo locateAnimationFrame(AssetManager assetManager, String name) {
+        AssetInfo asset = assetManager.locateAsset(new AssetKey<>(name));
+        if (asset != null) {
+            return asset;
+        }
+        // Converted filenames can differ in case. Missing frames are an expected
+        // end-of-animation marker, so do not use the logging canonical-path helper.
+        String root = AssetsConverter.getAssetsFolder();
+        try {
+            String canonical = PathUtils.getRealFileName(root, name).substring(root.length())
+                    .replace(File.separatorChar, '/');
+            return assetManager.locateAsset(new AssetKey<>(canonical));
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
+        if (textures.isEmpty()) {
+            throw new IOException("No animation frames found for " + name);
+        }
         // Get the first frame, the frames need to be same size
-        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(0)))));
+        BufferedImage img = readImageFromAsset(locateAnimationFrame(assetManager, textures.get(0)));
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -414,7 +456,7 @@ public final class AssetUtils {
         
         g.drawImage(img, null, 0, 0);
         for (int x = 1; x < textures.size(); x++) {
-            AssetInfo asset = assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(x))));
+            AssetInfo asset = locateAnimationFrame(assetManager, textures.get(x));
             if (asset != null) {
                 img = readImageFromAsset(asset);
             } else {
