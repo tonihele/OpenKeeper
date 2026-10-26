@@ -20,6 +20,11 @@ import java.util.EnumSet;
 
 public final class ShotFixtures {
 
+    /**
+     * Shot 21 as it ships in the original data
+     */
+    public static final short THUNDERBOLT_ID = 21;
+
     private ShotFixtures() {
     }
 
@@ -31,6 +36,31 @@ public final class ShotFixtures {
         shot.setHealth(health);
         shot.setShotProcessFlags(processFlags);
         return shot;
+    }
+
+    /**
+     * The keeper's Thunderbolt, with the values of the original data
+     */
+    public static Shot thunderbolt() {
+        return shot(THUNDERBOLT_ID, Shot.ProcessType.LIGHTNING, 8, EnumSet.of(Shot.ShotProcessFlag.AT_START));
+    }
+
+    public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        creature.setName("Creature " + creatureId);
+        creature.setFlags(flags);
+        creature.setFlags3(flags3);
+        return creature;
+    }
+
+    public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {
+        KeeperSpell keeperSpell = new KeeperSpell();
+        keeperSpell.setName("Spell");
+        keeperSpell.setCastRule(castRule);
+        keeperSpell.setTargetRule(targetRule);
+        keeperSpell.setManaCost(manaCost);
+        return keeperSpell;
     }
 
 }
