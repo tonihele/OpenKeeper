@@ -1370,7 +1370,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Deduct the mana
-        playerControllers.get(playerId).getManaControl().addMana(-keeperSpell.getManaCost());
+        playerControllers.get(playerId).getManaControl().spendMana(keeperSpell.getManaCost());
 
         // Cast the spell
         boolean spellUpgraded = researchableEntity.isUpgraded();
