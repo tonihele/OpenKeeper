@@ -778,9 +778,17 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         createCreatureMeleeIcon(creature.getFirstPersonMeleeResource().getName()).build(contentPanel);
 
-        // TODO: creature spells, check creature level availiablity
-        //CreatureSpell cs = state.stateManager.getState(GameState.class).getLevelData().getCreatureSpellById(s.getCreatureSpellId());
-        //createCreatureSpellIcon(cs, index++).build(nifty, screen, contentPanel);
+        // The spells the creature has at its level, the keys pick them in the creature's order
+        EntityId target = state.stateManager.getState(PossessionInteractionState.class).getTarget();
+        CreatureExperience experience = target != null ? entityData.getComponent(target, CreatureExperience.class) : null;
+        int level = experience != null ? experience.level : 1;
+        int index = 1;
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getLevelAvailable() <= level) {
+                createCreatureSpellIcon(state.getKwdFile().getCreatureSpellById(spell.getCreatureSpellId()), index).build(contentPanel);
+            }
+            index++;
+        }
     }
 
     @Override
