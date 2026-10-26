@@ -51,6 +51,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -299,10 +300,12 @@ public final class FogOfWarController implements IFogOfWarInformation {
             return;
         }
         Entity e = entityData.getEntity(possessedCreature, Position.class);
-        if (e == null) {
+        Position position = e != null ? e.get(Position.class) : null;
+        if (position == null) {
+            // The creature is gone (e.g. killed), possession end is on its way
             return;
         }
-        Point tile = WorldUtils.vectorToPoint(e.get(Position.class).position);
+        Point tile = WorldUtils.vectorToPoint(position.position);
         FogOfWarRules.explore(state, tile.x, tile.y);
     }
 
@@ -478,7 +481,24 @@ public final class FogOfWarController implements IFogOfWarInformation {
      * Pass {@code null} when possession ends.
      */
     public void setPossessedCreature(EntityId entityId) {
+        if (Objects.equals(this.possessedCreature, entityId)) {
+            return;
+        }
         this.possessedCreature = entityId;
+        refreshAllTiles();
+    }
+
+    private void refreshAllTiles() {
+        int width = mapData.getWidth();
+        int height = mapData.getHeight();
+        Point[] allTiles = new Point[width * height];
+        int i = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                allTiles[i++] = new Point(x, y);
+            }
+        }
+        fireTilesDirty(allTiles);
     }
 
     @Override
