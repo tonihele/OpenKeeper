@@ -512,8 +512,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Only the entities on the tile, not every trap on the map
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
-            TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
-            Owner owner = entityData.getComponent(entityId, Owner.class);
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, Owner.class);
+            TrapComponent trapComponent = entity.get(TrapComponent.class);
+            Owner owner = entity.get(Owner.class);
             if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
                 continue;
             }
