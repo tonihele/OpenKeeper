@@ -105,6 +105,17 @@ class CreatureCombatTest {
     }
 
     @Test
+    void onlyCreaturesGetTheRearAttackBonus() {
+        EntityId thing = entityData.createEntity();
+        entityData.setComponents(thing, new Owner(HERO, HERO), new Health(1000, 1000),
+                new Position(0, new Vector3f(5, 0, 5)));
+
+        createController(us).executeAttack(thing);
+
+        assertEquals(100, entityData.getComponent(thing, Damage.class).damage);
+    }
+
+    @Test
     void possessedTargetTakesHalfTheDamage() {
         EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 5), 0);
         entityData.setComponent(target, new Possessed(0, 0));
