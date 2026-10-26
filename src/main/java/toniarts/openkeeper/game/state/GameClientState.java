@@ -57,6 +57,7 @@ import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.TextParser;
@@ -101,6 +102,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
+    private EffectManagerState effectManagerState;
     private TextParser textParser;
 
     /**
@@ -176,6 +178,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private void detachRelatedAppStates() {
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
+        stateManager.detach(effectManagerState);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -201,6 +204,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerModelViewState = null;
         minimapPanelState = null;
         fullscreenMapState = null;
+        effectManagerState = null;
     }
 
     @Override
@@ -399,6 +403,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
+                effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
 
                 // Attach the states
                 stateManager.attach(playerState);
@@ -408,6 +413,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
+                stateManager.attach(effectManagerState);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
@@ -703,9 +709,21 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void setPossession(EntityId target) {
+            // Runs on the network thread; PlayerState applies the possession
+            // (including the fog-of-war bypass) on the render thread
             playerState.setPossession(target);
-            setPossessedCreature(target);
         }
+    }
+
+    /**
+     * Gets the entity view state of this game. Look this up instead of asking
+     * the state manager by class, the main menu's entity view state is a
+     * {@link PlayerEntityViewState} too and may be found first.
+     *
+     * @return the game's entity view state, {@code null} if not loaded
+     */
+    public PlayerEntityViewState getEntityViewState() {
+        return playerModelViewState;
     }
 
     public IMapInformation getMapClientService() {
@@ -734,7 +752,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     /**
      * Tells the local fog-of-war module which creature (if any) the viewer is
      * currently possessing, so it can bypass fog for the first-person view
-     * and keep exploring the possessed creature's tile (§2/§6.9).
+     * and keep exploring the possessed creature's tile
      *
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */

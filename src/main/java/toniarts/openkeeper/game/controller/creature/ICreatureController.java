@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.function.Consumer;
@@ -185,6 +186,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sleep();
 
     /**
+     * Knocks the creature off its feet, it falls back and gets up again like
+     * after being dropped from the hand. Whatever it was doing is dropped. A
+     * creature already down stays down longer. Does nothing to a creature
+     * that is not on its own feet to begin with, i.e. in hand, falling,
+     * possessed or out cold.
+     */
+    public void knockDown();
+
+    /**
      * Set a target for us to follow
      *
      * @param target target to follow
@@ -263,6 +273,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param possessed should the creature be posessed or AI driven
      */
     public void setPossession(boolean possessed);
+
+    /**
+     * Sets the movement intent for a possessed creature, as steered by its keeper
+     *
+     * @param direction movement direction on the map plane, may be a zero vector
+     * @param rotation the wanted rotation
+     * @param speedMode one of {@link toniarts.openkeeper.game.component.PossessedMovement}'s speed constants
+     */
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
 
     /**
      * Converts creature to another player's bidding

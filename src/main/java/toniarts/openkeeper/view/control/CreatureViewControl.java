@@ -24,10 +24,14 @@ import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
@@ -48,7 +52,19 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
+        components.add(CreatureImprisoned.class);
         return components;
+    }
+
+    @Override
+    public boolean isSlappable(short playerId) {
+        Interaction interaction = getEntity().get(Interaction.class);
+        if (interaction == null || !interaction.slappable) {
+            return false;
+        }
+
+        boolean imprisoned = getEntity().get(CreatureImprisoned.class) != null;
+        return SlapRules.canSlapCreature(playerId, getOwnerId(), getControlId(), imprisoned);
     }
 
     @Override
@@ -81,6 +97,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private void playAnimation(Creature.AnimationType animation) {
         AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
+        if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
+            CreatureVariantTextures.apply(getSpatial(), assetManager);
+        }
         isAnimationPlaying = true;
         currentState = animation;
     }
