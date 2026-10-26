@@ -16,6 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.sound;
 
+import java.util.EnumSet;
+import java.util.Set;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
+
 /**
  * *Bank.map file entry structure
  *
@@ -24,28 +28,45 @@ package toniarts.openkeeper.tools.convert.sound;
 public final class BankMapFileEntry {
 
     /**
-     * {@code <name>xx.sdt} is loaded whole into memory
+     * Archive flags. Bits 3, 4, 6 and 7 are 0 in every shipped record
      */
-    public static final int FLAG_RESIDENT = 0x01;
-    /**
-     * {@code <name>xx.sdt} is streamed from disk (music tracks, Track_Zero, SetPieces, all speech)
-     */
-    public static final int FLAG_STREAMED = 0x02;
-    /**
-     * {@code <name>.sf2} SoundFont (one_shot_atmos), falls back to resident
-     */
-    public static final int FLAG_SOUNDFONT = 0x04;
-    /**
-     * Never read by the game. Probably "archive holds MPEG-compressed clips" (an authoring tool flag): set on
-     * all Global archives that are (mostly) MP2, clear on the only two all-PCM ones (JackinBox, Maiden). Clear
-     * on all speech archives too, though they are MP2, those come from a separately built set of banks.
-     */
-    public static final int FLAG_MPEG_COMPRESSED = 0x20;
+    public enum BankFlag implements IFlagEnum {
+
+        /**
+         * {@code <name>xx.sdt} is loaded whole into memory
+         */
+        RESIDENT(0x01),
+        /**
+         * {@code <name>xx.sdt} is streamed from disk (music tracks, Track_Zero, SetPieces, all speech)
+         */
+        STREAMED(0x02),
+        /**
+         * {@code <name>.sf2} SoundFont (one_shot_atmos), falls back to resident
+         */
+        SOUNDFONT(0x04),
+        /**
+         * Never read by the game. Probably "archive holds MPEG-compressed clips" (an authoring tool flag): set on
+         * all Global archives that are (mostly) MP2, clear on the only two all-PCM ones (JackinBox, Maiden). Clear
+         * on all speech archives too, though they are MP2, those come from a separately built set of banks.
+         */
+        MPEG_COMPRESSED(0x20);
+
+        private final long flagValue;
+
+        private BankFlag(long flagValue) {
+            this.flagValue = flagValue;
+        }
+
+        @Override
+        public long getFlagValue() {
+            return flagValue;
+        }
+    }
 
     private long archiveHandle; // 0xFFFFFFFF in the file, runtime handle
     private short refCount; // runtime, file value is garbage
     private long namePtr; // runtime, file value is garbage
-    private short flags; // see FLAG_* constants, bits 3, 4, 6 and 7 are 0 in every shipped record
+    private Set<BankFlag> flags = EnumSet.noneOf(BankFlag.class);
     private short unused; // never read
     private String name;
 
@@ -62,15 +83,15 @@ public final class BankMapFileEntry {
     }
 
     /**
-     * The archive flag byte, see the {@code FLAG_*} constants
+     * The archive flags
      *
-     * @return the raw flags
+     * @return the flags
      */
-    public int getFlags() {
+    public Set<BankFlag> getFlags() {
         return flags;
     }
 
-    protected void setFlags(short flags) {
+    protected void setFlags(Set<BankFlag> flags) {
         this.flags = flags;
     }
 
@@ -79,19 +100,19 @@ public final class BankMapFileEntry {
     }
 
     public boolean isResident() {
-        return (flags & FLAG_RESIDENT) != 0;
+        return flags.contains(BankFlag.RESIDENT);
     }
 
     public boolean isStreamed() {
-        return (flags & FLAG_STREAMED) != 0;
+        return flags.contains(BankFlag.STREAMED);
     }
 
     public boolean isSoundFont() {
-        return (flags & FLAG_SOUNDFONT) != 0;
+        return flags.contains(BankFlag.SOUNDFONT);
     }
 
     public boolean isMpegCompressed() {
-        return (flags & FLAG_MPEG_COMPRESSED) != 0;
+        return flags.contains(BankFlag.MPEG_COMPRESSED);
     }
 
     /**

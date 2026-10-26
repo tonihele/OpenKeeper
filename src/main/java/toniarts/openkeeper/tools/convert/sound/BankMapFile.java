@@ -83,7 +83,7 @@ public final class BankMapFile {
                 entry.setArchiveHandle(rawMapReader.readUnsignedIntegerAsLong());
                 entry.setRefCount(rawMapReader.readUnsignedByte());
                 entry.setNamePtr(rawMapReader.readUnsignedIntegerAsLong());
-                entry.setFlags(rawMapReader.readUnsignedByte());
+                entry.setFlags(rawMapReader.readByteAsFlag(BankMapFileEntry.BankFlag.class));
                 entry.setUnused(rawMapReader.readUnsignedByte());
 
                 entries[i] = entry;

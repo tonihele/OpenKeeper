@@ -1,5 +1,7 @@
 package toniarts.openkeeper.game.sound;
 
+import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.sound.BankMapFileEntry.BankFlag;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -259,7 +261,7 @@ class SoundEngineTest {
     }
 
     private static SoundEventGroup group() {
-        SoundArchive archive = new SoundArchive("Global" + File.separator + "Test", 1, null,
+        SoundArchive archive = new SoundArchive("Global" + File.separator + "Test", EnumSet.of(BankFlag.RESIDENT), null,
                 List.of("clip1.mp2"));
         SoundSample sample = new SoundSample(1, 100, 1000, 0, archive);
         return new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0.0f, List.of(sample), List.of());

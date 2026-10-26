@@ -26,8 +26,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.tools.convert.sound.BankMapFileEntry.BankFlag;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
 import toniarts.openkeeper.tools.convert.sound.SdtFileEntry;
 import toniarts.openkeeper.utils.PathUtils;
@@ -45,11 +47,11 @@ public class SoundArchive {
     private static final Map<String, SoundArchive> CACHE = new ConcurrentHashMap<>();
 
     private final String name;
-    private final int flags;
+    private final Set<BankFlag> flags;
     private final Path sdtFile;
     private final List<String> clipNames;
 
-    public SoundArchive(String name, int flags, Path sdtFile, List<String> clipNames) {
+    public SoundArchive(String name, Set<BankFlag> flags, Path sdtFile, List<String> clipNames) {
         this.name = name;
         this.flags = flags;
         this.sdtFile = sdtFile;
@@ -62,9 +64,9 @@ public class SoundArchive {
      *
      * @param archiveName name as stored in {@code BANK.map}, e.g.
      * {@code Global\MiscCreatures}
-     * @param flags archive flag byte, see {@code BankMapFileEntry.FLAG_*}
+     * @param flags archive flags
      */
-    public static SoundArchive load(String archiveName, int flags) {
+    public static SoundArchive load(String archiveName, Set<BankFlag> flags) {
         String normalized = stripTrailingSeparator(PathUtils.convertFileSeparators(archiveName));
         return CACHE.computeIfAbsent(normalized.toLowerCase() + '/' + flags, key -> doLoad(normalized, flags));
     }
@@ -73,7 +75,7 @@ public class SoundArchive {
         CACHE.clear();
     }
 
-    private static SoundArchive doLoad(String archiveName, int flags) {
+    private static SoundArchive doLoad(String archiveName, Set<BankFlag> flags) {
         List<String> clipNames = new ArrayList<>();
         Path sdt = findSdtFile(archiveName);
         if (sdt == null) {
@@ -112,7 +114,7 @@ public class SoundArchive {
         return name;
     }
 
-    public int getFlags() {
+    public Set<BankFlag> getFlags() {
         return flags;
     }
 

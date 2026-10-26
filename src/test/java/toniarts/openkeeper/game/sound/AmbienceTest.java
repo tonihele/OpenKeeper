@@ -1,5 +1,7 @@
 package toniarts.openkeeper.game.sound;
 
+import java.util.EnumSet;
+import toniarts.openkeeper.tools.convert.sound.BankMapFileEntry.BankFlag;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -289,7 +291,7 @@ class AmbienceTest {
     }
 
     private static SoundEventGroup group(int volumeMin, int volumeMax, int delayMin, int delayMax, int durationMs) {
-        SoundArchive archive = new SoundArchive("Global" + File.separator + "Test", 1, null,
+        SoundArchive archive = new SoundArchive("Global" + File.separator + "Test", EnumSet.of(BankFlag.RESIDENT), null,
                 List.of("clip1.mp2"));
         SoundSample sample = new SoundSample(1, 100, durationMs, 0, archive);
         return new SoundEventGroup(volumeMin, volumeMax, 0, 0, delayMin, delayMax, 0, 0, 0, 0, 100, 0.0f,
