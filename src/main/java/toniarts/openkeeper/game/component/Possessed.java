@@ -50,6 +50,11 @@ public final class Possessed implements EntityComponent {
      */
     public int attackSpell;
 
+    /**
+     * The keeper picks a creature to join the group instead of swinging
+     */
+    public boolean attackGroup;
+
     public Possessed() {
         // For serialization
     }
@@ -69,6 +74,11 @@ public final class Possessed implements EntityComponent {
         this.attackHeld = attackHeld;
         this.attackPressTime = attackPressTime;
         this.attackSpell = attackSpell;
+    }
+
+    public Possessed(int manaDrain, double manaCheckTime, boolean attackHeld, double attackPressTime, boolean attackGroup) {
+        this(manaDrain, manaCheckTime, attackHeld, attackPressTime, 0);
+        this.attackGroup = attackGroup;
     }
 
     public boolean isAttackPending() {

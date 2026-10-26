@@ -355,6 +355,14 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onAddPossessedFollower(short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).addPossessedFollower();
+            }
+        }
+
+        @Override
         public void onEndPossession(short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {

@@ -457,6 +457,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void addPossessedFollower() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onAddPossessedFollower(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void endPossession() {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onEndPossession(PLAYER_ID);

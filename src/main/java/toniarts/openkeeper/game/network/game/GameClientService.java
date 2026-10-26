@@ -253,6 +253,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void addPossessedFollower() {
+        getDelegate().addPossessedFollower();
+    }
+
+    @Override
     public void endPossession() {
         getDelegate().endPossession();
     }

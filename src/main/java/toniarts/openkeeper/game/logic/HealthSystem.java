@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.TrapComponent;
@@ -92,6 +93,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final int healthRegeneratePerSecond;
     private final int healthRegeneratePerSecondImprisoned;
     private final int healthWhilePrayingPerSecond;
+    private final int deathWhenPossessingManaReduction;
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
@@ -130,6 +132,8 @@ public final class HealthSystem extends GameTimeCounter {
         healthRegeneratePerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
         Variable.MiscVariable healthWhilePraying = gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND);
         healthWhilePrayingPerSecond = healthWhilePraying != null ? (int) healthWhilePraying.getValue() : 0;
+        Variable.MiscVariable manaReduction = gameSettings.get(Variable.MiscVariable.MiscType.DEATH_WHEN_POSSESSING_MANA_REDUCTION);
+        deathWhenPossessingManaReduction = manaReduction != null ? (int) manaReduction.getValue() : 0;
 
         healthEntities = entityData.getEntities(Health.class);
         processAddedEntities(healthEntities);
@@ -241,6 +245,13 @@ public final class HealthSystem extends GameTimeCounter {
 
     private void processHealthDepleted(EntityId entityId, Health health) {
 
+        // A possessed creature is never knocked out, it dies. The possession
+        // ends and its keeper loses mana for it
+        boolean possessed = entityData.getComponent(entityId, Possessed.class) != null;
+        if (possessed) {
+            endPossessionByDeath(entityId);
+        }
+
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
@@ -250,7 +261,7 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         // Some creatures die instantly, skipping the unconscious/dying wait and any skeleton rising, no matter where they are
-        if (isDiesInstantly(entityId)) {
+        if (possessed || isDiesInstantly(entityId)) {
             processDeath(entityId);
             return;
         }
@@ -366,6 +377,15 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return 0;
+    }
+
+    private void endPossessionByDeath(EntityId entityId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        IPlayerController player = owner != null ? playerControllersById.get(owner.ownerId) : null;
+        if (player != null && player.getManaControl() != null) {
+            player.getManaControl().addMana(-deathWhenPossessingManaReduction);
+        }
+        creaturesController.createController(entityId).setPossession(false);
     }
 
     private boolean isLeaveDeadBody(EntityId entityId) {

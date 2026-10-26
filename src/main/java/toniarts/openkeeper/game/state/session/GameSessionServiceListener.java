@@ -216,6 +216,14 @@ public interface GameSessionServiceListener {
     public void onUsePossessedAbility(int ability, short playerId);
 
     /**
+     * Player wants the creature the possessed creature looks at in its group
+     *
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onAddPossessedFollower(short playerId);
+
+    /**
      * Player wants to stop possessing
      *
      * @param playerId the player who is possessing

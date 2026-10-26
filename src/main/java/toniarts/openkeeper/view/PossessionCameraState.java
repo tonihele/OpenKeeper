@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view;
 
+import com.jme3.anim.AnimComposer;
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.input.InputManager;
@@ -25,18 +26,23 @@ import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
 import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.WatchedEntity;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
@@ -68,6 +74,11 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      * unit of mouse analog input adds, the roll is clamped by the walk cycle
      */
     private static final float TURN_ROLL_DEGREES_PER_ANALOG = 60f;
+    /**
+     * The swipe meshes look down their negative z axis with x to the right,
+     * the camera down its positive z axis with x to the left
+     */
+    private static final Quaternion SWIPE_ROTATION = new Quaternion().fromAngleAxis(FastMath.PI, Vector3f.UNIT_Y);
 
     private Main app;
     private AppStateManager stateManager;
@@ -80,6 +91,10 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private PossessionCamera camera;
     private PossessionWalkCycle walkCycle;
     private boolean inputRegistered = false;
+    private WatchedEntity watchedTarget;
+    private Spatial swipe;
+    private float swipeTimeLeft;
+    private boolean secondSwipe;
 
     private boolean moveForward;
     private boolean moveBackward;
@@ -149,6 +164,8 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             if (entityViewState != null) {
                 entityViewState.setHiddenEntity(target);
             }
+            watchedTarget = stateManager.getState(GameClientState.class).getGameClientService().getEntityData()
+                    .watchEntity(target, CreatureViewState.class);
 
             resetMovement();
             registerInput();
@@ -161,6 +178,11 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             if (entityViewState != null) {
                 entityViewState.setHiddenEntity(null);
             }
+            if (watchedTarget != null) {
+                watchedTarget.release();
+                watchedTarget = null;
+            }
+            removeSwipe();
             targetSpatial = null;
         }
     }
@@ -290,10 +312,64 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             camera.setRoll(walkCycle.getRollDegrees());
             sendMovement(tpf);
         }
+        updateSwipe(tpf);
 
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+    }
+
+    /**
+     * Shows the swipe of the melee attack in front of the camera when the
+     * possessed creature swings. DKII.EXE (0x4100F0) takes turns between the
+     * two melee swipes of the creature, if it has the second one.
+     */
+    private void updateSwipe(float tpf) {
+        if (watchedTarget != null && watchedTarget.applyChanges()) {
+            CreatureViewState viewState = watchedTarget.get(CreatureViewState.class);
+            if (viewState != null && viewState.state == Creature.AnimationType.MELEE_ATTACK) {
+                boolean second = secondSwipe && creature.getMelee2Swipe() != Creature.Swipe.NONE;
+                secondSwipe = !second && creature.getMelee2Swipe() != Creature.Swipe.NONE;
+                showSwipe(second ? creature.getMelee2Swipe() : creature.getMelee1Swipe());
+            }
+        }
+
+        if (swipe != null) {
+            swipeTimeLeft -= tpf;
+            if (swipeTimeLeft <= 0) {
+                removeSwipe();
+            } else {
+                Camera cam = app.getCamera();
+                swipe.setLocalTranslation(cam.getLocation());
+                swipe.setLocalRotation(cam.getRotation().mult(SWIPE_ROTATION));
+            }
+        }
+    }
+
+    private void showSwipe(Creature.Swipe type) {
+        removeSwipe();
+        if (type == null || type.getModelName() == null) {
+            return;
+        }
+
+        swipe = AssetUtils.loadModel(app.getAssetManager(), type.getModelName(), null);
+        swipeTimeLeft = 0;
+        swipe.depthFirstTraversal(spatial -> {
+            AnimComposer animComposer = spatial.getControl(AnimComposer.class);
+            if (animComposer != null) {
+                animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                animComposer.setEnabled(true);
+                swipeTimeLeft = Math.max(swipeTimeLeft, (float) animComposer.getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME).getLength());
+            }
+        });
+        app.getRootNode().attachChild(swipe);
+    }
+
+    private void removeSwipe() {
+        if (swipe != null) {
+            swipe.removeFromParent();
+            swipe = null;
+        }
     }
 
     /**
