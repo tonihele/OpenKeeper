@@ -70,7 +70,8 @@ public final class KeeperSpellCastValidator {
     }
 
     /**
-     * The Summon Reaper spell can't be cast while the keeper has a Horned Reaper
+     * The Summon Reaper spells, also the Talisman's one shot Reaper, can't be
+     * cast while the keeper has a Horned Reaper
      *
      * @param keeperSpell the spell
      * @param kwdFile the level
@@ -80,7 +81,7 @@ public final class KeeperSpellCastValidator {
      */
     static boolean checkReaperRule(KeeperSpell keeperSpell, IKwdFile kwdFile, Keeper player, EntityData entityData) {
         Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
-        if (shot == null || shot.getProcessType() != Shot.ProcessType.SUMMON_REAPER || keeperSpell.getShotData1() != 0) {
+        if (shot == null || shot.getProcessType() != Shot.ProcessType.SUMMON_REAPER) {
             return true;
         }
 

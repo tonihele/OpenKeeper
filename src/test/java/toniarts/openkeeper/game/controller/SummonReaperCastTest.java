@@ -69,6 +69,13 @@ class SummonReaperCastTest {
     }
 
     @Test
+    void onlyOneReaperAtATimeWithTheTalisman() {
+        addCreature(REAPER_ID, PLAYER_ID);
+
+        assertFalse(allowedByReaperRule(SummonReaperFixtures.keeperSpell((short) 14, REAPER_SHOT_ID, 99, 0, 125)));
+    }
+
+    @Test
     void reaperOfAnotherKeeperDoesNotMatter() {
         addCreature(REAPER_ID, OTHER_PLAYER_ID);
 
