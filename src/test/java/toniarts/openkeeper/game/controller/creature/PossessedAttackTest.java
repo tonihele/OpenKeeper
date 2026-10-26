@@ -230,16 +230,16 @@ class PossessedAttackTest {
         createCreature(HERO, new Vector3f(5, 0, 5.8f));
         CreatureController controller = createController();
 
-        controller.setPossessedAttack(true);
-        controller.setPossessedAttack(false);
+        controller.setPossessedAttack(true, 0);
+        controller.setPossessedAttack(false, 0);
         assertFalse(entityData.getComponent(us, Possessed.class).attackHeld);
         assertTrue(entityData.getComponent(us, Possessed.class).isAttackPending());
 
         controller.executePossessedAttack();
         gameTime += RECHARGE;
-        controller.setPossessedAttack(true);
+        controller.setPossessedAttack(true, 0);
         controller.executePossessedAttack();
-        controller.setPossessedAttack(false);
+        controller.setPossessedAttack(false, 0);
         assertFalse(entityData.getComponent(us, Possessed.class).isAttackPending());
     }
 
