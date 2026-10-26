@@ -910,6 +910,24 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         @Override
+        protected boolean isBlock(Point tile) {
+
+            // Beyond the edge there is nothing to see through to
+            IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
+            if (mapTile == null) {
+                return true;
+            }
+
+            // Whatever the fog hides is drawn as plain rock, see MapViewController
+            IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
+            if (fogOfWarInformation != null && !fogOfWarInformation.isVisible(tile)) {
+                return true;
+            }
+
+            return mapInformation.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID);
+        }
+
+        @Override
         protected ColorIndicator getColorIndicator() {
             Point point = isActive()
                     ? WorldUtils.vectorToPoint(getSelectionArea().getRealStart())
