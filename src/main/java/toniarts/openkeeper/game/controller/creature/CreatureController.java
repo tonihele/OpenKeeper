@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -57,6 +58,7 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
@@ -101,6 +103,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Material;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -200,6 +203,13 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final Set<CreatureState> EAT_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
             CreatureState.WANDER, CreatureState.WORK, CreatureState.DANCING);
+
+    /**
+     * The effects a melee hit plays on its target, "Physical Hit Effect" and
+     * "Spark shower effect"
+     */
+    private static final int PHYSICAL_HIT_EFFECT_ID = 237;
+    private static final int SPARK_SHOWER_EFFECT_ID = 313;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -1311,6 +1321,46 @@ public final class CreatureController extends EntityController implements ICreat
             setDamage(attackTarget, damage);
         }
         gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
+        showMeleeHit(attackTarget, creatureMeleeAttack.getAttackType());
+    }
+
+    /**
+     * Plays the hit effects of a melee hit on the target (0x4998A0). Every
+     * blade, blunt, body and scythe hit makes the physical hit effect, a blade
+     * or scythe hitting metal also makes a spark shower
+     *
+     * @param attackTarget the target we hit
+     * @param attackType our melee attack type
+     */
+    private void showMeleeHit(EntityId attackTarget, Creature.AttackType attackType) {
+        Vector3f position = getPosition(entityData, attackTarget);
+        if (position == null || attackType != Creature.AttackType.MELEE_BLADE && attackType != Creature.AttackType.MELEE_BLUNT
+                && attackType != Creature.AttackType.MELEE_BODY && attackType != Creature.AttackType.MELEE_SCYTHE) {
+            return;
+        }
+
+        gameEventService.emitEffect(PHYSICAL_HIT_EFFECT_ID, position, 0);
+        Material material = getMaterial(attackTarget);
+        if ((attackType == Creature.AttackType.MELEE_BLADE || attackType == Creature.AttackType.MELEE_SCYTHE)
+                && (material == Material.METAL1 || material == Material.METAL2)) {
+            gameEventService.emitEffect(SPARK_SHOWER_EFFECT_ID, position, 0);
+        }
+    }
+
+    private Material getMaterial(EntityId entity) {
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        if (creatureComponent != null) {
+            return levelInfo.getLevelData().getCreature(creatureComponent.creatureId).getMaterial();
+        }
+        DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+        if (doorComponent != null) {
+            return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getMaterial();
+        }
+        ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+        if (objectComponent != null) {
+            return levelInfo.getLevelData().getObject(objectComponent.objectId).getMaterial();
+        }
+        return Material.NONE;
     }
 
     private float getFirstPersonRechargeModifyPercentage() {
