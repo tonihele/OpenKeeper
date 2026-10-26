@@ -281,12 +281,13 @@ class CreatureControllerTest {
         final CreatureSleepSystem sleepSystem;
         final CreatureMoodSystem moodSystem;
         final HealthSystem healthSystem;
-        final CreatureFallSystem fall = new CreatureFallSystem(data);
+        final CreatureFallSystem fall;
         int sleepAssignments;
         int oldJobUnassignments;
         double time;
 
         Fixture(int timeSleep) {
+            fall = new CreatureFallSystem(data, () -> time);
             Creature definition = CreatureSleepFixtures.sleeper(timeSleep);
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
