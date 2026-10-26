@@ -39,6 +39,14 @@ public final class CreatureSleep implements EntityComponent {
         // For serialization
     }
 
+    /**
+     * Captures bed ownership and the independent fatigue and rest clocks.
+     *
+     * @param lairObjectId assigned bed, or {@code null} if none exists
+     * @param lastSleepTime last fatigue latch or sleeping update, in game seconds
+     * @param sleepStartTime beginning of the current rest, in game seconds
+     * @param sleepNeed remaining native sleep updates; zero still permits healing
+     */
     public CreatureSleep(EntityId lairObjectId, double lastSleepTime, double sleepStartTime, int sleepNeed) {
         this.lairObjectId = lairObjectId;
         this.lastSleepTime = lastSleepTime;
@@ -46,6 +54,12 @@ public final class CreatureSleep implements EntityComponent {
         this.sleepNeed = sleepNeed;
     }
 
+    /**
+     * Converts authored sleep duration to debt consumed once per native update.
+     *
+     * @param authoredTimeSleep the creature definition's sleep duration
+     * @return remaining updates at the native four-ticks-per-second rate
+     */
     public static int toRuntimeSleepNeed(int authoredTimeSleep) {
         return authoredTimeSleep * RUNTIME_SLEEP_SCALE;
     }

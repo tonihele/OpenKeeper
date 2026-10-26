@@ -34,6 +34,13 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
     private final IGameTimer gameTimer;
     private final EntitySet entities;
 
+    /**
+     * Watches sleeping-capable creatures on the authoritative game loop.
+     *
+     * @param entityData authoritative creature components
+     * @param kwdFile creature definitions containing awake and sleep durations
+     * @param gameTimer shared game clock used for fatigue and rest timestamps
+     */
     public CreatureSleepSystem(EntityData entityData, IKwdFile kwdFile,
             IGameTimer gameTimer) {
         this.entityData = entityData;
@@ -43,6 +50,11 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
                 CreatureComponent.class, CreatureAi.class);
     }
 
+    /**
+     * Updates fatigue once per game tick, consuming one debt unit during rest.
+     *
+     * @param tpf elapsed game time for this tick; timestamps use the shared clock
+     */
     @Override
     public void processTick(float tpf) {
         entities.applyChanges();
@@ -96,10 +108,12 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
                 sleep.sleepStartTime, sleepNeed);
     }
 
+    /** Starts the system; its entity subscription is established on construction. */
     @Override
     public void start() {
     }
 
+    /** Releases the creature subscription when the game loop stops. */
     @Override
     public void stop() {
         entities.release();

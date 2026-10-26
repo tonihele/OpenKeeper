@@ -65,7 +65,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean goToSleep();
 
-    /** Consumes a manual lair placement after landing, independently of fatigue debt. */
+    /**
+     * Consumes a manual Lair placement after landing and getting up. Rest can be
+     * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     *
+     * @return whether a sleep task was assigned
+     */
     public boolean goToSleepAfterLairDrop();
 
     public void findWork(Consumer<Boolean> workResult);

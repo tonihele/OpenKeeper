@@ -33,6 +33,13 @@ public final class CreatureRecuperating implements EntityComponent {
         // For serialization
     }
 
+    /**
+     * Starts or resumes rest with independent health and mood recovery clocks.
+     *
+     * @param startTime beginning of recuperation, in game seconds
+     * @param healthCheckTime last global second checked for health recovery
+     * @param moodCheckTime last global second checked for mood recovery
+     */
     public CreatureRecuperating(double startTime, double healthCheckTime, double moodCheckTime) {
         this.startTime = startTime;
         this.healthCheckTime = healthCheckTime;

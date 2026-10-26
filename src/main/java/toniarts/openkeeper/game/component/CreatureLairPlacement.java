@@ -22,12 +22,19 @@ import com.simsilica.es.EntityId;
 /** Server-owned room assignment retained through a manual drop and get-up animation. */
 public final class CreatureLairPlacement implements EntityComponent {
 
+    /** Room where the creature was dropped; validated against its bed after get-up. */
     public EntityId roomId;
 
+    /** Creates an empty component for entity serialization. */
     public CreatureLairPlacement() {
         // For serialization
     }
 
+    /**
+     * Records a manual drop into a Lair without starting rest before landing.
+     *
+     * @param roomId the Lair to validate when the creature gets up
+     */
     public CreatureLairPlacement(EntityId roomId) {
         this.roomId = roomId;
     }

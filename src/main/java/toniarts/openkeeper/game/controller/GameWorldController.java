@@ -1119,11 +1119,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
-            if (!tortureOrImprisonment && roomController.getOwnerId() == owner.ownerId
-                    && roomController.hasObjectControl(ObjectType.LAIR)
-                    && entityData.getComponent(entity, CreatureSleep.class) != null) {
-                entityData.setComponent(entity, new CreatureLairPlacement(roomController.getEntityId()));
-            }
+            requestLairRestAfterDrop(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
         // Add position
@@ -1156,6 +1152,18 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
+        }
+    }
+
+    /**
+     * Records a rest request for a non-captive drop into an owned Lair.
+     * The creature controller checks the assigned bed after landing and getting up.
+     */
+    private void requestLairRestAfterDrop(IRoomController roomController, EntityId entity, short ownerId, boolean captive) {
+        if (!captive && roomController.getOwnerId() == ownerId
+                && roomController.hasObjectControl(ObjectType.LAIR)
+                && entityData.getComponent(entity, CreatureSleep.class) != null) {
+            entityData.setComponent(entity, new CreatureLairPlacement(roomController.getEntityId()));
         }
     }
 
