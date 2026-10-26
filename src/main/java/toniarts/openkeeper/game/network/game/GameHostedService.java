@@ -641,6 +641,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void setPossessedAttack(boolean attacking) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSetPossessedAttack(attacking, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void endPossession() {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onEndPossession(clientInfo.getKeeper().getId());

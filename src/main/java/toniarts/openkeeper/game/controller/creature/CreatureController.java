@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -53,6 +54,7 @@ import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedAttack;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
@@ -82,6 +84,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
@@ -108,6 +111,13 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+
+    /**
+     * The possessed melee attack hits what is at most 341/2048 of a full
+     * circle (about 60 degrees) off the creature's facing, as the cosine of
+     * that angle
+     */
+    private static final float POSSESSED_ATTACK_MIN_FACING = FastMath.cos(341 / 2048f * FastMath.TWO_PI);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -649,11 +659,8 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
-                entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
-
-                // Set the damage
-                setDamage(attackTarget, creatureMeleeAttack.damage);
+                hitWithMelee(attackTarget, creatureMeleeAttack);
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -677,6 +684,17 @@ public final class CreatureController extends EntityController implements ICreat
                 setDamage(attackTarget, creatureSpell.getShotData1());
             }
         }
+    }
+
+    /**
+     * Hits the target with our melee attack, which then needs to recharge
+     *
+     * @param attackTarget the target we hit
+     * @param creatureMeleeAttack our melee attack
+     */
+    private void hitWithMelee(EntityId attackTarget, CreatureMeleeAttack creatureMeleeAttack) {
+        entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+        setDamage(attackTarget, creatureMeleeAttack.damage);
     }
 
     /**
@@ -1435,6 +1453,128 @@ public final class CreatureController extends EntityController implements ICreat
         entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
     }
 
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        PossessedAttack possessedAttack = entityData.getComponent(entityId, PossessedAttack.class);
+        if (attacking) {
+            entityData.setComponent(entityId, new PossessedAttack(true, gameTimer.getGameTime()));
+        } else if (possessedAttack != null) {
+
+            // A click shorter than a logic tick still gets its one swing
+            if (hasSwungSince(possessedAttack.pressTime)) {
+                entityData.removeComponent(entityId, PossessedAttack.class);
+            } else {
+                entityData.setComponent(entityId, new PossessedAttack(false, possessedAttack.pressTime));
+            }
+        }
+    }
+
+    private boolean hasSwungSince(double time) {
+        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        return meleeAttack == null || (meleeAttack.attactStartTime != null && meleeAttack.attactStartTime >= time);
+    }
+
+    @Override
+    public void executePossessedAttack() {
+        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (meleeAttack == null || position == null || !isAttackRecharged(meleeAttack)) {
+            return;
+        }
+
+        // Nothing to hit, a worker digs but others don't swing at all
+        EntityId target = getPossessedAttackTarget(position);
+        if (target != null) {
+            hitWithMelee(target, meleeAttack);
+        } else if (isWorker() && digTileInFront(position)) {
+            entityData.setComponent(entityId, new CreatureMeleeAttack(meleeAttack, gameTimer.getGameTime()));
+        } else {
+            return;
+        }
+        entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK));
+    }
+
+    /**
+     * Finds what the possessed creature hits: the nearest target on the tiles
+     * around it that is within the cone in front of it. The melee range of the
+     * creature doesn't matter here.
+     *
+     * @param position the position of the possessed creature
+     * @return the target to hit, or {@code null} if there is nothing to hit
+     */
+    private EntityId getPossessedAttackTarget(Position position) {
+        EntityId nearestTarget = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (Point tile : WorldUtils.getSurroundingTiles(mapController.getMapData(), WorldUtils.vectorToPoint(position.position), true)) {
+            for (EntityId entity : entityPositionLookup.getEntitiesInLocation(tile)) {
+                float distance = getDistanceToCreature(entity);
+                if (distance < nearestDistance && isPossessedAttackTarget(entity) && isInFront(position, entity)) {
+                    nearestDistance = distance;
+                    nearestTarget = entity;
+                }
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    /**
+     * Can the possessed creature hit the entity with its melee attack. Any
+     * creature but our own, also neutral and allied ones. Doors, traps and the
+     * Dungeon Heart can be added here.
+     *
+     * @param entity the entity in reach
+     * @return true if the entity is something to hit
+     */
+    private boolean isPossessedAttackTarget(EntityId entity) {
+        Owner owner = entityData.getComponent(entity, Owner.class);
+        return !entityId.equals(entity) && creaturesController.isValidEntity(entity)
+                && owner != null && owner.ownerId != getOwnerId() && !isIncapacitated(entity);
+    }
+
+    private boolean isInFront(Position position, EntityId entity) {
+        Vector3f targetPosition = getPosition(entityData, entity);
+        float dx = targetPosition.x - position.position.x;
+        float dz = targetPosition.z - position.position.z;
+        float length = FastMath.sqrt(dx * dx + dz * dz);
+        if (length == 0) {
+            return true;
+        }
+
+        float facing = (FastMath.sin(position.rotation) * dx + FastMath.cos(position.rotation) * dz) / length;
+        return facing >= POSSESSED_ATTACK_MIN_FACING;
+    }
+
+    /**
+     * A possessed worker digs the tile next to it in the direction it is
+     * facing. Dirt, gold, gems and walls can be dug, also our own walls.
+     *
+     * @param position the position of the possessed worker
+     * @return true if there was something to dig
+     */
+    private boolean digTileInFront(Position position) {
+        float x = FastMath.sin(position.rotation);
+        float z = FastMath.cos(position.rotation);
+        Point tile = WorldUtils.vectorToPoint(position.position);
+        if (Math.abs(x) >= Math.abs(z)) {
+            tile = new Point(tile.x + (x > 0 ? 1 : -1), tile.y);
+        } else {
+            tile = new Point(tile.x, tile.y + (z > 0 ? 1 : -1));
+        }
+
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (mapTile == null) {
+            return false;
+        }
+        Set<Terrain.TerrainFlag> flags = mapController.getTerrain(mapTile).getFlags();
+        if (!flags.contains(Terrain.TerrainFlag.SOLID) || (flags.contains(Terrain.TerrainFlag.IMPENETRABLE) && mapTile.getGold() <= 0)) {
+            return false;
+        }
+
+        addGold(mapController.damageTile(tile, getOwnerId(), this));
+        return true;
+    }
+
     private void startPossession() {
         if (entityData.getComponent(entityId, Possessed.class) != null) {
             return;
@@ -1466,6 +1606,7 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         entityData.removeComponent(entityId, PossessedMovement.class);
+        entityData.removeComponent(entityId, PossessedAttack.class);
         entityData.removeComponent(entityId, Possessed.class);
         entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.IDLE, getCreature().getCreatureId()));
     }

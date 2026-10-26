@@ -218,6 +218,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void setPossessedAttack(boolean attacking) {
+        getDelegate().setPossessedAttack(attacking);
+    }
+
+    @Override
     public void endPossession() {
         getDelegate().endPossession();
     }

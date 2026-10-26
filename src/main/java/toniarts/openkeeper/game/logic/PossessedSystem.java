@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedAttack;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -33,13 +34,16 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
- * Maintains possessed state, sees when we need to stop possessing
+ * Maintains possessed state, sees when we need to stop possessing. Also swings
+ * the attacks the keepers give to their possessed creatures, so that they hit
+ * on the game logic thread.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class PossessedSystem extends GameTimeCounter {
 
     private final EntitySet possessedEntities;
+    private final EntitySet attackingEntities;
     private final Map<Short, PlayerManaControl> manaControls;
     private final Map<EntityId, Short> possessorsByEntity = new HashMap<>();
     private final EntityData entityData;
@@ -62,6 +66,7 @@ public final class PossessedSystem extends GameTimeCounter {
         // Listen for posessed entities
         possessedEntities = entityData.getEntities(Possessed.class, Owner.class);
         processAddedEntities(possessedEntities);
+        attackingEntities = entityData.getEntities(Possessed.class, PossessedAttack.class);
     }
 
     @Override
@@ -89,6 +94,20 @@ public final class PossessedSystem extends GameTimeCounter {
                 entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed));
             }
         }
+
+        processAttacks();
+    }
+
+    private void processAttacks() {
+        attackingEntities.applyChanges();
+        for (Entity entity : attackingEntities) {
+            creaturesController.createController(entity.getId()).executePossessedAttack();
+
+            // A released attack only had this one swing
+            if (!entity.get(PossessedAttack.class).held) {
+                entityData.removeComponent(entity.getId(), PossessedAttack.class);
+            }
+        }
     }
 
     @Override
@@ -99,6 +118,7 @@ public final class PossessedSystem extends GameTimeCounter {
     @Override
     public void stop() {
         possessedEntities.release();
+        attackingEntities.release();
     }
 
     private void processAddedEntities(Set<Entity> entities) {
