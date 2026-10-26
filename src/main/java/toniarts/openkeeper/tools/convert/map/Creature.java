@@ -1687,6 +1687,18 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         protected void setLevelAvailable(short levelAvailable) {
             this.levelAvailable = levelAvailable;
         }
+
+        /**
+         * Whether a creature on the level has the spell. A spell comes at its
+         * level and stays with the creature from there on (DKII.EXE
+         * 0x4651A0).
+         *
+         * @param level the creature's level
+         * @return does the creature have the spell
+         */
+        public boolean isAvailableAt(int level) {
+            return levelAvailable <= level;
+        }
     }
 
     public static final class Resistance {

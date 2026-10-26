@@ -734,7 +734,7 @@ public final class CreaturesController implements ICreaturesController {
         // Get the spells the creature should have
         Map<Short, toniarts.openkeeper.tools.convert.map.CreatureSpell> availableSpells = creature.getSpells()
                 .stream()
-                .filter((spell) -> spell.getLevelAvailable() >= level)
+                .filter((spell) -> spell.isAvailableAt(level))
                 .collect(Collectors.toMap((spell) -> spell.getCreatureSpellId(), (spell) -> kwdFile.getCreatureSpellById(spell.getCreatureSpellId())));
         List<EntityId> creatureSpellIds = new ArrayList<>(availableSpells.size());
         boolean spellsChanged = false;
