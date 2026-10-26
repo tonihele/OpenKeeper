@@ -41,7 +41,9 @@ public final class PlayerManaControl {
     }
 
     /**
-     * Updates gain and loose and adds/removes mana accordingly to the player
+     * Updates gain and loose and adds/removes mana accordingly to the player.
+     * The mana spent at once since the last update leaves the loose here, like
+     * DKII.EXE clears it before the update (0x4C10E0)
      *
      * @param gain mana gain
      * @param loose mana loose
@@ -52,6 +54,20 @@ public final class PlayerManaControl {
         keeper.setManaLoose(loose);
 
         addMana(keeper.getManaGain() - keeper.getManaLoose());
+
+        updateListerners();
+    }
+
+    /**
+     * Spends mana at once, like a spell that is cast or a trap that fires.
+     * DKII.EXE adds it to the keeper's loss of the second it is spent in
+     * (0x4C17A0), so it shows with the other losses until the next update
+     *
+     * @param amount the mana spent
+     */
+    public void spendMana(int amount) {
+        addMana(-amount);
+        keeper.setManaLoose(keeper.getManaLoose() + amount);
 
         updateListerners();
     }
