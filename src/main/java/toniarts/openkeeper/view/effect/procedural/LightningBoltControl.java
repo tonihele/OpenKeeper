@@ -16,17 +16,15 @@
  */
 package toniarts.openkeeper.view.effect.procedural;
 
-import com.jme3.math.Vector3f;
-import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
-import com.jme3.scene.control.AbstractControl;
+import com.jme3.scene.control.BillboardControl;
 import java.util.Random;
 
 /**
  * Keeps a {@link LightningBoltMesh} alive: re-rolls its shape and brightness
- * every few frames and turns it to the camera every frame
+ * every few frames. As a billboard turning about Y it keeps the bolt facing
+ * the camera.
  */
-public final class LightningBoltControl extends AbstractControl {
+public final class LightningBoltControl extends BillboardControl {
 
     /**
      * How long the bolt holds one shape, a real one does not keep still
@@ -36,12 +34,12 @@ public final class LightningBoltControl extends AbstractControl {
 
     private final LightningBoltMesh mesh;
     private final Random random;
-    private final Vector3f cameraLocation = new Vector3f();
     private float timeToFlicker;
 
     public LightningBoltControl(LightningBoltMesh mesh, Random random) {
         this.mesh = mesh;
         this.random = random;
+        setAlignment(Alignment.AxialY);
     }
 
     @Override
@@ -52,12 +50,6 @@ public final class LightningBoltControl extends AbstractControl {
             mesh.randomizePath(random);
             mesh.setIntensity(MIN_INTENSITY + random.nextFloat() * (1 - MIN_INTENSITY));
         }
-    }
-
-    @Override
-    protected void controlRender(RenderManager rm, ViewPort vp) {
-        spatial.worldToLocal(vp.getCamera().getLocation(), cameraLocation);
-        mesh.faceCamera(cameraLocation);
     }
 
 }
