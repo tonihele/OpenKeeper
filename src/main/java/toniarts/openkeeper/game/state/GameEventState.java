@@ -23,7 +23,10 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.component.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -37,6 +40,8 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  * of it is a client matter. For now the client plays the sounds.
  */
 public final class GameEventState extends AbstractAppState {
+
+    private static final Logger logger = System.getLogger(GameEventState.class.getName());
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -77,8 +82,11 @@ public final class GameEventState extends AbstractAppState {
 
     private void handle(GameEvent event) {
         if (event.playerId != GameEvent.ALL_PLAYERS && event.playerId != playerId) {
+            logger.log(Level.DEBUG, "Event {0} is for player {1}, we are {2}",
+                    new Object[]{event.type, event.playerId, playerId});
             return;
         }
+        logger.log(Level.DEBUG, "Event {0} at {1}", new Object[]{event.type, event.position});
         playSounds(event);
     }
 
@@ -91,10 +99,19 @@ public final class GameEventState extends AbstractAppState {
             }
         }
 
-        for (GameEventSounds.Sound sound : GameEventSounds.getSounds(event, kwdFile)) {
+        List<GameEventSounds.Sound> sounds = GameEventSounds.getSounds(event, kwdFile);
+        if (sounds.isEmpty()) {
+            logger.log(Level.DEBUG, "Event {0} makes no sound (subject {1} {2})",
+                    new Object[]{event.type, event.subjectKind, event.subjectId});
+        }
+        for (GameEventSounds.Sound sound : sounds) {
             int handle = sound.position() != null
                     ? SoundManager.playSound(sound.category(), sound.eventId(), sound.position())
                     : SoundManager.playSound(sound.category(), sound.eventId());
+            if (handle == SoundEngine.NO_HANDLE) {
+                logger.log(Level.DEBUG, "Sound {0} 0x{1} of event {2} was not accepted by the sound engine",
+                        new Object[]{sound.category(), Integer.toHexString(sound.eventId()), event.type});
+            }
             if (key != null && handle != SoundEngine.NO_HANDLE) {
                 exclusiveSounds.put(key, handle);
             }
