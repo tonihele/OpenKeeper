@@ -564,6 +564,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     private void populateTab(ResearchableEntity researchableEntity) {
+        if (!isEnabled()) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         switch (researchableEntity.getResearchableType()) {
             case SPELL: {
                 screen.populateSpellTab();
