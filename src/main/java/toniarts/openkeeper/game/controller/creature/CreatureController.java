@@ -526,7 +526,9 @@ public final class CreatureController extends EntityController implements ICreat
         if (!DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
             return false;
         }
-        EntityId door = DoorAttackTarget.findAdjacent(getCreatureCoordinates(), this::getBlockingDoor, this::canBreakDoor);
+        Position position = entityData.getComponent(entityId, Position.class);
+        Point tile = position != null ? WorldUtils.vectorToPoint(position.position) : null;
+        EntityId door = DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
         if (door == null) {
             return false;
         }

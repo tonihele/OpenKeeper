@@ -131,12 +131,16 @@ public final class DoorAttackTarget {
     /**
      * Finds a door to break on the four tiles next to the given tile
      *
-     * @param tile the tile we stand on
+     * @param tile the tile we stand on, null if we have no position (as in
+     * the keeper's hand)
      * @param doorAt gives the door that blocks the tile, or null
      * @param canBreak tells if the door is one to break
      * @return the door, or null if there is none
      */
     public static EntityId findAdjacent(Point tile, Function<Point, EntityId> doorAt, Predicate<EntityId> canBreak) {
+        if (tile == null) {
+            return null;
+        }
         for (int[] offset : NEIGHBOURS) {
             EntityId door = doorAt.apply(new Point(tile.x + offset[0], tile.y + offset[1]));
             if (door != null && canBreak.test(door)) {
