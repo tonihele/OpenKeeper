@@ -94,6 +94,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void executeAttack(EntityId attackTarget);
 
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
+
     public void navigateToAttackTarget(EntityId attackTarget);
 
     public ICreatureController getFollowTarget();
