@@ -65,7 +65,9 @@ public final class KeeperSpellCastValidator {
     }
 
     private static boolean checkPlayerMana(KeeperSpell keeperSpell, Keeper player) {
-        return keeperSpell.getManaCost() <= player.getMana() - player.getManaLoose();
+
+        // Only the mana itself counts, the loss already holds the mana spent this second (as DK II)
+        return keeperSpell.getManaCost() <= player.getMana();
     }
 
     private static boolean checkTargetRule(EntityId target, EntityData entityData, IKwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {

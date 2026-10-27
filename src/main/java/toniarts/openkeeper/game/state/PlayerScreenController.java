@@ -976,7 +976,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
-        updateSpellAffordability(mana - manaLoose);
+        updateSpellAffordability(mana);
     }
 
     /**
@@ -1065,7 +1065,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
         }
         unaffordableSpells.clear();
-        updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+        updateSpellAffordability(state.getPlayer().getMana());
     }
 
     /**
