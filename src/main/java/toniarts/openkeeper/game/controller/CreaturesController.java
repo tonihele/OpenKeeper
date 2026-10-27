@@ -369,7 +369,7 @@ public final class CreaturesController implements ICreaturesController {
             }
             case CONJURE -> {
                 creatureState = null;
-                entityData.setComponent(entity, new CreatureFall());
+                entityData.setComponent(entity, new CreatureFall(true));
             }
             default ->
                 throw new RuntimeException("SpawnType " + spawnType + " not handled!");
