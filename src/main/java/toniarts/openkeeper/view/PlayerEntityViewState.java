@@ -371,14 +371,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         CreatureViewState viewState = e.get(CreatureViewState.class);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
-        boolean wasAlreadyFallen = control.getCurrentState() == Creature.AnimationType.FALLBACK;
         control.setTargetState(viewState.state);
 
-        // A creature that lands stunned from the hand gets the dazed stars over its head, once per landing
-        if (!wasAlreadyFallen && viewState.state == Creature.AnimationType.FALLBACK && object instanceof Node creatureNode) {
-            float height = kwdFile.getCreature(viewState.creatureId).getAttributes().getHeight();
-            stateManager.getState(EffectManagerState.class).load(getDazedEffectNode(creatureNode, height), null, DAZED_EFFECT_ID, false);
-        }
+        updateDazedEffect(object, viewState, e.get(Position.class));
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
@@ -395,6 +390,26 @@ public class PlayerEntityViewState extends AbstractAppState {
             CharredOverlay.apply(object, assetManager);
         }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+    }
+
+    /**
+     * A creature that lands stunned from the hand gets the dazed stars over its head, once per landing. The
+     * creature gets a new model when it is dropped, so whether the stars were already played is remembered on the
+     * model until the creature gets up.
+     */
+    private void updateDazedEffect(Spatial object, CreatureViewState viewState, Position position) {
+        if (viewState.state != Creature.AnimationType.FALLBACK) {
+            object.setUserData(DAZED_NODE_NAME, null);
+            return;
+        }
+        Creature creature = kwdFile.getCreature(viewState.creatureId);
+        if (position.position.y > WorldUtils.FLOOR_HEIGHT || creature.getAttributes().getStunDuration() == 0
+                || object.getUserData(DAZED_NODE_NAME) != null || !(object instanceof Node creatureNode)) {
+            return;
+        }
+        object.setUserData(DAZED_NODE_NAME, true);
+        float height = creature.getAttributes().getHeight();
+        stateManager.getState(EffectManagerState.class).load(getDazedEffectNode(creatureNode, height), null, DAZED_EFFECT_ID, false);
     }
 
     /**
