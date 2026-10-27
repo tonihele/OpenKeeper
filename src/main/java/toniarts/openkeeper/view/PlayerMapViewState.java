@@ -44,6 +44,7 @@ import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 
 import java.lang.System.Logger;
 import java.util.ArrayList;
@@ -315,6 +316,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             }
         }
         mapLoader.updateTiles(points);
+    }
+
+    public TerrainDeformer getTerrainDeformer() {
+        return mapLoader.getDeformer();
     }
 
     public IRoomsInformation getRoomsInformation() {

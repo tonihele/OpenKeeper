@@ -115,6 +115,7 @@ public final class TerrainDeformer {
     private final BiFunction<Integer, Integer, TileShape> tiles;
     private final float[] displacements; // x, y, z for each of the levels, for each point
     private final boolean[] valid;
+    private int version; // Changes whenever the shape may have changed
 
     /**
      * @param width map width in tiles
@@ -136,6 +137,7 @@ public final class TerrainDeformer {
      * A tile changed, forget the lattice points it can affect (7 x 7)
      */
     public void invalidateTile(int x, int y) {
+        version++;
         for (int j = Math.max(2 * y - 2, 0); j <= Math.min(2 * y + 4, pointsY - 1); j++) {
             for (int i = Math.max(2 * x - 2, 0); i <= Math.min(2 * x + 4, pointsX - 1); i++) {
                 valid[j * pointsX + i] = false;
@@ -144,7 +146,16 @@ public final class TerrainDeformer {
     }
 
     public void invalidateAll() {
+        version++;
         java.util.Arrays.fill(valid, false);
+    }
+
+    /**
+     * @return a number that differs from the earlier one if the shape of the
+     * terrain may have changed since, for the ones that draw on it
+     */
+    public int getVersion() {
+        return version;
     }
 
     /**

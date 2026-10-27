@@ -206,6 +206,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         return map;
     }
 
+    /**
+     * @return the thing that bends the terrain, {@code null} if it is turned off
+     */
+    public TerrainDeformer getDeformer() {
+        return deformer;
+    }
+
     public IMapDataInformation<IMapTileInformation> getMapData() {
         return mapClientService.getMapData();
     }

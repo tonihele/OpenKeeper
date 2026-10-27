@@ -9,7 +9,13 @@ import com.jme3.renderer.Camera;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial.CullHint;
-import com.jme3.scene.debug.WireBox;
+import com.jme3.scene.Mesh;
+import com.jme3.scene.VertexBuffer.Type;
+import com.jme3.util.BufferUtils;
+import java.nio.FloatBuffer;
+import toniarts.openkeeper.view.map.TerrainDeformer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Predicate;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.Main;
@@ -43,7 +49,7 @@ public abstract class SelectionHandler {
 
     /* Visuals for Selection */
     private Geometry wireBoxGeo;
-    private WireBox wireBox;
+    private int deformerVersion;
     private Material matWireBox;
     /* The selected Area */
     private final SelectionArea selectionArea;
@@ -53,6 +59,7 @@ public abstract class SelectionHandler {
     private final Vector2f pointedPosition = new Vector2f(Vector2f.ZERO);
     private final Vector3f rayNear = new Vector3f();
     private final Vector3f rayDirection = new Vector3f();
+    private static final float OUTLINE_STEP = 0.25f; // Same as the spacing of the terrain deformation
     private final Predicate<Point> blocks = this::isBlock;
 
     public SelectionHandler(Main app) {
@@ -71,6 +78,15 @@ public abstract class SelectionHandler {
      * @return true if the pointed tile changed
      */
     public boolean update(Vector2f mousePosition) {
+
+        // The terrain changed shape under the outline
+        TerrainDeformer deformer = getDeformer();
+        int version = deformer != null ? deformer.getVersion() : 0;
+        if (version != deformerVersion) {
+            deformerVersion = version;
+            updateSelectionBox();
+        }
+
         Camera cam = app.getCamera();
         cam.getWorldCoordinates(mousePosition, 0f, rayNear);
         cam.getWorldCoordinates(mousePosition, 1f, rayDirection).subtractLocal(rayNear);
@@ -166,16 +182,10 @@ public abstract class SelectionHandler {
 
     public void updateSelectionBox() {
         if (isVisible()) {
-            float dx = selectionArea.getDeltaX();
-            float dy = selectionArea.getDeltaY();
-            float delta = 0.01f;
-
-            Vector2f position = selectionArea.getCenter();
-            wireBoxGeo.setLocalTranslation(position.x, WorldUtils.FLOOR_HEIGHT, position.y);
-
-            wireBox.updatePositions(WorldUtils.TILE_WIDTH / 2 * dx + delta,
-                    WorldUtils.FLOOR_HEIGHT + delta,
-                    WorldUtils.TILE_WIDTH / 2 * dy + delta);
+            Vector2f start = selectionArea.getStart();
+            Vector2f end = selectionArea.getEnd();
+            float half = WorldUtils.TILE_WIDTH / 2;
+            wireBoxGeo.setMesh(createOutline(start.x - half, start.y - half, end.x + half, end.y + half));
 
             // Selection color indicator
             ColorIndicator newSelectionColor = getColorIndicator();
@@ -196,15 +206,70 @@ public abstract class SelectionHandler {
         matWireBox.setColor("Color", selectionColor.getColor());
         matWireBox.getAdditionalRenderState().setLineWidth(6); // TODO: GL_INVALID_VALUE on intel driver
 
-        this.wireBox = new WireBox(WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH);
-        this.wireBox.setDynamic();
-
-        this.wireBoxGeo = new Geometry("wireBox", wireBox);
+        this.wireBoxGeo = new Geometry("wireBox", createOutline(0, 0, WorldUtils.TILE_WIDTH, WorldUtils.TILE_WIDTH));
         this.wireBoxGeo.setMaterial(matWireBox);
         this.wireBoxGeo.setCullHint(CullHint.Never);
         this.wireBoxGeo.setShadowMode(RenderQueue.ShadowMode.Off);
 
         this.app.getRootNode().attachChild(this.wireBoxGeo);
+    }
+
+    /**
+     * The edges of the selected area as a column from the floor to the top of
+     * the wall. The lines are cut short and moved the same way as the terrain
+     * is, so they stay on the bent floor and walls.
+     */
+    private Mesh createOutline(float minX, float minZ, float maxX, float maxZ) {
+        TerrainDeformer deformer = getDeformer();
+        List<Vector3f> points = new ArrayList<>();
+        float delta = 0.01f;
+        float[] heights = {WorldUtils.FLOOR_HEIGHT, WorldUtils.TOP_HEIGHT};
+        float[][] corners = {{minX, minZ}, {maxX, minZ}, {maxX, maxZ}, {minX, maxZ}};
+
+        // The floor and the top, around
+        for (float y : heights) {
+            for (int i = 0; i < corners.length; i++) {
+                float[] from = corners[i];
+                float[] to = corners[(i + 1) % corners.length];
+                addLine(points, deformer, from[0], y, from[1], to[0], y, to[1]);
+            }
+        }
+
+        // The corners between
+        for (float[] corner : corners) {
+            addLine(points, deformer, corner[0], heights[0], corner[1], corner[0], heights[1], corner[1]);
+        }
+
+        FloatBuffer positions = BufferUtils.createFloatBuffer(points.size() * 3);
+        for (Vector3f point : points) {
+            positions.put(point.x).put(point.y + delta).put(point.z);
+        }
+        positions.flip();
+
+        Mesh mesh = new Mesh();
+        mesh.setMode(Mesh.Mode.Lines);
+        mesh.setBuffer(Type.Position, 3, positions);
+        mesh.updateBound();
+        mesh.updateCounts();
+        return mesh;
+    }
+
+    private static void addLine(List<Vector3f> points, TerrainDeformer deformer,
+            float x1, float y1, float z1, float x2, float y2, float z2) {
+        int steps = Math.max(1, (int) Math.ceil(Math.max(Math.abs(x2 - x1) + Math.abs(z2 - z1), Math.abs(y2 - y1)) / OUTLINE_STEP));
+        Vector3f previous = null;
+        for (int i = 0; i <= steps; i++) {
+            float t = (float) i / steps;
+            Vector3f point = new Vector3f(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, z1 + (z2 - z1) * t);
+            if (deformer != null) {
+                deformer.deform(point, point, null);
+            }
+            if (previous != null) {
+                points.add(previous);
+                points.add(point);
+            }
+            previous = point;
+        }
     }
 
     /**
@@ -229,4 +294,12 @@ public abstract class SelectionHandler {
      * @return is the tile a block
      */
     abstract protected boolean isBlock(Point tile);
+
+    /**
+     * @return what bends the terrain, the outline follows it. {@code null}
+     * for a flat terrain
+     */
+    protected TerrainDeformer getDeformer() {
+        return null;
+    }
 }
