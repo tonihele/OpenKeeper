@@ -2759,7 +2759,14 @@ public final class CreatureController extends EntityController implements ICreat
         firstPersonAttack.attactStartTime = attack.attactStartTime;
         toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.creatureSpellId);
         Set<CreatureSpellFlag> flags = creatureSpell.getFlags();
-        if (!isAttackRecharged(firstPersonAttack) || flags.contains(CreatureSpellFlag.IMP_TELEPORT) || flags.contains(CreatureSpellFlag.IMP_HASTE)) {
+        if (!isAttackRecharged(firstPersonAttack) || flags.contains(CreatureSpellFlag.IMP_HASTE)) {
+            return;
+        }
+
+        // The Imp's teleport is no cast, and it recharges even with no heart to go to
+        if (flags.contains(CreatureSpellFlag.IMP_TELEPORT)) {
+            teleportToDungeonHeart(position);
+            entityData.setComponent(spellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
             return;
         }
 
@@ -2781,6 +2788,21 @@ public final class CreatureController extends EntityController implements ICreat
         }
         entityData.setComponent(spellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
         entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.CAST_SPELL));
+    }
+
+    /**
+     * Teleports the possessed Imp to the middle of its keeper's dungeon heart,
+     * the one closest to it in DK II (0x514830, 0x4C61C0). Where it looks
+     * doesn't matter.
+     *
+     * @param position the position of the Imp
+     */
+    private void teleportToDungeonHeart(Position position) {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (heart != null) {
+            entityData.setComponent(entityId, new Position(position.rotation, WorldUtils.pointToVector3f(heart)));
+        }
     }
 
     /**
