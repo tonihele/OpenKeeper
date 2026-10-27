@@ -20,7 +20,9 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +54,7 @@ class CreatureFallSystemTest {
 
     private DefaultEntityData entityData;
     private final Set<Point> solidTiles = new HashSet<>();
+    private final List<Integer> effects = new ArrayList<>();
     private CreatureFallSystem fallSystem;
 
     @BeforeEach
@@ -71,7 +74,12 @@ class CreatureFallSystemTest {
         });
 
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
-                new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
+                new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+            if (method.getName().equals("emitEffect")) {
+                effects.add((Integer) args[0]);
+            }
+            return null;
+        });
         fallSystem = new CreatureFallSystem(entityData, gameTimer, gameEventService, mapInformation, TICKS_PER_SECOND, GRAVITY_CONSTANT);
     }
 
@@ -110,12 +118,13 @@ class CreatureFallSystemTest {
     }
 
     @Test
-    void thrownCreatureTakesTheDamageAsItLands() {
+    void thrownCreatureTakesTheDamageAndRaisesDustAsItLands() {
         EntityId creature = createThrownCreature(new Vector3f(0, 0, 0));
 
         fallSystem.processTick(TURN);
 
         assertEquals(50, entityData.getComponent(creature, Damage.class).damage);
+        assertEquals(List.of(117), effects);
     }
 
     private EntityId createThrownCreature(Vector3f velocity) {
