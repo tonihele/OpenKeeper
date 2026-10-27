@@ -19,6 +19,9 @@ package toniarts.openkeeper.tools.hdtextures;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -26,6 +29,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -47,6 +51,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.zip.CRC32;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.imageio.ImageIO;
@@ -737,22 +744,58 @@ public class HdTextures {
         return new Planes(width, height, bands);
     }
 
+    /**
+     * Writes a PNG with Paeth filtering and the strongest deflate. ImageIO's
+     * writer does no filtering, which makes the files about 1.5 times bigger.
+     */
     static void write(Planes image, Path path) throws IOException {
-        BufferedImage out = new BufferedImage(image.width(), image.height(),
-                image.hasAlpha() ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
-        for (int y = 0; y < image.height(); y++) {
-            for (int x = 0; x < image.width(); x++) {
-                int argb = image.hasAlpha() ? 0 : 0xFF000000;
-                for (int band = 0; band < image.bands().length; band++) {
-                    int value = (int) Math.clamp(Math.rint(image.bands()[band][y * image.width() + x]), 0, 255);
-                    argb |= value << (band == 3 ? 24 : 16 - 8 * band);
+        int width = image.width();
+        int bands = image.bands().length;
+        byte[] row = new byte[width * bands];
+        byte[] previous = new byte[row.length];
+        ByteArrayOutputStream idat = new ByteArrayOutputStream();
+        Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
+        try (DeflaterOutputStream deflated = new DeflaterOutputStream(idat, deflater, 1 << 16)) {
+            byte[] filtered = new byte[row.length + 1];
+            filtered[0] = 4;
+            for (int y = 0; y < image.height(); y++) {
+                for (int i = 0; i < row.length; i++) {
+                    row[i] = (byte) Math.clamp(Math.rint(image.bands()[i % bands][y * width + i / bands]), 0, 255);
                 }
-                out.setRGB(x, y, argb);
+                for (int i = 0; i < row.length; i++) {
+                    int a = i >= bands ? row[i - bands] & 0xFF : 0;
+                    int b = previous[i] & 0xFF;
+                    int c = i >= bands ? previous[i - bands] & 0xFF : 0;
+                    int pa = Math.abs(b - c);
+                    int pb = Math.abs(a - c);
+                    int pc = Math.abs(a + b - 2 * c);
+                    filtered[i + 1] = (byte) ((row[i] & 0xFF) - (pa <= pb && pa <= pc ? a : pb <= pc ? b : c));
+                }
+                deflated.write(filtered);
+                System.arraycopy(row, 0, previous, 0, row.length);
             }
+        } finally {
+            deflater.end();
         }
-        if (!ImageIO.write(out, "png", path.toFile())) {
-            throw new IOException("No PNG writer");
+        try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(path)))) {
+            out.write(new byte[]{(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'});
+            ByteBuffer header = ByteBuffer.allocate(13).putInt(width).putInt(image.height())
+                    .put((byte) 8).put((byte) (image.hasAlpha() ? 6 : 2)).put((byte) 0).put((byte) 0).put((byte) 0);
+            writeChunk(out, "IHDR", header.array());
+            writeChunk(out, "IDAT", idat.toByteArray());
+            writeChunk(out, "IEND", new byte[0]);
         }
+    }
+
+    private static void writeChunk(DataOutputStream out, String type, byte[] data) throws IOException {
+        byte[] name = type.getBytes(StandardCharsets.US_ASCII);
+        CRC32 crc = new CRC32();
+        crc.update(name);
+        crc.update(data);
+        out.writeInt(data.length);
+        out.write(name);
+        out.write(data);
+        out.writeInt((int) crc.getValue());
     }
 
     // --- Manifest -------------------------------------------------------------------------------
