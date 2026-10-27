@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -105,6 +104,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final EntitySet constructionBlockingObjects;
     private final EntitySet constructionBlockingDoors;
     private final EntitySet constructionBlockingTraps;
+    private final ConstructionBlockingTiles constructionBlockingTiles = new ConstructionBlockingTiles();
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
@@ -141,6 +141,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
         constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
         constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class);
+        constructionBlockingTiles.addAll(constructionBlockingObjects, this::isConstructionBlockingObject);
+        constructionBlockingTiles.addAll(constructionBlockingDoors, entity -> true);
+        constructionBlockingTiles.addAll(constructionBlockingTraps, entity -> true);
         this.mapInformation = mapInformation;
         this.textParser = textParser;
 
@@ -226,9 +229,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return;
         }
 
-        constructionBlockingObjects.applyChanges();
-        constructionBlockingDoors.applyChanges();
-        constructionBlockingTraps.applyChanges();
+        if (constructionBlockingObjects.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingObjects, this::isConstructionBlockingObject);
+        }
+        if (constructionBlockingDoors.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingDoors, entity -> true);
+        }
+        if (constructionBlockingTraps.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingTraps, entity -> true);
+        }
 
         selectionHandler.update(mousePosition);
         if (isOnMap && !isOnGui && !isTaggable) {
@@ -672,7 +681,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // until exploration reveals whether that's really true (§8.5).
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
             } else if (interactionState.getType() == Type.ROOM
-                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    && RoomPlacementValidator.validate(kwdFile, mapInformation, constructionBlockingTiles,
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
                             gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
@@ -832,30 +841,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), entityData, object != null ? object.getEntityId() : null);
     }
 
-    private Set<Point> getConstructionBlockingTiles() {
-        Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects, this::isConstructionBlockingObject);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors, entity -> true);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps, entity -> true);
-        return blockedTiles;
-    }
-
     private boolean isConstructionBlockingObject(Entity entity) {
         ObjectComponent objectComponent = entity.get(ObjectComponent.class);
         return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
-    }
-
-    private static void addConstructionBlockingTiles(Set<Point> blockedTiles, EntitySet entities,
-            Predicate<Entity> isBlocking) {
-        for (Entity entity : entities) {
-            if (!isBlocking.test(entity)) {
-                continue;
-            }
-            Position position = entity.get(Position.class);
-            if (position != null) {
-                blockedTiles.add(WorldUtils.vectorToPoint(position.position));
-            }
-        }
     }
 
     /**
@@ -981,7 +969,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private boolean isRoomSelectionValid() {
             SelectionArea area = getSelectionArea();
-            return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+            return RoomPlacementValidator.validate(kwdFile, mapInformation, constructionBlockingTiles,
                     area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
                     (short) interactionState.getItemId(),
                     gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();

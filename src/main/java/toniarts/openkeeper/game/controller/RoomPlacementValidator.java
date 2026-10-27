@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Shared client/server validation for an entire room-building selection.
@@ -63,7 +64,7 @@ public final class RoomPlacementValidator {
     }
 
     public static Result validate(IKwdFile kwdFile, IMapInformation<?> mapInformation,
-                                  Set<Point> blockedTiles, Vector2f start, Vector2f end, short playerId,
+                                  Predicate<Point> isBlocked, Vector2f start, Vector2f end, short playerId,
                                   short roomId, int availableGold) {
         Room room = kwdFile.getRoomById(roomId);
         if (!isBuildableRoom(room)) {
@@ -81,9 +82,9 @@ public final class RoomPlacementValidator {
         List<Point> plots = createPlots(x1, x2, y1, y2);
 
         Result terrainResult = isBridge(room)
-                ? validateBridge(kwdFile, mapInformation, blockedTiles, plots,
+                ? validateBridge(kwdFile, mapInformation, isBlocked, plots,
                         WorldUtils.vectorToPoint(start), playerId, room)
-                : validateLand(mapInformation, blockedTiles, plots, playerId, roomId);
+                : validateLand(mapInformation, isBlocked, plots, playerId, roomId);
         if (!terrainResult.isValid()) {
             return terrainResult;
         }
@@ -136,14 +137,14 @@ public final class RoomPlacementValidator {
     }
 
     private static Result validateLand(IMapInformation<?> mapInformation,
-            Set<Point> blockedTiles, List<Point> plots, short playerId, short roomId) {
+            Predicate<Point> isBlocked, List<Point> plots, short playerId, short roomId) {
         List<Point> buildablePlots = new ArrayList<>(plots.size());
         boolean blockedByEntity = false;
         for (Point plot : plots) {
             if (!mapInformation.isBuildable(plot, playerId, roomId)) {
                 continue;
             }
-            if (blockedTiles.contains(plot)) {
+            if (isBlocked.test(plot)) {
                 blockedByEntity = true;
                 continue;
             }
@@ -158,7 +159,7 @@ public final class RoomPlacementValidator {
     }
 
     private static Result validateBridge(IKwdFile kwdFile, IMapInformation<?> mapInformation,
-            Set<Point> blockedTiles, List<Point> plots, Point start, short playerId, Room room) {
+            Predicate<Point> isBlocked, List<Point> plots, Point start, short playerId, Room room) {
         Set<Point> selected = new HashSet<>(plots);
         ArrayDeque<Point> open = new ArrayDeque<>();
         Set<Point> connected = new HashSet<>();
@@ -173,7 +174,7 @@ public final class RoomPlacementValidator {
             if (!compatible) {
                 return invalid(Failure.INVALID_TERRAIN);
             }
-            if (blockedTiles.contains(plot)) {
+            if (isBlocked.test(plot)) {
                 return invalid(Failure.BLOCKED_BY_ENTITY);
             }
         }
