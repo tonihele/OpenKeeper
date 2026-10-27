@@ -161,6 +161,9 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int OWN_LAND_WANDER_DISTANCE = 10;
 
+    private static final int IMP_TELEPORT_OUT_EFFECT = 321;
+    private static final int IMP_TELEPORT_IN_EFFECT = 322;
+
     /**
      * Possessed movement speed relative to walking forward
      */
@@ -2801,7 +2804,10 @@ public final class CreatureController extends EntityController implements ICreat
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
         if (heart != null) {
-            entityData.setComponent(entityId, new Position(position.rotation, WorldUtils.pointToVector3f(heart)));
+            Vector3f destination = WorldUtils.pointToVector3f(heart);
+            gameEventService.emitEffect(IMP_TELEPORT_OUT_EFFECT, position.position, 0);
+            gameEventService.emitEffect(IMP_TELEPORT_IN_EFFECT, destination, 0);
+            entityData.setComponent(entityId, new Position(position.rotation, destination));
         }
     }
 

@@ -90,6 +90,7 @@ class PossessedSpellTest {
     private Map<Variable.CreatureStats.StatType, Variable.CreatureFirstPerson> firstPersonStats;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private List<Object> shotTargets;
+    private List<Object[]> effects;
     private Set<Point> walls;
     private double gameTime;
     private Keeper keeper;
@@ -102,6 +103,7 @@ class PossessedSpellTest {
         firstPersonStats = new HashMap<>();
         gameSettings = new HashMap<>();
         shotTargets = new ArrayList<>();
+        effects = new ArrayList<>();
         walls = new HashSet<>();
         gameTime = 10;
         keeper = new Keeper(false, KEEPER);
@@ -299,6 +301,8 @@ class PossessedSpellTest {
 
         assertEquals(WorldUtils.pointToVector3f(5, 15), entityData.getComponent(us, Position.class).position);
         assertEquals(gameTime, getSpell(TELEPORT).attactStartTime);
+        assertEquals(Set.of(new Vector3f(10, 0, 2)), effectPositions(321));
+        assertEquals(Set.of(WorldUtils.pointToVector3f(5, 15)), effectPositions(322));
         assertTrue(shotTargets.isEmpty());
         assertNull(entityData.getComponent(us, CreatureViewState.class));
     }
@@ -314,7 +318,18 @@ class PossessedSpellTest {
         cast(controller, 1);
 
         assertEquals(new Vector3f(10, 0, 2), entityData.getComponent(us, Position.class).position);
+        assertTrue(effectPositions(321).isEmpty());
         assertEquals(gameTime - RECHARGE / 2, getSpell(TELEPORT).attactStartTime);
+    }
+
+    private Set<Vector3f> effectPositions(int effectId) {
+        Set<Vector3f> positions = new HashSet<>();
+        for (Object[] effect : effects) {
+            if ((int) effect[0] == effectId) {
+                positions.add((Vector3f) effect[1]);
+            }
+        }
+        return positions;
     }
 
     /**
@@ -411,7 +426,12 @@ class PossessedSpellTest {
 
         return new CreatureController(us, entityData, creature, null, null, gameTimer, gameSettings, creaturesController,
                 positionLookup, mapController, levelInfo, null, shotsController,
-                stub(GameEventService.class, (name, args) -> null));
+                stub(GameEventService.class, (name, args) -> {
+                    if (name.equals("emitEffect")) {
+                        effects.add(args);
+                    }
+                    return null;
+                }));
     }
 
     @FunctionalInterface
