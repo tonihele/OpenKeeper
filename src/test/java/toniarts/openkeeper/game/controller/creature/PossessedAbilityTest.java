@@ -65,7 +65,6 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -83,7 +82,6 @@ class PossessedAbilityTest {
     private EntityData entityData;
     private Creature creature;
     private Set<EntityId> workers;
-    private Set<Point> solidTiles;
     private double gameTime;
     private EntityId us;
 
@@ -92,7 +90,6 @@ class PossessedAbilityTest {
         entityData = new DefaultEntityData();
         gameTime = 10;
         workers = new HashSet<>();
-        solidTiles = new HashSet<>();
 
         // A Vampire, it doesn't fly on its own
         creature = ShotFixtures.creature((short) 8, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
@@ -204,7 +201,7 @@ class PossessedAbilityTest {
     }
 
     @Test
-    void bileDemonThrowsTheWorkerAhead() {
+    void bileDemonThrowsTheWorkerForwardAndUp() {
         PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.PICK_UP_WORKERS, Creature.SpecialAbility.NONE);
         ShotFixtures.setSize(creature, 1, 0.65f);
         EntityId worker = createWorker(KEEPER, new Vector3f(10, 0, 2.6f));
@@ -214,22 +211,11 @@ class PossessedAbilityTest {
         controller.usePossessedAbility(1);
 
         assertNull(entityData.getComponent(us, PossessedAbility.class));
-        assertEquals(new Vector3f(10, 0.65f, 4.5f), entityData.getComponent(worker, Position.class).position);
-        assertNotNull(entityData.getComponent(worker, CreatureFall.class));
-        assertEquals(50, entityData.getComponent(worker, Damage.class).damage);
-    }
-
-    @Test
-    void thrownWorkerStopsShortOfAWall() {
-        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.PICK_UP_WORKERS, Creature.SpecialAbility.NONE);
-        EntityId worker = createWorker(KEEPER, new Vector3f(10, 0, 2.6f));
-        solidTiles.add(new Point(10, 4));
-        CreatureController controller = createController();
-        controller.usePossessedAbility(1);
-
-        controller.usePossessedAbility(1);
-
-        assertEquals(3.25f, entityData.getComponent(worker, Position.class).position.z);
+        assertEquals(new Vector3f(10, 0.65f, 2.5f), entityData.getComponent(worker, Position.class).position);
+        CreatureFall fall = entityData.getComponent(worker, CreatureFall.class);
+        assertEquals(new Vector3f(0, 0.25f, 2), fall.velocity);
+        assertEquals(50, fall.damage);
+        assertNull(entityData.getComponent(worker, Damage.class));
     }
 
     @Test
@@ -243,8 +229,9 @@ class PossessedAbilityTest {
 
         assertNull(entityData.getComponent(us, PossessedAbility.class));
         assertEquals(2.5f, entityData.getComponent(worker, Position.class).position.z);
-        assertNotNull(entityData.getComponent(worker, CreatureFall.class));
-        assertEquals(50, entityData.getComponent(worker, Damage.class).damage);
+        CreatureFall fall = entityData.getComponent(worker, CreatureFall.class);
+        assertEquals(Vector3f.ZERO, fall.velocity);
+        assertEquals(50, fall.damage);
     }
 
     private EntityId createWorker(short ownerId, Vector3f position) {
@@ -308,7 +295,7 @@ class PossessedAbilityTest {
         });
         return stub(IMapController.class, (name, args) -> switch (name) {
             case "getMapData" -> mapData;
-            case "isSolid" -> solidTiles.contains((Point) args[0]);
+            case "isSolid" -> false;
             default -> null;
         });
     }

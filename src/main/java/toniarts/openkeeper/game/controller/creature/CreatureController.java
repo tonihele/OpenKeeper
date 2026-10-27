@@ -212,12 +212,13 @@ public final class CreatureController extends EntityController implements ICreat
 
     /**
      * A possessed Bile Demon picks up a worker closer than a tile (0x516EC0)
-     * and holds it half a tile in front of it (0x4831D0). DK II throws the
-     * worker with its physics, here it lands two tiles further ahead.
+     * and holds it half a tile in front of it (0x4831D0). It throws the worker
+     * forward two tiles a turn and up a quarter of a tile a turn (0x4831D0).
      */
     private static final float POSSESSED_PICK_UP_REACH = WorldUtils.TILE_WIDTH;
     private static final float POSSESSED_CARRY_DISTANCE = WorldUtils.TILE_WIDTH / 2;
-    private static final float POSSESSED_THROW_DISTANCE = 2 * WorldUtils.TILE_WIDTH;
+    private static final float THROWN_WORKER_SPEED = 2 * WorldUtils.TILE_WIDTH;
+    private static final float THROWN_WORKER_LIFT = WorldUtils.TILE_WIDTH / 4;
 
     /**
      * A thrown or dropped worker takes this much damage as it lands (0x4833C0)
@@ -2787,7 +2788,7 @@ public final class CreatureController extends EntityController implements ICreat
         PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
         if (possessedAbility != null && possessedAbility.entity != null) {
             entityData.removeComponent(entityId, PossessedAbility.class);
-            releaseWorker(possessedAbility.entity, POSSESSED_CARRY_DISTANCE + POSSESSED_THROW_DISTANCE);
+            releaseWorker(possessedAbility.entity, true);
             return;
         }
 
@@ -2824,14 +2825,13 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Lets go of the worker we carry. It falls down from our height and takes
-     * damage as it lands (0x4833C0). It lands the distance ahead of us, or
-     * short of the first solid tile on the way.
+     * Lets go of the worker we carry, from where we hold it. It flies or falls
+     * down and takes damage as it lands (0x4833C0).
      *
      * @param worker the worker we carry
-     * @param distance how far ahead of us it lands
+     * @param thrown whether we throw it forward or just drop it
      */
-    private void releaseWorker(EntityId worker, float distance) {
+    private void releaseWorker(EntityId worker, boolean thrown) {
 
         // The keeper's hand may have taken it, or it has died
         Position position = entityData.getComponent(entityId, Position.class);
@@ -2839,21 +2839,13 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        int steps = Math.round(distance / (WorldUtils.TILE_WIDTH / 4));
-        Vector3f step = new Vector3f(FastMath.sin(position.rotation), 0, FastMath.cos(position.rotation)).multLocal(distance / steps);
-        Vector3f landing = position.position.clone();
-        for (int i = 0; i < steps; i++) {
-            Point tile = WorldUtils.vectorToPoint(landing.add(step));
-            if (mapController.getMapData().getTile(tile) == null || mapController.isSolid(tile)) {
-                break;
-            }
-            landing.addLocal(step);
-        }
-        landing.y += creature.getAttributes().getHeight();
+        Vector3f direction = new Vector3f(FastMath.sin(position.rotation), 0, FastMath.cos(position.rotation));
+        Vector3f start = position.position.add(direction.mult(POSSESSED_CARRY_DISTANCE));
+        start.y += creature.getAttributes().getHeight();
+        Vector3f velocity = thrown ? direction.multLocal(THROWN_WORKER_SPEED).setY(THROWN_WORKER_LIFT) : new Vector3f();
 
-        entityData.setComponent(worker, new Position(position.rotation, landing));
-        entityData.setComponent(worker, new CreatureFall());
-        setDamage(worker, THROWN_WORKER_DAMAGE);
+        entityData.setComponent(worker, new Position(position.rotation, start));
+        entityData.setComponent(worker, new CreatureFall(velocity, THROWN_WORKER_DAMAGE));
     }
 
     /**
@@ -3202,7 +3194,7 @@ public final class CreatureController extends EntityController implements ICreat
             togglePossessedAbility(possessedAbility.ability);
         }
         if (possessedAbility != null && possessedAbility.entity != null) {
-            releaseWorker(possessedAbility.entity, POSSESSED_CARRY_DISTANCE);
+            releaseWorker(possessedAbility.entity, false);
         }
 
         entityData.removeComponent(entityId, PossessedMovement.class);
