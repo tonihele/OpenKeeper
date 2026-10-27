@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -391,6 +392,41 @@ class PossessedAttackTest {
 
         assertEquals(us, entityData.getComponent(first, FollowTarget.class).entityId);
         assertNull(entityData.getComponent(second, FollowTarget.class));
+    }
+
+    @Test
+    void hypnotisedCreatureIsNotInTheGroupAndDoesNotTakeASlot() {
+        gameSettings.put(Variable.MiscVariable.MiscType.MAXIMUM_GROUP_NUMBER_OF_FOLLOWERS,
+                PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.MAXIMUM_GROUP_NUMBER_OF_FOLLOWERS, 1));
+        EntityId hypnotised = createCreature(HERO, new Vector3f(1, 0, 1));
+        entityData.setComponents(hypnotised, new Hypnotised(us, HERO), new FollowTarget(us));
+        EntityId friend = createCreature(KEEPER, new Vector3f(5, 0, 8));
+        CreatureController controller = createController();
+
+        controller.addPossessedFollower();
+        controller.executePossessedAttack();
+
+        assertEquals(us, entityData.getComponent(friend, FollowTarget.class).entityId);
+        assertFalse(createController(hypnotised).isInPossessedGroup());
+        assertTrue(createController(friend).isInPossessedGroup());
+    }
+
+    @Test
+    void endingThePossessionLetsGoOfTheHypnotisedOneThroughItsOwnRelease() {
+        EntityId hypnotised = createCreature(KEEPER, new Vector3f(1, 0, 1));
+        // Without health it is incapacitated, so the release does not need the idle state
+        entityData.removeComponent(hypnotised, Health.class);
+        entityData.setComponents(hypnotised, new Hypnotised(us, HERO), new FollowTarget(us));
+        EntityId friend = createCreature(KEEPER, new Vector3f(5, 0, 8));
+        CreatureController controller = createController();
+        controller.addPossessedFollower();
+        controller.executePossessedAttack();
+
+        controller.setPossession(false);
+
+        assertNull(entityData.getComponent(friend, FollowTarget.class));
+        assertNull(entityData.getComponent(hypnotised, Hypnotised.class));
+        assertEquals(HERO, entityData.getComponent(hypnotised, Owner.class).ownerId);
     }
 
     @Test

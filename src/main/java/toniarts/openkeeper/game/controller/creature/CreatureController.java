@@ -3447,8 +3447,14 @@ public final class CreatureController extends EntityController implements ICreat
                 && !levelInfo.getLevelData().getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.IS_HORNY);
     }
 
+    /**
+     * The group of the possessed creature. The creature it has hypnotised is
+     * not in it, that one has its own slot (0x5163C0, 0x461980).
+     */
     private Set<EntityId> getPossessedFollowers() {
-        return entityData.findEntities(new FieldFilter<>(FollowTarget.class, "entityId", entityId), FollowTarget.class);
+        Set<EntityId> followers = new HashSet<>(entityData.findEntities(new FieldFilter<>(FollowTarget.class, "entityId", entityId), FollowTarget.class));
+        followers.removeIf(follower -> entityData.getComponent(follower, Hypnotised.class) != null);
+        return followers;
     }
 
     private int getMiscVariable(Variable.MiscVariable.MiscType type, int defaultValue) {
@@ -3459,7 +3465,8 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isInPossessedGroup() {
         FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
-        return followTarget != null && entityData.getComponent(followTarget.entityId, Possessed.class) != null;
+        return followTarget != null && entityData.getComponent(followTarget.entityId, Possessed.class) != null
+                && entityData.getComponent(entityId, Hypnotised.class) == null;
     }
 
     private void startPossession() {
