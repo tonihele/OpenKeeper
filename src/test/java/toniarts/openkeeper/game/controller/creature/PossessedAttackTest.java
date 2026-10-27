@@ -111,7 +111,7 @@ class PossessedAttackTest {
     @Test
     void batCannotAttack() {
         EntityId enemy = createCreature(HERO, new Vector3f(5, 0, 5.8f));
-        entityData.setComponent(us, new PossessedAbility(Creature.SpecialAbility.TURN_TO_BAT));
+        entityData.setComponent(us, new PossessedAbility(Creature.SpecialAbility.TURN_TO_BAT, 0));
 
         createController().executePossessedAttack();
 

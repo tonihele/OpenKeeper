@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -150,14 +151,20 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
     /**
      * A possessed creature has no AI to tell its animation. It walks or stands
-     * as its keeper steers it. A melee swing shows for half of the attack's
-     * recharge time, so that the next swing starts the animation again.
+     * as its keeper steers it, or prays. A melee swing shows for half of the
+     * attack's recharge time, so that the next swing starts the animation
+     * again.
      */
     private Creature.AnimationType getPossessedAnimation(EntityId entityId, CreatureViewState state) {
         CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (state.state == Creature.AnimationType.MELEE_ATTACK && meleeAttack != null
                 && timeElapsed < state.stateStartTime + meleeAttack.rechargeTime / 2) {
             return Creature.AnimationType.MELEE_ATTACK;
+        }
+
+        PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
+        if (possessedAbility != null && possessedAbility.ability == Creature.SpecialAbility.PRAY) {
+            return Creature.AnimationType.PRAYING;
         }
 
         PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);

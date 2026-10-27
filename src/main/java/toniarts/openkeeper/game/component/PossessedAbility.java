@@ -21,19 +21,26 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
  * A first person ability the possessed creature has turned on, such as the
- * Vampire's bat form. It stays on until the keeper turns it off or the
- * possession ends.
+ * Vampire's bat form or the Monk's prayer. It stays on until the keeper turns
+ * it off or the possession ends.
  */
 public final class PossessedAbility implements EntityComponent {
 
     public Creature.SpecialAbility ability;
 
+    /**
+     * When the ability last did its work, a praying creature heals once a
+     * second
+     */
+    public double checkTime;
+
     public PossessedAbility() {
         // For serialization
     }
 
-    public PossessedAbility(Creature.SpecialAbility ability) {
+    public PossessedAbility(Creature.SpecialAbility ability, double checkTime) {
         this.ability = ability;
+        this.checkTime = checkTime;
     }
 
 }

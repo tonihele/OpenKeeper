@@ -2665,7 +2665,10 @@ public final class CreatureController extends EntityController implements ICreat
             case PossessedMovement.SPEED_CREEP -> attributes.getShuffleSpeed();
             default -> walkSpeed;
         };
-        Vector2f normalizedDirection = direction.lengthSquared() > 0 ? direction.normalize() : new Vector2f();
+        // A praying creature doesn't move, but still turns
+        PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
+        boolean praying = possessedAbility != null && possessedAbility.ability == Creature.SpecialAbility.PRAY;
+        Vector2f normalizedDirection = direction.lengthSquared() > 0 && !praying ? direction.normalize() : new Vector2f();
         if (normalizedDirection.lengthSquared() > 0) {
 
             // Backing up and strafing are slower than walking forward, relative to the facing
@@ -2754,14 +2757,15 @@ public final class CreatureController extends EntityController implements ICreat
             case 2 -> creature.getFirstPersonSpecialAbility2();
             default -> Creature.SpecialAbility.NONE;
         };
-        if (specialAbility == Creature.SpecialAbility.TURN_TO_BAT) {
+        if (specialAbility == Creature.SpecialAbility.TURN_TO_BAT || specialAbility == Creature.SpecialAbility.PRAY) {
             togglePossessedAbility(specialAbility);
         }
     }
 
     /**
      * Turns an ability that stays on, such as the Vampire's bat form, on or
-     * off. A bat flies (0x517190, 0x48ED40).
+     * off. A bat flies (0x517190, 0x48ED40). A praying creature stays still
+     * and heals (0x517220).
      *
      * @param ability the ability to turn on or off
      */
@@ -2769,7 +2773,7 @@ public final class CreatureController extends EntityController implements ICreat
         PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
         boolean on = possessedAbility == null || possessedAbility.ability != ability;
         if (on) {
-            entityData.setComponent(entityId, new PossessedAbility(ability));
+            entityData.setComponent(entityId, new PossessedAbility(ability, gameTimer.getGameTime()));
         } else {
             entityData.removeComponent(entityId, PossessedAbility.class);
         }

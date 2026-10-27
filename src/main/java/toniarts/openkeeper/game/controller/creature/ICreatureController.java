@@ -497,7 +497,8 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     /**
      * Uses a first person ability of a possessed creature, as its keeper
-     * presses the ability's key. The Vampire turns into a bat or back.
+     * presses the ability's key. The Vampire turns into a bat or back, the
+     * Monk and the Fairy start or stop praying.
      *
      * @param ability 1 or 2, the creature's first or second ability
      */

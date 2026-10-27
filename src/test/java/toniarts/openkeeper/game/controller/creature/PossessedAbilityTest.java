@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -23,6 +24,8 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -32,16 +35,19 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.PossessionFixtures;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -106,6 +112,50 @@ class PossessedAbilityTest {
 
         assertNull(entityData.getComponent(us, PossessedAbility.class));
         assertFalse(entityData.getComponent(us, Mobile.class).canFly);
+    }
+
+    @Test
+    void monkPraysInPlaceAndStops() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.PRAY, Creature.SpecialAbility.NONE);
+        CreatureController controller = createController();
+
+        controller.usePossessedAbility(1);
+        controller.setPossessedMovement(new Vector2f(0, 1), 1, 0, PossessedMovement.SPEED_WALK);
+
+        assertEquals(Creature.SpecialAbility.PRAY, entityData.getComponent(us, PossessedAbility.class).ability);
+        assertEquals(Vector2f.ZERO, entityData.getComponent(us, PossessedMovement.class).direction);
+        assertEquals(1, entityData.getComponent(us, PossessedMovement.class).rotation);
+
+        controller.usePossessedAbility(1);
+        controller.setPossessedMovement(new Vector2f(0, 1), 1, 0, PossessedMovement.SPEED_WALK);
+
+        assertNull(entityData.getComponent(us, PossessedAbility.class));
+        assertEquals(new Vector2f(0, 1), entityData.getComponent(us, PossessedMovement.class).direction);
+    }
+
+    @Test
+    void prayingHealsOnceASecond() {
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new HashMap<>();
+        for (Variable.MiscVariable.MiscType type : List.of(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
+                Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND,
+                Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND)) {
+            gameSettings.put(type, PossessionFixtures.miscVariable(type, 0));
+        }
+        gameSettings.put(Variable.MiscVariable.MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND,
+                PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND, 33));
+        entityData.setComponents(us, new Health(100, 1000), new PossessedAbility(Creature.SpecialAbility.PRAY, 0));
+        double[] time = {0};
+        HealthSystem healthSystem = new HealthSystem(entityData, null, gameSettings, null, null, List.of(), null, () -> time[0], null);
+
+        time[0] += 0.5;
+        healthSystem.processTick(0.5f);
+        assertEquals(100, entityData.getComponent(us, Health.class).health);
+
+        time[0] += 0.5;
+        healthSystem.processTick(0.5f);
+        time[0] += 0.5;
+        healthSystem.processTick(0.5f);
+        assertEquals(133, entityData.getComponent(us, Health.class).health);
     }
 
     private EntityId createCreature(short ownerId, Vector3f position) {
