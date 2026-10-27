@@ -21,8 +21,11 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
@@ -413,28 +416,58 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
         object.setUserData(DAZED_NODE_NAME, true);
+        Node dazedNode = getDazedEffectNode(creatureNode, creature);
+        stateManager.getState(EffectManagerState.class).load(dazedNode, null, DAZED_EFFECT_ID, false);
 
-        // Like the original, at the head's control point where the head is when the creature lands
-        Vector3f head = AnimationLoader.getControlPoint(creatureNode, HEAD_CONTROL_POINT);
-        if (head == null) {
-            head = new Vector3f(0, creature.getAttributes().getHeight(), 0);
-        }
-        stateManager.getState(EffectManagerState.class).load(getDazedEffectNode(creatureNode, head), null, DAZED_EFFECT_ID, false);
+        // Like the original, the stars follow the head's control point while the creature falls over
+        HeadFollowControl headFollowControl = dazedNode.getControl(HeadFollowControl.class);
+        headFollowControl.setEnabled(true);
+        headFollowControl.update(0);
     }
 
     /**
      * The node at the creature's head that holds its dazed stars. Changing the animation removes all the
      * creature's children that aren't marked as kept, so the stars get a kept node of their own.
      */
-    private static Node getDazedEffectNode(Node creatureNode, Vector3f head) {
+    private static Node getDazedEffectNode(Node creatureNode, Creature creature) {
         Node dazedNode = (Node) creatureNode.getChild(DAZED_NODE_NAME);
         if (dazedNode == null) {
             dazedNode = new Node(DAZED_NODE_NAME);
             dazedNode.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+            dazedNode.addControl(new HeadFollowControl(creature.getAttributes().getHeight()));
             creatureNode.attachChild(dazedNode);
         }
-        dazedNode.setLocalTranslation(head);
         return dazedNode;
+    }
+
+    /**
+     * Keeps a node at the head's control point while the creature moves, like the original ties the dazed stars to
+     * the control point. Stops once the effects on the node are gone.
+     */
+    private static final class HeadFollowControl extends AbstractControl {
+
+        private final float height;
+        private final Vector3f head = new Vector3f();
+
+        private HeadFollowControl(float height) {
+            this.height = height;
+        }
+
+        @Override
+        protected void controlUpdate(float tpf) {
+            if (((Node) spatial).getQuantity() == 0) {
+                setEnabled(false);
+                return;
+            }
+            if (AnimationLoader.getControlPoint(spatial.getParent(), HEAD_CONTROL_POINT, head) == null) {
+                head.set(0, height, 0);
+            }
+            spatial.setLocalTranslation(head);
+        }
+
+        @Override
+        protected void controlRender(RenderManager rm, ViewPort vp) {
+        }
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
