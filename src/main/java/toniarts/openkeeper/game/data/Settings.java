@@ -69,6 +69,7 @@ public final class Settings {
         // Campaign
         LEVEL_NUMBER(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_ATTEMPTS(Integer.class, 0, SettingCategory.CAMPAIGN),
+        LEVEL_EVIL_RATING(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         SECRET_LEVEL_STATUS(LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN),
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
@@ -469,6 +470,31 @@ public final class Settings {
     }
 
     /**
+     * Set the Evil Rating of the last game of a campaign level. The variations
+     * of a level share it.
+     *
+     * @param level the campaign level
+     * @param evilRating the Evil Rating
+     */
+    public void setLevelEvilRating(CampaignLevel level, int evilRating) {
+        setSetting(Setting.LEVEL_EVIL_RATING.toString() + level.getLevel(), evilRating);
+    }
+
+    /**
+     * Get the overall Evil Rating of the campaign, the sum of the Evil Ratings
+     * of the campaign levels
+     *
+     * @return the overall Evil Rating
+     */
+    public int getOverallEvilRating() {
+        int evilRating = 0;
+        for (int i = 1; i <= 20; i++) {
+            evilRating += (int) getSetting(Setting.LEVEL_EVIL_RATING.toString() + i, Setting.LEVEL_EVIL_RATING.getDefaultValue());
+        }
+        return evilRating;
+    }
+
+    /**
      * Get level status (MPD or normal)
      *
      * @param level the level
@@ -581,5 +607,6 @@ public final class Settings {
     private void resetCampaignLevel(CampaignLevel level) {
         setLevelStatus(level, LevelStatus.NOT_COMPLETED);
         setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel() + level.getVariation(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
+        setLevelEvilRating(level, 0);
     }
 }
