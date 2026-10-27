@@ -19,103 +19,89 @@ package toniarts.openkeeper.game.event;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
-import toniarts.openkeeper.game.component.GameEvent;
-import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+
+import javax.annotation.Nullable;
 
 /**
  * The game logic's way to tell that something happened: it creates a {@link GameEvent} entity and the clients
  * react to it. Nothing in here touches the audio or the view.
  */
-public final class GameEvents {
+public final class ServerGameEventService implements GameEventService {
 
-    private GameEvents() {
-        // Static helper
+    private final EntityData entityData;
+    private final PlayerService playerService;
+
+    public ServerGameEventService(EntityData entityData, PlayerService playerService) {
+        this.entityData = entityData;
+        this.playerService = playerService;
     }
 
-    /**
-     * An event about a thing type, seen by everyone
-     */
-    public static void emit(EntityData entityData, GameEventType type, ThingFlag subjectKind, int subjectId,
-            @Nullable Point position) {
-        create(entityData, type, subjectKind, subjectId, null, 0, null, position, GameEvent.ALL_PLAYERS);
+    @Override
+    public void emit(GameEventType type, ThingFlag subjectKind, int subjectId,
+                     @Nullable Point position) {
+        create(type, subjectKind, subjectId, null, 0, null, position, ALL_PLAYERS);
     }
 
-    /**
-     * An event about a thing type, seen by everyone
-     */
-    public static void emit(EntityData entityData, GameEventType type, ThingFlag subjectKind, int subjectId,
-            Vector3f position) {
-        emit(entityData, type, subjectKind, subjectId, WorldUtils.vectorToPoint(position));
+    @Override
+    public void emit(GameEventType type, ThingFlag subjectKind, int subjectId,
+                     Vector3f position) {
+        emit(type, subjectKind, subjectId, WorldUtils.vectorToPoint(position));
     }
 
-    /**
-     * An event with no subject, seen by everyone
-     */
-    public static void emit(EntityData entityData, GameEventType type, Point position) {
-        create(entityData, type, null, 0, null, 0, null, position, GameEvent.ALL_PLAYERS);
+    @Override
+    public void emit(GameEventType type, Point position) {
+        create(type, null, 0, null, 0, null, position, ALL_PLAYERS);
     }
 
-    /**
-     * An event with no subject, seen by everyone
-     */
-    public static void emit(EntityData entityData, GameEventType type, Vector3f position) {
-        emit(entityData, type, WorldUtils.vectorToPoint(position));
+    @Override
+    public void emit(GameEventType type, Vector3f position) {
+        emit(type, WorldUtils.vectorToPoint(position));
     }
 
-    /**
-     * An event about an entity (a creature or an object), seen by everyone. Nothing happens if the entity is
-     * neither.
-     */
-    public static void emit(EntityData entityData, GameEventType type, EntityId entity, Vector3f position) {
+    @Override
+    public void emit(GameEventType type, EntityId entity, Vector3f position) {
         ThingFlag kind = getKind(entityData, entity);
         if (kind != null) {
-            create(entityData, type, kind, getTypeId(entityData, entity, kind), null, 0, entity,
-                    WorldUtils.vectorToPoint(position), GameEvent.ALL_PLAYERS);
+            create(type, kind, getTypeId(entityData, entity, kind), null, 0, entity,
+                    WorldUtils.vectorToPoint(position), ALL_PLAYERS);
         }
     }
 
-    /**
-     * An event about an entity at its current position, seen by everyone. Nothing happens if the entity has no
-     * position or is neither a creature nor an object.
-     */
-    public static void emit(EntityData entityData, GameEventType type, EntityId entity) {
+    @Override
+    public void emit(GameEventType type, EntityId entity) {
         Position position = entityData.getComponent(entity, Position.class);
         if (position != null) {
-            emit(entityData, type, entity, position.position);
+            emit(type, entity, position.position);
         }
     }
 
-    /**
-     * An event about a thing type that is aimed at an entity (e.g. a hit), seen by everyone
-     */
-    public static void emitAt(EntityData entityData, GameEventType type, ThingFlag subjectKind, int subjectId,
-            EntityId target, Vector3f position) {
+    @Override
+    public void emitAt(GameEventType type, ThingFlag subjectKind, int subjectId,
+                       EntityId target, Vector3f position) {
         ThingFlag targetKind = getKind(entityData, target);
-        create(entityData, type, subjectKind, subjectId, targetKind,
+        create(type, subjectKind, subjectId, targetKind,
                 targetKind != null ? getTypeId(entityData, target, targetKind) : 0, target,
-                WorldUtils.vectorToPoint(position), GameEvent.ALL_PLAYERS);
+                WorldUtils.vectorToPoint(position), ALL_PLAYERS);
     }
 
-    /**
-     * An event only one player gets, with no place
-     */
-    public static void emitToPlayer(EntityData entityData, GameEventType type, short playerId) {
-        create(entityData, type, null, 0, null, 0, null, null, playerId);
+    @Override
+    public void emitToPlayer(GameEventType type, short playerId) {
+        create(type, null, 0, null, 0, null, null, playerId);
     }
 
-    private static void create(EntityData entityData, GameEventType type, @Nullable ThingFlag subjectKind,
-            int subjectId, @Nullable ThingFlag targetKind, int targetId, @Nullable EntityId entity,
-            @Nullable Point position, short playerId) {
-        entityData.setComponents(entityData.createEntity(),
-                new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position, playerId));
+    private void create(GameEventType type, @Nullable ThingFlag subjectKind,
+                               int subjectId, @Nullable ThingFlag targetKind, int targetId, @Nullable EntityId entity,
+                               @Nullable Point position, short playerId) {
+        playerService.sendEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position, playerId == ALL_PLAYERS ? null : playerId);
     }
 
     /**

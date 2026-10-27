@@ -29,6 +29,9 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.map.IMapData;
@@ -42,9 +45,6 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 
 import java.util.ArrayList;
@@ -70,6 +70,7 @@ public final class MapController extends Container implements IMapController {
     private final EntityData entityData;
     private final IMapInformation<IMapTileController> mapInformation;
     private final ILevelInfo levelInfo;
+    private final GameEventService gameEventService;
 
     private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
@@ -87,7 +88,8 @@ public final class MapController extends Container implements IMapController {
      */
     public MapController(IKwdFile kwdFile, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo) {
+            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
+            GameEventService gameEventService) {
 
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
@@ -97,6 +99,7 @@ public final class MapController extends Container implements IMapController {
         this.entityData = entityData;
         this.mapInformation = new MapInformation(mapData, kwdFile, levelInfo.getPlayers().values());
         this.levelInfo = levelInfo;
+        this.gameEventService = gameEventService;
 
         // Load rooms
         loadRooms();
@@ -284,7 +287,7 @@ public final class MapController extends Container implements IMapController {
         // Notify
         notifyTileChange(updatableTiles);
         if (!updatableTiles.isEmpty()) {
-            GameEvents.emitToPlayer(entityData, GameEventType.TILES_TAGGED, playerId);
+            gameEventService.emitToPlayer(GameEventType.TILES_TAGGED, playerId);
         }
     }
 
@@ -543,7 +546,7 @@ public final class MapController extends Container implements IMapController {
 //                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getDestroyedEffectId(), false);
 //            }
-            GameEvents.emit(entityData, GameEventType.TERRAIN_DESTROYED, ThingFlag.TERRAIN, terrain.getTerrainId(), point);
+            gameEventService.emit(GameEventType.TERRAIN_DESTROYED, ThingFlag.TERRAIN, terrain.getTerrainId(), point);
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
 
 //            updateRoomWalls(tile);

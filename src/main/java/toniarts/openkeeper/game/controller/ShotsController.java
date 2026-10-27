@@ -19,27 +19,28 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.lang.System.Logger;
-import java.util.EnumMap;
-import java.util.Map;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
-import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.WorldUtils;
+
+import java.lang.System.Logger;
+import java.util.EnumMap;
+import java.util.Map;
+
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
-import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_SINGLE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
-import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -60,10 +61,12 @@ public final class ShotsController implements IShotsController {
     private final ILevelInfo levelInfo;
     private final IObjectsController objectsController;
     private final ICreaturesController creaturesController;
+    private final GameEventService gameEventService;
     private final Map<Shot.ProcessType, IShotProcessor> processors;
 
     public ShotsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
-            IGameController gameController, IMapController mapController, ILevelInfo levelInfo, IObjectsController objectsController, ICreaturesController creaturesController) {
+            IGameController gameController, IMapController mapController, ILevelInfo levelInfo, IObjectsController objectsController, ICreaturesController creaturesController,
+            GameEventService gameEventService) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -73,6 +76,7 @@ public final class ShotsController implements IShotsController {
         this.levelInfo = levelInfo;
         this.objectsController = objectsController;
         this.creaturesController = creaturesController;
+        this.gameEventService = gameEventService;
         this.processors = createProcessors();
     }
 
@@ -111,7 +115,7 @@ public final class ShotsController implements IShotsController {
     private void notifyShotHit(Shot shot, EntityId target) {
         Position targetPosition = target != null ? entityData.getComponent(target, Position.class) : null;
         if (targetPosition != null) {
-            GameEvents.emitAt(entityData, GameEventType.SHOT_HIT, ThingFlag.SHOT, shot.getShotId(), target, targetPosition.position);
+            gameEventService.emitAt(GameEventType.SHOT_HIT, ThingFlag.SHOT, shot.getShotId(), target, targetPosition.position);
         }
     }
 

@@ -22,17 +22,7 @@ import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.game.data.CampaignLevel;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import javax.annotation.Nullable;
+import com.simsilica.event.EventBus;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
@@ -40,8 +30,10 @@ import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -53,17 +45,27 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
 import javax.annotation.Nullable;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The game client state
@@ -100,7 +102,6 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
-    private GameEventState gameEventState;
     private RoomSoundState roomSoundState;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
@@ -182,10 +183,6 @@ public final class GameClientState extends AbstractPauseAwareState {
         if (ambienceState != null) {
             stateManager.detach(ambienceState);
             ambienceState = null;
-        }
-        if (gameEventState != null) {
-            stateManager.detach(gameEventState);
-            gameEventState = null;
         }
         if (roomSoundState != null) {
             stateManager.detach(roomSoundState);
@@ -485,10 +482,6 @@ public final class GameClientState extends AbstractPauseAwareState {
                     stateManager.attach(ambienceState);
                 }
 
-                // What happens in the game, the logic only tells it and the client reacts
-                gameEventState = new GameEventState(gameClientService.getEntityData(), kwdFile,
-                        playerId != null ? playerId : Short.MIN_VALUE);
-                stateManager.attach(gameEventState);
                 roomSoundState = new RoomSoundState(gameClientService.getEntityData(), kwdFile);
                 stateManager.attach(roomSoundState);
 
@@ -579,6 +572,13 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onGameEnded(boolean win) {
             app.enqueue(() -> playerState.endGame(win));
+        }
+
+        @Override
+        public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
+            GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
+            logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
+            EventBus.publish(ClientEvents.GAME_EVENT, event);
         }
 
         @Override

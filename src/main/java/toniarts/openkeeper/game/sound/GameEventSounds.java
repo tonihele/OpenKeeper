@@ -16,12 +16,9 @@
  */
 package toniarts.openkeeper.game.sound;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.Nullable;
-import toniarts.openkeeper.game.component.GameEvent;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -31,6 +28,10 @@ import toniarts.openkeeper.tools.convert.map.Material;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Point;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * What a client hears of a {@link GameEvent}: the sound category and the sound event are picked here, from the

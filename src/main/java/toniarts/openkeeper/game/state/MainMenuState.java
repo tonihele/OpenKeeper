@@ -35,13 +35,19 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.controller.GameController;
-import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
+import toniarts.openkeeper.game.sound.FrontEndSounds;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.ConnectionState.ConnectionErrorListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.LobbyClientService;
@@ -59,15 +65,13 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
-import toniarts.openkeeper.game.sound.SoundCategory;
-import toniarts.openkeeper.game.sound.FrontEndSounds;
-import toniarts.openkeeper.game.sound.SoundEngine;
-import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -78,8 +82,6 @@ import java.lang.System.Logger.Level;
 import java.util.Collections;
 
 import static toniarts.openkeeper.Main.getDkIIFolder;
-import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
-import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 
 /**
  * The main menu state
@@ -857,6 +859,11 @@ public final class MainMenuState extends AbstractAppState {
 
         @Override
         public void endGame(boolean win, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

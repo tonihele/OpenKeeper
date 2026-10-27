@@ -14,31 +14,16 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.event;
 
-import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
-import com.simsilica.event.EventBus;
-import com.simsilica.event.EventType;
-import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.Point;
 
 /**
  * Something that happened in the game. The game logic only tells it and each client reacts on its own (plays a
- * sound...). The event lives for a short while (see {@code GameEventSystem}), long enough to reach the clients.
+ * sound...)
  */
-public final class GameEvent implements EntityComponent {
-
-    /**
-     * The client side of the events: the events travel from the logic to the clients as entities, the client then
-     * publishes them to the {@link EventBus} where whoever is interested (sounds, effects...) listens to them.
-     */
-    public static final EventType<GameEvent> EVENT = EventType.create("GameEvent", GameEvent.class);
-
-    /**
-     * Seen by everyone
-     */
-    public static final short ALL_PLAYERS = -1;
+public final class GameEvent {
 
     public GameEventType type;
 
@@ -65,11 +50,6 @@ public final class GameEvent implements EntityComponent {
     public Point position;
 
     /**
-     * The only player that gets the event, {@link #ALL_PLAYERS} if everyone does
-     */
-    public short playerId = ALL_PLAYERS;
-
-    /**
      * The type of a thing (an id in the map data) that an event is about
      */
     public enum ThingFlag {
@@ -83,12 +63,8 @@ public final class GameEvent implements EntityComponent {
         KEEPER_SPELL
     }
 
-    public GameEvent() {
-        // For serialization
-    }
-
     public GameEvent(GameEventType type, ThingFlag subjectKind, int subjectId, ThingFlag targetKind, int targetId,
-            EntityId entity, Point position, short playerId) {
+            EntityId entity, Point position) {
         this.type = type;
         this.subjectKind = subjectKind;
         this.subjectId = subjectId;
@@ -96,11 +72,6 @@ public final class GameEvent implements EntityComponent {
         this.targetId = targetId;
         this.entity = entity;
         this.position = position;
-        this.playerId = playerId;
-    }
-
-    public static void publish(GameEvent event) {
-        EventBus.publish(EVENT, event);
     }
 
 }
