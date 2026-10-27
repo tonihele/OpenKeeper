@@ -35,11 +35,12 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Decay;
-import toniarts.openkeeper.game.component.KnockedDown;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -52,8 +53,9 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The rules are the ones of DKII.EXE's lightning shot handler (0x4AF1E0)
@@ -79,12 +81,13 @@ class LightningShotProcessorTest {
     private final Set<Point> waterTiles = new HashSet<>();
     private final Map<Object, Point> tileLocations = new IdentityHashMap<>();
     private final Map<Point, IMapTileController> tiles = new HashMap<>();
+    private final Set<EntityId> knockedDown = new HashSet<>();
     private final LightningShotProcessor processor;
     private final Shot thunderbolt = ShotFixtures.thunderbolt();
 
     LightningShotProcessorTest() {
         addCreature(TROLL_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
-        addCreature(STONE_KNIGHT_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.of(Creature.CreatureFlag3.UNK_1));
+        addCreature(STONE_KNIGHT_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.of(Creature.CreatureFlag3.IS_IMMUNE_TO_LIGHTNING));
         addCreature(HORNY_ID, EnumSet.of(Creature.CreatureFlag.IS_HORNY), EnumSet.noneOf(Creature.CreatureFlag3.class));
         waterTiles.add(WorldUtils.vectorToPoint(ON_WATER));
 
@@ -93,7 +96,7 @@ class LightningShotProcessorTest {
             case "getCreature" -> creatures.get((Short) args[0]);
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        processor = new LightningShotProcessor(entityData, () -> GAME_TIME, kwdFile, map());
+        processor = new LightningShotProcessor(entityData, () -> GAME_TIME, kwdFile, map(), creaturesController());
     }
 
     @Test
@@ -103,7 +106,7 @@ class LightningShotProcessorTest {
         processor.process(strike(creature));
 
         assertEquals(DAMAGE, entityData.getComponent(creature, Damage.class).damage);
-        assertNotNull(entityData.getComponent(creature, KnockedDown.class));
+        assertTrue(knockedDown.contains(creature));
     }
 
     @Test
@@ -131,7 +134,7 @@ class LightningShotProcessorTest {
         processor.process(strike(stoneKnight));
 
         assertNull(entityData.getComponent(stoneKnight, Damage.class));
-        assertNull(entityData.getComponent(stoneKnight, KnockedDown.class));
+        assertFalse(knockedDown.contains(stoneKnight));
         assertEquals(1, countShotEntities());
     }
 
@@ -145,7 +148,7 @@ class LightningShotProcessorTest {
             processor.process(strike(creature));
 
             assertEquals(DAMAGE, entityData.getComponent(creature, Damage.class).damage);
-            assertNull(entityData.getComponent(creature, KnockedDown.class));
+            assertFalse(knockedDown.contains(creature));
         }
     }
 
@@ -187,7 +190,7 @@ class LightningShotProcessorTest {
         processor.process(strike(thing));
 
         assertEquals(DAMAGE, entityData.getComponent(thing, Damage.class).damage);
-        assertNull(entityData.getComponent(thing, KnockedDown.class));
+        assertFalse(knockedDown.contains(thing));
     }
 
     @Test
@@ -250,6 +253,22 @@ class LightningShotProcessorTest {
                     });
             tileLocations.put(tile, p);
             return tile;
+        });
+    }
+
+    private ICreaturesController creaturesController() {
+        return (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "createController" -> knockingDown((EntityId) args[0]);
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+    }
+
+    private ICreatureController knockingDown(EntityId creature) {
+        return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "knockDown" -> knockedDown.add(creature);
+            default -> throw new UnsupportedOperationException(method.getName());
         });
     }
 
