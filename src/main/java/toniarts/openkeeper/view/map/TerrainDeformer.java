@@ -238,6 +238,20 @@ public final class TerrainDeformer {
     }
 
     /**
+     * Moves a world position and the normal of the surface there, in place
+     *
+     * @param position the position
+     * @param normal the normal, if there is one, it stays normalized
+     */
+    public void deform(Vector3f position, Vector3f normal) {
+        Matrix3f jacobian = new Matrix3f();
+        deform(position, position, jacobian);
+        if (normal != null) {
+            jacobian.invertLocal().transposeLocal().mult(normal, normal).normalizeLocal();
+        }
+    }
+
+    /**
      * Deforms all the geometries under the spatial, in place. The vertices
      * are read in the frame of {@code space}, i.e. the transforms of
      * {@code space} and above are ignored, if that is {@code null} all the

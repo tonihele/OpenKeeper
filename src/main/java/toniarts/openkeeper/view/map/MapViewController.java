@@ -368,7 +368,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
             surface.attachChild(Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue()));
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer));
         }
         if (!ceilingVisible) {
             surface.setCullHint(Spatial.CullHint.Always);
