@@ -311,7 +311,7 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
-        public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
+        public void onCheatTriggered(CheatType cheat, short playerId) {
             cheatController.onCheat(cheat, playerId);
         }
 

@@ -23,8 +23,13 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -32,7 +37,6 @@ import java.util.ResourceBundle;
 import java.util.random.RandomGenerator;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
@@ -189,9 +193,29 @@ public final class Utils {
      */
     public static ResourceBundle getMainTextResourceBundle() {
         if (bundle == null) {
-            bundle = Main.getResourceBundle("Interface/Texts/Text");
+            bundle = getResourceBundle("Interface/Texts/Text");
         }
         return bundle;
+    }
+
+    /**
+     * Gets current locale's resource bundle (UTF-8)
+     *
+     * @param baseName base name of the bundle
+     * @return the resource bundle
+     */
+    public static ResourceBundle getResourceBundle(String baseName) {
+        Path file = Paths.get(PathUtils.getAssetsFolder());
+        try {
+            URL[] urls = {file.toUri().toURL()};
+            ClassLoader loader = new URLClassLoader(urls);
+            return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader);
+        } catch (Exception e) {
+            logger.log(Level.ERROR, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
+        }
+
+        // Works only from the IDE
+        return ResourceBundle.getBundle(baseName);
     }
 
     /**

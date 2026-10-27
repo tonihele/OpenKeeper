@@ -23,6 +23,7 @@ import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
 import de.lessvoid.nifty.tools.Color;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -156,7 +157,7 @@ public final class GameConsole {
                 case REMOVE_FOW:
                 case RESET_FOW:
                 case WIN_LEVEL:
-                    stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.valueOf(command));
+                    stateManager.getState(CheatState.class).executeCheat(CheatType.valueOf(command));
                     break;
                 default:
                     console.outputError("Not supported");
