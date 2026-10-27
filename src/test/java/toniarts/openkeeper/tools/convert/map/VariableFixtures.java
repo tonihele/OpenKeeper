@@ -16,10 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-/**
- * Builds {@link Variable} fixtures for tests. Lives in {@code Variable}'s own
- * package because its setters are {@code protected} (parser-only).
- */
 public final class VariableFixtures {
 
     private VariableFixtures() {
