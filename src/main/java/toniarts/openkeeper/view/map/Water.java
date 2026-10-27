@@ -76,8 +76,23 @@ public final class Water {
      * @return the visual representation of your entity instance
      */
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances) {
+        return construct(assetManager, entityInstances, null);
+    }
+
+    /**
+     * Construct water/lava
+     *
+     * @param assetManager asset manager instance
+     * @param entityInstances list of entity instances <b>of the same type</b>.
+     * Don't mix lava & water here
+     * @param deformer the shores follow the bent terrain, may be {@code null}.
+     * The surface itself stays level.
+     * @return the visual representation of your entity instance
+     */
+    public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances,
+            TerrainDeformer deformer) {
         boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
-        Mesh mesh = createMesh(entityInstances, (water && WATER_TYPE == WaterType.SIMPLE));
+        Mesh mesh = createMesh(entityInstances, (water && WATER_TYPE == WaterType.SIMPLE), deformer);
 
         // Create the geometry
         Geometry geo = new Geometry((water ? "Water" : "Lava"), mesh);
@@ -139,9 +154,11 @@ public final class Water {
      * @param entityInstances the instances
      * @param shareVertices no duplicate vertices, if no texture coordinates are
      * needed
+     * @param deformer bends the shores, may be {@code null}
      * @return returns a mesh
      */
-    private static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances, boolean shareVertices) {
+    private static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances, boolean shareVertices,
+            TerrainDeformer deformer) {
 
         // Create new mesh
         Mesh mesh = new Mesh();
@@ -187,6 +204,18 @@ public final class Water {
 
                 // Indexes
                 indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
+            }
+        }
+
+        // The edge of the surface goes where the bank is, as the floor level sees it. Only sideways,
+        // the wibble must not make the surface uneven.
+        if (deformer != null) {
+            Vector3f bank = new Vector3f();
+            for (Vector3f vertice : vertices) {
+                bank.set(vertice.x, WorldUtils.FLOOR_HEIGHT, vertice.z);
+                deformer.deform(bank, bank, null);
+                vertice.x = bank.x;
+                vertice.z = bank.z;
             }
         }
 

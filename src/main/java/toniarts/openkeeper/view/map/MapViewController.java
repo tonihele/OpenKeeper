@@ -297,7 +297,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (batches.isEmpty()) {
             return null;
         }
-        Spatial surface = Water.construct(assetManager, batches);
+        Spatial surface = Water.construct(assetManager, batches, deformer);
         map.attachChild(surface);
         return surface;
     }
@@ -473,6 +473,22 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Reconstruct all tiles in the area
         int waterBatchesBefore = waterBatches.size();
         int lavaBatchesBefore = lavaBatches.size();
+
+        // The banks of the liquids may have changed shape, the surface follows them
+        boolean waterShoreChanged = false;
+        boolean lavaShoreChanged = false;
+        if (deformer != null) {
+            for (Point point : pointsToUpdate) {
+                EntityInstance<Terrain> liquid = terrainBatchCoordinates.get(point);
+                if (liquid != null) {
+                    if (liquid.getEntity().getFlags().contains(Terrain.TerrainFlag.LAVA)) {
+                        lavaShoreChanged = true;
+                    } else {
+                        waterShoreChanged = true;
+                    }
+                }
+            }
+        }
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : pointsToUpdate) {
@@ -510,8 +526,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         // A newly fog-revealed water/lava batch needs its merged surface rebuilt
-        refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
-                lavaBatches.size() != lavaBatchesBefore);
+        refreshWaterAndLavaSurfaces(waterShoreChanged || waterBatches.size() != waterBatchesBefore,
+                lavaShoreChanged || lavaBatches.size() != lavaBatchesBefore);
 
         // Dig, fog and room changes all reshape which tiles get a ceiling patch
         // and how tall it is - always rebuild it whole, there's no incremental
