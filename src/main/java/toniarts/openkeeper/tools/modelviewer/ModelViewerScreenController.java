@@ -41,7 +41,6 @@ import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -105,8 +104,8 @@ public final class ModelViewerScreenController implements ScreenController {
         nifty.registerMouseCursor("pointer", "Interface/Cursors/Idle.png", 4, 4);
 
         // Set some Nifty stuff
-        nifty.addResourceBundle("menu", Main.getResourceBundle("Interface/Texts/Text"));
-        nifty.addResourceBundle("speech", Main.getResourceBundle("Interface/Texts/Speech"));
+        nifty.addResourceBundle("menu", Utils.getResourceBundle("Interface/Texts/Text"));
+        nifty.addResourceBundle("speech", Utils.getResourceBundle("Interface/Texts/Speech"));
     }
 
     @Override

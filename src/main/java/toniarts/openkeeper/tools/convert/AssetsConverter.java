@@ -38,7 +38,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -104,8 +103,6 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
     private static final Logger logger = System.getLogger(AssetsConverter.class.getName());
     
     private static final boolean OVERWRITE_DATA = true; // Not exhausting your SDD :) or our custom graphics
-    private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";
-    private static final String ABSOLUTE_ASSETS_FOLDER = getCurrentFolder() + ASSETS_FOLDER + File.separator;
 
     public static final String SOUNDS_FOLDER = "Sounds";
     public static final String MATERIALS_FOLDER = "Materials";
@@ -189,7 +186,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
         logger.log(Level.INFO, "Current folder set to: {0}", currentFolder);
 
         // Create an assets folder
-        String assetFolder = currentFolder.concat(ASSETS_FOLDER).concat(File.separator);
+        String assetFolder = getAssetsFolder();
 
         // Create task manager for taking care of the conversion workflow
         ConversionTaskManager conversionTaskManager = new ConversionTaskManager();
@@ -264,8 +261,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
      * @return the current folder
      */
     public static String getCurrentFolder() {
-        String currentFolder = Paths.get("").toAbsolutePath().toString();
-        return PathUtils.fixFilePath(currentFolder);
+        return PathUtils.getCurrentFolder();
     }
 
     /**
@@ -274,7 +270,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
      * @return the assets folder
      */
     public static String getAssetsFolder() {
-        return ABSOLUTE_ASSETS_FOLDER;
+        return PathUtils.getAssetsFolder();
     }
 
     /**

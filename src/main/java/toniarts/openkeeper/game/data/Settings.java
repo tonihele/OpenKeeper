@@ -31,9 +31,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import toniarts.openkeeper.Main;
-import static toniarts.openkeeper.Main.TITLE;
-import static toniarts.openkeeper.Main.getApplicationIcons;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import static toniarts.openkeeper.game.data.CampaignLevel.LevelType.Level;
 import static toniarts.openkeeper.game.data.CampaignLevel.LevelType.MPD;
@@ -256,7 +253,7 @@ public final class Settings {
     
     private static final Settings INSTANCE;
     private static final int MAX_FPS = 200;
-    private static final Path USER_HOME_FOLDER = Paths.get(System.getProperty("user.home"), ".".concat(Main.TITLE));
+    private static final Path USER_HOME_FOLDER = Paths.get(System.getProperty("user.home"), ".OpenKeeper");
     private static final Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
     public static final List<String> OPENGL = Settings.getRenderers();
     public static final List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
@@ -287,10 +284,6 @@ public final class Settings {
         if (getBoolean(Setting.BORDERLESS)) {
             settings.setFullscreen(false);
         }
-
-        // Assing some app level settings
-        settings.setTitle(TITLE);
-        settings.setIcons(getApplicationIcons());
 
         // Gamma correction is on by default (AppSettings default), the user can toggle it in the graphics settings
     }

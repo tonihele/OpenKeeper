@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 
 /**
  * Executes cheats. Implementations are free to refuse, e.g. in multiplayer games.
@@ -29,7 +29,7 @@ public interface ICheatController {
      * @param cheat the cheat to execute
      * @param playerId the player who triggered the cheat
      */
-    void onCheat(CheatState.CheatType cheat, short playerId);
+    void onCheat(CheatType cheat, short playerId);
 
     /**
      * Spawns creatures at the given player's dungeon heart entrance

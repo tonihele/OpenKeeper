@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.FileResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -206,7 +205,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     }
 
     private static Path getKwdFile(String file) {
-        return getKwdFile(Main.getDkIIFolder(), file);
+        return getKwdFile(PathUtils.getDKIIFolder(), file);
     }
 
     /**
@@ -216,7 +215,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
      * @return complete level file
      */
     public static IKwdFile load(String file) {
-        return load(Main.getDkIIFolder(), getKwdFile(file));
+        return load(PathUtils.getDKIIFolder(), getKwdFile(file));
     }
 
     /**
@@ -258,7 +257,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
      * @return partial level file
      */
     public static IKwdMap loadInfo(Path file) {
-        return loadInfo(Main.getDkIIFolder(), file);
+        return loadInfo(PathUtils.getDKIIFolder(), file);
     }
 
     /**

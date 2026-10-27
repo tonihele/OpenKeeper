@@ -23,6 +23,7 @@ import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
 import de.lessvoid.nifty.tools.Color;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -151,7 +152,7 @@ public final class GameConsole {
                     stateManager.getState(ConsoleState.class).setEnabled(false);
                     break;
                 case PAYDAY:
-                    stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.PAY_DAY);
+                    stateManager.getState(CheatState.class).executeCheat(CheatType.PAY_DAY);
                     break;
                 case LOOSE_LEVEL:
                 case LEVEL_MAX:
@@ -162,7 +163,7 @@ public final class GameConsole {
                 case RESET_FOW:
                 case WIN_LEVEL:
                 case JACKPOT:
-                    stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.valueOf(command));
+                    stateManager.getState(CheatState.class).executeCheat(CheatType.valueOf(command));
                     break;
                 default:
                     console.outputError("Not supported");

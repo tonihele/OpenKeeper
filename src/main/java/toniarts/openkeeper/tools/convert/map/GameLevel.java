@@ -23,11 +23,11 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.ISoundable;
 import toniarts.openkeeper.game.data.ITriggerable;
 import toniarts.openkeeper.tools.convert.IFlagEnum;
 import toniarts.openkeeper.tools.convert.IValueEnum;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  *
@@ -619,13 +619,13 @@ public final class GameLevel implements ISoundable, ITriggerable {
     private ResourceBundle readResourceBundle() {
         if (this.getName().equalsIgnoreCase("mpd7")) {
             // it was hardcoded in dk2 too
-            return Main.getResourceBundle(TEXT_DIR.concat("LEVELMPD7_BRIEFING"));
+            return Utils.getResourceBundle(TEXT_DIR.concat("LEVELMPD7_BRIEFING"));
         } else if (this.getTextTableId() != null && this.getTextTableId() != GameLevel.TextTable.NONE && this.getTextTableId().getLevelBriefingDictFile() != null) {
-            return Main.getResourceBundle(TEXT_DIR.concat(this.getTextTableId().getLevelBriefingDictFile()));
+            return Utils.getResourceBundle(TEXT_DIR.concat(this.getTextTableId().getLevelBriefingDictFile()));
         } else {
             final String briefing = this.getName().concat("_BRIEFING");
             try {
-                return Main.getResourceBundle(TEXT_DIR.concat(briefing));
+                return Utils.getResourceBundle(TEXT_DIR.concat(briefing));
             } catch (Exception e) {
                 // stack is already thrown by getResourceBundle
             }
