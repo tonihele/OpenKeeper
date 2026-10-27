@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
@@ -390,6 +391,23 @@ class TrapSystemTest {
         gameTime = 5;
         tick();
         assertEquals(2, shots.stream().filter(fired -> fired.trapId() == SPIKE).count());
+    }
+
+    @Test
+    void triggerWaveIsKeptInTheEntityData() {
+        addTrap(TRIGGER, TRAP_TILE);
+        addTrap(SPIKE, new Point(12, 10));
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+        assertEquals(1, entityData.getEntities(TriggerWave.class).size());
+
+        // A loaded game starts with a new system on the same entities
+        trapSystem = null;
+        gameTime = 2;
+        tick();
+
+        assertEquals(List.of(new Fired(TRIGGER, enemy), new Fired(SPIKE, enemy)), shots);
     }
 
     @Test
