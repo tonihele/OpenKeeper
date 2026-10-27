@@ -20,7 +20,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 
 /**
  * Listener for the service. To listen to clients' requests
@@ -145,7 +145,7 @@ public interface GameSessionServiceListener {
      * @param playerId the player who wants to cheat
      */
     @Asynchronous
-    public void onCheatTriggered(CheatState.CheatType cheat, short playerId);
+    public void onCheatTriggered(CheatType cheat, short playerId);
 
     /**
      * Player has triggered a creature spawning cheat

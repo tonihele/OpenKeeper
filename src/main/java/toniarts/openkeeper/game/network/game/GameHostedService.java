@@ -42,7 +42,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
-import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
@@ -620,7 +620,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void triggerCheat(CheatState.CheatType cheat) {
+        public void triggerCheat(CheatType cheat) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onCheatTriggered(cheat, clientInfo.getKeeper().getId());
             }

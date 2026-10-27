@@ -31,7 +31,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
-import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
@@ -402,7 +402,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void triggerCheat(CheatState.CheatType cheat) {
+    public void triggerCheat(CheatType cheat) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onCheatTriggered(cheat, PLAYER_ID);
         }

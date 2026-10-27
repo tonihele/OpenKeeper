@@ -58,8 +58,29 @@ public final class PathUtils {
     public static final String DKII_MAPS_FOLDER = getRealDKIIRelativeFolder(DKII_EDITOR_FOLDER + "maps" + File.separator);
     public static final String DKII_SFX_GLOBAL_FOLDER = getRealDKIIRelativeFolder(DKII_SFX_FOLDER + "Global" + File.separator);
 
+    private static final String ASSETS_FOLDER = "assets" + File.separator + "Converted";
+    private static final String ABSOLUTE_ASSETS_FOLDER = getCurrentFolder() + ASSETS_FOLDER + File.separator;
     private static final String DKII_FOLDER_KEY = "DungeonKeeperIIFolder";
     private static final String TEST_FILE = DKII_MAPS_FOLDER + "FrontEnd3DLevel.kwd";
+
+    /**
+     * Get the current folder
+     *
+     * @return the current folder
+     */
+    public static String getCurrentFolder() {
+        String currentFolder = Paths.get("").toAbsolutePath().toString();
+        return fixFilePath(currentFolder);
+    }
+
+    /**
+     * Get the assets root folder
+     *
+     * @return the assets folder
+     */
+    public static String getAssetsFolder() {
+        return ABSOLUTE_ASSETS_FOLDER;
+    }
 
     /**
      * Get the folder of the original Dungeon Keeper 2 installation

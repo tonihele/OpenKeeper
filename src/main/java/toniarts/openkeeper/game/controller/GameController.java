@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
@@ -302,12 +301,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         // Mark the achievement if campaign level
         if (levelObject != null) {
-            Main.getUserSettings().increaseLevelAttempts(levelObject);
+            Settings.getInstance().increaseLevelAttempts(levelObject);
             if (win) {
-                Main.getUserSettings().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
+                Settings.getInstance().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
             }
             try {
-                Main.getUserSettings().save();
+                Settings.getInstance().save();
             } catch (IOException ex) {
                 logger.log(Level.ERROR, "Failed to save the level progress!", ex);
             }
