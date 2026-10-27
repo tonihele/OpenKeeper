@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.GameEvent;
+import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;

@@ -18,8 +18,9 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventType;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -27,6 +28,12 @@ import toniarts.openkeeper.utils.Point;
  * sound...). The event lives for a short while (see {@code GameEventSystem}), long enough to reach the clients.
  */
 public final class GameEvent implements EntityComponent {
+
+    /**
+     * The client side of the events: the events travel from the logic to the clients as entities, the client then
+     * publishes them to the {@link EventBus} where whoever is interested (sounds, effects...) listens to them.
+     */
+    public static final EventType<GameEvent> EVENT = EventType.create("GameEvent", GameEvent.class);
 
     /**
      * Seen by everyone
@@ -62,6 +69,20 @@ public final class GameEvent implements EntityComponent {
      */
     public short playerId = ALL_PLAYERS;
 
+    /**
+     * The type of a thing (an id in the map data) that an event is about
+     */
+    public enum ThingFlag {
+        CREATURE,
+        OBJECT,
+        DOOR,
+        TRAP,
+        ROOM,
+        TERRAIN,
+        SHOT,
+        KEEPER_SPELL
+    }
+
     public GameEvent() {
         // For serialization
     }
@@ -76,6 +97,10 @@ public final class GameEvent implements EntityComponent {
         this.entity = entity;
         this.position = position;
         this.playerId = playerId;
+    }
+
+    public static void publish(GameEvent event) {
+        EventBus.publish(EVENT, event);
     }
 
 }

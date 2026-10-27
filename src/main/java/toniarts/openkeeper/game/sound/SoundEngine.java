@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.game.sound.SoundVoice.Behaviour;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
@@ -120,8 +121,8 @@ public class SoundEngine {
             return NO_HANDLE;
         }
         // a sound beyond the audible distance is not accepted at all, only the repeating beds wait for the listener
-        boolean repeating = event.getBehaviour() == SoundVoiceBehaviour.REPEAT
-                || event.getBehaviour() == SoundVoiceBehaviour.REPEAT_LOOP_EACH;
+        boolean repeating = event.getBehaviour() == Behaviour.REPEAT
+                || event.getBehaviour() == Behaviour.REPEAT_LOOP_EACH;
         if (position != null && (event.isDeferred() || !repeating) && !isEligible(position)) {
             return NO_HANDLE;
         }
@@ -395,7 +396,7 @@ public class SoundEngine {
         float fade = 1.0f;
         long age = now - voice.getStartTime();
         // one-shots must start at once, only beds and music are faded in
-        if (age < FADE_IN_MS && voice.getEvent().getBehaviour() != SoundVoiceBehaviour.ONE_SHOT) {
+        if (age < FADE_IN_MS && voice.getEvent().getBehaviour() != Behaviour.ONE_SHOT) {
             fade = Math.max(0.0f, (float) age / FADE_IN_MS);
         }
         if (voice.isStopped()) {
@@ -561,8 +562,8 @@ public class SoundEngine {
     }
 
     private static boolean isRepeating(SoundVoice voice) {
-        SoundVoiceBehaviour behaviour = voice.getEvent().getBehaviour();
-        return behaviour == SoundVoiceBehaviour.REPEAT || behaviour == SoundVoiceBehaviour.REPEAT_LOOP_EACH;
+        Behaviour behaviour = voice.getEvent().getBehaviour();
+        return behaviour == Behaviour.REPEAT || behaviour == Behaviour.REPEAT_LOOP_EACH;
     }
 
     /**
@@ -623,7 +624,7 @@ public class SoundEngine {
             return null;
         }
 
-        boolean looping = voice.getEvent().getBehaviour() == SoundVoiceBehaviour.REPEAT_LOOP_EACH;
+        boolean looping = voice.getEvent().getBehaviour() == Behaviour.REPEAT_LOOP_EACH;
         boolean streamed = looping || sample.getDurationMs() > 20_000;
         AudioSpec spec = AudioSpec.stereo(AssetsConverter.SOUNDS_FOLDER + '/' + path, 1.0f, looping, streamed)
                 .withPitch(pitch);

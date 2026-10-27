@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingFlag;
+import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;

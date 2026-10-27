@@ -21,7 +21,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.ThingFlag;
+import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;

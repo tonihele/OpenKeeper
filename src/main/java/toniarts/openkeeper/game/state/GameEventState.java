@@ -25,13 +25,12 @@ import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.GameEvent;
-import toniarts.openkeeper.game.event.GameEventBus;
 import toniarts.openkeeper.game.sound.GameEventSoundPlayer;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
  * Brings the {@link GameEvent}s the game logic creates to the client: the ones meant for us are published to the
- * {@link GameEventBus}. What happened is the logic's business, what to make of it is up to the listeners of the bus.
+ * {@link com.simsilica.event.EventBus}. What happened is the logic's business, what to make of it is up to the listeners of the bus.
  * For now the sounds are played.
  */
 public final class GameEventState extends AbstractAppState {
@@ -81,7 +80,7 @@ public final class GameEventState extends AbstractAppState {
             return;
         }
         logger.log(Level.DEBUG, "Event {0} at {1}", new Object[]{event.type, event.position});
-        GameEventBus.publish(event);
+        GameEvent.publish(event);
     }
 
     @Override

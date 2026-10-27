@@ -15,7 +15,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingFlag;
+import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.logic.GameEventSystem;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.SoundFixtures;

@@ -26,12 +26,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.game.component.GameEvent;
-import toniarts.openkeeper.game.event.GameEventBus;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
- * Plays the sounds of the {@link GameEvent}s published on the {@link GameEventBus}.
+ * Plays the sounds of the {@link GameEvent}s published on the {@link EventBus}.
  */
 public final class GameEventSoundPlayer implements EventListener<GameEvent> {
 
@@ -45,11 +44,11 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     }
 
     public void register() {
-        EventBus.addListener(GameEventBus.EVENT, this);
+        EventBus.addListener(GameEvent.EVENT, this);
     }
 
     public void unregister() {
-        EventBus.removeListener(GameEventBus.EVENT, this);
+        EventBus.removeListener(GameEvent.EVENT, this);
         exclusiveSounds.clear();
     }
 

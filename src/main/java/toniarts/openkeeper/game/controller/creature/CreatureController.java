@@ -78,7 +78,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingFlag;
+import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;

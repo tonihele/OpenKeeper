@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.game.sound.SoundVoice.Behaviour;
 
 /**
  * A playable sound event of a category: a priority, flags and the groups of clips
@@ -59,23 +60,23 @@ public class SoundEvent {
         return Collections.unmodifiableList(groups);
     }
 
-    public SoundVoiceBehaviour getBehaviour() {
+    public Behaviour getBehaviour() {
         if (flags.contains(SoundEventFlag.BACKEND_EVENT)) {
-            return SoundVoiceBehaviour.BACKEND_EVENT;
+            return Behaviour.BACKEND_EVENT;
         }
         if (flags.contains(SoundEventFlag.REPEATING)) {
             if (flags.contains(SoundEventFlag.LOOP_EACH)) {
-                return SoundVoiceBehaviour.REPEAT_LOOP_EACH;
+                return Behaviour.REPEAT_LOOP_EACH;
             }
             if (flags.contains(SoundEventFlag.SEGMENTED)) {
-                return SoundVoiceBehaviour.LINEAR_SEQUENCE;
+                return Behaviour.LINEAR_SEQUENCE;
             }
-            return SoundVoiceBehaviour.REPEAT;
+            return Behaviour.REPEAT;
         }
         if (flags.contains(SoundEventFlag.SEGMENTED)) {
-            return SoundVoiceBehaviour.PLAY_ONCE_SEGMENTED;
+            return Behaviour.PLAY_ONCE_SEGMENTED;
         }
-        return SoundVoiceBehaviour.ONE_SHOT;
+        return Behaviour.ONE_SHOT;
     }
 
     public boolean isDeferred() {

@@ -234,7 +234,7 @@ public class SoundVoice {
         return switch (backend.getStatus()) {
             case STOPPED -> true;
             case PLAYING -> {
-                if (event.getBehaviour() == SoundVoiceBehaviour.REPEAT_LOOP_EACH) {
+                if (event.getBehaviour() == Behaviour.REPEAT_LOOP_EACH) {
                     yield false;
                 }
                 float duration = backend.getDuration();
@@ -288,6 +288,19 @@ public class SoundVoice {
             child.backend().stop();
         }
         children.clear();
+    }
+
+    /**
+     * Playback strategy of a single voice, derived from the event flags.
+     */
+    public enum Behaviour {
+
+        ONE_SHOT,
+        PLAY_ONCE_SEGMENTED,
+        REPEAT,
+        REPEAT_LOOP_EACH,
+        LINEAR_SEQUENCE,
+        BACKEND_EVENT
     }
 
     /**

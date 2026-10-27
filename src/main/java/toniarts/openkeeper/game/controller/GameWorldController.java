@@ -78,7 +78,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingFlag;
+import toniarts.openkeeper.game.component.GameEvent.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
