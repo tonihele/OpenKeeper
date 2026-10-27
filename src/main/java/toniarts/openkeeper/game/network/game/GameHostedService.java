@@ -31,6 +31,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
 import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -423,10 +424,10 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void endGame(boolean win, short playerId) {
+    public void endGame(GameResult result, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
-                gameSession.getValue().onGameEnded(win);
+                gameSession.getValue().onGameEnded(result);
                 break;
             }
         }
@@ -841,8 +842,8 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onGameEnded(boolean win) {
-            getCallback().onGameEnded(win);
+        public void onGameEnded(GameResult result) {
+            getCallback().onGameEnded(result);
         }
 
         @Override

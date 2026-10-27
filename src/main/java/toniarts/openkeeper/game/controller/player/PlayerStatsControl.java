@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.player;
 
 import java.util.HashMap;
 import java.util.Map;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -31,6 +32,11 @@ public final class PlayerStatsControl {
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
+    private final Keeper keeper;
+
+    public PlayerStatsControl(Keeper keeper) {
+        this.keeper = keeper;
+    }
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();
@@ -91,6 +97,53 @@ public final class PlayerStatsControl {
 
     public void creatureDropped(Creature creature) {
         increaseMapCount(creature, dropsMap);
+    }
+
+    /**
+     * An enemy creature has been killed or knocked out. Heroes are counted separately.
+     *
+     * @param creature the creature that was killed
+     */
+    public void creatureKilled(Creature creature) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)) {
+            keeper.setHeroesDestroyed(keeper.getHeroesDestroyed() + 1);
+        } else {
+            keeper.setEnemyCreaturesKilled(keeper.getEnemyCreaturesKilled() + 1);
+        }
+    }
+
+    /**
+     * Get the number of enemy creatures, not heroes, killed
+     *
+     * @return enemy creatures killed
+     */
+    public int getEnemyCreaturesKilled() {
+        return keeper.getEnemyCreaturesKilled();
+    }
+
+    /**
+     * Get the number of heroes killed
+     *
+     * @return heroes destroyed
+     */
+    public int getHeroesDestroyed() {
+        return keeper.getHeroesDestroyed();
+    }
+
+    /**
+     * The player has activated a special
+     */
+    public void specialFound() {
+        keeper.setSpecialsFound(keeper.getSpecialsFound() + 1);
+    }
+
+    /**
+     * Get the number of specials the player has activated
+     *
+     * @return specials found
+     */
+    public int getSpecialsFound() {
+        return keeper.getSpecialsFound();
     }
 
 }

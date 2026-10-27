@@ -922,7 +922,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         @Override
-        public void endGame(boolean win, short playerId) {
+        public void endGame(GameResult result, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

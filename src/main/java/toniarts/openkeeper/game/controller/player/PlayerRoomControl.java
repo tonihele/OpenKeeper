@@ -120,6 +120,21 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
     @Override
     public void onCaptured(IRoomController room) {
         onBuild(room);
+
+        // Bridges don't count
+        Set<Room.RoomFlag> flags = room.getRoom().getFlags();
+        if (!flags.contains(Room.RoomFlag.PLACEABLE_ON_WATER) && !flags.contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {
+            keeper.setRoomsCaptured(keeper.getRoomsCaptured() + 1);
+        }
+    }
+
+    /**
+     * Get the number of rooms the player has captured from others, bridges excluded
+     *
+     * @return rooms captured
+     */
+    public int getRoomsCaptured() {
+        return keeper.getRoomsCaptured();
     }
 
     @Override

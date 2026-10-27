@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * The result and statistics of a game for a player, shown on the debriefing screen
  *
  * @author archdemon
  */
@@ -45,6 +46,20 @@ public final class GameResult {
         CREATURE_TRAINING,
         ATTEMPTS_AT_LEVEL,
     };
+
+    /**
+     * The Evil Rating weights per statistic, from DK II
+     */
+    private static final int ENEMY_CREATURE_KILLED_RATING = 40;
+    private static final int HERO_DESTROYED_RATING = 50;
+    private static final int ROOM_CAPTURED_RATING = 5;
+    private static final int LAND_OWNED_RATING = 5;
+    private static final int GOLD_MINED_RATING = 1;
+    private static final int MANA_STORED_RATING = 2;
+    private static final int ITEM_MANUFACTURED_RATING = 5;
+    private static final int CREATURE_COMMANDED_RATING = 20;
+    private static final int CREATURE_CONVERTED_RATING = 40;
+    private static final int CREATURE_TRAINING_RATING = 50;
 
     private Map<ResultType, Object> data = null;
 
@@ -79,5 +94,36 @@ public final class GameResult {
      */
     public boolean isLevelWon() {
         return Boolean.TRUE.equals(getData(ResultType.LEVEL_WON));
+    }
+
+    /**
+     * Calculates the Evil Rating of the level from the statistics. It is a weighted sum of the
+     * statistics, the won or lost status and the time taken don't count. The creature training
+     * (the average experience level) counts with two decimals, cut off rather than rounded, as DK II
+     * does. Statistics that are not set count as zero.
+     *
+     * @return the Evil Rating of the level
+     */
+    public int calculateEvilRating() {
+        Number training = getData(ResultType.CREATURE_TRAINING);
+        float averageLevel = training != null ? training.floatValue() : 0;
+        int level = (int) averageLevel;
+        int levelHundredths = (int) ((averageLevel - level) * 100);
+
+        return ENEMY_CREATURE_KILLED_RATING * getInt(ResultType.ENEMY_CREATURES_KILLED)
+                + HERO_DESTROYED_RATING * getInt(ResultType.HEROES_DESTROYED)
+                + ROOM_CAPTURED_RATING * getInt(ResultType.ROOMS_CAPTURED)
+                + LAND_OWNED_RATING * getInt(ResultType.LAND_OWNED)
+                + GOLD_MINED_RATING * getInt(ResultType.GOLD_MINED)
+                + MANA_STORED_RATING * getInt(ResultType.MANA_STORED)
+                + ITEM_MANUFACTURED_RATING * getInt(ResultType.ITEMS_MANUFACTURED)
+                + CREATURE_COMMANDED_RATING * getInt(ResultType.CREATURES_COMMANDED)
+                + CREATURE_CONVERTED_RATING * getInt(ResultType.CREATURES_CONVERTED)
+                + CREATURE_TRAINING_RATING * level + CREATURE_TRAINING_RATING * levelHundredths / 100;
+    }
+
+    private int getInt(ResultType key) {
+        Number value = getData(key);
+        return value != null ? value.intValue() : 0;
     }
 }

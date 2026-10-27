@@ -62,7 +62,7 @@ class PayDaySystemTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Creature> creatures = new HashMap<>();
-    private final PlayerStatsControl keeperStats = new PlayerStatsControl();
+    private final PlayerStatsControl keeperStats = new PlayerStatsControl(new Keeper(false, KEEPER));
     private final PayDaySystem payDaySystem;
     private double gameTime;
 
@@ -70,7 +70,7 @@ class PayDaySystemTest {
         creatures.put(GOBLIN, PayDayFixtures.creature(GOBLIN, ANGER_NO_PAY));
         creatures.put(IMP, PayDayFixtures.creature(IMP, 0));
         payDaySystem = new PayDaySystem(entityData, kwdFile(), () -> gameTime,
-                List.of(playerController(Player.GOOD_PLAYER_ID, new PlayerStatsControl()), playerController(KEEPER, keeperStats)),
+                List.of(playerController(Player.GOOD_PLAYER_ID, new PlayerStatsControl(new Keeper(false, Player.GOOD_PLAYER_ID))), playerController(KEEPER, keeperStats)),
                 gameSettings());
     }
 

@@ -43,6 +43,10 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     private int gold;
     private int goldMined;
+    private int enemyCreaturesKilled;
+    private int heroesDestroyed;
+    private int roomsCaptured;
+    private int specialsFound;
     private int mana;
     private int manaGain;
     private int manaLoose;
@@ -98,6 +102,38 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setGoldMined(int goldMined) {
         this.goldMined = goldMined;
+    }
+
+    public int getEnemyCreaturesKilled() {
+        return enemyCreaturesKilled;
+    }
+
+    public void setEnemyCreaturesKilled(int enemyCreaturesKilled) {
+        this.enemyCreaturesKilled = enemyCreaturesKilled;
+    }
+
+    public int getHeroesDestroyed() {
+        return heroesDestroyed;
+    }
+
+    public void setHeroesDestroyed(int heroesDestroyed) {
+        this.heroesDestroyed = heroesDestroyed;
+    }
+
+    public int getRoomsCaptured() {
+        return roomsCaptured;
+    }
+
+    public void setRoomsCaptured(int roomsCaptured) {
+        this.roomsCaptured = roomsCaptured;
+    }
+
+    public int getSpecialsFound() {
+        return specialsFound;
+    }
+
+    public void setSpecialsFound(int specialsFound) {
+        this.specialsFound = specialsFound;
     }
 
     public void setManaGain(int manaGain) {
@@ -339,6 +375,10 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(aiType, "aiType", null);
         out.write(gold, "gold", 0);
         out.write(goldMined, "goldMined", 0);
+        out.write(enemyCreaturesKilled, "enemyCreaturesKilled", 0);
+        out.write(heroesDestroyed, "heroesDestroyed", 0);
+        out.write(roomsCaptured, "roomsCaptured", 0);
+        out.write(specialsFound, "specialsFound", 0);
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
         out.write(manaLoose, "manaLoose", 0);
@@ -363,6 +403,10 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         aiType = in.readEnum("aiType", AIType.class, aiType);
         gold = in.readInt("gold", gold);
         goldMined = in.readInt("goldMined", goldMined);
+        enemyCreaturesKilled = in.readInt("enemyCreaturesKilled", enemyCreaturesKilled);
+        heroesDestroyed = in.readInt("heroesDestroyed", heroesDestroyed);
+        roomsCaptured = in.readInt("roomsCaptured", roomsCaptured);
+        specialsFound = in.readInt("specialsFound", specialsFound);
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
         manaLoose = in.readInt("manaLoose", manaLoose);

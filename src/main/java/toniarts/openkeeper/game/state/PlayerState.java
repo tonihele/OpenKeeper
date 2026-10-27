@@ -92,7 +92,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     private EntitySet heartEntities;
     private boolean paused = false;
-    private boolean levelWon = false;
+    private GameResult gameResult;
 
     private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
     protected PlayerInteractionState interactionState;
@@ -465,9 +465,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     public void quitToDebriefing() {
-        // TODO copy results of game from GameState
-        GameResult result = new GameResult();
-        result.setData(GameResult.ResultType.LEVEL_WON, levelWon);
+        GameResult result = gameResult != null ? gameResult : new GameResult();
         stateManager.getState(GameClientState.class).detach();
         stateManager.detach(this);
         stateManager.getState(MainMenuState.class).doDebriefing(result, kwdFile, campaignLevel);
@@ -568,10 +566,11 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     /**
      * End the game for the player
      *
-     * @param win did we win or not
+     * @param result the result and statistics of the game
      */
-    protected void endGame(boolean win) {
-        levelWon = win;
+    protected void endGame(GameResult result) {
+        gameResult = result;
+        boolean win = result.isLevelWon();
 
         // Save campaign progress on win
         if (win && campaignLevel != null) {

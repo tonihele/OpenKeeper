@@ -538,6 +538,10 @@ public final class MapController extends Container implements IMapController {
         } else { // Apply damage
             tileDestroyed = applyDamage(tile, damage);
         }
+        Keeper keeper = levelInfo.getPlayer(playerId);
+        if (returnedGold > 0 && keeper != null) {
+            keeper.setGoldMined(keeper.getGoldMined() + returnedGold);
+        }
 
         // See the results
         if (tileDestroyed) {
