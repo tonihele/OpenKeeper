@@ -46,6 +46,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
@@ -80,6 +81,7 @@ public class PlayerEntityViewState extends AbstractAppState {
      * "Creature Dazed Effect", the stars over a creature lying stunned after it was dropped
      */
     private static final int DAZED_EFFECT_ID = 101;
+    private static final String DAZED_NODE_NAME = "Dazed";
 
     /**
      * Used where no fog of war applies: everything is simply always visible.
@@ -374,8 +376,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         // A creature that lands stunned from the hand gets the dazed stars over its head, once per landing
         if (!wasAlreadyFallen && viewState.state == Creature.AnimationType.FALLBACK && object instanceof Node creatureNode) {
-            Vector3f overHead = new Vector3f(0, kwdFile.getCreature(viewState.creatureId).getAttributes().getHeight(), 0);
-            stateManager.getState(EffectManagerState.class).load(creatureNode, overHead, DAZED_EFFECT_ID, false);
+            float height = kwdFile.getCreature(viewState.creatureId).getAttributes().getHeight();
+            stateManager.getState(EffectManagerState.class).load(getDazedEffectNode(creatureNode, height), null, DAZED_EFFECT_ID, false);
         }
 
         // Trigger the death effect once, when the creature actually dies
@@ -393,6 +395,21 @@ public class PlayerEntityViewState extends AbstractAppState {
             CharredOverlay.apply(object, assetManager);
         }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+    }
+
+    /**
+     * The node over the creature's head that holds its dazed stars. Changing the animation removes all the
+     * creature's children that aren't marked as kept, so the stars get a kept node of their own.
+     */
+    private static Node getDazedEffectNode(Node creatureNode, float height) {
+        Node dazedNode = (Node) creatureNode.getChild(DAZED_NODE_NAME);
+        if (dazedNode == null) {
+            dazedNode = new Node(DAZED_NODE_NAME);
+            dazedNode.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+            dazedNode.setLocalTranslation(0, height, 0);
+            creatureNode.attachChild(dazedNode);
+        }
+        return dazedNode;
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
