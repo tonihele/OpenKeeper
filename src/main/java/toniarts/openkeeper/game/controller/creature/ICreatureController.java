@@ -313,6 +313,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void setFollowTarget(EntityId target);
 
+    /**
+     * Gets the possessed creature that has hypnotised us, we are on its side
+     * and follow it
+     *
+     * @return the creature, {@code null} if we are not hypnotised
+     */
+    public EntityId getHypnotiser();
+
     public boolean shouldNavigateToFollowTarget();
 
     /**
@@ -499,7 +507,8 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Uses a first person ability of a possessed creature, as its keeper
      * presses the ability's key or uses the selected ability. The Vampire
      * turns into a bat or back, the Monk and the Fairy start or stop praying,
-     * the Bile Demon picks up or throws a worker.
+     * the Bile Demon picks up or throws a worker, the Vampire hypnotises a
+     * creature or lets it go.
      *
      * @param ability 1 or 2, the creature's first or second ability
      */

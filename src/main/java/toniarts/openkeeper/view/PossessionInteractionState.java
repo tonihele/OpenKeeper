@@ -191,9 +191,9 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     }
 
     /**
-     * The Bile Demon's ability is used like a spell, its key selects it and
-     * the attack uses it (0x4100F0). The other abilities are used as their key
-     * goes down.
+     * The Bile Demon's and the Vampire's hypnotism are used like a spell, their
+     * key selects them and the attack uses them (0x40FDA0, 0x4100F0). The
+     * other abilities are used as their key goes down.
      *
      * @param ability 1 or 2, the creature's first or second ability
      * @return whether the ability is used with the attack
@@ -204,7 +204,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             return false;
         }
         Creature.SpecialAbility specialAbility = ability == 1 ? creature.getFirstPersonSpecialAbility1() : creature.getFirstPersonSpecialAbility2();
-        return specialAbility == Creature.SpecialAbility.PICK_UP_WORKERS;
+        return specialAbility == Creature.SpecialAbility.PICK_UP_WORKERS || specialAbility == Creature.SpecialAbility.HYPNOTISE;
     }
 
     public EntityId getTarget() {

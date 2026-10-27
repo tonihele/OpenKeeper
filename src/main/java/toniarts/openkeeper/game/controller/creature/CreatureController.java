@@ -53,6 +53,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
@@ -2757,6 +2758,12 @@ public final class CreatureController extends EntityController implements ICreat
         EntityId target = getPossessedAttackTarget(position);
         if (target != null) {
             hitWithMelee(target, meleeAttack, firstPersonAttack.damage);
+
+            // The creature we have hypnotised attacks what we hit (0x514830)
+            EntityId hypnotised = getHypnotised();
+            if (hypnotised != null) {
+                entityData.setComponent(hypnotised, new AttackTarget(target));
+            }
         } else if (isWorker() && digTileInFront(position)) {
             entityData.setComponent(entityId, new CreatureMeleeAttack(meleeAttack, gameTimer.getGameTime()));
         } else {
@@ -2776,7 +2783,107 @@ public final class CreatureController extends EntityController implements ICreat
             togglePossessedAbility(specialAbility);
         } else if (specialAbility == Creature.SpecialAbility.PICK_UP_WORKERS) {
             pickUpOrThrowWorker();
+        } else if (specialAbility == Creature.SpecialAbility.HYPNOTISE) {
+            hypnotiseOrRelease();
         }
+    }
+
+    /**
+     * Hypnotises the nearest enemy creature in sight within 60 degrees of the
+     * view, or lets go of the one we have hypnotised (0x5163C0). It joins our
+     * keeper and follows us (0x461980), our keeper pays
+     * HYPNOTISM_MANA_DRAIN_PER_SECOND for it (0x4C10E0). If the nearest
+     * creature is immune to turncoat, nothing happens.
+     */
+    private void hypnotiseOrRelease() {
+        EntityId hypnotised = getHypnotised();
+        if (hypnotised != null) {
+            releaseHypnotised(hypnotised);
+            return;
+        }
+
+        Position position = entityData.getComponent(entityId, Position.class);
+        EntityId nearestCreature = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (EntityId entity : entityData.findEntities(null, CreatureComponent.class, Position.class)) {
+            float distance = getDistanceToCreature(entity);
+            if (distance < nearestDistance && canBeHypnotised(entity) && isInFront(position, entity) && isInSight(position.position, entity)) {
+                nearestDistance = distance;
+                nearestCreature = entity;
+            }
+        }
+        if (nearestCreature == null || getCreature(nearestCreature).getFlags().contains(Creature.CreatureFlag.IS_IMMUNE_TO_TURNCOAT)) {
+            return;
+        }
+
+        entityData.setComponent(nearestCreature, new Hypnotised(entityId, entityData.getComponent(nearestCreature, Owner.class).ownerId));
+        entityData.setComponent(nearestCreature, new Owner(getOwnerId(), getOwnerId()));
+        entityData.removeComponent(nearestCreature, AttackTarget.class);
+        Variable.MiscVariable manaDrain = gameSettings.get(Variable.MiscVariable.MiscType.HYPNOTISM_MANA_DRAIN_PER_SECOND);
+        if (manaDrain != null && manaDrain.getValue() > 0) {
+            entityData.setComponent(nearestCreature, new Mana(-(int) manaDrain.getValue()));
+        }
+        ICreatureController controller = creaturesController.createController(nearestCreature);
+        controller.unassingCurrentTask();
+        controller.getStateMachine().changeState(CreatureState.FOLLOW);
+        controller.setFollowTarget(entityId);
+    }
+
+    private boolean canBeHypnotised(EntityId entity) {
+        return !entityId.equals(entity) && creaturesController.isValidEntity(entity) && isEnemy(entity) && !isIncapacitated(entity)
+                && entityData.getComponent(entity, Possessed.class) == null
+                && getCreature(entity).getFlags().contains(Creature.CreatureFlag.CAN_BE_HYPNOTIZED);
+    }
+
+    private Creature getCreature(EntityId entity) {
+        return levelInfo.getLevelData().getCreature(entityData.getComponent(entity, CreatureComponent.class).creatureId);
+    }
+
+    /**
+     * Is there no solid tile on the line from us to the entity (0x4512F0)
+     */
+    private boolean isInSight(Vector3f position, EntityId entity) {
+        Vector3f target = getPosition(entityData, entity);
+        int steps = (int) FastMath.ceil(position.distance(target) / (WorldUtils.TILE_WIDTH / 8));
+        for (int i = 1; i <= steps; i++) {
+            Point tile = WorldUtils.vectorToPoint(position.clone().interpolateLocal(target, i / (float) steps));
+            if (mapController.getMapData().getTile(tile) == null || mapController.isSolid(tile)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Gets the creature we have hypnotised
+     *
+     * @return the creature, {@code null} if there is none
+     */
+    private EntityId getHypnotised() {
+        return entityData.findEntity(new FieldFilter<>(Hypnotised.class, "entity", entityId), Hypnotised.class);
+    }
+
+    /**
+     * Lets go of the creature we have hypnotised (0x5163C0, 0x514590). It goes
+     * back to its owner and stops fighting (0x45EF50).
+     *
+     * @param hypnotised the creature we have hypnotised
+     */
+    private void releaseHypnotised(EntityId hypnotised) {
+        short ownerId = entityData.getComponent(hypnotised, Hypnotised.class).ownerId;
+        entityData.removeComponent(hypnotised, Hypnotised.class);
+        entityData.removeComponent(hypnotised, Mana.class);
+        entityData.removeComponent(hypnotised, AttackTarget.class);
+        entityData.setComponent(hypnotised, new Owner(ownerId, ownerId));
+        if (!isIncapacitated(hypnotised)) {
+            creaturesController.createController(hypnotised).getStateMachine().changeState(CreatureState.IDLE);
+        }
+    }
+
+    @Override
+    public EntityId getHypnotiser() {
+        Hypnotised hypnotised = entityData.getComponent(entityId, Hypnotised.class);
+        return hypnotised != null ? hypnotised.entity : null;
     }
 
     /**
@@ -3195,6 +3302,12 @@ public final class CreatureController extends EntityController implements ICreat
         }
         if (possessedAbility != null && possessedAbility.entity != null) {
             releaseWorker(possessedAbility.entity, false);
+        }
+
+        // The hypnotised creature is let go (0x514590)
+        EntityId hypnotised = getHypnotised();
+        if (hypnotised != null) {
+            releaseHypnotised(hypnotised);
         }
 
         entityData.removeComponent(entityId, PossessedMovement.class);

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -39,16 +41,21 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Hypnotised;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.PossessedAbility;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.PossessedMovementSystem;
@@ -65,6 +72,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -82,6 +90,11 @@ class PossessedAbilityTest {
     private EntityData entityData;
     private Creature creature;
     private Set<EntityId> workers;
+    private Set<Point> solidTiles;
+    private Map<Short, Creature> creatures;
+    private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
+    private Map<EntityId, CreatureState> states;
+    private Map<EntityId, EntityId> followTargets;
     private double gameTime;
     private EntityId us;
 
@@ -90,6 +103,19 @@ class PossessedAbilityTest {
         entityData = new DefaultEntityData();
         gameTime = 10;
         workers = new HashSet<>();
+        solidTiles = new HashSet<>();
+        gameSettings = new HashMap<>();
+        states = new HashMap<>();
+        followTargets = new HashMap<>();
+
+        // A Knight can be hypnotised, King Reginald can't and Prince Felix is immune to turncoat
+        creatures = new HashMap<>();
+        creatures.put((short) 13, ShotFixtures.creature((short) 13, EnumSet.of(Creature.CreatureFlag.CAN_BE_HYPNOTIZED),
+                EnumSet.noneOf(Creature.CreatureFlag3.class)));
+        creatures.put((short) 21, ShotFixtures.creature((short) 21, EnumSet.noneOf(Creature.CreatureFlag.class),
+                EnumSet.noneOf(Creature.CreatureFlag3.class)));
+        creatures.put((short) 26, ShotFixtures.creature((short) 26, EnumSet.of(Creature.CreatureFlag.CAN_BE_HYPNOTIZED,
+                Creature.CreatureFlag.IS_IMMUNE_TO_TURNCOAT), EnumSet.noneOf(Creature.CreatureFlag3.class)));
 
         // A Vampire, it doesn't fly on its own
         creature = ShotFixtures.creature((short) 8, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
@@ -234,6 +260,127 @@ class PossessedAbilityTest {
         assertEquals(50, fall.damage);
     }
 
+    @Test
+    void vampireHypnotisesTheNearestEnemyInFrontAndInSight() {
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 6));
+        createCreature(KEEPER, (short) 13, new Vector3f(10, 0, 3));
+        createCreature(HERO, (short) 21, new Vector3f(10, 0, 3.5f));
+        createCreature(HERO, (short) 13, new Vector3f(10, 0, 1));
+        createCreature(HERO, (short) 13, new Vector3f(12, 0, 3));
+        createCreature(HERO, (short) 13, new Vector3f(12, 0, 5));
+        solidTiles.add(new Point(11, 4));
+
+        createController().usePossessedAbility(2);
+
+        assertEquals(us, entityData.getComponent(knight, Hypnotised.class).entity);
+        assertEquals(HERO, entityData.getComponent(knight, Hypnotised.class).ownerId);
+        assertEquals(KEEPER, entityData.getComponent(knight, Owner.class).ownerId);
+        assertEquals(CreatureState.FOLLOW, states.get(knight));
+        assertEquals(us, followTargets.get(knight));
+        assertEquals(1, entityData.getEntities(Hypnotised.class).size());
+    }
+
+    @Test
+    void nearestCreatureImmuneToTurncoatIsNotHypnotised() {
+        EntityId prince = createCreature(HERO, (short) 26, new Vector3f(10, 0, 3));
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 4));
+
+        createController().usePossessedAbility(2);
+
+        assertNull(entityData.getComponent(prince, Hypnotised.class));
+        assertNull(entityData.getComponent(knight, Hypnotised.class));
+        assertEquals(HERO, entityData.getComponent(knight, Owner.class).ownerId);
+    }
+
+    @Test
+    void keeperPaysTheManaDrainWhileTheCreatureIsHypnotised() {
+        gameSettings.put(Variable.MiscVariable.MiscType.HYPNOTISM_MANA_DRAIN_PER_SECOND,
+                PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.HYPNOTISM_MANA_DRAIN_PER_SECOND, 5));
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 4));
+        CreatureController controller = createController();
+
+        controller.usePossessedAbility(2);
+
+        assertEquals(-5, entityData.getComponent(knight, Mana.class).manaGeneration);
+
+        controller.usePossessedAbility(2);
+
+        assertNull(entityData.getComponent(knight, Mana.class));
+    }
+
+    @Test
+    void usingItAgainLetsTheCreatureGo() {
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 4));
+        CreatureController controller = createController();
+        controller.usePossessedAbility(2);
+
+        controller.usePossessedAbility(2);
+
+        assertNull(entityData.getComponent(knight, Hypnotised.class));
+        assertEquals(HERO, entityData.getComponent(knight, Owner.class).ownerId);
+        assertEquals(CreatureState.IDLE, states.get(knight));
+    }
+
+    @Test
+    void creatureIsLetGoWhenThePossessionEnds() {
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 4));
+        CreatureController controller = createController();
+        controller.usePossessedAbility(2);
+
+        controller.setPossession(false);
+
+        assertNull(entityData.getComponent(knight, Hypnotised.class));
+        assertEquals(HERO, entityData.getComponent(knight, Owner.class).ownerId);
+        assertEquals(CreatureState.IDLE, states.get(knight));
+    }
+
+    @Test
+    void deadCreatureIsNoLongerHypnotisedAndAnotherCanBe() {
+        gameSettings.put(Variable.MiscVariable.MiscType.HYPNOTISM_MANA_DRAIN_PER_SECOND,
+                PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.HYPNOTISM_MANA_DRAIN_PER_SECOND, 5));
+        for (Variable.MiscVariable.MiscType type : List.of(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
+                Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND,
+                Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND)) {
+            gameSettings.put(type, PossessionFixtures.miscVariable(type, 0));
+        }
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 4));
+        CreatureController controller = createController();
+        controller.usePossessedAbility(2);
+
+        entityData.setComponent(knight, new Unconscious(0));
+        new HealthSystem(entityData, null, gameSettings, null, null, List.of(), null, () -> gameTime,
+                stub(GameEventService.class, (name, args) -> null)).processTick(0.25f);
+
+        assertNull(entityData.getComponent(knight, Hypnotised.class));
+        assertNull(entityData.getComponent(knight, Mana.class));
+
+        EntityId otherKnight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 5));
+        controller.usePossessedAbility(2);
+
+        assertEquals(us, entityData.getComponent(otherKnight, Hypnotised.class).entity);
+    }
+
+    @Test
+    void hypnotisedCreatureAttacksWhatWeHit() {
+        EntityId knight = createCreature(HERO, (short) 13, new Vector3f(10, 0, 4));
+        EntityId king = createCreature(HERO, (short) 21, new Vector3f(10, 0, 2.8f));
+        CreatureController controller = createController();
+        controller.usePossessedAbility(2);
+
+        controller.executePossessedAttack();
+
+        assertNotNull(entityData.getComponent(king, Damage.class));
+        assertEquals(king, entityData.getComponent(knight, AttackTarget.class).entityId);
+    }
+
+    private EntityId createCreature(short ownerId, short creatureId, Vector3f position) {
+        EntityId entity = createCreature(ownerId, position);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = creatureId;
+        entityData.setComponent(entity, creatureComponent);
+        return entity;
+    }
+
     private EntityId createWorker(short ownerId, Vector3f position) {
         EntityId entity = createCreature(ownerId, position);
         entityData.setComponents(entity, new CreatureAi(0, CreatureState.WORK, (short) 1),
@@ -251,11 +398,19 @@ class PossessedAbilityTest {
 
     private CreatureController createController() {
         IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? gameTime : null);
-        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreatureFirstPersonStats".equals(name) ? new HashMap<>() : null);
-        ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> "getLevelData".equals(name) ? kwdFile : null);
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getCreatureFirstPersonStats" -> new HashMap<>();
+            case "getCreature" -> creatures.getOrDefault((Short) args[0], creature);
+            default -> null;
+        });
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
+            case "getLevelData" -> kwdFile;
+            case "getPlayer" -> new Keeper(false, (Short) args[0]);
+            default -> null;
+        });
 
-        return new CreatureController(us, entityData, creature, null, null, gameTimer, new HashMap<>(), createCreaturesController(),
-                createPositionLookup(), createMapController(), levelInfo, null, null, null);
+        return new CreatureController(us, entityData, creature, null, null, gameTimer, gameSettings, createCreaturesController(),
+                createPositionLookup(), createMapController(), levelInfo, null, null, stub(GameEventService.class, (name, args) -> null));
     }
 
     private ICreaturesController createCreaturesController() {
@@ -264,6 +419,9 @@ class PossessedAbilityTest {
             case "createController" -> stub(ICreatureController.class, (controllerName, controllerArgs) -> switch (controllerName) {
                 case "isWorker" -> workers.contains((EntityId) args[0]);
                 case "getCreature" -> creature;
+                case "getStateMachine" -> stub(StateMachine.class, (stateName, stateArgs) -> "changeState".equals(stateName)
+                        ? states.put((EntityId) args[0], (CreatureState) stateArgs[0]) : null);
+                case "setFollowTarget" -> followTargets.put((EntityId) args[0], (EntityId) controllerArgs[0]);
                 default -> null;
             });
             default -> null;
@@ -295,7 +453,7 @@ class PossessedAbilityTest {
         });
         return stub(IMapController.class, (name, args) -> switch (name) {
             case "getMapData" -> mapData;
-            case "isSolid" -> false;
+            case "isSolid" -> solidTiles.contains((Point) args[0]);
             default -> null;
         });
     }

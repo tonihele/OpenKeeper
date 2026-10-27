@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
@@ -503,6 +504,7 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, Interaction.class);
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.removeComponent(entityId, Mana.class);
+        entityData.removeComponent(entityId, Hypnotised.class);
         entityData.removeComponent(entityId, CreatureImprisoned.class);
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
