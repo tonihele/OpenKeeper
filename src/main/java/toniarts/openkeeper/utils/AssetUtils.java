@@ -19,6 +19,7 @@ package toniarts.openkeeper.utils;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.AssetNotFoundException;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
@@ -419,9 +420,14 @@ public final class AssetUtils {
     }
 
     private static AssetInfo locateAnimationFrame(AssetManager assetManager, String name) {
-        AssetInfo asset = assetManager.locateAsset(new AssetKey<>(name));
-        if (asset != null) {
-            return asset;
+        try {
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(name));
+            if (asset != null) {
+                return asset;
+            }
+        } catch (AssetNotFoundException e) {
+            // On case-insensitive file systems, FileLocator finds the file but
+            // rejects mismatched casing. Resolve its actual name below.
         }
         // Converted filenames can differ in case. Missing frames are an expected
         // end-of-animation marker, so do not use the logging canonical-path helper.
