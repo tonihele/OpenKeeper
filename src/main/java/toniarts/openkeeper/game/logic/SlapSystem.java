@@ -160,13 +160,12 @@ public final class SlapSystem extends GameTimeCounter {
             }
         }
 
-        // Native state 0x53 removes one authored sleep unit from the runtime
-        // debt when slapped. A fresh debt contains four such units.
+        // Native state 0x53 removes one quarter of the full runtime sleep debt.
         CreatureAi creatureAi = entityData.getComponent(entity.getId(), CreatureAi.class);
         CreatureSleep creatureSleep = entityData.getComponent(entity.getId(), CreatureSleep.class);
         CreatureSleep updatedSleep = applySleepingSlap(creatureSleep,
                 creatureAi == null ? null : creatureAi.getCreatureState(),
-                creature.getAttributes().getTimeSleep());
+                creature.getAttributes().getTimeSleep(), kwdFile.getGameLevel().getTicksPerSec());
         if (updatedSleep != creatureSleep) {
             entityData.setComponent(entity.getId(), updatedSleep);
         }
@@ -175,12 +174,14 @@ public final class SlapSystem extends GameTimeCounter {
     }
 
     static CreatureSleep applySleepingSlap(CreatureSleep sleep, CreatureState state,
-            int authoredTimeSleep) {
+            int authoredTimeSleep, int ticksPerSecond) {
         if (sleep == null || state != CreatureState.SLEEPING || sleep.sleepNeed == 0) {
             return sleep;
         }
-        return new CreatureSleep(sleep.lairObjectId, sleep.lastSleepTime,
-                sleep.sleepStartTime, Math.max(0, sleep.sleepNeed - authoredTimeSleep));
+        CreatureSleep updated = new CreatureSleep(sleep);
+        int reduction = CreatureSleep.toRuntimeSleepNeed(authoredTimeSleep, ticksPerSecond) / 4;
+        updated.sleepNeed = Math.max(0, sleep.sleepNeed - reduction);
+        return updated;
     }
 
     private void processDeletedEntities(Set<Entity> entities) {

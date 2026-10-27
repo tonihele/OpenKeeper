@@ -23,6 +23,12 @@ public final class CreatureSleepFixtures {
     private CreatureSleepFixtures() {
     }
 
+    public static GameLevel level(int ticksPerSecond) {
+        GameLevel level = new GameLevel();
+        level.setTicksPerSec(ticksPerSecond);
+        return level;
+    }
+
     public static Creature sleeper(int timeSleep) {
         Creature creature = new Creature();
         creature.setCreatureId((short) 6);

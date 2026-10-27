@@ -5,6 +5,14 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
 package toniarts.openkeeper.game.logic;
 
@@ -24,7 +32,7 @@ class SlapSystemTest {
         CreatureSleep sleep = new CreatureSleep(bed, 10, 12, 36);
 
         CreatureSleep updated = SlapSystem.applySleepingSlap(
-                sleep, CreatureState.SLEEPING, 9);
+                sleep, CreatureState.SLEEPING, 9, 4);
 
         assertSame(bed, updated.lairObjectId);
         assertEquals(10, updated.lastSleepTime);
@@ -33,11 +41,20 @@ class SlapSystemTest {
     }
 
     @Test
+    void sleepingSlapUsesConfiguredRateAndPreservesRetryClock() {
+        CreatureSleep sleep = new CreatureSleep(null, 0, 0, 72);
+        sleep.lastSleepAttemptTime = 12;
+        CreatureSleep updated = SlapSystem.applySleepingSlap(sleep, CreatureState.SLEEPING, 9, 8);
+        assertEquals(54, updated.sleepNeed);
+        assertEquals(12, updated.lastSleepAttemptTime);
+    }
+
+    @Test
     void slapClampsRemainingDebtAtZero() {
         CreatureSleep sleep = new CreatureSleep(null, 0, 0, 4);
 
         CreatureSleep updated = SlapSystem.applySleepingSlap(
-                sleep, CreatureState.SLEEPING, 9);
+                sleep, CreatureState.SLEEPING, 9, 4);
 
         assertEquals(0, updated.sleepNeed);
     }
@@ -47,6 +64,6 @@ class SlapSystemTest {
         CreatureSleep sleep = new CreatureSleep(null, 0, 0, 36);
 
         assertSame(sleep, SlapSystem.applySleepingSlap(
-                sleep, CreatureState.IDLE, 9));
+                sleep, CreatureState.IDLE, 9, 4));
     }
 }

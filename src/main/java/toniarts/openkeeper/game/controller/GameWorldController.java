@@ -768,8 +768,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
             CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
             if (lair.equals(sleep.lairObjectId)) {
-                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime,
-                        sleep.sleepStartTime, sleep.sleepNeed));
+                CreatureSleep updated = new CreatureSleep(sleep);
+                updated.lairObjectId = null;
+                entityData.setComponent(creature, updated);
                 break;
             }
         }
@@ -1147,8 +1148,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean torture = false;
         boolean imprison = false;
         CreatureState creatureState = null;
-        entityData.removeComponent(entity, CreatureLairPlacement.class);
-
         // TODO: Evict & sacrifice
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities

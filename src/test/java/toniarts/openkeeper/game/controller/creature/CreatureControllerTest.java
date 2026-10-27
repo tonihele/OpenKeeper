@@ -261,8 +261,11 @@ class CreatureControllerTest {
         try (Fixture f = new Fixture(9)) {
             f.reachable.set(false);
             assertFalse(f.controller.goToSleep());
+            assertEquals(0, f.sleep().lastSleepAttemptTime);
+            f.controller.setCreatureLair(f.bed);
             f.time = .75;
-            assertFalse(f.controller.goToSleep());
+            // Recreating the controller must not reset the entity's retry gate.
+            assertFalse(f.controllers.get().goToSleep());
             assertEquals(1, f.sleepAssignments);
             f.time = 1;
             assertFalse(f.controller.goToSleep());
@@ -278,6 +281,7 @@ class CreatureControllerTest {
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
         final CreatureController controller;
+        final java.util.function.Supplier<CreatureController> controllers;
         final CreatureSleepSystem sleepSystem;
         final CreatureMoodSystem moodSystem;
         final HealthSystem healthSystem;
@@ -335,10 +339,12 @@ class CreatureControllerTest {
                 case "getSensedEntities" -> Set.of();
                 default -> throw new UnsupportedOperationException(method);
             });
-            controller = new CreatureController(entity, data, definition, null, taskManager, () -> time,
+            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
                     settings, null, lookup, map, null, null, null);
+            controller = controllers.get();
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
+                case "getGameLevel" -> CreatureSleepFixtures.level(4);
                 case "getRoomById" -> new Room();
                 default -> throw new UnsupportedOperationException(method);
             });

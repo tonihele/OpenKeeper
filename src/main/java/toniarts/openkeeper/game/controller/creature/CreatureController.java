@@ -124,7 +124,6 @@ public final class CreatureController extends EntityController implements ICreat
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
     private float motionless = 0;
-    private double lastSleepAttemptTime = Double.NEGATIVE_INFINITY;
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -344,7 +343,9 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isNeedForSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        // Native autonomous attempts still require debt, even below the health threshold.
+        // CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH triggers the native attempt path,
+        // but its assigned-bed gate (0x46f47b) still requires positive debt. The
+        // 250/1000 HP, zero-debt probe stayed awake; manual Lair placement bypasses it.
         return needsLair() && isNeedForSleep(creatureSleep,
                 creature.getAttributes().getTimeSleep());
     }
@@ -381,11 +382,14 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean goToSleep() {
         double gameTime = gameTimer.getGameTime();
-        if (gameTime - lastSleepAttemptTime < 1) {
+        CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+        if (sleep == null || gameTime - sleep.lastSleepAttemptTime < 1) {
             return false;
         }
         // Native autonomous attempts are throttled to one per four native ticks.
-        lastSleepAttemptTime = gameTime;
+        CreatureSleep updated = new CreatureSleep(sleep);
+        updated.lastSleepAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignSleepTask(this);
     }
 
@@ -1194,8 +1198,9 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void setCreatureLair(EntityId lairId) {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        entityData.setComponent(entityId, new CreatureSleep(lairId, creatureSleep.lastSleepTime,
-                creatureSleep.sleepStartTime, creatureSleep.sleepNeed));
+        CreatureSleep updated = new CreatureSleep(creatureSleep);
+        updated.lairObjectId = lairId;
+        entityData.setComponent(entityId, updated);
     }
 
     @Override
@@ -1205,8 +1210,10 @@ public final class CreatureController extends EntityController implements ICreat
         double recoveryTime = Math.floor(gameTime);
         entityData.setComponent(entityId, new CreatureRecuperating(gameTime, recoveryTime, recoveryTime));
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId,
-                gameTime, gameTime, creatureSleep.sleepNeed));
+        CreatureSleep updated = new CreatureSleep(creatureSleep);
+        updated.lastSleepTime = gameTime;
+        updated.sleepStartTime = gameTime;
+        entityData.setComponent(entityId, updated);
         stateMachine.changeState(CreatureState.SLEEPING);
     }
 

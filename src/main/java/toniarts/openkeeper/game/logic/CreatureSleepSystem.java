@@ -5,6 +5,14 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
 package toniarts.openkeeper.game.logic;
 
@@ -33,12 +41,13 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final EntitySet entities;
+    private final int ticksPerSecond;
 
     /**
      * Watches sleeping-capable creatures on the authoritative game loop.
      *
      * @param entityData authoritative creature components
-     * @param kwdFile creature definitions containing awake and sleep durations
+     * @param kwdFile creature definitions and the level's logic tick rate
      * @param gameTimer shared game clock used for fatigue and rest timestamps
      */
     public CreatureSleepSystem(EntityData entityData, IKwdFile kwdFile,
@@ -46,6 +55,7 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
+        ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         entities = entityData.getEntities(CreatureSleep.class,
                 CreatureComponent.class, CreatureAi.class);
     }
@@ -76,7 +86,7 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
             }
             CreatureSleep updated = updateSleep(sleep, ai.getCreatureState(), gameTime,
                     creature.getAttributes().getTimeAwake(),
-                    creature.getAttributes().getTimeSleep());
+                    creature.getAttributes().getTimeSleep(), ticksPerSecond);
             if (updated != sleep) {
                 entityData.setComponent(entity.getId(), updated);
             }
@@ -84,7 +94,7 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
     }
 
     static CreatureSleep updateSleep(CreatureSleep sleep, CreatureState state,
-            double gameTime, int timeAwake, int timeSleep) {
+            double gameTime, int timeAwake, int timeSleep, int ticksPerSecond) {
         double lastSleepTime = sleep.lastSleepTime;
         int sleepNeed = sleep.sleepNeed;
         if (timeSleep <= 0) {
@@ -98,14 +108,16 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
                 && state != CreatureState.TORTURED && state != CreatureState.UNCONSCIOUS
                 && state != CreatureState.DEAD && gameTime - lastSleepTime >= timeAwake) {
             lastSleepTime = gameTime;
-            sleepNeed = CreatureSleep.toRuntimeSleepNeed(timeSleep);
+            sleepNeed = CreatureSleep.toRuntimeSleepNeed(timeSleep, ticksPerSecond);
         }
 
         if (lastSleepTime == sleep.lastSleepTime && sleepNeed == sleep.sleepNeed) {
             return sleep;
         }
-        return new CreatureSleep(sleep.lairObjectId, lastSleepTime,
-                sleep.sleepStartTime, sleepNeed);
+        CreatureSleep updated = new CreatureSleep(sleep);
+        updated.lastSleepTime = lastSleepTime;
+        updated.sleepNeed = sleepNeed;
+        return updated;
     }
 
     /** Starts the system; its entity subscription is established on construction. */
