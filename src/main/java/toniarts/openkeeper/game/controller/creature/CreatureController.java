@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Disguised;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Frightened;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Hypnotised;
@@ -228,6 +229,13 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int THROWN_WORKER_DAMAGE = 50;
 
+    /**
+     * The possessed Maiden's fear attack frightens its target for 20 game
+     * ticks with this severity (0x40FA90, 0x514470)
+     */
+    private static final int FEAR_ATTACK_TICKS = 20;
+    private static final int FEAR_ATTACK_SEVERITY = 2000;
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -295,7 +303,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
-        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
+        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()
+                && (isThreatTooHigh() || isFrightened(entityData.getComponent(entityId, CreatureComponent.class).fear))) {
 
             // No longer flee from DHeart
             IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
@@ -436,6 +445,23 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return ourThreat;
+    }
+
+    /**
+     * Has a possessed Maiden frightened us more than we can take. DK II adds
+     * the severity to our fear on each tick of the fear (0x488930), the fear
+     * is gone when its time is up.
+     *
+     * @param fear how much fear we can take
+     * @return true if we are frightened and should run away
+     */
+    private boolean isFrightened(int fear) {
+        Frightened frightened = entityData.getComponent(entityId, Frightened.class);
+        if (frightened != null && frightened.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Frightened.class);
+            return false;
+        }
+        return frightened != null && frightened.severity > fear;
     }
 
     @Override
@@ -2805,6 +2831,20 @@ public final class CreatureController extends EntityController implements ICreat
             hypnotiseOrRelease();
         } else if (specialAbility == Creature.SpecialAbility.DISGUISE_N_STEAL) {
             disguiseOrReveal();
+        } else if (specialAbility == Creature.SpecialAbility.FEAR_ATTACK) {
+            frightenTarget();
+        }
+    }
+
+    /**
+     * Frightens what our melee attack would hit for 20 game ticks (0x40FA90,
+     * 0x514470). Using it again starts the time over.
+     */
+    private void frightenTarget() {
+        EntityId target = getPossessedAttackTarget(entityData.getComponent(entityId, Position.class));
+        if (target != null) {
+            double duration = FEAR_ATTACK_TICKS / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+            entityData.setComponent(target, new Frightened(entityId, FEAR_ATTACK_SEVERITY, gameTimer.getGameTime() + duration));
         }
     }
 

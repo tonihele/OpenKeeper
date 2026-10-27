@@ -508,7 +508,8 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * presses the ability's key or uses the selected ability. The Vampire
      * turns into a bat or back, the Monk and the Fairy start or stop praying,
      * the Bile Demon picks up or throws a worker, the Vampire hypnotises a
-     * creature or lets it go.
+     * creature or lets it go, the Maiden of the Nest frightens what she would
+     * hit.
      *
      * @param ability 1 or 2, the creature's first or second ability
      */

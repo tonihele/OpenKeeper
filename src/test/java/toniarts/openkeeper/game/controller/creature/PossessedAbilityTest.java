@@ -41,7 +41,9 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Disguised;
+import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Frightened;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.Mana;
@@ -488,6 +490,87 @@ class PossessedAbilityTest {
         assertNull(entityData.getComponent(us, Disguised.class));
     }
 
+    @Test
+    void maidenFrightensWhatSheWouldHitFor20Ticks() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.FEAR_ATTACK, Creature.SpecialAbility.NONE);
+        EntityId knight = createCreature(HERO, new Vector3f(10, 0, 2.8f));
+        EntityId behind = createCreature(HERO, new Vector3f(10, 0, 1.4f));
+        EntityId ours = createCreature(KEEPER, new Vector3f(10.2f, 0, 2.6f));
+
+        createController().usePossessedAbility(1);
+
+        Frightened frightened = entityData.getComponent(knight, Frightened.class);
+        assertEquals(us, frightened.entity);
+        assertEquals(2000, frightened.severity);
+        assertEquals(15, frightened.endTime);
+        assertNull(entityData.getComponent(behind, Frightened.class));
+        assertNull(entityData.getComponent(ours, Frightened.class));
+    }
+
+    @Test
+    void usingTheFearAttackAgainStartsTheTimeOver() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.FEAR_ATTACK, Creature.SpecialAbility.NONE);
+        EntityId knight = createCreature(HERO, new Vector3f(10, 0, 2.8f));
+        CreatureController controller = createController();
+        controller.usePossessedAbility(1);
+
+        gameTime = 12;
+        controller.usePossessedAbility(1);
+
+        assertEquals(17, entityData.getComponent(knight, Frightened.class).endTime);
+    }
+
+    @Test
+    void onlyTheFearAttackFrightens() {
+        EntityId knight = createCreature(HERO, new Vector3f(10, 0, 2.8f));
+
+        createController().usePossessedAbility(1);
+
+        assertNull(entityData.getComponent(knight, Frightened.class));
+    }
+
+    @Test
+    void frightenedCreatureFleesUntilTheFearIsOver() {
+        EntityId knight = createFrightenedKnight();
+        CreatureController knightController = createController(knight);
+
+        assertTrue(knightController.shouldFleeOrAttack());
+        assertTrue(knightController.getStateMachine().isInState(CreatureState.FLEE));
+
+        gameTime = 15;
+
+        assertFalse(knightController.shouldFleeOrAttack());
+        assertNull(entityData.getComponent(knight, Frightened.class));
+    }
+
+    @Test
+    void fearlessCreatureIsNotFrightened() {
+        EntityId knight = createFrightenedKnight();
+        entityData.setComponent(knight, new Fearless(null));
+
+        assertFalse(createController(knight).shouldFleeOrAttack());
+    }
+
+    @Test
+    void creatureThatCanTakeTheFearIsNotFrightened() {
+        EntityId knight = createFrightenedKnight();
+        entityData.getComponent(knight, CreatureComponent.class).fear = 30000;
+
+        assertFalse(createController(knight).shouldFleeOrAttack());
+    }
+
+    private EntityId createFrightenedKnight() {
+        gameSettings.put(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX,
+                PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX, 0));
+        EntityId knight = createCreature(HERO, new Vector3f(10, 0, 2.8f));
+        entityData.getComponent(knight, CreatureComponent.class).fear = 533;
+
+        // The Maiden has gone, there is no one to fight
+        entityData.removeEntity(us);
+        entityData.setComponent(knight, new Frightened(us, 2000, 15));
+        return knight;
+    }
+
     private EntityId createCreature(short ownerId, short creatureId, Vector3f position) {
         EntityId entity = createCreature(ownerId, position);
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -520,6 +603,7 @@ class PossessedAbilityTest {
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreatureFirstPersonStats" -> new HashMap<>();
             case "getCreature" -> creatures.getOrDefault((Short) args[0], creature);
+            case "getGameLevel" -> ShotFixtures.gameLevel(4);
             default -> null;
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
