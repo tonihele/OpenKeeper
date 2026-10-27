@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Disguised;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Hypnotised;
@@ -50,6 +51,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.PossessedAbility;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -87,11 +89,13 @@ class PossessedAbilityTest {
 
     private static final short KEEPER = Player.KEEPER1_ID;
     private static final short HERO = Player.GOOD_PLAYER_ID;
+    private static final short RIVAL = Player.KEEPER2_ID;
 
     private EntityData entityData;
     private Creature creature;
     private Set<EntityId> workers;
     private Set<Point> solidTiles;
+    private Map<Point, Short> tileOwners;
     private Map<Short, Creature> creatures;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private Map<EntityId, CreatureState> states;
@@ -105,6 +109,7 @@ class PossessedAbilityTest {
         gameTime = 10;
         workers = new HashSet<>();
         solidTiles = new HashSet<>();
+        tileOwners = new HashMap<>();
         gameSettings = new HashMap<>();
         states = new HashMap<>();
         followTargets = new HashMap<>();
@@ -378,6 +383,111 @@ class PossessedAbilityTest {
         assertEquals(king, entityData.getComponent(knight, AttackTarget.class).entityId);
     }
 
+    @Test
+    void rogueDisguisesAsTheKeeperWhoseLandItIsOnAndDropsIt() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.DISGUISE_N_STEAL, Creature.SpecialAbility.PICK_LOCKS);
+        tileOwners.put(new Point(10, 2), RIVAL);
+        CreatureController controller = createController();
+
+        controller.usePossessedAbility(1);
+
+        assertEquals(RIVAL, entityData.getComponent(us, Disguised.class).ownerId);
+
+        controller.usePossessedAbility(1);
+
+        assertNull(entityData.getComponent(us, Disguised.class));
+    }
+
+    @Test
+    void rogueCannotDisguiseOnItsOwnOrNeutralLand() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.DISGUISE_N_STEAL, Creature.SpecialAbility.PICK_LOCKS);
+        CreatureController controller = createController();
+
+        controller.usePossessedAbility(1);
+
+        assertNull(entityData.getComponent(us, Disguised.class));
+
+        tileOwners.put(new Point(10, 2), KEEPER);
+        controller.usePossessedAbility(1);
+
+        assertNull(entityData.getComponent(us, Disguised.class));
+    }
+
+    @Test
+    void rogueCannotDisguiseWhileACreatureOfThatKeeperSeesIt() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.DISGUISE_N_STEAL, Creature.SpecialAbility.PICK_LOCKS);
+        tileOwners.put(new Point(10, 2), RIVAL);
+        entityData.setComponent(createCreature(RIVAL, new Vector3f(13, 0, 2)), new Senses(4, 4));
+
+        createController().usePossessedAbility(1);
+
+        assertNull(entityData.getComponent(us, Disguised.class));
+    }
+
+    @Test
+    void creaturesOutOfSightOrOfOtherKeepersDoNotStopTheDisguise() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.DISGUISE_N_STEAL, Creature.SpecialAbility.PICK_LOCKS);
+        tileOwners.put(new Point(10, 2), RIVAL);
+        entityData.setComponent(createCreature(RIVAL, new Vector3f(15, 0, 2)), new Senses(4, 4));
+        entityData.setComponent(createCreature(RIVAL, new Vector3f(10, 0, 5)), new Senses(4, 4));
+        entityData.setComponent(createCreature(HERO, new Vector3f(11, 0, 2)), new Senses(4, 4));
+        solidTiles.add(new Point(10, 4));
+
+        createController().usePossessedAbility(1);
+
+        assertEquals(RIVAL, entityData.getComponent(us, Disguised.class).ownerId);
+    }
+
+    @Test
+    void creaturesOfTheKeeperItLooksLikeDoNotTargetIt() {
+        EntityId rival = createCreature(RIVAL, new Vector3f(10, 0, 2.2f));
+        entityData.setComponent(us, new Disguised(RIVAL));
+        CreatureController rivalController = createController(rival);
+
+        rivalController.getAttackTarget();
+
+        assertNull(entityData.getComponent(rival, AttackTarget.class));
+
+        entityData.removeComponent(us, Disguised.class);
+        rivalController.getAttackTarget();
+
+        assertEquals(us, entityData.getComponent(rival, AttackTarget.class).entityId);
+    }
+
+    @Test
+    void hittingACreatureOfTheKeeperItLooksLikeDropsTheDisguise() {
+        EntityId rival = createCreature(RIVAL, new Vector3f(10, 0, 2.8f));
+        entityData.setComponent(us, new Disguised(RIVAL));
+
+        createController().executePossessedAttack();
+
+        assertNotNull(entityData.getComponent(rival, Damage.class));
+        assertNull(entityData.getComponent(us, Disguised.class));
+    }
+
+    @Test
+    void hittingACreatureOfAnotherKeeperKeepsTheDisguise() {
+        EntityId knight = createCreature(HERO, new Vector3f(10, 0, 2.8f));
+        entityData.setComponent(us, new Disguised(RIVAL));
+
+        createController().executePossessedAttack();
+
+        assertNotNull(entityData.getComponent(knight, Damage.class));
+        assertEquals(RIVAL, entityData.getComponent(us, Disguised.class).ownerId);
+    }
+
+    @Test
+    void disguiseDropsWhenThePossessionEnds() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.DISGUISE_N_STEAL, Creature.SpecialAbility.PICK_LOCKS);
+        tileOwners.put(new Point(10, 2), RIVAL);
+        CreatureController controller = createController();
+        controller.usePossessedAbility(1);
+
+        controller.setPossession(false);
+
+        assertNull(entityData.getComponent(us, Disguised.class));
+    }
+
     private EntityId createCreature(short ownerId, short creatureId, Vector3f position) {
         EntityId entity = createCreature(ownerId, position);
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -402,6 +512,10 @@ class PossessedAbilityTest {
     }
 
     private CreatureController createController() {
+        return createController(us);
+    }
+
+    private CreatureController createController(EntityId entity) {
         IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? gameTime : null);
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreatureFirstPersonStats" -> new HashMap<>();
@@ -414,7 +528,7 @@ class PossessedAbilityTest {
             default -> null;
         });
 
-        return new CreatureController(us, entityData, creature, null, null, gameTimer, gameSettings, createCreaturesController(),
+        return new CreatureController(entity, entityData, creature, null, null, gameTimer, gameSettings, createCreaturesController(),
                 createPositionLookup(), createMapController(), levelInfo, null, null, stub(GameEventService.class, (name, args) -> null));
     }
 
@@ -435,6 +549,11 @@ class PossessedAbilityTest {
 
     private IEntityPositionLookup createPositionLookup() {
         return stub(IEntityPositionLookup.class, (name, args) -> {
+            if ("getSensedEntities".equals(name)) {
+                Set<EntityId> entities = new HashSet<>(entityData.findEntities(null, Position.class));
+                entities.remove((EntityId) args[0]);
+                return entities;
+            }
             if (!"getEntitiesInLocation".equals(name)) {
                 return null;
             }
@@ -454,7 +573,11 @@ class PossessedAbilityTest {
                 return null;
             }
             Point tile = args.length == 1 ? (Point) args[0] : new Point((Integer) args[0], (Integer) args[1]);
-            return stub(IMapTileInformation.class, (tileName, tileArgs) -> "getLocation".equals(tileName) ? tile : null);
+            return stub(IMapTileInformation.class, (tileName, tileArgs) -> switch (tileName) {
+                case "getLocation" -> tile;
+                case "getOwnerId" -> tileOwners.getOrDefault(tile, Player.NEUTRAL_PLAYER_ID);
+                default -> null;
+            });
         });
         return stub(IMapController.class, (name, args) -> switch (name) {
             case "getMapData" -> mapData;

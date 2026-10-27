@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Disguised;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -280,6 +281,17 @@ class PossessedSpellTest {
     }
 
     @Test
+    void castingAtACreatureOfTheKeeperItLooksLikeDropsTheDisguise() {
+        createCreature(Player.KEEPER2_ID, new Vector3f(10, 0, 7));
+        entityData.setComponent(us, new Disguised(Player.KEEPER2_ID));
+
+        cast(createController(), 1);
+
+        assertEquals(1, shotTargets.size());
+        assertNull(entityData.getComponent(us, Disguised.class));
+    }
+
+    @Test
     void quickClickIsKeptUntilTheSpellIsCast() {
         CreatureController controller = createController();
 
@@ -420,7 +432,7 @@ class PossessedSpellTest {
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getLevelData" -> kwdFile;
-            case "getPlayer" -> keeper;
+            case "getPlayer" -> (Short) args[0] == KEEPER ? keeper : new Keeper(false, (Short) args[0]);
             default -> null;
         });
 
