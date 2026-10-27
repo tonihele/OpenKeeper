@@ -139,7 +139,22 @@ public final class CreatureController extends EntityController implements ICreat
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
-        this.stateMachine = new DefaultStateMachine<>(this);
+        this.stateMachine = new DefaultStateMachine<>(this) {
+            @Override
+            public void changeState(CreatureState newState) {
+                CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+                CreatureState target = ai == null ? null : ai.getTargetState();
+                if (newState == CreatureState.IDLE && target != null) {
+                    newState = target;
+                }
+                if (newState != null && newState == target) {
+                    // Consume before enter(): a failed target may immediately fall back to IDLE.
+                    entityData.setComponent(entityId, new CreatureAi(ai.stateStartTime,
+                            ai.getCreatureState(), ai.creatureId));
+                }
+                super.changeState(newState);
+            }
+        };
     }
 
     @Override
@@ -362,6 +377,9 @@ public final class CreatureController extends EntityController implements ICreat
         }
         // This is a one-shot room assignment, consumed only after landing/getting up.
         entityData.removeComponent(entityId, CreatureLairPlacement.class);
+        if (shouldFleeOrAttack()) {
+            return false;
+        }
         if (!needsLair() || creature.getAttributes().getTimeSleep() <= 0 || !hasLair()) {
             return false;
         }
@@ -989,7 +1007,8 @@ public final class CreatureController extends EntityController implements ICreat
         // Also change our state component
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
-            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId()));
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId(),
+                    creatureAi == null ? null : creatureAi.getTargetState()));
         }
     }
 
@@ -1231,7 +1250,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Written here and not at the end of the tick, so that the state time restarts also when the creature
         // was down already. That keeps a creature that is struck over and over down
-        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId()));
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId(),
+                entityData.getComponent(entityId, CreatureAi.class).getTargetState()));
     }
 
     private boolean isAlly(EntityId entity) {

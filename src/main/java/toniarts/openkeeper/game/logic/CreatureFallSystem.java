@@ -22,6 +22,7 @@ import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureLairPlacement;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -64,9 +65,13 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
 
+                // AI is absent while airborne. Restore it with the pending Lair target,
+                // which survives FALLEN/GETTING_UP until the next idle transition.
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
+                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId,
+                        entityData.getComponent(entity.getId(), CreatureLairPlacement.class) == null
+                                ? null : CreatureState.GO_TO_SLEEP));
             }
         }
     }

@@ -42,10 +42,6 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Idling is the last resort
             entity.unassingCurrentTask();
-            if (entity.goToSleepAfterLairDrop()) {
-                entity.getStateMachine().changeState(WORK);
-                return;
-            }
             findStuffToDo(entity, (foundWork) -> {
                 if (!foundWork) {
                     entity.navigateToRandomPoint();
@@ -686,6 +682,30 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
 
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, GO_TO_SLEEP {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            if (entity.goToSleepAfterLairDrop()) {
+                entity.getStateMachine().changeState(WORK);
+            } else if (entity.getStateMachine().getCurrentState() == GO_TO_SLEEP) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
         }
 
         @Override

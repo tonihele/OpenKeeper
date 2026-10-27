@@ -19,7 +19,10 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
 
-/** Server-owned room assignment retained through a manual drop and get-up animation. */
+/**
+ * Room context for a manual Lair drop. Landing restores CreatureAi with a
+ * GO_TO_SLEEP target; that state's entry consumes and validates this context.
+ */
 public final class CreatureLairPlacement implements EntityComponent {
 
     /** Room where the creature was dropped; validated against its bed after get-up. */

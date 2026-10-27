@@ -151,13 +151,18 @@ class CreatureControllerTest {
             f.data.setComponent(f.entity, new CreatureFall());
             f.fall.processTick(0);
             assertNull(f.data.getComponent(f.entity, CreatureFall.class));
+            assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
             f.tick();
             assertEquals(CreatureState.GETTING_UP, f.state());
             assertNotNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
+            assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+            // Rebuild from entity state while getting up, as after loading a save.
+            f.controller = f.controllers.get();
             f.tick();
             assertEquals(CreatureState.WORK, f.state());
             assertEquals(TaskType.GO_TO_SLEEP, f.controller.getAssignedTask().getTaskType());
             assertNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
+            assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
             f.tick();
             assertEquals(CreatureState.SLEEPING, f.state());
             assertEquals(0, f.sleep().sleepNeed);
@@ -175,6 +180,35 @@ class CreatureControllerTest {
             assertEquals(400, mood.noWork);
             assertEquals(500, mood.noPay);
             assertEquals(0, mood.other);
+        }
+    }
+
+    @Test
+    void landingWithoutStunUsesTargetBeforeEnteringIdle() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.getComponent(f.entity, CreatureComponent.class).stunDuration = 0;
+            f.data.setComponent(f.entity, new CreatureLairPlacement(f.room));
+            f.data.setComponent(f.entity, new CreatureFall());
+            f.fall.processTick(0);
+            assertEquals(CreatureState.IDLE, f.data.getComponent(f.entity, CreatureAi.class).getCreatureState());
+            assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+            f.tick();
+            assertEquals(CreatureState.SLEEPING, f.state());
+            assertEquals(1, f.sleepAssignments);
+            assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+        }
+    }
+
+    @Test
+    void rejectedTargetFallsBackToIdleWithoutRetryingRequest() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureLairPlacement(f.data.createEntity()));
+            f.data.setComponent(f.entity, new CreatureAi(0, CreatureState.IDLE, (short) 6, CreatureState.GO_TO_SLEEP));
+            f.tick();
+            assertEquals(CreatureState.IDLE, f.state());
+            assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+            assertNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
+            assertEquals(0, f.sleepAssignments);
         }
     }
 
@@ -280,7 +314,7 @@ class CreatureControllerTest {
         final EntityId room = data.createEntity();
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
-        final CreatureController controller;
+        CreatureController controller;
         final java.util.function.Supplier<CreatureController> controllers;
         final CreatureSleepSystem sleepSystem;
         final CreatureMoodSystem moodSystem;
