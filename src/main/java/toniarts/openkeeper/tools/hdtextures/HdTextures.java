@@ -72,8 +72,9 @@ import javax.imageio.ImageIO;
  * {@code setup} downloads Real-ESRGAN to {@code ~/.OpenKeeper/hd-textures}.
  * {@code upscale} does every texture, {@code --test-batch} only the terrain,
  * walls and floors and {@code --gui-test-batch} the HUD's windows, tabs and room
- * icons; up to date ones are skipped ({@code --force} redoes them). Other
- * options: {@code --model}, {@code --tile}, {@code --gpu} ({@code -1} for the
+ * icons; up to date ones are skipped ({@code --force} redoes them).
+ * {@code --small} writes smaller PNGs (about 40% less disk, about 4 times
+ * longer to write). Other options: {@code --model}, {@code --tile}, {@code --gpu} ({@code -1} for the
  * CPU), {@code --source}, {@code --dest} and {@code --tools-dir}.
  * {@code clean} deletes only the files this tool wrote, which the manifest in
  * the destination lists. Files listed by the old Python script's manifest
@@ -123,7 +124,7 @@ public class HdTextures {
     private static final int PRECISION_BITS = 32 - 8 - 2;
 
     private static final Set<String> VALUE_OPTIONS = Set.of("--tools-dir", "--source", "--dest", "--model", "--gpu", "--tile");
-    private static final Set<String> FLAGS = Set.of("--test-batch", "--gui-test-batch", "--force");
+    private static final Set<String> FLAGS = Set.of("--test-batch", "--gui-test-batch", "--force", "--small");
 
     /** An image as one array per channel (red, green, blue, maybe alpha), 0-255 */
     record Planes(int width, int height, float[][] bands) {
@@ -286,11 +287,11 @@ public class HdTextures {
             for (int i = 0; i < todo.size(); i++) {
                 if (weights.get(todo.get(i)) > 0) {
                     Planes[] padded = prepare(read(source.resolve(todo.get(i))));
-                    write(padded[0], workIn.resolve(String.format("%05d_c.png", i)));
+                    write(padded[0], workIn.resolve(String.format("%05d_c.png", i)), false);
                     if (padded[1] != null) {
                         float[] alpha = padded[1].bands()[0];
                         write(new Planes(padded[1].width(), padded[1].height(), new float[][]{alpha, alpha, alpha}),
-                                workIn.resolve(String.format("%05d_a.png", i)));
+                                workIn.resolve(String.format("%05d_a.png", i)), false);
                     }
                 }
             }
@@ -320,7 +321,7 @@ public class HdTextures {
                     Path target = dest.resolve(rel);
                     Files.createDirectories(target.getParent());
                     Path temporary = target.resolveSibling(target.getFileName() + ".tmp");
-                    write(finish(original, padded, detailed, weight), temporary);
+                    write(finish(original, padded, detailed, weight), temporary, options.containsKey("--small"));
                     Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException | IllegalStateException e) {
                     failed.add(rel + ": " + e.getMessage());
@@ -745,24 +746,28 @@ public class HdTextures {
     }
 
     /**
-     * Writes a PNG with Paeth filtering and the strongest deflate. ImageIO's
-     * writer does no filtering, which makes the files about 1.5 times bigger.
+     * Writes a PNG. Small ones use Paeth filtering and the strongest deflate,
+     * which takes about 4 times as long for files about 40% smaller.
      */
-    static void write(Planes image, Path path) throws IOException {
+    static void write(Planes image, Path path, boolean small) throws IOException {
         int width = image.width();
         int bands = image.bands().length;
         byte[] row = new byte[width * bands];
         byte[] previous = new byte[row.length];
         ByteArrayOutputStream idat = new ByteArrayOutputStream();
-        Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
+        Deflater deflater = new Deflater(small ? Deflater.BEST_COMPRESSION : Deflater.BEST_SPEED);
         try (DeflaterOutputStream deflated = new DeflaterOutputStream(idat, deflater, 1 << 16)) {
             byte[] filtered = new byte[row.length + 1];
-            filtered[0] = 4;
+            filtered[0] = (byte) (small ? 4 : 0);
             for (int y = 0; y < image.height(); y++) {
                 for (int i = 0; i < row.length; i++) {
                     row[i] = (byte) Math.clamp(Math.rint(image.bands()[i % bands][y * width + i / bands]), 0, 255);
                 }
                 for (int i = 0; i < row.length; i++) {
+                    if (!small) {
+                        filtered[i + 1] = row[i];
+                        continue;
+                    }
                     int a = i >= bands ? row[i - bands] & 0xFF : 0;
                     int b = previous[i] & 0xFF;
                     int c = i >= bands ? previous[i - bands] & 0xFF : 0;

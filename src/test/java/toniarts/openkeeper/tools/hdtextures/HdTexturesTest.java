@@ -224,8 +224,24 @@ class HdTexturesTest {
         return new Planes(32, 32, new float[][]{grey, grey, grey});
     }
 
+    @Test
+    void smallAndFastPngsHaveTheSamePixels() throws IOException {
+        Random random = new Random(5);
+        float[][] bands = new float[4][32 * 32];
+        for (float[] band : bands) {
+            for (int i = 0; i < band.length; i++) {
+                band[i] = random.nextInt(256);
+            }
+        }
+        Planes image = new Planes(32, 32, bands);
+        HdTextures.write(image, folder.resolve("fast.png"), false);
+        HdTextures.write(image, folder.resolve("small.png"), true);
+        assertArrayEquals(bands, read("fast.png").bands());
+        assertArrayEquals(bands, read("small.png").bands());
+    }
+
     private void write(String name, Planes image) throws IOException {
-        HdTextures.write(image, folder.resolve(name));
+        HdTextures.write(image, folder.resolve(name), false);
     }
 
     private Planes read(String name) throws IOException {
