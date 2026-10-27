@@ -276,8 +276,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         synchronized (GOLD_LOCK) {
 
             // See if the player has any gold even
-            Keeper keeper = players.get(playerId);
-            if (keeper.getGold() == 0) {
+            if (playerControllers.get(playerId).getGoldControl().getGold() == 0) {
                 return amount;
             }
 
@@ -339,7 +338,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, getConstructionBlockingTiles(), start, end,
-                playerId, roomId, player.getGold());
+                playerId, roomId, playerControllers.get(playerId).getGoldControl().getGold());
         if (!placement.isValid()) {
             return;
         }
@@ -448,7 +447,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // skipcq: JAVA-E1061
         synchronized (GOLD_LOCK) {
             int cost = plotCount * room.getCost();
-            if (cost > players.get(playerId).getGold()) {
+            if (cost > playerControllers.get(playerId).getGoldControl().getGold()) {
                 return false;
             }
             substractGold(cost, playerId);

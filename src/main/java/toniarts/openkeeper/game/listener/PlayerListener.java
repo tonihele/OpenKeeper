@@ -21,7 +21,7 @@ package toniarts.openkeeper.game.listener;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public interface PlayerListener extends PlayerSpellListener, PlayerGoldListener,
+public interface PlayerListener extends PlayerSpellListener,
         PlayerManaListener, PlayerActionListener, PlayerRoomListener,
         PlayerDoorListener, PlayerTrapListener, PlayerResearchableEntityListener {
 

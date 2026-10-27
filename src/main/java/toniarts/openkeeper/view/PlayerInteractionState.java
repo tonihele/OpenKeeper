@@ -664,7 +664,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
-                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
+                            stateManager.getState(PlayerState.class).getGold()).isValid()) {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
                 gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
@@ -949,7 +949,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                     area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
                     (short) interactionState.getItemId(),
-                    gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();
+                    stateManager.getState(PlayerState.class).getGold()).isValid();
         }
     }
 

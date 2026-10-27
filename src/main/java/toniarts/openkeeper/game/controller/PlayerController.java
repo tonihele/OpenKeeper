@@ -60,7 +60,7 @@ public final class PlayerController implements IPlayerController {
         this.keeper = keeper;
 
         // Create the actual controllers
-        goldControl = new PlayerGoldControl(keeper);
+        goldControl = new PlayerGoldControl(keeper, entityData);
         creatureControl = new PlayerCreatureControl(keeper, imp, kwdFile.getCreatureList());
         roomControl = new PlayerRoomControl(keeper, kwdFile.getRooms());
         spellControl = new PlayerSpellControl(keeper, kwdFile.getKeeperSpells());
@@ -87,7 +87,6 @@ public final class PlayerController implements IPlayerController {
 
     @Override
     public void addListener(PlayerListener listener) {
-        goldControl.addListener(listener);
         if (manaControl != null) {
             manaControl.addListener(listener);
         }
@@ -111,7 +110,6 @@ public final class PlayerController implements IPlayerController {
 
     @Override
     public void removeListener(PlayerListener listener) {
-        goldControl.removeListener(listener);
         if (manaControl != null) {
             manaControl.removeListener(listener);
         }
