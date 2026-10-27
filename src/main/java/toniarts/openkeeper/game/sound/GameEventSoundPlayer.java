@@ -45,11 +45,11 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     }
 
     public void register() {
-        EventBus.addListener(GameEventBus.ANY, this);
+        EventBus.addListener(GameEventBus.EVENT, this);
     }
 
     public void unregister() {
-        EventBus.removeListener(GameEventBus.ANY, this);
+        EventBus.removeListener(GameEventBus.EVENT, this);
         exclusiveSounds.clear();
     }
 

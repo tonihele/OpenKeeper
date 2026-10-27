@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -38,13 +38,13 @@ public final class GameEvent implements EntityComponent {
     /**
      * The thing type the event is about, {@code null} if there is none
      */
-    public ThingKind subjectKind;
+    public ThingFlag subjectKind;
     public int subjectId;
 
     /**
      * The thing type the event is aimed at (e.g. the victim of a hit), {@code null} if there is none
      */
-    public ThingKind targetKind;
+    public ThingFlag targetKind;
     public int targetId;
 
     /**
@@ -66,7 +66,7 @@ public final class GameEvent implements EntityComponent {
         // For serialization
     }
 
-    public GameEvent(GameEventType type, ThingKind subjectKind, int subjectId, ThingKind targetKind, int targetId,
+    public GameEvent(GameEventType type, ThingFlag subjectKind, int subjectId, ThingFlag targetKind, int targetId,
             EntityId entity, Point position, short playerId) {
         this.type = type;
         this.subjectKind = subjectKind;

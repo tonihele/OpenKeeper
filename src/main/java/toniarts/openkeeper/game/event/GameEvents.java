@@ -42,7 +42,7 @@ public final class GameEvents {
     /**
      * An event about a thing type, seen by everyone
      */
-    public static void emit(EntityData entityData, GameEventType type, ThingKind subjectKind, int subjectId,
+    public static void emit(EntityData entityData, GameEventType type, ThingFlag subjectKind, int subjectId,
             @Nullable Point position) {
         create(entityData, type, subjectKind, subjectId, null, 0, null, position, GameEvent.ALL_PLAYERS);
     }
@@ -50,7 +50,7 @@ public final class GameEvents {
     /**
      * An event about a thing type, seen by everyone
      */
-    public static void emit(EntityData entityData, GameEventType type, ThingKind subjectKind, int subjectId,
+    public static void emit(EntityData entityData, GameEventType type, ThingFlag subjectKind, int subjectId,
             Vector3f position) {
         emit(entityData, type, subjectKind, subjectId, WorldUtils.vectorToPoint(position));
     }
@@ -74,7 +74,7 @@ public final class GameEvents {
      * neither.
      */
     public static void emit(EntityData entityData, GameEventType type, EntityId entity, Vector3f position) {
-        ThingKind kind = getKind(entityData, entity);
+        ThingFlag kind = getKind(entityData, entity);
         if (kind != null) {
             create(entityData, type, kind, getTypeId(entityData, entity, kind), null, 0, entity,
                     WorldUtils.vectorToPoint(position), GameEvent.ALL_PLAYERS);
@@ -95,9 +95,9 @@ public final class GameEvents {
     /**
      * An event about a thing type that is aimed at an entity (e.g. a hit), seen by everyone
      */
-    public static void emitAt(EntityData entityData, GameEventType type, ThingKind subjectKind, int subjectId,
+    public static void emitAt(EntityData entityData, GameEventType type, ThingFlag subjectKind, int subjectId,
             EntityId target, Vector3f position) {
-        ThingKind targetKind = getKind(entityData, target);
+        ThingFlag targetKind = getKind(entityData, target);
         create(entityData, type, subjectKind, subjectId, targetKind,
                 targetKind != null ? getTypeId(entityData, target, targetKind) : 0, target,
                 WorldUtils.vectorToPoint(position), GameEvent.ALL_PLAYERS);
@@ -110,8 +110,8 @@ public final class GameEvents {
         create(entityData, type, null, 0, null, 0, null, null, playerId);
     }
 
-    private static void create(EntityData entityData, GameEventType type, @Nullable ThingKind subjectKind,
-            int subjectId, @Nullable ThingKind targetKind, int targetId, @Nullable EntityId entity,
+    private static void create(EntityData entityData, GameEventType type, @Nullable ThingFlag subjectKind,
+            int subjectId, @Nullable ThingFlag targetKind, int targetId, @Nullable EntityId entity,
             @Nullable Point position, short playerId) {
         entityData.setComponents(entityData.createEntity(),
                 new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position, playerId));
@@ -121,26 +121,26 @@ public final class GameEvents {
      * @return the thing kind of the entity, {@code null} if it is not a creature, door, trap nor an object
      */
     @Nullable
-    public static ThingKind getKind(EntityData entityData, @Nullable EntityId entity) {
+    private static ThingFlag getKind(EntityData entityData, @Nullable EntityId entity) {
         if (entity == null) {
             return null;
         }
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-            return ThingKind.CREATURE;
+            return ThingFlag.CREATURE;
         }
         if (entityData.getComponent(entity, ObjectComponent.class) != null) {
-            return ThingKind.OBJECT;
+            return ThingFlag.OBJECT;
         }
         if (entityData.getComponent(entity, DoorComponent.class) != null) {
-            return ThingKind.DOOR;
+            return ThingFlag.DOOR;
         }
         if (entityData.getComponent(entity, TrapComponent.class) != null) {
-            return ThingKind.TRAP;
+            return ThingFlag.TRAP;
         }
         return null;
     }
 
-    private static int getTypeId(EntityData entityData, EntityId entity, ThingKind kind) {
+    private static int getTypeId(EntityData entityData, EntityId entity, ThingFlag kind) {
         return switch (kind) {
             case CREATURE ->
                 entityData.getComponent(entity, CreatureComponent.class).creatureId;

@@ -78,7 +78,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -657,7 +657,7 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // Set the damage
                 setDamage(attackTarget, creatureMeleeAttack.damage);
-                GameEvents.emitAt(entityData, GameEventType.MELEE_HIT, ThingKind.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
+                GameEvents.emitAt(entityData, GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -1055,7 +1055,7 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void fireEvent(GameEventType type, Point location) {
-        GameEvents.emit(entityData, type, ThingKind.CREATURE, creature.getCreatureId(), location);
+        GameEvents.emit(entityData, type, ThingFlag.CREATURE, creature.getCreatureId(), location);
     }
 
     @Override

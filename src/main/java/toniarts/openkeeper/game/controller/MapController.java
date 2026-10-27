@@ -43,7 +43,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 
 import java.util.ArrayList;
@@ -541,7 +541,7 @@ public final class MapController extends Container implements IMapController {
 //                        WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
 //                        terrain.getDestroyedEffectId(), false);
 //            }
-            GameEvents.emit(entityData, GameEventType.TERRAIN_DESTROYED, ThingKind.TERRAIN, terrain.getTerrainId(), point);
+            GameEvents.emit(entityData, GameEventType.TERRAIN_DESTROYED, ThingFlag.TERRAIN, terrain.getTerrainId(), point);
             changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
 
 //            updateRoomWalls(tile);

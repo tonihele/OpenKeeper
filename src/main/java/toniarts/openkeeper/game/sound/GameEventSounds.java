@@ -21,7 +21,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -89,7 +89,7 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.SLAP, event.position);
 
                 // The slapped object makes a sound of its own, e.g. a chicken squawks
-                if (event.subjectKind == ThingKind.OBJECT) {
+                if (event.subjectKind == ThingFlag.OBJECT) {
                     add(sounds, subject, ThingSounds.OBJECT_SLAPPED, event.position);
                 }
             }
@@ -119,7 +119,7 @@ public final class GameEventSounds {
      * The impact is heard at the attacker, followed by the attacker's grunt.
      */
     private static void addMeleeHit(List<Sound> sounds, GameEvent event, IKwdFile kwdFile) {
-        Creature attacker = event.subjectKind == ThingKind.CREATURE ? kwdFile.getCreature((short) event.subjectId) : null;
+        Creature attacker = event.subjectKind == ThingFlag.CREATURE ? kwdFile.getCreature((short) event.subjectId) : null;
         if (attacker == null) {
             return;
         }
@@ -138,8 +138,8 @@ public final class GameEventSounds {
      * The impact of a shot on a creature, only for the shots that recoil the victim.
      */
     private static void addShotHit(List<Sound> sounds, GameEvent event, IKwdFile kwdFile, @Nullable String category) {
-        Shot shot = event.subjectKind == ThingKind.SHOT ? kwdFile.getShotById((short) event.subjectId) : null;
-        if (shot == null || !shot.getFlags().contains(Shot.ShotFlag.RECOIL) || event.targetKind != ThingKind.CREATURE) {
+        Shot shot = event.subjectKind == ThingFlag.SHOT ? kwdFile.getShotById((short) event.subjectId) : null;
+        if (shot == null || !shot.getFlags().contains(Shot.ShotFlag.RECOIL) || event.targetKind != ThingFlag.CREATURE) {
             return;
         }
         add(sounds, category, CombatSounds.getShotImpactEvent(getMaterial(kwdFile, event.targetKind, event.targetId)),
@@ -156,7 +156,7 @@ public final class GameEventSounds {
      * @return the sound category of the thing type, {@code null} if it has none
      */
     @Nullable
-    public static String getCategory(IKwdFile kwdFile, @Nullable ThingKind kind, int id) {
+    private static String getCategory(IKwdFile kwdFile, @Nullable ThingFlag kind, int id) {
         if (kind == null) {
             return null;
         }
@@ -194,7 +194,7 @@ public final class GameEventSounds {
      * @return the material of a creature, door, trap or object type, {@code null} if there is none
      */
     @Nullable
-    public static Material getMaterial(IKwdFile kwdFile, @Nullable ThingKind kind, int id) {
+    private static Material getMaterial(IKwdFile kwdFile, @Nullable ThingFlag kind, int id) {
         if (kind == null) {
             return null;
         }

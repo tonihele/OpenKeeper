@@ -15,7 +15,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.game.logic.GameEventSystem;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.SoundFixtures;
@@ -50,12 +50,12 @@ class GameEventTest {
 
     @Test
     void emitCreatesAnEventForEveryone() {
-        GameEvents.emit(entityData, GameEventType.ROOM_SOLD, ThingKind.ROOM, 7, new Point(3, 4));
+        GameEvents.emit(entityData, GameEventType.ROOM_SOLD, ThingFlag.ROOM, 7, new Point(3, 4));
 
         assertTrue(events.applyChanges());
         GameEvent event = events.iterator().next().get(GameEvent.class);
         assertEquals(GameEventType.ROOM_SOLD, event.type);
-        assertEquals(ThingKind.ROOM, event.subjectKind);
+        assertEquals(ThingFlag.ROOM, event.subjectKind);
         assertEquals(7, event.subjectId);
         assertEquals(new Point(3, 4), event.position);
         assertEquals(GameEvent.ALL_PLAYERS, event.playerId);
@@ -82,7 +82,7 @@ class GameEventTest {
 
         events.applyChanges();
         GameEvent event = events.iterator().next().get(GameEvent.class);
-        assertEquals(ThingKind.OBJECT, event.subjectKind);
+        assertEquals(ThingFlag.OBJECT, event.subjectKind);
         assertEquals(5, event.subjectId);
         assertEquals(entity, event.entity);
         assertEquals(new Point(2, 6), event.position);
@@ -98,7 +98,7 @@ class GameEventTest {
     @Test
     void eventsAreRemovedAfterTheyHadTimeToReachTheClients() {
         GameEventSystem system = new GameEventSystem(entityData);
-        GameEvents.emit(entityData, GameEventType.ROOM_SOLD, ThingKind.ROOM, 1, new Point(1, 1));
+        GameEvents.emit(entityData, GameEventType.ROOM_SOLD, ThingFlag.ROOM, 1, new Point(1, 1));
 
         system.processTick(0.1f);
         system.processTick(0.1f);
@@ -115,7 +115,7 @@ class GameEventTest {
     void slappedObjectSquawksOnItsOwnCategory() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getObject") ? SoundFixtures.object("OBJECT_CHICKEN") : null);
-        GameEvent event = new GameEvent(GameEventType.SLAPPED, ThingKind.OBJECT, 3, null, 0, null, new Point(1, 2),
+        GameEvent event = new GameEvent(GameEventType.SLAPPED, ThingFlag.OBJECT, 3, null, 0, null, new Point(1, 2),
                 GameEvent.ALL_PLAYERS);
 
         List<GameEventSounds.Sound> sounds = GameEventSounds.getSounds(event, kwdFile);
@@ -138,7 +138,7 @@ class GameEventTest {
     void thingWithoutSoundCategoryMakesNoSound() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getRoomById") ? SoundFixtures.room(null) : null);
-        GameEvent event = new GameEvent(GameEventType.ROOM_SOLD, ThingKind.ROOM, 3, null, 0, null, new Point(1, 1),
+        GameEvent event = new GameEvent(GameEventType.ROOM_SOLD, ThingFlag.ROOM, 3, null, 0, null, new Point(1, 1),
                 GameEvent.ALL_PLAYERS);
 
         assertTrue(GameEventSounds.getSounds(event, kwdFile).isEmpty());

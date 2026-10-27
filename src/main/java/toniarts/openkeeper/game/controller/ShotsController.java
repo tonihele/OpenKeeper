@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
@@ -70,7 +70,7 @@ public final class ShotsController implements IShotsController {
     @Override
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target) {
         Shot shot = kwdFile.getShotById(shotTypeId);
-        GameEvents.emit(entityData, GameEventType.SHOT_LAUNCH, ThingKind.SHOT, shot.getShotId(), position);
+        GameEvents.emit(entityData, GameEventType.SHOT_LAUNCH, ThingFlag.SHOT, shot.getShotId(), position);
         switch (shot.getProcessType()) {
             case CREATE_CREATURE, CREATE_SINGLE_CREATURE -> {
 
@@ -95,7 +95,7 @@ public final class ShotsController implements IShotsController {
     private void notifyShotHit(Shot shot, EntityId target) {
         Position targetPosition = target != null ? entityData.getComponent(target, Position.class) : null;
         if (targetPosition != null) {
-            GameEvents.emitAt(entityData, GameEventType.SHOT_HIT, ThingKind.SHOT, shot.getShotId(), target, targetPosition.position);
+            GameEvents.emitAt(entityData, GameEventType.SHOT_HIT, ThingFlag.SHOT, shot.getShotId(), target, targetPosition.position);
         }
     }
 

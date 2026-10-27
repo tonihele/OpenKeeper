@@ -31,7 +31,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -227,7 +227,7 @@ public final class NetworkServer {
             Serializer.registerClass(Slapped.class, new FieldSerializer());
             Serializer.registerClass(GameEvent.class, new FieldSerializer());
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
-            Serializer.registerClass(ThingKind.class, new EnumSerializer());
+            Serializer.registerClass(ThingFlag.class, new EnumSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());

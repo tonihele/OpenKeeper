@@ -78,7 +78,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.GameEvents;
-import toniarts.openkeeper.game.event.ThingKind;
+import toniarts.openkeeper.game.event.ThingFlag;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -399,9 +399,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             minX = Math.min(minX, plot.x);
             minY = Math.min(minY, plot.y);
         }
-        GameEvents.emit(entityData, GameEventType.ROOM_TILES_LAID, ThingKind.ROOM, room.getRoomId(), new Point(minX, minY));
+        GameEvents.emit(entityData, GameEventType.ROOM_TILES_LAID, ThingFlag.ROOM, room.getRoomId(), new Point(minX, minY));
         for (Point tile : buildTiles) {
-            GameEvents.emit(entityData, GameEventType.ROOM_TILE_BUILT, ThingKind.ROOM, room.getRoomId(), tile);
+            GameEvents.emit(entityData, GameEventType.ROOM_TILE_BUILT, ThingFlag.ROOM, room.getRoomId(), tile);
         }
     }
 
@@ -591,7 +591,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
-        GameEvents.emit(entityData, GameEventType.ROOM_SOLD, ThingKind.ROOM, room.getRoomId(), p);
+        GameEvents.emit(entityData, GameEventType.ROOM_SOLD, ThingFlag.ROOM, room.getRoomId(), p);
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
         } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
@@ -1429,7 +1429,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
-        GameEvents.emit(entityData, GameEventType.SHOT_LAUNCH, ThingKind.KEEPER_SPELL, keeperSpell.getKeeperSpellId(), WorldUtils.vector2fToVector3(position));
+        GameEvents.emit(entityData, GameEventType.SHOT_LAUNCH, ThingFlag.KEEPER_SPELL, keeperSpell.getKeeperSpellId(), WorldUtils.vector2fToVector3(position));
         short shotTypeId = spellUpgraded && kwdFile.getShotById(keeperSpell.getBonusShotTypeId()) != null
                 ? keeperSpell.getBonusShotTypeId() : keeperSpell.getShotTypeId();
         shotsController.createShot(shotTypeId, shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);

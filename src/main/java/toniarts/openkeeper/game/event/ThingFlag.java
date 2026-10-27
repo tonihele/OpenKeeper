@@ -19,7 +19,7 @@ package toniarts.openkeeper.game.event;
 /**
  * The kind of a thing type (an id in the map data) that an event is about
  */
-public enum ThingKind {
+public enum ThingFlag {
     CREATURE,
     OBJECT,
     DOOR,
