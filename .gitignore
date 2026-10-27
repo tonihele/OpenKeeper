@@ -1,5 +1,7 @@
 /nbproject/private/
 /build/
+/core/build/
+/client/build/
 .idea/
 *.iml
 /assets/Converted/
