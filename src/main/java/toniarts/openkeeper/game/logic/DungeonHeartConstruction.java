@@ -38,6 +38,23 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class DungeonHeartConstruction extends GameTimeCounter {
 
     private static final float GRAVITY = 9.81f;
+
+    /**
+     * Seconds from the start of the construction to the removal of the plug
+     */
+    private static final double PLUG_REMOVAL_TIME = 6;
+
+    /**
+     * Seconds from the start of the construction to the plug pieces falling
+     */
+    private static final double PLUG_PIECES_FALL_TIME = 9;
+
+    /**
+     * Seconds from the start of the construction to the end of it, when the
+     * steps and the arches show up
+     */
+    private static final double CONSTRUCTION_TIME = 11;
+
     private final float velocity = 7f;
     private final EntityData entityData;
     private final Set<EntityId> dungeonHeartPlugs;
@@ -45,6 +62,7 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
     private final Map<EntityId, Set<EntityId>> dungeonHeartStairs;
     private final Map<EntityId, Set<EntityId>> dungeonHeartArches;
     private final float delay;
+    private boolean plugsRemoved = false;
     private boolean done = false;
 
     public DungeonHeartConstruction(EntityData entityData, float delay) {
@@ -105,14 +123,29 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
             return;
         }
 
+        // The construction steps are timed from the start of the construction, the level may delay it.
+        // The plug always goes before the steps and arches show, even if a tick skips past its time
+        double constructionTimeElapsed = timeElapsed - delay;
+        if (!plugsRemoved && constructionTimeElapsed > PLUG_REMOVAL_TIME) {
+            for (EntityId entityId : dungeonHeartPlugs) {
+
+                // Remove the plug
+                entityData.removeEntity(entityId);
+
+                // Show the pieces
+                //plugDecay.setCullHint(Spatial.CullHint.Inherit);
+            }
+            plugsRemoved = true;
+        }
+
         // Process ticks
         for (EntityId entityId : dungeonHeartPlugs) {
-            if (timeElapsed > 11) {
+            if (constructionTimeElapsed > CONSTRUCTION_TIME) {
                 //plugDecay.removeFromParent();
                 //spatial.removeControl(this);
                 showStepsAndArches(entityId);
                 done = true;
-            } else if (timeElapsed > 9) {
+            } else if (constructionTimeElapsed > PLUG_PIECES_FALL_TIME) {
 
                 // This I think is effect rather than real objects, so purely on client then?
 //                    velocity -= GRAVITY * tpf;
@@ -125,13 +158,6 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
 //                        //piece.move(tpf * FastMath.cos(step), velocity * tpf, tpf * FastMath.sin(step));
 //                        piece.rotate(rotate, rotate, rotate);
 //                    }
-            } else if (timeElapsed > 6) {
-
-                // Remove the plug
-                entityData.removeEntity(entityId);
-
-                // Show the pieces
-                //plugDecay.setCullHint(Spatial.CullHint.Inherit);
             }
         }
 
