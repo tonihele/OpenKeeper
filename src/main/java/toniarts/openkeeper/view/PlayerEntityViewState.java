@@ -442,7 +442,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     /**
      * Keeps a node at the head's control point while the creature moves, like the original ties the dazed stars to
-     * the control point. Stops once the effects on the node are gone.
+     * the control point. Some creatures, like the knights, have no head point, for them the front of the fallen
+     * body is used. Stops once the effects on the node are gone.
      */
     private static final class HeadFollowControl extends AbstractControl {
 
@@ -459,7 +460,8 @@ public class PlayerEntityViewState extends AbstractAppState {
                 setEnabled(false);
                 return;
             }
-            if (AnimationLoader.getControlPoint(spatial.getParent(), HEAD_CONTROL_POINT, head) == null) {
+            if (AnimationLoader.getControlPoint(spatial.getParent(), HEAD_CONTROL_POINT, head) == null
+                    && AnimationLoader.getFrontPoint(spatial.getParent(), head) == null) {
                 head.set(0, height, 0);
             }
             spatial.setLocalTranslation(head);

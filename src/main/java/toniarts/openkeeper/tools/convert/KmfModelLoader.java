@@ -114,6 +114,13 @@ public final class KmfModelLoader implements AssetLoader {
      * follows.
      */
     public static final String ANIM_CONTROL_POINT = "AnimControlPoint";
+    /**
+     * User data key on an animation node, "geometry index, vertex index" of
+     * the vertex furthest to the front in the animation's last frame. After a
+     * fall that is where the head lies, also for creatures without a head
+     * control point.
+     */
+    public static final String ANIM_FRONT_POINT = "AnimFrontPoint";
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
@@ -274,6 +281,8 @@ public final class KmfModelLoader implements AssetLoader {
 
         int subMeshIndex = 0;
         List<Integer> geometryIndices = new ArrayList<>(anim.getSprites().size());
+        float frontY = Float.MAX_VALUE;
+        String frontPoint = null;
         for (var subMesh : anim.getSprites()) {
 
             if (subMesh.getTriangles().get(0).isEmpty()) {
@@ -330,6 +339,10 @@ public final class KmfModelLoader implements AssetLoader {
                     // Store the frame zero coord
                     if (frame == 0) {
                         baseCoord = coord;
+                    }
+                    if (frame == anim.getFrames() - 1 && coord.y < frontY) {
+                        frontY = coord.y;
+                        frontPoint = subMeshIndex + " " + i;
                     }
 
                     // Create frame info
@@ -481,6 +494,9 @@ public final class KmfModelLoader implements AssetLoader {
             if (sprite < geometryIndices.size() && geometryIndices.get(sprite) >= 0 && node.getUserData(key) == null) {
                 node.setUserData(key, geometryIndices.get(sprite) + " " + control.getUnknown2());
             }
+        }
+        if (frontPoint != null) {
+            node.setUserData(ANIM_FRONT_POINT, frontPoint);
         }
 
         // Create the animation itself and attach the animation

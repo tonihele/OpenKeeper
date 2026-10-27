@@ -201,7 +201,23 @@ public final class AnimationLoader {
      * shown animation doesn't have the point
      */
     public static Vector3f getControlPoint(Node root, int controlPointId, Vector3f store) {
-        String key = KmfModelLoader.ANIM_CONTROL_POINT + controlPointId;
+        return getAnimationPoint(root, KmfModelLoader.ANIM_CONTROL_POINT + controlPointId, store);
+    }
+
+    /**
+     * Get where the vertex at the front of the shown animation's last frame is
+     * right now, after a fall the head
+     *
+     * @param root the creature root
+     * @param store where to put the point
+     * @return the point in the root's local space, or {@code null} if the
+     * shown animation doesn't have the point
+     */
+    public static Vector3f getFrontPoint(Node root, Vector3f store) {
+        return getAnimationPoint(root, KmfModelLoader.ANIM_FRONT_POINT, store);
+    }
+
+    private static Vector3f getAnimationPoint(Node root, String key, Vector3f store) {
         for (Spatial child : root.getChildren()) {
             String point = child.getUserData(key);
             if (point == null || child.getCullHint() == Spatial.CullHint.Always || !(child instanceof Node animNode)) {
