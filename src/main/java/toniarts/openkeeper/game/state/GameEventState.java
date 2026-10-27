@@ -21,32 +21,26 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import toniarts.openkeeper.game.component.GameEvent;
-import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.sound.GameEventSounds;
-import toniarts.openkeeper.game.sound.SoundEngine;
-import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.event.GameEventBus;
+import toniarts.openkeeper.game.sound.GameEventSoundPlayer;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
- * Reacts to the {@link GameEvent}s the game logic creates. What happened is the logic's business, what to make
- * of it is a client matter. For now the client plays the sounds.
+ * Brings the {@link GameEvent}s the game logic creates to the client: the ones meant for us are published to the
+ * {@link GameEventBus}. What happened is the logic's business, what to make of it is up to the listeners of the bus.
+ * For now the sounds are played.
  */
 public final class GameEventState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(GameEventState.class.getName());
 
     private final EntityData entityData;
-    private final IKwdFile kwdFile;
     private final short playerId;
-    private final Map<ExclusiveKey, Integer> exclusiveSounds = new HashMap<>();
+    private final GameEventSoundPlayer soundPlayer;
 
     private EntitySet eventEntities;
 
@@ -57,8 +51,8 @@ public final class GameEventState extends AbstractAppState {
      */
     public GameEventState(EntityData entityData, IKwdFile kwdFile, short playerId) {
         this.entityData = entityData;
-        this.kwdFile = kwdFile;
         this.playerId = playerId;
+        soundPlayer = new GameEventSoundPlayer(kwdFile);
     }
 
     @Override
@@ -67,6 +61,7 @@ public final class GameEventState extends AbstractAppState {
 
         // The events that are already there are old news, only the ones created from now on are handled
         eventEntities = entityData.getEntities(GameEvent.class);
+        soundPlayer.register();
     }
 
     @Override
@@ -75,60 +70,27 @@ public final class GameEventState extends AbstractAppState {
             return;
         }
         for (Entity entity : eventEntities.getAddedEntities()) {
-            handle(entity.get(GameEvent.class));
+            publish(entity.get(GameEvent.class));
         }
-        exclusiveSounds.values().removeIf(handle -> !SoundManager.isPlaying(handle));
     }
 
-    private void handle(GameEvent event) {
+    private void publish(GameEvent event) {
         if (event.playerId != GameEvent.ALL_PLAYERS && event.playerId != playerId) {
             logger.log(Level.DEBUG, "Event {0} is for player {1}, we are {2}",
                     new Object[]{event.type, event.playerId, playerId});
             return;
         }
         logger.log(Level.DEBUG, "Event {0} at {1}", new Object[]{event.type, event.position});
-        playSounds(event);
-    }
-
-    private void playSounds(GameEvent event) {
-        ExclusiveKey key = null;
-        if (GameEventSounds.isExclusive(event.type) && event.entity != null) {
-            key = new ExclusiveKey(event.entity, event.type);
-            if (exclusiveSounds.containsKey(key)) {
-                return; // Still playing, the stale ones are cleared on each update
-            }
-        }
-
-        List<GameEventSounds.Sound> sounds = GameEventSounds.getSounds(event, kwdFile);
-        if (sounds.isEmpty()) {
-            logger.log(Level.DEBUG, "Event {0} makes no sound (subject {1} {2})",
-                    new Object[]{event.type, event.subjectKind, event.subjectId});
-        }
-        for (GameEventSounds.Sound sound : sounds) {
-            int handle = sound.position() != null
-                    ? SoundManager.playSound(sound.category(), sound.eventId(), sound.position())
-                    : SoundManager.playSound(sound.category(), sound.eventId());
-            if (handle == SoundEngine.NO_HANDLE) {
-                logger.log(Level.DEBUG, "Sound {0} 0x{1} of event {2} was not accepted by the sound engine",
-                        new Object[]{sound.category(), Integer.toHexString(sound.eventId()), event.type});
-            }
-            if (key != null && handle != SoundEngine.NO_HANDLE) {
-                exclusiveSounds.put(key, handle);
-            }
-        }
+        GameEventBus.publish(event);
     }
 
     @Override
     public void cleanup() {
+        soundPlayer.unregister();
         if (eventEntities != null) {
             eventEntities.release();
             eventEntities = null;
         }
-        exclusiveSounds.clear();
         super.cleanup();
-    }
-
-    private record ExclusiveKey(EntityId entity, GameEventType type) {
-
     }
 }
