@@ -48,6 +48,11 @@ public final class PossessionFixtures {
         creature.setSpells(spells);
     }
 
+    public static void setAbilities(Creature creature, Creature.SpecialAbility ability1, Creature.SpecialAbility ability2) {
+        creature.setFirstPersonSpecialAbility1(ability1);
+        creature.setFirstPersonSpecialAbility2(ability2);
+    }
+
     public static Creature.Spell spell(short creatureSpellId, int levelAvailable, float shotDelay) {
         Creature.Spell spell = new Creature.Spell();
         spell.setCreatureSpellId(creatureSpellId);

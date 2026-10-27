@@ -245,6 +245,16 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
 
             @Override
             public void onKeyEvent(KeyInputEvent evt) {
+
+                // The creature uses its ability as the key goes down, the server knows what it does
+                if (evt.isPressed() && !evt.isRepeating()) {
+                    if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_1.getDefaultValue()) {
+                        stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(1);
+                    } else if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_2.getDefaultValue()) {
+                        stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(2);
+                    }
+                }
+
                 if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_MELEE.getDefaultValue() && evt.isReleased()) {
                     changeAction(Action.MELEE);
                 } else if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_SPELL_1.getDefaultValue() && evt.isReleased()) {

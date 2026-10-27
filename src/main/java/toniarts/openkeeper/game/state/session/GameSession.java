@@ -208,6 +208,15 @@ public interface GameSession {
     public void setPossessedAttack(boolean attacking, int spell);
 
     /**
+     * Use a first person ability of the currently possessed creature, as its
+     * key is pressed
+     *
+     * @param ability 1 or 2, the creature's first or second ability
+     */
+    @Asynchronous
+    public void usePossessedAbility(int ability);
+
+    /**
      * Stop possessing the currently possessed creature
      */
     @Asynchronous

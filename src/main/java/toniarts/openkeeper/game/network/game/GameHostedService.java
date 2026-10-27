@@ -692,6 +692,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void usePossessedAbility(int ability) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onUsePossessedAbility(ability, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void endPossession() {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onEndPossession(clientInfo.getKeeper().getId());

@@ -207,6 +207,15 @@ public interface GameSessionServiceListener {
     public void onSetPossessedAttack(boolean attacking, int spell, short playerId);
 
     /**
+     * Player uses a first person ability of the possessed creature
+     *
+     * @param ability 1 or 2, the creature's first or second ability
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onUsePossessedAbility(int ability, short playerId);
+
+    /**
      * Player wants to stop possessing
      *
      * @param playerId the player who is possessing

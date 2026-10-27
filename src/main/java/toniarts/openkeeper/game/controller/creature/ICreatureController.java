@@ -496,6 +496,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void executePossessedAttack();
 
     /**
+     * Uses a first person ability of a possessed creature, as its keeper
+     * presses the ability's key. The Vampire turns into a bat or back.
+     *
+     * @param ability 1 or 2, the creature's first or second ability
+     */
+    public void usePossessedAbility(int ability);
+
+    /**
      * Converts creature to another player's bidding
      *
      * @param playerId the new player ID

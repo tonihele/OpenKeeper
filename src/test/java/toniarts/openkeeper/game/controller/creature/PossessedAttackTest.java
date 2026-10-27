@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -105,6 +106,17 @@ class PossessedAttackTest {
 
         assertEquals(DAMAGE, entityData.getComponent(enemy, Damage.class).damage);
         assertEquals(Creature.AnimationType.MELEE_ATTACK, entityData.getComponent(us, CreatureViewState.class).state);
+    }
+
+    @Test
+    void batCannotAttack() {
+        EntityId enemy = createCreature(HERO, new Vector3f(5, 0, 5.8f));
+        entityData.setComponent(us, new PossessedAbility(Creature.SpecialAbility.TURN_TO_BAT));
+
+        createController().executePossessedAttack();
+
+        assertNull(entityData.getComponent(enemy, Damage.class));
+        assertNull(entityData.getComponent(us, CreatureViewState.class));
     }
 
     @Test

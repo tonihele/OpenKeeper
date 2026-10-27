@@ -347,6 +347,14 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onUsePossessedAbility(int ability, short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).usePossessedAbility(ability);
+            }
+        }
+
+        @Override
         public void onEndPossession(short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {
