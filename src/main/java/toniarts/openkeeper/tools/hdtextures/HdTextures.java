@@ -21,18 +21,17 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -45,7 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
@@ -55,117 +54,71 @@ import javax.imageio.ImageIO;
 /**
  * Makes HD versions of the converted DK II textures with
  * <a href="https://github.com/xinntao/Real-ESRGAN">Real-ESRGAN</a>, on your
- * own machine. No textures come with it.<br>
- * It reads the PNGs OpenKeeper converted from your copy of the game
- * ({@code assets/Converted/Textures}), upscales them 4x and writes them under
- * the same names to {@code assets/Textures}. The game finds files under
- * {@code assets/} on the classpath before the converted ones, so it uses the HD
- * textures with no other change, and deleting them brings the originals back.
+ * own machine: {@code assets/Converted/Textures} is upscaled 4x into
+ * {@code assets/Textures}, which the game uses before the converted ones.
  * <pre>
  * ./gradlew hdTextures --args="setup"
  * ./gradlew hdTextures --args="upscale --test-batch"
  * ./gradlew hdTextures --args="upscale"
  * ./gradlew hdTextures --args="clean"
  * </pre>
- * <ol>
- * <li>{@code setup} downloads Real-ESRGAN's portable Vulkan build, checked
- * against a SHA-256, to {@code ~/.OpenKeeper/hd-textures} (change it with
- * {@code --tools-dir}). It needs a GPU with Vulkan, or {@code --gpu -1} for the
- * CPU, which is slow.</li>
- * <li>{@code upscale --test-batch} does only the terrain ({@code T_*}) and the
- * wall and floor textures, {@code --gui-test-batch} the HUD's windows and bars,
- * the minimap frame, the tabs and the room icons, and {@code --match REGEX} the
- * textures whose path matches, e.g. {@code --match "(?i)^GUI/Icons/"}.</li>
- * <li>{@code upscale} does all of them, skipping those already up to date.</li>
- * <li>{@code clean} deletes only the files this tool wrote.</li>
- * </ol>
- * What it does to each texture:
- * <ul>
- * <li>Pads it with its own opposite edges before upscaling and cuts the padding
- * off after, so tiling textures stay seamless ({@code --pad},
- * {@code --pad-mode wrap|edge|reflect}).</li>
- * <li>Upscales the alpha separately. Cut-out alpha (only fully transparent or
- * opaque pixels) stays cut-out. The visible colours are spread into the fully
- * transparent pixels first, so no dark fringes appear round cut-outs.</li>
- * <li>Resizes soft textures (smoke, flames, glows) smoothly instead: Real-ESRGAN
- * draws cracks, hairs and hard rims on them. Soft ones get a bicubic resize,
- * detailed ones Real-ESRGAN and those in between a blend of the two; the frames
- * of an animation get the same mix ({@code --no-soft-blend} uses Real-ESRGAN for
- * all).</li>
- * <li>Keeps the original's local brightness, colour and opacity, which
- * Real-ESRGAN tends to shift ({@code --no-level-match} turns this off).</li>
- * </ul>
- * Other options: {@code --model}, {@code --tile} (Real-ESRGAN's {@code -t}),
- * {@code --gpu}, {@code --source}, {@code --dest}, {@code --force},
- * {@code --dry-run}, {@code --all} (also what {@link #EXCLUDED} leaves out),
- * {@code --overwrite-unmanaged} and {@code --no-git-exclude}. The HD textures
- * are added to the repository's {@code .git/info/exclude}, and what was written
- * with which settings is kept in {@code .hd-textures.properties} in the
- * destination. Real-ESRGAN is BSD-3-Clause licensed; the upscaled textures are
- * derived from the game's, so keep them to yourself.
+ * {@code setup} downloads Real-ESRGAN to {@code ~/.OpenKeeper/hd-textures}.
+ * {@code upscale} does every texture, {@code --test-batch} only the terrain,
+ * walls and floors and {@code --gui-test-batch} the HUD's windows, tabs and room
+ * icons; up to date ones are skipped ({@code --force} redoes them). Other
+ * options: {@code --model}, {@code --tile}, {@code --gpu} ({@code -1} for the
+ * CPU), {@code --source}, {@code --dest} and {@code --tools-dir}.
+ * {@code clean} deletes only the files this tool wrote, which the manifest in
+ * the destination lists. Files listed by the old Python script's manifest
+ * ({@code .hd-textures.json}) are taken over as this tool's own.
+ * <p>
+ * Each texture is padded with its own opposite edges, so tiling ones stay
+ * seamless, and cut-out alpha stays cut-out. Soft textures (smoke, flames) get
+ * a bicubic resize instead of Real-ESRGAN, and in-between ones a blend. The
+ * original's local brightness, colour and opacity are kept.
  *
  * @author OpenKeeper
  */
 public class HdTextures {
 
     private static final int SCALE = 4;
+    private static final int PAD = 16;
     private static final String MANIFEST_NAME = ".hd-textures.properties";
-    private static final int MANIFEST_RETRIES = 40;
+    private static final String PYTHON_MANIFEST_NAME = ".hd-textures.json";
+    private static final String DEFAULT_MODEL = "realesrgan-x4plus";
     private static final String RELEASE_URL = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/";
     private static final Map<String, String[]> DOWNLOADS = Map.of(
             "windows", new String[]{"realesrgan-ncnn-vulkan-20220424-windows.zip", "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d"},
             "ubuntu", new String[]{"realesrgan-ncnn-vulkan-20220424-ubuntu.zip", "e5aa6eb131234b87c0c51f82b89390f5e3e642b7b70f2b9bbe95b6a285a40c96"},
             "macos", new String[]{"realesrgan-ncnn-vulkan-20220424-macos.zip", "e0ad05580abfeb25f8d8fb55aaf7bedf552c375b5b4d9bd3c8d59764d2cc333a"});
-    private static final List<String> MODELS = List.of("realesrgan-x4plus", "realesrgan-x4plus-anime", "realesr-animevideov3-x4");
-    private static final List<String> PAD_MODES = List.of("wrap", "edge", "reflect");
 
     /**
-     * Left out unless --all is given: a path ending in / is a folder, anything
-     * else one file. The interface (GUI/) is in: the game draws an HD interface
-     * image at its original's size.
+     * Never upscaled: the minimap's colour table and background (read as data),
+     * and the cursors, thumbnails and maps (not used)
      */
-    static final Map<String, String> EXCLUDED = new TreeMap<>(Map.of(
-            "GUI/Map/MapColours.png", "the minimap's colour table, read as data",
-            "GUI/Map/Map-BG.png", "the minimap tiles the converted original as its rock, so an HD copy would only make the panel round the minimap differ from the rock in it",
-            "cursor/", "not used: the mouse cursors come from Interface/Cursors, and cursors have their hot spots in pixels",
-            "Thumbnails/", "MapColours.png is the colour table of the map thumbnails, and OpenKeeper draws its own thumbnails",
-            "Maps/", "not used"));
+    static final Pattern EXCLUDED = Pattern.compile("(?i)^(GUI/Map/(MapColours|Map-BG)\\.png|cursor/|Thumbnails/|Maps/)");
+
+    /** The terrain (T_*) and the other wall and floor textures */
+    static final Pattern TEST_BATCH = Pattern.compile("(?i)^(T_[^/]*|[^/]*(wall|floor)[^/]*)\\.png$");
+
+    /** The HUD's windows and bars, the minimap frame, the tabs and the room icons */
+    static final Pattern GUI_TEST_BATCH = Pattern.compile("(?i)^GUI/(Windows|Map|Tabs|Rooms)/[^/]*\\.png$");
 
     /**
-     * The terrain (T_*) and the other wall and floor textures
-     */
-    static final String TEST_BATCH = "(?i)^(T_[^/]*|[^/]*(wall|floor)[^/]*)\\.png$";
-
-    /**
-     * The HUD's windows and bars, the minimap frame, the tabs and the room
-     * icons
-     */
-    static final String GUI_TEST_BATCH = "(?i)^GUI/(Windows|Map|Tabs|Rooms)/[^/]*\\.png$";
-
-    /**
-     * How much fine detail a texture has is measured as its mean absolute
-     * Laplacian over its mean absolute gradient. Below SOFT_BELOW it is resized
-     * smoothly, above DETAILED_ABOVE upscaled with Real-ESRGAN, and in between
-     * the two are blended.
+     * Fine detail is the mean absolute Laplacian over the mean absolute
+     * gradient: below SOFT_BELOW a texture is resized smoothly, above
+     * DETAILED_ABOVE upscaled with Real-ESRGAN, in between blended
      */
     private static final double SOFT_BELOW = 0.75;
     private static final double DETAILED_ABOVE = 1.05;
 
-    /**
-     * Pillow's fixed point precision for 8-bit images, which the bicubic resize
-     * copies
-     */
+    /** Pillow's fixed point precision for 8-bit images, which the bicubic resize copies */
     private static final int PRECISION_BITS = 32 - 8 - 2;
 
-    private static final Set<String> VALUE_OPTIONS = Set.of("--tools-dir", "--source", "--dest", "--match", "--model",
-            "--pad", "--pad-mode", "--gpu", "--tile");
-    private static final Set<String> FLAGS = Set.of("--test-batch", "--gui-test-batch", "--all", "--no-soft-blend",
-            "--no-level-match", "--force", "--overwrite-unmanaged", "--dry-run", "--no-git-exclude");
+    private static final Set<String> VALUE_OPTIONS = Set.of("--tools-dir", "--source", "--dest", "--model", "--gpu", "--tile");
+    private static final Set<String> FLAGS = Set.of("--test-batch", "--gui-test-batch", "--force");
 
-    /**
-     * An image as one array per channel (red, green, blue and maybe alpha), row
-     * by row, with 0-255 values
-     */
+    /** An image as one array per channel (red, green, blue, maybe alpha), 0-255 */
     record Planes(int width, int height, float[][] bands) {
 
         boolean hasAlpha() {
@@ -194,8 +147,7 @@ public class HdTextures {
             switch (options.getOrDefault("command", "")) {
                 case "setup" -> setup(toolsDir);
                 case "upscale" -> upscale(options, toolsDir, dest);
-                case "clean" -> System.out.println("Removed " + clean(dest) + " HD textures from " + dest
-                        + "; the game uses the converted ones again");
+                case "clean" -> System.out.println("Removed " + clean(dest) + " HD textures from " + dest);
                 default -> throw new IllegalArgumentException("Usage: hdTextures setup|upscale|clean [options], see "
                         + HdTextures.class.getName());
             }
@@ -216,13 +168,6 @@ public class HdTextures {
                 throw new IllegalArgumentException("Unknown option " + args[i]);
             }
         }
-        if (!MODELS.contains(options.getOrDefault("--model", MODELS.get(0)))
-                || !PAD_MODES.contains(options.getOrDefault("--pad-mode", "wrap"))) {
-            throw new IllegalArgumentException("--model is one of " + MODELS + ", --pad-mode one of " + PAD_MODES);
-        }
-        if (Stream.of("--test-batch", "--gui-test-batch", "--match").filter(options::containsKey).count() > 1) {
-            throw new IllegalArgumentException("Give only one of --test-batch, --gui-test-batch and --match");
-        }
         return options;
     }
 
@@ -234,36 +179,28 @@ public class HdTextures {
             Files.createDirectories(toolsDir);
             Path archive = toolsDir.resolve(download[0]);
             System.out.println("Downloading " + RELEASE_URL + download[0]);
-            HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
-            HttpResponse<Path> response = client.send(HttpRequest.newBuilder(URI.create(RELEASE_URL + download[0])).build(),
-                    HttpResponse.BodyHandlers.ofFile(archive));
+            HttpResponse<Path> response = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build()
+                    .send(HttpRequest.newBuilder(URI.create(RELEASE_URL + download[0])).build(),
+                            HttpResponse.BodyHandlers.ofFile(archive));
             String digest = sha256(archive);
             if (response.statusCode() != 200 || !digest.equals(download[1])) {
                 Files.delete(archive);
                 throw new IllegalStateException("Download failed for " + download[0] + ": HTTP " + response.statusCode()
                         + ", SHA-256 " + digest + ", expected " + download[1]);
             }
-            Path target = toolsDir.resolve(download[0].replace(".zip", ""));
-            unzip(archive, target);
+            unzip(archive, toolsDir.resolve(download[0].replace(".zip", "")));
             Files.delete(archive);
-            Path executable = findExecutable(toolsDir);
-            if (executable == null) {
-                throw new IllegalStateException("realesrgan-ncnn-vulkan not found in " + target);
+            if (findExecutable(toolsDir) == null) {
+                throw new IllegalStateException("realesrgan-ncnn-vulkan not found in " + toolsDir);
             }
-            executable.toFile().setExecutable(true);
+            findExecutable(toolsDir).toFile().setExecutable(true);
         }
-        System.out.println("Real-ESRGAN: " + findExecutable(toolsDir));
-        System.out.println("Setup done. Next: ./gradlew hdTextures --args=\"upscale --test-batch\"");
+        System.out.println("Real-ESRGAN: " + findExecutable(toolsDir) + "\nNext: ./gradlew hdTextures --args=\"upscale --test-batch\"");
     }
 
     static String sha256(Path file) throws IOException {
-        try (InputStream in = Files.newInputStream(file)) {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[1 << 16];
-            for (int read = in.read(buffer); read >= 0; read = in.read(buffer)) {
-                digest.update(buffer, 0, read);
-            }
-            return HexFormat.of().formatHex(digest.digest());
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
@@ -287,13 +224,12 @@ public class HdTextures {
     }
 
     private static Path findExecutable(Path toolsDir) throws IOException {
-        if (!Files.isDirectory(toolsDir)) {
-            return null;
-        }
         String name = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")
                 ? "realesrgan-ncnn-vulkan.exe" : "realesrgan-ncnn-vulkan";
-        try (Stream<Path> folders = Files.list(toolsDir)) {
-            return folders.map(folder -> folder.resolve(name)).filter(Files::isRegularFile).sorted().findFirst().orElse(null);
+        try (Stream<Path> files = Files.walk(toolsDir, 2)) {
+            return files.filter(file -> file.getFileName().toString().equals(name) && Files.isRegularFile(file)).findFirst().orElse(null);
+        } catch (NoSuchFileException e) {
+            return null;
         }
     }
 
@@ -307,48 +243,31 @@ public class HdTextures {
         if (!Files.isDirectory(source)) {
             throw new IllegalStateException("No converted textures in " + source + ". Run the game once to convert DK II's assets.");
         }
-        String model = options.getOrDefault("--model", MODELS.get(0));
-        int pad = Integer.parseInt(options.getOrDefault("--pad", "16"));
-        String padMode = options.getOrDefault("--pad-mode", "wrap");
-        boolean matchLevels = !options.containsKey("--no-level-match");
-        String settings = model + " pad=" + pad + " " + padMode + (matchLevels ? " level-match" : "");
-        String pattern = options.containsKey("--test-batch") ? TEST_BATCH
-                : options.containsKey("--gui-test-batch") ? GUI_TEST_BATCH : options.get("--match");
-
+        String model = options.getOrDefault("--model", DEFAULT_MODEL);
+        String settings = model + " pad=" + PAD;
         List<String> all = listTextures(source);
-        List<String> textures = select(all, options.containsKey("--all"), pattern);
-        Map<String, Double> weights = new HashMap<>();
-        if (options.containsKey("--no-soft-blend")) {
-            textures.forEach(rel -> weights.put(rel, 1.0));
-        } else {
-            System.out.println("Measuring detail");
-            weights.putAll(detailWeights(source, all, textures));
-        }
+        List<String> textures = select(all, options.containsKey("--test-batch") ? TEST_BATCH
+                : options.containsKey("--gui-test-batch") ? GUI_TEST_BATCH : null);
+        System.out.println("Measuring detail");
+        Map<String, Double> weights = detailWeights(source, all, textures);
+
+        // A file in the destination is ours if the manifest lists it, otherwise it is left alone
         Properties manifest = loadManifest(dest);
         List<String> todo = new ArrayList<>();
         for (String rel : textures) {
             boolean exists = Files.exists(dest.resolve(rel));
-            if (exists && manifest.getProperty(rel) == null && !options.containsKey("--overwrite-unmanaged")) {
+            if (exists && manifest.getProperty(rel) == null) {
                 System.out.println("Skipping " + rel + ": the destination has a file this tool didn't write");
             } else if (options.containsKey("--force") || !exists
                     || !record(source.resolve(rel), weights.get(rel), settings).equals(manifest.getProperty(rel))) {
                 todo.add(rel);
             }
         }
-
-        System.out.println(textures.size() + " textures selected, " + todo.size() + " to upscale, "
-                + (textures.size() - todo.size()) + " up to date");
-        if (options.containsKey("--dry-run")) {
-            todo.forEach(rel -> System.out.println("  " + rel));
-            if (!options.containsKey("--all")) {
-                System.out.println("Left out (--all to include them):");
-                EXCLUDED.forEach((path, reason) -> System.out.println("  " + path + ": " + reason));
-            }
-            return;
-        }
+        System.out.println(textures.size() + " textures selected, " + todo.size() + " to upscale");
         if (todo.isEmpty()) {
             return;
         }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> saveManifest(dest, manifest)));
 
         long started = System.nanoTime();
         Path work = Files.createTempDirectory("hd-textures-");
@@ -359,7 +278,7 @@ public class HdTextures {
             System.out.println("Preparing");
             for (int i = 0; i < todo.size(); i++) {
                 if (weights.get(todo.get(i)) > 0) {
-                    Planes[] padded = prepare(read(source.resolve(todo.get(i))), pad, padMode);
+                    Planes[] padded = prepare(read(source.resolve(todo.get(i))));
                     write(padded[0], workIn.resolve(String.format("%05d_c.png", i)));
                     if (padded[1] != null) {
                         float[] alpha = padded[1].bands()[0];
@@ -381,7 +300,7 @@ public class HdTextures {
                 double weight = weights.get(rel);
                 try {
                     Planes original = read(source.resolve(rel));
-                    Planes[] padded = prepare(original, pad, padMode);
+                    Planes[] padded = prepare(original);
                     Planes[] detailed = null;
                     if (weight > 0) {
                         Path colour = workOut.resolve(String.format("%05d_c.png", i));
@@ -391,20 +310,23 @@ public class HdTextures {
                         }
                         detailed = new Planes[]{read(colour), padded[1] != null ? read(alpha) : null};
                     }
-                    writeAtomically(finish(original, padded, detailed, weight, pad, matchLevels), dest.resolve(rel));
+                    Path target = dest.resolve(rel);
+                    Files.createDirectories(target.getParent());
+                    Path temporary = target.resolveSibling(target.getFileName() + ".tmp");
+                    write(finish(original, padded, detailed, weight), temporary);
+                    Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException | IllegalStateException e) {
                     failed.add(rel + ": " + e.getMessage());
                     continue;
                 }
                 manifest.setProperty(rel, record(source.resolve(rel), weight, settings));
-                saveManifest(dest, manifest);
             }
         } finally {
-            deleteFolder(work);
-        }
-
-        if (!options.containsKey("--no-git-exclude")) {
-            addGitExclude(dest);
+            try (Stream<Path> paths = Files.walk(work)) {
+                for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
+                    Files.delete(path);
+                }
+            }
         }
         System.out.println("Done: " + (todo.size() - failed.size()) + " textures in "
                 + (System.nanoTime() - started) / 1_000_000_000 + " s, written to " + dest);
@@ -418,7 +340,7 @@ public class HdTextures {
         List<String> command = new ArrayList<>(List.of(executable.toString(), "-i", in.toString(), "-o", out.toString(),
                 "-n", model, "-s", String.valueOf(SCALE), "-f", "png", "-m", executable.resolveSibling("models").toString(),
                 "-t", options.getOrDefault("--tile", "0")));
-        if (!options.getOrDefault("--gpu", "auto").equals("auto")) {
+        if (options.containsKey("--gpu")) {
             command.addAll(List.of("-g", options.get("--gpu")));
         }
         Process process = new ProcessBuilder(command).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
@@ -439,30 +361,16 @@ public class HdTextures {
         }
     }
 
-    static List<String> select(List<String> textures, boolean includeExcluded, String pattern) {
-        Pattern regex = pattern != null ? Pattern.compile(pattern) : null;
-        return textures.stream()
-                .filter(rel -> includeExcluded || !isExcluded(rel))
-                .filter(rel -> regex == null || regex.matcher(rel).find())
-                .toList();
-    }
-
-    static boolean isExcluded(String rel) {
-        return EXCLUDED.keySet().stream().anyMatch(path -> rel.equalsIgnoreCase(path)
-                || (path.endsWith("/") && rel.toLowerCase(Locale.ROOT).startsWith(path.toLowerCase(Locale.ROOT))));
+    static List<String> select(List<String> textures, Pattern batch) {
+        return textures.stream().filter(rel -> !EXCLUDED.matcher(rel).find()
+                && (batch == null || batch.matcher(rel).find())).toList();
     }
 
     /**
      * How much of each texture comes from Real-ESRGAN, the rest from a bicubic
      * resize. The frames of an animation (names that differ only in their
-     * trailing number) share one weight, so an animation doesn't change style
-     * from frame to frame.
-     *
-     * @param source the source folder
-     * @param all all the textures in it, for the animation frames
-     * @param textures the textures to weigh
-     * @return the weight of each texture, 0-1
-     * @throws IOException if reading fails
+     * trailing number) share one weight, so it doesn't change style from frame
+     * to frame.
      */
     static Map<String, Double> detailWeights(Path source, List<String> all, List<String> textures) throws IOException {
         Map<String, List<String>> groups = new HashMap<>();
@@ -499,11 +407,7 @@ public class HdTextures {
 
     /**
      * Mean absolute Laplacian over mean absolute gradient, the higher of colour
-     * and alpha. Crisp, detailed textures score above 1, soft ones (blurred
-     * glows, smoke) well below.
-     *
-     * @param image the texture
-     * @return the score, null for a flat image
+     * and alpha; null for a flat image
      */
     static Double detailScore(Planes image) {
         int width = image.width();
@@ -549,57 +453,38 @@ public class HdTextures {
     }
 
     /**
-     * Pads the colour and the alpha for upscaling. The colour of the visible
-     * pixels is spread into the invisible ones first.
+     * Pads the colour and the alpha with the texture's opposite edges. The
+     * colour of the visible pixels is spread into the invisible ones first.
      *
-     * @param image the texture
-     * @param pad how many pixels to add on each side
-     * @param mode wrap, edge or reflect
-     * @return the padded colour, and the padded alpha as one band or null if
-     * the texture has no alpha or only one alpha value
+     * @return the padded colour, and the padded alpha as one band, or null if
+     * there is no alpha or it is constant
      */
-    static Planes[] prepare(Planes image, int pad, String mode) {
+    static Planes[] prepare(Planes image) {
         float[][] rgb = Arrays.copyOf(image.bands(), 3);
         Planes alpha = null;
         if (image.hasAlpha()) {
             float[] channel = image.bands()[3];
             if (!isConstant(channel)) {
-                alpha = pad(new Planes(image.width(), image.height(), new float[][]{channel}), pad, mode);
+                alpha = pad(new Planes(image.width(), image.height(), new float[][]{channel}));
             }
             rgb = bleed(rgb, channel, image.width(), image.height());
         }
-        return new Planes[]{pad(new Planes(image.width(), image.height(), rgb), pad, mode), alpha};
+        return new Planes[]{pad(new Planes(image.width(), image.height(), rgb)), alpha};
     }
 
-    static Planes pad(Planes image, int pad, String mode) {
-        int width = image.width() + 2 * pad;
-        int height = image.height() + 2 * pad;
+    static Planes pad(Planes image) {
+        int width = image.width() + 2 * PAD;
+        int height = image.height() + 2 * PAD;
         float[][] bands = new float[image.bands().length][width * height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int from = padIndex(y - pad, image.height(), mode) * image.width() + padIndex(x - pad, image.width(), mode);
+                int from = Math.floorMod(y - PAD, image.height()) * image.width() + Math.floorMod(x - PAD, image.width());
                 for (int band = 0; band < bands.length; band++) {
                     bands[band][y * width + x] = image.bands()[band][from];
                 }
             }
         }
         return new Planes(width, height, bands);
-    }
-
-    private static int padIndex(int index, int size, String mode) {
-        return switch (mode) {
-            case "wrap" ->
-                Math.floorMod(index, size);
-            case "edge" ->
-                Math.clamp(index, 0, size - 1);
-            default -> {
-                if (size == 1) {
-                    yield 0;
-                }
-                int mirrored = Math.floorMod(index, 2 * size - 2);
-                yield mirrored < size ? mirrored : 2 * size - 2 - mirrored;
-            }
-        };
     }
 
     private static boolean isConstant(float[] channel) {
@@ -613,15 +498,9 @@ public class HdTextures {
 
     /**
      * Spreads the colour of the visible pixels into the invisible ones next to
-     * them, eight pixels deep, and gives the rest the mean visible colour. The
-     * colour under fully transparent pixels is often black or garbage, and the
-     * upscaler would otherwise smear it into the visible edges.
-     *
-     * @param rgb the colour bands
-     * @param alpha the alpha band
-     * @param width the width
-     * @param height the height
-     * @return the new colour bands
+     * them, eight pixels deep, and gives the rest the mean visible colour, so
+     * the upscaler doesn't smear the garbage under transparent pixels into the
+     * visible edges.
      */
     static float[][] bleed(float[][] rgb, float[] alpha, int width, int height) {
         boolean[] known = new boolean[alpha.length];
@@ -683,29 +562,16 @@ public class HdTextures {
     }
 
     /**
-     * Makes the HD texture: crops the padding off, blends Real-ESRGAN's output
-     * with a bicubic resize, keeps the original's levels and puts the alpha
-     * back.
-     *
-     * @param original the original texture
-     * @param padded the padded colour and alpha, from
-     * {@link #prepare(Planes, int, String)}
-     * @param detailed Real-ESRGAN's output for the padded colour and alpha,
-     * null if not used
-     * @param weight how much of the result comes from Real-ESRGAN
-     * @param pad the padding on each side
-     * @param matchLevels whether to keep the original's brightness and alpha
-     * levels
-     * @return the HD texture
+     * Makes the HD texture: blends Real-ESRGAN's output (null if not used) with
+     * a bicubic resize by the weight, keeps the original's levels, and puts the
+     * alpha back; cut-out alpha stays cut-out.
      */
-    static Planes finish(Planes original, Planes[] padded, Planes[] detailed, double weight, int pad, boolean matchLevels) {
+    static Planes finish(Planes original, Planes[] padded, Planes[] detailed, double weight) {
         int width = original.width();
         int height = original.height();
-        float[][] rgb = blend(padded[0], detailed == null ? null : detailed[0], weight, pad, width, height);
-        if (matchLevels) {
-            for (int band = 0; band < 3; band++) {
-                rgb[band] = keepLevels(rgb[band], original.bands()[band], width, height);
-            }
+        float[][] rgb = blend(padded[0], detailed == null ? null : detailed[0], weight, width, height);
+        for (int band = 0; band < 3; band++) {
+            rgb[band] = keepLevels(rgb[band], original.bands()[band], width, height);
         }
         if (!original.hasAlpha()) {
             return new Planes(width * SCALE, height * SCALE, rgb);
@@ -715,7 +581,7 @@ public class HdTextures {
         if (padded[1] == null) {
             Arrays.fill(channel, alpha[0]);
         } else {
-            float[][] blended = blend(padded[1], detailed == null ? null : detailed[1], weight, pad, width, height);
+            float[][] blended = blend(padded[1], detailed == null ? null : detailed[1], weight, width, height);
             boolean binary = true;
             for (float value : alpha) {
                 binary &= value == 0 || value == 255;
@@ -726,7 +592,7 @@ public class HdTextures {
                     channel[i] = channel[i] >= 128 ? 255 : 0;
                 }
             }
-            if (!binary && matchLevels) {
+            if (!binary) {
                 channel = keepLevels(channel, alpha, width, height);
             }
         }
@@ -737,7 +603,7 @@ public class HdTextures {
      * Real-ESRGAN's output blended with a bicubic resize by the weight, with
      * the padding cropped off
      */
-    private static float[][] blend(Planes padded, Planes detailed, double weight, int pad, int width, int height) {
+    private static float[][] blend(Planes padded, Planes detailed, double weight, int width, int height) {
         int paddedWidth = padded.width() * SCALE;
         if (detailed != null && (detailed.width() != paddedWidth || detailed.height() != padded.height() * SCALE)) {
             throw new IllegalStateException("unexpected output size " + detailed.width() + "x" + detailed.height());
@@ -750,7 +616,7 @@ public class HdTextures {
         for (int band = 0; band < result.length; band++) {
             for (int y = 0; y < height * SCALE; y++) {
                 for (int x = 0; x < width * SCALE; x++) {
-                    int from = (y + pad * SCALE) * paddedWidth + x + pad * SCALE;
+                    int from = (y + PAD * SCALE) * paddedWidth + x + PAD * SCALE;
                     float value = smooth[band % smooth.length][from];
                     if (detailed != null) {
                         value = detailed.bands()[band][from] * (float) weight + value * (float) (1 - weight);
@@ -763,16 +629,9 @@ public class HdTextures {
     }
 
     /**
-     * Brings the local brightness, colour or opacity back to the original's.
-     * Shrunk back to the original size, the upscaled band is compared with the
-     * original; the difference, blurred so it carries only the broad levels and
-     * not the pixel blocks, is spread back over the upscaled band.
-     *
-     * @param upscaled the upscaled band
-     * @param original the original band
-     * @param width the original width
-     * @param height the original height
-     * @return the corrected band
+     * Brings the local brightness, colour or opacity back to the original's:
+     * the blurred difference between the original and the upscaled band shrunk
+     * back is spread over the upscaled band.
      */
     static float[] keepLevels(float[] upscaled, float[] original, int width, int height) {
         float[] difference = new float[width * height];
@@ -808,16 +667,9 @@ public class HdTextures {
     }
 
     /**
-     * Resizes a band 4x the way Pillow does, so the result matches its: a
-     * separable convolution, horizontal pass first, with the kernel cut and
-     * renormalised at the edges.
-     *
-     * @param band the band
-     * @param width its width
-     * @param height its height
-     * @param bicubic true for bicubic with Pillow's 8-bit fixed point weights
-     * and rounding, false for bilinear on floating point values
-     * @return the resized band
+     * Resizes a band 4x the way Pillow does (a separable convolution, the
+     * kernel cut and renormalised at the edges): bicubic with Pillow's 8-bit
+     * fixed point weights and rounding, or bilinear on floating point values.
      */
     static float[] resize(float[] band, int width, int height, boolean bicubic) {
         return resample(resample(band, width, height, true, bicubic), width * SCALE, height, false, bicubic);
@@ -858,7 +710,6 @@ public class HdTextures {
         return result;
     }
 
-    // --- Files ----------------------------------------------------------------------------------
     static Planes read(Path path) throws IOException {
         BufferedImage image = ImageIO.read(path.toFile());
         if (image == null) {
@@ -904,22 +755,7 @@ public class HdTextures {
         }
     }
 
-    private static void writeAtomically(Planes image, Path path) throws IOException {
-        Files.createDirectories(path.getParent());
-        Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
-        write(image, temporary);
-        Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    private static void deleteFolder(Path folder) throws IOException {
-        try (Stream<Path> paths = Files.walk(folder)) {
-            for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
-                Files.delete(path);
-            }
-        }
-    }
-
-    // --- Bookkeeping ----------------------------------------------------------------------------
+    // --- Manifest -------------------------------------------------------------------------------
     /**
      * What the manifest keeps for a texture: when it changes, the texture is
      * upscaled again
@@ -928,47 +764,45 @@ public class HdTextures {
         return Files.getLastModifiedTime(source).toInstant() + " " + weight + " " + settings;
     }
 
+    /**
+     * Loads the manifest of the files this tool wrote. Files listed by the old
+     * Python script's manifest are adopted as ours, with an out of date record,
+     * so they get upscaled again and the next save replaces its manifest.
+     */
     static Properties loadManifest(Path dest) throws IOException {
         Properties manifest = new Properties();
-        Path path = dest.resolve(MANIFEST_NAME);
-        if (Files.exists(path)) {
-            try (InputStream in = Files.newInputStream(path)) {
+        if (Files.exists(dest.resolve(MANIFEST_NAME))) {
+            try (InputStream in = Files.newInputStream(dest.resolve(MANIFEST_NAME))) {
                 manifest.load(in);
+            }
+        }
+        if (Files.exists(dest.resolve(PYTHON_MANIFEST_NAME))) {
+            // The files are its top-level keys, indented by two spaces
+            Matcher key = Pattern.compile("(?m)^  \"(.+)\": \\{").matcher(Files.readString(dest.resolve(PYTHON_MANIFEST_NAME)));
+            while (key.find()) {
+                manifest.putIfAbsent(key.group(1), "python");
             }
         }
         return manifest;
     }
 
-    static void saveManifest(Path dest, Properties manifest) throws IOException, InterruptedException {
-        Files.createDirectories(dest);
-        Path path = dest.resolve(MANIFEST_NAME);
-        Path temporary = dest.resolve(MANIFEST_NAME + ".tmp");
-        try (OutputStream out = Files.newOutputStream(temporary)) {
-            manifest.store(out, "HD textures written by " + HdTextures.class.getName());
-        }
-
-        // On Windows another program (a build copying the assets, a virus
-        // scanner) can keep the manifest open for a moment
-        for (int attempt = 1;; attempt++) {
-            try {
-                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
-                return;
-            } catch (AccessDeniedException e) {
-                if (attempt == MANIFEST_RETRIES) {
-                    throw e;
-                }
-                Thread.sleep(250);
+    static void saveManifest(Path dest, Properties manifest) {
+        try {
+            Files.createDirectories(dest);
+            try (var out = Files.newOutputStream(dest.resolve(MANIFEST_NAME))) {
+                manifest.store(out, "HD textures written by " + HdTextures.class.getName());
             }
+            Files.deleteIfExists(dest.resolve(PYTHON_MANIFEST_NAME));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
     /**
-     * Deletes the HD textures this tool wrote, the folders they leave empty and
-     * the manifest
+     * Deletes the HD textures this tool (or the Python script) wrote, the
+     * folders left empty and the manifests
      *
-     * @param dest the destination folder
      * @return how many textures were deleted
-     * @throws IOException if deleting fails
      */
     static int clean(Path dest) throws IOException {
         int removed = 0;
@@ -977,51 +811,13 @@ public class HdTextures {
             if (Files.deleteIfExists(path)) {
                 removed++;
             }
-            for (Path folder = path.getParent(); !folder.equals(dest) && folder.startsWith(dest); folder = folder.getParent()) {
-                try (Stream<Path> children = Files.list(folder)) {
-                    if (children.findAny().isPresent()) {
-                        break;
-                    }
-                }
-                Files.delete(folder);
-            }
         }
         Files.deleteIfExists(dest.resolve(MANIFEST_NAME));
+        Files.deleteIfExists(dest.resolve(PYTHON_MANIFEST_NAME));
+        try (Stream<Path> paths = Files.walk(dest)) {
+            // Only deletes the folders that are empty now
+            paths.sorted(Comparator.reverseOrder()).filter(path -> Files.isDirectory(path) && !path.equals(dest)).forEach(path -> path.toFile().delete());
+        }
         return removed;
-    }
-
-    /**
-     * Keeps the HD textures out of git status, so they don't get committed by
-     * accident
-     */
-    private static void addGitExclude(Path dest) throws IOException, InterruptedException {
-        String top = git(dest, "--show-toplevel");
-        String exclude = git(dest, "--git-path", "info/exclude");
-        if (top == null || exclude == null) {
-            return;
-        }
-        String rel = Paths.get(top).toRealPath().relativize(dest.toRealPath()).toString().replace('\\', '/');
-        Path excludePath = dest.resolve(exclude);
-        List<String> existing = Files.exists(excludePath) ? Files.readAllLines(excludePath) : List.of();
-        List<String> missing = Stream.of("/" + rel + "/**/*.png", "/" + rel + "/**/*.PNG", "/" + rel + "/" + MANIFEST_NAME)
-                .filter(line -> !existing.contains(line)).toList();
-        if (!missing.isEmpty()) {
-            Files.createDirectories(excludePath.getParent());
-            Files.writeString(excludePath, "# HD textures from ./gradlew hdTextures\n" + String.join("\n", missing) + "\n",
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        }
-    }
-
-    private static String git(Path folder, String... args) throws InterruptedException {
-        List<String> command = new ArrayList<>(List.of("git", "rev-parse"));
-        command.addAll(List.of(args));
-        try {
-            Process process = new ProcessBuilder(command).directory(folder.toFile())
-                    .redirectError(ProcessBuilder.Redirect.DISCARD).start();
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-            return process.waitFor() == 0 ? output : null;
-        } catch (IOException e) {
-            return null;
-        }
     }
 }

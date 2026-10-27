@@ -51,30 +51,21 @@ class HdTexturesTest {
     private Path folder;
 
     @Test
-    void selectLeavesOutTheExcludedTexturesUnlessAll() {
+    void selectLeavesOutTheExcludedTexturesAndPicksTheBatches() {
         assertEquals(List.of("Effects/Glow01.png", "GUI/Icons/Lair.png", "GUI/Rooms/Lair.png",
                 "GUI/Windows/Panel.png", "Lair_Wall.png", "Sub/T_Lava.png", "T_Lava.png"),
-                HdTextures.select(TEXTURES, false, null));
-        assertEquals(TEXTURES, HdTextures.select(TEXTURES, true, null));
-        assertTrue(HdTextures.isExcluded("CURSOR/arrow.png"));
-    }
-
-    @Test
-    void selectPicksTheBatches() {
-        assertEquals(List.of("Lair_Wall.png", "T_Lava.png"), HdTextures.select(TEXTURES, false, HdTextures.TEST_BATCH));
+                HdTextures.select(TEXTURES, null));
+        assertEquals(List.of("Lair_Wall.png", "T_Lava.png"), HdTextures.select(TEXTURES, HdTextures.TEST_BATCH));
         assertEquals(List.of("GUI/Rooms/Lair.png", "GUI/Windows/Panel.png"),
-                HdTextures.select(TEXTURES, false, HdTextures.GUI_TEST_BATCH));
-        assertEquals(List.of("GUI/Icons/Lair.png"), HdTextures.select(TEXTURES, false, "(?i)^gui/icons/"));
+                HdTextures.select(TEXTURES, HdTextures.GUI_TEST_BATCH));
     }
 
     @Test
-    void parseOptionsChecksTheChoices() {
-        Map<String, String> options = HdTextures.parseOptions(new String[]{"upscale", "--gpu", "-1", "--dry-run"});
+    void parseOptionsRejectsUnknownOptions() {
+        Map<String, String> options = HdTextures.parseOptions(new String[]{"upscale", "--gpu", "-1", "--force"});
         assertEquals("upscale", options.get("command"));
         assertEquals("-1", options.get("--gpu"));
-        assertTrue(options.containsKey("--dry-run"));
-        assertThrows(IllegalArgumentException.class, () -> HdTextures.parseOptions(new String[]{"upscale", "--model", "x"}));
-        assertThrows(IllegalArgumentException.class, () -> HdTextures.parseOptions(new String[]{"upscale", "--test-batch", "--gui-test-batch"}));
+        assertTrue(options.containsKey("--force"));
         assertThrows(IllegalArgumentException.class, () -> HdTextures.parseOptions(new String[]{"upscale", "--nope"}));
     }
 
@@ -106,11 +97,10 @@ class HdTexturesTest {
     }
 
     @Test
-    void padFillsLikeNumpy() {
-        Planes row = new Planes(3, 1, new float[][]{{0, 1, 2}});
-        assertArrayEquals(new float[]{1, 2, 0, 1, 2, 0, 1}, middleRow(HdTextures.pad(row, 2, "wrap")));
-        assertArrayEquals(new float[]{0, 0, 0, 1, 2, 2, 2}, middleRow(HdTextures.pad(row, 2, "edge")));
-        assertArrayEquals(new float[]{2, 1, 0, 1, 2, 1, 0}, middleRow(HdTextures.pad(row, 2, "reflect")));
+    void padWrapsRoundTheEdges() {
+        Planes padded = HdTextures.pad(new Planes(3, 1, new float[][]{{0, 1, 2}}));
+        assertEquals(35, padded.width());
+        assertArrayEquals(new float[]{1, 2, 0, 1, 2, 0, 1}, Arrays.copyOfRange(padded.bands()[0], 16 * 35 + 14, 16 * 35 + 21));
     }
 
     @Test
@@ -140,7 +130,7 @@ class HdTexturesTest {
             alpha[i] = i % 3 == 0 ? 255 : 0;
         }
         Planes original = new Planes(4, 4, new float[][]{new float[16], new float[16], new float[16], alpha});
-        Planes hd = HdTextures.finish(original, HdTextures.prepare(original, 2, "wrap"), null, 0, 2, true);
+        Planes hd = HdTextures.finish(original, HdTextures.prepare(original), null, 0);
 
         assertEquals(16, hd.width());
         assertEquals(16, hd.height());
@@ -154,30 +144,48 @@ class HdTexturesTest {
         float[] alpha = new float[16];
         Arrays.fill(alpha, 128);
         Planes original = new Planes(4, 4, new float[][]{new float[16], new float[16], new float[16], alpha});
-        Planes[] padded = HdTextures.prepare(original, 2, "wrap");
+        Planes[] padded = HdTextures.prepare(original);
         assertNull(padded[1]);
 
-        Planes hd = HdTextures.finish(original, padded, null, 0, 2, true);
+        Planes hd = HdTextures.finish(original, padded, null, 0);
         for (float value : hd.bands()[3]) {
             assertEquals(128, value);
         }
     }
 
     @Test
-    void cleanDeletesOnlyWhatTheManifestLists() throws IOException, InterruptedException {
+    void cleanDeletesOnlyWhatTheManifestsList() throws IOException {
         Path ours = folder.resolve("GUI/Rooms/Lair.png");
+        Path python = folder.resolve("T_Lava.png");
         Path theirs = folder.resolve("ModelViewer/marble.jpg");
         Files.createDirectories(ours.getParent());
         Files.createDirectories(theirs.getParent());
-        Files.writeString(ours, "x");
-        Files.writeString(theirs, "x");
+        for (Path file : List.of(ours, python, theirs)) {
+            Files.writeString(file, "x");
+        }
         Properties manifest = new Properties();
         manifest.setProperty("GUI/Rooms/Lair.png", "settings");
         HdTextures.saveManifest(folder, manifest);
-        assertEquals("settings", HdTextures.loadManifest(folder).getProperty("GUI/Rooms/Lair.png"));
+        Files.writeString(folder.resolve(".hd-textures.json"), """
+                {
+                 "files": {
+                  "T_Lava.png": {
+                   "pad": 16
+                  }
+                 }
+                }
+                """);
 
-        assertEquals(1, HdTextures.clean(folder));
+        // The Python script's files are adopted, and saving replaces its manifest
+        Properties loaded = HdTextures.loadManifest(folder);
+        assertEquals("settings", loaded.getProperty("GUI/Rooms/Lair.png"));
+        assertEquals("python", loaded.getProperty("T_Lava.png"));
+        HdTextures.saveManifest(folder, loaded);
+        assertFalse(Files.exists(folder.resolve(".hd-textures.json")));
+
+        assertEquals(2, HdTextures.clean(folder));
         assertFalse(Files.exists(folder.resolve("GUI")));
+        assertFalse(Files.exists(python));
         assertTrue(Files.exists(theirs));
         assertTrue(HdTextures.loadManifest(folder).isEmpty());
     }
