@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 
@@ -38,6 +39,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
 
     private float tick = 0;
     private final EntitySet manaEntities;
+    private final EntitySet possessedEntities;
     private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
     private final Map<EntityId, Integer> manaGenerationByEntityId = new HashMap<>();
     private final Map<EntityId, Integer> maxManaGenerationByEntityId = new HashMap<>();
@@ -61,12 +63,16 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
         // Listen for mana entities
         manaEntities = entityData.getEntities(Mana.class, Owner.class);
         processAddedEntities(manaEntities);
+        possessedEntities = entityData.getEntities(Possessed.class, Owner.class);
     }
 
     @Override
     public void processTick(float tpf) {
         tick += tpf;
         if (tick >= 1) {
+
+            // Right before the mana sources, so the possession cost is in both the gain and the loss
+            possessedEntities.applyChanges();
             updateManaSources();
             updateManaControls();
             tick -= 1;
@@ -76,8 +82,15 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     private void updateManaControls() {
         for (Map.Entry<Short, PlayerManaControl> entry : manaControls.entrySet()) {
             entry.getValue().updateMana(manaGains.getOrDefault(entry.getKey(), 0), manaLosses.getOrDefault(entry.getKey(), 0),
-                    maxManaGains.getOrDefault(entry.getKey(), 0));
+                    maxManaGains.getOrDefault(entry.getKey(), 0), getPossessionManaDrain(entry.getKey()));
         }
+    }
+
+    private int getPossessionManaDrain(short playerId) {
+        return possessedEntities.stream()
+                .filter(entity -> entity.get(Owner.class).ownerId == playerId)
+                .mapToInt(entity -> entity.get(Possessed.class).manaDrain)
+                .sum();
     }
 
     @Override
@@ -88,6 +101,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     @Override
     public void stop() {
         manaEntities.release();
+        possessedEntities.release();
     }
 
     private void updateManaSources() {
