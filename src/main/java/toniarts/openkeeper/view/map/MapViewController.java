@@ -92,6 +92,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
     private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.6f, 0.6f, 1, 1);
+    private final static boolean DEFORM_TERRAIN = !Boolean.getBoolean("openkeeper.flatTerrain"); // For comparing against the flat look
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
@@ -127,6 +128,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
+    private TerrainDeformer deformer; // Bends the terrain and the rooms, null if turned off
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
@@ -152,6 +154,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         
         //Create a root
         map = new Node(MAP_NODE);
+        if (DEFORM_TERRAIN) {
+            deformer = new TerrainDeformer(getMapData().getWidth(), getMapData().getHeight(),
+                    (x, y) -> TerrainDeformer.TileShape.of(getTerrain(getMapData().getTile(x, y))));
+        }
         Node terrain = new Node(TERRAIN_NODE);
         generatePages(terrain);
         roomsNode = new Node(ROOM_NODE);
@@ -423,6 +429,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     public void updateTiles(Point... points) {
         Set<Point> pointsToUpdate = new HashSet<>();
+
+        // The shape of the walls around the changed tiles changes too
+        if (deformer != null) {
+            for (Point point : points) {
+                deformer.invalidateTile(point.x, point.y);
+            }
+        }
 
         // FIXME: This is really quite heavy and unneeded, just a quick "fix"
         // If this touches any rooms, reconstruct them and add the neighbouring tiles to update list
@@ -947,22 +960,32 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         topTileNode.attachChild(spatial);
         setTileMaterialToGeometries(tile, topTileNode);
         AssetUtils.translateToTile(topTileNode, p);
+        if (deformer != null) {
+            deformer.apply(spatial, pageNode.getParent());
+        }
     }
 
     private void handleSide(IMapTileInformation tile, Node pageNode) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
 
+        List<Spatial> walls = new ArrayList<>(WallDirection.values().length);
         for (WallDirection direction : WallDirection.values()) {
             Spatial wall = getWallSpatial(tile, direction);
             if (wall != null) {
                 wall.rotate(0, direction.getAngle(), 0);
                 sideTileNode.attachChild(wall);
+                walls.add(wall);
             }
         }
 
         setTileMaterialToGeometries(tile, sideTileNode);
         AssetUtils.translateToTile(sideTileNode, p);
+        if (deformer != null) {
+            for (Spatial wall : walls) {
+                deformer.apply(wall, pageNode.getParent());
+            }
+        }
     }
 
     public void flashTile(boolean enabled, List<Point> points) {
@@ -1132,7 +1155,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
         if (roomConstructor != null) {
-            return roomConstructor.construct(fogOfWarInformation);
+            return roomConstructor.construct(fogOfWarInformation, deformer);
         }
         return null;
     }
@@ -1192,8 +1215,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     protected void removeRoomInstances(RoomInstance... instances) {
         for (RoomInstance instance : instances) {
-            roomsNode.detachChild(roomNodes.get(instance));
-            roomNodes.remove(instance);
+            Spatial roomNode = roomNodes.remove(instance);
+            if (roomNode != null) { // Not built, if it failed or there is no constructor for the room
+                roomsNode.detachChild(roomNode);
+            }
 
             roomActuals.remove(instance);
             for (Point p : instance.getCoordinates()) {
