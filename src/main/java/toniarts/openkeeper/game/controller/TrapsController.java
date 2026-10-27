@@ -23,10 +23,10 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.HealthGain;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
@@ -114,9 +114,9 @@ public final class TrapsController implements ITrapsController {
             entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
             entityData.setComponent(entity, new Threat(trap.getThreat()));
 
-            // Regeneration
+            // A trap heals itself every second, wherever it stands
             if (trap.getHealthGain() > 0) {
-                entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
+                entityData.setComponent(entity, new HealthGain(trap.getHealthGain(), null));
             }
         }
 
