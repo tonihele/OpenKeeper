@@ -1104,6 +1104,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void interact(EntityId entity, short playerId) {
+
+        // Creatures can only be slapped, also enemies held in our prison
+        // TODO: Slap limit
+        if (entityData.getComponent(entity, CreatureComponent.class) != null) {
+            if (canSlapCreature(entity, playerId)) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            }
+            return;
+        }
+
         if (!canInteract(entity, playerId, entityData)) {
             return;
         }
@@ -1121,15 +1131,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         Interaction interaction = entityData.getComponent(entity, Interaction.class);
-
-        // Creatures (slapping)
-        // TODO: Slap limit
-        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-        if (creatureComponent != null && interaction.slappable) {
-            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-            notifySlap(entity, playerId);
-            return;
-        }
 
         // Objects
         ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
@@ -1368,6 +1369,17 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return !isEntityIncapacitated(entityId, entityData);
     }
 
+    private boolean canSlapCreature(EntityId entityId, short playerId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (owner == null || interaction == null || !interaction.slappable || isEntityIncapacitated(entityId, entityData)) {
+            return false;
+        }
+
+        boolean imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class) != null;
+        return SlapRules.canSlapCreature(playerId, owner.ownerId, owner.controlId, imprisoned);
+    }
+
     private static boolean isEntityIncapacitated(EntityId entityId, EntityData entityData) {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null || entityData.getComponent(entityId, Unconscious.class) != null) {
@@ -1432,7 +1444,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         GameEvents.emit(entityData, GameEventType.SHOT_LAUNCH, ThingFlag.KEEPER_SPELL, keeperSpell.getKeeperSpellId(), WorldUtils.vector2fToVector3(position));
         short shotTypeId = spellUpgraded && kwdFile.getShotById(keeperSpell.getBonusShotTypeId()) != null
                 ? keeperSpell.getBonusShotTypeId() : keeperSpell.getShotTypeId();
-        shotsController.createShot(shotTypeId, shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);
+        shotsController.createShot(shotTypeId, shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target, null);
     }
 
     @Override

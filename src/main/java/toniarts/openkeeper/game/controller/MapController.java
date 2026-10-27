@@ -21,6 +21,7 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.control.Container;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.map.FlashTileControl;
@@ -465,18 +466,18 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
-    public void applyClaimTile(Point point, short playerId) {
+    public void applyClaimTile(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
                 damageRoom(point, playerId);
             } else {
-                damageTile(point, playerId, null);
+                damageTile(point, playerId, creature);
             }
         } else {
             // TODO: Room healing
-            healTile(point, playerId);
+            healTile(point, playerId, creature);
         }
     }
 
@@ -485,47 +486,48 @@ public final class MapController extends Container implements IMapController {
         IMapTileController tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
 
-        // Calculate the damage
-        int damage = 0;
+        // Calculate the damage, the work variables are rates per game second
+        float rate;
         int returnedGold = 0;
         int multiplier = (creature != null && kwdFile.getDwarf() == creature.getCreature() ? (int) getLevelVariable(Variable.MiscVariable.MiscType.DWARF_DIGGING_MULTIPLIER) : 1);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 if (tile.getOwnerId() == playerId) {
-                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
+                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
                 } else {
-                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
+                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
                 }
             } else if (tile.getGold() > 0) {
 
-                // This is how I believe the gold mining works, it is not health damage we do, it is substracting gold
-                // The mined tiles leave no loot, the loot is left by the imps if there is no place to store the gold
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
-                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS);
-                } else {
-                    damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
-                }
+                // Mining damages the seam like any dig, the gold comes out in proportion, gems included
+                rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
             } else {
-                damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
+                rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
 
             // Attack enemy tile
-            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
+            rate = getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
         } else {
             throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
         }
+        int damage = TileWork.perApplication(rate, getEfficiency(creature));
 
         // Do the damage
         boolean tileDestroyed;
-        damage = Math.abs(damage);
         if (tile.getGold() > 0) { // Mine
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
-                returnedGold = damage;
-                tileDestroyed = false;
+
+                // Gems never run out: the face collapses, comes back at full health, and every collapse yields the
+                // same small amount
+                tileDestroyed = applyDamage(tile, damage);
+                returnedGold = tileDestroyed ? (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS) : 0;
             } else {
-                returnedGold = mineGold(tile, damage);
-                tileDestroyed = (tile.getGold() < 1);
+                TileWork.Mining mining = TileWork.mine(terrain.getGoldValue(), tile.getMaxHealth(), tile.getHealth(), tile.getGold(), damage);
+                tile.setHealth(mining.health());
+                tile.setGold(mining.gold());
+                returnedGold = mining.released();
+                tileDestroyed = mining.isExhausted();
             }
         } else { // Apply damage
             tileDestroyed = applyDamage(tile, damage);
@@ -563,37 +565,41 @@ public final class MapController extends Container implements IMapController {
      *
      * @param point the point
      * @param playerId the player applying the healing
+     * @param creature the worker, {@code null} if nobody is working
      */
     @Override
-    public void healTile(Point point, short playerId) {
+    public void healTile(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
 
-        // See the amount of healing
-        // TODO: now just claiming of a tile (claim health variable is too big it seems)
-        int healing;
+        // See the amount of healing, the work variables are rates per game second
+        float rate;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 if (tile.getOwnerId() == playerId) {
-                    healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
+                    rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
                 } else {
-                    healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
+                    rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
                 }
             } else {
-                healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
+                rate = getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
             }
+        } else if (TileWork.convertsAtFullHealth(terrain)) {
+
+            // Claiming ground nobody owns
+            rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
         } else {
-            healing = (int) getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
+            rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
         }
 
         // Apply
-        if (applyHealing(tile, healing)) {
+        if (applyHealing(tile, TileWork.perApplication(rate, getEfficiency(creature)))) {
 
             // TODO: checks
             // The tile is upgraded; the claim effect (terrain.getMaxHealthEffectId()) is
             // triggered client-side, see PlayerMapViewState.updateTiles()
-            if (terrain.getMaxHealthTypeTerrainId() != 0) {
+            if (TileWork.convertsAtFullHealth(terrain)) {
                 changeTerrain(tile, terrain.getMaxHealthTypeTerrainId());
                 tile.setOwnerId(playerId);
             }
@@ -670,10 +676,16 @@ public final class MapController extends Container implements IMapController {
         room.setHealth(currentHealth);
     }
 
-    public int mineGold(IMapTileController tile, int amount) {
-        int minedAmount = Math.min(amount, tile.getGold());
-        tile.setGold(tile.getGold() - minedAmount);
-        return minedAmount;
+    /**
+     * How efficiently a creature works, 80% for a fresh imp, more when
+     * slapped
+     */
+    private int getEfficiency(ICreatureController creature) {
+        if (creature == null) {
+            return TileWork.FULL_EFFICIENCY;
+        }
+        CreatureEfficiency efficiency = entityData.getComponent(creature.getEntityId(), CreatureEfficiency.class);
+        return efficiency != null ? efficiency.efficiencyPercentage : TileWork.FULL_EFFICIENCY;
     }
 
     private boolean applyDamage(IMapTileController tile, int damage) {

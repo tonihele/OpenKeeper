@@ -30,6 +30,9 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.sound.FootstepSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
@@ -72,7 +75,19 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     protected Collection<Class<? extends EntityComponent>> getWatchedComponents() {
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
+        components.add(CreatureImprisoned.class);
         return components;
+    }
+
+    @Override
+    public boolean isSlappable(short playerId) {
+        Interaction interaction = getEntity().get(Interaction.class);
+        if (interaction == null || !interaction.slappable) {
+            return false;
+        }
+
+        boolean imprisoned = getEntity().get(CreatureImprisoned.class) != null;
+        return SlapRules.canSlapCreature(playerId, getOwnerId(), getControlId(), imprisoned);
     }
 
     @Override
