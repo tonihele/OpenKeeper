@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.Mana;
@@ -275,8 +276,10 @@ class PossessedAbilityTest {
         assertEquals(us, entityData.getComponent(knight, Hypnotised.class).entity);
         assertEquals(HERO, entityData.getComponent(knight, Hypnotised.class).ownerId);
         assertEquals(KEEPER, entityData.getComponent(knight, Owner.class).ownerId);
-        assertEquals(CreatureState.FOLLOW, states.get(knight));
-        assertEquals(us, followTargets.get(knight));
+
+        // The creature's own tick starts the following, not this call from the render thread
+        assertEquals(us, entityData.getComponent(knight, FollowTarget.class).entityId);
+        assertNull(states.get(knight));
         assertEquals(1, entityData.getEntities(Hypnotised.class).size());
     }
 
@@ -318,7 +321,8 @@ class PossessedAbilityTest {
 
         assertNull(entityData.getComponent(knight, Hypnotised.class));
         assertEquals(HERO, entityData.getComponent(knight, Owner.class).ownerId);
-        assertEquals(CreatureState.IDLE, states.get(knight));
+        assertNull(entityData.getComponent(knight, FollowTarget.class));
+        assertNull(states.get(knight));
     }
 
     @Test
@@ -331,7 +335,8 @@ class PossessedAbilityTest {
 
         assertNull(entityData.getComponent(knight, Hypnotised.class));
         assertEquals(HERO, entityData.getComponent(knight, Owner.class).ownerId);
-        assertEquals(CreatureState.IDLE, states.get(knight));
+        assertNull(entityData.getComponent(knight, FollowTarget.class));
+        assertNull(states.get(knight));
     }
 
     @Test

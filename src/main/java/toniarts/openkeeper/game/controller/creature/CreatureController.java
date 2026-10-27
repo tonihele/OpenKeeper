@@ -1807,6 +1807,15 @@ public final class CreatureController extends EntityController implements ICreat
             interruptWork();
         }
 
+        // Hypnotised on the render thread, we start following here. Outside FOLLOW only a creature that was
+        // just hypnotised has its hypnotiser as the follow target, FOLLOW drops it on the way out
+        FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
+        if (followTarget != null && followTarget.entityId.equals(getHypnotiser())
+                && stateMachine.getCurrentState() != CreatureState.FOLLOW) {
+            unassingCurrentTask();
+            stateMachine.changeState(CreatureState.FOLLOW);
+        }
+
         stateMachine.update();
 
         // Also change our state component
@@ -2823,10 +2832,9 @@ public final class CreatureController extends EntityController implements ICreat
         if (manaDrain != null && manaDrain.getValue() > 0) {
             entityData.setComponent(nearestCreature, new Mana(-(int) manaDrain.getValue()));
         }
-        ICreatureController controller = creaturesController.createController(nearestCreature);
-        controller.unassingCurrentTask();
-        controller.getStateMachine().changeState(CreatureState.FOLLOW);
-        controller.setFollowTarget(entityId);
+
+        // This runs on the render thread, the creature starts following us on its own tick
+        entityData.setComponent(nearestCreature, new FollowTarget(entityId));
     }
 
     private boolean canBeHypnotised(EntityId entity) {
@@ -2875,8 +2883,11 @@ public final class CreatureController extends EntityController implements ICreat
         entityData.removeComponent(hypnotised, Mana.class);
         entityData.removeComponent(hypnotised, AttackTarget.class);
         entityData.setComponent(hypnotised, new Owner(ownerId, ownerId));
-        if (!isIncapacitated(hypnotised)) {
-            creaturesController.createController(hypnotised).getStateMachine().changeState(CreatureState.IDLE);
+
+        // Without the follow target the creature goes back to idle on its own tick
+        FollowTarget followTarget = entityData.getComponent(hypnotised, FollowTarget.class);
+        if (followTarget != null && followTarget.entityId.equals(entityId)) {
+            entityData.removeComponent(hypnotised, FollowTarget.class);
         }
     }
 
