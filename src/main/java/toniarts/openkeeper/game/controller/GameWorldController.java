@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -64,6 +65,7 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -79,6 +81,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger.Level;
 import java.util.AbstractMap;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -341,15 +344,24 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        List<Point> instancePlots = new ArrayList<>(placement.plots());
         Room room = kwdFile.getRoomById(roomId);
-
-        if (!payForRoom(instancePlots.size(), room, playerId)) {
+        if (!payForRoom(placement.plots().size(), room, playerId)) {
             return;
         }
 
+        // Skipped tiles may split the selection, build each connected part as its own room
+        List<Point> buildTiles = new ArrayList<>(placement.plots().size());
+        for (List<Point> instancePlots : getConnectedPlots(placement.plots())) {
+            buildRoomInstance(instancePlots, room, playerId, buildTiles);
+        }
+
+        // Notify the build
+        notifyOnBuild(playerId, buildTiles);
+    }
+
+    private void buildRoomInstance(List<Point> instancePlots, Room room, short playerId, List<Point> buildTiles) {
+
         // Build & mark
-        List<Point> buildTiles = new ArrayList<>(instancePlots.size());
         Set<Point> updatableTiles = new HashSet<>();
         Set<Point> buildPlots = new HashSet<>();
         buildRoomTiles(instancePlots, room, playerId, buildTiles, buildPlots, updatableTiles);
@@ -367,9 +379,42 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             addGoldCapacityToPlayer(instance.getEntityId());
             //notifyOnBuild(instance.getOwnerId(), mapController.getRoomActuals().get(instance));
         }
+    }
 
-        // Notify the build
-        notifyOnBuild(playerId, buildTiles);
+    /**
+     * Splits the plots into parts that are connected to each other, rooms are
+     * never diagonally attached
+     *
+     * @param plots the plots
+     * @return the connected parts
+     */
+    static List<List<Point>> getConnectedPlots(Collection<Point> plots) {
+        Set<Point> remaining = new LinkedHashSet<>(plots);
+        List<List<Point>> parts = new ArrayList<>();
+        while (!remaining.isEmpty()) {
+            Point start = remaining.iterator().next();
+            remaining.remove(start);
+            List<Point> part = new ArrayList<>();
+            ArrayDeque<Point> open = new ArrayDeque<>();
+            open.add(start);
+            while (!open.isEmpty()) {
+                Point p = open.removeFirst();
+                part.add(p);
+                addConnectedPlot(p.x, p.y - 1, remaining, open); // North
+                addConnectedPlot(p.x + 1, p.y, remaining, open); // East
+                addConnectedPlot(p.x, p.y + 1, remaining, open); // South
+                addConnectedPlot(p.x - 1, p.y, remaining, open); // West
+            }
+            parts.add(part);
+        }
+        return parts;
+    }
+
+    private static void addConnectedPlot(int x, int y, Set<Point> remaining, ArrayDeque<Point> open) {
+        Point plot = new Point(x, y);
+        if (remaining.remove(plot)) {
+            open.addLast(plot);
+        }
     }
 
     private Set<Point> getConstructionBlockingTiles() {
@@ -1031,6 +1076,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void interact(EntityId entity, short playerId) {
+
+        // Creatures can only be slapped, also enemies held in our prison
+        // TODO: Slap limit
+        if (entityData.getComponent(entity, CreatureComponent.class) != null) {
+            if (canSlapCreature(entity, playerId)) {
+                entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+            }
+            return;
+        }
+
         if (!canInteract(entity, playerId, entityData)) {
             return;
         }
@@ -1048,14 +1103,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         Interaction interaction = entityData.getComponent(entity, Interaction.class);
-
-        // Creatures (slapping)
-        // TODO: Slap limit
-        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-        if (creatureComponent != null && interaction.slappable) {
-            entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-            return;
-        }
 
         // Objects
         ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
@@ -1126,6 +1173,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+        }
+
+        // Show the fall animation right away, before the position brings the model back to the map
+        if (!tortureOrImprisonment) {
+            CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
+            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
         }
 
         // Add position
@@ -1275,6 +1328,17 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return !isEntityIncapacitated(entityId, entityData);
     }
 
+    private boolean canSlapCreature(EntityId entityId, short playerId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        Interaction interaction = entityData.getComponent(entityId, Interaction.class);
+        if (owner == null || interaction == null || !interaction.slappable || isEntityIncapacitated(entityId, entityData)) {
+            return false;
+        }
+
+        boolean imprisoned = entityData.getComponent(entityId, CreatureImprisoned.class) != null;
+        return SlapRules.canSlapCreature(playerId, owner.ownerId, owner.controlId, imprisoned);
+    }
+
     private static boolean isEntityIncapacitated(EntityId entityId, EntityData entityData) {
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null || entityData.getComponent(entityId, Unconscious.class) != null) {
@@ -1325,7 +1389,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean spellUpgraded = researchableEntity.isUpgraded();
         int shotData1 = spellUpgraded ? keeperSpell.getBonusShotData1() : keeperSpell.getShotData1();
         int shotData2 = spellUpgraded ? keeperSpell.getBonusShotData2() : keeperSpell.getShotData2();
-        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target);
+        shotsController.createShot(keeperSpell.getShotTypeId(), shotData1, shotData2, playerId, WorldUtils.vector2fToVector3(position), target, null);
     }
 
     @Override

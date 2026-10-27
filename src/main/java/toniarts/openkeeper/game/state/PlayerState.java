@@ -20,6 +20,8 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
@@ -90,6 +92,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     private boolean transitionEnd = true;
     private PlayerScreenController screen;
+    private boolean pauseKeyRegistered = false;
+
+    private static final String PAUSE_KEY_MAPPING = Settings.Setting.PAUSE_OR_OPTIONS.name();
+    private final ActionListener pauseKeyListener = this::onPauseKey;
 
     public PlayerState(int playerId, IKwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel) {
         this.playerId = (short) playerId;
@@ -115,6 +121,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     @Override
     public void cleanup() {
+        unregisterPauseKey();
 
         // Detach states
         for (AbstractAppState state : appStates) {
@@ -229,7 +236,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             for (AbstractAppState state : appStates) {
                 stateManager.attach(state);
             }
+            registerPauseKey();
         } else {
+            unregisterPauseKey();
 
             // Detach states
             for (AbstractAppState state : appStates) {
@@ -245,6 +254,35 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void update(float tpf) {
         screen.update(tpf);
+    }
+
+    /**
+     * The pause key opens and closes the game menu. This state stays enabled
+     * during the pause, so the same key also resumes.
+     */
+    private void registerPauseKey() {
+        if (!pauseKeyRegistered) {
+            app.getInputManager().addMapping(PAUSE_KEY_MAPPING,
+                    new KeyTrigger(Main.getUserSettings().getInteger(Settings.Setting.PAUSE_OR_OPTIONS)));
+            app.getInputManager().addListener(pauseKeyListener, PAUSE_KEY_MAPPING);
+            pauseKeyRegistered = true;
+        }
+    }
+
+    private void onPauseKey(String name, boolean isPressed, float tpf) {
+        // Only from the regular game view, not e.g. while possessing or in the end screens
+        if (isPressed && screen != null
+                && PlayerScreenController.SCREEN_HUD_ID.equals(app.getNifty().getCurrentScreen().getScreenId())) {
+            screen.pauseMenu();
+        }
+    }
+
+    private void unregisterPauseKey() {
+        if (pauseKeyRegistered) {
+            app.getInputManager().deleteMapping(PAUSE_KEY_MAPPING);
+            app.getInputManager().removeListener(pauseKeyListener);
+            pauseKeyRegistered = false;
+        }
     }
 
     public IKwdFile getKwdFile() {

@@ -35,6 +35,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
@@ -105,11 +106,11 @@ public class VisualEffect {
      */
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite, short ownerId) {
         this.effect = effect;
-        this.ownerId = ownerId;
         this.kwdFile = effectManagerState.getKwdFile();
         this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
         this.infinite = infinite;
+        this.ownerId = ownerId;
 
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
@@ -173,7 +174,7 @@ public class VisualEffect {
                 break;
 
             case PROCEDURAL_MESH:
-                model = AssetUtils.createProceduralMesh(resource);
+                model = ProceduralMeshFactory.create(resource, assetManager);
                 break;
 
             case MESH_COLLECTION:
@@ -486,7 +487,7 @@ public class VisualEffect {
 
         Node model;
         if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
-            model = (Node) AssetUtils.createProceduralMesh(resource);
+            model = ProceduralMeshFactory.create(resource, assetManager);
         } else {
             model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
         }
