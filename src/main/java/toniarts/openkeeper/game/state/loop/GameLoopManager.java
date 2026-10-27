@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.*;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
@@ -106,7 +107,9 @@ public final class GameLoopManager {
         final GameLogicManager gameAnimationThread = new GameLogicManager(
                 new DungeonHeartConstruction(
                         entityData,
-                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)),
+                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
+                        levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec()),
                 new CreatureFallSystem(entityData, gameController.getGameTimer()));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
