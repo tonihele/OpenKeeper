@@ -107,6 +107,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -1297,14 +1298,15 @@ public final class CreatureController extends EntityController implements ICreat
 
         // TODO: What is the alternative shot all about?
         toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(castShot.creatureSpellId);
-        if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+        int shotData1 = getShotData1(creatureSpell);
+        if (!shotsController.fireShot(creatureSpell.getShotTypeId(), shotData1, creatureSpell.getShotData2(),
                 getOwnerId(), getShotPosition(castShot.creatureSpellId, getPosition(entityData, castShot.target)), castShot.target, entityId, castShot.range)) {
-            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
+            shotsController.createShot(creatureSpell.getShotTypeId(), shotData1, creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
 
             // TODO: Of course not like that, the shot is created and it does what it does
             // Set the damage
             if (creatureSpell.getFlags().contains(CreatureSpellFlag.IS_ATTACKING)) {
-                setDamage(castShot.target, creatureSpell.getShotData1());
+                setDamage(castShot.target, shotData1);
             }
         }
     }
@@ -2848,9 +2850,12 @@ public final class CreatureController extends EntityController implements ICreat
         Creature.SpecialAbility specialAbility = switch (ability) {
             case 1 -> creature.getFirstPersonSpecialAbility1();
             case 2 -> creature.getFirstPersonSpecialAbility2();
+            case POSSESSED_SNIPER_MODE_KEY -> hasFirstPersonAbility(Creature.SpecialAbility.SNIPER_MODE)
+                    ? Creature.SpecialAbility.SNIPER_MODE : Creature.SpecialAbility.NONE;
             default -> Creature.SpecialAbility.NONE;
         };
-        if (specialAbility == Creature.SpecialAbility.TURN_TO_BAT || specialAbility == Creature.SpecialAbility.PRAY) {
+        if (specialAbility == Creature.SpecialAbility.TURN_TO_BAT || specialAbility == Creature.SpecialAbility.PRAY
+                || specialAbility == Creature.SpecialAbility.SNIPER_MODE) {
             togglePossessedAbility(specialAbility);
         } else if (specialAbility == Creature.SpecialAbility.PICK_UP_WORKERS) {
             pickUpOrThrowWorker();
@@ -2861,6 +2866,27 @@ public final class CreatureController extends EntityController implements ICreat
         } else if (specialAbility == Creature.SpecialAbility.FEAR_ATTACK) {
             frightenTarget();
         }
+    }
+
+    private boolean hasFirstPersonAbility(Creature.SpecialAbility ability) {
+        return creature.getFirstPersonSpecialAbility1() == ability || creature.getFirstPersonSpecialAbility2() == ability;
+    }
+
+    /**
+     * The damage of a shot the creature fires. While the possessed creature is
+     * in sniper mode its shots do double damage (0x4AC420).
+     *
+     * @param creatureSpell the spell that makes the shot
+     * @return the shot's data 1, its damage if it hits things
+     */
+    private int getShotData1(toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
+        if (possessedAbility != null && possessedAbility.ability == Creature.SpecialAbility.SNIPER_MODE
+                && levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId()).getDamageType() == Shot.DamageType.HIT_THING) {
+            return creatureSpell.getShotData1() * 2;
+        }
+
+        return creatureSpell.getShotData1();
     }
 
     /**
@@ -3091,7 +3117,7 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Turns an ability that stays on, such as the Vampire's bat form, on or
      * off. A bat flies (0x517190, 0x48ED40). A praying creature stays still
-     * and heals (0x517220).
+     * and heals (0x517220). Sniper mode is a flag on the creature (0x5171D0).
      *
      * @param ability the ability to turn on or off
      */
@@ -3157,7 +3183,7 @@ public final class CreatureController extends EntityController implements ICreat
             float pitch = movement != null ? movement.pitch : 0;
             Vector3f ahead = getViewDirection(position.rotation, pitch).multLocal(attack.range);
             Vector3f start = getShotPosition(attack.creatureSpellId, position.position.add(ahead));
-            if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+            if (!shotsController.fireShot(creatureSpell.getShotTypeId(), getShotData1(creatureSpell), creatureSpell.getShotData2(),
                     getOwnerId(), start, start.add(ahead), entityId, attack.range)) {
                 return;
             }

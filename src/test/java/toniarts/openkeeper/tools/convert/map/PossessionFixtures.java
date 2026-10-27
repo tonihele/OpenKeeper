@@ -48,6 +48,11 @@ public final class PossessionFixtures {
         creature.setSpells(spells);
     }
 
+    /**
+     * The shot data 1, the damage, of the spells made here
+     */
+    public static final int SHOT_DAMAGE = 50;
+
     public static void setAbilities(Creature creature, Creature.SpecialAbility ability1, Creature.SpecialAbility ability2) {
         creature.setFirstPersonSpecialAbility1(ability1);
         creature.setFirstPersonSpecialAbility2(ability2);
@@ -69,6 +74,7 @@ public final class PossessionFixtures {
         creatureSpell.setShotTypeId(shotTypeId);
         creatureSpell.setRechargeTime(rechargeTime);
         creatureSpell.setRange(range);
+        creatureSpell.setShotData1(SHOT_DAMAGE);
         creatureSpell.setFlags(flags);
         return creatureSpell;
     }

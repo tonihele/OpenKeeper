@@ -152,6 +152,39 @@ class PossessedAbilityTest {
     }
 
     @Test
+    void sniperTurnsSniperModeOnAndOffWithItsOwnKey() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.SNIPER_MODE, Creature.SpecialAbility.NONE);
+        CreatureController controller = createController();
+
+        controller.usePossessedAbility(ICreatureController.POSSESSED_SNIPER_MODE_KEY);
+
+        assertEquals(Creature.SpecialAbility.SNIPER_MODE, entityData.getComponent(us, PossessedAbility.class).ability);
+        assertFalse(entityData.getComponent(us, Mobile.class).canFly);
+
+        controller.usePossessedAbility(ICreatureController.POSSESSED_SNIPER_MODE_KEY);
+
+        assertNull(entityData.getComponent(us, PossessedAbility.class));
+    }
+
+    @Test
+    void creatureWithoutSniperModeIgnoresItsKey() {
+        createController().usePossessedAbility(ICreatureController.POSSESSED_SNIPER_MODE_KEY);
+
+        assertNull(entityData.getComponent(us, PossessedAbility.class));
+    }
+
+    @Test
+    void sniperModeEndsWithThePossession() {
+        PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.NONE, Creature.SpecialAbility.SNIPER_MODE);
+        CreatureController controller = createController();
+        controller.usePossessedAbility(ICreatureController.POSSESSED_SNIPER_MODE_KEY);
+
+        controller.setPossession(false);
+
+        assertNull(entityData.getComponent(us, PossessedAbility.class));
+    }
+
+    @Test
     void secondAbilityDoesNotTurnIntoABat() {
         createController().usePossessedAbility(2);
 

@@ -32,6 +32,7 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
@@ -282,6 +283,8 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
                         stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(1);
                     } else if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_2.getDefaultValue() && !isUsedWithAttack(2)) {
                         stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(2);
+                    } else if (evt.getKeyCode() == (int) Settings.Setting.TOGGLE_SNIPER_MODE.getDefaultValue()) {
+                        stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(ICreatureController.POSSESSED_SNIPER_MODE_KEY);
                     }
                 }
 
