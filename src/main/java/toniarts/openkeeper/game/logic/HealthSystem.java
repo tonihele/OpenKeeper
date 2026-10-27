@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -261,8 +262,9 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     /**
-     * A destroyed trap or door blows up with its death effect, like the Trap
-     * Explosion or the Wooden Door Group Explosion
+     * A destroyed trap, door or object blows up with its death effect, like the
+     * Trap Explosion, the Wooden Door Group Explosion or the Heart Explosion
+     * Effect
      *
      * @param entityId the destroyed entity
      */
@@ -274,13 +276,18 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private int getDestroyedEffectId(EntityId entityId) {
-        TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
+        Entity entity = entityData.getEntity(entityId, TrapComponent.class, DoorComponent.class, ObjectComponent.class);
+        TrapComponent trapComponent = entity.get(TrapComponent.class);
         if (trapComponent != null) {
             return levelInfo.getLevelData().getTrapById(trapComponent.trapId).getDeathEffectId();
         }
-        DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+        DoorComponent doorComponent = entity.get(DoorComponent.class);
         if (doorComponent != null) {
             return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getDeathEffectId();
+        }
+        ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+        if (objectComponent != null) {
+            return levelInfo.getLevelData().getObject(objectComponent.objectId).getDeathEffectId();
         }
 
         return 0;

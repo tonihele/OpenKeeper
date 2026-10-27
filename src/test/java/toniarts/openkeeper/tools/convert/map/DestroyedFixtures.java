@@ -17,7 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 /**
- * Doors with the effect they blow up with when destroyed
+ * Doors and objects with the effect they blow up with when destroyed
  */
 public final class DestroyedFixtures {
 
@@ -27,6 +27,12 @@ public final class DestroyedFixtures {
      */
     public static final int WOODEN_DOOR_EXPLOSION_ID = 220;
 
+    /**
+     * The Dungeon Heart's death effect in the original data, "Heart Explosion
+     * Effect"
+     */
+    public static final int HEART_EXPLOSION_ID = 76;
+
     private DestroyedFixtures() {
     }
 
@@ -35,6 +41,13 @@ public final class DestroyedFixtures {
         door.setDoorId(doorId);
         door.setDeathEffectId(deathEffectId);
         return door;
+    }
+
+    public static GameObject object(short objectId, int deathEffectId) {
+        GameObject object = new GameObject();
+        object.setObjectId(objectId);
+        object.setDeathEffectId(deathEffectId);
+        return object;
     }
 
 }
