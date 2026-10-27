@@ -19,10 +19,14 @@ package toniarts.openkeeper.view.animation;
 import com.jme3.anim.AnimComposer;
 import com.jme3.anim.tween.Tweens;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.scene.VertexBuffer;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.FloatBuffer;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -184,6 +188,35 @@ public final class AnimationLoader {
      */
     public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
         playAnimation(spatial, anim, assetManager, false);
+    }
+
+    /**
+     * Get where a control point of the shown animation is right now, e.g.
+     * 5000 over the creature's head
+     *
+     * @param root the creature root
+     * @param controlPointId the control point id
+     * @return the point in the root's local space, or {@code null} if the
+     * shown animation doesn't have the point
+     */
+    public static Vector3f getControlPoint(Node root, int controlPointId) {
+        String key = KmfModelLoader.ANIM_CONTROL_POINT + controlPointId;
+        for (Spatial child : root.getChildren()) {
+            String point = child.getUserData(key);
+            if (point == null || child.getCullHint() == Spatial.CullHint.Always || !(child instanceof Node animNode)) {
+                continue;
+            }
+
+            // "geometry index, vertex index", the animation keeps the position buffer up to date
+            String[] indices = point.split(" ");
+            Geometry geometry = (Geometry) animNode.getChild(Integer.parseInt(indices[0]));
+            FloatBuffer positions = geometry.getMesh().getFloatBuffer(VertexBuffer.Type.Position);
+            int vertex = Integer.parseInt(indices[1]) * 3;
+            Vector3f location = new Vector3f(positions.get(vertex), positions.get(vertex + 1), positions.get(vertex + 2));
+            geometry.localToWorld(location, location);
+            return root.worldToLocal(location, location);
+        }
+        return null;
     }
 
     private static void hideAllNodes(Node root) {

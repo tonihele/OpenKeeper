@@ -49,6 +49,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.DoorFlowerControl;
@@ -82,6 +83,10 @@ public class PlayerEntityViewState extends AbstractAppState {
      */
     private static final int DAZED_EFFECT_ID = 101;
     private static final String DAZED_NODE_NAME = "Dazed";
+    /**
+     * The control point of the creature animations at the head
+     */
+    private static final int HEAD_CONTROL_POINT = 5000;
 
     /**
      * Used where no fog of war applies: everything is simply always visible.
@@ -408,22 +413,27 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
         object.setUserData(DAZED_NODE_NAME, true);
-        float height = creature.getAttributes().getHeight();
-        stateManager.getState(EffectManagerState.class).load(getDazedEffectNode(creatureNode, height), null, DAZED_EFFECT_ID, false);
+
+        // Like the original, at the head's control point where the head is when the creature lands
+        Vector3f head = AnimationLoader.getControlPoint(creatureNode, HEAD_CONTROL_POINT);
+        if (head == null) {
+            head = new Vector3f(0, creature.getAttributes().getHeight(), 0);
+        }
+        stateManager.getState(EffectManagerState.class).load(getDazedEffectNode(creatureNode, head), null, DAZED_EFFECT_ID, false);
     }
 
     /**
-     * The node over the creature's head that holds its dazed stars. Changing the animation removes all the
+     * The node at the creature's head that holds its dazed stars. Changing the animation removes all the
      * creature's children that aren't marked as kept, so the stars get a kept node of their own.
      */
-    private static Node getDazedEffectNode(Node creatureNode, float height) {
+    private static Node getDazedEffectNode(Node creatureNode, Vector3f head) {
         Node dazedNode = (Node) creatureNode.getChild(DAZED_NODE_NAME);
         if (dazedNode == null) {
             dazedNode = new Node(DAZED_NODE_NAME);
             dazedNode.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
-            dazedNode.setLocalTranslation(0, height, 0);
             creatureNode.attachChild(dazedNode);
         }
+        dazedNode.setLocalTranslation(head);
         return dazedNode;
     }
 
