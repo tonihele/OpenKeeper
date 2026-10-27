@@ -146,4 +146,36 @@ public final class PlayerStatsControl {
         return keeper.getSpecialsFound();
     }
 
+    /**
+     * A workshop has finished a trap or a door for the player
+     */
+    public void itemManufactured() {
+        keeper.setItemsManufactured(keeper.getItemsManufactured() + 1);
+    }
+
+    /**
+     * Get the number of traps and doors the player's workshops have finished
+     *
+     * @return items manufactured
+     */
+    public int getItemsManufactured() {
+        return keeper.getItemsManufactured();
+    }
+
+    /**
+     * A creature has been converted to the player's side in the torture chamber
+     */
+    public void creatureConverted() {
+        keeper.setCreaturesConverted(keeper.getCreaturesConverted() + 1);
+    }
+
+    /**
+     * Get the number of creatures the player has converted by torturing
+     *
+     * @return creatures converted
+     */
+    public int getCreaturesConverted() {
+        return keeper.getCreaturesConverted();
+    }
+
 }

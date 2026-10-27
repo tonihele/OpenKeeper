@@ -372,6 +372,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         PlayerStatsControl stats = player.getStatsControl();
         gameResult.setData(GameResult.ResultType.ENEMY_CREATURES_KILLED, stats.getEnemyCreaturesKilled());
         gameResult.setData(GameResult.ResultType.HEROES_DESTROYED, stats.getHeroesDestroyed());
+        gameResult.setData(GameResult.ResultType.ITEMS_MANUFACTURED, stats.getItemsManufactured());
+        gameResult.setData(GameResult.ResultType.CREATURES_CONVERTED, stats.getCreaturesConverted());
         gameResult.setData(GameResult.ResultType.ROOMS_CAPTURED, player.getRoomControl().getRoomsCaptured());
         gameResult.setData(GameResult.ResultType.GOLD_MINED, player.getKeeper().getGoldMined());
         gameResult.setData(GameResult.ResultType.MANA_STORED, player.getKeeper().getMana());

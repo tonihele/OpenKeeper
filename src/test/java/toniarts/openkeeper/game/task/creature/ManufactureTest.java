@@ -34,9 +34,11 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomCrateControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -79,7 +81,7 @@ class ManufactureTest {
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, null);
+        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, null, null);
         task.assign(creature, false);
 
         for (int tick = 1; tick <= ticks; tick++) {
@@ -118,7 +120,7 @@ class ManufactureTest {
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
         manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
                 trap.getManufCrateObjectId()));
-        return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, null);
+        return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, null, null);
     }
 
     @Test
@@ -153,12 +155,14 @@ class ManufactureTest {
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, objectsController);
+        PlayerStatsControl stats = new PlayerStatsControl(new Keeper());
+        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, objectsController, stats);
 
         // Not removed, the objects controller would be asked for the crate's controller
         task.executeTask(creature, 1f / TICKS_PER_SECOND);
 
         assertEquals(List.of(Player.NEUTRAL_PLAYER_ID), crateOwners);
+        assertEquals(1, stats.getItemsManufactured());
     }
 
     @Test
@@ -207,7 +211,8 @@ class ManufactureTest {
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, room[0], null, manufactureControl, objectsController);
+        PlayerStatsControl stats = new PlayerStatsControl(new Keeper());
+        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, room[0], null, manufactureControl, objectsController, stats);
 
         task.executeTask(creature, 1f / TICKS_PER_SECOND);
 
@@ -216,6 +221,7 @@ class ManufactureTest {
         assertEquals(keeper, owner.ownerId);
         assertEquals(keeper, owner.controlId);
         assertNotNull(entityData.getComponent(crate[0], Stored.class));
+        assertEquals(1, stats.getItemsManufactured());
     }
 
 }

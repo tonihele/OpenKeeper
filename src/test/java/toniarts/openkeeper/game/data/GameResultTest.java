@@ -78,6 +78,15 @@ class GameResultTest {
     }
 
     @Test
+    void evilRatingIncludesItemsAndConvertedCreatures() {
+        GameResult result = new GameResult();
+        result.setData(ResultType.ITEMS_MANUFACTURED, 3);
+        result.setData(ResultType.CREATURES_CONVERTED, 2);
+
+        assertEquals(5 * 3 + 40 * 2, result.calculateEvilRating());
+    }
+
+    @Test
     void evilRatingIgnoresWinAndTime() {
         GameResult result = new GameResult();
         result.setData(ResultType.LEVEL_WON, true);

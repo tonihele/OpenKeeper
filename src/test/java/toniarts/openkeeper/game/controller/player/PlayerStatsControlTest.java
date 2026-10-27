@@ -45,6 +45,16 @@ class PlayerStatsControlTest {
     }
 
     @Test
+    void countsItemsManufacturedAndCreaturesConverted() {
+        stats.itemManufactured();
+        stats.itemManufactured();
+        stats.creatureConverted();
+
+        assertEquals(2, stats.getItemsManufactured());
+        assertEquals(1, stats.getCreaturesConverted());
+    }
+
+    @Test
     void countsSpecialsFound() {
         stats.specialFound();
         stats.specialFound();

@@ -47,6 +47,8 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int heroesDestroyed;
     private int roomsCaptured;
     private int specialsFound;
+    private int itemsManufactured;
+    private int creaturesConverted;
     private int mana;
     private int manaGain;
     private int manaLoose;
@@ -134,6 +136,22 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setSpecialsFound(int specialsFound) {
         this.specialsFound = specialsFound;
+    }
+
+    public int getItemsManufactured() {
+        return itemsManufactured;
+    }
+
+    public void setItemsManufactured(int itemsManufactured) {
+        this.itemsManufactured = itemsManufactured;
+    }
+
+    public int getCreaturesConverted() {
+        return creaturesConverted;
+    }
+
+    public void setCreaturesConverted(int creaturesConverted) {
+        this.creaturesConverted = creaturesConverted;
     }
 
     public void setManaGain(int manaGain) {

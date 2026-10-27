@@ -41,11 +41,14 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -75,6 +78,7 @@ class CreatureTorturingSystemTest {
     private final Map<EntityId, CreatureState> states = new HashMap<>();
     private final RoomInstance chamberInstance = new RoomInstance(new Room());
     private final List<Object> playerEvents = new ArrayList<>();
+    private final PlayerStatsControl stats = new PlayerStatsControl(new Keeper());
 
     /**
      * The sounds of the victims, with the tick they were sent on
@@ -91,6 +95,15 @@ class CreatureTorturingSystemTest {
 
         assertEquals(KEEPER_ID, converted.get(victim));
         assertEquals(List.of(victim), leftDevice);
+    }
+
+    @Test
+    void conversionCountsForTheTorturersKeeper() {
+        victim(HERO_ID, 2);
+
+        tick(3);
+
+        assertEquals(1, stats.getCreaturesConverted());
     }
 
     @Test
@@ -213,6 +226,7 @@ class CreatureTorturingSystemTest {
         assertTrue(converted.isEmpty());
         assertTrue(leftDevice.isEmpty());
         assertTrue(playerEvents.isEmpty());
+        assertEquals(0, stats.getCreaturesConverted());
     }
 
     @Test
@@ -225,6 +239,7 @@ class CreatureTorturingSystemTest {
 
         // The torture starts over, the health system lets the victim die
         assertTrue(converted.isEmpty());
+        assertEquals(0, stats.getCreaturesConverted());
         assertEquals(300, entityData.getComponent(victim, Damage.class).damage);
         assertTrue(entityData.getComponent(victim, CreatureTortured.class).timeTortured < 2);
     }
@@ -245,7 +260,11 @@ class CreatureTorturingSystemTest {
                                 yield null;
                             }
                             default -> throw new UnsupportedOperationException(method.getName());
-                        }), gameSettings);
+                        }), gameSettings, Map.of(KEEPER_ID, (IPlayerController) Proxy.newProxyInstance(IPlayerController.class.getClassLoader(),
+                        new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> switch (method.getName()) {
+                            case "getStatsControl" -> stats;
+                            default -> throw new UnsupportedOperationException(method.getName());
+                        })));
     }
 
     private void tick(int seconds) {

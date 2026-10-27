@@ -130,7 +130,7 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameEventService),
                 new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
-                        gameWorldController.getMapController(), gameEventService, gameSettings),
+                        gameWorldController.getMapController(), gameEventService, gameSettings, playerControllers),
                 new PrisonOvercrowdingSystem(entityData, gameWorldController.getMapController(), gameSettings),
                 new KeeperDefeatSystem(entityData, levelInfo, gameController, gameWorldController.getMapController(),
                         gameWorldController.getObjectsController(), players != null && !players.isEmpty()),
