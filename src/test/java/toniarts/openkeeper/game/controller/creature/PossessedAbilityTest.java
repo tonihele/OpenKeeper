@@ -23,6 +23,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -48,6 +49,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Hypnotised;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -65,7 +67,9 @@ import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.PossessedMovementSystem;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -546,6 +550,17 @@ class PossessedAbilityTest {
     }
 
     @Test
+    void frightenedCreatureFleesFromTheCreatureThatFrightenedItEvenWhenNoOneFightsIt() {
+        EntityId knight = createFrightenedKnight(new Vector3f(20, 0, 20));
+        entityData.setComponent(us, new Position(0, new Vector3f(24, 0, 20)));
+
+        createController(knight).flee();
+
+        Point destination = entityData.getComponent(knight, Navigation.class).target;
+        assertTrue(destination.x < 20, "Ran to " + destination);
+    }
+
+    @Test
     void fearlessCreatureIsNotFrightened() {
         EntityId knight = createFrightenedKnight();
         entityData.setComponent(knight, new Fearless(null));
@@ -562,13 +577,17 @@ class PossessedAbilityTest {
     }
 
     private EntityId createFrightenedKnight() {
+        // The Maiden has gone, there is no one to fight
+        EntityId knight = createFrightenedKnight(new Vector3f(10, 0, 2.8f));
+        entityData.removeEntity(us);
+        return knight;
+    }
+
+    private EntityId createFrightenedKnight(Vector3f position) {
         gameSettings.put(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX,
                 PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX, 0));
-        EntityId knight = createCreature(HERO, new Vector3f(10, 0, 2.8f));
+        EntityId knight = createCreature(HERO, position);
         entityData.getComponent(knight, CreatureComponent.class).fear = 533;
-
-        // The Maiden has gone, there is no one to fight
-        entityData.removeEntity(us);
         entityData.setComponent(knight, new Frightened(us, 2000, 15));
         return knight;
     }
@@ -614,8 +633,22 @@ class PossessedAbilityTest {
             default -> null;
         });
 
-        return new CreatureController(entity, entityData, creature, null, null, gameTimer, gameSettings, createCreaturesController(),
-                createPositionLookup(), createMapController(), levelInfo, null, null, stub(GameEventService.class, (name, args) -> null));
+        return new CreatureController(entity, entityData, creature, createNavigationService(), null, gameTimer, gameSettings, createCreaturesController(),
+                createPositionLookup(), createMapController(), levelInfo, null, null,
+                stub(GameEventService.class, (name, args) -> null));
+    }
+
+    private INavigationService createNavigationService() {
+        return stub(INavigationService.class, (name, args) -> {
+            if (!"findPath".equals(name)) {
+                return null;
+            }
+            DefaultGraphPath<IMapTileInformation> path = new DefaultGraphPath<>();
+            for (Point tile : List.of((Point) args[0], (Point) args[1])) {
+                path.add(stub(IMapTileInformation.class, (tileName, tileArgs) -> "getLocation".equals(tileName) ? tile : null));
+            }
+            return path;
+        });
     }
 
     private ICreaturesController createCreaturesController() {
@@ -640,6 +673,14 @@ class PossessedAbilityTest {
                 entities.remove((EntityId) args[0]);
                 return entities;
             }
+            if ("getEntityLocation".equals(name)) {
+                Position position = entityData.getComponent((EntityId) args[0], Position.class);
+                if (position == null) {
+                    return null;
+                }
+                Point tile = WorldUtils.vectorToPoint(position.position);
+                return stub(IMapTileInformation.class, (tileName, tileArgs) -> "getLocation".equals(tileName) ? tile : null);
+            }
             if (!"getEntitiesInLocation".equals(name)) {
                 return null;
             }
@@ -655,11 +696,14 @@ class PossessedAbilityTest {
 
     private IMapController createMapController() {
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> {
+            if ("getWidth".equals(name) || "getHeight".equals(name)) {
+                return 50;
+            }
             if (!"getTile".equals(name)) {
                 return null;
             }
             Point tile = args.length == 1 ? (Point) args[0] : new Point((Integer) args[0], (Integer) args[1]);
-            return stub(IMapTileInformation.class, (tileName, tileArgs) -> switch (tileName) {
+            return stub(IMapTileController.class, (tileName, tileArgs) -> switch (tileName) {
                 case "getLocation" -> tile;
                 case "getOwnerId" -> tileOwners.getOrDefault(tile, Player.NEUTRAL_PLAYER_ID);
                 default -> null;

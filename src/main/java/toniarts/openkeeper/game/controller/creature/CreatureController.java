@@ -1662,12 +1662,21 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Finds what we are running from, the nearest enemy we sense that
+     * Finds what we are running from. When we are frightened it is the
+     * creature that frightened us, otherwise the nearest enemy we sense that
      * threatens us. A trap is one after it has fired, see {@link Threat}.
      *
      * @return the tile of the threat, null if there is none
      */
     private Point findThreatLocation() {
+        Frightened frightened = entityData.getComponent(entityId, Frightened.class);
+        if (frightened != null && frightened.endTime > gameTimer.getGameTime()) {
+            IMapTileInformation tile = entityPositionLookup.getEntityLocation(frightened.entity);
+            if (tile != null) {
+                return tile.getLocation();
+            }
+        }
+
         Point ourLocation = getCreatureCoordinates();
         Point nearest = null;
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
