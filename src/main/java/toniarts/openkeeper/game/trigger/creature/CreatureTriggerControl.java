@@ -181,7 +181,9 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 break;
 
             case ZOOM_TO:
-                if (instanceControl != null) {
+
+                // DK II ignores the zoom while the keeper is possessing a creature, as it does the action point zooms
+                if (instanceControl != null && !getPlayer().isPossession()) {
                     getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
                 }
                 break;

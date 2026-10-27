@@ -38,8 +38,8 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * DK II doesn't play the level's camera paths or widescreen while the keeper
- * possesses a creature
+ * DK II doesn't play the level's camera paths, widescreen or camera zooms and
+ * rotations while the keeper possesses a creature
  */
 class PlayerTriggerControlPossessionTest {
 
@@ -52,34 +52,41 @@ class PlayerTriggerControlPossessionTest {
             stub(ICreaturesController.class, null), TRIGGER_ID, Player.KEEPER1_ID, recordingPlayerService());
 
     @Test
-    void cameraPathAndWidescreenArePlayedWhenNotPossessing() {
-        control.doAction(followCameraPath());
-        control.doAction(setWidescreen());
+    void cameraMovesArePlayedWhenNotPossessing() {
+        doCameraActions();
 
-        assertEquals(List.of("doTransition", "setWidescreen"), calls);
+        assertEquals(List.of("doTransition", "setWidescreen", "zoomViewToPoint", "rotateViewAroundPoint"), calls);
     }
 
     @Test
-    void cameraPathAndWidescreenAreSkippedWhilePossessing() {
+    void cameraMovesAreSkippedWhilePossessing() {
         keeper.setPossession(true);
 
-        control.doAction(followCameraPath());
-        control.doAction(setWidescreen());
+        doCameraActions();
 
         assertEquals(List.of(), calls);
     }
 
-    private static TriggerActionData followCameraPath() {
-        TriggerActionData action = new TriggerActionData(2, null, TriggerAction.ActionType.FOLLOW_CAMERA_PATH);
-        action.setUserData("pathId", (short) 50);
-        action.setUserData("actionPointId", (short) 1);
-        return action;
-    }
+    private void doCameraActions() {
+        TriggerActionData followCameraPath = new TriggerActionData(2, null, TriggerAction.ActionType.FOLLOW_CAMERA_PATH);
+        followCameraPath.setUserData("pathId", (short) 50);
+        followCameraPath.setUserData("actionPointId", (short) 1);
+        control.doAction(followCameraPath);
 
-    private static TriggerActionData setWidescreen() {
-        TriggerActionData action = new TriggerActionData(3, null, TriggerAction.ActionType.SET_WIDESCREEN_MODE);
-        action.setUserData("available", (short) 1);
-        return action;
+        TriggerActionData setWidescreen = new TriggerActionData(3, null, TriggerAction.ActionType.SET_WIDESCREEN_MODE);
+        setWidescreen.setUserData("available", (short) 1);
+        control.doAction(setWidescreen);
+
+        TriggerActionData zoomToActionPoint = new TriggerActionData(4, null, TriggerAction.ActionType.ZOOM_TO_ACTION_POINT);
+        zoomToActionPoint.setUserData("targetId", (short) 1);
+        control.doAction(zoomToActionPoint);
+
+        TriggerActionData rotateAroundActionPoint = new TriggerActionData(5, null, TriggerAction.ActionType.ROTATE_AROUND_ACTION_POINT);
+        rotateAroundActionPoint.setUserData("actionPointId", (short) 1);
+        rotateAroundActionPoint.setUserData("available", (short) 0);
+        rotateAroundActionPoint.setUserData("angle", 90);
+        rotateAroundActionPoint.setUserData("time", 5);
+        control.doAction(rotateAroundActionPoint);
     }
 
     private PlayerService recordingPlayerService() {

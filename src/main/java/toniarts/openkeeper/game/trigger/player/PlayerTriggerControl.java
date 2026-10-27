@@ -389,6 +389,9 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
+        if (isPossessing(playerId)) {
+            return;
+        }
 //        if (playerId == playerState.getPlayerId()) {
         ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
@@ -456,10 +459,11 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     /**
-     * DK II doesn't play the level's camera paths or widescreen while the
-     * keeper possesses a creature, the keeper just stays in the creature
+     * DK II doesn't play the level's camera paths, widescreen or camera
+     * zooms and rotations while the keeper possesses a creature, the keeper
+     * just stays in the creature
      *
-     * @param keeperId the keeper who would see the camera path
+     * @param keeperId the keeper who would see the camera move
      * @return true if the keeper is possessing a creature
      */
     private boolean isPossessing(short keeperId) {
@@ -497,7 +501,7 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void zoomToAP(short actionPointId) {
         ActionPoint ap = levelInfo.getActionPoint(actionPointId);
-        if (ap != null) {
+        if (ap != null && !isPossessing(playerId)) {
             playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
         }
     }
