@@ -35,6 +35,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.view.PossessionCameraControl.Direction;
 
 /**
@@ -189,6 +190,23 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
         }
     }
 
+    /**
+     * The Bile Demon's ability is used like a spell, its key selects it and
+     * the attack uses it (0x4100F0). The other abilities are used as their key
+     * goes down.
+     *
+     * @param ability 1 or 2, the creature's first or second ability
+     * @return whether the ability is used with the attack
+     */
+    private boolean isUsedWithAttack(int ability) {
+        Creature creature = stateManager.getState(PossessionCameraState.class).getCreature();
+        if (creature == null) {
+            return false;
+        }
+        Creature.SpecialAbility specialAbility = ability == 1 ? creature.getFirstPersonSpecialAbility1() : creature.getFirstPersonSpecialAbility2();
+        return specialAbility == Creature.SpecialAbility.PICK_UP_WORKERS;
+    }
+
     public EntityId getTarget() {
         return target;
     }
@@ -236,6 +254,16 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
                     if (action == Action.MELEE || spell > 0 || evt.isReleased()) {
                         stateManager.getState(GameClientState.class).getGameClientService().setPossessedAttack(evt.isPressed(), spell);
                     }
+
+                    // Or the selected ability
+                    int ability = switch (action) {
+                        case ABILITY_1 -> 1;
+                        case ABILITY_2 -> 2;
+                        default -> 0;
+                    };
+                    if (ability > 0 && evt.isPressed() && isUsedWithAttack(ability)) {
+                        stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(ability);
+                    }
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
                     // The server tells us when the possession has ended
@@ -248,9 +276,9 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
 
                 // The creature uses its ability as the key goes down, the server knows what it does
                 if (evt.isPressed() && !evt.isRepeating()) {
-                    if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_1.getDefaultValue()) {
+                    if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_1.getDefaultValue() && !isUsedWithAttack(1)) {
                         stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(1);
-                    } else if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_2.getDefaultValue()) {
+                    } else if (evt.getKeyCode() == (int) Settings.Setting.POSSESSED_SELECT_ABILITY_2.getDefaultValue() && !isUsedWithAttack(2)) {
                         stateManager.getState(GameClientState.class).getGameClientService().usePossessedAbility(2);
                     }
                 }

@@ -17,12 +17,13 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
  * A first person ability the possessed creature has turned on, such as the
- * Vampire's bat form or the Monk's prayer. It stays on until the keeper turns
- * it off or the possession ends.
+ * Vampire's bat form or the Monk's prayer, or a worker the Bile Demon
+ * carries. It stays on until the keeper turns it off or the possession ends.
  */
 public final class PossessedAbility implements EntityComponent {
 
@@ -34,6 +35,11 @@ public final class PossessedAbility implements EntityComponent {
      */
     public double checkTime;
 
+    /**
+     * The worker the creature carries, {@code null} if it carries nothing
+     */
+    public EntityId entity;
+
     public PossessedAbility() {
         // For serialization
     }
@@ -41,6 +47,11 @@ public final class PossessedAbility implements EntityComponent {
     public PossessedAbility(Creature.SpecialAbility ability, double checkTime) {
         this.ability = ability;
         this.checkTime = checkTime;
+    }
+
+    public PossessedAbility(Creature.SpecialAbility ability, double checkTime, EntityId entity) {
+        this(ability, checkTime);
+        this.entity = entity;
     }
 
 }

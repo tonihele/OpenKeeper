@@ -16,13 +16,16 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -45,6 +48,11 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
      * right up against it.
      */
     private static final float WALL_APPROACH_GAP = WorldUtils.TILE_WIDTH / 6f;
+
+    /**
+     * A carried worker is held half a tile in front of the creature
+     */
+    private static final float CARRY_DISTANCE = WorldUtils.TILE_WIDTH / 2;
 
     private final EntityData entityData;
     private final IMapController mapController;
@@ -83,6 +91,26 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
             if (!newPosition.equals(position.position) || movement.rotation != position.rotation) {
                 entityData.setComponent(entity.getId(), new Position(movement.rotation, newPosition));
             }
+            holdCarriedWorker(entity.getId(), newPosition, movement.rotation);
+        }
+    }
+
+    /**
+     * A worker the possessed creature carries is held in front of it, at the
+     * height of the creature (0x4831D0)
+     */
+    private void holdCarriedWorker(EntityId entityId, Vector3f position, float rotation) {
+        PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
+        Position workerPosition = possessedAbility != null && possessedAbility.entity != null
+                ? entityData.getComponent(possessedAbility.entity, Position.class) : null;
+        if (workerPosition == null) {
+            return;
+        }
+
+        float height = creaturesController.createController(entityId).getCreature().getAttributes().getHeight();
+        Vector3f carryPosition = position.add(FastMath.sin(rotation) * CARRY_DISTANCE, height, FastMath.cos(rotation) * CARRY_DISTANCE);
+        if (!carryPosition.equals(workerPosition.position) || rotation != workerPosition.rotation) {
+            entityData.setComponent(possessedAbility.entity, new Position(rotation, carryPosition));
         }
     }
 

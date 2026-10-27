@@ -210,6 +210,20 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final float POSSESSED_SPELL_REACH_SQUARED = 91;
 
+    /**
+     * A possessed Bile Demon picks up a worker closer than a tile (0x516EC0)
+     * and holds it half a tile in front of it (0x4831D0). DK II throws the
+     * worker with its physics, here it lands two tiles further ahead.
+     */
+    private static final float POSSESSED_PICK_UP_REACH = WorldUtils.TILE_WIDTH;
+    private static final float POSSESSED_CARRY_DISTANCE = WorldUtils.TILE_WIDTH / 2;
+    private static final float POSSESSED_THROW_DISTANCE = 2 * WorldUtils.TILE_WIDTH;
+
+    /**
+     * A thrown or dropped worker takes this much damage as it lands (0x4833C0)
+     */
+    private static final int THROWN_WORKER_DAMAGE = 50;
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -2759,7 +2773,87 @@ public final class CreatureController extends EntityController implements ICreat
         };
         if (specialAbility == Creature.SpecialAbility.TURN_TO_BAT || specialAbility == Creature.SpecialAbility.PRAY) {
             togglePossessedAbility(specialAbility);
+        } else if (specialAbility == Creature.SpecialAbility.PICK_UP_WORKERS) {
+            pickUpOrThrowWorker();
         }
+    }
+
+    /**
+     * Picks up the nearest worker of our keeper in front of us, or throws the
+     * one we carry (0x516EC0). The worker has to be within a tile and 60
+     * degrees of the view. It leaves its work and its AI while it is carried.
+     */
+    private void pickUpOrThrowWorker() {
+        PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
+        if (possessedAbility != null && possessedAbility.entity != null) {
+            entityData.removeComponent(entityId, PossessedAbility.class);
+            releaseWorker(possessedAbility.entity, POSSESSED_CARRY_DISTANCE + POSSESSED_THROW_DISTANCE);
+            return;
+        }
+
+        Position position = entityData.getComponent(entityId, Position.class);
+        EntityId nearestWorker = null;
+        float nearestDistance = POSSESSED_PICK_UP_REACH;
+        for (Point tile : WorldUtils.getSurroundingTiles(mapController.getMapData(), WorldUtils.vectorToPoint(position.position), true)) {
+            for (EntityId entity : entityPositionLookup.getEntitiesInLocation(tile)) {
+                float distance = getDistanceToCreature(entity);
+                if (distance < nearestDistance && isOwnWorker(entity) && isInFront(position, entity)) {
+                    nearestDistance = distance;
+                    nearestWorker = entity;
+                }
+            }
+        }
+        if (nearestWorker == null) {
+            return;
+        }
+
+        creaturesController.createController(nearestWorker).unassingCurrentTask();
+        entityData.removeComponent(nearestWorker, CreatureAi.class);
+        entityData.removeComponent(nearestWorker, Navigation.class);
+        CreatureViewState viewState = entityData.getComponent(nearestWorker, CreatureViewState.class);
+        if (viewState != null) {
+            entityData.setComponent(nearestWorker, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.IN_HAND));
+        }
+        entityData.setComponent(entityId, new PossessedAbility(Creature.SpecialAbility.PICK_UP_WORKERS, gameTimer.getGameTime(), nearestWorker));
+    }
+
+    private boolean isOwnWorker(EntityId entity) {
+        Owner owner = entityData.getComponent(entity, Owner.class);
+        return !entityId.equals(entity) && creaturesController.isValidEntity(entity) && owner != null
+                && owner.ownerId == getOwnerId() && !isIncapacitated(entity) && creaturesController.createController(entity).isWorker();
+    }
+
+    /**
+     * Lets go of the worker we carry. It falls down from our height and takes
+     * damage as it lands (0x4833C0). It lands the distance ahead of us, or
+     * short of the first solid tile on the way.
+     *
+     * @param worker the worker we carry
+     * @param distance how far ahead of us it lands
+     */
+    private void releaseWorker(EntityId worker, float distance) {
+
+        // The keeper's hand may have taken it, or it has died
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (position == null || entityData.getComponent(worker, Position.class) == null) {
+            return;
+        }
+
+        int steps = Math.round(distance / (WorldUtils.TILE_WIDTH / 4));
+        Vector3f step = new Vector3f(FastMath.sin(position.rotation), 0, FastMath.cos(position.rotation)).multLocal(distance / steps);
+        Vector3f landing = position.position.clone();
+        for (int i = 0; i < steps; i++) {
+            Point tile = WorldUtils.vectorToPoint(landing.add(step));
+            if (mapController.getMapData().getTile(tile) == null || mapController.isSolid(tile)) {
+                break;
+            }
+            landing.addLocal(step);
+        }
+        landing.y += creature.getAttributes().getHeight();
+
+        entityData.setComponent(worker, new Position(position.rotation, landing));
+        entityData.setComponent(worker, new CreatureFall());
+        setDamage(worker, THROWN_WORKER_DAMAGE);
     }
 
     /**
@@ -3102,10 +3196,13 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.setComponent(entityId, new Mana(manaGeneration));
         }
 
-        // The abilities only last the possession
+        // The abilities only last the possession, a carried worker falls down (0x4831D0)
         PossessedAbility possessedAbility = entityData.getComponent(entityId, PossessedAbility.class);
         if (possessedAbility != null) {
             togglePossessedAbility(possessedAbility.ability);
+        }
+        if (possessedAbility != null && possessedAbility.entity != null) {
+            releaseWorker(possessedAbility.entity, POSSESSED_CARRY_DISTANCE);
         }
 
         entityData.removeComponent(entityId, PossessedMovement.class);

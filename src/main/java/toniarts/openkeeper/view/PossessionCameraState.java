@@ -403,6 +403,15 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         }
     }
 
+    /**
+     * Get the data of the possessed creature
+     *
+     * @return the possessed creature, {@code null} if there is none
+     */
+    public Creature getCreature() {
+        return creature;
+    }
+
     public void setTarget(EntityId target) {
         this.target = target;
         creature = null;
