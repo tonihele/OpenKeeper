@@ -77,6 +77,11 @@ public class PlayerEntityViewState extends AbstractAppState {
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
 
     /**
+     * "Creature Dazed Effect", the stars over a creature lying stunned after it was dropped
+     */
+    private static final int DAZED_EFFECT_ID = 101;
+
+    /**
      * Used where no fog of war applies: everything is simply always visible.
      */
     private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
@@ -364,7 +369,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         CreatureViewState viewState = e.get(CreatureViewState.class);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
+        boolean wasAlreadyFallen = control.getCurrentState() == Creature.AnimationType.FALLBACK;
         control.setTargetState(viewState.state);
+
+        // A creature that lands stunned from the hand gets the dazed stars over its head, once per landing
+        if (!wasAlreadyFallen && viewState.state == Creature.AnimationType.FALLBACK && object instanceof Node creatureNode) {
+            Vector3f overHead = new Vector3f(0, kwdFile.getCreature(viewState.creatureId).getAttributes().getHeight(), 0);
+            stateManager.getState(EffectManagerState.class).load(creatureNode, overHead, DAZED_EFFECT_ID, false);
+        }
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
