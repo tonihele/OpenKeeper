@@ -21,7 +21,7 @@ import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 
 /**
  * Clients view on game service
@@ -151,7 +151,7 @@ public interface GameSession {
      * @param cheat the cheat to trigger
      */
     @Asynchronous
-    public void triggerCheat(CheatState.CheatType cheat);
+    public void triggerCheat(CheatType cheat);
 
     /**
      * Trigger a cheat that spawns creatures at the player's dungeon heart

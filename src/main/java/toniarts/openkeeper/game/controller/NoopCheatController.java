@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.state.CheatType;
 
 /**
  * Cheats are not allowed in multiplayer games, so this implementation does nothing
@@ -24,7 +24,7 @@ import toniarts.openkeeper.game.state.CheatState;
 public final class NoopCheatController implements ICheatController {
 
     @Override
-    public void onCheat(CheatState.CheatType cheat, short playerId) {
+    public void onCheat(CheatType cheat, short playerId) {
         // No cheating in multiplayer
     }
 

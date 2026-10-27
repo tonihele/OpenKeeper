@@ -44,47 +44,6 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
     private String cheat = "";
     private boolean success = false;
 
-    public enum CheatType {
-
-        MONEY("show me the money"),
-        MANA("ha ha thisaway ha ha thataway"),
-        LEVEL_MAX("feel the power"),
-        UNLOCK_ROOMS("this is my church"),
-        UNLOCK_SPELLS("i believe its magic"),
-        UNLOCK_DOORS_TRAPS("fit the best"),
-        REMOVE_FOW("now the rain has gone"),
-        RESET_FOW("now the rain has come back"),
-        LOOSE_LEVEL("fear the reaper"),
-        WIN_LEVEL("do not fear the reaper");
-        private final String cheatMessage;
-
-        private CheatType(final String cheatMessage) {
-            this.cheatMessage = cheatMessage;
-        }
-
-        public String getMessage() {
-            return this.cheatMessage;
-        }
-
-        public static CheatType getCheatType(final String cheatMessage) {
-            for (CheatType type : CheatType.values()) {
-                if (type.getMessage().equals(cheatMessage)) {
-                    return type;
-                }
-            }
-            return null;
-        }
-
-        public static boolean hasCheat(final String cheatMessage) {
-            for (CheatType type : CheatType.values()) {
-                if (type.getMessage().startsWith(cheatMessage)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     public CheatState(final Application app) {
         this.app = app;
         super.setEnabled(false);

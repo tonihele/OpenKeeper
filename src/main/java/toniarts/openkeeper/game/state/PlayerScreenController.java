@@ -52,7 +52,6 @@ import de.lessvoid.nifty.spi.sound.SoundHandle;
 import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -733,7 +732,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (resource != null) {
             String levelResource = "Interface/Texts/".concat(resource);
             try {
-                nifty.addResourceBundle("level", Main.getResourceBundle(levelResource));
+                nifty.addResourceBundle("level", Utils.getResourceBundle(levelResource));
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Failed to load the level dictionary!", ex);
             }

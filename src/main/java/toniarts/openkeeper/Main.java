@@ -49,20 +49,15 @@ import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
-import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import org.lwjgl.opengl.*;
@@ -84,6 +79,7 @@ import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.video.MovieState;
 
 /**
@@ -253,6 +249,8 @@ public final class Main extends SimpleApplication {
 
         // Init the user settings (which in JME are app settings)
         app.settings = Settings.getInstance().getAppSettings();
+        app.settings.setTitle(TITLE);
+        app.settings.setIcons(getApplicationIcons());
     }
 
     /**
@@ -489,14 +487,14 @@ public final class Main extends SimpleApplication {
             private void setupNiftyResourceBundles(Nifty nifty) {
 
                 // For main menu
-                nifty.addResourceBundle("menu", Main.getResourceBundle("Interface/Texts/Text"));
-                nifty.addResourceBundle("speech", Main.getResourceBundle("Interface/Texts/Speech"));
-                nifty.addResourceBundle("mpd1", Main.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
-                nifty.addResourceBundle("mpd2", Main.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
-                nifty.addResourceBundle("mpd3", Main.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
-                nifty.addResourceBundle("mpd4", Main.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
-                nifty.addResourceBundle("mpd5", Main.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
-                nifty.addResourceBundle("mpd6", Main.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
+                nifty.addResourceBundle("menu", Utils.getResourceBundle("Interface/Texts/Text"));
+                nifty.addResourceBundle("speech", Utils.getResourceBundle("Interface/Texts/Speech"));
+                nifty.addResourceBundle("mpd1", Utils.getResourceBundle("Interface/Texts/LEVELMPD1_BRIEFING"));
+                nifty.addResourceBundle("mpd2", Utils.getResourceBundle("Interface/Texts/LEVELMPD2_BRIEFING"));
+                nifty.addResourceBundle("mpd3", Utils.getResourceBundle("Interface/Texts/LEVELMPD3_BRIEFING"));
+                nifty.addResourceBundle("mpd4", Utils.getResourceBundle("Interface/Texts/LEVELMPD4_BRIEFING"));
+                nifty.addResourceBundle("mpd5", Utils.getResourceBundle("Interface/Texts/LEVELMPD5_BRIEFING"));
+                nifty.addResourceBundle("mpd6", Utils.getResourceBundle("Interface/Texts/LEVELMPD6_BRIEFING"));
             }
         };
         this.stateManager.attach(gameLoader);
@@ -630,26 +628,6 @@ public final class Main extends SimpleApplication {
             fpp.addFilter(ssaoFilter);
             viewPort.addProcessor(fpp);
         }
-    }
-
-    /**
-     * Gets current locale's resource bundle (UTF-8)
-     *
-     * @param baseName base name of the bundle
-     * @return the resource bundle
-     */
-    public static ResourceBundle getResourceBundle(String baseName) {
-        Path file = Paths.get(AssetsConverter.getAssetsFolder());
-        try {
-            URL[] urls = {file.toUri().toURL()};
-            ClassLoader loader = new URLClassLoader(urls);
-            return ResourceBundle.getBundle(baseName, Locale.getDefault(), loader);
-        } catch (Exception e) {
-            logger.log(Level.ERROR, "Failed to locate the resource bundle " + baseName + " in " + file + "!", e);
-        }
-
-        // Works only from the IDE
-        return ResourceBundle.getBundle(baseName);
     }
 
     @Override
