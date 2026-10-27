@@ -16,18 +16,34 @@
  */
 package toniarts.openkeeper.game.component;
 
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Tagging component for a creature that has just been knocked off its feet,
- * by a lightning strike for example. The creature falls back and gets up again
- * like it does after being dropped from the hand. Consumed by the
- * {@link toniarts.openkeeper.game.logic.KnockdownSystem}.
+ * Movement intent of a possessed creature, as steered by its keeper
  */
-public final class KnockedDown implements EntityComponent {
+public final class PossessedMovement implements EntityComponent {
 
-    public KnockedDown() {
+    public static final byte SPEED_WALK = 0;
+    public static final byte SPEED_RUN = 1;
+    public static final byte SPEED_CREEP = 2;
+
+    /**
+     * Normalized movement direction on the map plane (x, z), zero when standing
+     * still
+     */
+    public Vector2f direction;
+    public float rotation;
+    public float speed;
+
+    public PossessedMovement() {
         // For serialization
+    }
+
+    public PossessedMovement(Vector2f direction, float rotation, float speed) {
+        this.direction = direction;
+        this.rotation = rotation;
+        this.speed = speed;
     }
 
 }
