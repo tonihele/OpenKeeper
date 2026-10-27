@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.sound;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
@@ -28,13 +30,13 @@ public class SoundEvent {
 
     private final int id;
     private final int priority;
-    private final int flags;
+    private final EnumSet<SoundEventFlag> flags;
     private final List<SoundEventGroup> groups;
 
-    public SoundEvent(int id, int priority, int flags, List<SoundEventGroup> groups) {
+    public SoundEvent(int id, int priority, Set<SoundEventFlag> flags, List<SoundEventGroup> groups) {
         this.id = id;
         this.priority = priority;
-        this.flags = flags;
+        this.flags = flags.isEmpty() ? EnumSet.noneOf(SoundEventFlag.class) : EnumSet.copyOf(flags);
         this.groups = groups;
     }
 
@@ -49,8 +51,8 @@ public class SoundEvent {
         return priority;
     }
 
-    public int getFlags() {
-        return flags;
+    public Set<SoundEventFlag> getFlags() {
+        return Collections.unmodifiableSet(flags);
     }
 
     public List<SoundEventGroup> getGroups() {
@@ -58,19 +60,34 @@ public class SoundEvent {
     }
 
     public SoundVoiceBehaviour getBehaviour() {
-        return SoundEventFlags.behaviourOf(flags);
+        if (flags.contains(SoundEventFlag.BACKEND_EVENT)) {
+            return SoundVoiceBehaviour.BACKEND_EVENT;
+        }
+        if (flags.contains(SoundEventFlag.REPEATING)) {
+            if (flags.contains(SoundEventFlag.LOOP_EACH)) {
+                return SoundVoiceBehaviour.REPEAT_LOOP_EACH;
+            }
+            if (flags.contains(SoundEventFlag.SEGMENTED)) {
+                return SoundVoiceBehaviour.LINEAR_SEQUENCE;
+            }
+            return SoundVoiceBehaviour.REPEAT;
+        }
+        if (flags.contains(SoundEventFlag.SEGMENTED)) {
+            return SoundVoiceBehaviour.PLAY_ONCE_SEGMENTED;
+        }
+        return SoundVoiceBehaviour.ONE_SHOT;
     }
 
     public boolean isDeferred() {
-        return SoundEventFlags.isSet(flags, SoundEventFlags.DEFERRED);
+        return flags.contains(SoundEventFlag.DEFERRED);
     }
 
     public boolean isSegmented() {
-        return SoundEventFlags.isSet(flags, SoundEventFlags.SEGMENTED);
+        return flags.contains(SoundEventFlag.SEGMENTED);
     }
 
     public boolean hasPropertyLinks() {
-        return SoundEventFlags.isSet(flags, SoundEventFlags.PROPERTY_LINKS);
+        return flags.contains(SoundEventFlag.PROPERTY_LINKS);
     }
 
     @Nullable
@@ -84,7 +101,7 @@ public class SoundEvent {
 
     @Override
     public String toString() {
-        return "SoundEvent[0x" + Integer.toHexString(id) + ", prio=" + priority + ", flags=0x"
-                + Integer.toHexString(flags) + ", groups=" + groups.size() + ']';
+        return "SoundEvent[0x" + Integer.toHexString(id) + ", prio=" + priority + ", flags=" + flags
+                + ", groups=" + groups.size() + ']';
     }
 }

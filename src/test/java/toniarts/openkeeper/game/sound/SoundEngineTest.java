@@ -253,9 +253,9 @@ class SoundEngineTest {
 
     private static SoundCategory category() {
         Map<Integer, SoundEvent> events = new HashMap<>();
-        events.put(EVENT, new SoundEvent(EVENT, 100, 0, List.of(group())));
-        events.put(LOOP_EVENT, new SoundEvent(LOOP_EVENT, 100, (SoundEventFlags.REPEATING | SoundEventFlags.LOOP_EACH), List.of(group())));
-        events.put(DEFERRED_EVENT, new SoundEvent(DEFERRED_EVENT, 100, SoundEventFlags.DEFERRED, List.of(group())));
+        events.put(EVENT, new SoundEvent(EVENT, 100, EnumSet.noneOf(SoundEventFlag.class), List.of(group())));
+        events.put(LOOP_EVENT, new SoundEvent(LOOP_EVENT, 100, EnumSet.of(SoundEventFlag.REPEATING, SoundEventFlag.LOOP_EACH), List.of(group())));
+        events.put(DEFERRED_EVENT, new SoundEvent(DEFERRED_EVENT, 100, EnumSet.of(SoundEventFlag.DEFERRED), List.of(group())));
         // channel 0 is the master channel, channel 1 the music channel
         return new SoundCategory("TEST", 0b11, events);
     }

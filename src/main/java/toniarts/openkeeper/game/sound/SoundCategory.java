@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.data.IIndexable;
+import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.sound.BankMapFile;
 import toniarts.openkeeper.tools.convert.sound.BankMapFileEntry;
 import toniarts.openkeeper.tools.convert.sound.SdtFile;
@@ -372,7 +373,8 @@ int entryCount = cursor.readInt();
             }
         }
 
-        return new SoundEvent(header.id, header.priority, header.flags, eventGroups);
+        return new SoundEvent(header.id, header.priority,
+                ConversionUtils.parseFlagValue(header.flags, SoundEventFlag.class), eventGroups);
     }
 
     @Nullable

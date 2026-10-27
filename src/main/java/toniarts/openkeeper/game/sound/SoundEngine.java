@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -433,15 +434,15 @@ public class SoundEngine {
      * Repeaters and segmented loops play a clip after another, they never end by themselves.
      */
     private static Chain chainOf(SoundEvent event) {
-        int flags = event.getFlags();
-        if (!SoundEventFlags.isSet(flags, SoundEventFlags.REPEATING)
-                || SoundEventFlags.isSet(flags, SoundEventFlags.PROPERTY_LINKS)
-                || SoundEventFlags.isSet(flags, SoundEventFlags.LOOP_EACH)
-                || SoundEventFlags.isSet(flags, SoundEventFlags.LINEAR_SEQUENCE)
-                || SoundEventFlags.isSet(flags, SoundEventFlags.BACKEND_EVENT)) {
+        Set<SoundEventFlag> flags = event.getFlags();
+        if (!flags.contains(SoundEventFlag.REPEATING)
+                || flags.contains(SoundEventFlag.PROPERTY_LINKS)
+                || flags.contains(SoundEventFlag.LOOP_EACH)
+                || flags.contains(SoundEventFlag.LINEAR_SEQUENCE)
+                || flags.contains(SoundEventFlag.BACKEND_EVENT)) {
             return Chain.NONE;
         }
-        return SoundEventFlags.isSet(flags, SoundEventFlags.SEGMENTED) ? Chain.SEGMENTED_LOOP : Chain.REPEATER;
+        return flags.contains(SoundEventFlag.SEGMENTED) ? Chain.SEGMENTED_LOOP : Chain.REPEATER;
     }
 
     /**
