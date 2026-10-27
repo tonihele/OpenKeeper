@@ -191,10 +191,11 @@ public interface GameSession {
      * @param direction normalized movement direction on the map plane, zero
      * vector to stand still
      * @param rotation the facing of the creature
+     * @param pitch the pitch of the view, positive looking up, in radians
      * @param speedMode one of the {@code PossessedMovement.SPEED_*} constants
      */
     @Asynchronous
-    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+    public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode);
 
     /**
      * Start or stop attacking with the currently possessed creature. While the

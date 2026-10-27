@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -26,8 +27,10 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CastShot;
@@ -40,6 +43,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -84,6 +88,7 @@ class PossessedSpellTest {
     private Map<Variable.CreatureStats.StatType, Variable.CreatureFirstPerson> firstPersonStats;
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private List<Object> shotTargets;
+    private Set<Point> walls;
     private double gameTime;
     private EntityId us;
 
@@ -94,6 +99,7 @@ class PossessedSpellTest {
         firstPersonStats = new HashMap<>();
         gameSettings = new HashMap<>();
         shotTargets = new ArrayList<>();
+        walls = new HashSet<>();
         gameTime = 10;
 
         // A level 1 creature that gets Lightning only at level 4
@@ -203,6 +209,48 @@ class PossessedSpellTest {
     }
 
     @Test
+    void doesNotAimThroughAWall() {
+        createCreature(HERO, new Vector3f(10, 0, 7));
+        walls.add(new Point(10, 4));
+
+        cast(createController(), 1);
+
+        assertFalse(shotTargets.get(0) instanceof EntityId);
+    }
+
+    @Test
+    void aimsPastAWallThatIsNotInTheWay() {
+        EntityId enemy = createCreature(HERO, new Vector3f(10, 0, 7));
+        walls.add(new Point(12, 4));
+
+        cast(createController(), 1);
+
+        assertEquals(List.of(enemy), shotTargets);
+    }
+
+    @Test
+    void shotFliesInTheDirectionOfThePitch() {
+        entityData.setComponent(us, new PossessedMovement(new Vector2f(), 0, 0.5f, 0));
+
+        cast(createController(), 1);
+
+        Vector3f aim = (Vector3f) shotTargets.get(0);
+        assertTrue(aim.y > 0);
+        assertEquals(10, aim.x, 0.001f);
+        assertTrue(aim.z > 2);
+    }
+
+    @Test
+    void doesNotAimAtACreatureBelowTheViewWhenLookingUp() {
+        createCreature(HERO, new Vector3f(10, 0, 7));
+        entityData.setComponent(us, new PossessedMovement(new Vector2f(), 0, 0.5f, 0));
+
+        cast(createController(), 1);
+
+        assertFalse(shotTargets.get(0) instanceof EntityId);
+    }
+
+    @Test
     void doesNotAimBeyondTheReach() {
         createCreature(HERO, new Vector3f(10, 0, 12));
 
@@ -297,7 +345,11 @@ class PossessedSpellTest {
                 (name, args) -> "isValidEntity".equals(name) ? entityData.getComponent((EntityId) args[0], CreatureComponent.class) != null : null);
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class,
                 (name, args) -> "getTile".equals(name) ? getTile((Integer) args[0], (Integer) args[1]) : null);
-        IMapController mapController = stub(IMapController.class, (name, args) -> "getMapData".equals(name) ? mapData : null);
+        IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
+            case "getMapData" -> mapData;
+            case "isSolid" -> walls.contains((Point) args[0]);
+            default -> null;
+        });
         IShotsController shotsController = stub(IShotsController.class, (name, args) -> {
             if ("fireShot".equals(name)) {
                 shotTargets.add(args[5]);

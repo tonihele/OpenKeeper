@@ -436,9 +436,9 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+    public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onSetPossessedMovement(direction, rotation, speedMode, PLAYER_ID);
+            listener.onSetPossessedMovement(direction, rotation, pitch, speedMode, PLAYER_ID);
         }
     }
 

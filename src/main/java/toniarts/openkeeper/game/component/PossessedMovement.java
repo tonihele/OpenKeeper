@@ -34,15 +34,21 @@ public final class PossessedMovement implements EntityComponent {
      */
     public Vector2f direction;
     public float rotation;
+
+    /**
+     * The pitch of the view, positive looking up, in radians
+     */
+    public float pitch;
     public float speed;
 
     public PossessedMovement() {
         // For serialization
     }
 
-    public PossessedMovement(Vector2f direction, float rotation, float speed) {
+    public PossessedMovement(Vector2f direction, float rotation, float pitch, float speed) {
         this.direction = direction;
         this.rotation = rotation;
+        this.pitch = pitch;
         this.speed = speed;
     }
 

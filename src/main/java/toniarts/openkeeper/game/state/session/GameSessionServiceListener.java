@@ -189,11 +189,12 @@ public interface GameSessionServiceListener {
      *
      * @param direction normalized movement direction on the map plane
      * @param rotation the facing of the creature
+     * @param pitch the pitch of the view, positive looking up, in radians
      * @param speedMode one of the {@code PossessedMovement.SPEED_*} constants
      * @param playerId the player who is possessing
      */
     @Asynchronous
-    public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId);
+    public void onSetPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode, short playerId);
 
     /**
      * Player starts or stops attacking with the possessed creature

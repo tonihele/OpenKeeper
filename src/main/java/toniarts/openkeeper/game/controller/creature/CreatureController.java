@@ -2650,7 +2650,7 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+    public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode) {
         // Use the level scaled speeds, same as the AI movement does
         Creature.Attributes attributes = creature.getAttributes();
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
@@ -2671,7 +2671,7 @@ public final class CreatureController extends EntityController implements ICreat
             speed *= new Vector2f(forward * (forward < 0 ? POSSESSED_BACKWARD_SPEED_FACTOR : 1f),
                     sideways * POSSESSED_STRAFE_SPEED_FACTOR).length();
         }
-        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
+        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, pitch, speed * SPEED_MULTIPLIER));
     }
 
     @Override
@@ -2770,7 +2770,9 @@ public final class CreatureController extends EntityController implements ICreat
                     gameTimer.getGameTime() + getShotDelay(attack.creatureSpellId)));
             releaseCastShot();
         } else {
-            Vector3f ahead = new Vector3f(FastMath.sin(position.rotation), 0, FastMath.cos(position.rotation)).multLocal(attack.range);
+            PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);
+            float pitch = movement != null ? movement.pitch : 0;
+            Vector3f ahead = getViewDirection(position.rotation, pitch).multLocal(attack.range);
             Vector3f start = getShotPosition(attack.creatureSpellId, position.position.add(ahead));
             if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
                     getOwnerId(), start, start.add(ahead), entityId, attack.range)) {
@@ -2779,6 +2781,18 @@ public final class CreatureController extends EntityController implements ICreat
         }
         entityData.setComponent(spellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
         entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.CAST_SPELL));
+    }
+
+    /**
+     * The direction a possessed creature looks in
+     *
+     * @param rotation the facing of the creature
+     * @param pitch the pitch of the view, positive looking up, in radians
+     * @return the unit vector of the view
+     */
+    private static Vector3f getViewDirection(float rotation, float pitch) {
+        return new Vector3f(FastMath.sin(rotation) * FastMath.cos(pitch), FastMath.sin(pitch),
+                FastMath.cos(rotation) * FastMath.cos(pitch));
     }
 
     /**
@@ -2814,7 +2828,10 @@ public final class CreatureController extends EntityController implements ICreat
      * closest to where the possessed creature looks. It has to be within the
      * first person accuracy, which DK II compares to one minus the cosine of
      * the angle off the view as FIRST_PERSON_ACCURACY_ANGLE_DEGREES / 720. So
-     * the 45 of the levels lets through about 20 degrees.
+     * the 45 of the levels lets through about 20 degrees. The view includes
+     * its pitch, and DK II also wants a line of sight to the creature
+     * (0x4512F0), here that is no solid tile in between. Doors are not
+     * checked.
      *
      * @param position the position of the possessed creature
      * @param ownCreatures whether the spell is for our own creatures rather
@@ -2825,6 +2842,8 @@ public final class CreatureController extends EntityController implements ICreat
         Variable.MiscVariable accuracy = gameSettings.get(Variable.MiscVariable.MiscType.FIRST_PERSON_ACCURACY_ANGLE_DEGREES);
         float bestOffView = (accuracy != null ? accuracy.getValue() : 45) / 720f;
         EntityId bestTarget = null;
+        PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);
+        Vector3f view = getViewDirection(position.rotation, movement != null ? movement.pitch : 0);
         Point center = WorldUtils.vectorToPoint(position.position);
         int reach = (int) FastMath.ceil(FastMath.sqrt(POSSESSED_SPELL_REACH_SQUARED));
         for (int x = center.x - reach; x <= center.x + reach; x++) {
@@ -2849,8 +2868,9 @@ public final class CreatureController extends EntityController implements ICreat
                         continue;
                     }
 
-                    float offView = 1 - (FastMath.sin(position.rotation) * dx + FastMath.cos(position.rotation) * dz) / FastMath.sqrt(distanceSquared);
-                    if (offView < bestOffView) {
+                    float dy = targetPosition.y - position.position.y;
+                    float offView = 1 - (view.x * dx + view.y * dy + view.z * dz) / FastMath.sqrt(distanceSquared + dy * dy);
+                    if (offView < bestOffView && hasLineOfSight(position.position, targetPosition)) {
                         bestOffView = offView;
                         bestTarget = entity;
                     }
@@ -2859,6 +2879,26 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return bestTarget;
+    }
+
+    /**
+     * Whether there are no solid tiles between two points on the map. The
+     * tiles the points are on don't count.
+     */
+    private boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        Point startTile = WorldUtils.vectorToPoint(from);
+        Point endTile = WorldUtils.vectorToPoint(to);
+        float dx = to.x - from.x;
+        float dz = to.z - from.z;
+        int steps = (int) FastMath.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / 0.25f);
+        for (int i = 1; i < steps; i++) {
+            Point tile = WorldUtils.vectorToPoint(from.x + dx * i / steps, from.z + dz * i / steps);
+            if (!tile.equals(startTile) && !tile.equals(endTile) && mapController.isSolid(tile)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

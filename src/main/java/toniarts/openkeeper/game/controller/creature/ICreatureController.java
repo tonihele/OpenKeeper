@@ -472,9 +472,10 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      *
      * @param direction movement direction on the map plane, may be a zero vector
      * @param rotation the wanted rotation
+     * @param pitch the pitch of the view, positive looking up, in radians
      * @param speedMode one of {@link toniarts.openkeeper.game.component.PossessedMovement}'s speed constants
      */
-    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+    public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode);
 
     /**
      * Sets the attack intent for a possessed creature, as given by its keeper.

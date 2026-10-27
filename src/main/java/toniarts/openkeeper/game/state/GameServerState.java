@@ -331,10 +331,10 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
-        public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
+        public void onSetPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode, short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
+                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, pitch, speedMode);
             }
         }
 

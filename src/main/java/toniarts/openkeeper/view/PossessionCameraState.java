@@ -90,6 +90,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
 
     private final Vector2f sentDirection = new Vector2f();
     private float sentRotation;
+    private float sentPitch;
     private byte sentSpeedMode;
     private float timeSinceSend;
 
@@ -181,6 +182,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             cam.setAxes(Vector3f.UNIT_X, Vector3f.UNIT_Y, Vector3f.UNIT_Z);
         }
         sentRotation = getFacing();
+        sentPitch = getPitch();
     }
 
     private void updateCameraLocation() {
@@ -302,14 +304,17 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
 
         Vector2f direction = computeMovementDirection();
         float rotation = getFacing();
+        float pitch = getPitch();
         byte speedMode = getSpeedMode();
 
         boolean changed = hasMovementChanged(direction, speedMode);
-        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD;
+        boolean rotated = Math.abs(rotation - sentRotation) > ROTATION_SEND_THRESHOLD
+                || Math.abs(pitch - sentPitch) > ROTATION_SEND_THRESHOLD;
         if (changed || (rotated && timeSinceSend >= ROTATION_SEND_INTERVAL)) {
-            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, speedMode);
+            stateManager.getState(GameClientState.class).getGameClientService().setPossessedMovement(direction, rotation, pitch, speedMode);
             sentDirection.set(direction);
             sentRotation = rotation;
+            sentPitch = pitch;
             sentSpeedMode = speedMode;
             timeSinceSend = 0;
         }
@@ -374,6 +379,13 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private float getFacing() {
         Vector3f dir = app.getCamera().getDirection();
         return FastMath.atan2(dir.x, dir.z);
+    }
+
+    /**
+     * The pitch of the camera, positive looking up, in radians
+     */
+    private float getPitch() {
+        return FastMath.asin(FastMath.clamp(app.getCamera().getDirection().y, -1, 1));
     }
 
     private void resetMovement() {

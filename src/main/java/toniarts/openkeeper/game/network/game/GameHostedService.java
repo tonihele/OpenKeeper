@@ -678,9 +678,9 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
-                listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+                listener.onSetPossessedMovement(direction, rotation, pitch, speedMode, clientInfo.getKeeper().getId());
             }
         }
 
