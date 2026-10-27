@@ -680,6 +680,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
             return;
         }
 
+        // The previous possession's icons
+        for (Element element : contentPanel.getChildren()) {
+            element.markForRemoval();
+        }
+
         String ability = getAbilityResourceName(creature.getFirstPersonSpecialAbility1());
         if (ability != null) {
             createCreatureAbilityIcon(ability, 1).build(contentPanel);
@@ -972,10 +977,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     public void setMana(int mana, int manaLoose, int manaGain) {
-        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
-        hud.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
-        hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
-        hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
+
+        // The possession screen shows the mana too
+        for (String screenId : new String[]{SCREEN_HUD_ID, SCREEN_POSSESSION_ID}) {
+            Screen manaScreen = nifty.getScreen(screenId);
+            manaScreen.findNiftyControl("mana", Label.class).setText(Integer.toString(mana));
+            manaScreen.findNiftyControl("manaGet", Label.class).setText(Integer.toString(manaGain));
+            manaScreen.findNiftyControl("manaLose", Label.class).setText(Integer.toString(manaLoose));
+        }
         updateSpellAffordability(mana - manaLoose);
     }
 
