@@ -28,8 +28,12 @@ import java.util.random.RandomGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
+import toniarts.openkeeper.game.component.CasinoDisco;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -45,13 +49,14 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Gambling in the Casino follows the rules of the original: once a second the
  * creature's mood and gold change by the pay out setting of the casino, every
  * four seconds the keeper pays or takes the casino's share, and the creature
- * may hit the jackpot
+ * may hit the jackpot and become the keeper's big winner
  */
 class GambleTest {
 
@@ -60,6 +65,7 @@ class GambleTest {
     private static final int JACKPOT = Gamble.JACKPOT_NUMBER;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final EntityId casinoId = entityData.createEntity();
     private final Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
     private final List<Integer> keeperPayments = new ArrayList<>();
     private final List<int[]> goldPiles = new ArrayList<>();
@@ -76,10 +82,12 @@ class GambleTest {
         setting(MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND, 5000);
         setting(MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND, 20000);
         setting(MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT, 1000);
+        setting(MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT, 240);
         setting(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, 2000);
 
         creatureId = entityData.createEntity();
-        entityData.setComponents(creatureId, new Gold(100, 400), new CreatureMood(10000, 0, 0, 10000, 0, 3000));
+        entityData.setComponents(creatureId, new Gold(100, 400), new CreatureMood(10000, 0, 0, 10000, 0, 3000),
+                new Owner(KEEPER, KEEPER), creatureComponent(300));
         creature = creature();
     }
 
@@ -175,26 +183,51 @@ class GambleTest {
     }
 
     @Test
-    void theKeeperPaysTheJackpotFromTheTreasury() {
-        entityData.setComponent(creatureId, new Gold(100, 2000));
+    void theJackpotMakesTheCreatureTheKeepersBigWinner() {
         Gamble gamble = gamble(PayOut.SMILES, JACKPOT);
 
-        gamble.executeTask(creature, 1f);
+        gamble.executeTask(creature, 3f);
 
-        assertEquals(List.of(1000), keeperPayments);
-        assertEquals(1101, gold());
+        CasinoBigWinner bigWinner = entityData.getComponent(creatureId, CasinoBigWinner.class);
+        assertEquals(240, bigWinner.timeLeft);
+        assertEquals(1000, bigWinner.winnings);
+        assertEquals(0, bigWinner.slapCount);
+
+        // It collects the winnings later, and stops gambling
+        assertTrue(keeperPayments.isEmpty());
+        assertEquals(101, gold());
+        assertFalse(gamble.isValid(creature));
     }
 
     @Test
-    void theJackpotIsWhatTheKeeperHasWhenThatIsLess() {
-        keeperGold = 300;
-        Gamble gamble = gamble(PayOut.SMILES, JACKPOT);
+    void theBigWinnerWinsTheKeepersWagesWhenTheyAreMoreThanTheJackpot() {
+        EntityId otherCreature = entityData.createEntity();
+        entityData.setComponents(otherCreature, new Owner(KEEPER, KEEPER), creatureComponent(900));
+        EntityId enemyCreature = entityData.createEntity();
+        entityData.setComponents(enemyCreature, new Owner((short) 4, (short) 4), creatureComponent(5000));
 
-        gamble.executeTask(creature, 1f);
+        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1f);
 
-        assertEquals(List.of(1000), keeperPayments);
-        assertEquals(0, keeperGold);
-        assertEquals(400, gold());
+        assertEquals(1200, entityData.getComponent(creatureId, CasinoBigWinner.class).winnings);
+    }
+
+    @Test
+    void theKeeperHasOnlyOneBigWinnerAtATime() {
+        EntityId otherCreature = entityData.createEntity();
+        entityData.setComponents(otherCreature, new Owner(KEEPER, KEEPER), new CasinoBigWinner(10, 1000, 0));
+
+        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1f);
+
+        assertNull(entityData.getComponent(creatureId, CasinoBigWinner.class));
+    }
+
+    @Test
+    void creaturesStopGamblingWhileTheCasinoIsInDiscoMode() {
+        Gamble gamble = gamble(PayOut.SMILES, NO_JACKPOT);
+
+        entityData.setComponent(casinoId, new CasinoDisco(0));
+
+        assertFalse(gamble.isValid(creature));
     }
 
     private Gamble gamble(PayOut payOut, int jackpotRoll) {
@@ -220,6 +253,8 @@ class GambleTest {
                     KEEPER;
                 case "getObjectControl" ->
                     control;
+                case "getEntityId" ->
+                    casinoId;
                 default ->
                     throw new UnsupportedOperationException(method.getName());
             };
@@ -269,6 +304,12 @@ class GambleTest {
                     throw new UnsupportedOperationException(method.getName());
             };
         });
+    }
+
+    private static CreatureComponent creatureComponent(int pay) {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.pay = pay;
+        return creatureComponent;
     }
 
     private int gold() {

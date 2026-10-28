@@ -54,7 +54,8 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         REMOVE_FOW("now the rain has gone"),
         RESET_FOW("now the rain has come back"),
         LOOSE_LEVEL("fear the reaper"),
-        WIN_LEVEL("do not fear the reaper");
+        WIN_LEVEL("do not fear the reaper"),
+        JACKPOT("disco inferno");
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {

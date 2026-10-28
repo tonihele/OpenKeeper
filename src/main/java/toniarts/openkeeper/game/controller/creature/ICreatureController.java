@@ -223,6 +223,29 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sate();
 
     /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
+
+    /**
      * Makes the creature hungry
      */
     public void makeHungry();

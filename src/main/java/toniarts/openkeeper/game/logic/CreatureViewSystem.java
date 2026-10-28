@@ -147,6 +147,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 return Creature.AnimationType.MELEE_ATTACK;
             case CAST_SPELL:
                 return Creature.AnimationType.CAST_SPELL;
+            case DANCING:
+                return Creature.AnimationType.DANCE;
+            case CELEBRATING:
+                return Creature.AnimationType.HAPPY;
             case EATING:
                 return Creature.AnimationType.EATING;
             default:

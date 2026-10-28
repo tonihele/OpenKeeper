@@ -132,7 +132,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private boolean isWorkAnimation() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
-            return creatureAi.getCreatureState() == CreatureState.WORK;
+            CreatureState state = creatureAi.getCreatureState();
+
+            // Dancing in the Casino and the jackpot celebration go on until the state changes
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
         }
         return false;
     }

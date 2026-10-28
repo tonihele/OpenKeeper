@@ -20,17 +20,22 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
@@ -38,6 +43,8 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Manages slapping of entities, the added effects etc
@@ -47,24 +54,33 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class SlapSystem extends GameTimeCounter {
 
     private final static int EFFICIENCY_BONUS = 10;
+    /**
+     * The anger all of the keeper's creatures get when his Casino's big winner
+     * is slapped again, as in DK II
+     */
+    private final static int BIG_WINNER_SLAPPED_AGAIN_ANGER = 5000;
 
     private final IKwdFile kwdFile;
     private final EntitySet creatureEntities;
     private final EntitySet objectEntities;
     private final EntityData entityData;
+    private final IObjectsController objectsController;
     private final int maxSlapDuration;
+    private final int maxGoldPile;
     private final Map<Short, PlayerStatsControl> statControls;
     private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
 
     public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IObjectsController objectsController) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
+        this.objectsController = objectsController;
         statControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             statControls.put(playerController.getKeeper().getId(), playerController.getStatsControl());
         }
         maxSlapDuration = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS).getValue();
+        maxGoldPile = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue();
 
         creatureEntities = entityData.getEntities(Slapped.class, CreatureComponent.class, Owner.class);
         objectEntities = entityData.getEntities(Slapped.class, ObjectComponent.class, Interaction.class);
@@ -157,7 +173,50 @@ public final class SlapSystem extends GameTimeCounter {
             }
         }
 
+        // The Casino's big winner
+        CasinoBigWinner bigWinner = entityData.getComponent(entity.getId(), CasinoBigWinner.class);
+        if (bigWinner != null) {
+            slapBigWinner(entity, ownerId, bigWinner);
+        }
+
         // TODO: Apply the force
+    }
+
+    /**
+     * The big winner of the Casino drops a quarter of its winnings and gets
+     * angrier. Slapping it again angers all of the keeper's creatures.
+     */
+    private void slapBigWinner(Entity entity, short ownerId, CasinoBigWinner bigWinner) {
+
+        // The gold, in up to three piles
+        Gold gold = entityData.getComponent(entity.getId(), Gold.class);
+        int dropped = Math.min(bigWinner.winnings / 4, gold != null ? gold.gold : 0);
+        if (dropped > 0) {
+            entityData.setComponent(entity.getId(), new Gold(gold.gold - dropped, gold.maxGold));
+            int piles = (dropped < 1000 ? 1 : dropped < 3000 ? 2 : 3);
+            Point p = WorldUtils.vectorToPoint(entityData.getComponent(entity.getId(), Position.class).position);
+            for (int i = 0; i < piles; i++) {
+                objectsController.addLooseGold(ownerId, p.x, p.y, dropped / piles, maxGoldPile);
+            }
+        }
+
+        // Its own mood
+        CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
+        if (mood != null) {
+            entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_OTHER, mood.other / 4));
+        }
+
+        // Slapped again, all of the keeper's creatures get angry
+        if (bigWinner.slapCount > 0) {
+            for (EntityId creature : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", ownerId), Owner.class, CreatureMood.class)) {
+                if (!creature.equals(entity.getId())) {
+                    CreatureMood creatureMood = entityData.getComponent(creature, CreatureMood.class);
+                    entityData.setComponent(creature, creatureMood.add(CreatureMood.REASON_OTHER, BIG_WINNER_SLAPPED_AGAIN_ANGER));
+                }
+            }
+        }
+
+        entityData.setComponent(entity.getId(), new CasinoBigWinner(bigWinner.timeLeft, bigWinner.winnings, bigWinner.slapCount + 1));
     }
 
     private void processDeletedEntities(Set<Entity> entities) {

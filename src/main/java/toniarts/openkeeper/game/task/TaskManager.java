@@ -76,6 +76,7 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.CollectWinnings;
 import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
@@ -794,6 +795,28 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Point target = entityPositionLookup.getEntityLocation(food).getLocation();
             if (target == creature.getCreatureCoordinates() || navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null) {
                 GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
+                task.assign(creature, true);
+                tasksByIds.put(task.getId(), task);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean assignCollectWinningsTask(ICreatureController creature) {
+
+        // The keeper's gold is in the Treasuries and the Dungeon Heart, go to the nearest one we can reach
+        Point currentLocation = creature.getCreatureCoordinates();
+        List<IRoomController> rooms = mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId());
+        rooms.sort(Comparator.comparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
+        for (IRoomController room : rooms) {
+            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+            Point target = Utils.getRandomItem(coordinates);
+            if (target != null && (target.equals(currentLocation) || navigationService.findPath(currentLocation, target, creature) != null)) {
+                CollectWinnings task = new CollectWinnings(navigationService, mapController, target, creature.getOwnerId(), room, entityData, gameWorldController);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
                 return true;
