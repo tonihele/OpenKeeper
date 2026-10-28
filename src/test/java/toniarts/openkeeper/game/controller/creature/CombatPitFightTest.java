@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CombatPitFixtures;
@@ -190,7 +191,8 @@ class CombatPitFightTest {
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? new DefaultGraphPath<>() : null);
 
         return new CreatureController(entity, entityData, creatures.get(FIGHTER), navigationService,
-                null, gameTimer, gameSettings, creaturesController, positionLookup, null, levelInfo, null, null);
+                null, gameTimer, gameSettings, creaturesController, positionLookup, null, levelInfo, null, null,
+                stub(GameEventService.class, (name, args) -> null));
     }
 
     @FunctionalInterface
