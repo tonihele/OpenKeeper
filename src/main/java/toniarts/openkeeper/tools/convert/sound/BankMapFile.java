@@ -80,10 +80,11 @@ public final class BankMapFile {
 
                 // Entries are 11 bytes of size
                 BankMapFileEntry entry = new BankMapFileEntry();
-                entry.setUnknown1(rawMapReader.readUnsignedIntegerAsLong());
-                entry.setUnknown2(rawMapReader.readInteger());
-                entry.setUnknown3(rawMapReader.readUnsignedShort());
-                entry.setUnknown4(rawMapReader.readUnsignedByte());
+                entry.setArchiveHandle(rawMapReader.readUnsignedIntegerAsLong());
+                entry.setRefCount(rawMapReader.readUnsignedByte());
+                entry.setNamePtr(rawMapReader.readUnsignedIntegerAsLong());
+                entry.setFlags(rawMapReader.readByteAsFlag(BankMapFileEntry.BankFlag.class));
+                entry.setUnused(rawMapReader.readUnsignedByte());
 
                 entries[i] = entry;
             }
