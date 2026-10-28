@@ -379,6 +379,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Map<String, Runnable> handlers = new HashMap<>();
         handlers.put("selectCampaignLevel", this::showSelectCampaignLevelScreen);
         handlers.put("briefing", this::showBriefing);
+        handlers.put(SCREEN_DEBRIEFING_ID, this::fillDebriefingScreen);
         handlers.put("hiscores", this::generateHiscoreList);
         handlers.put("optionsGraphics", this::setGraphicsSettingsToGUI);
         handlers.put("optionsControl", this::setControlSettingsToGUI);
@@ -1335,15 +1336,29 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         }
     }
 
+    /**
+     * Go to the debriefing screen, which fills itself in once it has started
+     */
     public void showDebriefing() {
-        Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
+        goToScreen(SCREEN_DEBRIEFING_ID);
+    }
+
+    /**
+     * Fill in the debriefing screen. Nifty binds the controls of a screen only when the screen
+     * starts, a label set before that keeps its default text.
+     */
+    private void fillDebriefingScreen() {
+        IKwdFile level = state.getDebriefingLevel();
+        if (level == null) {
+            return;
+        }
+        Screen deScreen = screen;
 
         Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
 
         Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
         Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
 
-        IKwdFile level = state.getDebriefingLevel();
         GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
         boolean campaign = state.isDebriefingCampaign();
@@ -1393,7 +1408,5 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             audioNode.play();
             state.setLevelDebriefing(audioNode);
         }
-
-        goToScreen(SCREEN_DEBRIEFING_ID);
     }
 }
