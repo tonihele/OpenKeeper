@@ -60,4 +60,12 @@ class KeeperKilledTest {
         assertFalse(keeper.isKilledBy(Player.KEEPER2_ID));
     }
 
+    @Test
+    void resultOfAKeeperCanBeSetOnlyOnce() {
+        Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
+
+        assertTrue(keeper.claimResult());
+        assertFalse(keeper.claimResult());
+    }
+
 }

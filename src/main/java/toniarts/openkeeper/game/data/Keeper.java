@@ -60,6 +60,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private short id;
     private boolean destroyed = false;
     private short killerId;
+    private transient boolean resultSet;
     private Set<Short> allies = HashSet.newHashSet(4);
 
     public Keeper() {
@@ -158,6 +159,17 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
      */
     public boolean isKilledBy(short playerId) {
         return destroyed && (playerId == 0 || playerId == killerId);
+    }
+
+    /**
+     * A player's game result is only ever set once. Claims the right to set it.
+     *
+     * @return true the first time, false when the result has already been set
+     */
+    public boolean claimResult() {
+        boolean first = !resultSet;
+        resultSet = true;
+        return first;
     }
 
     public AIType getAiType() {

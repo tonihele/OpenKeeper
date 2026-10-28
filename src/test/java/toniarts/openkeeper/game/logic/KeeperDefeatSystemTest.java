@@ -144,12 +144,12 @@ class KeeperDefeatSystemTest {
     void keeperIsDefeatedOnlyOnce() {
         KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
 
-        entityData.setComponent(hearts.get(RIVAL), new Health(0, 100_000));
+        entityData.setComponent(hearts.get(HUMAN), new Health(0, 100_000));
         system.processTick(0.25f);
-        entityData.removeEntity(hearts.get(RIVAL));
+        entityData.removeEntity(hearts.get(HUMAN));
         system.processTick(0.25f);
 
-        assertEquals(List.of(RIVAL + " lost"), endings);
+        assertEquals(List.of(HUMAN + " lost"), endings);
         assertEquals(1, ruinedHearts.size());
     }
 
@@ -159,11 +159,24 @@ class KeeperDefeatSystemTest {
 
         entityData.removeEntity(hearts.get(RIVAL));
         system.processTick(0.25f);
-        assertEquals(List.of(RIVAL + " lost"), endings);
+        assertTrue(endings.isEmpty());
 
         entityData.removeEntity(hearts.get(OTHER_RIVAL));
         system.processTick(0.25f);
-        assertEquals(List.of(RIVAL + " lost", OTHER_RIVAL + " lost", HUMAN + " won"), endings);
+        assertEquals(List.of(HUMAN + " won"), endings);
+    }
+
+    @Test
+    void skirmishTellsAiFromHumanByTheLobbyNotTheMapRecord() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL);
+        keepers.get(HUMAN).setPlayer(KeeperDefeatFixtures.player(HUMAN, true));
+        keepers.get(RIVAL).setPlayer(KeeperDefeatFixtures.player(RIVAL, false));
+
+        entityData.removeEntity(hearts.get(HUMAN));
+        system.processTick(0.25f);
+
+        // The human lost although his map record is an AI one, and the AI rival's win is no result
+        assertEquals(List.of(HUMAN + " lost"), endings);
     }
 
     @Test
@@ -173,7 +186,8 @@ class KeeperDefeatSystemTest {
         entityData.removeEntity(hearts.get(RIVAL));
         system.processTick(0.25f);
 
-        assertEquals(List.of(RIVAL + " lost"), endings);
+        assertTrue(endings.isEmpty());
+        assertTrue(keepers.get(RIVAL).isDestroyed());
     }
 
     @Test
@@ -211,7 +225,8 @@ class KeeperDefeatSystemTest {
     private KeeperDefeatSystem createSystem(boolean skirmish, short... keeperIds) {
         Map<Short, Keeper> players = new HashMap<>();
         for (short keeperId : keeperIds) {
-            Keeper keeper = new Keeper(KeeperDefeatFixtures.player(keeperId, keeperId != HUMAN));
+            Keeper keeper = new Keeper(keeperId != HUMAN, keeperId);
+            keeper.setPlayer(KeeperDefeatFixtures.player(keeperId, keeperId != HUMAN));
             keeper.setDungeonHeartLocation(heartTile(keeperId));
             keepers.put(keeperId, keeper);
             players.put(keeperId, keeper);

@@ -123,7 +123,9 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
         ruinHeartRoom(keeper);
-        gameController.endGame(keeper.getId(), false);
+        if (!isAi(keeper)) {
+            gameController.endGame(keeper.getId(), false);
+        }
         if (lastKeeperWins) {
             checkLastKeeperStanding();
         } else {
@@ -162,7 +164,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     private void checkLastKeeperStanding() {
         List<Keeper> standing = getKeepersStanding();
-        if (standing.size() == 1) {
+        if (standing.size() == 1 && !isAi(standing.getFirst())) {
             gameController.endGame(standing.getFirst().getId(), true);
         }
     }
@@ -184,7 +186,15 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     private boolean isHeartMakingGem(Keeper keeper) {
         return levelInfo.getLevelData().getGameLevel().getLvlFlags().contains(GameLevel.LevFlag.HEART_MAKES_GEM)
-                && keeper.getPlayer() != null && keeper.getPlayer().isAi() && keeper.getDungeonHeartLocation() != null;
+                && isAi(keeper) && keeper.getDungeonHeartLocation() != null;
+    }
+
+    private boolean isAi(Keeper keeper) {
+        // Skirmish and multiplayer players come from the lobby, the map's player record only tells the campaign
+        if (lastKeeperWins) {
+            return keeper.isAi();
+        }
+        return keeper.getPlayer() != null && keeper.getPlayer().isAi();
     }
 
     private List<Keeper> getKeepersStanding() {
