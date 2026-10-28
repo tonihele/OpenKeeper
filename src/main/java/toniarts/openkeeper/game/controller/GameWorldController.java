@@ -1226,13 +1226,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
         entityData.setComponent(entity, new Position(0, pos));
 
-        // Retain a manual rest target in AI while falling; AI updates wait for landing.
-        if (creatureState != null || targetState != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
-                    creatureState != null ? creatureState : CreatureState.FALLEN,
-                    creatureComponent.creatureId, targetState));
-        }
+        restoreDroppedCreatureAi(entity, creatureState, targetState);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
@@ -1257,6 +1251,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
+        }
+    }
+
+    /** Restores captive AI or a pending rest target; falling creatures wait for landing. */
+    private void restoreDroppedCreatureAi(EntityId entity, CreatureState creatureState, CreatureState targetState) {
+        if (creatureState != null || targetState != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
+                    creatureState != null ? creatureState : CreatureState.FALLEN,
+                    creatureComponent.creatureId, targetState));
         }
     }
 
